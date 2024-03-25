@@ -11,7 +11,7 @@ Android store
 https://play.google.com/store/apps/details?id=com.jthomas.info.Bible.Alarm
 
 Windows store
-https://www.microsoft.com/store/productId/9NHZHB85V6R4
+https://apps.microsoft.com/detail/9nhzhb85v6r4
 
 ###  Development environment
 
