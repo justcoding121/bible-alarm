@@ -14,7 +14,6 @@ namespace AudioLinkHarvester.Bible
 {
     internal class JwBibleHarvester
     {
-
         internal async static
             Task Harvest_Bible_Links(Dictionary<string, string> biblePublicationCodeToNameMappings,
                                     ConcurrentDictionary<string, string> languageCodeToNameMappings,
@@ -25,7 +24,7 @@ namespace AudioLinkHarvester.Bible
             {
                 var publicationCode = publication.Key;
 
-                var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+                var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?booknum=1&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
                 var model = JsonConvert.DeserializeObject<dynamic>(jsonString);

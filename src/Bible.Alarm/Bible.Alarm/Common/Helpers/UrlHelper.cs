@@ -2,7 +2,6 @@
 {
     public class UrlHelper
     {
-        public static string JwOrgIndexServiceBaseUrl = "https://api.hag27.com/GETPUBMEDIALINKS";
-
+        public static string JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS";
     }
 }
