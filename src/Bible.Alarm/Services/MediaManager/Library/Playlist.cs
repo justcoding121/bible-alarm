@@ -8,7 +8,7 @@ namespace MediaManager.Library
     {
         public Playlist()
         {
-            if (CreatedAt == null)
+            if (CreatedAt == default(DateTime))
                 CreatedAt = DateTime.Now;
         }
 

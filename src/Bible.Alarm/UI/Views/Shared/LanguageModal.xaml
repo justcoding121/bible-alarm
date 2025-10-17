@@ -6,8 +6,8 @@
     xmlns:behaviours="clr-namespace:Bible.Alarm.UI.Views.Behaviours"
     xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
-    xmlns:vm="clr-namespace:Bible.Alarm.Contracts.UI"
-    x:DataType="vm:IListViewModel"
+    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+    x:DataType="vm:BibleSelectionViewModel"
     Padding="0,10,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -103,10 +103,10 @@
                 Command="{Binding CloseModalCommand}"
                 FontSize="18" FontAttributes="Bold"
                 HeightRequest="{OnPlatform Default='50',
-                                           UWP='37'}"
+                                           WinUI='37'}"
                 HorizontalOptions="Fill"
                 MinimumHeightRequest="{OnPlatform Default='50',
-                                                  UWP='37'}"
+                                                  WinUI='37'}"
                 Text="Close"
                 TextColor="SlateBlue"
                 VerticalOptions="Fill" />

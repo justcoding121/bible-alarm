@@ -6,7 +6,7 @@
     <OnPlatform x:Key="FontAwesomeSolidId" x:TypeArguments="x:String">
         <On Platform="iOS" Value="Font Awesome 5 Free" />
         <On Platform="Android" Value="Font Awesome 5 Free-Solid-900.otf#Font Awesome 5 Free Solid" />
-        <On Platform="UWP, WinRT, WinPhone" Value="Assets/Fonts/Font Awesome 5 Free-Solid-900.otf#Font Awesome 5 Free" />
+        <On Platform="WinUI" Value="Assets/Fonts/Font Awesome 5 Free-Solid-900.otf#Font Awesome 5 Free" />
     </OnPlatform>
     <Style x:Key="FontAwesomeSolid" TargetType="Label">
         <Setter Property="FontFamily" Value="{StaticResource FontAwesomeSolidId}" />

@@ -7,7 +7,7 @@ namespace MediaManager.Library
     {
         public Radio()
         {
-            if (CreatedAt == null)
+            if (CreatedAt == default(DateTime))
                 CreatedAt = DateTime.Now;
         }
 

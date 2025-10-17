@@ -38,7 +38,7 @@ namespace MediaManager.Platforms.Ios.Media
             if (item.Artwork != null)
                 output.Image = item.Artwork.ImageWithSize(new CGSize(300, 300));
 
-            if (output.Date != null)
+            if (output.Date != default(DateTime))
                 output.Year = output.Date.Year;
 
             return output;

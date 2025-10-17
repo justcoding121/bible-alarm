@@ -8,6 +8,8 @@
     xmlns:fn="clr-namespace:FontNameResources"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:models="clr-namespace:Bible.Alarm.Models"
+    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+    x:DataType="vm:HomeViewModel"
     Title="Bible Alarm"
     NavigationPage.HasNavigationBar="False">
     <ContentPage.Resources>
@@ -34,7 +36,7 @@
                     <OnPlatform.Platforms>
                         <On Platform="iOS" Value="4.0" />
                         <On Platform="Android" Value="1.0" />
-                        <On Platform="Win" Value="1.0" />
+                        <On Platform="WinUI" Value="1.0" />
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </ActivityIndicator.Scale>
@@ -57,10 +59,10 @@
                     FontSize="{OnPlatform Default='18',
                                           iOS='25'}"
                     HeightRequest="{OnPlatform Default='50',
-                                               UWP='35'}"
+                                               WinUI='35'}"
                     HorizontalOptions="Fill"
                     MinimumHeightRequest="{OnPlatform Default='50',
-                                                      UWP='30'}"
+                                                      WinUI='30'}"
                     Text="{x:Static fn:GlyphNames.Plus}"
                     TextColor="SlateBlue" />
             </StackLayout>
@@ -110,7 +112,7 @@
                                     Grid.Column="0"
                                     Margin="{OnIdiom Default={OnPlatform Default='10,3,0,0',
                                                                          iOS='10,3,0,0',
-                                                                         UWP='30,3,0,0'},
+                                                                         WinUI='30,3,0,0'},
                                                      Tablet={OnPlatform Default='30,3,0,0'}}"
                                     Padding="0"
                                     Orientation="Vertical">
@@ -118,21 +120,21 @@
                                         Margin="0"
                                         Padding="0"
                                         BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                                     UWP='LightGray'}"
+                                                                     WinUI='LightGray'}"
                                         Command="{Binding PlayCommand}"
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        HeightRequest="{OnPlatform UWP='50',
+                                        HeightRequest="{OnPlatform WinUI='50',
                                                                    iOS='50'}"
                                         HorizontalOptions="Center"
-                                        MinimumHeightRequest="{OnPlatform UWP='50',
+                                        MinimumHeightRequest="{OnPlatform WinUI='50',
                                                                           iOS='50'}"
                                         MinimumWidthRequest="{OnPlatform iOS='75',
-                                                                         UWP='75'}"
+                                                                         WinUI='75'}"
                                         Text="{x:Static fn:GlyphNames.Play}"
                                         TextColor="SlateBlue"
                                         VerticalOptions="CenterAndExpand"
                                         WidthRequest="{OnPlatform iOS='75',
-                                                                  UWP='75'}" />
+                                                                  WinUI='75'}" />
                                     <StackLayout
                                         Margin="0"
                                         Padding="0"
@@ -226,7 +228,7 @@
                                             Command="{Binding PreviousCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',
-                                                                  UWP='Micro'}"
+                                                                  WinUI='Micro'}"
                                             HorizontalOptions="Start"
                                             MinimumHeightRequest="25"
                                             Text="{x:Static fn:GlyphNames.Previous}"
@@ -240,7 +242,7 @@
                                             Command="{Binding NextCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',
-                                                                  UWP='Micro'}"
+                                                                  WinUI='Micro'}"
                                             MinimumHeightRequest="25"
                                             HorizontalOptions="Start"
                                             Text="{x:Static fn:GlyphNames.Next}"
@@ -252,13 +254,13 @@
                                     Grid.Column="2"
                                     Margin="{OnIdiom Default={OnPlatform Default='15,0,30,0',
                                                                          iOS='5,0,10,0',
-                                                                         UWP='5,0,10,0'},
+                                                                         WinUI='5,0,10,0'},
                                                      Tablet={OnPlatform Default='15,0,50,0'}}"
                                     HorizontalOptions="End"
                                     Orientation="Vertical"
                                     VerticalOptions="CenterAndExpand">
                                     <Switch
-                                        Margin="{OnPlatform UWP='0,0,-100,0'}"
+                                        Margin="{OnPlatform WinUI='0,0,-100,0'}"
                                         HorizontalOptions="End"
                                         VerticalOptions="CenterAndExpand"
                                         IsToggled="{Binding IsEnabled, Mode=TwoWay}"

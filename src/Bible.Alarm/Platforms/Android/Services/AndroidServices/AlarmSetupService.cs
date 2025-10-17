@@ -27,7 +27,7 @@ namespace Bible.Alarm.Services.Droid.Tasks
         public AlarmSetupService()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, Device.Android);
+                new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
 
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

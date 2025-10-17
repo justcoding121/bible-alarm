@@ -32,7 +32,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
         public RestartReceiver()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, Device.Android);
+                new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
 
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

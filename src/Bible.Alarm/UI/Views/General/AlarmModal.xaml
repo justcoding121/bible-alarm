@@ -30,14 +30,14 @@
                     <Label
                         Padding="10,0,10,0"
                         FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         Text="{Binding Title}" />
                     <Label
                         Padding="10,0,10,0"
                         FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         Text="{Binding Description}" />
@@ -63,7 +63,7 @@
                         Margin="5"
                         AutomationId="AlarmDismissButton"
                         BackgroundColor="{OnPlatform iOS='WhiteSmoke',
-                                                     UWP='WhiteSmoke'}"
+                                                     WinUI='WhiteSmoke'}"
                         Command="{Binding DismissCommand}"
                         CornerRadius="10"
                         FontSize="{OnPlatform Default='Medium',
@@ -79,7 +79,7 @@
                     Margin="15,0,15,0"
                     Padding="10,0,10,0"
                     FontSize="{OnPlatform Default='Medium',
-                                          UWP='Small'}"
+                                          WinUI='Small'}"
                     HorizontalOptions="Center"
                     HorizontalTextAlignment="Center"
                     Text="{Binding SubTitle}" />
@@ -103,9 +103,9 @@
                 <Label
                     Grid.Row="0"
                     Grid.Column="0"
-                    Margin="{OnPlatform Default='10,0,0,0', UWP='10,0,0,10'}"
+                    Margin="{OnPlatform Default='10,0,0,0', WinUI='10,0,0,10'}"
                     FontSize="{OnPlatform Default='Small',
-                                          UWP='Micro'}"
+                                          WinUI='Micro'}"
                     HorizontalOptions="Start"
                     Text="{Binding CurrentTime}"
                     VerticalOptions="Center" />
@@ -119,9 +119,9 @@
                 <Label
                     Grid.Row="0"
                     Grid.Column="2"
-                    Margin="{OnPlatform Default='0,0,10,0', UWP='0,0,10,10'}"
+                    Margin="{OnPlatform Default='0,0,10,0', WinUI='0,0,10,10'}"
                     FontSize="{OnPlatform Default='Small',
-                                          UWP='Micro'}"
+                                          WinUI='Micro'}"
                     HorizontalOptions="End"
                     Text="{Binding EndTime}"
                     VerticalOptions="Center" />
@@ -146,7 +146,7 @@
                         Command="{Binding PreviousCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                         HorizontalOptions="Center"
                         Text="{x:Static fn:GlyphNames.Previous}"
                         TextColor="{Binding PreviousEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
@@ -159,7 +159,7 @@
                         Command="{Binding BackwardCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                         HorizontalOptions="Center"
                         Text="{x:Static fn:GlyphNames.Backward}"
                         TextColor="SlateBlue"
@@ -172,7 +172,7 @@
                         Command="{Binding PlayCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Large',
-                                              UWP='Small'}"
+                                              WinUI='Small'}"
                         HorizontalOptions="Center"
                         IsVisible="{Binding PlayVisible}"
                         Text="{x:Static fn:GlyphNames.Play}"
@@ -186,7 +186,7 @@
                         Command="{Binding PauseCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Large',
-                                              UWP='Small'}"
+                                              WinUI='Small'}"
                         HorizontalOptions="Center"
                         IsVisible="{Binding PauseVisible}"
                         Text="{x:Static fn:GlyphNames.Pause}"
@@ -200,7 +200,7 @@
                         Command="{Binding ForwardCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                         HorizontalOptions="Center"
                         Text="{x:Static fn:GlyphNames.Forward}"
                         TextColor="SlateBlue" />
@@ -212,7 +212,7 @@
                         Command="{Binding NextCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                         HorizontalOptions="Center"
                         Text="{x:Static fn:GlyphNames.Next}"
                         TextColor="{Binding NextEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"

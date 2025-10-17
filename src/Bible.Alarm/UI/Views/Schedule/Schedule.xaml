@@ -62,13 +62,13 @@
                             AutomationId="CancelButton"
                             Command="{Binding CancelCommand}"
                             FontSize="{OnPlatform Default='18',
-                                          UWP='16'}"
+                                          WinUI='16'}"
                             FontAttributes="Bold"
                             HeightRequest="{OnPlatform Default='50',
-                                                   UWP='37'}"
+                                                   WinUI='37'}"
                             HorizontalOptions="Fill"
                             MinimumHeightRequest="{OnPlatform Default='50',
-                                                          UWP='37'}"
+                                                          WinUI='37'}"
                             Text="CANCEL"
                             TextColor="SlateBlue"
                             VerticalOptions="Fill" />
@@ -77,13 +77,13 @@
                             AutomationId="SaveButton"
                             Command="{Binding SaveCommand}"
                             FontSize="{OnPlatform Default='18',
-                                          UWP='16'}"
+                                          WinUI='16'}"
                             FontAttributes="Bold"
                             HeightRequest="{OnPlatform Default='50',
-                                                   UWP='37'}"
+                                                   WinUI='37'}"
                             HorizontalOptions="Fill"
                             MinimumHeightRequest="{OnPlatform Default='50',
-                                                          UWP='37'}"
+                                                          WinUI='37'}"
                             Text="SAVE"
                             TextColor="SlateBlue"
                             VerticalOptions="Fill" />
@@ -190,7 +190,7 @@
                         </StackLayout>
                         <StackLayout Margin="{OnPlatform Default='0,5,0,5',
                                                 iOS='0,15,0,5',
-                                                UWP='0,15,0,5'}"
+                                                WinUI='0,15,0,5'}"
                                      HorizontalOptions="Center"
                                      Orientation="Horizontal">
                             <Label Margin="0,0,5,0"
@@ -282,7 +282,7 @@
                                                 Command="{Binding PreviousBookCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                                                 HorizontalOptions="End"
                                                 Text="{x:Static fn:GlyphNames.Previous}"
                                                 TextColor="Gray"
@@ -294,7 +294,7 @@
                                                 Command="{Binding NextBookCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                                                 HorizontalOptions="End"
                                                 Text="{x:Static fn:GlyphNames.Next}"
                                                 TextColor="Gray"
@@ -332,7 +332,7 @@
                                                 Command="{Binding PreviousChapterCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                                                 HorizontalOptions="End"
                                                 Text="{x:Static fn:GlyphNames.Previous}"
                                                 TextColor="Gray"
@@ -344,7 +344,7 @@
                                                 Command="{Binding NextChapterCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{OnPlatform Default='Medium',
-                                              UWP='Micro'}"
+                                              WinUI='Micro'}"
                                                 HorizontalOptions="End"
                                                 Text="{x:Static fn:GlyphNames.Next}"
                                                 TextColor="Gray"
@@ -413,13 +413,13 @@
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
                                 <Switch Margin="{OnPlatform Default='0,0,15,0',
-                                                        UWP='0,0,-95,0'}"
+                                                        WinUI='0,0,-95,0'}"
                                         HeightRequest="30"
                                         HorizontalOptions="End"
                                         IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
                                         Scale="{OnPlatform Android='1.25',
                                                        iOS='1',
-                                                       UWP='1'}"
+                                                       WinUI='1'}"
                                         VerticalOptions="Center" />
                             </StackLayout>
                         </Grid>
@@ -457,13 +457,13 @@
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
                                 <Switch Margin="{OnPlatform Default='0,0,15,0',
-                                                        UWP='0,0,-95,0'}"
+                                                        WinUI='0,0,-95,0'}"
                                         HeightRequest="30"
                                         HorizontalOptions="End"
                                         IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
                                         Scale="{OnPlatform Default='1.25',
                                                        iOS='1',
-                                                       UWP='1'}"
+                                                       WinUI='1'}"
                                         VerticalOptions="Center" />
                             </StackLayout>
                         </Grid>
@@ -498,13 +498,13 @@
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
                                 <Switch Margin="{OnPlatform Default='0,0,15,0',
-                                                        UWP='0,0,-95,0'}"
+                                                        WinUI='0,0,-95,0'}"
                                         HeightRequest="30"
                                         HorizontalOptions="End"
                                         IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
                                         Scale="{OnPlatform Default='1.25',
                                                        iOS='1',
-                                                       UWP='1'}"
+                                                       WinUI='1'}"
                                         VerticalOptions="Center" />
                                 <Label Margin="0,0,10,0"
                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -524,13 +524,13 @@
                             Padding="0"
                             Command="{Binding DeleteCommand}"
                             FontSize="{OnPlatform Default='16',
-                                          UWP='14'}"
+                                          WinUI='14'}"
                             HeightRequest="{OnPlatform Default='50',
-                                                   UWP='37'}"
+                                                   WinUI='37'}"
                             HorizontalOptions="Fill"
                             IsVisible="{Binding IsExistingSchedule}"
                             MinimumHeightRequest="{OnPlatform Default='50',
-                                                          UWP='37'}"
+                                                          WinUI='37'}"
                             Text="REMOVE"
                             TextColor="SlateBlue" />
                 </Grid>
