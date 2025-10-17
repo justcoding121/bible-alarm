@@ -36,7 +36,7 @@
                         <OnPlatform.Platforms>
                             <On Platform="iOS" Value="4.0" />
                             <On Platform="Android" Value="1.0" />
-                            <On Platform="UWP" Value="1.0" />
+                            <On Platform="Win" Value="1.0" />
                         </OnPlatform.Platforms>
                     </OnPlatform>
                 </ActivityIndicator.Scale>
@@ -144,7 +144,7 @@
                                                     <OnPlatform.Platforms>
                                                         <On Platform="iOS" Value="1.0" />
                                                         <On Platform="Android" Value="0.5" />
-                                                        <On Platform="UWP" Value="1.0" />
+                                                        <On Platform="Win" Value="1.0" />
                                                     </OnPlatform.Platforms>
                                                 </OnPlatform>
                                             </ActivityIndicator.Scale>

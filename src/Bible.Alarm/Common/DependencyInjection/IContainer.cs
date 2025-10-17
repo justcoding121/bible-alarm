@@ -50,7 +50,6 @@
         /// The type should be registered before use.
         /// </remarks>
         /// <returns>The of.</returns>
-        /// <typeparam name="T">The requested type.</typeparam>
         object Resolve(Type type);
 
         /// <summary>

@@ -45,10 +45,6 @@
         /// PropertyChanged event is raised with the given property name.
         /// </summary>
         /// <returns>The result of the assignment.</returns>
-        /// <param name="field">Field reference.</param>
-        /// <param name="value">The new value.</param>
-        /// <param name="name">Name of the set property.</param>
-        /// <typeparam name="T">The 1st type parameter.</typeparam>
         public static Assignement<TObservable, T> Set<TObservable, T>(this TObservable obs, ref T field, T value, [CallerMemberName]string name = null)
             where TObservable : VmObservable
         {
@@ -68,10 +64,6 @@
         /// PropertyChanged event is raised with the given property name.
         /// </summary>
         /// <returns>The result of the assignment.</returns>
-        /// <param name="field">Field reference.</param>
-        /// <param name="value">The new value.</param>
-        /// <param name="name">Name of the set property.</param>
-        /// <typeparam name="T">The 1st type parameter.</typeparam>
         public static Assignement<TObservable, T> Set<TObservable, T>(this TObservable obs, T field, T value, [CallerMemberName]string name = null)
             where TObservable : VmObservable
         {

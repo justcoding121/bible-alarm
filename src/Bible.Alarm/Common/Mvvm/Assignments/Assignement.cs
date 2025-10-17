@@ -44,7 +44,6 @@
         /// If the value has changed, then raise a set of other property.
         /// </summary>
         /// <returns>The raise.</returns>
-        /// <param name="properties">Properties.</param>
         public Assignement<TObservable, T> ThenRaise<TProperty>(Expression<Func<TProperty>> property)
         {
             if (HasChanged)

@@ -149,9 +149,8 @@ namespace MediaManager.Platforms.Apple.Notifications
             }
 
 #if __IOS__ || __TVOS__
-            var cover = mediaItem.DisplayImage as UIKit.UIImage;
 
-            if (cover != null)
+            if (mediaItem.DisplayImage is UIKit.UIImage cover)
             {
                 //TODO: Why is this deprecated?
                 nowPlayingInfo.Artwork = new MPMediaItemArtwork(cover);
