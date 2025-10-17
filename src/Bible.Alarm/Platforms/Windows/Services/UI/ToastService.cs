@@ -67,7 +67,7 @@ namespace Bible.Alarm.Services.Windows
                     Placement = FlyoutPlacementMode.Bottom
                 };
 
-                Frame currentFrame = Window.Current.Content as Frame;
+                Microsoft.UI.Xaml.Controls.Frame currentFrame = Microsoft.UI.Xaml.Window.Current.Content as Microsoft.UI.Xaml.Controls.Frame;
                 flyout.OverlayInputPassThroughElement = currentFrame;
                 flyout.ShowAt(currentFrame);
 

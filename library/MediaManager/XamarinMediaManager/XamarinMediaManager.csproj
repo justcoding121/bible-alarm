@@ -20,4 +20,8 @@
     <Compile Include="Volume\**\*.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+  </ItemGroup>
+
 </Project>

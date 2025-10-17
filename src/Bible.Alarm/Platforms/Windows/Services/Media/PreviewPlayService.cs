@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 
-namespace Bible.Alarm.Services.Windows.Media
+namespace Bible.Alarm.Services.Windows
 {
     public class PreviewPlayService : IPreviewPlayService
     {

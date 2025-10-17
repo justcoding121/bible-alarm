@@ -16,36 +16,24 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.1.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="NLog" Version="4.7.14" />
-    <PackageReference Include="System.Reactive.Linq" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.0" />
-    <PackageReference Include="Plugin.StoreReview" Version="3.3.0" />
+    <PackageReference Include="NLog" Version="6.0.5" />
+    <PackageReference Include="System.Reactive.Linq" Version="6.1.0" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
+    <PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
   </ItemGroup>
   
   <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-    <PackageReference Include="Xamarin.AndroidX.Browser" Version="1.8.0.6" />
+    <PackageReference Include="Xamarin.AndroidX.Browser" Version="1.8.0.9" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
     <ProjectReference Include="..\..\library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj" />
   </ItemGroup>
   
-  <!-- Main project files -->
-  <ItemGroup>
-    <Compile Include="App.xaml.cs" />
-    <Compile Include="MauiProgramExtensions.cs" />
-    <Compile Include="Common\**\*.cs" />
-    <Compile Include="Contracts\**\*.cs" />
-    <Compile Include="Models\**\*.cs" />
-    <Compile Include="Services\**\*.cs" />
-    <Compile Include="UI\**\*.cs" />
-    <Compile Include="ViewModels\**\*.cs" />
-    <Compile Include="AssemblyInfo.cs" />
-  </ItemGroup>
-  
+
   <ItemGroup>
     <EmbeddedResource Include="App.xaml" />
     <EmbeddedResource Include="UI\Views\**\*.xaml" />
@@ -66,5 +54,217 @@
   <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
     <Compile Include="Platforms\Windows\**\*.cs" />
     <Content Include="Platforms\Windows\Assets\**" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Include="App.xaml.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="Common\CurrentDevice.cs" />
+    <Compile Include="Common\DataStructures\AsyncQueue.cs" />
+    <Compile Include="Common\DataStructures\ObservableDictionary.cs" />
+    <Compile Include="Common\DataStructures\ObservableHashSet.cs" />
+    <Compile Include="Common\DataStructures\OrderedDictionary.cs" />
+    <Compile Include="Common\DataStructures\OrderedHashSet.cs" />
+    <Compile Include="Common\DataStructures\RedBlackTree.cs" />
+    <Compile Include="Common\DataStructures\Shared\BSTBase.cs" />
+    <Compile Include="Common\DataStructures\Shared\BSTEnumerator.cs" />
+    <Compile Include="Common\DataStructures\Shared\BSTExtensions.cs" />
+    <Compile Include="Common\DataStructures\Shared\BSTNodeBase.cs" />
+    <Compile Include="Common\DataStructures\Shared\IEnumerableExtensions.cs" />
+    <Compile Include="Common\DependencyInjection\Container.cs" />
+    <Compile Include="Common\DependencyInjection\IContainer.cs" />
+    <Compile Include="Common\Extensions\CloneExtensions.cs" />
+    <Compile Include="Common\Extensions\LinqExtensions.cs" />
+    <Compile Include="Common\Extensions\MediaManagerExtensions.cs" />
+    <Compile Include="Common\Extensions\ObservableDictionaryExtensions.cs" />
+    <Compile Include="Common\Extensions\TaskExtensions.cs" />
+    <Compile Include="Common\Helpers\AsyncLazy.cs" />
+    <Compile Include="Common\Helpers\BgSourceHelper.cs" />
+    <Compile Include="Common\Helpers\CommonBootstrapHelper.cs" />
+    <Compile Include="Common\Helpers\JwSourceHelper.cs" />
+    <Compile Include="Common\Helpers\RetryHelper.cs" />
+    <Compile Include="Common\Helpers\SourceHelper.cs" />
+    <Compile Include="Common\Helpers\UrlHelper.cs" />
+    <Compile Include="Common\Mvvm\Assignments\Assignement.cs" />
+    <Compile Include="Common\Mvvm\Commands\AsyncRelayCommand.cs" />
+    <Compile Include="Common\Mvvm\Commands\AsyncRelayCommand{T}.cs" />
+    <Compile Include="Common\Mvvm\Commands\CommandExtensions.cs" />
+    <Compile Include="Common\Mvvm\Commands\IAsyncRelayCommand.cs" />
+    <Compile Include="Common\Mvvm\Commands\IRelayCommand.cs" />
+    <Compile Include="Common\Mvvm\Commands\RelayCommand.cs" />
+    <Compile Include="Common\Mvvm\Commands\RelayCommand{T}.cs" />
+    <Compile Include="Common\Mvvm\Extensions\QueryExtensions.cs" />
+    <Compile Include="Common\Mvvm\IDisposableModal.cs" />
+    <Compile Include="Common\Mvvm\Messenger\Messenger.cs" />
+    <Compile Include="Common\Mvvm\Observable.cs" />
+    <Compile Include="Common\Mvvm\Observers\NotifyPropertyObserver.cs" />
+    <Compile Include="Common\Mvvm\Observers\ObserversExtensions.cs" />
+    <Compile Include="Common\Mvvm\ViewModelBase.cs" />
+    <Compile Include="Common\Quartz\CronExpression.cs" />
+    <Compile Include="Common\Quartz\QuartzEnvironment.cs" />
+    <Compile Include="Common\Quartz\SortedSetExtensions.cs" />
+    <Compile Include="Common\Quartz\SystemTime.cs" />
+    <Compile Include="Common\Quartz\TimeZoneUtil.cs" />
+    <Compile Include="Common\Redux\Dispatcher.cs" />
+    <Compile Include="Common\Redux\IAction.cs" />
+    <Compile Include="Common\Redux\IStore.cs" />
+    <Compile Include="Common\Redux\Middleware`1.cs" />
+    <Compile Include="Common\Redux\Reducer`1.cs" />
+    <Compile Include="Common\Redux\Store.cs" />
+    <Compile Include="Contracts\Battery\IBatteryOptimizationManager.cs" />
+    <Compile Include="Contracts\Media\IAndroidAlarmHandler.cs" />
+    <Compile Include="Contracts\Media\IDownloadService.cs" />
+    <Compile Include="Contracts\Media\IMediaCacheService.cs" />
+    <Compile Include="Contracts\Media\IPlaybackService.cs" />
+    <Compile Include="Contracts\Media\IPlaylistService.cs" />
+    <Compile Include="Contracts\Media\IPreviewPlayService.cs" />
+    <Compile Include="Contracts\Network\INetworkStatusService.cs" />
+    <Compile Include="Contracts\Platform\IVersionFinder.cs" />
+    <Compile Include="Contracts\Scheduler\IAlarmService.cs" />
+    <Compile Include="Contracts\Storage\IStorageService.cs" />
+    <Compile Include="Contracts\UI\IListViewModel.cs" />
+    <Compile Include="Contracts\UI\INavigationService.cs" />
+    <Compile Include="Contracts\UI\INotificationService.cs" />
+    <Compile Include="Contracts\UI\IToastService.cs" />
+    <Compile Include="MauiProgramExtensions.cs" />
+    <Compile Include="Models\Enums\DaysOfWeek.cs" />
+    <Compile Include="Models\Enums\Meridien.cs" />
+    <Compile Include="Models\Enums\MusicType.cs" />
+    <Compile Include="Models\Enums\PlayType.cs" />
+    <Compile Include="Models\Enums\SourceWebsite.cs" />
+    <Compile Include="Models\GeneralSettings.cs" />
+    <Compile Include="Models\Media\AudioSource.cs" />
+    <Compile Include="Models\Media\Bible\BibleBook.cs" />
+    <Compile Include="Models\Media\Bible\BibleChapter.cs" />
+    <Compile Include="Models\Media\Bible\BibleTranslation.cs" />
+    <Compile Include="Models\Media\Language.cs" />
+    <Compile Include="Models\Media\Music\MelodyMusic.cs" />
+    <Compile Include="Models\Media\Music\MusicTrack.cs" />
+    <Compile Include="Models\Media\Music\VocalMusic.cs" />
+    <Compile Include="Models\Media\NotificationDetail.cs" />
+    <Compile Include="Models\Media\PlayItem.cs" />
+    <Compile Include="Models\Media\Publication.cs" />
+    <Compile Include="Models\Schedule\AlarmMusic.cs" />
+    <Compile Include="Models\Schedule\AlarmNotification.cs" />
+    <Compile Include="Models\Schedule\AlarmSchedule.cs" />
+    <Compile Include="Models\Schedule\BibleReadingSchedule.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaManagerExtensions.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaManagerImplementation.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\CastOptionsProvider.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserConnectionCallback.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserManager.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserService.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserSubscriptionCallback.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaControllerCallback.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaSessionCallback.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\MetaDataProvider.cs" />
+    <Compile Include="Platforms\Android\MediaManager\MediaSession\NotificationListener.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Media\FileImageProvider.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Media\ID3Provider.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Media\MediaDescriptionAdapter.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Media\MediaExtractor.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Media\MediaItemExtensions.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Media\ResourceImageProvider.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Media\UriImageProvider.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Notifications\NotificationManager.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Playback\PlaybackStateExtensions.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Player\AndroidMediaPlayer.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Player\MetadataOutput.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Player\PlaybackPreparer.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Player\PlayerEventListener.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Player\RatingCallback.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Queue\QueueDataAdapter.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Queue\QueueMediaSourceFactory.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Queue\QueueNavigator.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Video\VideoView.cs" />
+    <Compile Include="Platforms\Android\MediaManager\Volume\VolumeManager.cs" />
+    <Compile Include="Platforms\Android\Services\AndroidServices\AlarmSetupService.cs" />
+    <Compile Include="Platforms\Android\Services\Battery\BatteryOptimizationManager.cs" />
+    <Compile Include="Platforms\Android\Services\BroadcastReceivers\AlarmRingerReceiver.cs" />
+    <Compile Include="Platforms\Android\Services\BroadcastReceivers\RestartReceiver.cs" />
+    <Compile Include="Platforms\Android\Services\Handlers\AndroidAlarmHandler.cs" />
+    <Compile Include="Platforms\Android\Services\IocSetup.cs" />
+    <Compile Include="Platforms\Android\Services\Jobs\SchedulerJob.cs" />
+    <Compile Include="Platforms\Android\Services\Jobs\UpdateMediaIndexJob.cs" />
+    <Compile Include="Platforms\Android\Services\Media\PreviewPlayService.cs" />
+    <Compile Include="Platforms\Android\Services\Platform\VersionFinder.cs" />
+    <Compile Include="Platforms\Android\Services\Storage\StorageService.cs" />
+    <Compile Include="Platforms\Android\Services\UI\NotificationService.cs" />
+    <Compile Include="Platforms\Android\Services\UI\ToastService.cs" />
+    <Compile Include="Platforms\Windows\Helpers\BootstrapHelper.cs" />
+    <Compile Include="Platforms\Windows\Services\Handlers\UwpAlarmHandler.cs" />
+    <Compile Include="Platforms\Windows\Services\IocSetup.cs" />
+    <Compile Include="Platforms\Windows\Services\Media\PreviewPlayService.cs" />
+    <Compile Include="Platforms\Windows\Services\Platform\VersionFinder.cs" />
+    <Compile Include="Platforms\Windows\Services\Storage\StorageService.cs" />
+    <Compile Include="Platforms\Windows\Services\UI\NotificationService.cs" />
+    <Compile Include="Platforms\Windows\Services\UI\ToastService.cs" />
+    <Compile Include="Services\Infrastructure\LogSetup.cs" />
+    <Compile Include="Services\Infrastructure\Media\MediaDbContext.cs" />
+    <Compile Include="Services\Infrastructure\Media\Migrations\20200407051322_InitialCreate.cs" />
+    <Compile Include="Services\Infrastructure\Media\Migrations\20200407051322_InitialCreate.Designer.cs" />
+    <Compile Include="Services\Infrastructure\Media\Migrations\MediaDbContextModelSnapshot.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20190922162956_InitialCreate.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20190922162956_InitialCreate.Designer.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101225511_Add_General_Settings_Table.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101225511_Add_General_Settings_Table.Designer.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101234748_Add_Number_Of_Chapters_To_Read_Column.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101234748_Add_Number_Of_Chapters_To_Read_Column.Designer.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191104225343_Add_FinishedDuration_Column.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191104225343_Add_FinishedDuration_Column.Designer.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20200330025928_AddAlarmNotificationsTable.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20200330025928_AddAlarmNotificationsTable.Designer.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20210408045321_Add_NotificationEnabled_Column.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\20210408045321_Add_NotificationEnabled_Column.Designer.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\Migrations\ScheduleDbContextModelSnapshot.cs" />
+    <Compile Include="Services\Infrastructure\Schedule\ScheduleDbContext.cs" />
+    <Compile Include="Services\IocSetup.cs" />
+    <Compile Include="Services\Media\DownloadService.cs" />
+    <Compile Include="Services\Media\MediaCacheService.cs" />
+    <Compile Include="Services\Media\MediaIndexService.cs" />
+    <Compile Include="Services\Media\MediaService.cs" />
+    <Compile Include="Services\Media\PlaybackService.cs" />
+    <Compile Include="Services\Media\PlaylistService.cs" />
+    <Compile Include="Services\Network\NetworkStatusService.cs" />
+    <Compile Include="Services\Scheduler\AlarmService.cs" />
+    <Compile Include="Services\Storage\ResourceLoader.cs" />
+    <Compile Include="Services\Storage\StorageService.cs" />
+    <Compile Include="Services\Tasks\SchedulerTask.cs" />
+    <Compile Include="Services\UI\ToastService.cs" />
+    <Compile Include="ViewModels\Bible\BibleSelectionViewModel.cs" />
+    <Compile Include="ViewModels\Bible\BookSelectionViewModel.cs" />
+    <Compile Include="ViewModels\Bible\ChapterSelectionViewModel.cs" />
+    <Compile Include="ViewModels\HomeViewModel.cs" />
+    <Compile Include="ViewModels\IocSetup.cs" />
+    <Compile Include="ViewModels\Music\MusicSelectionViewModel.cs" />
+    <Compile Include="ViewModels\Music\SongBookSelectionViewModel.cs" />
+    <Compile Include="ViewModels\Music\TrackSelectionViewModel.cs" />
+    <Compile Include="ViewModels\Redux\Actions\BackAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Bible\BibleSelectionAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Bible\BookSelectionAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Bible\ChapterSelectedAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Bible\ChapterSelectionAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\InitializeAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Music\MusicSelectionAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Music\SongBookSelectionAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Music\TrackSelectedAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Music\TrackSelectionAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Schedule\AddScheduleAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Schedule\RemoveScheduleAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Schedule\UpdateScheduleAction.cs" />
+    <Compile Include="ViewModels\Redux\Actions\Schedule\ViewScheduleAction.cs" />
+    <Compile Include="ViewModels\Redux\Reducers\RootReducer.cs" />
+    <Compile Include="ViewModels\Redux\ReduxContainer.cs" />
+    <Compile Include="ViewModels\Redux\State.cs" />
+    <Compile Include="ViewModels\ScheduleViewModel.cs" />
+    <Compile Include="ViewModels\Shared\AlarmViewModal.cs" />
+    <Compile Include="ViewModels\Shared\LanguageListViewItemModel.cs" />
+    <Compile Include="ViewModels\Shared\MediaProgressViewModal.cs" />
+    <Compile Include="ViewModels\Shared\NumberOfChaptersListViewItemModel.cs" />
+    <Compile Include="ViewModels\Shared\PublicationListViewItemModel.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Platforms\iOS\MediaManager\Properties\" />
   </ItemGroup>
 </Project>

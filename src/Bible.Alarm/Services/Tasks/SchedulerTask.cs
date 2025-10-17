@@ -1,7 +1,6 @@
 ﻿using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
 using NLog;
-using NLog.Fluent;
 using System;
 using System.Linq;
 using System.Threading;

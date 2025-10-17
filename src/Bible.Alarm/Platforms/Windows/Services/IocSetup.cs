@@ -5,7 +5,6 @@
     using Bible.Alarm.Contracts.Platform;
     using Bible.Alarm.Services;
     using Bible.Alarm.Services.Contracts;
-    using Bible.Alarm.Services.Windows;
     using Bible.Alarm.Services.Windows.Platform;
     using Bible.Alarm.Services.Windows.Storage;
     using Bible.Alarm.Services.Windows.Handlers;
@@ -16,7 +15,6 @@
     using System.IO;
     using System.Net.Http;
     using System.Threading.Tasks;
-    using Windows.Media.Playback;
 
     public static class IocSetup
     {
@@ -35,8 +33,8 @@
 
             container.Register<INotificationService>((x) => new UwpNotificationService(container));
 
-            container.Register<MediaPlayer>((x) => new MediaPlayer());
-            container.Register<IPreviewPlayService>((x) => new PreviewPlayService(container.Resolve<MediaPlayer>()));
+            container.Register<Windows.Media.Playback.MediaPlayer>((x) => new Windows.Media.Playback.MediaPlayer());
+            container.Register<IPreviewPlayService>((x) => new Bible.Alarm.Services.Windows.PreviewPlayService(container.Resolve<Windows.Media.Playback.MediaPlayer>()));
 
             container.Register((x) =>
             {

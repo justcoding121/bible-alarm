@@ -32,37 +32,23 @@ namespace Bible.Alarm.Services.Windows
 
             var scheduleId = schedule.Id;
             var time = schedule.NextFireDate();
-            // Construct the toast content
-            ToastContent toastContent = new ToastContent()
-            {
-                Visual = new ToastVisual()
-                {
-                    BindingGeneric = new ToastBindingGeneric()
-                    {
-                        Children =
-                        {
-                            new AdaptiveText()
-                            {
-                                Text = title
-                            },
-
-                            new AdaptiveText()
-                            {
-                                Text = body
-                            }
-                        }
-                    }
-                },
-                Audio = new ToastAudio()
-                {
-                    Src = new Uri("ms-appx:///Resources/cool-alarm-tone-notification-sound.mp3")
-                },
-                // Arguments when the user taps body of toast
-                Launch = scheduleId.ToString()
-            };
+            // Construct the toast content using built-in Windows APIs
+            var toastXml = Windows.UI.Notifications.ToastNotificationManager.GetTemplateContent(Windows.UI.Notifications.ToastTemplateType.ToastText02);
+            var textNodes = toastXml.GetElementsByTagName("text");
+            textNodes[0].AppendChild(toastXml.CreateTextNode(title));
+            textNodes[1].AppendChild(toastXml.CreateTextNode(body));
+            
+            var audioElement = toastXml.CreateElement("audio");
+            audioElement.SetAttribute("src", "ms-appx:///Resources/cool-alarm-tone-notification-sound.mp3");
+            var toastElement = toastXml.SelectSingleNode("/toast");
+            toastElement.AppendChild(audioElement);
+            // Add launch arguments
+            var launchAttribute = toastXml.CreateAttribute("launch");
+            launchAttribute.Value = scheduleId.ToString();
+            toastElement.SetAttributeNode(launchAttribute);
 
             // Create the toast notification object.
-            var toast = new ScheduledToastNotification(toastContent.GetXml(), time)
+            var toast = new ScheduledToastNotification(toastXml, time)
             {
                 Id = scheduleId.ToString()
             };

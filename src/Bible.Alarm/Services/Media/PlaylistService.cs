@@ -3,7 +3,6 @@ using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
 using NLog;
-using NLog.Fluent;
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Headers;

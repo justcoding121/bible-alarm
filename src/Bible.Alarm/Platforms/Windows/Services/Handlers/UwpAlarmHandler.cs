@@ -7,7 +7,6 @@ using MediaManager.Platforms.Uap.Player;
 using MediaManager.Player;
 using Microsoft.EntityFrameworkCore;
 using NLog;
-using NLog.Fluent;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

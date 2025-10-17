@@ -102,7 +102,7 @@ namespace MediaManager.Platforms.Uap.Player
             if (PlayerView?.PlayerView == null)
                 return;
 
-            if (value is ImageSource imageSource)
+            if (value is Microsoft.UI.Xaml.Media.ImageSource imageSource)
                 PlayerView.PlayerView.PosterSource = imageSource;
         }
 
