@@ -5,36 +5,36 @@ using System.Collections.Generic;
 namespace Advanced.Algorithms.DataStructures
 {
     //  implement IEnumerator.
-    internal class BSTEnumerator<T> : IEnumerator<T> where T : IComparable
+    internal class BstEnumerator<T> : IEnumerator<T> where T : IComparable
     {
-        private readonly bool asc;
+        private readonly bool _asc;
 
-        private readonly BSTNodeBase<T> root;
-        private BSTNodeBase<T> current;
+        private readonly BstNodeBase<T> _root;
+        private BstNodeBase<T> _current;
 
-        internal BSTEnumerator(BSTNodeBase<T> root, bool asc = true)
+        internal BstEnumerator(BstNodeBase<T> root, bool asc = true)
         {
-            this.root = root;
-            this.asc = asc;
+            this._root = root;
+            this._asc = asc;
         }
 
         public bool MoveNext()
         {
-            if (root == null)
+            if (_root == null)
             {
                 return false;
             }
 
-            if (current == null)
+            if (_current == null)
             {
-                current = asc ? root.FindMin() : root.FindMax();
+                _current = _asc ? _root.FindMin() : _root.FindMax();
                 return true;
             }
 
-            var next = asc ? current.NextHigher() : current.NextLower();
+            var next = _asc ? _current.NextHigher() : _current.NextLower();
             if (next != null)
             {
-                current = next;
+                _current = next;
                 return true;
             }
 
@@ -43,14 +43,14 @@ namespace Advanced.Algorithms.DataStructures
 
         public void Reset()
         {
-            current = root;
+            _current = _root;
         }
 
         public T Current
         {
             get
             {
-                return current.Value;
+                return _current.Value;
             }
         }
 
@@ -58,7 +58,7 @@ namespace Advanced.Algorithms.DataStructures
 
         public void Dispose()
         {
-            current = null;
+            _current = null;
         }
     }
 

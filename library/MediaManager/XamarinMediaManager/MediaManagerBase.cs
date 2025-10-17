@@ -35,28 +35,28 @@ namespace MediaManager
 
         public static double TimerInterval { get; set; } = 1000;
 
-        protected TimeSpan _stepSizeForward = TimeSpan.FromSeconds(10);
+        private TimeSpan _stepSizeForward = TimeSpan.FromSeconds(10);
         public virtual TimeSpan StepSizeForward
         {
             get => _stepSizeForward;
             set => SetProperty(ref _stepSizeForward, value);
         }
 
-        protected TimeSpan _stepSizeBackward = TimeSpan.FromSeconds(10);
+        private TimeSpan _stepSizeBackward = TimeSpan.FromSeconds(10);
         public virtual TimeSpan StepSizeBackward
         {
             get => _stepSizeBackward;
             set => SetProperty(ref _stepSizeBackward, value);
         }
 
-        protected Dictionary<string, string> _requestHeaders = new Dictionary<string, string>();
+        private Dictionary<string, string> _requestHeaders = new Dictionary<string, string>();
         public virtual Dictionary<string, string> RequestHeaders
         {
             get => _requestHeaders;
             set => SetProperty(ref _requestHeaders, value);
         }
 
-        protected IMediaLibrary _library;
+        private IMediaLibrary _library;
         public virtual IMediaLibrary Library
         {
             get
@@ -69,17 +69,17 @@ namespace MediaManager
             set => SetProperty(ref _library, value);
         }
 
-        protected IMediaQueue _mediaQueue;
+        protected IMediaQueue MediaQueue;
         public virtual IMediaQueue Queue
         {
             get
             {
-                if (_mediaQueue == null)
-                    _mediaQueue = new MediaQueue();
+                if (MediaQueue == null)
+                    MediaQueue = new MediaQueue();
 
-                return _mediaQueue;
+                return MediaQueue;
             }
-            set => SetProperty(ref _mediaQueue, value);
+            set => SetProperty(ref MediaQueue, value);
         }
 
         public virtual void Init()
@@ -92,25 +92,25 @@ namespace MediaManager
         public abstract IVolumeManager Volume { get; set; }
         public abstract INotificationManager Notification { get; set; }
 
-        protected MediaPlayerState _state = MediaPlayerState.Stopped;
+        private MediaPlayerState _state = MediaPlayerState.Stopped;
         public MediaPlayerState State
         {
             get => _state;
             set
             {
                 if (SetProperty(ref _state, value))
-                    OnStateChanged(this, new StateChangedEventArgs(State));
+                    OnStateChanged(this, new StateChangedEventArgs(_state));
             }
         }
 
-        protected TimeSpan _buffered;
+        private TimeSpan _buffered;
         public TimeSpan Buffered
         {
             get => _buffered;
             set
             {
                 if (SetProperty(ref _buffered, value))
-                    OnBufferedChanged(this, new BufferedChangedEventArgs(Buffered));
+                    OnBufferedChanged(this, new BufferedChangedEventArgs(_buffered));
             }
         }
 
@@ -372,12 +372,12 @@ namespace MediaManager
         public event MediaItemChangedEventHandler MediaItemChanged;
         public event MediaItemFailedEventHandler MediaItemFailed;
 
-        protected IMediaItem _currentSource;
+        protected IMediaItem CurrentSource;
 
         internal void OnBufferedChanged(object sender, BufferedChangedEventArgs e) => BufferedChanged?.Invoke(sender, e);
         internal void OnMediaItemChanged(object sender, MediaItemEventArgs e)
         {
-            if (SetProperty(ref _currentSource, e.MediaItem))
+            if (SetProperty(ref CurrentSource, e.MediaItem))
                 MediaItemChanged?.Invoke(sender, e);
         }
 
@@ -412,7 +412,7 @@ namespace MediaManager
             Notification?.UpdateNotification();
         }
 
-        protected TimeSpan _previousPosition = new TimeSpan();
+        private TimeSpan _previousPosition = new TimeSpan();
         protected TimeSpan PreviousPosition
         {
             get => _previousPosition;

@@ -37,7 +37,7 @@ namespace MediaManager.Platforms.Android.Volume
             }
         }
 
-        protected int preMutedVolume = 0;
+        protected int PreMutedVolume = 0;
         public override bool Muted
         {
             get => CurrentVolume == 0;
@@ -45,11 +45,11 @@ namespace MediaManager.Platforms.Android.Volume
             {
                 if (!Muted)
                 {
-                    preMutedVolume = CurrentVolume;
+                    PreMutedVolume = CurrentVolume;
                     CurrentVolume = 0;
                 }
                 else
-                    CurrentVolume = preMutedVolume;
+                    CurrentVolume = PreMutedVolume;
 
                 VolumeChanged?.Invoke(this, new VolumeChangedEventArgs(CurrentVolume, Muted));
             }

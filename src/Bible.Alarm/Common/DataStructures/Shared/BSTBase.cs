@@ -3,34 +3,34 @@ using System.Collections.Generic;
 
 namespace Advanced.Algorithms.DataStructures
 {
-    public class BSTBase<T> where T : IComparable
+    public class BstBase<T> where T : IComparable
     {
         internal void ValidateCollection(IEnumerable<T> collection)
         {
-            if (!isSorted(collection))
+            if (!IsSorted(collection))
             {
                 throw new ArgumentException("Initial collection should have unique keys and be in sorted order.");
             }
         }
 
-        internal BSTNodeBase<T> ToBST(BSTNodeBase<T>[] sortedNodes)
+        internal BstNodeBase<T> ToBst(BstNodeBase<T>[] sortedNodes)
         {
-            return toBST(sortedNodes, 0, sortedNodes.Length - 1);
+            return ToBst(sortedNodes, 0, sortedNodes.Length - 1);
         }
 
-        internal int assignCount(BSTNodeBase<T> node)
+        internal int AssignCount(BstNodeBase<T> node)
         {
             if (node == null)
             {
                 return 0;
             }
 
-            node.Count = assignCount(node.Left) + assignCount(node.Right) + 1;
+            node.Count = AssignCount(node.Left) + AssignCount(node.Right) + 1;
 
             return node.Count;
         }
 
-        private BSTNodeBase<T> toBST(BSTNodeBase<T>[] sortedNodes, int start, int end)
+        private BstNodeBase<T> ToBst(BstNodeBase<T>[] sortedNodes, int start, int end)
         {
             if (start > end)
                 return null;
@@ -38,13 +38,13 @@ namespace Advanced.Algorithms.DataStructures
             int mid = (start + end) / 2;
             var root = sortedNodes[mid];
 
-            root.Left = toBST(sortedNodes, start, mid - 1);
+            root.Left = ToBst(sortedNodes, start, mid - 1);
             if (root.Left != null)
             {
                 root.Left.Parent = root;
             }
 
-            root.Right = toBST(sortedNodes, mid + 1, end);
+            root.Right = ToBst(sortedNodes, mid + 1, end);
             if (root.Right != null)
             {
                 root.Right.Parent = root;
@@ -53,7 +53,7 @@ namespace Advanced.Algorithms.DataStructures
             return root;
         }
 
-        private bool isSorted(IEnumerable<T> collection)
+        private bool IsSorted(IEnumerable<T> collection)
         {
             var enumerator = collection.GetEnumerator();
             if (!enumerator.MoveNext())

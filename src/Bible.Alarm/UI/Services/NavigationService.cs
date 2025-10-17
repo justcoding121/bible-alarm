@@ -22,61 +22,61 @@ namespace Bible.Alarm.UI
 {
     public class NavigationService : INavigationService
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
-        private readonly INavigation navigater;
+        private readonly INavigation _navigater;
 
         public event Action<object> NavigatedBack;
-        private bool disposed = false;
+        private bool _disposed = false;
 
-        private AsyncQueue<(MvvmMessages, object)> queue = new AsyncQueue<(MvvmMessages, object)>();
+        private AsyncQueue<(MvvmMessages, object)> _queue = new AsyncQueue<(MvvmMessages, object)>();
 
         public NavigationService(IContainer container, INavigation navigater)
         {
-            this.container = container;
-            this.navigater = navigater;
+            this._container = container;
+            this._navigater = navigater;
 
             Messenger<object>.Subscribe(MvvmMessages.ShowAlarmModal, async @param =>
             {
-                await queue.EnqueueAsync((MvvmMessages.ShowAlarmModal, @param));
+                await _queue.EnqueueAsync((MvvmMessages.ShowAlarmModal, @param));
             });
 
             Messenger<object>.Subscribe(MvvmMessages.HideAlarmModal, async @param =>
             {
-                await queue.EnqueueAsync((MvvmMessages.HideAlarmModal, @param));
+                await _queue.EnqueueAsync((MvvmMessages.HideAlarmModal, @param));
             });
 
             Messenger<object>.Subscribe(MvvmMessages.ShowMediaProgessModal, async @param =>
             {
-                await queue.EnqueueAsync((MvvmMessages.ShowMediaProgessModal, @param));
+                await _queue.EnqueueAsync((MvvmMessages.ShowMediaProgessModal, @param));
             });
 
             Messenger<object>.Subscribe(MvvmMessages.HideMediaProgressModal, async @param =>
             {
-                await queue.EnqueueAsync((MvvmMessages.HideMediaProgressModal, @param));
+                await _queue.EnqueueAsync((MvvmMessages.HideMediaProgressModal, @param));
             });
 
             Messenger<object>.Subscribe(MvvmMessages.ShowToast, async @param =>
             {
-                await queue.EnqueueAsync((MvvmMessages.ShowToast, @param));
+                await _queue.EnqueueAsync((MvvmMessages.ShowToast, @param));
             });
 
             Messenger<object>.Subscribe(MvvmMessages.ClearToasts, async @param =>
             {
-                await queue.EnqueueAsync((MvvmMessages.ClearToasts, @param));
+                await _queue.EnqueueAsync((MvvmMessages.ClearToasts, @param));
             });
 
-            var syncContext = this.container.Resolve<TaskScheduler>();
+            var syncContext = this._container.Resolve<TaskScheduler>();
 
             Task.Run(async () =>
             {
-                while (!disposed)
+                while (!_disposed)
                 {
-                    var item = await queue.DequeueAsync();
+                    var item = await _queue.DequeueAsync();
                     var message = item.Item1;
                     var @object = item.Item2;
 
@@ -114,7 +114,7 @@ namespace Bible.Alarm.UI
                             {
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
-                                    using var toastService = this.container.Resolve<IToastService>();
+                                    using var toastService = this._container.Resolve<IToastService>();
                                     await toastService.ShowMessage(@object as string);
 
                                 }, syncContext);
@@ -125,7 +125,7 @@ namespace Bible.Alarm.UI
                             {
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
-                                    using var toastService = this.container.Resolve<IToastService>();
+                                    using var toastService = this._container.Resolve<IToastService>();
                                     await toastService.Clear();
 
                                 }, syncContext);
@@ -133,7 +133,7 @@ namespace Bible.Alarm.UI
                             break;
                         case MvvmMessages.ShowMediaProgessModal:
                             {
-                                var vm = this.container.Resolve<MediaProgressViewModal>();
+                                var vm = this._container.Resolve<MediaProgressViewModal>();
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
                                     await ShowModal("MediaProgressModal", vm);
@@ -156,51 +156,51 @@ namespace Bible.Alarm.UI
             {
                 case "LanguageModal":
                     {
-                        var modal = container.Resolve<LanguageModal>();
+                        var modal = _container.Resolve<LanguageModal>();
                         modal.BindingContext = viewModel;
-                        await navigater.PushModalAsync(modal);
+                        await _navigater.PushModalAsync(modal);
                         break;
                     }
 
                 case "AlarmModal":
                     {
-                        if (navigater.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal))
+                        if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal))
                         {
                             return;
                         }
 
-                        var modal = container.Resolve<AlarmModal>();
+                        var modal = _container.Resolve<AlarmModal>();
                         modal.BindingContext = viewModel;
-                        await navigater.PushModalAsync(modal);
+                        await _navigater.PushModalAsync(modal);
                         break;
                     }
 
                 case "BatteryOptimizationExclusionModal":
                     {
-                        var modal = container.Resolve<BatteryOptimizationExclusionModal>();
+                        var modal = _container.Resolve<BatteryOptimizationExclusionModal>();
                         modal.BindingContext = viewModel;
-                        await navigater.PushModalAsync(modal);
+                        await _navigater.PushModalAsync(modal);
                         break;
                     }
 
                 case "NumberOfChaptersModal":
                     {
-                        var modal = container.Resolve<NumberOfChaptersModal>();
+                        var modal = _container.Resolve<NumberOfChaptersModal>();
                         modal.BindingContext = viewModel;
-                        await navigater.PushModalAsync(modal);
+                        await _navigater.PushModalAsync(modal);
                         break;
                     }
 
                 case "MediaProgressModal":
                     {
-                        if (navigater.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal))
+                        if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal))
                         {
                             return;
                         }
 
-                        var modal = container.Resolve<MediaProgressModal>();
+                        var modal = _container.Resolve<MediaProgressModal>();
                         modal.BindingContext = viewModel;
-                        await navigater.PushModalAsync(modal);
+                        await _navigater.PushModalAsync(modal);
                         break;
                     }
 
@@ -213,7 +213,7 @@ namespace Bible.Alarm.UI
         {
             var vmName = viewModel.GetType().Name;
 
-            var top = navigater.NavigationStack.LastOrDefault();
+            var top = _navigater.NavigationStack.LastOrDefault();
 
             if (top != null && top.BindingContext.GetType().Name == vmName)
             {
@@ -226,52 +226,52 @@ namespace Bible.Alarm.UI
             {
                 case "ScheduleViewModel":
                     {
-                        var view = container.Resolve<Schedule>();
+                        var view = _container.Resolve<Schedule>();
                         view.BindingContext = viewModel;
-                        await navigater.PushAsync(view);
+                        await _navigater.PushAsync(view);
                         break;
                     }
 
                 case "MusicSelectionViewModel":
                     {
-                        var view = container.Resolve<MusicSelection>();
+                        var view = _container.Resolve<MusicSelection>();
                         view.BindingContext = viewModel;
-                        await navigater.PushAsync(view);
+                        await _navigater.PushAsync(view);
                         break;
                     }
                 case "SongBookSelectionViewModel":
                     {
-                        var view = container.Resolve<SongBookSelection>();
+                        var view = _container.Resolve<SongBookSelection>();
                         view.BindingContext = viewModel;
-                        await navigater.PushAsync(view);
+                        await _navigater.PushAsync(view);
                         break;
                     }
                 case "TrackSelectionViewModel":
                     {
-                        var view = container.Resolve<TrackSelection>();
+                        var view = _container.Resolve<TrackSelection>();
                         view.BindingContext = viewModel;
-                        await navigater.PushAsync(view);
+                        await _navigater.PushAsync(view);
                         break;
                     }
                 case "BibleSelectionViewModel":
                     {
-                        var view = container.Resolve<BibleSelection>();
+                        var view = _container.Resolve<BibleSelection>();
                         view.BindingContext = viewModel;
-                        await navigater.PushAsync(view);
+                        await _navigater.PushAsync(view);
                         break;
                     }
                 case "BookSelectionViewModel":
                     {
-                        var view = container.Resolve<BookSelection>();
+                        var view = _container.Resolve<BookSelection>();
                         view.BindingContext = viewModel;
-                        await navigater.PushAsync(view);
+                        await _navigater.PushAsync(view);
                         break;
                     }
                 case "ChapterSelectionViewModel":
                     {
-                        var view = container.Resolve<ChapterSelection>();
+                        var view = _container.Resolve<ChapterSelection>();
                         view.BindingContext = viewModel;
-                        await navigater.PushAsync(view);
+                        await _navigater.PushAsync(view);
                         break;
                     }
                 default:
@@ -283,20 +283,20 @@ namespace Bible.Alarm.UI
         {
             try
             {
-                if (navigater.ModalStack.Count > 0)
+                if (_navigater.ModalStack.Count > 0)
                 {
                     await CloseModal();
                     return;
                 }
 
-                if (navigater.NavigationStack.Count > 1)
+                if (_navigater.NavigationStack.Count > 1)
                 {
-                    var top = navigater.NavigationStack.Last();
+                    var top = _navigater.NavigationStack.Last();
                     ReduxContainer.Store.Dispatch(new BackAction((top.BindingContext as IDisposable)));
-                    await navigater.PopAsync();
+                    await _navigater.PopAsync();
                 }
 
-                var currentPage = navigater.NavigationStack.LastOrDefault();
+                var currentPage = _navigater.NavigationStack.LastOrDefault();
 
                 if (currentPage != null)
                 {
@@ -305,7 +305,7 @@ namespace Bible.Alarm.UI
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened when navigating back.");
+                Logger.Error(e, "An error happened when navigating back.");
             }
         }
 
@@ -313,9 +313,9 @@ namespace Bible.Alarm.UI
         {
             try
             {
-                if (navigater.ModalStack.Count > 0)
+                if (_navigater.ModalStack.Count > 0)
                 {
-                    var modal = await navigater.PopModalAsync();
+                    var modal = await _navigater.PopModalAsync();
                     if (modal.BindingContext is IDisposableModal)
                     {
                         (modal.BindingContext as IDisposableModal).Dispose();
@@ -324,7 +324,7 @@ namespace Bible.Alarm.UI
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened when closing Modal.");
+                Logger.Error(e, "An error happened when closing Modal.");
             }
         }
 
@@ -332,19 +332,19 @@ namespace Bible.Alarm.UI
         {
             try
             {
-                while (navigater.ModalStack.Count > 0)
+                while (_navigater.ModalStack.Count > 0)
                 {
-                    await navigater.PopModalAsync();
+                    await _navigater.PopModalAsync();
                 }
 
-                while (navigater.NavigationStack.Count > 1)
+                while (_navigater.NavigationStack.Count > 1)
                 {
-                    var top = navigater.NavigationStack.Last();
+                    var top = _navigater.NavigationStack.Last();
                     ReduxContainer.Store.Dispatch(new BackAction((top.BindingContext as IDisposable)));
-                    await navigater.PopAsync();
+                    await _navigater.PopAsync();
                 }
 
-                var currentPage = navigater.NavigationStack.LastOrDefault();
+                var currentPage = _navigater.NavigationStack.LastOrDefault();
 
                 if (currentPage != null)
                 {
@@ -353,13 +353,13 @@ namespace Bible.Alarm.UI
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened when navigating to home.");
+                Logger.Error(e, "An error happened when navigating to home.");
             }
         }
 
         public void Dispose()
         {
-            disposed = true;
+            _disposed = true;
         }
     }
 }

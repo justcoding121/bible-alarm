@@ -13,13 +13,13 @@
     {
         #region Fields
 
-        private readonly Func<T, bool> canExecute = canExecute ?? ((p) => true);
+        private readonly Func<T, bool> _canExecute = canExecute ?? ((p) => true);
 
-        private DateTime? lastExecution;
+        private DateTime? _lastExecution;
 
-        private Task execution;
+        private Task _execution;
 
-        private CancellationTokenSource cts;
+        private CancellationTokenSource _cts;
 
         #endregion
 
@@ -35,9 +35,9 @@
 
         #region Properties
 
-        public bool IsExecuting => execution != null;
+        public bool IsExecuting => _execution != null;
 
-        public DateTime? LastSuccededExecution => this.lastExecution;
+        public DateTime? LastSuccededExecution => this._lastExecution;
 
         #endregion
 
@@ -59,11 +59,11 @@
         {
             try
             {
-                this.cts = new CancellationTokenSource();
-                this.execution = execute((T)parameter, cts.Token);
+                this._cts = new CancellationTokenSource();
+                this._execution = execute((T)parameter, _cts.Token);
                 this.RaiseIsExecuting();
-                await this.execution;
-                this.lastExecution = DateTime.Now;
+                await this._execution;
+                this._lastExecution = DateTime.Now;
                 this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastSuccededExecution)));
             }
             catch (Exception e)
@@ -72,15 +72,15 @@
             }
             finally
             {
-                this.cts = null;
-                this.execution = null;
+                this._cts = null;
+                this._execution = null;
                 this.RaiseIsExecuting();
             }
         }
 
-        public void Cancel() => this.cts?.Cancel();
+        public void Cancel() => this._cts?.Cancel();
 
-        public bool CanExecute(object parameter) => !this.IsExecuting && this.canExecute((T)parameter);
+        public bool CanExecute(object parameter) => !this.IsExecuting && this._canExecute((T)parameter);
 
         #endregion
     }

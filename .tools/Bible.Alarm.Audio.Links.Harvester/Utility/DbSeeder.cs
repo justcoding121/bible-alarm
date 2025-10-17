@@ -1,18 +1,15 @@
-﻿using Bible.Alarm.Audio.Links.Harvestor.Utility;
-using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Models;
-using Bible.Alarm.Models.Enums;
-using Bible.Alarm.Services;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Bible.Alarm.Models;
+using Bible.Alarm.Services;
+using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Audio.Links.Harvestor
+namespace Bible.Alarm.Audio.Links.Harvester.Utility
 {
     public class DbSeeder
     {
-        public async static Task Seed(string indexDir)
+        public static async Task Seed(string indexDir)
         {
             var zipDir = Path.Combine(new DirectoryInfo(indexDir).FullName, "db");
 
@@ -39,13 +36,13 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 }
 
                 var mediaDir = Path.Combine(indexDir, "media");
-                await seedBibleTranslations(mediaDir, db, displayLanguage);
-                await seedMelodies(mediaDir, db, displayLanguage);
-                await seedVocals(mediaDir, db, displayLanguage);
+                await SeedBibleTranslations(mediaDir, db, displayLanguage);
+                await SeedMelodies(mediaDir, db, displayLanguage);
+                await SeedVocals(mediaDir, db, displayLanguage);
             }
         }
 
-        private async static Task seedBibleTranslations(string indexDir, MediaDbContext db, Language displayLanguage)
+        private static async Task SeedBibleTranslations(string indexDir, MediaDbContext db, Language displayLanguage)
         {
             var mediaReader = new MediaReader(indexDir);
 
@@ -121,7 +118,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             }
         }
 
-        private async static Task seedMelodies(string indexDir, MediaDbContext db, Language displayLanguage)
+        private static async Task SeedMelodies(string indexDir, MediaDbContext db, Language displayLanguage)
         {
             var mediaReader = new MediaReader(indexDir);
 
@@ -163,7 +160,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
         }
 
-        private async static Task seedVocals(string indexDir, MediaDbContext db, Language displayLanguage)
+        private static async Task SeedVocals(string indexDir, MediaDbContext db, Language displayLanguage)
         {
             var mediaReader = new MediaReader(indexDir);
 

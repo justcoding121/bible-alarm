@@ -18,26 +18,26 @@ namespace Bible.Alarm
 {
     public partial class App : Application
     {
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
         public static bool IsInForeground { get; set; } = false;
 
         public App(IContainer container)
         {
-            this.container = container;
-            init();
+            this._container = container;
+            Init();
         }
 
-        private void init()
+        private void Init()
         {
             InitializeComponent();
 
-            if (container.RegisteredTypes.Any(x => x == typeof(NavigationPage)))
+            if (_container.RegisteredTypes.Any(x => x == typeof(NavigationPage)))
             {
-                MainPage = container.Resolve<NavigationPage>();
+                MainPage = _container.Resolve<NavigationPage>();
             }
             else
             {
@@ -45,10 +45,10 @@ namespace Bible.Alarm
 
                 var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
 
-                container.Register(x => taskScheduler);
-                container.RegisterSingleton(x => navigationPage);
-                container.RegisterSingleton(x => navigationPage.Navigation);
-                container.RegisterSingleton<INavigationService>(x => new NavigationService(container, navigationPage.Navigation));
+                _container.Register(x => taskScheduler);
+                _container.RegisterSingleton(x => navigationPage);
+                _container.RegisterSingleton(x => navigationPage.Navigation);
+                _container.RegisterSingleton<INavigationService>(x => new NavigationService(_container, navigationPage.Navigation));
 
                 MainPage = navigationPage;
 
@@ -58,7 +58,7 @@ namespace Bible.Alarm
                 Func<Task> homePageSetter = async () =>
                 {
                     var homePage = new Home();
-                    homePage.BindingContext = container.Resolve<HomeViewModel>();
+                    homePage.BindingContext = _container.Resolve<HomeViewModel>();
                     await navigationPage.Navigation.PushAsync(homePage);
                 };
 
@@ -77,7 +77,7 @@ namespace Bible.Alarm
                 }, taskScheduler)
                 .ContinueWith(x =>
                 {
-                    var mediaManager = container.Resolve<IMediaManager>();
+                    var mediaManager = _container.Resolve<IMediaManager>();
 
                     if (mediaManager.IsPreparedEx())
                     {
@@ -97,11 +97,11 @@ namespace Bible.Alarm
             {
                 try
                 {
-                    var navigationService = container.Resolve<INavigationService>();
+                    var navigationService = _container.Resolve<INavigationService>();
                     // Handle when your app starts  
                     await navigationService.NavigateToHome();
 
-                    var mediaManager = container.Resolve<IMediaManager>();
+                    var mediaManager = _container.Resolve<IMediaManager>();
 
                     if (mediaManager.IsPreparedEx())
                     {
@@ -110,12 +110,12 @@ namespace Bible.Alarm
 
                     await Task.Delay(1000);
 
-                    using var mediaIndexService = container.Resolve<MediaIndexService>();
+                    using var mediaIndexService = _container.Resolve<MediaIndexService>();
                     await mediaIndexService.UpdateIndexIfAvailable();
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happened inside OnStart task.");
+                    Logger.Error(e, "An error happened inside OnStart task.");
                 }
             });
         }
@@ -136,7 +136,7 @@ namespace Bible.Alarm
             {
                 try
                 {
-                    var mediaManager = container.Resolve<IMediaManager>();
+                    var mediaManager = _container.Resolve<IMediaManager>();
                     // Handle when your app resumes
                     if (mediaManager.IsPreparedEx())
                     {
@@ -145,12 +145,12 @@ namespace Bible.Alarm
 
                     await Task.Delay(1000);
 
-                    using var mediaIndexService = container.Resolve<MediaIndexService>();
+                    using var mediaIndexService = _container.Resolve<MediaIndexService>();
                     await mediaIndexService.UpdateIndexIfAvailable();
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happened inside OnResume task.");
+                    Logger.Error(e, "An error happened inside OnResume task.");
                 }      
             });
 

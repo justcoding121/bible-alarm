@@ -19,21 +19,21 @@ namespace MediaManager.Platforms.Android.Player
     public class MediaSessionConnectorPlaybackPreparer : Java.Lang.Object,
         MediaSessionConnector.IPlaybackPreparer
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
-        private Bible.Alarm.IContainer container;
+        private Bible.Alarm.IContainer _container;
 
         protected MediaManagerImplementation MediaManager => (MediaManagerImplementation)CrossMediaManager.Current;
-        protected IPlayer currentPlayer => MediaManager.AndroidMediaPlayer.CurrentPlayer;
+        protected IPlayer CurrentPlayer => MediaManager.AndroidMediaPlayer.CurrentPlayer;
 
-        ConcatenatingMediaSource mediaSource;
-        private IPlaybackService playbackService;
+        ConcatenatingMediaSource _mediaSource;
+        private IPlaybackService _playbackService;
         public MediaSessionConnectorPlaybackPreparer(ConcatenatingMediaSource mediaSource)
         {
-            this.mediaSource = mediaSource;
-            container = BootstrapHelper.GetInitializedContainer();
-            playbackService = container.Resolve<IPlaybackService>();
+            this._mediaSource = mediaSource;
+            _container = BootstrapHelper.GetInitializedContainer();
+            _playbackService = _container.Resolve<IPlaybackService>();
         }
 
         protected MediaSessionConnectorPlaybackPreparer(IntPtr handle, JniHandleOwnership transfer)
@@ -53,26 +53,26 @@ namespace MediaManager.Platforms.Android.Player
 
         public void OnPrepare(bool playWhenReady)
         {
-            if (mediaSource.Size > 0)
+            if (_mediaSource.Size > 0)
             {
-                prepare(playWhenReady);
+                Prepare(playWhenReady);
                 return;
             }
 
-            Task.Run(async () => await playbackService.PrepareRelavantPlaylist()).Wait();
-            prepare(playWhenReady);
+            Task.Run(async () => await _playbackService.PrepareRelavantPlaylist()).Wait();
+            Prepare(playWhenReady);
         }
 
         public void OnPrepareFromMediaId(string mediaId, bool playWhenReady, Bundle extras)
         {
-            Task.Run(async () => await playbackService.PrepareRelavantPlaylist()).Wait();
-            prepare(playWhenReady);
+            Task.Run(async () => await _playbackService.PrepareRelavantPlaylist()).Wait();
+            Prepare(playWhenReady);
         }
 
         public void OnPrepareFromSearch(string query, bool playWhenReady, Bundle extras)
         {
-            Task.Run(async () => await playbackService.PrepareRelavantPlaylist()).Wait();
-            prepare(playWhenReady);
+            Task.Run(async () => await _playbackService.PrepareRelavantPlaylist()).Wait();
+            Prepare(playWhenReady);
         }
 
         public void OnPrepareFromUri(global::Android.Net.Uri uri, bool playWhenReady, Bundle extras)
@@ -80,9 +80,9 @@ namespace MediaManager.Platforms.Android.Player
             return;
         }
 
-        private void prepare(bool playWhenReady)
+        private void Prepare(bool playWhenReady)
         {
-            Prepare(playWhenReady, currentPlayer, MediaManager, playbackService, mediaSource);
+            Prepare(playWhenReady, CurrentPlayer, MediaManager, _playbackService, _mediaSource);
         }
 
         public static void Prepare(bool playWhenReady, IPlayer currentPlayer,
@@ -116,7 +116,7 @@ namespace MediaManager.Platforms.Android.Player
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened when preparing.");
+                Logger.Error(e, "An error happened when preparing.");
             }
         }
 

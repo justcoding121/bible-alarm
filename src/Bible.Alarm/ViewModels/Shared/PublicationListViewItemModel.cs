@@ -6,11 +6,11 @@ namespace Bible.Alarm.ViewModels
 {
     public class PublicationListViewItemModel(Publication publication) : ViewModel, IComparable
     {
-        private bool isSelected;
+        private bool _isSelected;
         public bool IsSelected
         {
-            get => isSelected;
-            set => this.Set(ref isSelected, value);
+            get => _isSelected;
+            set => this.Set(ref _isSelected, value);
         }
 
         public string Name => publication.Name;

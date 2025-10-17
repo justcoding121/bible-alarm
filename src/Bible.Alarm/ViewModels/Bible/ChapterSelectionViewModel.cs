@@ -23,38 +23,38 @@ namespace Bible.Alarm.ViewModels
 {
     public class ChapterSelectionViewModel : ViewModel, IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
-        private MediaService mediaService;
-        private IToastService toastService;
-        private IPreviewPlayService playService;
-        private BibleReadingSchedule current;
-        private BibleReadingSchedule tentative;
-        private INavigationService navigationService;
-        private IMediaCacheService cacheService;
-        private IDownloadService downloadService;
+        private MediaService _mediaService;
+        private IToastService _toastService;
+        private IPreviewPlayService _playService;
+        private BibleReadingSchedule _current;
+        private BibleReadingSchedule _tentative;
+        private INavigationService _navigationService;
+        private IMediaCacheService _cacheService;
+        private IDownloadService _downloadService;
 
-        private readonly List<IDisposable> subscriptions = new List<IDisposable>();
+        private readonly List<IDisposable> _subscriptions = new List<IDisposable>();
 
         public ChapterSelectionViewModel(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
-            this.mediaService = this.container.Resolve<MediaService>();
-            this.toastService = this.container.Resolve<IToastService>();
-            this.playService = this.container.Resolve<IPreviewPlayService>();
-            this.navigationService = this.container.Resolve<INavigationService>();
-            this.downloadService = this.container.Resolve<IDownloadService>();
-            this.cacheService = this.container.Resolve<IMediaCacheService>();
+            this._mediaService = this._container.Resolve<MediaService>();
+            this._toastService = this._container.Resolve<IToastService>();
+            this._playService = this._container.Resolve<IPreviewPlayService>();
+            this._navigationService = this._container.Resolve<INavigationService>();
+            this._downloadService = this._container.Resolve<IDownloadService>();
+            this._cacheService = this._container.Resolve<IMediaCacheService>();
 
             BackCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.GoBack();
+                await _navigationService.GoBack();
                 IsBusy = false;
             });
 
@@ -70,15 +70,15 @@ namespace Bible.Alarm.ViewModels
                 SelectedChapter = x;
                 SelectedChapter.IsSelected = true;
 
-                tentative.ChapterNumber = x.Number;
+                _tentative.ChapterNumber = x.Number;
 
                 ReduxContainer.Store.Dispatch(new ChapterSelectedAction()
                 {
                     CurrentBibleReadingSchedule = new BibleReadingSchedule()
                     {
-                        LanguageCode = tentative.LanguageCode,
-                        PublicationCode = tentative.PublicationCode,
-                        BookNumber = tentative.BookNumber,
+                        LanguageCode = _tentative.LanguageCode,
+                        PublicationCode = _tentative.PublicationCode,
+                        BookNumber = _tentative.BookNumber,
                         ChapterNumber = x.Number
                     }
                 });
@@ -94,14 +94,14 @@ namespace Bible.Alarm.ViewModels
                    .Take(1)
                    .Subscribe(async x =>
                    {
-                       current = x.CurrentBibleReadingSchedule;
-                       tentative = x.TentativeBibleReadingSchedule;
-                       await initialize(tentative.LanguageCode, tentative.PublicationCode, tentative.BookNumber);
+                       _current = x.CurrentBibleReadingSchedule;
+                       _tentative = x.TentativeBibleReadingSchedule;
+                       await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
                        IsBusy = false;
                    });
 
 
-            subscriptions.Add(subscription);
+            _subscriptions.Add(subscription);
         }
 
         public ICommand BackCommand { get; set; }
@@ -109,25 +109,25 @@ namespace Bible.Alarm.ViewModels
 
         public BibleChapterListViewItemModel SelectedChapter { get; set; }
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
 
-        private ObservableCollection<BibleChapterListViewItemModel> chapters;
+        private ObservableCollection<BibleChapterListViewItemModel> _chapters;
         public ObservableCollection<BibleChapterListViewItemModel> Chapters
         {
-            get => chapters;
-            set => this.Set(ref chapters, value);
+            get => _chapters;
+            set => this.Set(ref _chapters, value);
         }
 
-        private BibleChapterListViewItemModel currentlyPlaying;
-        private SemaphoreSlim @lock = new SemaphoreSlim(1);
-        private async Task initialize(string languageCode, string publicationCode, int bookNumber)
+        private BibleChapterListViewItemModel _currentlyPlaying;
+        private SemaphoreSlim _lock = new SemaphoreSlim(1);
+        private async Task Initialize(string languageCode, string publicationCode, int bookNumber)
         {
-            await populateChapters(languageCode, publicationCode, bookNumber);
+            await PopulateChapters(languageCode, publicationCode, bookNumber);
 
 
             var subscription1 = Chapters.Select(added =>
@@ -145,19 +145,19 @@ namespace Bible.Alarm.ViewModels
                              .Merge()
                              .Do(async y =>
                              {
-                                 await @lock.WaitAsync();
+                                 await _lock.WaitAsync();
 
                                  try
                                  {
-                                     if (currentlyPlaying != null && currentlyPlaying != y)
+                                     if (_currentlyPlaying != null && _currentlyPlaying != y)
                                      {
-                                         currentlyPlaying.Play = false;
-                                         currentlyPlaying.IsBusy = false;
+                                         _currentlyPlaying.Play = false;
+                                         _currentlyPlaying.IsBusy = false;
                                      }
 
-                                     currentlyPlaying = y;
+                                     _currentlyPlaying = y;
 
-                                     currentlyPlaying.IsBusy = true;
+                                     _currentlyPlaying.IsBusy = true;
 
                                      try
                                      {
@@ -166,37 +166,37 @@ namespace Bible.Alarm.ViewModels
 
                                          await Task.Run(async () =>
                                          {
-                                             if (!await downloadService.FileExists(url))
+                                             if (!await _downloadService.FileExists(url))
                                              {
-                                                 url = await cacheService.GetBibleChapterUrl(
-                                                                 tentative.LanguageCode,
-                                                                 tentative.PublicationCode,
-                                                                 tentative.BookNumber,
+                                                 url = await _cacheService.GetBibleChapterUrl(
+                                                                 _tentative.LanguageCode,
+                                                                 _tentative.PublicationCode,
+                                                                 _tentative.BookNumber,
                                                                  y.Number,
                                                                  y.LookUpPath);
                                              }
 
-                                             await playService.Play(url);
+                                             await _playService.Play(url);
                                          });
                                      }
                                      catch
                                      {
-                                         currentlyPlaying.Play = false;
-                                         await toastService.ShowMessage("Failed to download the file.");
+                                         _currentlyPlaying.Play = false;
+                                         await _toastService.ShowMessage("Failed to download the file.");
                                      }
 
-                                     currentlyPlaying.IsBusy = false;
+                                     _currentlyPlaying.IsBusy = false;
 
                                  }
                                  finally
                                  {
                                      try
                                      {
-                                         @lock.Release();
+                                         _lock.Release();
                                      }
                                      catch (ObjectDisposedException e)
                                      {
-                                         logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
+                                         Logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
                                      }
                                  }
 
@@ -218,45 +218,45 @@ namespace Bible.Alarm.ViewModels
                                 .Merge()
                                 .Do(y =>
                                 {
-                                    playService.Stop();
+                                    _playService.Stop();
                                 })
                                 .Subscribe();
 
-            var subscription3 = Observable.FromEvent(ev => playService.OnStopped += ev,
-                                                    ev => playService.OnStopped -= ev)
+            var subscription3 = Observable.FromEvent(ev => _playService.OnStopped += ev,
+                                                    ev => _playService.OnStopped -= ev)
                                 .Do(async y =>
                                 {
-                                    await @lock.WaitAsync();
+                                    await _lock.WaitAsync();
 
                                     try
                                     {
-                                        if (currentlyPlaying != null)
+                                        if (_currentlyPlaying != null)
                                         {
-                                            currentlyPlaying.Play = false;
-                                            currentlyPlaying.IsBusy = false;
-                                            currentlyPlaying = null;
+                                            _currentlyPlaying.Play = false;
+                                            _currentlyPlaying.IsBusy = false;
+                                            _currentlyPlaying = null;
                                         }
                                     }
                                     finally
                                     {
                                         try
                                         {
-                                            @lock.Release();
+                                            _lock.Release();
                                         }
                                         catch (ObjectDisposedException e)
                                         {
-                                            logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
+                                            Logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
                                         }
                                     }
                                 })
                                 .Subscribe();
 
-            subscriptions.AddRange(new[] { subscription1, subscription2, subscription3 });
+            _subscriptions.AddRange(new[] { subscription1, subscription2, subscription3 });
         }
 
-        private async Task populateChapters(string languageCode, string publicationCode, int bookNumber)
+        private async Task PopulateChapters(string languageCode, string publicationCode, int bookNumber)
         {
-            var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
+            var chapters = await _mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
             var chapterVMs = new ObservableCollection<BibleChapterListViewItemModel>();
 
             if (CurrentDevice.RuntimePlatform == Device.WinUI)
@@ -266,17 +266,17 @@ namespace Bible.Alarm.ViewModels
 
             foreach (var chapter in chapters.Select(x => x.Value))
             {
-                var chapterVM = new BibleChapterListViewItemModel(chapter);
+                var chapterVm = new BibleChapterListViewItemModel(chapter);
 
-                chapterVMs.Add(chapterVM);
+                chapterVMs.Add(chapterVm);
 
-                if (current.LanguageCode == tentative.LanguageCode
-                    && current.PublicationCode == tentative.PublicationCode
-                    && current.BookNumber == tentative.BookNumber
-                    && current.ChapterNumber == chapter.Number)
+                if (_current.LanguageCode == _tentative.LanguageCode
+                    && _current.PublicationCode == _tentative.PublicationCode
+                    && _current.BookNumber == _tentative.BookNumber
+                    && _current.ChapterNumber == chapter.Number)
                 {
-                    chapterVM.IsSelected = true;
-                    SelectedChapter = chapterVM;
+                    chapterVm.IsSelected = true;
+                    SelectedChapter = chapterVm;
                 }
             }
 
@@ -288,54 +288,54 @@ namespace Bible.Alarm.ViewModels
 
         public void Dispose()
         {
-            subscriptions.ForEach(x => x.Dispose());
+            _subscriptions.ForEach(x => x.Dispose());
 
-            mediaService.Dispose();
-            toastService.Dispose();
-            playService.Dispose();
-            downloadService.Dispose();
-            cacheService.Dispose();
-            @lock.Dispose();
+            _mediaService.Dispose();
+            _toastService.Dispose();
+            _playService.Dispose();
+            _downloadService.Dispose();
+            _cacheService.Dispose();
+            _lock.Dispose();
         }
     }
 
     public class BibleChapterListViewItemModel : ViewModel, IComparable
     {
-        private readonly BibleChapter chapter;
+        private readonly BibleChapter _chapter;
 
         public BibleChapterListViewItemModel(BibleChapter chapter)
         {
-            this.chapter = chapter;
+            this._chapter = chapter;
             TogglePlayCommand = new Command(() => Play = !Play);
         }
 
-        private bool isSelected;
+        private bool _isSelected;
         public bool IsSelected
         {
-            get => isSelected;
-            set => this.Set(ref isSelected, value);
+            get => _isSelected;
+            set => this.Set(ref _isSelected, value);
         }
 
         public ICommand TogglePlayCommand { get; set; }
 
-        public string LookUpPath => chapter.Source.LookUpPath;
-        public int Number => chapter.Number;
+        public string LookUpPath => _chapter.Source.LookUpPath;
+        public int Number => _chapter.Number;
 
-        public string Title => chapter.Title;
-        public string Url => chapter.Source.Url;
+        public string Title => _chapter.Title;
+        public string Url => _chapter.Source.Url;
 
-        private bool play;
+        private bool _play;
         public bool Play
         {
-            get => play;
-            set => this.Set(ref play, value);
+            get => _play;
+            set => this.Set(ref _play, value);
         }
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
 
         public int CompareTo(object obj)

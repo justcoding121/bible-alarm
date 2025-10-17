@@ -3,7 +3,7 @@
     using System.ComponentModel;
     using System.Runtime.CompilerServices;
 
-    public class VMObservable : INotifyPropertyChanged
+    public class VmObservable : INotifyPropertyChanged
     {
         #region Set and raise bindable property value
 
@@ -50,7 +50,7 @@
         /// <param name="name">Name of the set property.</param>
         /// <typeparam name="T">The 1st type parameter.</typeparam>
         public static Assignement<TObservable, T> Set<TObservable, T>(this TObservable obs, ref T field, T value, [CallerMemberName]string name = null)
-            where TObservable : VMObservable
+            where TObservable : VmObservable
         {
             var result = new Assignement<TObservable, T>(obs, name, field, value);
 
@@ -73,7 +73,7 @@
         /// <param name="name">Name of the set property.</param>
         /// <typeparam name="T">The 1st type parameter.</typeparam>
         public static Assignement<TObservable, T> Set<TObservable, T>(this TObservable obs, T field, T value, [CallerMemberName]string name = null)
-            where TObservable : VMObservable
+            where TObservable : VmObservable
         {
             var result = new Assignement<TObservable, T>(obs, name, field, value);
 

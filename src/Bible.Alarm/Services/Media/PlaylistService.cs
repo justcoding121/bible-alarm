@@ -16,8 +16,8 @@ namespace Bible.Alarm.Services
         MediaService mediaService)
         : IPlaylistService
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
         public async Task<long> GetRelavantScheduleToPlay()
         {
@@ -73,7 +73,7 @@ namespace Bible.Alarm.Services
                 if (!schedule.Music.Repeat)
                 {
                     schedule.Music.TrackNumber = trackDetail.TrackNumber;
-                    var next = await nextMusicUrlToPlay(schedule, true);
+                    var next = await NextMusicUrlToPlay(schedule, true);
                     schedule.Music.TrackNumber = next.PlayDetail.TrackNumber;
                 }
             }
@@ -111,7 +111,7 @@ namespace Bible.Alarm.Services
             {
                 if (!schedule.Music.Repeat)
                 {
-                    var next = await nextMusicUrlToPlay(schedule, true);
+                    var next = await NextMusicUrlToPlay(schedule, true);
                     schedule.Music.TrackNumber = next.PlayDetail.TrackNumber;
                 }
             }
@@ -146,7 +146,7 @@ namespace Bible.Alarm.Services
 
             if (schedule.MusicEnabled)
             {
-                return await nextMusicUrlToPlay(schedule);
+                return await NextMusicUrlToPlay(schedule);
             }
 
             var bibleReadingSchedule = schedule.BibleReadingSchedule;
@@ -159,7 +159,7 @@ namespace Bible.Alarm.Services
 
             if (chapterDetail == null)
             {
-                logger.Error($"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
+                Logger.Error($"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
             }
 
             var publicationCode = bibleReadingSchedule.PublicationCode;
@@ -200,7 +200,7 @@ namespace Bible.Alarm.Services
 
             if (schedule.MusicEnabled)
             {
-                result.Add(await nextMusicUrlToPlay(schedule));
+                result.Add(await NextMusicUrlToPlay(schedule));
             }
 
             var bibleReadingSchedule = schedule.BibleReadingSchedule;
@@ -211,7 +211,7 @@ namespace Bible.Alarm.Services
 
             if (!chapters.ContainsKey(chapter))
             {
-                logger.Error($"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
+                Logger.Error($"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
             }
 
             var chapterDetail = chapters[chapter];
@@ -380,7 +380,7 @@ namespace Bible.Alarm.Services
             return books.Min();
         }
 
-        private async Task<PlayItem> nextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
+        private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
         {
             switch (schedule.Music.MusicType)
             {

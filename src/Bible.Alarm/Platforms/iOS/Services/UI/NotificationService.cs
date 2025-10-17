@@ -10,17 +10,17 @@ using UserNotifications;
 
 namespace Bible.Alarm.Services.iOS
 {
-    public class iOSNotificationService(IContainer container) : INotificationService
+    public class IOsNotificationService(IContainer container) : INotificationService
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private readonly TaskScheduler taskScheduler = container.Resolve<TaskScheduler>();
+        private readonly TaskScheduler _taskScheduler = container.Resolve<TaskScheduler>();
 
         public async Task ShowNotification(long scheduleId)
         {
-            var iosAlarmHandler = container.Resolve<iOSAlarmHandler>();
+            var iosAlarmHandler = container.Resolve<IOsAlarmHandler>();
             await iosAlarmHandler.Handle(scheduleId, true);
         }
 
@@ -44,12 +44,12 @@ namespace Bible.Alarm.Services.iOS
                     content.Title = title;
                     content.Body = body;
                     content.Sound = UNNotificationSound.GetSound("cool-alarm-tone-notification-sound.mp3");
-                    content.UserInfo = @params.ToNSDictionary();
+                    content.UserInfo = @params.ToNsDictionary();
                     content.Badge = 1;
 
                     foreach (var day in daysOfWeek.ToWeekDays())
                     {
-                        var trigger = UNCalendarNotificationTrigger.CreateTrigger(time.LocalDateTime.ToNSDateComponents(day), true);
+                        var trigger = UNCalendarNotificationTrigger.CreateTrigger(time.LocalDateTime.ToNsDateComponents(day), true);
 
                         var requestId = $"{scheduleId}_{day}";
                         var request = UNNotificationRequest.FromIdentifier(requestId, content, trigger);
@@ -58,12 +58,12 @@ namespace Bible.Alarm.Services.iOS
                         {
                             if (err != null)
                             {
-                                logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
+                                Logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
                             }
                         });
                     }
 
-                }, taskScheduler);
+                }, _taskScheduler);
 
         }
 
@@ -87,7 +87,7 @@ namespace Bible.Alarm.Services.iOS
                        }
                    }
 
-               }, taskScheduler);
+               }, _taskScheduler);
         }
 
         public async Task<bool> IsScheduled(long scheduleId)
@@ -111,7 +111,7 @@ namespace Bible.Alarm.Services.iOS
 
                      return false;
 
-                 }, taskScheduler);
+                 }, _taskScheduler);
         }
 
         public async Task<bool> CanSchedule()
@@ -129,7 +129,7 @@ namespace Bible.Alarm.Services.iOS
 
                    return taskCompletionSource.Task.Result;
 
-               }, taskScheduler);
+               }, _taskScheduler);
 
         }
 

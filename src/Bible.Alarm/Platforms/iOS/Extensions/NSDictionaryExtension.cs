@@ -8,9 +8,9 @@ using UIKit;
 
 namespace Bible.Alarm.iOS.Extensions
 {
-    public static class NSDictionaryExtension
+    public static class NsDictionaryExtension
     {
-        public static NSDictionary ToNSDictionary(this Dictionary<string, string> input)
+        public static NSDictionary ToNsDictionary(this Dictionary<string, string> input)
         {
             return NSDictionary.FromObjectsAndKeys(input.Values.ToArray()
                                                , input.Keys.ToArray());

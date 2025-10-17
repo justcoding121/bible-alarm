@@ -15,43 +15,43 @@ namespace Bible.Alarm.Services
 {
     public class MediaIndexService : IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
-        private readonly Lazy<string> indexRoot;
+        private readonly Lazy<string> _indexRoot;
 
-        private IStorageService storageService;
-        private IVersionFinder versionFinder;
-        private IDownloadService downloadService;
+        private IStorageService _storageService;
+        private IVersionFinder _versionFinder;
+        private IDownloadService _downloadService;
 
-        public string IndexRoot => indexRoot.Value;
+        public string IndexRoot => _indexRoot.Value;
 
         public MediaIndexService(IStorageService storageService, IVersionFinder versionFinder, IDownloadService downloadService)
         {
-            this.storageService = storageService;
-            this.versionFinder = versionFinder;
-            this.downloadService = downloadService;
+            this._storageService = storageService;
+            this._versionFinder = versionFinder;
+            this._downloadService = downloadService;
 
-            indexRoot = new Lazy<string>(() => this.storageService.StorageRoot);
+            _indexRoot = new Lazy<string>(() => this._storageService.StorageRoot);
         }
 
-        private readonly SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
         private static bool verified = false;
 
         public async Task Verify()
         {
             try
             {
-                await @lock.WaitAsync();
+                await _lock.WaitAsync();
 
                 if (verified)
                 {
                     return;
                 }
 
-                if (await indexDoNotExistOrIsOutdated())
+                if (await IndexDoNotExistOrIsOutdated())
                 {
-                    await clearCopyIndexFromResource();
+                    await ClearCopyIndexFromResource();
                 }
 
                 verified = true;
@@ -60,11 +60,11 @@ namespace Bible.Alarm.Services
             {
                 try
                 {
-                    @lock.Release();
+                    _lock.Release();
                 }
                 catch (ObjectDisposedException e)
                 {
-                    logger.Error(e, "MediaIndexService: @lock disposed error.");
+                    Logger.Error(e, "MediaIndexService: @lock disposed error.");
                 }
             }
         }
@@ -76,11 +76,11 @@ namespace Bible.Alarm.Services
 
         public async Task<bool> UpdateIndexIfAvailable()
         {
-            await @lock.WaitAsync();
+            await _lock.WaitAsync();
 
             try
             {
-                var creationDate = await storageService.GetFileCreationDate(Path.Combine(IndexRoot, "mediaIndex.db"), false);
+                var creationDate = await _storageService.GetFileCreationDate(Path.Combine(IndexRoot, "mediaIndex.db"), false);
 
                 //if downloaded within last 12 hours
                 if (creationDate.UtcDateTime > DateTime.UtcNow.AddHours(-12))
@@ -92,7 +92,7 @@ namespace Bible.Alarm.Services
 
                 for (int i = 0; time.Day > 0 && i <= 1; i++)
                 {
-                    var bytes = await downloadService.DownloadAsync($"https://jthomas.info/bible-alarm/media-index/{time.Day - i}-{time.Month}-{time.Year}.zip");
+                    var bytes = await _downloadService.DownloadAsync($"https://jthomas.info/bible-alarm/media-index/{time.Day - i}-{time.Month}-{time.Year}.zip");
 
                     if (bytes != null)
                     {
@@ -105,27 +105,27 @@ namespace Bible.Alarm.Services
 
                         var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
 
-                        if (await storageService.FileExists(tmpIndexZipFilePath))
+                        if (await _storageService.FileExists(tmpIndexZipFilePath))
                         {
-                            await storageService.DeleteFile(tmpIndexZipFilePath);
+                            await _storageService.DeleteFile(tmpIndexZipFilePath);
                         }
 
-                        await storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
+                        await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
 
-                        if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+                        if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
                         {
-                            await storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+                            await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
                         }
 
                         var extractionDir = Path.Combine(IndexRoot, "tmp");
-                        await storageService.CreateDirectory(extractionDir);
+                        await _storageService.CreateDirectory(extractionDir);
 
                         ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
 
                         File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"), true);
 
-                        await storageService.DeleteDirectory(extractionDir);
-                        await storageService.DeleteFile(tmpIndexZipFilePath);
+                        await _storageService.DeleteDirectory(extractionDir);
+                        await _storageService.DeleteFile(tmpIndexZipFilePath);
 
                         return true;
                     }
@@ -134,19 +134,19 @@ namespace Bible.Alarm.Services
             }
             finally
             {
-                @lock.Release();
+                _lock.Release();
             }
 
             return false;
         }
 
-        private async Task<bool> indexDoNotExistOrIsOutdated()
+        private async Task<bool> IndexDoNotExistOrIsOutdated()
         {
             var tmpIndexFilePath = Path.Combine(IndexRoot, "index.zip");
 
-            var mediaIndexDbExists = await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db"))
+            var mediaIndexDbExists = await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db"))
                             //verify that any previous unzipping process was not incomplete
-                            && !await storageService.FileExists(tmpIndexFilePath);
+                            && !await _storageService.FileExists(tmpIndexFilePath);
 
             var versionFileExists = false;
             var isOutdatedVersion = false;
@@ -155,12 +155,12 @@ namespace Bible.Alarm.Services
             if (mediaIndexDbExists)
             {
                 var versionFilePath = Path.Combine(IndexRoot, "version.dat");
-                versionFileExists = await storageService.FileExists(versionFilePath);
+                versionFileExists = await _storageService.FileExists(versionFilePath);
 
                 if (versionFileExists)
                 {
-                    var version = await storageService.ReadFile(versionFilePath);
-                    var currentVersion = versionFinder.GetVersionName();
+                    var version = await _storageService.ReadFile(versionFilePath);
+                    var currentVersion = _versionFinder.GetVersionName();
 
                     if (version != currentVersion)
                     {
@@ -172,7 +172,7 @@ namespace Bible.Alarm.Services
             return !mediaIndexDbExists || !versionFileExists || isOutdatedVersion;
         }
 
-        private async Task clearCopyIndexFromResource()
+        private async Task ClearCopyIndexFromResource()
         {
             var indexResourceFile = "index.zip";
             var defaultAlarmFile = "cool-alarm-tone-notification-sound.mp3";
@@ -184,38 +184,38 @@ namespace Bible.Alarm.Services
 
             var tmpIndexFilePath = Path.Combine(IndexRoot, indexResourceFile);
 
-            if (await storageService.FileExists(tmpIndexFilePath))
+            if (await _storageService.FileExists(tmpIndexFilePath))
             {
-                await storageService.DeleteFile(tmpIndexFilePath);
+                await _storageService.DeleteFile(tmpIndexFilePath);
             }
             if (CurrentDevice.RuntimePlatform == Device.Android &&
-                await storageService.FileExists(Path.Combine(IndexRoot, defaultAlarmFile)))
+                await _storageService.FileExists(Path.Combine(IndexRoot, defaultAlarmFile)))
             {
-                await storageService.DeleteFile(Path.Combine(IndexRoot, defaultAlarmFile));
+                await _storageService.DeleteFile(Path.Combine(IndexRoot, defaultAlarmFile));
             }
 
-            await storageService.CopyResourceFile(indexResourceFile, IndexRoot, indexResourceFile);
+            await _storageService.CopyResourceFile(indexResourceFile, IndexRoot, indexResourceFile);
 
-            if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+            if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
             {
-                await storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+                await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
             }
 
             ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
 
             if (CurrentDevice.RuntimePlatform == Device.Android)
             {
-                await storageService.CopyResourceFile(defaultAlarmFile, IndexRoot, defaultAlarmFile);
+                await _storageService.CopyResourceFile(defaultAlarmFile, IndexRoot, defaultAlarmFile);
             }
 
-            await storageService.DeleteFile(tmpIndexFilePath);
-            await storageService.SaveFile(IndexRoot, "version.dat", versionFinder.GetVersionName());
+            await _storageService.DeleteFile(tmpIndexFilePath);
+            await _storageService.SaveFile(IndexRoot, "version.dat", _versionFinder.GetVersionName());
         }
 
         public void Dispose()
         {
-            storageService.Dispose();
-            @lock.Dispose();
+            _storageService.Dispose();
+            _lock.Dispose();
         }
     }
 }

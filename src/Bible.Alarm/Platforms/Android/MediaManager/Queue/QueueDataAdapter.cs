@@ -12,11 +12,11 @@ namespace MediaManager.Platforms.Android.Queue
     public class QueueDataAdapter : Java.Lang.Object, TimelineQueueEditor.IQueueDataAdapter
     {
         protected MediaManagerImplementation MediaManager => (MediaManagerImplementation)CrossMediaManager.Current;
-        protected ConcatenatingMediaSource _mediaSource;
+        protected ConcatenatingMediaSource MediaSource;
 
         public QueueDataAdapter(ConcatenatingMediaSource mediaSource)
         {
-            _mediaSource = mediaSource;
+            MediaSource = mediaSource;
             MediaManager.Queue.MediaItems.CollectionChanged += MediaQueue_CollectionChanged;
         }
 
@@ -49,12 +49,12 @@ namespace MediaManager.Platforms.Android.Queue
             switch (e.Action)
             {
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
-                    if (_mediaSource.Size != MediaManager.Queue.Count)
+                    if (MediaSource.Size != MediaManager.Queue.Count)
                     {
                         for (int i = e.NewItems.Count - 1; i >= 0; i--)
                         {
                             var mediaItem = (IMediaItem)e.NewItems[i];
-                            _mediaSource.AddMediaSource(e.NewStartingIndex, mediaItem.ToMediaSource());
+                            MediaSource.AddMediaSource(e.NewStartingIndex, mediaItem.ToMediaSource());
                         }
                     }
                     break;
@@ -70,57 +70,57 @@ namespace MediaManager.Platforms.Android.Queue
                         //move when new is before old
                         if (newBeginIndex < oldBeginIndex)
                             for (int i = 0; i > e.NewItems.Count; i++)
-                                _mediaSource.MoveMediaSource(oldEndIndex, newBeginIndex);
+                                MediaSource.MoveMediaSource(oldEndIndex, newBeginIndex);
 
                         //move when new is after old
                         else if (newBeginIndex > oldBeginIndex)
                             for (int i = 0; i > e.NewItems.Count; i++)
-                                _mediaSource.MoveMediaSource(oldBeginIndex, newEndIndex);
+                                MediaSource.MoveMediaSource(oldBeginIndex, newEndIndex);
                     }
                     else
-                        _mediaSource.MoveMediaSource(e.OldStartingIndex, e.NewStartingIndex);
+                        MediaSource.MoveMediaSource(e.OldStartingIndex, e.NewStartingIndex);
                     break;
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
                     if (e.NewItems.Count > 1)
                     {
                         for (int i = 0; i > e.NewItems.Count; i++)
-                            _mediaSource.RemoveMediaSource(e.OldStartingIndex);
+                            MediaSource.RemoveMediaSource(e.OldStartingIndex);
                     }
                     else
-                        _mediaSource.RemoveMediaSource(e.OldStartingIndex);
+                        MediaSource.RemoveMediaSource(e.OldStartingIndex);
                     break;
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Replace:
                     if (e.NewItems.Count > 1)
                     {
                         for (int i = 0; i > e.NewItems.Count; i++)
-                            _mediaSource.RemoveMediaSource(e.OldStartingIndex);
+                            MediaSource.RemoveMediaSource(e.OldStartingIndex);
                     }
                     else
-                        _mediaSource.RemoveMediaSource(e.OldStartingIndex);
+                        MediaSource.RemoveMediaSource(e.OldStartingIndex);
 
                     for (int i = e.NewItems.Count - 1; i >= 0; i--)
                     {
                         var mediaItem = (IMediaItem)e.NewItems[i];
-                        _mediaSource.AddMediaSource(e.NewStartingIndex, mediaItem.ToMediaSource());
+                        MediaSource.AddMediaSource(e.NewStartingIndex, mediaItem.ToMediaSource());
                     }
                     break;
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Reset:
-                    _mediaSource.Clear();
+                    MediaSource.Clear();
                     break;
             }
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
             MediaManager.Queue.MediaItems.CollectionChanged -= MediaQueue_CollectionChanged;
 
-            disposed = true;
+            _disposed = true;
             base.Dispose(disposing);
         }
     }

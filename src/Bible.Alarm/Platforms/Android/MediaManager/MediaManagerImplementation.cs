@@ -102,8 +102,8 @@ namespace MediaManager
             set
             {
                 //On Android we need to update the headers on the player instead of per item.
-                if (SetProperty(ref _requestHeaders, value))
-                    AndroidMediaPlayer.UpdateRequestHeaders();
+                base.RequestHeaders = value;
+                AndroidMediaPlayer.UpdateRequestHeaders();
             }
         }
 
@@ -134,7 +134,7 @@ namespace MediaManager
 
         public override TimeSpan StepSizeForward
         {
-            get => _stepSizeForward;
+            get => base.StepSizeForward;
             set
             {
                 base.StepSizeForward = value;
@@ -145,7 +145,7 @@ namespace MediaManager
 
         public override TimeSpan StepSizeBackward
         {
-            get => _stepSizeBackward;
+            get => base.StepSizeBackward;
             set
             {
                 base.StepSizeBackward = value;

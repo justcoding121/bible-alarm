@@ -16,16 +16,16 @@ namespace Bible.Alarm.UI.Views
         public LanguageModal()
         {
             InitializeComponent();
-            this.Appearing += onAppearing;
+            this.Appearing += OnAppearing;
         }
 
-        private void onAppearing(object sender, EventArgs e)
+        private void OnAppearing(object sender, EventArgs e)
         {
             var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
             Task.Delay(100).ContinueWith(x =>
             {
                 LanguageListView.ScrollTo(ViewModel.SelectedItem, ScrollToPosition.Center, true);
-                this.Appearing -= onAppearing;
+                this.Appearing -= OnAppearing;
 
             }, scheduler);
         }

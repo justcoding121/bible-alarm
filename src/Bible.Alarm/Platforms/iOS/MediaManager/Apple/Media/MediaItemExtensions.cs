@@ -11,13 +11,13 @@ namespace MediaManager.Platforms.Apple.Media
     {
         public static Dictionary<string, string> RequestHeaders => CrossMediaManager.Current.RequestHeaders;
 
-        public static NSUrl GetNSUrl(this IMediaItem mediaItem)
+        public static NSUrl GetNsUrl(this IMediaItem mediaItem)
         {
             var isLocallyAvailable = mediaItem.MediaLocation.IsLocal();
             return isLocallyAvailable ? new NSUrl(mediaItem.MediaUri, false) : new NSUrl(mediaItem.MediaUri);
         }
 
-        public static AVPlayerItem ToAVPlayerItem(this IMediaItem mediaItem)
+        public static AVPlayerItem ToAvPlayerItem(this IMediaItem mediaItem)
         {
             AVAsset asset;
 

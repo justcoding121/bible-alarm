@@ -1,6 +1,6 @@
-﻿namespace AudioLinkHarvester.Models
+﻿namespace Bible.Alarm.Audio.Links.Harvester.Models
 {
-    public class Publication
+    public class Language
     {
         public string Name { get; set; }
         public string Code { get; set; }

@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
+using Newtonsoft.Json;
 
-namespace AudioLinkHarvester.Models.Bible
+namespace Bible.Alarm.Audio.Links.Harvester.Models.Bible
 {
     public class BibleChapter : IComparable
     {

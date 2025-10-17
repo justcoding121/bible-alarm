@@ -5,7 +5,7 @@ VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_tools", "_tools", "{8BBDFD16-37FB-4C4C-AA4F-525913416EBE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.Audio.Links.Harvestor", "..\.tools\Bible.Alarm.Audio.Links.Harvestor\Bible.Alarm.Audio.Links.Harvestor.csproj", "{1D8DA005-6359-422B-9ACF-E3CBB05B25F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.Audio.Links.Harvester", "..\.tools\Bible.Alarm.Audio.Links.Harvester\Bible.Alarm.Audio.Links.Harvester.csproj", "{1D8DA005-6359-422B-9ACF-E3CBB05B25F4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.DbMigration.Setup", "..\.tools\Bible.Alarm.DbMigration.Setup\Bible.Alarm.DbMigration.Setup.csproj", "{2DA76390-D8E0-4DD4-B342-2E2DD315FB83}"
 EndProject

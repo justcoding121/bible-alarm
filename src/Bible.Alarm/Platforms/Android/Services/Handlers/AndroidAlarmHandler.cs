@@ -21,12 +21,12 @@ namespace Bible.Alarm.Droid.Services.Handlers
         DroidNotificationService notificationService)
         : IAndroidAlarmHandler, IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private bool mediaManagerInitialized = false;
-        private PlayerNotificationManager playerNotificationManager;
+        private bool _mediaManagerInitialized = false;
+        private PlayerNotificationManager _playerNotificationManager;
 
         public event EventHandler<bool> Disposed;
 
@@ -66,20 +66,20 @@ namespace Bible.Alarm.Droid.Services.Handlers
                 {
                     await playbackService.PrepareAndPlay(scheduleId, isImmediate);
 
-                    mediaManagerInitialized = true;
+                    _mediaManagerInitialized = true;
 
-                    playerNotificationManager = (mediaManager.Notification as NotificationManager).PlayerNotificationManager;
-                    playerNotificationManager.NotificationCancelled += notificationCancelled;
+                    _playerNotificationManager = (mediaManager.Notification as NotificationManager).PlayerNotificationManager;
+                    _playerNotificationManager.NotificationCancelled += NotificationCancelled;
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happened when ringing the alarm.");
+                    Logger.Error(e, "An error happened when ringing the alarm.");
                     Dispose();
                 }
             });
         }
 
-        private async void notificationCancelled(object sender, PlayerNotificationManager.NotificationCancelledEventArgs e)
+        private async void NotificationCancelled(object sender, PlayerNotificationManager.NotificationCancelledEventArgs e)
         {
             if (e.DismissedByUser)
             {
@@ -87,28 +87,26 @@ namespace Bible.Alarm.Droid.Services.Handlers
             }
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
         public void Dispose()
         {
-            if (!disposed)
+            if (_disposed) return;
+            _disposed = true;
+
+            if (_playerNotificationManager != null)
             {
-                disposed = true;
-
-                if (playerNotificationManager != null)
-                {
-                    playerNotificationManager.NotificationCancelled -= notificationCancelled;
-                }
-
-                dbContext.Dispose();
-                notificationService.Dispose();
-
-                if (mediaManagerInitialized)
-                {
-                    mediaManager?.Dispose();
-                }
-
-                Disposed?.Invoke(this, true);
+                _playerNotificationManager.NotificationCancelled -= NotificationCancelled;
             }
+
+            dbContext.Dispose();
+            notificationService.Dispose();
+
+            if (_mediaManagerInitialized)
+            {
+                mediaManager?.Dispose();
+            }
+
+            Disposed?.Invoke(this, true);
         }
     }
 }

@@ -26,13 +26,13 @@ namespace Loggly.Config
             Transport = new TransportConfiguration();
         }
 
-        private static ILogglyConfig _instance;
+        private static ILogglyConfig instance;
 
         public static ILogglyConfig Instance
         {
             get
             {
-                if (_instance == null)
+                if (instance == null)
                 {
 #if FEATURE_SYSTEM_CONFIGURATION
                     if (LogglyAppConfig.HasAppCopnfig)
@@ -41,11 +41,11 @@ namespace Loggly.Config
                         return _instance;
                     }
 #endif
-                    _instance = GetNullConfig();
+                    instance = GetNullConfig();
                 }
-                return _instance;
+                return instance;
             }
-            set { _instance = value; }
+            set { instance = value; }
         }
 
         private static ILogglyConfig GetNullConfig()

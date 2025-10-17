@@ -26,13 +26,13 @@ namespace Bible.Alarm.Services.Infrastructure
                 {
                     if (!initialized)
                     {
-                        setupLoggly();
+                        SetupLoggly();
 
                         var config = new LoggingConfiguration();
                         var logglyTarget = new NLog.Targets.LogglyTarget();
                         logglyTarget.Tags.Add(new NLog.Targets.LogglyTagProperty()
                         {
-                            Name = getVersionName(versionFinder)
+                            Name = GetVersionName(versionFinder)
                         });
 
 #if DEBUG
@@ -64,7 +64,7 @@ namespace Bible.Alarm.Services.Infrastructure
                 }
             }
         }
-        private static void setupLoggly()
+        private static void SetupLoggly()
         {
 
             var config = LogglyConfig.Instance;
@@ -81,7 +81,7 @@ namespace Bible.Alarm.Services.Infrastructure
             config.TagConfig.Tags.Add(ct);
         }
 
-        private static string getVersionName(IVersionFinder versionFinder)
+        private static string GetVersionName(IVersionFinder versionFinder)
         {
             try
             {

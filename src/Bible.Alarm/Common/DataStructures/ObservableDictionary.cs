@@ -11,48 +11,48 @@ namespace Bible.Alarm.Common.DataStructures
                                                         INotifyCollectionChanged
                                                             where TKey : IComparable
     {
-        private readonly Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<TKey, TValue> dictionary = new();
+        private readonly Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<TKey, TValue> _dictionary = new();
 
         public TValue this[TKey key]
         {
-            get => dictionary[key];
-            set => dictionary[key] = value;
+            get => _dictionary[key];
+            set => _dictionary[key] = value;
         }
 
-        public int Count => dictionary.Count;
+        public int Count => _dictionary.Count;
 
         public event NotifyCollectionChangedEventHandler CollectionChanged;
 
         public int Add(TKey key, TValue value)
         {
-            var index = dictionary.Add(key, value);
-            onNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TValue>(key, value), index));
+            var index = _dictionary.Add(key, value);
+            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TValue>(key, value), index));
             return index;
         }
 
         public void Clear()
         {
-            dictionary.Clear();
-            onNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            _dictionary.Clear();
+            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
 
         public bool ContainsKey(TKey key)
         {
-            return dictionary.ContainsKey(key);
+            return _dictionary.ContainsKey(key);
         }
 
         public int IndexOf(TKey key)
         {
-            return dictionary.IndexOf(key);
+            return _dictionary.IndexOf(key);
         }
 
         public bool Remove(TKey key)
         {
-            if (dictionary.ContainsKey(key))
+            if (_dictionary.ContainsKey(key))
             {
-                var value = dictionary[key];
-                var index = dictionary.Remove(key);
-                onNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, new KeyValuePair<TKey, TValue>(key, value), index));
+                var value = _dictionary[key];
+                var index = _dictionary.Remove(key);
+                OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, new KeyValuePair<TKey, TValue>(key, value), index));
                 return true;
             }
 
@@ -61,10 +61,10 @@ namespace Bible.Alarm.Common.DataStructures
 
         public void RemoveAt(int index)
         {
-            dictionary.RemoveAt(index);
+            _dictionary.RemoveAt(index);
         }
 
-        private void onNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
+        private void OnNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
         {
             CollectionChanged?.Invoke(this, args);
         }
@@ -76,7 +76,7 @@ namespace Bible.Alarm.Common.DataStructures
 
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            return dictionary.GetEnumerator();
+            return _dictionary.GetEnumerator();
         }
     }
 }

@@ -16,19 +16,19 @@ namespace Bible.Alarm.Services.Windows.Handlers
 {
     public class UwpAlarmHandler : IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private IPlaybackService playbackService;
-        private IMediaManager mediaManager;
+        private IPlaybackService _playbackService;
+        private IMediaManager _mediaManager;
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
         public UwpAlarmHandler(IPlaybackService playbackService,
                                 IMediaManager mediaManager)
         {
-            this.playbackService = playbackService;
-            this.mediaManager = mediaManager;
+            this._playbackService = playbackService;
+            this._mediaManager = mediaManager;
    
             var windowsMediaPlayer = mediaManager.MediaPlayer as WindowsMediaPlayer;
             var mediaPlayer = windowsMediaPlayer.Player;
@@ -42,7 +42,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
             {
                 await @lock.WaitAsync();
 
-                if (mediaManager.IsPreparedEx())
+                if (_mediaManager.IsPreparedEx())
                 {
                     Dispose();
                     return;
@@ -52,11 +52,11 @@ namespace Bible.Alarm.Services.Windows.Handlers
                 {
                     try
                     {
-                        await playbackService.PrepareAndPlay(scheduleId, isImmediate);
+                        await _playbackService.PrepareAndPlay(scheduleId, isImmediate);
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, "An error happened when ringing the alarm.");
+                        Logger.Error(e, "An error happened when ringing the alarm.");
                         throw;
                     }
                 });
@@ -64,7 +64,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened when creating the task to ring the alarm.");
+                Logger.Error(e, "An error happened when creating the task to ring the alarm.");
                 Dispose();
             }
             finally

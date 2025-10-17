@@ -20,30 +20,30 @@ namespace Bible.Alarm.ViewModels
 {
     public class BookSelectionViewModel : ViewModel, IDisposable
     {
-        public IContainer container { get; set; }
+        public IContainer Container { get; set; }
 
-        private BibleReadingSchedule current;
-        private BibleReadingSchedule tentative;
+        private BibleReadingSchedule _current;
+        private BibleReadingSchedule _tentative;
 
-        private MediaService mediaService;
-        private INavigationService navigationService;
+        private MediaService _mediaService;
+        private INavigationService _navigationService;
 
         public ICommand BackCommand { get; set; }
         public ICommand ChapterSelectionCommand { get; set; }
 
-        private List<IDisposable> subscriptions = new List<IDisposable>();
+        private List<IDisposable> _subscriptions = new List<IDisposable>();
 
         public BookSelectionViewModel(IContainer container)
         {
-            this.container = container;
+            this.Container = container;
 
-            this.mediaService = this.container.Resolve<MediaService>();
-            this.navigationService = this.container.Resolve<INavigationService>();
+            this._mediaService = this.Container.Resolve<MediaService>();
+            this._navigationService = this.Container.Resolve<INavigationService>();
 
             BackCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.GoBack();
+                await _navigationService.GoBack();
                 IsBusy = false;
             });
 
@@ -54,14 +54,14 @@ namespace Bible.Alarm.ViewModels
                 {
                     TentativeBibleReadingSchedule = new BibleReadingSchedule()
                     {
-                        LanguageCode = tentative.LanguageCode,
-                        PublicationCode = tentative.PublicationCode,
+                        LanguageCode = _tentative.LanguageCode,
+                        PublicationCode = _tentative.PublicationCode,
                         BookNumber = x.Number
                     }
                 });
 
-                var viewModel = this.container.Resolve<ChapterSelectionViewModel>();
-                await navigationService.Navigate(viewModel);
+                var viewModel = this.Container.Resolve<ChapterSelectionViewModel>();
+                await _navigationService.Navigate(viewModel);
                 IsBusy = false;
             });
 
@@ -75,9 +75,9 @@ namespace Bible.Alarm.ViewModels
                    .Subscribe(async x =>
                    {
                        IsBusy = true;
-                       current = x.CurrentBibleReadingSchedule;
-                       tentative = x.TentativeBibleReadingSchedule;
-                       await initialize(tentative.LanguageCode, tentative.PublicationCode);
+                       _current = x.CurrentBibleReadingSchedule;
+                       _tentative = x.TentativeBibleReadingSchedule;
+                       await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                        IsBusy = false;
                    });
 
@@ -89,33 +89,33 @@ namespace Bible.Alarm.ViewModels
                    .DistinctUntilChanged()
                    .Subscribe(x =>
                    {
-                       current = x;
+                       _current = x;
                    });
 
-            subscriptions.Add(subscription1);
-            subscriptions.Add(subscription2);
+            _subscriptions.Add(subscription1);
+            _subscriptions.Add(subscription2);
 
-            navigationService.NavigatedBack += onNavigated;
+            _navigationService.NavigatedBack += OnNavigated;
         }
 
-        private void onNavigated(object viewModal)
+        private void OnNavigated(object viewModal)
         {
             if (viewModal.GetType() == this.GetType())
             {
-                setSelectedBook();
+                SetSelectedBook();
             }
         }
 
-        private void setSelectedBook()
+        private void SetSelectedBook()
         {
-            if (current.LanguageCode == tentative.LanguageCode && current.PublicationCode == tentative.PublicationCode)
+            if (_current.LanguageCode == _tentative.LanguageCode && _current.PublicationCode == _tentative.PublicationCode)
             {
                 if (SelectedBook != null)
                 {
                     SelectedBook.IsSelected = false;
                 }
 
-                SelectedBook = bookVMsMapping[current.BookNumber];
+                SelectedBook = _bookVMsMapping[_current.BookNumber];
                 SelectedBook.IsSelected = true;
 
             }
@@ -123,47 +123,47 @@ namespace Bible.Alarm.ViewModels
 
         public BibleBookListViewItemModel SelectedBook { get; set; }
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
 
-        private ObservableCollection<BibleBookListViewItemModel> books;
+        private ObservableCollection<BibleBookListViewItemModel> _books;
         public ObservableCollection<BibleBookListViewItemModel> Books
         {
-            get => books;
-            set => this.Set(ref books, value);
+            get => _books;
+            set => this.Set(ref _books, value);
         }
 
-        private async Task initialize(string languageCode, string publicationCode)
+        private async Task Initialize(string languageCode, string publicationCode)
         {
-            await populateBooks(languageCode, publicationCode);
+            await PopulateBooks(languageCode, publicationCode);
         }
 
-        private Dictionary<int, BibleBookListViewItemModel> bookVMsMapping = new Dictionary<int, BibleBookListViewItemModel>();
+        private Dictionary<int, BibleBookListViewItemModel> _bookVMsMapping = new Dictionary<int, BibleBookListViewItemModel>();
 
-        private async Task populateBooks(string languageCode, string publicationCode)
+        private async Task PopulateBooks(string languageCode, string publicationCode)
         {
-            bookVMsMapping.Clear();
+            _bookVMsMapping.Clear();
 
-            var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
+            var books = await _mediaService.GetBibleBooks(languageCode, publicationCode);
             var bookVMs = new ObservableCollection<BibleBookListViewItemModel>();
 
             foreach (var book in books.Select(x => x.Value))
             {
-                var bookVM = new BibleBookListViewItemModel(book);
+                var bookVm = new BibleBookListViewItemModel(book);
 
-                bookVMs.Add(bookVM);
-                bookVMsMapping.Add(bookVM.Number, bookVM);
+                bookVMs.Add(bookVm);
+                _bookVMsMapping.Add(bookVm.Number, bookVm);
 
-                if (current.LanguageCode == tentative.LanguageCode
-                    && current.PublicationCode == tentative.PublicationCode
-                    && current.BookNumber == book.Number)
+                if (_current.LanguageCode == _tentative.LanguageCode
+                    && _current.PublicationCode == _tentative.PublicationCode
+                    && _current.BookNumber == book.Number)
                 {
-                    bookVM.IsSelected = true;
-                    SelectedBook = bookVM;
+                    bookVm.IsSelected = true;
+                    SelectedBook = bookVm;
                 }
             }
 
@@ -172,21 +172,21 @@ namespace Bible.Alarm.ViewModels
 
         public void Dispose()
         {
-            navigationService.NavigatedBack -= onNavigated;
+            _navigationService.NavigatedBack -= OnNavigated;
 
-            subscriptions.ForEach(x => x.Dispose());
-            mediaService.Dispose();
+            _subscriptions.ForEach(x => x.Dispose());
+            _mediaService.Dispose();
 
         }
     }
 
     public class BibleBookListViewItemModel(BibleBook book) : ViewModel, IComparable
     {
-        private bool isSelected;
+        private bool _isSelected;
         public bool IsSelected
         {
-            get => isSelected;
-            set => this.Set(ref isSelected, value);
+            get => _isSelected;
+            set => this.Set(ref _isSelected, value);
         }
 
         public string Name => book.Name;

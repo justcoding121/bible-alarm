@@ -87,7 +87,7 @@ namespace Loggly.Transports.Syslog
         {
             int priority = (((int)Facility) * 8) + ((int)Level);
 
-            var trimmedText = limitByteLength(Text, 5000);
+            var trimmedText = LimitByteLength(Text, 5000);
 
             var msg = String.Format(
                 "<{0}>1 {1} {2} {3} {4} {5} {6}\n"
@@ -102,7 +102,7 @@ namespace Loggly.Transports.Syslog
             return msg;
         }
 
-        private static String limitByteLength(String input, Int32 maxLength)
+        private static String LimitByteLength(String input, Int32 maxLength)
         {
             return new String(input
                 .TakeWhile((c, i) =>

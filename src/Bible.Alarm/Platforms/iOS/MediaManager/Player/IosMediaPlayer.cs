@@ -126,10 +126,10 @@ namespace MediaManager.Platforms.Ios.Player
             }
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
@@ -142,7 +142,7 @@ namespace MediaManager.Platforms.Ios.Player
             var audioSession = AVAudioSession.SharedInstance();
             audioSession.SetActive(false);
 
-            disposed = true;
+            _disposed = true;
             base.Dispose(disposing);
         }
     }

@@ -20,21 +20,21 @@ namespace Bible.Alarm.ViewModels
 {
     public class MusicSelectionViewModel : ViewModel, IDisposable
     {
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
-        private AlarmMusic current;
+        private AlarmMusic _current;
 
-        private readonly MediaService mediaService;
-        private readonly INavigationService navigationService;
+        private readonly MediaService _mediaService;
+        private readonly INavigationService _navigationService;
 
-        private List<IDisposable> subscriptions = new List<IDisposable>();
+        private List<IDisposable> _subscriptions = new List<IDisposable>();
 
         public MusicSelectionViewModel(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
-            this.mediaService = this.container.Resolve<MediaService>();
-            this.navigationService = this.container.Resolve<INavigationService>();
+            this._mediaService = this._container.Resolve<MediaService>();
+            this._navigationService = this._container.Resolve<INavigationService>();
 
             //set schedules from initial state.
             //this should fire only once 
@@ -44,12 +44,12 @@ namespace Bible.Alarm.ViewModels
                 .DistinctUntilChanged()
                 .Subscribe(x =>
                 {
-                    current = x;
-                    setSelectedMusicType();
+                    _current = x;
+                    SetSelectedMusicType();
                     IsBusy = false;
                 });
 
-            subscriptions.Add(subscription1);
+            _subscriptions.Add(subscription1);
 
 
             SongBookSelectionCommand = new Command<MusicTypeListItemViewModel>(async x =>
@@ -63,12 +63,12 @@ namespace Bible.Alarm.ViewModels
                         TentativeMusic = new AlarmMusic()
                         {
                             MusicType = MusicType.Vocals,
-                            LanguageCode = current.LanguageCode
+                            LanguageCode = _current.LanguageCode
                         }
                     });
 
-                    var viewModel = this.container.Resolve<SongBookSelectionViewModel>();
-                    await navigationService.Navigate(viewModel);
+                    var viewModel = this._container.Resolve<SongBookSelectionViewModel>();
+                    await _navigationService.Navigate(viewModel);
                 }
                 else
                 {
@@ -76,13 +76,13 @@ namespace Bible.Alarm.ViewModels
                     {
                         TentativeMusic = new AlarmMusic()
                         {
-                            Repeat = current.Repeat,
+                            Repeat = _current.Repeat,
                             MusicType = MusicType.Melodies,
                             PublicationCode = "iam"
                         }
                     });
-                    var viewModel = this.container.Resolve<TrackSelectionViewModel>();
-                    await navigationService.Navigate(viewModel);
+                    var viewModel = this._container.Resolve<TrackSelectionViewModel>();
+                    await _navigationService.Navigate(viewModel);
                 }
 
                 IsBusy = false;
@@ -92,37 +92,37 @@ namespace Bible.Alarm.ViewModels
             BackCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.GoBack();
+                await _navigationService.GoBack();
                 IsBusy = false;
             });
 
-            navigationService.NavigatedBack += onNavigated;
+            _navigationService.NavigatedBack += OnNavigated;
         }
 
-        private void onNavigated(object viewModal)
+        private void OnNavigated(object viewModal)
         {
             if (viewModal.GetType() == this.GetType())
             {
-                setSelectedMusicType();
+                SetSelectedMusicType();
             }
         }
 
-        private void setSelectedMusicType()
+        private void SetSelectedMusicType()
         {
             if (SelectedMusicType != null)
             {
                 SelectedMusicType.IsSelected = false;
             }
 
-            SelectedMusicType = MusicTypes.First(y => y.MusicType == current.MusicType);
+            SelectedMusicType = MusicTypes.First(y => y.MusicType == _current.MusicType);
             SelectedMusicType.IsSelected = true;
         }
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
         public ICommand BackCommand { get; set; }
         public ICommand SongBookSelectionCommand { get; set; }
@@ -141,19 +141,19 @@ namespace Bible.Alarm.ViewModels
                 }
             });
 
-        private MusicTypeListItemViewModel selectedMusicType;
+        private MusicTypeListItemViewModel _selectedMusicType;
         public MusicTypeListItemViewModel SelectedMusicType
         {
-            get => selectedMusicType;
-            set => this.Set(ref selectedMusicType, value);
+            get => _selectedMusicType;
+            set => this.Set(ref _selectedMusicType, value);
         }
 
         public void Dispose()
         {
-            navigationService.NavigatedBack -= onNavigated;
-            subscriptions.ForEach(x => x.Dispose());
+            _navigationService.NavigatedBack -= OnNavigated;
+            _subscriptions.ForEach(x => x.Dispose());
 
-            mediaService.Dispose();
+            _mediaService.Dispose();
         }
     }
 
@@ -162,11 +162,11 @@ namespace Bible.Alarm.ViewModels
         public MusicType MusicType { get; set; }
         public string Name { get; set; }
 
-        private bool isSelected;
+        private bool _isSelected;
         public bool IsSelected
         {
-            get => isSelected;
-            set => this.Set(ref isSelected, value);
+            get => _isSelected;
+            set => this.Set(ref _isSelected, value);
         }
 
         public int CompareTo(object obj)

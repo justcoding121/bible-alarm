@@ -16,24 +16,24 @@
 
         public NotifyPropertyObserver(TObservable observable, TObserver observer)
         {
-            this.observable = observable;
-            this.observable.PropertyChanged += OnPropertyChanged;
-            this.observer = new WeakReference<TObserver>(observer);
+            this._observable = observable;
+            this._observable.PropertyChanged += OnPropertyChanged;
+            this._observer = new WeakReference<TObserver>(observer);
         }
 
         #endregion
 
         #region Fields
 
-        private bool hasBeenActive;
+        private bool _hasBeenActive;
 
-        private TObservable observable;
+        private TObservable _observable;
 
-        private WeakReference<TObserver> observer;
+        private WeakReference<TObserver> _observer;
 
-        private Dictionary<string, Action> propertyObservers = new Dictionary<string, Action>();
+        private Dictionary<string, Action> _propertyObservers = new Dictionary<string, Action>();
 
-        private HashSet<string> pendingChanges = new HashSet<string>();
+        private HashSet<string> _pendingChanges = new HashSet<string>();
 
         #endregion
 
@@ -76,12 +76,12 @@
             var expression = (MemberExpression)property.Body;
             var propertyName = expression.Member.Name;
             var getter = property.Compile();
-            void action()
+            void Action()
             {
-                var newValue = getter(this.observable);
-                whenChanged(this.observable, newValue);
+                var newValue = getter(this._observable);
+                whenChanged(this._observable, newValue);
             }
-            this.propertyObservers[propertyName] = action;
+            this._propertyObservers[propertyName] = Action;
 
             return this;
         }
@@ -93,9 +93,9 @@
         {
             if (!this.IsActive)
             {
-                if (!this.hasBeenActive && this.ShouldTriggerInitialValues)
+                if (!this._hasBeenActive && this.ShouldTriggerInitialValues)
                 {
-                    foreach (var property in this.propertyObservers)
+                    foreach (var property in this._propertyObservers)
                     {
                         property.Value();
                     }
@@ -103,18 +103,18 @@
 
                 if (this.ShouldTriggerPendingChanges)
                 {
-                    foreach (var change in this.pendingChanges)
+                    foreach (var change in this._pendingChanges)
                     {
-                        if (this.propertyObservers.TryGetValue(change, out Action action))
+                        if (this._propertyObservers.TryGetValue(change, out Action action))
                         {
                             action();
                         }
                     }
                 }
 
-                this.pendingChanges = new HashSet<string>();
+                this._pendingChanges = new HashSet<string>();
                 this.IsActive = true;
-                this.hasBeenActive = true;
+                this._hasBeenActive = true;
             }
         }
 
@@ -125,25 +125,25 @@
         {
             if (this.IsActive)
             {
-                this.propertyObservers = new Dictionary<string, Action>();
+                this._propertyObservers = new Dictionary<string, Action>();
                 this.IsActive = false;
             }
         }
 
         private void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (observer.TryGetTarget(out TObserver _))
+            if (_observer.TryGetTarget(out TObserver _))
             {
                 if (this.IsActive)
                 {
-                    if (this.propertyObservers.TryGetValue(e.PropertyName, out Action action))
+                    if (this._propertyObservers.TryGetValue(e.PropertyName, out Action action))
                     {
                         action();
                     }
                 }
                 else
                 {
-                    this.pendingChanges.Add(e.PropertyName);
+                    this._pendingChanges.Add(e.PropertyName);
                 }
             }
             else

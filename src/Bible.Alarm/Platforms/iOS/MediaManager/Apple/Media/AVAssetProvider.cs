@@ -9,9 +9,9 @@ using MediaManager.Media;
 
 namespace MediaManager.Platforms.Apple.Media
 {
-    public class AVAssetProvider : MediaExtractorProviderBase, IMediaItemMetadataProvider, IMediaItemVideoFrameProvider
+    public class AvAssetProvider : MediaExtractorProviderBase, IMediaItemMetadataProvider, IMediaItemVideoFrameProvider
     {
-        public AVAssetProvider()
+        public AvAssetProvider()
         {
         }
 
@@ -44,7 +44,7 @@ namespace MediaManager.Platforms.Apple.Media
                 //AVMetadata.CommonKeyType
             };
 
-            var url = mediaItem.GetNSUrl();
+            var url = mediaItem.GetNsUrl();
 
             var asset = AVAsset.FromUrl(url);
             await asset.LoadValuesTaskAsync(assetsToLoad.ToArray()).ConfigureAwait(false);
@@ -76,7 +76,7 @@ namespace MediaManager.Platforms.Apple.Media
 
         public Task<object> ProvideVideoFrame(IMediaItem mediaItem, TimeSpan timeFromStart)
         {
-            var url = mediaItem.GetNSUrl();
+            var url = mediaItem.GetNsUrl();
             var imageGenerator = new AVAssetImageGenerator(AVAsset.FromUrl(url));
             imageGenerator.AppliesPreferredTrackTransform = true;
             var cgImage = imageGenerator.CopyCGImageAtTime(new CMTime((long)timeFromStart.TotalMilliseconds, 1000), out var actualTime, out var error);

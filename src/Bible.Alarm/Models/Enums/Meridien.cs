@@ -2,7 +2,7 @@
 {
     public enum Meridien
     {
-        AM,
-        PM
+        Am,
+        Pm
     }
 }

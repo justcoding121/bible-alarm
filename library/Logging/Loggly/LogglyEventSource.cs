@@ -12,7 +12,7 @@ namespace Loggly
     sealed class LogglyEventSource : EventSource
     {
         #region Singleton
-        private static int _counterNonThreadSafe;
+        private static int counterNonThreadSafe;
         private static readonly Lazy<LogglyEventSource> _instance = new Lazy<LogglyEventSource>(() => new LogglyEventSource());
 
         public static LogglyEventSource Instance
@@ -22,14 +22,14 @@ namespace Loggly
 
         private LogglyEventSource()
         {
-            _counterNonThreadSafe = 0;
+            counterNonThreadSafe = 0;
         }
 
         #endregion
 
         public void Log(LogglyMessage message, LogResponse result)
         {
-            WriteEvent(_counterNonThreadSafe++, message.ToString(), result.ToString());
+            WriteEvent(counterNonThreadSafe++, message.ToString(), result.ToString());
         }
     }
 }

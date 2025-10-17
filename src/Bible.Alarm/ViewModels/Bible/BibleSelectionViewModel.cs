@@ -23,15 +23,15 @@ namespace Bible.Alarm.ViewModels
 {
     public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
     {
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
-        private MediaService mediaService;
-        private INavigationService navigationService;
+        private MediaService _mediaService;
+        private INavigationService _navigationService;
 
-        private BibleReadingSchedule current;
-        private BibleReadingSchedule tentative;
+        private BibleReadingSchedule _current;
+        private BibleReadingSchedule _tentative;
 
-        private List<IDisposable> subscriptions = new List<IDisposable>();
+        private List<IDisposable> _subscriptions = new List<IDisposable>();
 
         public ICommand BackCommand { get; set; }
         public ICommand BookSelectionCommand { get; set; }
@@ -42,10 +42,10 @@ namespace Bible.Alarm.ViewModels
 
         public BibleSelectionViewModel(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
-            this.mediaService = this.container.Resolve<MediaService>();
-            this.navigationService = this.container.Resolve<INavigationService>();
+            this._mediaService = this._container.Resolve<MediaService>();
+            this._navigationService = this._container.Resolve<INavigationService>();
 
             //set schedules from initial state.
             //this should fire only once 
@@ -56,15 +56,15 @@ namespace Bible.Alarm.ViewModels
                  .Take(1)
                  .Subscribe(async x =>
                  {
-                     current = x.CurrentBibleReadingSchedule;
-                     tentative = x.TentativeBibleReadingSchedule;
+                     _current = x.CurrentBibleReadingSchedule;
+                     _tentative = x.TentativeBibleReadingSchedule;
 
-                     await initialize(tentative.LanguageCode);
+                     await Initialize(_tentative.LanguageCode);
 
                      IsBusy = false;
                  });
 
-            subscriptions.Add(subscription1);
+            _subscriptions.Add(subscription1);
 
             var subscription2 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
              .Select(state => new { state.CurrentBibleReadingSchedule, state.TentativeBibleReadingSchedule })
@@ -73,11 +73,11 @@ namespace Bible.Alarm.ViewModels
              .Skip(1)
              .Subscribe(x =>
              {
-                 current = x.CurrentBibleReadingSchedule;
-                 tentative = x.TentativeBibleReadingSchedule;
+                 _current = x.CurrentBibleReadingSchedule;
+                 _tentative = x.TentativeBibleReadingSchedule;
              });
 
-            subscriptions.Add(subscription2);
+            _subscriptions.Add(subscription2);
 
             BookSelectionCommand = new Command<PublicationListViewItemModel>(async x =>
             {
@@ -90,8 +90,8 @@ namespace Bible.Alarm.ViewModels
                         LanguageCode = CurrentLanguage.Code
                     }
                 });
-                var viewModel = this.container.Resolve<BookSelectionViewModel>();
-                await navigationService.Navigate(viewModel);
+                var viewModel = this._container.Resolve<BookSelectionViewModel>();
+                await _navigationService.Navigate(viewModel);
 
                 IsBusy = false;
             });
@@ -99,21 +99,21 @@ namespace Bible.Alarm.ViewModels
             OpenModalCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.ShowModal("LanguageModal", this);
+                await _navigationService.ShowModal("LanguageModal", this);
                 IsBusy = false;
             });
 
             BackCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.GoBack();
+                await _navigationService.GoBack();
                 IsBusy = false;
             });
 
             CloseModalCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.CloseModal();
+                await _navigationService.CloseModal();
                 IsBusy = false;
             });
 
@@ -128,26 +128,26 @@ namespace Bible.Alarm.ViewModels
                 CurrentLanguage = x;
                 CurrentLanguage.IsSelected = true;
 
-                await navigationService.CloseModal();
-                await populateTranslations(x.Code);
+                await _navigationService.CloseModal();
+                await PopulateTranslations(x.Code);
 
                 IsBusy = false;
             });
 
-            navigationService.NavigatedBack += onNavigated;
+            _navigationService.NavigatedBack += OnNavigated;
         }
 
-        private void onNavigated(object viewModal)
+        private void OnNavigated(object viewModal)
         {
             if (viewModal.GetType() == this.GetType())
             {
-                setSelectedTranslation();
+                SetSelectedTranslation();
             }
         }
 
-        private void setSelectedTranslation()
+        private void SetSelectedTranslation()
         {
-            if (current.LanguageCode == tentative.LanguageCode)
+            if (_current.LanguageCode == _tentative.LanguageCode)
             {
                 if (SelectedTranslation != null)
                 {
@@ -155,60 +155,60 @@ namespace Bible.Alarm.ViewModels
 
                 }
 
-                SelectedTranslation = translationVMsMapping[current.PublicationCode];
+                SelectedTranslation = _translationVMsMapping[_current.PublicationCode];
                 SelectedTranslation.IsSelected = true;
             }
         }
 
-        private ObservableCollection<PublicationListViewItemModel> translations;
+        private ObservableCollection<PublicationListViewItemModel> _translations;
         public ObservableCollection<PublicationListViewItemModel> Translations
         {
-            get => translations;
-            set => this.Set(ref translations, value);
+            get => _translations;
+            set => this.Set(ref _translations, value);
         }
 
-        private ObservableCollection<LanguageListViewItemModel> languages;
+        private ObservableCollection<LanguageListViewItemModel> _languages;
         public ObservableCollection<LanguageListViewItemModel> Languages
         {
-            get => languages;
-            set => this.Set(ref languages, value);
+            get => _languages;
+            set => this.Set(ref _languages, value);
         }
 
         public PublicationListViewItemModel SelectedTranslation { get; set; }
 
-        private LanguageListViewItemModel currentLanguage;
+        private LanguageListViewItemModel _currentLanguage;
         public LanguageListViewItemModel CurrentLanguage
         {
-            get => currentLanguage;
-            set => this.Set(ref currentLanguage, value);
+            get => _currentLanguage;
+            set => this.Set(ref _currentLanguage, value);
         }
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
 
         public string PublicationCode
         {
-            get => tentative.PublicationCode;
-            set => this.Set(tentative.PublicationCode, value);
+            get => _tentative.PublicationCode;
+            set => this.Set(_tentative.PublicationCode, value);
         }
 
-        private string languageSearchTerm;
+        private string _languageSearchTerm;
         public string LanguageSearchTerm
         {
-            get => languageSearchTerm;
-            set => this.Set(ref languageSearchTerm, value);
+            get => _languageSearchTerm;
+            set => this.Set(ref _languageSearchTerm, value);
         }
 
         public object SelectedItem => CurrentLanguage;
 
-        private async Task initialize(string languageCode)
+        private async Task Initialize(string languageCode)
         {
-            await populateLanguages();
-            await populateTranslations(languageCode);
+            await PopulateLanguages();
+            await PopulateTranslations(languageCode);
 
             var subscription = Observable.FromEvent<PropertyChangedEventHandler, KeyValuePair<string, object>>(
                                               onNextHandler => (object sender, PropertyChangedEventArgs e)
@@ -216,16 +216,16 @@ namespace Bible.Alarm.ViewModels
                                               handler => PropertyChanged += handler,
                                               handler => PropertyChanged -= handler)
                           .Where(x => x.Key == "LanguageSearchTerm")
-                          .Do(async x => await populateLanguages(LanguageSearchTerm))
+                          .Do(async x => await PopulateLanguages(LanguageSearchTerm))
                           .Subscribe();
 
-            subscriptions.Add(subscription);
+            _subscriptions.Add(subscription);
         }
 
 
-        private async Task populateLanguages(string searchTerm = null)
+        private async Task PopulateLanguages(string searchTerm = null)
         {
-            var languages = await mediaService.GetBibleLanguages();
+            var languages = await _mediaService.GetBibleLanguages();
             var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
 
             foreach (var language in languages.Select(x => x.Value)
@@ -233,14 +233,14 @@ namespace Bible.Alarm.ViewModels
                     || x.Name.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0)
                 .OrderBy(x => x.Name))
             {
-                var languageVM = new LanguageListViewItemModel(language);
+                var languageVm = new LanguageListViewItemModel(language);
 
-                languageVMs.Add(languageVM);
+                languageVMs.Add(languageVm);
 
-                if (languageVM.Code == tentative.LanguageCode)
+                if (languageVm.Code == _tentative.LanguageCode)
                 {
-                    languageVM.IsSelected = true;
-                    CurrentLanguage = languageVM;
+                    languageVm.IsSelected = true;
+                    CurrentLanguage = languageVm;
                 }
             }
 
@@ -248,28 +248,28 @@ namespace Bible.Alarm.ViewModels
 
         }
 
-        private Dictionary<string, PublicationListViewItemModel> translationVMsMapping
+        private Dictionary<string, PublicationListViewItemModel> _translationVMsMapping
             = new Dictionary<string, PublicationListViewItemModel>();
 
-        private async Task populateTranslations(string languageCode)
+        private async Task PopulateTranslations(string languageCode)
         {
-            translationVMsMapping.Clear();
+            _translationVMsMapping.Clear();
 
-            var translations = await mediaService.GetBibleTranslations(languageCode);
+            var translations = await _mediaService.GetBibleTranslations(languageCode);
             var translationVMs = new ObservableCollection<PublicationListViewItemModel>();
 
             foreach (var translation in translations.Select(x => x.Value))
             {
-                var translationVM = new PublicationListViewItemModel(translation);
+                var translationVm = new PublicationListViewItemModel(translation);
 
-                translationVMs.Add(translationVM);
-                translationVMsMapping.Add(translationVM.Code, translationVM);
+                translationVMs.Add(translationVm);
+                _translationVMsMapping.Add(translationVm.Code, translationVm);
 
-                if (current.LanguageCode == languageCode
-                    && current.PublicationCode == translation.Code)
+                if (_current.LanguageCode == languageCode
+                    && _current.PublicationCode == translation.Code)
                 {
-                    translationVM.IsSelected = true;
-                    SelectedTranslation = translationVM;
+                    translationVm.IsSelected = true;
+                    SelectedTranslation = translationVm;
                 }
             }
 
@@ -278,10 +278,10 @@ namespace Bible.Alarm.ViewModels
 
         public void Dispose()
         {
-            navigationService.NavigatedBack -= onNavigated;
+            _navigationService.NavigatedBack -= OnNavigated;
 
-            subscriptions.ForEach(x => x.Dispose());
-            mediaService.Dispose();
+            _subscriptions.ForEach(x => x.Dispose());
+            _mediaService.Dispose();
         }
     }
 }

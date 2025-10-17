@@ -28,22 +28,22 @@ namespace Bible.Alarm.ViewModels
 {
     public class ScheduleViewModel : ViewModel, IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
-        ScheduleDbContext scheduleDbContext;
-        MediaDbContext mediaDbContext;
+        ScheduleDbContext _scheduleDbContext;
+        MediaDbContext _mediaDbContext;
 
-        IAlarmService alarmService;
-        IToastService popUpService;
-        INavigationService navigationService;
-        IPlaybackService playbackService;
-        IMediaManager mediaManager;
-        INotificationService notificationService;
+        IAlarmService _alarmService;
+        IToastService _popUpService;
+        INavigationService _navigationService;
+        IPlaybackService _playbackService;
+        IMediaManager _mediaManager;
+        INotificationService _notificationService;
 
-        private List<IDisposable> subscriptions = new List<IDisposable>();
+        private List<IDisposable> _subscriptions = new List<IDisposable>();
 
         public Command BatteryOptimizationExcludeCommand { get; private set; }
         public Command BatteryOptimizationDismissCommand { get; private set; }
@@ -54,27 +54,27 @@ namespace Bible.Alarm.ViewModels
         public ICommand PreviousChapterCommand { get; set; }
         public ICommand NextChapterCommand { get; set; }
 
-        private IBatteryOptimizationManager batteryOptimizationManager;
+        private IBatteryOptimizationManager _batteryOptimizationManager;
 
         public ScheduleViewModel(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
             if (CurrentDevice.RuntimePlatform == Device.Android)
             {
-                this.batteryOptimizationManager = container.Resolve<IBatteryOptimizationManager>();
+                this._batteryOptimizationManager = container.Resolve<IBatteryOptimizationManager>();
             }
 
-            this.scheduleDbContext = this.container.Resolve<ScheduleDbContext>();
-            this.mediaDbContext = this.container.Resolve<MediaDbContext>();
-            this.popUpService = this.container.Resolve<IToastService>();
-            this.alarmService = this.container.Resolve<IAlarmService>();
-            this.navigationService = this.container.Resolve<INavigationService>();
-            this.playbackService = this.container.Resolve<IPlaybackService>();
-            this.mediaManager = this.container.Resolve<IMediaManager>();
-            this.notificationService = this.container.Resolve<INotificationService>();
+            this._scheduleDbContext = this._container.Resolve<ScheduleDbContext>();
+            this._mediaDbContext = this._container.Resolve<MediaDbContext>();
+            this._popUpService = this._container.Resolve<IToastService>();
+            this._alarmService = this._container.Resolve<IAlarmService>();
+            this._navigationService = this._container.Resolve<INavigationService>();
+            this._playbackService = this._container.Resolve<IPlaybackService>();
+            this._mediaManager = this._container.Resolve<IMediaManager>();
+            this._notificationService = this._container.Resolve<INotificationService>();
 
-            subscriptions.Add(scheduleDbContext);
+            _subscriptions.Add(_scheduleDbContext);
 
             //set schedules from initial state.
             //this should fire only once (look at the where condition).
@@ -84,7 +84,7 @@ namespace Bible.Alarm.ViewModels
                .Take(1)
                .Subscribe(async x =>
                {
-                   scheduleListItem = x;
+                   _scheduleListItem = x;
 
                    var model = x?.Schedule;
 
@@ -94,19 +94,19 @@ namespace Bible.Alarm.ViewModels
 
                    if (model == null)
                    {
-                       modelToSet = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                       modelToSet = await AlarmSchedule.GetSampleSchedule(true, _mediaDbContext);
                    }
                    else
                    {
                        modelToSet = model;
                    }
 
-                   setModel(modelToSet);
+                   SetModel(modelToSet);
 
                    IsBusy = false;
                });
 
-            subscriptions.Add(subscription);
+            _subscriptions.Add(subscription);
 
             var subscription2 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
            .Select(state => state.CurrentMusic)
@@ -114,10 +114,10 @@ namespace Bible.Alarm.ViewModels
            .Subscribe(x =>
            {
                Music = x;
-               musicUpdated = true;
+               _musicUpdated = true;
            });
 
-            subscriptions.Add(subscription2);
+            _subscriptions.Add(subscription2);
 
             var subscription3 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
             .Select(state => state.CurrentBibleReadingSchedule)
@@ -126,17 +126,17 @@ namespace Bible.Alarm.ViewModels
             .Subscribe(x =>
             {
                 BibleReadingSchedule = x;
-                bibleReadingUpdated = true;
-                refreshChapterName();
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
             });
 
-            subscriptions.Add(subscription3);
+            _subscriptions.Add(subscription3);
 
             CancelCommand = new Command(async () =>
             {
                 IsBusy = true;
 
-                await navigationService.GoBack();
+                await _navigationService.GoBack();
 
                 IsBusy = false;
             });
@@ -148,30 +148,30 @@ namespace Bible.Alarm.ViewModels
                 if (IsEnabled &&
                       (CurrentDevice.RuntimePlatform == Device.iOS
                         || CurrentDevice.RuntimePlatform == Device.WinUI)
-                     && !await notificationService.CanSchedule())
+                     && !await _notificationService.CanSchedule())
                 {
                     IsEnabled = false;
                 }
 
                 if (!IsNewSchedule)
                 {
-                    if (this.mediaManager.IsPreparedEx()
-                        && scheduleId == this.playbackService.CurrentlyPlayingScheduleId)
+                    if (this._mediaManager.IsPreparedEx()
+                        && _scheduleId == this._playbackService.CurrentlyPlayingScheduleId)
                     {
-                        await this.playbackService.Dismiss();
+                        await this._playbackService.Dismiss();
                     }
                 }
 
-                var saved = await saveAsync();
+                var saved = await SaveAsync();
 
                 if (saved)
                 {
-                    await navigationService.GoBack();
+                    await _navigationService.GoBack();
                 }
 
                 if (saved && IsEnabled)
                 {
-                    await popUpService.ShowScheduledNotification(Model);
+                    await _popUpService.ShowScheduledNotification(Model);
                 }
 
                 IsBusy = false;
@@ -181,22 +181,22 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                if (this.mediaManager.IsPreparedEx()
-                       && scheduleId == this.playbackService.CurrentlyPlayingScheduleId)
+                if (this._mediaManager.IsPreparedEx()
+                       && _scheduleId == this._playbackService.CurrentlyPlayingScheduleId)
                 {
-                    await this.playbackService.Dismiss();
+                    await this._playbackService.Dismiss();
                 }
 
-                await deleteAsync();
+                await DeleteAsync();
 
-                await navigationService.GoBack();
+                await _navigationService.GoBack();
 
                 IsBusy = false;
             });
 
             ToggleDayCommand = new Command<DaysOfWeek>(x =>
             {
-                toggle(x);
+                Toggle(x);
             });
 
             ToggleAlwaysPlayFromStartCommand = new Command(x => AlwaysPlayFromStart = !AlwaysPlayFromStart);
@@ -205,17 +205,17 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                var viewModel = this.container.Resolve<MusicSelectionViewModel>();
-                await navigationService.Navigate(viewModel);
+                var viewModel = this._container.Resolve<MusicSelectionViewModel>();
+                await _navigationService.Navigate(viewModel);
 
                 await Task.Run(async () =>
                 {
                     //get the latest music track
-                    if (Music == null || (!IsNewSchedule && !musicUpdated))
+                    if (Music == null || (!IsNewSchedule && !_musicUpdated))
                     {
-                        Music = await scheduleDbContext.AlarmMusic
+                        Music = await _scheduleDbContext.AlarmMusic
                         .AsNoTracking()
-                        .FirstAsync(x => x.AlarmScheduleId == scheduleId);
+                        .FirstAsync(x => x.AlarmScheduleId == _scheduleId);
                     }
                 });
 
@@ -232,19 +232,19 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                var viewModel = this.container.Resolve<BibleSelectionViewModel>();
-                await navigationService.Navigate(viewModel);
+                var viewModel = this._container.Resolve<BibleSelectionViewModel>();
+                await _navigationService.Navigate(viewModel);
 
                 await Task.Run(async () =>
                 {
                     //get the latest bible track
-                    if (BibleReadingSchedule == null || (!IsNewSchedule && !bibleReadingUpdated))
+                    if (BibleReadingSchedule == null || (!IsNewSchedule && !_bibleReadingUpdated))
                     {
-                        BibleReadingSchedule = await scheduleDbContext.BibleReadingSchedules
+                        BibleReadingSchedule = await _scheduleDbContext.BibleReadingSchedules
                                                 .AsNoTracking()
-                                                .FirstAsync(x => x.AlarmScheduleId == scheduleId);
+                                                .FirstAsync(x => x.AlarmScheduleId == _scheduleId);
 
-                        refreshChapterName();
+                        RefreshChapterName();
                     }
 
                 });
@@ -266,7 +266,7 @@ namespace Bible.Alarm.ViewModels
             OpenModalCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.ShowModal("NumberOfChaptersModal", this);
+                await _navigationService.ShowModal("NumberOfChaptersModal", this);
                 IsBusy = false;
             });
 
@@ -274,7 +274,7 @@ namespace Bible.Alarm.ViewModels
             CloseModalCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.CloseModal();
+                await _navigationService.CloseModal();
                 IsBusy = false;
             });
 
@@ -289,7 +289,7 @@ namespace Bible.Alarm.ViewModels
                 CurrentNumberOfChapters = x;
                 CurrentNumberOfChapters.IsSelected = true;
 
-                await navigationService.CloseModal();
+                await _navigationService.CloseModal();
 
                 IsBusy = false;
             });
@@ -301,18 +301,18 @@ namespace Bible.Alarm.ViewModels
 
             BatteryOptimizationExcludeCommand = new Command(async () =>
             {
-                await markBatteryOptimizationModalAsShown();
+                await MarkBatteryOptimizationModalAsShown();
 
-                await navigationService.CloseModal();
+                await _navigationService.CloseModal();
 
-                this.batteryOptimizationManager.ShowBatteryOptimizationExclusionSettingsPage();
+                this._batteryOptimizationManager.ShowBatteryOptimizationExclusionSettingsPage();
             });
 
             BatteryOptimizationDismissCommand = new Command(async () =>
             {
-                await markBatteryOptimizationModalAsShown();
+                await MarkBatteryOptimizationModalAsShown();
 
-                await navigationService.CloseModal();
+                await _navigationService.CloseModal();
             });
 
             PreviousBookCommand = new Command(async () =>
@@ -323,8 +323,8 @@ namespace Bible.Alarm.ViewModels
                 BibleReadingSchedule.BookNumber = nextBook.Value.Number;
                 BibleReadingSchedule.ChapterNumber = 1;
                 BibleReadingSchedule.FinishedDuration = default;
-                bibleReadingUpdated = true;
-                refreshChapterName();
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
             });
 
             NextBookCommand = new Command(async () =>
@@ -335,8 +335,8 @@ namespace Bible.Alarm.ViewModels
                 BibleReadingSchedule.BookNumber = nextBook.Value.Number;
                 BibleReadingSchedule.ChapterNumber = 1;
                 BibleReadingSchedule.FinishedDuration = default;
-                bibleReadingUpdated = true;
-                refreshChapterName();
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
             });
 
             PreviousChapterCommand = new Command(async () =>
@@ -347,8 +347,8 @@ namespace Bible.Alarm.ViewModels
                 BibleReadingSchedule.BookNumber = prevChapter.Key.Number;
                 BibleReadingSchedule.ChapterNumber = prevChapter.Value.Number;
                 BibleReadingSchedule.FinishedDuration = default;
-                bibleReadingUpdated = true;
-                refreshChapterName();
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
             });
 
             NextChapterCommand = new Command(async () =>
@@ -359,50 +359,50 @@ namespace Bible.Alarm.ViewModels
                 BibleReadingSchedule.BookNumber = nextChapter.Key.Number;
                 BibleReadingSchedule.ChapterNumber = nextChapter.Value.Number;
                 BibleReadingSchedule.FinishedDuration = default;
-                bibleReadingUpdated = true;
-                refreshChapterName();
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
             });
         }
 
-        private bool canOptimizeBattery = false;
+        private bool _canOptimizeBattery = false;
         public bool CanOptimizeBattery
         {
-            get => canOptimizeBattery;
+            get => _canOptimizeBattery;
             set
             {
-                this.Set(ref canOptimizeBattery, value);
+                this.Set(ref _canOptimizeBattery, value);
             }
         }
 
-        private async Task markBatteryOptimizationModalAsShown()
+        private async Task MarkBatteryOptimizationModalAsShown()
         {
-            if (!await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+            if (!await _scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
             {
-                await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings()
+                await _scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings()
                 {
                     Key = "AndroidBatteryOptimizationExclusionPromptShown",
                     Value = "True"
                 });
 
-                await scheduleDbContext.SaveChangesAsync();
+                await _scheduleDbContext.SaveChangesAsync();
             }
         }
 
-        private async Task showBatteryOptimizationExclusionPage()
+        private async Task ShowBatteryOptimizationExclusionPage()
         {
-            if (batteryOptimizationManager.CanShowOptimizeActivity())
+            if (_batteryOptimizationManager.CanShowOptimizeActivity())
             {
                 CanOptimizeBattery = true;
             }
 
-            if (!await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+            if (!await _scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
             {
-                await navigationService.ShowModal("BatteryOptimizationExclusionModal", this);
+                await _navigationService.ShowModal("BatteryOptimizationExclusionModal", this);
             }
         }
 
 
-        private ScheduleListItem scheduleListItem;
+        private ScheduleListItem _scheduleListItem;
 
         public ICommand CancelCommand { get; set; }
 
@@ -422,44 +422,44 @@ namespace Bible.Alarm.ViewModels
         public ICommand CloseModalCommand { get; set; }
         public ICommand SelectNumberOfChaptersCommand { get; set; }
 
-        private ObservableCollection<NumberOfChaptersListViewItemModel> numberOfChaptersList;
+        private ObservableCollection<NumberOfChaptersListViewItemModel> _numberOfChaptersList;
         public ObservableCollection<NumberOfChaptersListViewItemModel> NumberOfChaptersList
         {
-            get => numberOfChaptersList;
-            set => this.Set(ref numberOfChaptersList, value);
+            get => _numberOfChaptersList;
+            set => this.Set(ref _numberOfChaptersList, value);
         }
 
-        private NumberOfChaptersListViewItemModel currentNumberOfChapters;
+        private NumberOfChaptersListViewItemModel _currentNumberOfChapters;
         public NumberOfChaptersListViewItemModel CurrentNumberOfChapters
         {
-            get => currentNumberOfChapters;
-            set => this.Set(ref currentNumberOfChapters, value);
+            get => _currentNumberOfChapters;
+            set => this.Set(ref _currentNumberOfChapters, value);
         }
 
-        private void populateNumberOfChaptersListView(AlarmSchedule model)
+        private void PopulateNumberOfChaptersListView(AlarmSchedule model)
         {
 
             var chapterVMs = new ObservableCollection<NumberOfChaptersListViewItemModel>();
 
             for (int i = 1; i <= 21; i++)
             {
-                var chaptersVM = new NumberOfChaptersListViewItemModel(i);
+                var chaptersVm = new NumberOfChaptersListViewItemModel(i);
 
                 if (model.NumberOfChaptersToRead == i)
                 {
-                    chaptersVM.IsSelected = true;
-                    CurrentNumberOfChapters = chaptersVM;
+                    chaptersVm.IsSelected = true;
+                    CurrentNumberOfChapters = chaptersVm;
                 }
 
-                chapterVMs.Add(chaptersVM);
+                chapterVMs.Add(chaptersVm);
             }
 
             NumberOfChaptersList = chapterVMs;
         }
 
-        private AlarmSchedule getModel()
+        private AlarmSchedule GetModel()
         {
-            Model.Id = scheduleId;
+            Model.Id = _scheduleId;
 
             Model.Name = Name;
             Model.IsEnabled = IsEnabled;
@@ -467,65 +467,65 @@ namespace Bible.Alarm.ViewModels
             Model.Hour = Time.Hours;
             Model.Minute = Time.Minutes;
             Model.MusicEnabled = MusicEnabled;
-            Model.NotificationEnabled = notificationEnabled;
+            Model.NotificationEnabled = _notificationEnabled;
             Model.AlwaysPlayFromStart = AlwaysPlayFromStart;
             Model.NumberOfChaptersToRead = CurrentNumberOfChapters.Value;
 
             return Model;
         }
 
-        private void setModel(AlarmSchedule model)
+        private void SetModel(AlarmSchedule model)
         {
             this.Model = model.DeepClone();
 
-            scheduleId = model.Id;
-            name = model.Name;
-            isEnabled = model.IsEnabled;
-            daysOfWeek = model.DaysOfWeek;
-            time = new TimeSpan(model.Hour, model.Minute, model.Second);
-            musicEnabled = model.MusicEnabled;
-            notificationEnabled = model.NotificationEnabled;
-            alwaysPlayFromStart = model.AlwaysPlayFromStart;
+            _scheduleId = model.Id;
+            _name = model.Name;
+            _isEnabled = model.IsEnabled;
+            _daysOfWeek = model.DaysOfWeek;
+            _time = new TimeSpan(model.Hour, model.Minute, model.Second);
+            _musicEnabled = model.MusicEnabled;
+            _notificationEnabled = model.NotificationEnabled;
+            _alwaysPlayFromStart = model.AlwaysPlayFromStart;
 
-            populateNumberOfChaptersListView(model);
-            refreshChapterName();
+            PopulateNumberOfChaptersListView(model);
+            RefreshChapterName();
         }
 
-        private int scheduleId;
+        private int _scheduleId;
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
 
-        private string name;
+        private string _name;
         public string Name
         {
-            get => name;
-            set => this.Set(ref name, value);
+            get => _name;
+            set => this.Set(ref _name, value);
         }
 
-        private bool isEnabled;
+        private bool _isEnabled;
         public bool IsEnabled
         {
-            get => isEnabled;
-            set => this.Set(ref isEnabled, value);
+            get => _isEnabled;
+            set => this.Set(ref _isEnabled, value);
         }
 
-        private DaysOfWeek daysOfWeek;
+        private DaysOfWeek _daysOfWeek;
         public DaysOfWeek DaysOfWeek
         {
-            get => daysOfWeek;
-            set => this.Set(ref daysOfWeek, value);
+            get => _daysOfWeek;
+            set => this.Set(ref _daysOfWeek, value);
         }
 
-        private TimeSpan time;
+        private TimeSpan _time;
         public TimeSpan Time
         {
-            get => time;
-            set => this.Set(ref time, value);
+            get => _time;
+            set => this.Set(ref _time, value);
 
         }
 
@@ -541,56 +541,56 @@ namespace Bible.Alarm.ViewModels
 
         public Meridien Meridien
         {
-            get => Time.Hours < 12 ? Meridien.AM : Meridien.PM;
+            get => Time.Hours < 12 ? Meridien.Am : Meridien.Pm;
         }
 
-        private bool musicEnabled;
+        private bool _musicEnabled;
         public bool MusicEnabled
         {
-            get => musicEnabled;
-            set => this.Set(ref musicEnabled, value);
+            get => _musicEnabled;
+            set => this.Set(ref _musicEnabled, value);
         }
 
-        private bool notificationEnabled;
+        private bool _notificationEnabled;
         public bool NotificationEnabled
         {
-            get => notificationEnabled;
+            get => _notificationEnabled;
             set
             {
                 if (!value)
                 {
-                    _ = showBatteryOptimizationExclusionPage();
+                    _ = ShowBatteryOptimizationExclusionPage();
                 }
 
-                this.Set(ref notificationEnabled, value);
+                this.Set(ref _notificationEnabled, value);
             }
         }
 
-        private bool alwaysPlayFromStart;
+        private bool _alwaysPlayFromStart;
         public bool AlwaysPlayFromStart
         {
-            get => alwaysPlayFromStart;
-            set => this.Set(ref alwaysPlayFromStart, value);
+            get => _alwaysPlayFromStart;
+            set => this.Set(ref _alwaysPlayFromStart, value);
         }
 
-        private bool musicUpdated;
+        private bool _musicUpdated;
 
         public AlarmMusic Music { get => Model.Music; set => Model.Music = value; }
 
-        private bool bibleReadingUpdated;
+        private bool _bibleReadingUpdated;
         public BibleReadingSchedule BibleReadingSchedule { get => Model.BibleReadingSchedule; set => Model.BibleReadingSchedule = value; }
 
-        private string bibleReadingTitleText;
+        private string _bibleReadingTitleText;
         public string BibleReadingTitleText
         {
-            get => bibleReadingTitleText;
-            set => this.Set(ref bibleReadingTitleText, value);
+            get => _bibleReadingTitleText;
+            set => this.Set(ref _bibleReadingTitleText, value);
         }
 
         public bool IsNewSchedule { get; private set; }
         public bool IsExistingSchedule => !IsNewSchedule;
 
-        private void toggle(DaysOfWeek day)
+        private void Toggle(DaysOfWeek day)
         {
             if ((DaysOfWeek & day) == day)
             {
@@ -604,25 +604,25 @@ namespace Bible.Alarm.ViewModels
             this.RaiseProperty("DaysOfWeek");
         }
 
-        private void setupMediaCache(long scheduleId)
+        private void SetupMediaCache(long scheduleId)
         {
             Task.Run(async () =>
              {
                  try
                  {
-                     using var mediaCacheService = container.Resolve<IMediaCacheService>();
+                     using var mediaCacheService = _container.Resolve<IMediaCacheService>();
                      await mediaCacheService.SetupAlarmCache(scheduleId);
                  }
                  catch (Exception e)
                  {
-                     logger.Error(e, "An error happened in SetupAlarmCache task.");
+                     Logger.Error(e, "An error happened in SetupAlarmCache task.");
                  }
              });
         }
 
-        private async Task<bool> saveAsync()
+        private async Task<bool> SaveAsync()
         {
-            if (!await validate())
+            if (!await Validate())
             {
                 return false;
             }
@@ -632,30 +632,30 @@ namespace Bible.Alarm.ViewModels
                 IsEnabled = true;
             }
 
-            var model = getModel();
+            var model = GetModel();
 
             if (IsNewSchedule)
             {
                 await Task.Run(async () =>
                 {
-                    await scheduleDbContext.AlarmSchedules.AddAsync(model);
-                    await scheduleDbContext.SaveChangesAsync();
+                    await _scheduleDbContext.AlarmSchedules.AddAsync(model);
+                    await _scheduleDbContext.SaveChangesAsync();
                     if (model.IsEnabled)
                     {
-                        await alarmService.Create(model);
+                        await _alarmService.Create(model);
                     }
                 });
 
                 ReduxContainer.Store.Dispatch(new AddScheduleAction()
                 {
-                    ScheduleListItem = new ScheduleListItem(container, model)
+                    ScheduleListItem = new ScheduleListItem(_container, model)
                 });
             }
             else
             {
                 await Task.Run(async () =>
                 {
-                    var existing = await scheduleDbContext.AlarmSchedules
+                    var existing = await _scheduleDbContext.AlarmSchedules
                          .Include(x => x.Music)
                          .Include(x => x.BibleReadingSchedule)
                          .FirstAsync(x => x.Id == model.Id);
@@ -665,7 +665,7 @@ namespace Bible.Alarm.ViewModels
                     existing.DaysOfWeek = model.DaysOfWeek;
                     existing.IsEnabled = model.IsEnabled;
 
-                    if (model.Music != null && musicUpdated)
+                    if (model.Music != null && _musicUpdated)
                     {
                         existing.Music.Repeat = model.Music.Repeat;
                         existing.Music.LanguageCode = model.Music.LanguageCode;
@@ -681,7 +681,7 @@ namespace Bible.Alarm.ViewModels
                         existing.BibleReadingSchedule.LanguageCode = model.BibleReadingSchedule.LanguageCode;
                         existing.BibleReadingSchedule.PublicationCode = model.BibleReadingSchedule.PublicationCode;
 
-                        if (bibleReadingUpdated)
+                        if (_bibleReadingUpdated)
                         {
                             existing.BibleReadingSchedule.FinishedDuration = default(TimeSpan);
                         }
@@ -695,61 +695,61 @@ namespace Bible.Alarm.ViewModels
                     existing.Second = model.Second;
                     existing.SnoozeMinutes = model.SnoozeMinutes;
 
-                    await scheduleDbContext.SaveChangesAsync();
-                    alarmService.Update(model);
+                    await _scheduleDbContext.SaveChangesAsync();
+                    _alarmService.Update(model);
                 });
 
-                scheduleListItem.Schedule = model;
-                scheduleListItem.RaisePropertiesChangedEvent();
-                scheduleListItem.RefreshChapterName(true);
+                _scheduleListItem.Schedule = model;
+                _scheduleListItem.RaisePropertiesChangedEvent();
+                _scheduleListItem.RefreshChapterName(true);
 
-                ReduxContainer.Store.Dispatch(new UpdateScheduleAction() { ScheduleListItem = scheduleListItem });
+                ReduxContainer.Store.Dispatch(new UpdateScheduleAction() { ScheduleListItem = _scheduleListItem });
             }
 
-            setupMediaCache(model.Id);
+            SetupMediaCache(model.Id);
 
             return true;
         }
 
-        private async Task<bool> validate()
+        private async Task<bool> Validate()
         {
             if (DaysOfWeek == 0)
             {
-                await popUpService.ShowMessage("Please select day(s) of Week.");
+                await _popUpService.ShowMessage("Please select day(s) of Week.");
                 return false;
             }
 
             return true;
         }
 
-        private async Task deleteAsync()
+        private async Task DeleteAsync()
         {
 
-            if (scheduleId >= 0)
+            if (_scheduleId >= 0)
             {
                 await Task.Run(async () =>
                 {
-                    alarmService.Delete(scheduleId);
-                    var model = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleId);
-                    scheduleDbContext.AlarmSchedules.Remove(model);
-                    await scheduleDbContext.SaveChangesAsync();
+                    _alarmService.Delete(_scheduleId);
+                    var model = await _scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == _scheduleId);
+                    _scheduleDbContext.AlarmSchedules.Remove(model);
+                    await _scheduleDbContext.SaveChangesAsync();
 
                 });
 
-                ReduxContainer.Store.Dispatch(new RemoveScheduleAction() { ScheduleListItem = scheduleListItem });
+                ReduxContainer.Store.Dispatch(new RemoveScheduleAction() { ScheduleListItem = _scheduleListItem });
             }
 
         }
 
-        private void refreshChapterName()
+        private void RefreshChapterName()
         {
-            var syncContext = this.container.Resolve<TaskScheduler>();
+            var syncContext = this._container.Resolve<TaskScheduler>();
 
             Task.Run(async () =>
             {
                 try
                 {
-                    using var mediaDbContext = container.Resolve<MediaDbContext>();
+                    using var mediaDbContext = _container.Resolve<MediaDbContext>();
 
                     var bookName = await mediaDbContext.BibleBook
                                     .Where(x => x.BibleTranslation.Code == BibleReadingSchedule.PublicationCode
@@ -763,7 +763,7 @@ namespace Bible.Alarm.ViewModels
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happened in refreshChapterName task under schedule view model.");
+                    Logger.Error(e, "An error happened in refreshChapterName task under schedule view model.");
                 }
 
                 return null;
@@ -779,7 +779,7 @@ namespace Bible.Alarm.ViewModels
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, "An error happened in refreshChapterName task continue with under schedule view model.");
+                        Logger.Error(e, "An error happened in refreshChapterName task continue with under schedule view model.");
                     }
                 }
 
@@ -789,15 +789,15 @@ namespace Bible.Alarm.ViewModels
 
         public void Dispose()
         {
-            subscriptions.ForEach(x => x.Dispose());
-            subscriptions.Clear();
+            _subscriptions.ForEach(x => x.Dispose());
+            _subscriptions.Clear();
 
-            this.scheduleDbContext.Dispose();
-            this.popUpService.Dispose();
-            this.alarmService.Dispose();
-            this.notificationService.Dispose();
-            this.mediaDbContext.Dispose();
-            this.batteryOptimizationManager?.Dispose();
+            this._scheduleDbContext.Dispose();
+            this._popUpService.Dispose();
+            this._alarmService.Dispose();
+            this._notificationService.Dispose();
+            this._mediaDbContext.Dispose();
+            this._batteryOptimizationManager?.Dispose();
         }
     }
 }

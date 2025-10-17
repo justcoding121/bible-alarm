@@ -25,10 +25,10 @@
 
             if (!isService)
             {
-                container.Register<IToastService>((x) => new iOSToastService(container.Resolve<TaskScheduler>()));
+                container.Register<IToastService>((x) => new IOsToastService(container.Resolve<TaskScheduler>()));
             }
 
-            container.Register<INotificationService>((x) => new iOSNotificationService(container));
+            container.Register<INotificationService>((x) => new IOsNotificationService(container));
 
             container.Register<IPreviewPlayService>((x) => new PreviewPlayService(container, container.Resolve<IDownloadService>()));
 
@@ -60,9 +60,9 @@
             });
 
             container.Register<IVersionFinder>((x) => new VersionFinder());
-            container.Register<IStorageService>((x) => new iOSStorageService());
+            container.Register<IStorageService>((x) => new IOsStorageService());
             container.Register((x) =>
-                    new iOSAlarmHandler(container.Resolve<IPlaybackService>(),
+                    new IOsAlarmHandler(container.Resolve<IPlaybackService>(),
                                 container.Resolve<IMediaManager>(),
                                 container.Resolve<TaskScheduler>()));
         }

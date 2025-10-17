@@ -1,31 +1,30 @@
-﻿using AudioLinkHarvester.Models;
-using AudioLinkHarvester.Models.Music;
-using AudioLinkHarvester.Utility;
-using AudioLinkHarvestor.Utility;
-using Bible.Alarm.Common.Helpers;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Audio.Links.Harvester.Models;
+using Bible.Alarm.Audio.Links.Harvester.Models.Music;
+using Bible.Alarm.Audio.Links.Harvester.Utility;
+using Bible.Alarm.Common.Helpers;
+using Newtonsoft.Json;
 
-namespace AudioLinkHarvester.Audio
+namespace Bible.Alarm.Audio.Links.Harvester.Harvesters.Music
 {
     internal class MusicHarverster
     {
-        private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new Dictionary<string, string>(new KeyValuePair<string, string>[]{
+        private static readonly Dictionary<string, string> VocalsPublicationCodeToNameMappings = new Dictionary<string, string>(new KeyValuePair<string, string>[]{
             new KeyValuePair<string, string>("osg","Original Songs"),
             new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
             new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
         });
 
-        internal async static Task Harvest_Vocal_Music_Links()
+        internal static async Task Harvest_Vocal_Music_Links()
         {
             var languageCodeToNames = new Dictionary<string, string>();
             var languageCodeToPublications = new Dictionary<string, List<string>>();
 
-            foreach (var publication in vocalsPublicationCodeToNameMappings)
+            foreach (var publication in VocalsPublicationCodeToNameMappings)
             {
                 var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publication.Key}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
@@ -41,7 +40,7 @@ namespace AudioLinkHarvester.Audio
 
                     try
                     {
-                        await MusicHarverster.harvestMusicLinks(publication.Key, new List<string>(new[] { publication.Key }), languageCode);
+                        await MusicHarverster.HarvestMusicLinks(publication.Key, new List<string>(new[] { publication.Key }), languageCode);
                         languageCodeToNames[languageCode] = language;
 
                         if (languageCodeToPublications.ContainsKey(languageCode))
@@ -76,7 +75,7 @@ namespace AudioLinkHarvester.Audio
                  Publication
                  {
                      Code = x,
-                     Name = vocalsPublicationCodeToNameMappings[x]
+                     Name = VocalsPublicationCodeToNameMappings[x]
                  }).OrderBy(x => x.Code)));
             }
 
@@ -94,7 +93,7 @@ namespace AudioLinkHarvester.Audio
             new KeyValuePair<string, string>("iam","Sing Praises to Jehovah (1984)")
         });
 
-        internal async static Task Harvest_Music_Melody_Links()
+        internal static async Task Harvest_Music_Melody_Links()
         {
             var discs = new List<string>();
             var downloadCodes = new List<string>();
@@ -120,7 +119,7 @@ namespace AudioLinkHarvester.Audio
                 }
 
                 Console.WriteLine($"Harvesting Music track links for {publication.Value}.");
-                await harvestMusicLinks(publication.Key, downloadCodes);
+                await HarvestMusicLinks(publication.Key, downloadCodes);
             }
 
             File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json", JsonConvert.SerializeObject(
@@ -132,7 +131,7 @@ namespace AudioLinkHarvester.Audio
             }).OrderBy(x => x.Code)));
         }
 
-        private static async Task<bool> harvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string languageCode = null)
+        private static async Task<bool> HarvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string languageCode = null)
         {
             var dir = languageCode == null ? $"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/{publicationCode}" :
                                              $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languageCode}/{publicationCode}";

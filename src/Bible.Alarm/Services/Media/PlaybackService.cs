@@ -24,18 +24,18 @@ namespace Bible.Alarm.Services
 {
     public class PlaybackService : IPlaybackService
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
-        private readonly IMediaManager mediaManager;
-        private IPlaylistService playlistService;
-        private IMediaCacheService cacheService;
-        private IStorageService storageService;
-        private INetworkStatusService networkStatusService;
-        private IDownloadService downloadService;
-        private static IMediaExtractor mediaExtractor => CrossMediaManager.Current.Extractor;
+        private readonly IMediaManager _mediaManager;
+        private IPlaylistService _playlistService;
+        private IMediaCacheService _cacheService;
+        private IStorageService _storageService;
+        private INetworkStatusService _networkStatusService;
+        private IDownloadService _downloadService;
+        private static IMediaExtractor MediaExtractor => CrossMediaManager.Current.Extractor;
 
-        private SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private SemaphoreSlim _lock = new SemaphoreSlim(1);
 
         public PlaybackService(
             IMediaManager mediaManager,
@@ -45,34 +45,34 @@ namespace Bible.Alarm.Services
             INetworkStatusService networkStatusService,
             IDownloadService downloadService)
         {
-            this.mediaManager = mediaManager;
-            this.playlistService = playlistService;
-            this.cacheService = cacheService;
-            this.storageService = storageService;
-            this.networkStatusService = networkStatusService;
-            this.downloadService = downloadService;
+            this._mediaManager = mediaManager;
+            this._playlistService = playlistService;
+            this._cacheService = cacheService;
+            this._storageService = storageService;
+            this._networkStatusService = networkStatusService;
+            this._downloadService = downloadService;
 
-            this.mediaManager.MediaItemFinished += markTrackAsFinished;
-            this.mediaManager.StateChanged += stateChanged;
+            this._mediaManager.MediaItemFinished += MarkTrackAsFinished;
+            this._mediaManager.StateChanged += StateChanged;
         }
 
-        private bool isPlaying = false;
+        private bool _isPlaying = false;
 
-        private long currentScheduleId;
-        private Dictionary<IMediaItem, NotificationDetail> currentlyPlaying;
-        private IMediaItem firstChapter;
-        public bool IsPlaying => isPlaying;
-        public bool IsPrepared => mediaManager.Queue.Count > 0;
+        private long _currentScheduleId;
+        private Dictionary<IMediaItem, NotificationDetail> _currentlyPlaying;
+        private IMediaItem _firstChapter;
+        public bool IsPlaying => _isPlaying;
+        public bool IsPrepared => _mediaManager.Queue.Count > 0;
 
-        public long CurrentlyPlayingScheduleId => currentScheduleId;
+        public long CurrentlyPlayingScheduleId => _currentScheduleId;
 
         public int CurrentTrackIndex { get; set; }
         public TimeSpan CurrentTrackPosition { get; set; }
 
-        private async Task prepare(long scheduleId)
+        private async Task Prepare(long scheduleId)
         {
-            reset();
-            await preparePlay(scheduleId, true, true);
+            Reset();
+            await PreparePlay(scheduleId, true, true);
         }
 
         public async Task Play()
@@ -82,55 +82,55 @@ namespace Bible.Alarm.Services
                 throw new Exception("Cannot play without preparing.");
             }
 
-            await this.mediaManager.Play();
+            await this._mediaManager.Play();
         }
 
         public async Task PrepareAndPlay(long scheduleId, bool isImmediatePlayRequest)
         {
             await Dismiss();
 
-            reset();
-            await preparePlay(scheduleId, isImmediatePlayRequest, false);
+            Reset();
+            await PreparePlay(scheduleId, isImmediatePlayRequest, false);
         }
 
 
         public async Task PrepareRelavantPlaylist()
         {
-            var lastPlayed = await playlistService.GetRelavantScheduleToPlay();
-            await prepare(lastPlayed);
+            var lastPlayed = await _playlistService.GetRelavantScheduleToPlay();
+            await Prepare(lastPlayed);
         }
 
         public async Task Dismiss()
         {
             try
             {
-                if (this.mediaManager.IsPlaying())
+                if (this._mediaManager.IsPlaying())
                 {
-                    await this.mediaManager.Stop();
+                    await this._mediaManager.Stop();
                 }
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error happened when stopping playback.");
+                Logger.Error(e, "Error happened when stopping playback.");
             }
         }
 
-        private void reset()
+        private void Reset()
         {
-            currentScheduleId = -1;
-            firstChapter = null;
-            currentlyPlaying = null;
+            _currentScheduleId = -1;
+            _firstChapter = null;
+            _currentlyPlaying = null;
             CurrentTrackIndex = -1;
             CurrentTrackPosition = default;
         }
 
-        private async Task preparePlay(long scheduleId, bool isImmediatePlayRequest, bool prepareOnly)
+        private async Task PreparePlay(long scheduleId, bool isImmediatePlayRequest, bool prepareOnly)
         {
             Messenger<object>.Publish(MvvmMessages.ClearToasts);
 
-            currentScheduleId = scheduleId;
+            _currentScheduleId = scheduleId;
 
-            var nextTracks = await playlistService.NextTracks(scheduleId);
+            var nextTracks = await _playlistService.NextTracks(scheduleId);
 
             var downloadedTracks = new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, FileInfo>();
             var streamingTracks = new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, string>();
@@ -142,9 +142,9 @@ namespace Bible.Alarm.Services
             {
                 playDetailMap[i] = item.PlayDetail;
 
-                if (await cacheService.Exists(item.Url))
+                if (await _cacheService.Exists(item.Url))
                 {
-                    downloadedTracks.Add(i, new FileInfo(this.cacheService.GetCacheFilePath(item.Url)));
+                    downloadedTracks.Add(i, new FileInfo(this._cacheService.GetCacheFilePath(item.Url)));
                 }
                 else
                 {
@@ -156,9 +156,9 @@ namespace Bible.Alarm.Services
 
             if (downloadedTracks.Count != nextTracks.Count
                 && isImmediatePlayRequest
-                && !await networkStatusService.IsInternetAvailable())
+                && !await _networkStatusService.IsInternetAvailable())
             {
-                await handleInternetDown(isImmediatePlayRequest, prepareOnly);
+                await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
                 return;
             }
 
@@ -183,7 +183,7 @@ namespace Bible.Alarm.Services
                         }
                         else
                         {
-                            item = await mediaExtractor.CreateMediaItemEx(x.Value);
+                            item = await MediaExtractor.CreateMediaItemEx(x.Value);
                         }
 
                         item?.SetDisplay(playDetailMap[x.Key]);
@@ -193,7 +193,7 @@ namespace Bible.Alarm.Services
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, $"An error happened when playing file: {x.Value.FullName}.");
+                        Logger.Error(e, $"An error happened when playing file: {x.Value.FullName}.");
                         return null;
                     }
                 });
@@ -201,10 +201,10 @@ namespace Bible.Alarm.Services
             }))).ToList();
 
             if ((downloadedTracks.Count == 0 || !downloadedTracks.ContainsKey(0))
-                && !await networkStatusService.IsInternetAvailable())
+                && !await _networkStatusService.IsInternetAvailable())
             {
                 Messenger<object>.Publish(MvvmMessages.HideMediaProgressModal);
-                await handleInternetDown(isImmediatePlayRequest, prepareOnly);
+                await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
                 return;
             }
 
@@ -216,26 +216,26 @@ namespace Bible.Alarm.Services
 
                     try
                     {
-                        var item = await mediaExtractor.CreateMediaItemEx(x.Value);
+                        var item = await MediaExtractor.CreateMediaItemEx(x.Value);
                         item?.SetDisplay(playDetail);
                         Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(++preparedTracks, totalTracks));
                         return item;
                     }
                     catch (Exception e)
                     {
-                        logger.Warn(e, $"An error happened when streaming file: {x.Value}. Trying to use latest source URL.");
+                        Logger.Warn(e, $"An error happened when streaming file: {x.Value}. Trying to use latest source URL.");
 
                         try
                         {
                             if (playDetail.IsBibleReading)
                             {
-                                var url = await cacheService.GetBibleChapterUrl(playDetail.LanguageCode,
+                                var url = await _cacheService.GetBibleChapterUrl(playDetail.LanguageCode,
                                                  playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
                                                  playDetail.LookUpPath);
 
-                                if (await downloadService.FileExists(url))
+                                if (await _downloadService.FileExists(url))
                                 {
-                                    var item = await mediaExtractor.CreateMediaItemEx(url);
+                                    var item = await MediaExtractor.CreateMediaItemEx(url);
                                     item?.SetDisplay(playDetail);
                                     Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(++preparedTracks, totalTracks));
                                     return item;
@@ -243,23 +243,23 @@ namespace Bible.Alarm.Services
                             }
                             else
                             {
-                                var url = await cacheService.GetMusicTrackUrl(playDetail.LanguageCode, playDetail.LookUpPath);
+                                var url = await _cacheService.GetMusicTrackUrl(playDetail.LanguageCode, playDetail.LookUpPath);
 
-                                if (await downloadService.FileExists(url))
+                                if (await _downloadService.FileExists(url))
                                 {
-                                    var item = await mediaExtractor.CreateMediaItemEx(url);
+                                    var item = await MediaExtractor.CreateMediaItemEx(url);
                                     item?.SetDisplay(playDetail);
                                     Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(++preparedTracks, totalTracks));
                                     return item;
                                 }
                             }
 
-                            logger.Error($"Could'nt download the streaming file: {x.Value}.");
+                            Logger.Error($"Could'nt download the streaming file: {x.Value}.");
                             return null;
                         }
                         catch (Exception ex)
                         {
-                            logger.Error(ex, $"An error happened when streaming file: {x.Value}.");
+                            Logger.Error(ex, $"An error happened when streaming file: {x.Value}.");
                             return null;
                         }
                     }
@@ -290,7 +290,7 @@ namespace Bible.Alarm.Services
 
             Messenger<object>.Publish(MvvmMessages.HideMediaProgressModal, null);
 
-            currentlyPlaying = new Dictionary<IMediaItem, NotificationDetail>();
+            _currentlyPlaying = new Dictionary<IMediaItem, NotificationDetail>();
 
             i = 0;
             foreach (var track in mergedMediaItems)
@@ -300,48 +300,48 @@ namespace Bible.Alarm.Services
                     break;
                 }
 
-                currentlyPlaying.Add(track.Value, playDetailMap[track.Key]);
+                _currentlyPlaying.Add(track.Value, playDetailMap[track.Key]);
                 i++;
             }
 
-            if (!currentlyPlaying.Any())
+            if (!_currentlyPlaying.Any())
             {
-                await handleInternetDown(isImmediatePlayRequest, prepareOnly);
+                await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
                 return;
             }
             else
             {
-                firstChapter = currentlyPlaying.FirstOrDefault(x => x.Value.IsBibleReading).Key;
-                this.mediaManager.RepeatMode = RepeatMode.Off;
+                _firstChapter = _currentlyPlaying.FirstOrDefault(x => x.Value.IsBibleReading).Key;
+                this._mediaManager.RepeatMode = RepeatMode.Off;
 
                 var list = mergedMediaItems.Select(x => x.Value).ToList();
                 if (prepareOnly)
                 {
-                    await (mediaManager as MediaManagerBase).PrepareQueueForPlayback(list);
+                    await (_mediaManager as MediaManagerBase).PrepareQueueForPlayback(list);
                 }
                 else
                 {
-                    await this.mediaManager.PlayEx(list);
+                    await this._mediaManager.PlayEx(list);
                 }
             }
         }
 
-        private async Task handleInternetDown(bool isImmediate, bool prepareOnly)
+        private async Task HandleInternetDown(bool isImmediate, bool prepareOnly)
         {
             try
             {
                 if (!isImmediate)
                 {
-                    var file = new FileInfo(Path.Combine(this.storageService.StorageRoot, "cool-alarm-tone-notification-sound.mp3"));
-                    this.mediaManager.RepeatMode = RepeatMode.All;
+                    var file = new FileInfo(Path.Combine(this._storageService.StorageRoot, "cool-alarm-tone-notification-sound.mp3"));
+                    this._mediaManager.RepeatMode = RepeatMode.All;
                     if (prepareOnly)
                     {
-                        var mediaItem = await mediaExtractor.CreateMediaItem(file);
-                        await (this.mediaManager as MediaManagerBase).PrepareQueueForPlayback(mediaItem);
+                        var mediaItem = await MediaExtractor.CreateMediaItem(file);
+                        await (this._mediaManager as MediaManagerBase).PrepareQueueForPlayback(mediaItem);
                     }
                     else
                     {
-                        await this.mediaManager.PlayEx(file);
+                        await this._mediaManager.PlayEx(file);
                     }
                 }
                 else
@@ -351,75 +351,75 @@ namespace Bible.Alarm.Services
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened when handling internet down.");
+                Logger.Error(e, "An error happened when handling internet down.");
             }
         }
 
-        private async void stateChanged(object sender, StateChangedEventArgs e)
+        private async void StateChanged(object sender, StateChangedEventArgs e)
         {
             try
             {
-                var mediaItem = this.mediaManager?.Queue?.Current;
+                var mediaItem = this._mediaManager?.Queue?.Current;
 
                 if (mediaItem == null)
                 {
                     return;
                 }
 
-                if (currentlyPlaying != null && currentlyPlaying.ContainsKey(mediaItem))
+                if (_currentlyPlaying != null && _currentlyPlaying.ContainsKey(mediaItem))
                 {
-                    var track = currentlyPlaying[mediaItem];
+                    var track = _currentlyPlaying[mediaItem];
 
                     switch (e.State)
                     {
                         case MediaPlayerState.Playing:
-                            isPlaying = true;
-                            await watchAndSaveProgress();
+                            _isPlaying = true;
+                            await WatchAndSaveProgress();
                             Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
 
                             if (track.FinishedDuration.TotalSeconds > 0
-                                && firstChapter != null
-                                && mediaItem == firstChapter)
+                                && _firstChapter != null
+                                && mediaItem == _firstChapter)
                             {
-                                await this.mediaManager.SeekTo(track.FinishedDuration);
-                                firstChapter = null;
+                                await this._mediaManager.SeekTo(track.FinishedDuration);
+                                _firstChapter = null;
                             }
                             break;
                         case MediaPlayerState.Stopped:
-                            await stopped();
+                            await Stopped();
                             break;
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "An error happenned when handling playback state changed event.");
+                Logger.Error(ex, "An error happenned when handling playback state changed event.");
             }
 
-            async Task stopped()
+            async Task Stopped()
             {
-                isPlaying = false;
-                await stopWatching();
+                _isPlaying = false;
+                await StopWatching();
                 Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
             }
         }
 
-        private async void markTrackAsFinished(object sender, MediaItemEventArgs e)
+        private async void MarkTrackAsFinished(object sender, MediaItemEventArgs e)
         {
 
             try
             {
-                if (currentlyPlaying.ContainsKey(e.MediaItem))
+                if (_currentlyPlaying.ContainsKey(e.MediaItem))
                 {
-                    var track = currentlyPlaying[e.MediaItem];
+                    var track = _currentlyPlaying[e.MediaItem];
 
                     if (track.IsLastTrack)
                     {
-                        await playlistService.MarkTrackAsFinished(track);
+                        await _playlistService.MarkTrackAsFinished(track);
                         await Dismiss();
 
-                        var scheduleId = currentScheduleId;
-                        reset();
+                        var scheduleId = _currentScheduleId;
+                        Reset();
 
                         if (CurrentDevice.RuntimePlatform == Device.Android)
                         {
@@ -432,7 +432,7 @@ namespace Bible.Alarm.Services
                         }
 
                         await Task.Delay(500);
-                        mediaManager.Notification.UpdateNotification();
+                        _mediaManager.Notification.UpdateNotification();
 
                         await Dismiss();
                     }
@@ -440,97 +440,97 @@ namespace Bible.Alarm.Services
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "An error happened when marking track as finished.");
+                Logger.Error(ex, "An error happened when marking track as finished.");
             }
 
         }
 
-        private bool isWatching = false;
+        private bool _isWatching = false;
 
-        private async Task stopWatching()
+        private async Task StopWatching()
         {
-            await @lock.WaitAsync();
+            await _lock.WaitAsync();
 
             try
             {
-                if (isWatching)
+                if (_isWatching)
                 {
-                    isWatching = false;
+                    _isWatching = false;
                     return;
                 }
 
             }
             finally
             {
-                @lock.Release();
+                _lock.Release();
             }
         }
 
-        private Task watchtask;
-        private async Task watchAndSaveProgress()
+        private Task _watchtask;
+        private async Task WatchAndSaveProgress()
         {
-            await @lock.WaitAsync();
+            await _lock.WaitAsync();
 
             try
             {
-                if (isWatching)
+                if (_isWatching)
                 {
                     return;
                 }
 
-                while (watchtask != null)
+                while (_watchtask != null)
                 {
                     await Task.Delay(100);
                 }
 
-                isWatching = true;
+                _isWatching = true;
 
-                watchtask = Task.Run(async () =>
+                _watchtask = Task.Run(async () =>
                 {
-                    while (isWatching)
+                    while (_isWatching)
                     {
-                        var acquired = await @lock.WaitAsync(1);
+                        var acquired = await _lock.WaitAsync(1);
 
                         try
                         {
-                            if (IsPlaying && this.mediaManager.IsPlaying())
+                            if (IsPlaying && this._mediaManager.IsPlaying())
                             {
-                                var mediaItem = this.mediaManager.Queue?.Current;
+                                var mediaItem = this._mediaManager.Queue?.Current;
 
-                                if (mediaItem != null && currentlyPlaying != null)
+                                if (mediaItem != null && _currentlyPlaying != null)
                                 {
-                                    if (currentlyPlaying.ContainsKey(mediaItem))
+                                    if (_currentlyPlaying.ContainsKey(mediaItem))
                                     {
-                                        var track = currentlyPlaying[mediaItem];
+                                        var track = _currentlyPlaying[mediaItem];
 
                                         if (track.FinishedDuration.TotalSeconds > 0
-                                            && firstChapter != null
-                                            && mediaItem == firstChapter)
+                                            && _firstChapter != null
+                                            && mediaItem == _firstChapter)
                                         {
-                                            await this.mediaManager.SeekTo(track.FinishedDuration);
+                                            await this._mediaManager.SeekTo(track.FinishedDuration);
                                             if (CurrentDevice.RuntimePlatform == Device.iOS)
                                             {
-                                                mediaManager.Notification.UpdateNotification();
+                                                _mediaManager.Notification.UpdateNotification();
                                             }
 
-                                            firstChapter = null;
+                                            _firstChapter = null;
                                         }
-                                        else if (mediaManager.Position.TotalSeconds > 0)
+                                        else if (_mediaManager.Position.TotalSeconds > 0)
                                         {
-                                            if (mediaItem == firstChapter)
+                                            if (mediaItem == _firstChapter)
                                             {
-                                                firstChapter = null;
+                                                _firstChapter = null;
                                             }
 
-                                            CurrentTrackIndex = mediaManager.Queue.IndexOf(mediaItem);
-                                            CurrentTrackPosition = mediaManager.Position;
+                                            CurrentTrackIndex = _mediaManager.Queue.IndexOf(mediaItem);
+                                            CurrentTrackPosition = _mediaManager.Position;
 
-                                            track.FinishedDuration = mediaManager.Position;
-                                            await this.playlistService.MarkTrackAsPlayed(track);
-                                            await this.playlistService.SaveLastPlayed(currentScheduleId);
+                                            track.FinishedDuration = _mediaManager.Position;
+                                            await this._playlistService.MarkTrackAsPlayed(track);
+                                            await this._playlistService.SaveLastPlayed(_currentScheduleId);
                                             if (CurrentDevice.RuntimePlatform == Device.iOS)
                                             {
-                                                mediaManager.Notification.UpdateNotification();
+                                                _mediaManager.Notification.UpdateNotification();
                                             }
                                         }
                                     }
@@ -539,44 +539,44 @@ namespace Bible.Alarm.Services
                         }
                         catch (Exception e)
                         {
-                            logger.Error(e, "An error happened when updating finished track duration.");
+                            Logger.Error(e, "An error happened when updating finished track duration.");
                         }
                         finally
                         {
                             if (acquired)
                             {
-                                @lock.Release();
+                                _lock.Release();
                             }
                         }
 
                         await Task.Delay(1000);
                     }
 
-                    watchtask = null;
+                    _watchtask = null;
                 });
             }
             finally
             {
-                @lock.Release();
+                _lock.Release();
             }
         }
 
 
-        private bool disposed;
+        private bool _disposed;
 
-        private void dispose()
+        private void Dispose()
         {
-            if (!disposed)
+            if (!_disposed)
             {
-                disposed = true;
+                _disposed = true;
 
-                this.mediaManager.MediaItemFinished -= markTrackAsFinished;
+                this._mediaManager.MediaItemFinished -= MarkTrackAsFinished;
 
-                this.playlistService.Dispose();
-                this.cacheService.Dispose();
-                this.storageService.Dispose();
-                this.networkStatusService.Dispose();
-                this.mediaManager.Dispose();
+                this._playlistService.Dispose();
+                this._cacheService.Dispose();
+                this._storageService.Dispose();
+                this._networkStatusService.Dispose();
+                this._mediaManager.Dispose();
             }
 
             GC.SuppressFinalize(this);
@@ -584,7 +584,7 @@ namespace Bible.Alarm.Services
 
         ~PlaybackService()
         {
-            dispose();
+            Dispose();
         }
     }
 }

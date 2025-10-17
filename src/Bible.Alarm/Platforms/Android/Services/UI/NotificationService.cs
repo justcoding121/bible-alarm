@@ -26,12 +26,12 @@ namespace Bible.Alarm.Services.Droid
 {
     public class DroidNotificationService(IContainer container, IStorageService storageService) : INotificationService
     {
-        public static readonly string CHANNEL_ID_AND_NAME = "alarm_notification";
-        public static readonly string CHANNEL_DESCRIPTION = "alarm_notification are send to this channel";
-        public static readonly string SCHEDULE_ID = "schedule_id";
+        public static readonly string ChannelIdAndName = "alarm_notification";
+        public static readonly string ChannelDescription = "alarm_notification are send to this channel";
+        public static readonly string ScheduleId = "schedule_id";
 
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
         public async Task ShowNotification(long scheduleId)
@@ -47,7 +47,7 @@ namespace Bible.Alarm.Services.Droid
             }
             catch (System.Exception e)
             {
-                logger.Error(e, "Error happened when playing alarm manually.");
+                Logger.Error(e, "Error happened when playing alarm manually.");
                 await Task.Delay(1500);
                 throw;
             }
@@ -82,7 +82,7 @@ namespace Bible.Alarm.Services.Droid
 
             // Pass the current button press count value to the next activity:
             var valuesForActivity = new Bundle();
-            valuesForActivity.PutInt(SCHEDULE_ID, scheduleId);
+            valuesForActivity.PutInt(ScheduleId, scheduleId);
 
             var resultIntent = new Intent(Android.App.Application.Context, typeof(MainActivity));
             resultIntent.PutExtras(valuesForActivity);
@@ -95,10 +95,10 @@ namespace Bible.Alarm.Services.Droid
             var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)(PendingIntentFlags.UpdateCurrent));
 
             var drawable = ContextCompat.GetDrawable(Android.App.Application.Context, Resource.Drawable.ic_launcher_round);
-            var bitmap = drawableToBitmap(drawable);
+            var bitmap = DrawableToBitmap(drawable);
 
             // Build the notification:
-            var builder = new NotificationCompat.Builder(Android.App.Application.Context, CHANNEL_ID_AND_NAME)
+            var builder = new NotificationCompat.Builder(Android.App.Application.Context, ChannelIdAndName)
                           .SetAutoCancel(true)
                           .SetContentIntent(resultPendingIntent)
                           .SetContentTitle(title)
@@ -118,7 +118,7 @@ namespace Bible.Alarm.Services.Droid
             notificationManagerCompat.Notify(scheduleId, builder.Build());
         }
 
-        private static Bitmap drawableToBitmap(Drawable drawable)
+        private static Bitmap DrawableToBitmap(Drawable drawable)
         {
             if (drawable is BitmapDrawable)
             {
@@ -153,7 +153,7 @@ namespace Bible.Alarm.Services.Droid
 
         public Task Remove(long scheduleId)
         {
-            var pIntent = findIntent(scheduleId);
+            var pIntent = FindIntent(scheduleId);
 
             if (pIntent != null)
             {
@@ -167,11 +167,11 @@ namespace Bible.Alarm.Services.Droid
 
         public Task<bool> IsScheduled(long scheduleId)
         {
-            var pIntent = findIntent(scheduleId);
+            var pIntent = FindIntent(scheduleId);
             return Task.FromResult(pIntent != null);
         }
 
-        private PendingIntent findIntent(long scheduleId)
+        private PendingIntent FindIntent(long scheduleId)
         {
             var context = container.AndroidContext();
 

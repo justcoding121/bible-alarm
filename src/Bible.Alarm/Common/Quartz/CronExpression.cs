@@ -271,111 +271,111 @@ namespace Quartz
         /// </summary>
         protected const int NoSpec = NoSpecInt;
 
-        private static readonly Dictionary<string, int> monthMap = new Dictionary<string, int>(20);
-        private static readonly Dictionary<string, int> dayMap = new Dictionary<string, int>(60);
+        private static readonly Dictionary<string, int> MonthMap = new Dictionary<string, int>(20);
+        private static readonly Dictionary<string, int> DayMap = new Dictionary<string, int>(60);
 
-        private TimeZoneInfo timeZone;
+        private TimeZoneInfo _timeZone;
 
         /// <summary>
         /// Seconds.
         /// </summary>
-        [NonSerialized] protected SortedSet<int> seconds;
+        [NonSerialized] protected SortedSet<int> Seconds;
 
         /// <summary>
         /// minutes.
         /// </summary>
-        [NonSerialized] protected SortedSet<int> minutes;
+        [NonSerialized] protected SortedSet<int> Minutes;
 
         /// <summary>
         /// Hours.
         /// </summary>
-        [NonSerialized] protected SortedSet<int> hours;
+        [NonSerialized] protected SortedSet<int> Hours;
 
         /// <summary>
         /// Days of month.
         /// </summary>
-        [NonSerialized] protected SortedSet<int> daysOfMonth;
+        [NonSerialized] protected SortedSet<int> DaysOfMonth;
 
         /// <summary>
         /// Months.
         /// </summary>
-        [NonSerialized] protected SortedSet<int> months;
+        [NonSerialized] protected SortedSet<int> Months;
 
         /// <summary>
         /// Days of week.
         /// </summary>
-        [NonSerialized] protected SortedSet<int> daysOfWeek;
+        [NonSerialized] protected SortedSet<int> DaysOfWeek;
 
         /// <summary>
         /// Years.
         /// </summary>
-        [NonSerialized] protected SortedSet<int> years;
+        [NonSerialized] protected SortedSet<int> Years;
 
         /// <summary>
         /// Last day of week.
         /// </summary>
-        [NonSerialized] protected bool lastdayOfWeek;
+        [NonSerialized] protected bool LastdayOfWeek;
 
         /// <summary>
         /// Nth day of week.
         /// </summary>
-        [NonSerialized] protected int nthdayOfWeek;
+        [NonSerialized] protected int NthdayOfWeek;
 
         /// <summary>
         /// Last day of month.
         /// </summary>
-        [NonSerialized] protected bool lastdayOfMonth;
+        [NonSerialized] protected bool LastdayOfMonth;
 
         /// <summary>
         /// Nearest weekday.
         /// </summary>
-        [NonSerialized] protected bool nearestWeekday;
+        [NonSerialized] protected bool NearestWeekday;
 
-        [NonSerialized] protected int lastdayOffset;
+        [NonSerialized] protected int LastdayOffset;
 
         /// <summary>
         /// Calendar day of week.
         /// </summary>
-        [NonSerialized] protected bool calendardayOfWeek;
+        [NonSerialized] protected bool CalendardayOfWeek;
 
         /// <summary>
         /// Calendar day of month.
         /// </summary>
-        [NonSerialized] protected bool calendardayOfMonth;
+        [NonSerialized] protected bool CalendardayOfMonth;
 
         /// <summary>
         /// Expression parsed.
         /// </summary>
-        [NonSerialized] protected bool expressionParsed;
+        [NonSerialized] protected bool ExpressionParsed;
 
         public static readonly int MaxYear = DateTime.Now.Year + 100;
 
-        private static readonly char[] splitSeparators = { ' ', '\t', '\r', '\n' };
-        private static readonly char[] commaSeparator = { ',' };
-        private static readonly Regex regex = new Regex("^L-[0-9]*[W]?", RegexOptions.Compiled);
+        private static readonly char[] SplitSeparators = { ' ', '\t', '\r', '\n' };
+        private static readonly char[] CommaSeparator = { ',' };
+        private static readonly Regex Regex = new Regex("^L-[0-9]*[W]?", RegexOptions.Compiled);
 
         static CronExpression()
         {
-            monthMap.Add("JAN", 0);
-            monthMap.Add("FEB", 1);
-            monthMap.Add("MAR", 2);
-            monthMap.Add("APR", 3);
-            monthMap.Add("MAY", 4);
-            monthMap.Add("JUN", 5);
-            monthMap.Add("JUL", 6);
-            monthMap.Add("AUG", 7);
-            monthMap.Add("SEP", 8);
-            monthMap.Add("OCT", 9);
-            monthMap.Add("NOV", 10);
-            monthMap.Add("DEC", 11);
+            MonthMap.Add("JAN", 0);
+            MonthMap.Add("FEB", 1);
+            MonthMap.Add("MAR", 2);
+            MonthMap.Add("APR", 3);
+            MonthMap.Add("MAY", 4);
+            MonthMap.Add("JUN", 5);
+            MonthMap.Add("JUL", 6);
+            MonthMap.Add("AUG", 7);
+            MonthMap.Add("SEP", 8);
+            MonthMap.Add("OCT", 9);
+            MonthMap.Add("NOV", 10);
+            MonthMap.Add("DEC", 11);
 
-            dayMap.Add("SUN", 1);
-            dayMap.Add("MON", 2);
-            dayMap.Add("TUE", 3);
-            dayMap.Add("WED", 4);
-            dayMap.Add("THU", 5);
-            dayMap.Add("FRI", 6);
-            dayMap.Add("SAT", 7);
+            DayMap.Add("SUN", 1);
+            DayMap.Add("MON", 2);
+            DayMap.Add("TUE", 3);
+            DayMap.Add("WED", 4);
+            DayMap.Add("THU", 5);
+            DayMap.Add("FRI", 6);
+            DayMap.Add("SAT", 7);
         }
 
         private CronExpression()
@@ -429,7 +429,7 @@ namespace Quartz
                     var timeZoneId = (string)info.GetValue("timeZoneId", typeof(string));
                     if (!string.IsNullOrEmpty(timeZoneId))
                     {
-                        timeZone = TimeZoneUtil.FindTimeZoneById(timeZoneId);
+                        _timeZone = TimeZoneUtil.FindTimeZoneById(timeZoneId);
                     }
                     break;
                 default:
@@ -487,15 +487,15 @@ namespace Quartz
         /// </summary>
         public TimeZoneInfo TimeZone
         {
-            set => timeZone = value;
+            set => _timeZone = value;
             get
             {
-                if (timeZone == null)
+                if (_timeZone == null)
                 {
-                    timeZone = TimeZoneInfo.Local;
+                    _timeZone = TimeZoneInfo.Local;
                 }
 
-                return timeZone;
+                return _timeZone;
             }
         }
 
@@ -546,42 +546,42 @@ namespace Quartz
         /// <param name="expression">The expression.</param>
         protected void BuildExpression(string expression)
         {
-            expressionParsed = true;
+            ExpressionParsed = true;
 
             try
             {
-                if (seconds == null)
+                if (Seconds == null)
                 {
-                    seconds = new SortedSet<int>();
+                    Seconds = new SortedSet<int>();
                 }
-                if (minutes == null)
+                if (Minutes == null)
                 {
-                    minutes = new SortedSet<int>();
+                    Minutes = new SortedSet<int>();
                 }
-                if (hours == null)
+                if (Hours == null)
                 {
-                    hours = new SortedSet<int>();
+                    Hours = new SortedSet<int>();
                 }
-                if (daysOfMonth == null)
+                if (DaysOfMonth == null)
                 {
-                    daysOfMonth = new SortedSet<int>();
+                    DaysOfMonth = new SortedSet<int>();
                 }
-                if (months == null)
+                if (Months == null)
                 {
-                    months = new SortedSet<int>();
+                    Months = new SortedSet<int>();
                 }
-                if (daysOfWeek == null)
+                if (DaysOfWeek == null)
                 {
-                    daysOfWeek = new SortedSet<int>();
+                    DaysOfWeek = new SortedSet<int>();
                 }
-                if (years == null)
+                if (Years == null)
                 {
-                    years = new SortedSet<int>();
+                    Years = new SortedSet<int>();
                 }
 
                 int exprOn = Second;
 
-                string[] exprsTok = expression.Split(splitSeparators, StringSplitOptions.RemoveEmptyEntries);
+                string[] exprsTok = expression.Split(SplitSeparators, StringSplitOptions.RemoveEmptyEntries);
                 foreach (string exprTok in exprsTok)
                 {
                     string expr = exprTok.Trim();
@@ -610,7 +610,7 @@ namespace Quartz
                         throw new FormatException("Support for specifying multiple \"nth\" days is not implemented.");
                     }
 
-                    string[] vTok = expr.Split(commaSeparator);
+                    string[] vTok = expr.Split(CommaSeparator);
                     foreach (string v in vTok)
                     {
                         StoreExpressionVals(0, v, exprOn);
@@ -675,7 +675,7 @@ namespace Quartz
                 return i;
             }
             char c = s[i];
-            if (c >= 'A' && c <= 'Z' && !s.Equals("L") && !s.Equals("LW") && !regex.IsMatch(s))
+            if (c >= 'A' && c <= 'Z' && !s.Equals("L") && !s.Equals("LW") && !Regex.IsMatch(s))
             {
                 string sub = s.Substring(i, 3);
                 int sval;
@@ -729,8 +729,8 @@ namespace Quartz
                             try
                             {
                                 i += 4;
-                                nthdayOfWeek = Convert.ToInt32(s.Substring(i), CultureInfo.InvariantCulture);
-                                if (nthdayOfWeek < 1 || nthdayOfWeek > 5)
+                                NthdayOfWeek = Convert.ToInt32(s.Substring(i), CultureInfo.InvariantCulture);
+                                if (NthdayOfWeek < 1 || NthdayOfWeek > 5)
                                 {
                                     throw new Exception();
                                 }
@@ -743,7 +743,7 @@ namespace Quartz
                         }
                         else if (c == 'L')
                         {
-                            lastdayOfWeek = true;
+                            LastdayOfWeek = true;
                             i++;
                         }
                         else
@@ -777,9 +777,9 @@ namespace Quartz
                     throw new FormatException(
                         "'?' can only be specified for Day-of-Month or Day-of-Week.");
                 }
-                if (type == DayOfWeek && !lastdayOfMonth)
+                if (type == DayOfWeek && !LastdayOfMonth)
                 {
-                    int val = daysOfMonth.LastOrDefault();
+                    int val = DaysOfMonth.LastOrDefault();
                     if (val == NoSpecInt)
                     {
                         throw new FormatException(
@@ -844,7 +844,7 @@ namespace Quartz
                 i++;
                 if (type == DayOfMonth)
                 {
-                    lastdayOfMonth = true;
+                    LastdayOfMonth = true;
                 }
                 if (type == DayOfWeek)
                 {
@@ -856,19 +856,19 @@ namespace Quartz
                     if (c == '-')
                     {
                         ValueSet vs = GetValue(0, s, i + 1);
-                        lastdayOffset = vs.theValue;
-                        if (lastdayOffset > 30)
+                        LastdayOffset = vs.TheValue;
+                        if (LastdayOffset > 30)
                         {
                             throw new FormatException("Offset from last day must be <= 30");
                         }
-                        i = vs.pos;
+                        i = vs.Pos;
                     }
                     if (s.Length > i)
                     {
                         c = s[i];
                         if (c == 'W')
                         {
-                            nearestWeekday = true;
+                            NearestWeekday = true;
                             i++;
                         }
                     }
@@ -889,8 +889,8 @@ namespace Quartz
                     if (c >= '0' && c <= '9')
                     {
                         ValueSet vs = GetValue(val, s, i);
-                        val = vs.theValue;
-                        i = vs.pos;
+                        val = vs.TheValue;
+                        i = vs.Pos;
                     }
                     i = CheckNext(i, s, val, type);
                     return i;
@@ -958,7 +958,7 @@ namespace Quartz
                     {
                         throw new FormatException("Day-of-Week values must be between 1 and 7");
                     }
-                    lastdayOfWeek = true;
+                    LastdayOfWeek = true;
                 }
                 else
                 {
@@ -974,7 +974,7 @@ namespace Quartz
             {
                 if (type == DayOfMonth)
                 {
-                    nearestWeekday = true;
+                    NearestWeekday = true;
                 }
                 else
                 {
@@ -1001,8 +1001,8 @@ namespace Quartz
                 i++;
                 try
                 {
-                    nthdayOfWeek = Convert.ToInt32(s.Substring(i), CultureInfo.InvariantCulture);
-                    if (nthdayOfWeek < 1 || nthdayOfWeek > 5)
+                    NthdayOfWeek = Convert.ToInt32(s.Substring(i), CultureInfo.InvariantCulture);
+                    if (NthdayOfWeek < 1 || NthdayOfWeek > 5)
                     {
                         throw new Exception();
                     }
@@ -1023,11 +1023,11 @@ namespace Quartz
             {
                 if (type == DayOfWeek)
                 {
-                    calendardayOfWeek = true;
+                    CalendardayOfWeek = true;
                 }
                 else if (type == DayOfMonth)
                 {
-                    calendardayOfMonth = true;
+                    CalendardayOfMonth = true;
                 }
                 else
                 {
@@ -1055,9 +1055,9 @@ namespace Quartz
                 if (c >= '0' && c <= '9')
                 {
                     ValueSet vs = GetValue(v, s, i);
-                    int v1 = vs.theValue;
+                    int v1 = vs.TheValue;
                     end = v1;
-                    i = vs.pos;
+                    i = vs.Pos;
                 }
                 if (i < s.Length && s[i] == '/')
                 {
@@ -1074,9 +1074,9 @@ namespace Quartz
                     if (c >= '0' && c <= '9')
                     {
                         ValueSet vs = GetValue(v2, s, i);
-                        int v3 = vs.theValue;
+                        int v3 = vs.TheValue;
                         AddToSet(val, end, v3, type);
-                        i = vs.pos;
+                        i = vs.Pos;
                         return i;
                     }
                     AddToSet(val, end, v2, type);
@@ -1107,10 +1107,10 @@ namespace Quartz
                 if (c >= '0' && c <= '9')
                 {
                     ValueSet vs = GetValue(v2, s, i);
-                    int v3 = vs.theValue;
+                    int v3 = vs.TheValue;
                     CheckIncrementRange(v3, type);
                     AddToSet(val, end, v3, type);
-                    i = vs.pos;
+                    i = vs.Pos;
                     return i;
                 }
                 throw new FormatException($"Unexpected character '{c}' after '/'");
@@ -1136,43 +1136,43 @@ namespace Quartz
             StringBuilder buf = new StringBuilder();
 
             buf.Append("seconds: ");
-            buf.Append(GetExpressionSetSummary(seconds));
+            buf.Append(GetExpressionSetSummary(Seconds));
             buf.Append("\n");
             buf.Append("minutes: ");
-            buf.Append(GetExpressionSetSummary(minutes));
+            buf.Append(GetExpressionSetSummary(Minutes));
             buf.Append("\n");
             buf.Append("hours: ");
-            buf.Append(GetExpressionSetSummary(hours));
+            buf.Append(GetExpressionSetSummary(Hours));
             buf.Append("\n");
             buf.Append("daysOfMonth: ");
-            buf.Append(GetExpressionSetSummary(daysOfMonth));
+            buf.Append(GetExpressionSetSummary(DaysOfMonth));
             buf.Append("\n");
             buf.Append("months: ");
-            buf.Append(GetExpressionSetSummary(months));
+            buf.Append(GetExpressionSetSummary(Months));
             buf.Append("\n");
             buf.Append("daysOfWeek: ");
-            buf.Append(GetExpressionSetSummary(daysOfWeek));
+            buf.Append(GetExpressionSetSummary(DaysOfWeek));
             buf.Append("\n");
             buf.Append("lastdayOfWeek: ");
-            buf.Append(lastdayOfWeek);
+            buf.Append(LastdayOfWeek);
             buf.Append("\n");
             buf.Append("nearestWeekday: ");
-            buf.Append(nearestWeekday);
+            buf.Append(NearestWeekday);
             buf.Append("\n");
             buf.Append("NthDayOfWeek: ");
-            buf.Append(nthdayOfWeek);
+            buf.Append(NthdayOfWeek);
             buf.Append("\n");
             buf.Append("lastdayOfMonth: ");
-            buf.Append(lastdayOfMonth);
+            buf.Append(LastdayOfMonth);
             buf.Append("\n");
             buf.Append("calendardayOfWeek: ");
-            buf.Append(calendardayOfWeek);
+            buf.Append(CalendardayOfWeek);
             buf.Append("\n");
             buf.Append("calendardayOfMonth: ");
-            buf.Append(calendardayOfMonth);
+            buf.Append(CalendardayOfMonth);
             buf.Append("\n");
             buf.Append("years: ");
-            buf.Append(GetExpressionSetSummary(years));
+            buf.Append(GetExpressionSetSummary(Years));
             buf.Append("\n");
 
             return buf.ToString();
@@ -1449,19 +1449,19 @@ namespace Quartz
             switch (type)
             {
                 case Second:
-                    return seconds;
+                    return Seconds;
                 case Minute:
-                    return minutes;
+                    return Minutes;
                 case Hour:
-                    return hours;
+                    return Hours;
                 case DayOfMonth:
-                    return daysOfMonth;
+                    return DaysOfMonth;
                 case Month:
-                    return months;
+                    return Months;
                 case DayOfWeek:
-                    return daysOfWeek;
+                    return DaysOfWeek;
                 case Year:
-                    return years;
+                    return Years;
                 default:
                     return null;
             }
@@ -1491,13 +1491,13 @@ namespace Quartz
             ValueSet val = new ValueSet();
             if (i < s.Length)
             {
-                val.pos = i;
+                val.Pos = i;
             }
             else
             {
-                val.pos = i + 1;
+                val.Pos = i + 1;
             }
-            val.theValue = Convert.ToInt32(s1.ToString(), CultureInfo.InvariantCulture);
+            val.TheValue = Convert.ToInt32(s1.ToString(), CultureInfo.InvariantCulture);
             return val;
         }
 
@@ -1521,9 +1521,9 @@ namespace Quartz
         /// <returns></returns>
         protected virtual int GetMonthNumber(string s)
         {
-            if (monthMap.ContainsKey(s))
+            if (MonthMap.ContainsKey(s))
             {
-                return monthMap[s];
+                return MonthMap[s];
             }
 
             return -1;
@@ -1536,9 +1536,9 @@ namespace Quartz
         /// <returns></returns>
         protected virtual int GetDayOfWeekNumber(string s)
         {
-            if (dayMap.ContainsKey(s))
+            if (DayMap.ContainsKey(s))
             {
-                return dayMap[s];
+                return DayMap[s];
             }
 
             return -1;
@@ -1611,14 +1611,14 @@ namespace Quartz
                 int sec = d.Second;
 
                 // get second.................................................
-                st = seconds.TailSet(sec);
+                st = Seconds.TailSet(sec);
                 if (st.Count > 0)
                 {
                     sec = st.First();
                 }
                 else
                 {
-                    sec = seconds.First();
+                    sec = Seconds.First();
                     d = d.AddMinutes(1);
                 }
                 d = new DateTimeOffset(d.Year, d.Month, d.Day, d.Hour, d.Minute, sec, d.Millisecond, d.Offset);
@@ -1628,7 +1628,7 @@ namespace Quartz
                 t = -1;
 
                 // get minute.................................................
-                st = minutes.TailSet(min);
+                st = Minutes.TailSet(min);
                 if (st.Count > 0)
                 {
                     t = min;
@@ -1636,7 +1636,7 @@ namespace Quartz
                 }
                 else
                 {
-                    min = minutes.First();
+                    min = Minutes.First();
                     hr++;
                 }
                 if (min != t)
@@ -1652,7 +1652,7 @@ namespace Quartz
                 t = -1;
 
                 // get hour...................................................
-                st = hours.TailSet(hr);
+                st = Hours.TailSet(hr);
                 if (st.Count > 0)
                 {
                     t = hr;
@@ -1660,7 +1660,7 @@ namespace Quartz
                 }
                 else
                 {
-                    hr = hours.First();
+                    hr = Hours.First();
                     day++;
                 }
                 if (hr != t)
@@ -1685,20 +1685,20 @@ namespace Quartz
                 int tmon = mon;
 
                 // get day...................................................
-                bool dayOfMSpec = !daysOfMonth.Contains(NoSpec);
-                bool dayOfWSpec = !daysOfWeek.Contains(NoSpec);
+                bool dayOfMSpec = !DaysOfMonth.Contains(NoSpec);
+                bool dayOfWSpec = !DaysOfWeek.Contains(NoSpec);
                 if (dayOfMSpec && !dayOfWSpec)
                 {
                     // get day by day of month rule
-                    st = daysOfMonth.TailSet(day);
+                    st = DaysOfMonth.TailSet(day);
                     bool found = st.Any();
-                    if (lastdayOfMonth)
+                    if (LastdayOfMonth)
                     {
-                        if (!nearestWeekday)
+                        if (!NearestWeekday)
                         {
                             t = day;
                             day = GetLastDayOfMonth(mon, d.Year);
-                            day -= lastdayOffset;
+                            day -= LastdayOffset;
 
                             if (t > day)
                             {
@@ -1716,7 +1716,7 @@ namespace Quartz
                         {
                             t = day;
                             day = GetLastDayOfMonth(mon, d.Year);
-                            day -= lastdayOffset;
+                            day -= LastdayOffset;
 
                             DateTimeOffset tcal = new DateTimeOffset(d.Year, mon, day, 0, 0, 0, d.Offset);
 
@@ -1748,10 +1748,10 @@ namespace Quartz
                             }
                         }
                     }
-                    else if (nearestWeekday)
+                    else if (NearestWeekday)
                     {
                         t = day;
-                        day = daysOfMonth.First();
+                        day = DaysOfMonth.First();
 
                         DateTimeOffset tcal = new DateTimeOffset(d.Year, mon, day, 0, 0, 0, d.Offset);
 
@@ -1778,7 +1778,7 @@ namespace Quartz
                         tcal = new DateTimeOffset(tcal.Year, mon, day, hr, min, sec, d.Offset);
                         if (tcal.ToUniversalTime() < afterTimeUtc)
                         {
-                            day = daysOfMonth.First();
+                            day = DaysOfMonth.First();
                             mon++;
                         }
                     }
@@ -1791,13 +1791,13 @@ namespace Quartz
                         int lastDay = GetLastDayOfMonth(mon, d.Year);
                         if (day > lastDay)
                         {
-                            day = daysOfMonth.First();
+                            day = DaysOfMonth.First();
                             mon++;
                         }
                     }
                     else
                     {
-                        day = daysOfMonth.First();
+                        day = DaysOfMonth.First();
                         mon++;
                     }
 
@@ -1828,11 +1828,11 @@ namespace Quartz
                 else if (dayOfWSpec && !dayOfMSpec)
                 {
                     // get day by day of week rule
-                    if (lastdayOfWeek)
+                    if (LastdayOfWeek)
                     {
                         // are we looking for the last XXX day of
                         // the month?
-                        int dow = daysOfWeek.First(); // desired
+                        int dow = DaysOfWeek.First(); // desired
                                                       // d-o-w
                         int cDow = (int)d.DayOfWeek + 1; // current d-o-w
                         int daysToAdd = 0;
@@ -1879,10 +1879,10 @@ namespace Quartz
                             continue;
                         }
                     }
-                    else if (nthdayOfWeek != 0)
+                    else if (NthdayOfWeek != 0)
                     {
                         // are we looking for the Nth XXX day in the month?
-                        int dow = daysOfWeek.First(); // desired
+                        int dow = DaysOfWeek.First(); // desired
                                                       // d-o-w
                         int cDow = (int)d.DayOfWeek + 1; // current d-o-w
                         int daysToAdd = 0;
@@ -1904,7 +1904,7 @@ namespace Quartz
                             weekOfMonth++;
                         }
 
-                        daysToAdd = (nthdayOfWeek - weekOfMonth) * 7;
+                        daysToAdd = (NthdayOfWeek - weekOfMonth) * 7;
                         day += daysToAdd;
                         if (daysToAdd < 0 || day > GetLastDayOfMonth(mon, d.Year))
                         {
@@ -1930,9 +1930,9 @@ namespace Quartz
                     else
                     {
                         int cDow = (int)d.DayOfWeek + 1; // current d-o-w
-                        int dow = daysOfWeek.First(); // desired
+                        int dow = DaysOfWeek.First(); // desired
                                                       // d-o-w
-                        st = daysOfWeek.TailSet(cDow);
+                        st = DaysOfWeek.TailSet(cDow);
                         if (st.Count > 0)
                         {
                             dow = st.First();
@@ -1994,7 +1994,7 @@ namespace Quartz
                 }
 
                 // get month...................................................
-                st = months.TailSet(mon);
+                st = Months.TailSet(mon);
                 if (st.Count > 0)
                 {
                     t = mon;
@@ -2002,7 +2002,7 @@ namespace Quartz
                 }
                 else
                 {
-                    mon = months.First();
+                    mon = Months.First();
                     year++;
                 }
                 if (mon != t)
@@ -2015,7 +2015,7 @@ namespace Quartz
                 t = -1;
 
                 // get year...................................................
-                st = years.TailSet(year);
+                st = Years.TailSet(year);
                 if (st.Count > 0)
                 {
                     t = year;
@@ -2168,7 +2168,7 @@ namespace Quartz
         {
             unchecked
             {
-                return ((CronExpressionString != null ? CronExpressionString.GetHashCode() : 0) * 397) ^ (timeZone != null ? timeZone.GetHashCode() : 0);
+                return ((CronExpressionString != null ? CronExpressionString.GetHashCode() : 0) * 397) ^ (_timeZone != null ? _timeZone.GetHashCode() : 0);
             }
         }
     }
@@ -2181,11 +2181,11 @@ namespace Quartz
         /// <summary>
         /// The value.
         /// </summary>
-        public int theValue;
+        public int TheValue;
 
         /// <summary>
         /// The position.
         /// </summary>
-        public int pos;
+        public int Pos;
     }
 }

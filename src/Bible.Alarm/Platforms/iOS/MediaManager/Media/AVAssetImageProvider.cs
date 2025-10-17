@@ -11,7 +11,7 @@ using UIKit;
 
 namespace MediaManager.Platforms.Ios.Media
 {
-    public class AVAssetImageProvider : MediaExtractorProviderBase, IMediaItemImageProvider
+    public class AvAssetImageProvider : MediaExtractorProviderBase, IMediaItemImageProvider
     {
         protected MediaManagerImplementation MediaManager = (MediaManagerImplementation)CrossMediaManager.Current;
 
@@ -43,7 +43,7 @@ namespace MediaManager.Platforms.Ios.Media
                         AVMetadata.CommonKeyArtwork
                     };
 
-                    var url = mediaItem.GetNSUrl();
+                    var url = mediaItem.GetNsUrl();
                     var asset = AVAsset.FromUrl(url);
                     await asset.LoadValuesTaskAsync(assetsToLoad.ToArray()).ConfigureAwait(false);
 

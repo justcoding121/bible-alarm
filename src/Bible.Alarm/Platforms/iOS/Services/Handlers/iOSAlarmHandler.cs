@@ -13,14 +13,14 @@ using UIKit;
 
 namespace Bible.Alarm.iOS.Services.Handlers
 {
-    public class iOSAlarmHandler(
+    public class IOsAlarmHandler(
         IPlaybackService playbackService,
         IMediaManager mediaManager,
         TaskScheduler taskScheduler)
         : IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
@@ -61,7 +61,7 @@ namespace Bible.Alarm.iOS.Services.Handlers
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, "An error happened when ringing the alarm.");
+                        Logger.Error(e, "An error happened when ringing the alarm.");
                         throw;
                     }
                 });
@@ -69,7 +69,7 @@ namespace Bible.Alarm.iOS.Services.Handlers
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened when creating the task to ring the alarm.");
+                Logger.Error(e, "An error happened when creating the task to ring the alarm.");
                 Dispose();
             }
             finally
@@ -80,15 +80,15 @@ namespace Bible.Alarm.iOS.Services.Handlers
 
         public void Dispose()
         {
-            dispose(false);
+            Dispose(false);
         }
 
-        private bool disposed = false;
-        private void dispose(bool disposeMediaManager)
+        private bool _disposed = false;
+        private void Dispose(bool disposeMediaManager)
         {
-            if (!disposed)
+            if (!_disposed)
             {
-                disposed = true;
+                _disposed = true;
          
                 if (disposeMediaManager)
                 {

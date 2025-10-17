@@ -12,13 +12,13 @@ namespace Advanced.Algorithms.DataStructures.Foundation
     public class OrderedHashSet<T> : IEnumerable<T> where T : IComparable
     {
         //use red-black tree as our balanced BST since it gives good performance for both deletion/insertion
-        private readonly RedBlackTree<T> binarySearchTree;
+        private readonly RedBlackTree<T> _binarySearchTree;
 
-        public int Count => binarySearchTree.Count;
+        public int Count => _binarySearchTree.Count;
 
         public OrderedHashSet()
         {
-            binarySearchTree = new RedBlackTree<T>();
+            _binarySearchTree = new RedBlackTree<T>();
         }
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public OrderedHashSet(IEnumerable<T> sortedKeys)
         {
-            binarySearchTree = new RedBlackTree<T>(sortedKeys);
+            _binarySearchTree = new RedBlackTree<T>(sortedKeys);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// <returns>True if this hashset contains the given value.</returns>
         public bool Contains(T value)
         {
-            return binarySearchTree.HasItem(value);
+            return _binarySearchTree.HasItem(value);
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public int Add(T key)
         {
-            return binarySearchTree.Insert(key);
+            return _binarySearchTree.Insert(key);
         }
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public T ElementAt(int index)
         {
-            return binarySearchTree.ElementAt(index);
+            return _binarySearchTree.ElementAt(index);
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public int IndexOf(T key)
         {
-            return binarySearchTree.IndexOf(key);
+            return _binarySearchTree.IndexOf(key);
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public int Remove(T key)
         {
-            return binarySearchTree.Delete(key);
+            return _binarySearchTree.Delete(key);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public T RemoveAt(int index)
         {
-            return binarySearchTree.RemoveAt(index);
+            return _binarySearchTree.RemoveAt(index);
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// <returns>Null if the given value does'nt exist or next value does'nt exist.</returns>
         public T NextHigher(T value)
         {
-            return binarySearchTree.NextHigher(value);
+            return _binarySearchTree.NextHigher(value);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// <returns>Null if the given value does'nt exist or previous value does'nt exist.</returns>
         public T NextLower(T value)
         {
-            return binarySearchTree.NextLower(value);
+            return _binarySearchTree.NextLower(value);
         }
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public T Max()
         {
-            return binarySearchTree.Max();
+            return _binarySearchTree.Max();
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public T Min()
         {
-            return binarySearchTree.Min();
+            return _binarySearchTree.Min();
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         internal void Clear()
         {
-            binarySearchTree.Clear();
+            _binarySearchTree.Clear();
         }
 
         /// <summary>
@@ -156,12 +156,12 @@ namespace Advanced.Algorithms.DataStructures.Foundation
 
         public IEnumerator<T> GetEnumerator()
         {
-            return binarySearchTree.GetEnumerator();
+            return _binarySearchTree.GetEnumerator();
         }
 
         public IEnumerator<T> GetEnumeratorDesc()
         {
-            return binarySearchTree.GetEnumeratorDesc();
+            return _binarySearchTree.GetEnumeratorDesc();
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Bible.Alarm.Droid.Services.Storage
 {
-    public class iOSStorageService : StorageService
+    public class IOsStorageService : StorageService
     {
         //backed up to cloud
         private static string storageRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "..", "Library");
@@ -22,6 +22,6 @@ namespace Bible.Alarm.Droid.Services.Storage
         private static string cacheRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "..", "Library", "Caches");
         public override string CacheRoot => cacheRoot;
 
-        public override Assembly MainAssembly => typeof(iOSStorageService).Assembly;
+        public override Assembly MainAssembly => typeof(IOsStorageService).Assembly;
     }
 }

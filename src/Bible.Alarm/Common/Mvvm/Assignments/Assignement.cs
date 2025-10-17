@@ -8,7 +8,7 @@
     /// The result of an assignment of an Observable property.
     /// </summary>
     public class Assignement<TObservable, T>(TObservable owner, string property, T oldValue, T newValue)
-        where TObservable : VMObservable
+        where TObservable : VmObservable
     {
         /// <summary>
         /// Gets the Obserbable object that has the updated property.

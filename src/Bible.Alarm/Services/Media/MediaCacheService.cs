@@ -28,11 +28,11 @@ namespace Bible.Alarm.Services
         IMediaManager mediaManager)
         : IMediaCacheService
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private readonly string cacheRoot = Path.Combine(storageService.CacheRoot, "MediaCache");
+        private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, "MediaCache");
 
         private static ConcurrentDictionary<long, SemaphoreSlim> lockStore =
                     new ConcurrentDictionary<long, SemaphoreSlim>();
@@ -47,12 +47,12 @@ namespace Bible.Alarm.Services
 
         public string GetCacheFilePath(string url)
         {
-            return Path.Combine(cacheRoot, GetCacheFileName(url));
+            return Path.Combine(_cacheRoot, GetCacheFileName(url));
         }
 
         public async Task<bool> Exists(string url)
         {
-            var cachePath = Path.Combine(cacheRoot, GetCacheFileName(url));
+            var cachePath = Path.Combine(_cacheRoot, GetCacheFileName(url));
             return await storageService.FileExists(cachePath);
         }
 
@@ -91,7 +91,7 @@ namespace Bible.Alarm.Services
 
                             if (bytes != null)
                             {
-                                await storageService.SaveFile(cacheRoot, GetCacheFileName(playItem.Url), bytes);
+                                await storageService.SaveFile(_cacheRoot, GetCacheFileName(playItem.Url), bytes);
                             }
                             else
                             {
@@ -106,7 +106,7 @@ namespace Bible.Alarm.Services
                                     if (url != null && url != playItem.Url)
                                     {
                                         await mediaService.UpdateBibleTrackUrl(playDetail.LanguageCode, playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber, url);
-                                        logger.Warn($"Updated URL to {url} for {playItem.ToString()}");
+                                        Logger.Warn($"Updated URL to {url} for {playItem.ToString()}");
                                     }
                                     else
                                     {
@@ -130,7 +130,7 @@ namespace Bible.Alarm.Services
                                             await mediaService.UpdateVocalTrackUrl(playDetail.LanguageCode, playDetail.PublicationCode, playDetail.TrackNumber, url);
                                         }
 
-                                        logger.Warn($"Updated URL to {url} for {playItem.ToString()}");
+                                        Logger.Warn($"Updated URL to {url} for {playItem.ToString()}");
                                     }
                                     else
                                     {
@@ -146,8 +146,8 @@ namespace Bible.Alarm.Services
 
                                 if (bytes != null)
                                 {
-                                    await storageService.SaveFile(cacheRoot, GetCacheFileName(url), bytes);
-                                    logger.Warn($"Downloaded using updated URL {url} for {playItem.ToString()}");
+                                    await storageService.SaveFile(_cacheRoot, GetCacheFileName(url), bytes);
+                                    Logger.Warn($"Downloaded using updated URL {url} for {playItem.ToString()}");
                                     continue;
                                 }
 
@@ -161,7 +161,7 @@ namespace Bible.Alarm.Services
                 //TODO ignore network errors from getting logged
                 catch (Exception e)
                 {
-                    logger.Error(e, "An exception happened when downloading media files for caching.");
+                    Logger.Error(e, "An exception happened when downloading media files for caching.");
                 }
                 finally
                 {
@@ -171,7 +171,7 @@ namespace Bible.Alarm.Services
                     }
                     catch (ObjectDisposedException e)
                     {
-                        logger.Error(e, "MediaCacheService: @lock disposed error.");
+                        Logger.Error(e, "MediaCacheService: @lock disposed error.");
                     }
                 }
 
@@ -241,7 +241,7 @@ namespace Bible.Alarm.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            var filePathsToDelete = new HashSet<string>(await storageService.GetAllFiles(cacheRoot));
+            var filePathsToDelete = new HashSet<string>(await storageService.GetAllFiles(_cacheRoot));
 
             foreach (var schedule in schedules)
             {
@@ -275,7 +275,7 @@ namespace Bible.Alarm.Services
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, $"Failed to delete file: {x}");
+                    Logger.Error(e, $"Failed to delete file: {x}");
                 }
             });
 

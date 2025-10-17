@@ -19,15 +19,15 @@ namespace Bible.Alarm.ViewModels
 {
     public class AlarmViewModal : ViewModel, IDisposableModal
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private readonly IContainer container;
-        private readonly IMediaManager mediaManager;
-        private readonly IPlaybackService playbackService;
+        private readonly IContainer _container;
+        private readonly IMediaManager _mediaManager;
+        private readonly IPlaybackService _playbackService;
 
-        private bool isDisposed = false;
+        private bool _isDisposed = false;
 
         public ICommand DismissCommand { get; private set; }
         public ICommand CancelCommand { get; set; }
@@ -41,18 +41,18 @@ namespace Bible.Alarm.ViewModels
 
         public AlarmViewModal(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
-            this.playbackService = this.container.Resolve<IPlaybackService>();
-            this.mediaManager = this.container.Resolve<IMediaManager>();
+            this._playbackService = this._container.Resolve<IPlaybackService>();
+            this._mediaManager = this._container.Resolve<IMediaManager>();
 
             DismissCommand = new Command(async () =>
             {
-                await playbackService.Dismiss();
-                var navigationService = this.container.Resolve<INavigationService>();
+                await _playbackService.Dismiss();
+                var navigationService = this._container.Resolve<INavigationService>();
                 await navigationService?.CloseModal();
 
-                using var scheduleDbContext = this.container.Resolve<ScheduleDbContext>();
+                using var scheduleDbContext = this._container.Resolve<ScheduleDbContext>();
 
                 try
                 {
@@ -91,7 +91,7 @@ namespace Bible.Alarm.ViewModels
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happened when review was requested.");
+                    Logger.Error(e, "An error happened when review was requested.");
                 }
 
                 await scheduleDbContext.SaveChangesAsync();
@@ -99,61 +99,61 @@ namespace Bible.Alarm.ViewModels
 
             CancelCommand = new Command(async () =>
             {
-                var navigationService = this.container.Resolve<INavigationService>();
+                var navigationService = this._container.Resolve<INavigationService>();
                 await navigationService?.GoBack();
             });
 
             PlayCommand = new Command(() =>
             {
-                mediaManager.Play();
-                refresh();
+                _mediaManager.Play();
+                Refresh();
             });
 
             PauseCommand = new Command(() =>
             {
-                mediaManager.Pause();
-                refresh();
+                _mediaManager.Pause();
+                Refresh();
             });
 
             PreviousCommand = new Command(async () =>
             {
-                await mediaManager.PlayPrevious();
-                refresh();
+                await _mediaManager.PlayPrevious();
+                Refresh();
             });
 
             NextCommand = new Command(async () =>
             {
-                await mediaManager.PlayNext();
-                refresh();
+                await _mediaManager.PlayNext();
+                Refresh();
             });
 
             ForwardCommand = new Command(async () =>
             {
-                await mediaManager.StepForward();
-                refresh();
+                await _mediaManager.StepForward();
+                Refresh();
             });
 
             BackwardCommand = new Command(async () =>
             {
-                await mediaManager.StepBackward();
-                refresh();
+                await _mediaManager.StepBackward();
+                Refresh();
             });
 
             Task.Run(async () =>
             {
-                while (!isDisposed)
+                while (!_isDisposed)
                 {
-                    refresh();
+                    Refresh();
                     await Task.Delay(1000);
 
-                    var isRunning = mediaManager.IsPreparedEx();
+                    var isRunning = _mediaManager.IsPreparedEx();
 
                     //check for 3 seconds
                     int count = 6;
                     while (!isRunning && count > 0)
                     {
                         await Task.Delay(500);
-                        isRunning = mediaManager.IsPreparedEx();
+                        isRunning = _mediaManager.IsPreparedEx();
                         count--;
                     }
 
@@ -165,11 +165,11 @@ namespace Bible.Alarm.ViewModels
             });
         }
 
-        private void refresh()
+        private void Refresh()
         {
             try
             {
-                var mediaItem = mediaManager.Queue?.Current;
+                var mediaItem = _mediaManager.Queue?.Current;
 
                 if (mediaItem == null)
                 {
@@ -180,7 +180,7 @@ namespace Bible.Alarm.ViewModels
                 SubTitle = mediaItem.DisplaySubtitle;
                 Description = mediaItem.DisplayDescription;
 
-                if (mediaManager.IsPlaying())
+                if (_mediaManager.IsPlaying())
                 {
                     PlayVisible = false;
                     PauseVisible = true;
@@ -191,95 +191,95 @@ namespace Bible.Alarm.ViewModels
                     PauseVisible = false;
                 }
 
-                CurrentTime = $"{mediaManager.Position.Minutes:00}:{mediaManager.Position.Seconds:00}";
-                EndTime = $"{mediaManager.Duration.Minutes:00}:{mediaManager.Duration.Seconds:00}";
+                CurrentTime = $"{_mediaManager.Position.Minutes:00}:{_mediaManager.Position.Seconds:00}";
+                EndTime = $"{_mediaManager.Duration.Minutes:00}:{_mediaManager.Duration.Seconds:00}";
 
-                var progress = mediaManager.Position.TotalMilliseconds / mediaManager.Duration.TotalMilliseconds;
+                var progress = _mediaManager.Position.TotalMilliseconds / _mediaManager.Duration.TotalMilliseconds;
                 if (!double.IsNaN(progress) && !double.IsInfinity(progress))
                 {
                     Progress = progress;
                 }
 
-                NextEnabled = mediaManager.Queue.HasNext;
-                PreviousEnabled = mediaManager.Queue.HasPrevious;
+                NextEnabled = _mediaManager.Queue.HasNext;
+                PreviousEnabled = _mediaManager.Queue.HasPrevious;
 
             }
             catch { }
         }
 
-        private string title;
+        private string _title;
         public string Title
         {
-            get => title;
-            set => this.Set(ref title, value);
+            get => _title;
+            set => this.Set(ref _title, value);
         }
 
-        private string subTitle;
+        private string _subTitle;
         public string SubTitle
         {
-            get => subTitle;
-            set => this.Set(ref subTitle, value);
+            get => _subTitle;
+            set => this.Set(ref _subTitle, value);
         }
 
-        private string description;
+        private string _description;
         public string Description
         {
-            get => description;
-            set => this.Set(ref description, value);
+            get => _description;
+            set => this.Set(ref _description, value);
         }
 
-        private bool playVisible;
+        private bool _playVisible;
         public bool PlayVisible
         {
-            get => playVisible;
-            set => this.Set(ref playVisible, value);
+            get => _playVisible;
+            set => this.Set(ref _playVisible, value);
         }
 
-        private bool pauseVisible;
+        private bool _pauseVisible;
         public bool PauseVisible
         {
-            get => pauseVisible;
-            set => this.Set(ref pauseVisible, value);
+            get => _pauseVisible;
+            set => this.Set(ref _pauseVisible, value);
         }
 
-        private string currentTime;
+        private string _currentTime;
         public string CurrentTime
         {
-            get => currentTime;
-            set => this.Set(ref currentTime, value);
+            get => _currentTime;
+            set => this.Set(ref _currentTime, value);
         }
-        private string endTime;
+        private string _endTime;
         public string EndTime
         {
-            get => endTime;
-            set => this.Set(ref endTime, value);
+            get => _endTime;
+            set => this.Set(ref _endTime, value);
         }
-        private double progress;
+        private double _progress;
         public double Progress
         {
-            get => progress;
-            set => this.Set(ref progress, value);
+            get => _progress;
+            set => this.Set(ref _progress, value);
         }
 
-        private bool nextEnabled;
+        private bool _nextEnabled;
         public bool NextEnabled
         {
-            get => nextEnabled;
-            set => this.Set(ref nextEnabled, value);
+            get => _nextEnabled;
+            set => this.Set(ref _nextEnabled, value);
         }
 
-        private bool previousEnabled;
+        private bool _previousEnabled;
         public bool PreviousEnabled
         {
-            get => previousEnabled;
-            set => this.Set(ref previousEnabled, value);
+            get => _previousEnabled;
+            set => this.Set(ref _previousEnabled, value);
         }
 
         public void Dispose()
         {
-            if (!isDisposed)
+            if (!_isDisposed)
             {
-                isDisposed = true;
+                _isDisposed = true;
             }
 
         }

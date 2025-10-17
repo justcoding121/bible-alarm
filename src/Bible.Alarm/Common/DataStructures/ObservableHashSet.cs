@@ -11,11 +11,11 @@ namespace Bible.Alarm.Common.DataStructures
                                         IEnumerable,
                                         IList where T : IComparable
     {
-        private readonly OrderedHashSet<T> sortedHashSet = new OrderedHashSet<T>();
+        private readonly OrderedHashSet<T> _sortedHashSet = new OrderedHashSet<T>();
 
         public T this[int i]
         {
-            get => sortedHashSet[i];
+            get => _sortedHashSet[i];
             set => throw new NotSupportedException();
         }
 
@@ -25,7 +25,7 @@ namespace Bible.Alarm.Common.DataStructures
             set => this[i] = (T)value;
         }
 
-        public int Count => sortedHashSet.Count;
+        public int Count => _sortedHashSet.Count;
 
         public bool IsReadOnly => false;
 
@@ -39,25 +39,25 @@ namespace Bible.Alarm.Common.DataStructures
 
         public int Add(object value)
         {
-            return add((T)value);
+            return AddItem((T)value);
         }
 
         public void Add(T item)
         {
-            add(item);
+            AddItem(item);
         }
 
-        private int add(T item)
+        private int AddItem(T item)
         {
-            var index = sortedHashSet.Add(item);
-            onNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
+            var index = _sortedHashSet.Add(item);
+            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
             return index;
         }
 
         public void Clear()
         {
-            sortedHashSet.Clear();
-            onNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            _sortedHashSet.Clear();
+            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
 
         public bool Contains(object value)
@@ -67,7 +67,7 @@ namespace Bible.Alarm.Common.DataStructures
 
         public bool Contains(T item)
         {
-            return sortedHashSet.Contains(item);
+            return _sortedHashSet.Contains(item);
         }
 
         public int IndexOf(object value)
@@ -77,7 +77,7 @@ namespace Bible.Alarm.Common.DataStructures
 
         public int IndexOf(T item)
         {
-            return sortedHashSet.IndexOf(item);
+            return _sortedHashSet.IndexOf(item);
         }
 
         public void Insert(int i, object value)
@@ -97,10 +97,10 @@ namespace Bible.Alarm.Common.DataStructures
 
         public bool Remove(T item)
         {
-            var index = sortedHashSet.Remove(item);
+            var index = _sortedHashSet.Remove(item);
             if (index >= 0)
             {
-                onNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
+                OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
                 return true;
             }
 
@@ -109,11 +109,11 @@ namespace Bible.Alarm.Common.DataStructures
 
         public void RemoveAt(int i)
         {
-            var element = sortedHashSet.RemoveAt(i);
-            onNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, element));
+            var element = _sortedHashSet.RemoveAt(i);
+            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, element));
         }
 
-        private void onNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
+        private void OnNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
         {
             CollectionChanged?.Invoke(this, args);
         }
@@ -135,7 +135,7 @@ namespace Bible.Alarm.Common.DataStructures
 
         public IEnumerator<T> GetEnumerator()
         {
-            return sortedHashSet.GetEnumerator();
+            return _sortedHashSet.GetEnumerator();
         }
 
     }

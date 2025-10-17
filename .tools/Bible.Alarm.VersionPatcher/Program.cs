@@ -12,12 +12,12 @@ namespace Bible.Alarm.VersionPatcher
         {
             var rootDir = DirectoryHelper.IndexDirectory;
 
-            patchUwp(rootDir);
-            patchiOS(rootDir);
-            patchAndroid(rootDir);
+            PatchUwp(rootDir);
+            PatchiOs(rootDir);
+            PatchAndroid(rootDir);
         }
 
-        private static void patchAndroid(string rootDir)
+        private static void PatchAndroid(string rootDir)
         {
             var manifestFile = Path.Combine(rootDir, "src", "Bible.Alarm", "Bible.Alarm.Droid", "Properties", "AndroidManifest.xml");
             var doc = new XmlDocument();
@@ -46,7 +46,7 @@ namespace Bible.Alarm.VersionPatcher
             doc.Save(manifestFile);
         }
 
-        private static void patchiOS(string rootDir)
+        private static void PatchiOs(string rootDir)
         {
             var manifestFile = Path.Combine(rootDir, "src", "Bible.Alarm", "Bible.Alarm.iOS", "Info.plist");
             
@@ -90,7 +90,7 @@ namespace Bible.Alarm.VersionPatcher
             File.WriteAllText(manifestFile, output.ToString());
         }
 
-        private static void patchUwp(string rootDir)
+        private static void PatchUwp(string rootDir)
         {
             var manifestFile = Path.Combine(rootDir, "src", "Bible.Alarm", "Bible.Alarm.UWP", "Package.appxmanifest");
             var doc = new XmlDocument();

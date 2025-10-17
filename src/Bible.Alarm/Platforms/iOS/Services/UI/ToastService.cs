@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 using UIKit;
 using Microsoft.Maui.ApplicationModel;
 
-[assembly: Microsoft.Maui.Controls.Dependency(typeof(iOSToastService))]
+[assembly: Microsoft.Maui.Controls.Dependency(typeof(IOsToastService))]
 namespace Bible.Alarm.Services.iOS
 {
-    public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
+    public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
         public override async Task ShowMessage(string message, int seconds)
@@ -22,15 +22,15 @@ namespace Bible.Alarm.Services.iOS
             {
                await Task.Delay(0)
                  .ContinueWith(async (x) =>
-                     await showAlert(message, (double)seconds), taskScheduler);
+                     await ShowAlert(message, (double)seconds), taskScheduler);
             }
             else
             {
-                await showAlert(message, (double)seconds);
+                await ShowAlert(message, (double)seconds);
             }
         }
 
-        private async Task showAlert(string message, double seconds)
+        private async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
             await @lock.WaitAsync();

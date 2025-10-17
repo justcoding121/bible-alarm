@@ -15,10 +15,10 @@ namespace MediaManager.Platforms.Android.Media
     {
         protected MediaManagerImplementation MediaManager => (MediaManagerImplementation)CrossMediaManager.Current;
 
-        private readonly MediaControllerCompat controller;
+        private readonly MediaControllerCompat _controller;
         public MediaDescriptionAdapter(MediaControllerCompat controller)
         {
-            this.controller = controller;
+            this._controller = controller;
         }
 
         protected MediaDescriptionAdapter(IntPtr handle, JniHandleOwnership transfer) : base(handle, transfer)
@@ -27,17 +27,17 @@ namespace MediaManager.Platforms.Android.Media
 
         public PendingIntent CreateCurrentContentIntent(IPlayer player)
         {
-            return controller.SessionActivity;
+            return _controller.SessionActivity;
         }
        
         public string GetCurrentContentText(IPlayer player)
         {
-            return controller.Metadata.Description.Subtitle;
+            return _controller.Metadata.Description.Subtitle;
         }
 
         public string GetCurrentContentTitle(IPlayer player)
         {
-            return controller.Metadata.Description.Title;
+            return _controller.Metadata.Description.Title;
         }
 
         public Bitmap GetCurrentLargeIcon(IPlayer player, PlayerNotificationManager.BitmapCallback callback)

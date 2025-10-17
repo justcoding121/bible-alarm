@@ -236,10 +236,10 @@ namespace MediaManager.Platforms.Uap.Player
             MediaManager.State = MediaPlayerState.Stopped;
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
@@ -255,7 +255,7 @@ namespace MediaManager.Platforms.Uap.Player
             Player.Dispose();
             Player = null;
 
-            disposed = true;
+            _disposed = true;
             base.Dispose();
 
         }

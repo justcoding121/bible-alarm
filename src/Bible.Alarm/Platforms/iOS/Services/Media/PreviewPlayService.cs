@@ -11,66 +11,66 @@ namespace Bible.Alarm.Services.iOS
     public class PreviewPlayService(IContainer container, IDownloadService downloadService)
         : IPreviewPlayService, IDisposable
     {
-        private readonly IContainer container = container;
-        private AVAudioPlayer player;
+        private readonly IContainer _container = container;
+        private AVAudioPlayer _player;
 
         public event Action OnStopped;
 
         ///<Summary>
         /// Load wave or mp3 audio file from the Android assets folder
         ///</Summary>
-        private async Task<bool> load(string url)
+        private async Task<bool> Load(string url)
         {
-            deletePlayer();
+            DeletePlayer();
 
             var bytes = await downloadService.DownloadAsync(url);
             using var stream = new MemoryStream(bytes);
             var data = NSData.FromStream(stream);
-            player = AVAudioPlayer.FromData(data);
+            _player = AVAudioPlayer.FromData(data);
 
-            return preparePlayer();
+            return PreparePlayer();
         }
 
-        private bool preparePlayer()
+        private bool PreparePlayer()
         {
-            if (player != null)
+            if (_player != null)
             {
-                player.FinishedPlaying += OnPlaybackEnded;
-                player.PrepareToPlay();
+                _player.FinishedPlaying += OnPlaybackEnded;
+                _player.PrepareToPlay();
             }
 
-            return (player == null) ? false : true;
+            return (_player == null) ? false : true;
         }
 
 
         public async Task Play(string url)
         {
-            if (await load(url))
+            if (await Load(url))
             {
-                if (player == null)
+                if (_player == null)
                     return;
 
-                if (player.Playing)
-                    player.CurrentTime = 0;
+                if (_player.Playing)
+                    _player.CurrentTime = 0;
                 else
-                    player?.Play();
+                    _player?.Play();
             }
         }
 
         public void Stop()
         {
-            player?.Stop();
+            _player?.Stop();
         }
 
-        private void deletePlayer()
+        private void DeletePlayer()
         {
             Stop();
 
-            if (player != null)
+            if (_player != null)
             {
-                player.FinishedPlaying -= OnPlaybackEnded;
-                player.Dispose();
-                player = null;
+                _player.FinishedPlaying -= OnPlaybackEnded;
+                _player.Dispose();
+                _player = null;
             }
         }
 
@@ -81,7 +81,7 @@ namespace Bible.Alarm.Services.iOS
 
         public void Dispose()
         {
-            deletePlayer();
+            DeletePlayer();
         }
     }
 }

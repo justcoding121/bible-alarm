@@ -25,8 +25,8 @@ namespace Bible.Alarm.UI.Views.Behaviours
         public static readonly BindableProperty EventArgsConverterProperty = BindableProperty.Create("EventArgsConverter", typeof(IValueConverter), typeof(EventToCommandBehavior));
         public static readonly BindableProperty EventArgsConverterParameterProperty = BindableProperty.Create("EventArgsConverterParameter", typeof(object), typeof(EventToCommandBehavior));
 
-        private Delegate handler;
-        private EventInfo eventInfo;
+        private Delegate _handler;
+        private EventInfo _eventInfo;
 
         /// <summary>
         /// The name of the View event to bind.
@@ -85,18 +85,18 @@ namespace Bible.Alarm.UI.Views.Behaviours
             var events = AssociatedObject.GetType().GetRuntimeEvents().ToArray();
             if (events.Any())
             {
-                eventInfo = events.FirstOrDefault(e => e.Name == EventName);
-                if (eventInfo == null)
+                _eventInfo = events.FirstOrDefault(e => e.Name == EventName);
+                if (_eventInfo == null)
                     throw new ArgumentException($"EventToCommand: Cannot find any event named '{EventName}' on attached type");
 
-                AddEventHandler(eventInfo, AssociatedObject, OnFired);
+                AddEventHandler(_eventInfo, AssociatedObject, OnFired);
             }
         }
 
         protected override void OnDetachingFrom(View view)
         {
-            if (handler != null)
-                eventInfo.RemoveEventHandler(AssociatedObject, handler);
+            if (_handler != null)
+                _eventInfo.RemoveEventHandler(AssociatedObject, _handler);
 
             base.OnDetachingFrom(view);
         }
@@ -112,14 +112,14 @@ namespace Bible.Alarm.UI.Views.Behaviours
             var actionInvoke = action.GetType()
                 .GetRuntimeMethods().First(m => m.Name == "Invoke");
 
-            handler = Expression.Lambda(
+            _handler = Expression.Lambda(
                 eventInfo.EventHandlerType,
                 Expression.Call(Expression.Constant(action), actionInvoke, eventParameters[0], eventParameters[1]),
                 eventParameters
             )
             .Compile();
 
-            eventInfo.AddEventHandler(item, handler);
+            eventInfo.AddEventHandler(item, _handler);
         }
 
         public void OnFired(object sender, EventArgs eventArgs)

@@ -29,48 +29,48 @@ namespace Quartz.Util
 {
     public static class TimeZoneUtil
     {
-        private static readonly Dictionary<string, string> timeZoneIdAliases = new Dictionary<string, string>();
+        private static readonly Dictionary<string, string> TimeZoneIdAliases = new Dictionary<string, string>();
 
         static TimeZoneUtil()
         {
             // Azure has had issues with having both formats
-            timeZoneIdAliases["UTC"] = "Coordinated Universal Time";
-            timeZoneIdAliases["Coordinated Universal Time"] = "UTC";
+            TimeZoneIdAliases["UTC"] = "Coordinated Universal Time";
+            TimeZoneIdAliases["Coordinated Universal Time"] = "UTC";
 
             // Mono differs in naming too...
-            timeZoneIdAliases["Central European Standard Time"] = "CET";
-            timeZoneIdAliases["CET"] = "Central European Standard Time";
+            TimeZoneIdAliases["Central European Standard Time"] = "CET";
+            TimeZoneIdAliases["CET"] = "Central European Standard Time";
 
-            timeZoneIdAliases["Eastern Standard Time"] = "US/Eastern";
-            timeZoneIdAliases["US/Eastern"] = "Eastern Standard Time";
+            TimeZoneIdAliases["Eastern Standard Time"] = "US/Eastern";
+            TimeZoneIdAliases["US/Eastern"] = "Eastern Standard Time";
 
-            timeZoneIdAliases["Central Standard Time"] = "US/Central";
-            timeZoneIdAliases["US/Central"] = "Central Standard Time";
+            TimeZoneIdAliases["Central Standard Time"] = "US/Central";
+            TimeZoneIdAliases["US/Central"] = "Central Standard Time";
 
-            timeZoneIdAliases["US Central Standard Time"] = "US/Indiana-Stark";
-            timeZoneIdAliases["US/Indiana-Stark"] = "US Central Standard Time";
+            TimeZoneIdAliases["US Central Standard Time"] = "US/Indiana-Stark";
+            TimeZoneIdAliases["US/Indiana-Stark"] = "US Central Standard Time";
 
-            timeZoneIdAliases["Mountain Standard Time"] = "US/Mountain";
-            timeZoneIdAliases["US/Mountain"] = "Mountain Standard Time";
+            TimeZoneIdAliases["Mountain Standard Time"] = "US/Mountain";
+            TimeZoneIdAliases["US/Mountain"] = "Mountain Standard Time";
 
-            timeZoneIdAliases["US Mountain Standard Time"] = "US/Arizona";
-            timeZoneIdAliases["US/Arizona"] = "US Mountain Standard Time";
+            TimeZoneIdAliases["US Mountain Standard Time"] = "US/Arizona";
+            TimeZoneIdAliases["US/Arizona"] = "US Mountain Standard Time";
 
-            timeZoneIdAliases["Pacific Standard Time"] = "US/Pacific";
-            timeZoneIdAliases["US/Pacific"] = "Pacific Standard Time";
+            TimeZoneIdAliases["Pacific Standard Time"] = "US/Pacific";
+            TimeZoneIdAliases["US/Pacific"] = "Pacific Standard Time";
 
-            timeZoneIdAliases["Alaskan Standard Time"] = "US/Alaska";
-            timeZoneIdAliases["US/Alaska"] = "Alaskan Standard Time";
+            TimeZoneIdAliases["Alaskan Standard Time"] = "US/Alaska";
+            TimeZoneIdAliases["US/Alaska"] = "Alaskan Standard Time";
 
-            timeZoneIdAliases["Hawaiian Standard Time"] = "US/Hawaii";
-            timeZoneIdAliases["US/Hawaii"] = "Hawaiian Standard Time";
+            TimeZoneIdAliases["Hawaiian Standard Time"] = "US/Hawaii";
+            TimeZoneIdAliases["US/Hawaii"] = "Hawaiian Standard Time";
 
-            timeZoneIdAliases["China Standard Time"] = "Asia/Beijing";
-            timeZoneIdAliases["Asia/Shanghai"] = "China Standard Time";
-            timeZoneIdAliases["Asia/Beijing"] = "China Standard Time";
+            TimeZoneIdAliases["China Standard Time"] = "Asia/Beijing";
+            TimeZoneIdAliases["Asia/Shanghai"] = "China Standard Time";
+            TimeZoneIdAliases["Asia/Beijing"] = "China Standard Time";
 
-            timeZoneIdAliases["Pakistan Standard Time"] = "Asia/Karachi";
-            timeZoneIdAliases["Asia/Karachi"] = "Pakistan Standard Time";
+            TimeZoneIdAliases["Pakistan Standard Time"] = "Asia/Karachi";
+            TimeZoneIdAliases["Asia/Karachi"] = "Pakistan Standard Time";
         }
 
         public static Func<string, TimeZoneInfo> CustomResolver = id => null;
@@ -134,7 +134,7 @@ namespace Quartz.Util
             }
             catch (TimeZoneNotFoundException ex)
             {
-                if (timeZoneIdAliases.TryGetValue(id, out var aliasedId))
+                if (TimeZoneIdAliases.TryGetValue(id, out var aliasedId))
                 {
                     try
                     {

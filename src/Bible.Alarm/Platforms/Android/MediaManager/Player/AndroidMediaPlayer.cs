@@ -57,12 +57,12 @@ namespace MediaManager.Platforms.Android.Player
 
         public IPlayer CurrentPlayer { get; set; }
 
-        private Lazy<SimpleExoPlayer> exoplayer;
+        private Lazy<SimpleExoPlayer> _exoplayer;
         public SimpleExoPlayer ExoPlayer
         {
             get
             {
-                return exoplayer.Value;
+                return _exoplayer.Value;
             }
             set => throw new NotSupportedException();
         }
@@ -71,12 +71,12 @@ namespace MediaManager.Platforms.Android.Player
         {
             get
             {
-                return castPlayer.Value;
+                return _castPlayer.Value;
             }
             set => throw new NotSupportedException();
         }
 
-        private Lazy<CastPlayer> castPlayer;
+        private Lazy<CastPlayer> _castPlayer;
 
         public VideoView PlayerView => VideoView as VideoView;
 
@@ -92,7 +92,7 @@ namespace MediaManager.Platforms.Android.Player
                     PlayerView.RequestFocus();
 
                     //Use private field to prevent calling Initialize here
-                    if (exoplayer != null)
+                    if (_exoplayer != null)
                         PlayerView.Player = CurrentPlayer;
 
                     UpdateVideoView();
@@ -151,7 +151,7 @@ namespace MediaManager.Platforms.Android.Player
                 PlayerView.UseArtwork = false;
         }
 
-        protected int lastWindowIndex = -1;
+        protected int LastWindowIndex = -1;
 
         public override event BeforePlayingEventHandler BeforePlaying;
         public override event AfterPlayingEventHandler AfterPlaying;
@@ -206,7 +206,7 @@ namespace MediaManager.Platforms.Android.Player
                             //TODO: This means the whole list is finished. Should we fire an event?
                             break;
                         case IPlayer.StateIdle:
-                            lastWindowIndex = -1;
+                            LastWindowIndex = -1;
                             break;
                         case IPlayer.StateBuffering:
                             //MediaManager.Buffered = TimeSpan.FromMilliseconds(Player.BufferedPosition);
@@ -226,7 +226,7 @@ namespace MediaManager.Platforms.Android.Player
                             break;
                         case IPlayer.DiscontinuityReasonPeriodTransition:
                             var currentWindowIndex = Player.CurrentWindowIndex;
-                            if (SetProperty(ref lastWindowIndex, currentWindowIndex))
+                            if (SetProperty(ref LastWindowIndex, currentWindowIndex))
                             {
                                 MediaManager.OnMediaItemFinished(this, new MediaItemEventArgs(MediaManager.Queue.Current));
                             }
@@ -251,7 +251,7 @@ namespace MediaManager.Platforms.Android.Player
             };
 
 
-            castPlayer = new Lazy<CastPlayer>(() =>
+            _castPlayer = new Lazy<CastPlayer>(() =>
             {
                 try
                 {
@@ -266,7 +266,7 @@ namespace MediaManager.Platforms.Android.Player
                 }
             });
 
-            exoplayer = new Lazy<SimpleExoPlayer>(() =>
+            _exoplayer = new Lazy<SimpleExoPlayer>(() =>
             {
                 var player = new SimpleExoPlayer.Builder(Context).Build();
                 player.VideoSizeChanged += Player_VideoSizeChanged;
@@ -385,15 +385,15 @@ namespace MediaManager.Platforms.Android.Player
             return Task.CompletedTask;
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            if (exoplayer.IsValueCreated)
+            if (_exoplayer.IsValueCreated)
             {
                 ExoPlayer.VideoSizeChanged -= Player_VideoSizeChanged;
                 ExoPlayer.RemoveListener(PlayerEventListener);
@@ -401,14 +401,14 @@ namespace MediaManager.Platforms.Android.Player
                 ExoPlayer.Dispose();
             }
 
-            if (castPlayer.IsValueCreated)
+            if (_castPlayer.IsValueCreated)
             {
                 CastPlayer.RemoveListener(PlayerEventListener);
                 CastPlayer.Release();
                 CastPlayer.Dispose();
             }
 
-            disposed = true;
+            _disposed = true;
         }
     }
 }

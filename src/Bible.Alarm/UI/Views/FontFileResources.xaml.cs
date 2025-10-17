@@ -9,18 +9,18 @@ namespace FontNameResources
 {
     public partial class FontFileResources : ResourceDictionary
     {
-        private static readonly FontFileResources instance = new FontFileResources();
+        private static readonly FontFileResources Instance = new FontFileResources();
         public FontFileResources()
         {
             InitializeComponent();
         }
 
-        public static string FontAwesomeSolid => instance.GetStringResourceForPlatform("FontAwesomeSolidId");
+        public static string FontAwesomeSolid => Instance.GetStringResourceForPlatform("FontAwesomeSolidId");
         private string GetStringResourceForPlatform(string resourceKey)
         {
-            if (!instance.ContainsKey(resourceKey)) return null;
+            if (!Instance.ContainsKey(resourceKey)) return null;
             var label = new Label();
-            if (!(instance[resourceKey] is OnPlatform<string> resource)) return string.Empty;
+            if (!(Instance[resourceKey] is OnPlatform<string> resource)) return string.Empty;
 
             var retString = resource.Platforms.Where(c => c.Platform.Contains(CurrentDevice.RuntimePlatform))
                 .Select(c => c.Value).FirstOrDefault() as string;

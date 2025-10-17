@@ -23,41 +23,41 @@ namespace Bible.Alarm.ViewModels
 {
     public class TrackSelectionViewModel : ViewModel, IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
-        private MediaService mediaService;
-        private IToastService toastService;
-        private IPreviewPlayService playService;
-        private INavigationService navigationService;
-        private IMediaCacheService cacheService;
-        private IDownloadService downloadService;
+        private MediaService _mediaService;
+        private IToastService _toastService;
+        private IPreviewPlayService _playService;
+        private INavigationService _navigationService;
+        private IMediaCacheService _cacheService;
+        private IDownloadService _downloadService;
 
-        private AlarmMusic current;
-        private AlarmMusic tentative;
+        private AlarmMusic _current;
+        private AlarmMusic _tentative;
 
-        private readonly List<IDisposable> subscriptions = new List<IDisposable>();
+        private readonly List<IDisposable> _subscriptions = new List<IDisposable>();
 
         public TrackSelectionViewModel(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
-            this.mediaService = this.container.Resolve<MediaService>();
-            this.toastService = this.container.Resolve<IToastService>();
-            this.playService = this.container.Resolve<IPreviewPlayService>();
-            this.navigationService = this.container.Resolve<INavigationService>();
-            this.downloadService = this.container.Resolve<IDownloadService>();
-            this.cacheService = this.container.Resolve<IMediaCacheService>();
+            this._mediaService = this._container.Resolve<MediaService>();
+            this._toastService = this._container.Resolve<IToastService>();
+            this._playService = this._container.Resolve<IPreviewPlayService>();
+            this._navigationService = this._container.Resolve<INavigationService>();
+            this._downloadService = this._container.Resolve<IDownloadService>();
+            this._cacheService = this._container.Resolve<IMediaCacheService>();
 
-            subscriptions.Add(mediaService);
+            _subscriptions.Add(_mediaService);
 
             BackCommand = new Command(async () =>
             {
                 IsBusy = true;
-                await navigationService.GoBack();
+                await _navigationService.GoBack();
                 IsBusy = false;
             });
 
@@ -73,18 +73,18 @@ namespace Bible.Alarm.ViewModels
                 SelectedTrack = x;
                 SelectedTrack.IsSelected = true;
 
-                tentative.TrackNumber = x.Number;
-                tentative.Repeat = x.Repeat;
+                _tentative.TrackNumber = x.Number;
+                _tentative.Repeat = x.Repeat;
 
                 ReduxContainer.Store.Dispatch(new TrackSelectedAction()
                 {
                     CurrentMusic = new AlarmMusic()
                     {
-                        MusicType = tentative.MusicType,
-                        LanguageCode = tentative.LanguageCode,
-                        PublicationCode = tentative.PublicationCode,
-                        TrackNumber = tentative.TrackNumber,
-                        Repeat = tentative.Repeat
+                        MusicType = _tentative.MusicType,
+                        LanguageCode = _tentative.LanguageCode,
+                        PublicationCode = _tentative.PublicationCode,
+                        TrackNumber = _tentative.TrackNumber,
+                        Repeat = _tentative.Repeat
                     }
                 });
 
@@ -101,36 +101,36 @@ namespace Bible.Alarm.ViewModels
                    .Subscribe(async x =>
                    {
                        IsBusy = true;
-                       current = x.CurrentMusic;
-                       tentative = x.TentativeMusic;
-                       await initialize(tentative.LanguageCode, tentative.PublicationCode);
+                       _current = x.CurrentMusic;
+                       _tentative = x.TentativeMusic;
+                       await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                        IsBusy = false;
                    });
 
-            subscriptions.Add(subscription1);
+            _subscriptions.Add(subscription1);
         }
 
         public ICommand BackCommand { get; set; }
         public ICommand SetTrackCommand { get; set; }
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
 
         public ObservableCollection<MusicTrackListViewItemModel> Tracks { get; set; } = new ObservableCollection<MusicTrackListViewItemModel>();
 
         public MusicTrackListViewItemModel SelectedTrack { get; set; }
 
-        private MusicTrackListViewItemModel currentlyPlaying;
+        private MusicTrackListViewItemModel _currentlyPlaying;
 
-        private SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private SemaphoreSlim _lock = new SemaphoreSlim(1);
 
-        private async Task initialize(string languageCode, string publicationCode)
+        private async Task Initialize(string languageCode, string publicationCode)
         {
-            await populateTracks(languageCode, publicationCode);
+            await PopulateTracks(languageCode, publicationCode);
 
             var subscription1 = Tracks.Select(added =>
                                 {
@@ -146,53 +146,53 @@ namespace Bible.Alarm.ViewModels
                                 }).Merge()
                                  .Do(async y =>
                                  {
-                                     await @lock.WaitAsync();
+                                     await _lock.WaitAsync();
 
                                      try
                                      {
-                                         if (currentlyPlaying != null && currentlyPlaying != y)
+                                         if (_currentlyPlaying != null && _currentlyPlaying != y)
                                          {
-                                             currentlyPlaying.Play = false;
-                                             currentlyPlaying.IsBusy = false;
+                                             _currentlyPlaying.Play = false;
+                                             _currentlyPlaying.IsBusy = false;
                                          }
 
-                                         currentlyPlaying = y;
+                                         _currentlyPlaying = y;
 
-                                         currentlyPlaying.IsBusy = true;
+                                         _currentlyPlaying.IsBusy = true;
                                          try
                                          {
                                              var url = y.Url;
 
                                              await Task.Run(async () =>
                                              {
-                                                 if (!await downloadService.FileExists(url))
+                                                 if (!await _downloadService.FileExists(url))
                                                  {
-                                                     url = await cacheService.GetMusicTrackUrl(
-                                                                         tentative.LanguageCode,
+                                                     url = await _cacheService.GetMusicTrackUrl(
+                                                                         _tentative.LanguageCode,
                                                                          y.LookUpPath);
                                                  }
 
-                                                 await playService.Play(url);
+                                                 await _playService.Play(url);
                                              });
 
                                          }
                                          catch
                                          {
-                                             currentlyPlaying.Play = false;
-                                             await toastService.ShowMessage("Failed to download the file.");
+                                             _currentlyPlaying.Play = false;
+                                             await _toastService.ShowMessage("Failed to download the file.");
                                          }
 
-                                         currentlyPlaying.IsBusy = false;
+                                         _currentlyPlaying.IsBusy = false;
                                      }
                                      finally
                                      {
                                          try
                                          {
-                                             @lock.Release();
+                                             _lock.Release();
                                          }
                                          catch (ObjectDisposedException e)
                                          {
-                                             logger.Error(e, "TrackSelectionViewModel 1: @lock disposed error.");
+                                             Logger.Error(e, "TrackSelectionViewModel 1: @lock disposed error.");
                                          }
                                      }
 
@@ -214,34 +214,34 @@ namespace Bible.Alarm.ViewModels
                                 .Merge()
                                 .Do(y =>
                                 {
-                                    playService.Stop();
+                                    _playService.Stop();
                                 })
                                 .Subscribe();
 
-            var subscription3 = Observable.FromEvent(ev => playService.OnStopped += ev,
-                                                     ev => playService.OnStopped -= ev)
+            var subscription3 = Observable.FromEvent(ev => _playService.OnStopped += ev,
+                                                     ev => _playService.OnStopped -= ev)
                                  .Do(async y =>
                                  {
-                                     await @lock.WaitAsync();
+                                     await _lock.WaitAsync();
 
                                      try
                                      {
-                                         if (currentlyPlaying != null)
+                                         if (_currentlyPlaying != null)
                                          {
-                                             currentlyPlaying.Play = false;
-                                             currentlyPlaying.IsBusy = false;
-                                             currentlyPlaying = null;
+                                             _currentlyPlaying.Play = false;
+                                             _currentlyPlaying.IsBusy = false;
+                                             _currentlyPlaying = null;
                                          }
                                      }
                                      finally
                                      {
                                          try
                                          {
-                                             @lock.Release();
+                                             _lock.Release();
                                          }
                                          catch (ObjectDisposedException e)
                                          {
-                                             logger.Error(e, "TrackSelectionViewModel 2: @lock disposed error.");
+                                             Logger.Error(e, "TrackSelectionViewModel 2: @lock disposed error.");
                                          }
                                      }
                                  })
@@ -261,38 +261,38 @@ namespace Bible.Alarm.ViewModels
                              .Merge()
                              .Do(x =>
                              {
-                                 tentative.Repeat = x.Repeat;
-                                 tentative.TrackNumber = x.Number;
+                                 _tentative.Repeat = x.Repeat;
+                                 _tentative.TrackNumber = x.Number;
 
                                  ReduxContainer.Store.Dispatch(new TrackSelectedAction()
                                  {
                                      CurrentMusic = new AlarmMusic()
                                      {
-                                         MusicType = tentative.MusicType,
-                                         LanguageCode = tentative.LanguageCode,
-                                         PublicationCode = tentative.PublicationCode,
-                                         TrackNumber = tentative.TrackNumber,
-                                         Repeat = tentative.Repeat
+                                         MusicType = _tentative.MusicType,
+                                         LanguageCode = _tentative.LanguageCode,
+                                         PublicationCode = _tentative.PublicationCode,
+                                         TrackNumber = _tentative.TrackNumber,
+                                         Repeat = _tentative.Repeat
                                      }
                                  });
 
                                  if (x.Repeat)
                                  {
-                                     toastService.ShowMessage("Alarm will always repeat this track.");
+                                     _toastService.ShowMessage("Alarm will always repeat this track.");
                                  }
 
                              })
                              .Subscribe();
 
-            subscriptions.AddRange(new[] { subscription1, subscription2, subscription3, subscription4 });
+            _subscriptions.AddRange(new[] { subscription1, subscription2, subscription3, subscription4 });
         }
 
-        private async Task populateTracks(string languageCode, string publicationCode)
+        private async Task PopulateTracks(string languageCode, string publicationCode)
         {
             var isVocal = languageCode != null;
 
-            var tracks = isVocal ? await mediaService.GetVocalMusicTracks(languageCode, publicationCode)
-               : await mediaService.GetMelodyMusicTracks((await this.mediaService.GetMelodyMusicReleases()).First().Value.Code);
+            var tracks = isVocal ? await _mediaService.GetVocalMusicTracks(languageCode, publicationCode)
+               : await _mediaService.GetMelodyMusicTracks((await this._mediaService.GetMelodyMusicReleases()).First().Value.Code);
 
             var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
 
@@ -307,16 +307,16 @@ namespace Bible.Alarm.ViewModels
 
                 trackVMs.Add(musicTrackListViewItemViewModel);
 
-                if (current.MusicType == tentative.MusicType
-                    && current.TrackNumber == track.Number
-                    && (current.MusicType == MusicType.Melodies ||
-                     (current.LanguageCode == tentative.LanguageCode
-                        && current.PublicationCode == tentative.PublicationCode))
+                if (_current.MusicType == _tentative.MusicType
+                    && _current.TrackNumber == track.Number
+                    && (_current.MusicType == MusicType.Melodies ||
+                     (_current.LanguageCode == _tentative.LanguageCode
+                        && _current.PublicationCode == _tentative.PublicationCode))
                     )
                 {
                     SelectedTrack = musicTrackListViewItemViewModel;
                     SelectedTrack.IsSelected = true;
-                    SelectedTrack.Repeat = current.Repeat;
+                    SelectedTrack.Repeat = _current.Repeat;
                 }
             }
 
@@ -329,63 +329,63 @@ namespace Bible.Alarm.ViewModels
 
         public void Dispose()
         {
-            subscriptions.ForEach(x => x.Dispose());
+            _subscriptions.ForEach(x => x.Dispose());
 
-            mediaService.Dispose();
-            toastService.Dispose();
-            playService.Dispose();
-            downloadService.Dispose();
-            cacheService.Dispose();
-            @lock.Dispose();
+            _mediaService.Dispose();
+            _toastService.Dispose();
+            _playService.Dispose();
+            _downloadService.Dispose();
+            _cacheService.Dispose();
+            _lock.Dispose();
         }
     }
 
     public class MusicTrackListViewItemModel : ViewModel, IComparable
     {
-        private readonly MusicTrack track;
-        private readonly bool isMelody;
+        private readonly MusicTrack _track;
+        private readonly bool _isMelody;
 
         public MusicTrackListViewItemModel(MusicTrack track, bool isMelody)
         {
-            this.track = track;
-            this.isMelody = isMelody;
+            this._track = track;
+            this._isMelody = isMelody;
 
             TogglePlayCommand = new Command(() => Play = !Play);
             ToggleRepeatCommand = new Command(() => Repeat = !Repeat);
         }
 
-        private bool isSelected;
+        private bool _isSelected;
         public bool IsSelected
         {
-            get => isSelected;
-            set => this.Set(ref isSelected, value);
+            get => _isSelected;
+            set => this.Set(ref _isSelected, value);
         }
 
-        public string LookUpPath => track.Source.LookUpPath;
-        public int Number => track.Number;
+        public string LookUpPath => _track.Source.LookUpPath;
+        public int Number => _track.Number;
 
-        public string Title => isMelody ? $"Melody Number(s) {track.Title}" : track.Title;
-        public string Url => track.Source.Url;
+        public string Title => _isMelody ? $"Melody Number(s) {_track.Title}" : _track.Title;
+        public string Url => _track.Source.Url;
 
-        private bool play;
+        private bool _play;
         public bool Play
         {
-            get => play;
-            set => this.Set(ref play, value);
+            get => _play;
+            set => this.Set(ref _play, value);
         }
 
-        private bool repeat;
+        private bool _repeat;
         public bool Repeat
         {
-            get => repeat;
-            set => this.Set(ref repeat, value);
+            get => _repeat;
+            set => this.Set(ref _repeat, value);
         }
 
-        private bool isBusy;
+        private bool _isBusy;
         public bool IsBusy
         {
-            get => isBusy;
-            set => this.Set(ref isBusy, value);
+            get => _isBusy;
+            set => this.Set(ref _isBusy, value);
         }
 
         public ICommand TogglePlayCommand { get; set; }

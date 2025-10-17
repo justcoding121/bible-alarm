@@ -8,11 +8,11 @@ namespace Bible.Alarm.ViewModels
         public string Text => $"{Value} {(Value == 1 ? "chapter" : "chapters")}";
         public int Value { get; set; } = number;
 
-        private bool isSelected;
+        private bool _isSelected;
         public bool IsSelected
         {
-            get => isSelected;
-            set => this.Set(ref isSelected, value);
+            get => _isSelected;
+            set => this.Set(ref _isSelected, value);
         }
 
         public int CompareTo(object obj)

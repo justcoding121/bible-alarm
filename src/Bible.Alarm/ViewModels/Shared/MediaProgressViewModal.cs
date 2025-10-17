@@ -7,21 +7,21 @@ namespace Bible.Alarm.ViewModels.Shared
 {
     public class MediaProgressViewModal : ViewModel
     {
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
         public MediaProgressViewModal(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
-            var syncContext = this.container.Resolve<TaskScheduler>();
+            var syncContext = this._container.Resolve<TaskScheduler>();
 
             Messenger<object>.Subscribe(MvvmMessages.MediaProgress, async vm =>
             {
                 await Task.Delay(0).ContinueWith((x) =>
                 {
                     var kv = vm as Tuple<int, int>;
-                    loadedTracks = kv.Item1;
-                    totalTracks = kv.Item2;
+                    _loadedTracks = kv.Item1;
+                    _totalTracks = kv.Item2;
                     Progress = (double)kv.Item1 / (double)kv.Item2;
                     Raise("ProgressText");
                     Raise("Progress");
@@ -29,10 +29,10 @@ namespace Bible.Alarm.ViewModels.Shared
             });
         }
 
-        private int loadedTracks;
-        private int totalTracks;
+        private int _loadedTracks;
+        private int _totalTracks;
 
-        public string ProgressText { get => $"Preparing tracks {(totalTracks > 0 ? $"{loadedTracks}/{totalTracks}" : "")}.."; }
+        public string ProgressText { get => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}.."; }
         public double Progress { get; private set; }
 
         public void Dispose()

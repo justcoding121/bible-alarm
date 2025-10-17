@@ -10,13 +10,13 @@ namespace Bible.Alarm.Services.Droid
 {
     public class DroidToastService(IContainer container) : ToastService, IDisposable
     {
-        private readonly TaskScheduler taskScheduler = container.Resolve<TaskScheduler>();
-        private static readonly SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private readonly TaskScheduler _taskScheduler = container.Resolve<TaskScheduler>();
+        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
         private static Toast latest;
 
         public override async Task ShowMessage(string message, int seconds)
         {
-            await @lock.WaitAsync();
+            await Lock.WaitAsync();
 
             try
             {
@@ -26,21 +26,21 @@ namespace Bible.Alarm.Services.Droid
                 {
                     await Task.Delay(0)
                     .ContinueWith((x) =>
-                        showToast(message, seconds), taskScheduler);
+                        ShowToast(message, seconds), _taskScheduler);
                 }
                 else
                 {
-                    showToast(message, seconds);
+                    ShowToast(message, seconds);
                 }
 
             }
             finally
             {
-                @lock.Release();
+                Lock.Release();
             }
         }
 
-        private void showToast(string message, int seconds)
+        private void ShowToast(string message, int seconds)
         {
             var context = container.AndroidContext();
 
@@ -59,7 +59,7 @@ namespace Bible.Alarm.Services.Droid
         //not needed for android
         public override async Task Clear()
         {
-            await @lock.WaitAsync();
+            await Lock.WaitAsync();
 
             try
             {
@@ -67,7 +67,7 @@ namespace Bible.Alarm.Services.Droid
                 {
                     await Task.Delay(0)
                     .ContinueWith((x) =>
-                        latest?.Cancel(), taskScheduler);
+                        latest?.Cancel(), _taskScheduler);
                 }
                 else
                 {
@@ -76,7 +76,7 @@ namespace Bible.Alarm.Services.Droid
             }
             finally
             {
-                @lock.Release();
+                Lock.Release();
             }
         }
     }

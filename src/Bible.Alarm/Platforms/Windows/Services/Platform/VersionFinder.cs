@@ -6,15 +6,15 @@ namespace Bible.Alarm.Services.Windows.Platform
 {
     public class UwpVersionFinder : IVersionFinder
     {
-        private static readonly Lazy<string> version = new Lazy<string>(() => getVersionName());
+        private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
         public static UwpVersionFinder Default => new UwpVersionFinder();
 
         public string GetVersionName()
         {
-            return version.Value;
+            return Version.Value;
         }
 
-        private static string getVersionName()
+        private static string VersionName()
         {
             Package package = Package.Current;
             PackageId packageId = package.Id;

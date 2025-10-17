@@ -16,25 +16,25 @@ namespace Bible.Alarm.Services.Droid.Tasks
     {
         public const int JobId = 2;
 
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
         public UpdateMediaIndexJob()
         {
             LogSetup.Initialize(VersionFinder.Default,
                 new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
-            AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException += unobserverdTaskException;
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
         }
 
-        private void unobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
+            Logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
         }
 
-        private void unhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+        private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
+            Logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
         }
 
         public override bool OnStartJob(JobParameters @params)
@@ -49,7 +49,7 @@ namespace Bible.Alarm.Services.Droid.Tasks
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "Error updating media index");
+                    Logger.Error(e, "Error updating media index");
                 }
                 finally
                 {

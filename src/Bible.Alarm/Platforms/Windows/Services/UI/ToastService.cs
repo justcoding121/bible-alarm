@@ -34,15 +34,15 @@ namespace Bible.Alarm.Services.Windows
             {
                 await Task.Delay(0)
                    .ContinueWith(async (x) =>
-                       await showAlert(message, (double)seconds), taskScheduler);
+                       await ShowAlert(message, (double)seconds), taskScheduler);
             }
             else
             {
-                await showAlert(message, (double)seconds);
+                await ShowAlert(message, (double)seconds);
             }
         }
 
-        private async Task showAlert(string message, double seconds)
+        private async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
             await @lock.WaitAsync();

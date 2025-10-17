@@ -14,8 +14,8 @@ namespace Bible.Alarm.Platforms.Android
         MainLauncher = true, NoHistory = true)]
     public class SplashActivity : AppCompatActivity
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
         public SplashActivity()
@@ -23,18 +23,18 @@ namespace Bible.Alarm.Platforms.Android
             LogSetup.Initialize(VersionFinder.Default,
                 new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, "Android");
 
-            AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException += unobserverdTaskException;
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
         }
 
-        private void unobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            logger.Error(e.Exception, "Unobserved task exception.");
+            Logger.Error(e.Exception, "Unobserved task exception.");
         }
 
-        private void unhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+        private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            logger.Error("Unhandled exception.", e.SerializeObject());
+            Logger.Error("Unhandled exception.", e.SerializeObject());
         }
 
         protected override async void OnCreate(Bundle bundle)
@@ -65,7 +65,7 @@ namespace Bible.Alarm.Platforms.Android
             }
             catch (Exception e)
             {
-                logger.Fatal(e, "An error happened inside OnCreate.");
+                Logger.Fatal(e, "An error happened inside OnCreate.");
                 await Task.Delay(1500);
                 throw;
             }
@@ -81,7 +81,7 @@ namespace Bible.Alarm.Platforms.Android
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened inside OnRequestpermissionResult.");
+                Logger.Error(e, "An error happened inside OnRequestpermissionResult.");
                 await Task.Delay(1500);
             }
 
@@ -93,11 +93,11 @@ namespace Bible.Alarm.Platforms.Android
         {
             base.OnResume();
 
-            Task.Run(async () => await doWork());
+            Task.Run(async () => await DoWork());
         }
 
         // background work that happens behind the splash screen
-        private async Task doWork()
+        private async Task DoWork()
         {
             try
             {
@@ -107,25 +107,25 @@ namespace Bible.Alarm.Platforms.Android
             }
             catch (Exception e)
             {
-                logger.Fatal(e, "An error happened in doWork() task under SplashActivity.");
+                Logger.Fatal(e, "An error happened in doWork() task under SplashActivity.");
                 await Task.Delay(1500);
                 throw;
             }
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
 
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            AppDomain.CurrentDomain.UnhandledException -= unhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException -= unobserverdTaskException;
+            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
 
-            disposed = true;
+            _disposed = true;
 
             base.Dispose(disposing);
         }

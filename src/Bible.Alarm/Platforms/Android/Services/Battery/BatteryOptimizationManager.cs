@@ -8,11 +8,11 @@ namespace Bible.Alarm.Droid.Services.Battery
 {
     public class BatteryOptimizationManager(IContainer container) : IBatteryOptimizationManager
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        public IContainer container { get; set; } = container;
+        public IContainer Container { get; set; } = container;
 
         public void ShowBatteryOptimizationExclusionSettingsPage()
         {
@@ -23,12 +23,12 @@ namespace Bible.Alarm.Droid.Services.Battery
                     Intent intent = new Intent();
 
                     intent.SetAction(Android.Provider.Settings.ActionIgnoreBatteryOptimizationSettings);
-                    container.AndroidContext().StartActivity(intent);
+                    Container.AndroidContext().StartActivity(intent);
                 }
             }
             catch (Exception e)
             {
-                logger.Error(e, "Failed to show batter optimization dialog.");
+                Logger.Error(e, "Failed to show batter optimization dialog.");
             }
         }
 

@@ -1,20 +1,19 @@
-﻿using AudioLinkHarvester.Models.Bible;
-using AudioLinkHarvester.Utility;
-using AudioLinkHarvestor.Utility;
-using Bible.Alarm.Common.Helpers;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Audio.Links.Harvester.Models.Bible;
+using Bible.Alarm.Audio.Links.Harvester.Utility;
+using Bible.Alarm.Common.Helpers;
+using Newtonsoft.Json;
 
-namespace AudioLinkHarvester.Bible
+namespace Bible.Alarm.Audio.Links.Harvester.Harvesters.Bible
 {
     internal class JwBibleHarvester
     {
-        internal async static
+        internal static async
             Task Harvest_Bible_Links(Dictionary<string, string> biblePublicationCodeToNameMappings,
                                     ConcurrentDictionary<string, string> languageCodeToNameMappings,
                                     ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
@@ -37,7 +36,7 @@ namespace AudioLinkHarvester.Bible
                     languageCodeToNameMappings.TryAdd(languageCode, language);
 
                     Console.WriteLine($"Harvesting Bible chapter links for {publication.Value} of {language} language.");
-                    await harvestBibleLinks(languageCode, publicationCode);
+                    await HarvestBibleLinks(languageCode, publicationCode);
 
                     if (!languageCodeToEditionsMapping.TryAdd(languageCode, new List<string>(new[] { publication.Key })))
                     {
@@ -49,7 +48,7 @@ namespace AudioLinkHarvester.Bible
 
         }
 
-        private static async Task<bool> harvestBibleLinks(string languageCode, string publicationCode)
+        private static async Task<bool> HarvestBibleLinks(string languageCode, string publicationCode)
         {
             var booksDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageCode}/{publicationCode}";
             var booksIndex = $"{booksDirectory}/books.json";
@@ -106,7 +105,7 @@ namespace AudioLinkHarvester.Bible
                         };
                     }
 
-                    int trackNumber = (int)bookFile["track"].Value;
+                    var trackNumber = (int)bookFile["track"].Value;
                     double duration = (double)bookFile["duration"].Value;
                     if (!bookNumberChapterMap.ContainsKey(bookNumber))
                     {
@@ -132,38 +131,35 @@ namespace AudioLinkHarvester.Bible
                 harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
             }
 
-            if (bookNumberBookMap.Count > 0)
-            {
-                if (!Directory.Exists(booksDirectory))
-                {
-                    Directory.CreateDirectory(booksDirectory);
-                }
+            if (bookNumberBookMap.Count <= 0) return false;
 
-                File.WriteAllText(booksIndex, JsonConvert.SerializeObject(bookNumberBookMap.Select(x =>
+            if (!Directory.Exists(booksDirectory))
+            {
+                Directory.CreateDirectory(booksDirectory);
+            }
+
+            await File.WriteAllTextAsync(booksIndex, JsonConvert.SerializeObject(bookNumberBookMap.Select(x =>
                 new BibleBook()
                 {
                     Number = x.Key,
                     Name = x.Value.Name
                 }).OrderBy(x => x.Number)));
 
-                foreach (var book in bookNumberBookMap)
-                {
-                    var directory = $"{booksDirectory}/{book.Value.Number}";
-                    DirectoryHelper.Ensure(directory);
+            foreach (var book in bookNumberBookMap)
+            {
+                var directory = $"{booksDirectory}/{book.Value.Number}";
+                DirectoryHelper.Ensure(directory);
 
-                    var chapterIndex = $"{directory}/chapters.json";
-                    File.WriteAllText(chapterIndex, JsonConvert.SerializeObject(
+                var chapterIndex = $"{directory}/chapters.json";
+                File.WriteAllText(chapterIndex, JsonConvert.SerializeObject(
                     bookNumberChapterMap[book.Key]
-                    .Select(x => x.Value)
-                    .OrderBy(x => x.Number)
-                    .ToList()));
-                }
-
-                return true;
-
+                        .Select(x => x.Value)
+                        .OrderBy(x => x.Number)
+                        .ToList()));
             }
 
-            return false;
+            return true;
+
         }
 
     }

@@ -9,11 +9,11 @@ namespace Bible.Alarm.ViewModels
         public string Name { get; set; } = language.Name;
         public string Code { get; set; } = language.Code;
 
-        private bool isSelected;
+        private bool _isSelected;
         public bool IsSelected
         {
-            get => isSelected;
-            set => this.Set(ref isSelected, value);
+            get => _isSelected;
+            set => this.Set(ref _isSelected, value);
         }
 
         public int CompareTo(object obj)

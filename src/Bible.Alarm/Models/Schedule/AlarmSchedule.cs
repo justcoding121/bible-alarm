@@ -19,18 +19,18 @@ namespace Bible.Alarm.Models
 
         //24 hour based
         public int Hour { get; set; }
-        public int MeridienHour => Meridien == Meridien.AM ?
+        public int MeridienHour => Meridien == Meridien.Am ?
                                     Hour == 0 ? 12
                                     : Hour : (Hour == 12 ? 12 : Hour % 12);
         public int Minute { get; set; }
-        public Meridien Meridien => Hour < 12 ? Meridien.AM : Meridien.PM;
+        public Meridien Meridien => Hour < 12 ? Meridien.Am : Meridien.Pm;
         public int Second { get; set; }
 
         public DaysOfWeek DaysOfWeek { get; set; }
 
         public string TimeText => $"{MeridienHour.ToString("D2")}:{Minute.ToString("D2")}";
 
-        public string CronExpression => getCronExpression();
+        public string CronExpression => GetCronExpression();
 
         public bool NotificationEnabled { get; set; }
         public bool MusicEnabled { get; set; }
@@ -52,32 +52,32 @@ namespace Bible.Alarm.Models
 
         public DateTimeOffset NextFireDate()
         {
-            validateTime();
+            ValidateTime();
 
             var expression = new CronExpression(CronExpression);
 
-            validateNextFire(expression);
+            ValidateNextFire(expression);
             return expression.GetNextValidTimeAfter(DateTimeOffset.Now).Value;
         }
 
         public DateTimeOffset NextFireDate(DateTimeOffset after)
         {
-            validateTime();
+            ValidateTime();
 
             var expression = new CronExpression(CronExpression);
 
-            validateNextFire(expression);
+            ValidateNextFire(expression);
             return expression.GetNextValidTimeAfter(after).Value;
         }
 
-        private string getCronExpression()
+        private string GetCronExpression()
         {
             string days = string.Join(",", DaysOfWeek.ToList().OrderBy(x => x));
             var expression = new CronExpression($"{Second} {Minute} {Hour} ? * {days}");
             return expression.CronExpressionString;
         }
 
-        private void validateTime()
+        private void ValidateTime()
         {
 
             if (Minute < 0 || Minute >= 60)
@@ -96,7 +96,7 @@ namespace Bible.Alarm.Models
             }
         }
 
-        private void validateNextFire(CronExpression expression)
+        private void ValidateNextFire(CronExpression expression)
         {
             var nextFire = expression.GetNextValidTimeAfter(DateTimeOffset.Now);
 

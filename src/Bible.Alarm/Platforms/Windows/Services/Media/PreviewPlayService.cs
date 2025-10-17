@@ -8,31 +8,31 @@ namespace Bible.Alarm.Services.Windows
 {
     public class PreviewPlayService : IPreviewPlayService
     {
-        private MediaPlayer mediaPlayer;
-        private TaskCompletionSource<bool> tcs;
+        private MediaPlayer _mediaPlayer;
+        private TaskCompletionSource<bool> _tcs;
         public PreviewPlayService(MediaPlayer player)
         {
-            this.mediaPlayer = player;
-            mediaPlayer.MediaEnded += mediaEndHandler;
-            mediaPlayer.CurrentStateChanged += bufferingStartedHandler;
+            this._mediaPlayer = player;
+            _mediaPlayer.MediaEnded += MediaEndHandler;
+            _mediaPlayer.CurrentStateChanged += BufferingStartedHandler;
         }
 
-        private void mediaEndHandler(MediaPlayer sender, object args)
+        private void MediaEndHandler(MediaPlayer sender, object args)
         {
             OnStopped?.Invoke();
         }
 
-        private void bufferingStartedHandler(MediaPlayer sender, object args)
+        private void BufferingStartedHandler(MediaPlayer sender, object args)
         {
             if (sender.PlaybackSession.PlaybackState == MediaPlaybackState.Buffering ||
                sender.PlaybackSession.PlaybackState == MediaPlaybackState.Opening
                 || sender.PlaybackSession.PlaybackState == MediaPlaybackState.Playing)
             {
-                if (tcs.Task.Status == TaskStatus.Running
-                    || tcs.Task.Status == TaskStatus.WaitingForActivation
-                    || tcs.Task.Status == TaskStatus.Created)
+                if (_tcs.Task.Status == TaskStatus.Running
+                    || _tcs.Task.Status == TaskStatus.WaitingForActivation
+                    || _tcs.Task.Status == TaskStatus.Created)
                 {
-                    tcs.SetResult(true);
+                    _tcs.SetResult(true);
                 }
             }
 
@@ -42,25 +42,25 @@ namespace Bible.Alarm.Services.Windows
 
         public async Task Play(string url)
         {
-            this.tcs = new TaskCompletionSource<bool>();
+            this._tcs = new TaskCompletionSource<bool>();
 
             var manifestUri = new Uri(url);
-            mediaPlayer.Source = MediaSource.CreateFromUri(manifestUri);
-            mediaPlayer.Play();
+            _mediaPlayer.Source = MediaSource.CreateFromUri(manifestUri);
+            _mediaPlayer.Play();
 
-            await tcs.Task;
+            await _tcs.Task;
         }
 
         public void Stop()
         {
-            mediaPlayer.Pause();
+            _mediaPlayer.Pause();
         }
 
         public void Dispose()
         {
-            mediaPlayer.MediaEnded -= mediaEndHandler;
-            mediaPlayer.BufferingStarted -= bufferingStartedHandler;
-            mediaPlayer.Dispose();
+            _mediaPlayer.MediaEnded -= MediaEndHandler;
+            _mediaPlayer.BufferingStarted -= BufferingStartedHandler;
+            _mediaPlayer.Dispose();
         }
 
     }

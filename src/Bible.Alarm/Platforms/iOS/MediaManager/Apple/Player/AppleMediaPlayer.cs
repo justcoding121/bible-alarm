@@ -35,22 +35,22 @@ namespace MediaManager.Platforms.Apple.Player
 
         public int TimeScale { get; set; } = 60;
 
-        private NSObject didFinishPlayingObserver;
-        private NSObject itemFailedToPlayToEndTimeObserver;
-        private NSObject errorObserver;
-        private NSObject playbackStalledObserver;
-        private NSObject playbackTimeObserver;
+        private NSObject _didFinishPlayingObserver;
+        private NSObject _itemFailedToPlayToEndTimeObserver;
+        private NSObject _errorObserver;
+        private NSObject _playbackStalledObserver;
+        private NSObject _playbackTimeObserver;
 
-        private IDisposable rateToken;
-        private IDisposable statusToken;
-        private IDisposable timeControlStatusToken;
-        private IDisposable loadedTimeRangesToken;
-        private IDisposable reasonForWaitingToPlayToken;
-        private IDisposable playbackLikelyToKeepUpToken;
-        private IDisposable playbackBufferFullToken;
-        private IDisposable playbackBufferEmptyToken;
-        private IDisposable presentationSizeToken;
-        private IDisposable timedMetaDataToken;
+        private IDisposable _rateToken;
+        private IDisposable _statusToken;
+        private IDisposable _timeControlStatusToken;
+        private IDisposable _loadedTimeRangesToken;
+        private IDisposable _reasonForWaitingToPlayToken;
+        private IDisposable _playbackLikelyToKeepUpToken;
+        private IDisposable _playbackBufferFullToken;
+        private IDisposable _playbackBufferEmptyToken;
+        private IDisposable _presentationSizeToken;
+        private IDisposable _timedMetaDataToken;
 
         public override event BeforePlayingEventHandler BeforePlaying;
         public override event AfterPlayingEventHandler AfterPlaying;
@@ -59,23 +59,23 @@ namespace MediaManager.Platforms.Apple.Player
         {
             Player = new AVQueuePlayer();
 
-            didFinishPlayingObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.DidPlayToEndTimeNotification, DidFinishPlaying);
-            itemFailedToPlayToEndTimeObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.ItemFailedToPlayToEndTimeNotification, DidErrorOcurred);
-            errorObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.NewErrorLogEntryNotification, DidErrorOcurred);
-            playbackStalledObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.PlaybackStalledNotification, DidErrorOcurred);
+            _didFinishPlayingObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.DidPlayToEndTimeNotification, DidFinishPlaying);
+            _itemFailedToPlayToEndTimeObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.ItemFailedToPlayToEndTimeNotification, DidErrorOcurred);
+            _errorObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.NewErrorLogEntryNotification, DidErrorOcurred);
+            _playbackStalledObserver = NSNotificationCenter.DefaultCenter.AddObserver(AVPlayerItem.PlaybackStalledNotification, DidErrorOcurred);
 
             var options = NSKeyValueObservingOptions.Initial | NSKeyValueObservingOptions.New;
-            rateToken = Player.AddObserver("rate", options, RateChanged);
-            statusToken = Player.AddObserver("status", options, StatusChanged);
-            timeControlStatusToken = Player.AddObserver("timeControlStatus", options, TimeControlStatusChanged);
-            reasonForWaitingToPlayToken = Player.AddObserver("reasonForWaitingToPlay", options, ReasonForWaitingToPlayChanged);
+            _rateToken = Player.AddObserver("rate", options, RateChanged);
+            _statusToken = Player.AddObserver("status", options, StatusChanged);
+            _timeControlStatusToken = Player.AddObserver("timeControlStatus", options, TimeControlStatusChanged);
+            _reasonForWaitingToPlayToken = Player.AddObserver("reasonForWaitingToPlay", options, ReasonForWaitingToPlayChanged);
 
-            loadedTimeRangesToken = Player.AddObserver("currentItem.loadedTimeRanges", options, LoadedTimeRangesChanged);
-            playbackLikelyToKeepUpToken = Player.AddObserver("currentItem.playbackLikelyToKeepUp", options, PlaybackLikelyToKeepUpChanged);
-            playbackBufferFullToken = Player.AddObserver("currentItem.playbackBufferFull", options, PlaybackBufferFullChanged);
-            playbackBufferEmptyToken = Player.AddObserver("currentItem.playbackBufferEmpty", options, PlaybackBufferEmptyChanged);
-            presentationSizeToken = Player.AddObserver("currentItem.presentationSize", options, PresentationSizeChanged);
-            timedMetaDataToken = Player.AddObserver("currentItem.timedMetadata", options, TimedMetaDataChanged);
+            _loadedTimeRangesToken = Player.AddObserver("currentItem.loadedTimeRanges", options, LoadedTimeRangesChanged);
+            _playbackLikelyToKeepUpToken = Player.AddObserver("currentItem.playbackLikelyToKeepUp", options, PlaybackLikelyToKeepUpChanged);
+            _playbackBufferFullToken = Player.AddObserver("currentItem.playbackBufferFull", options, PlaybackBufferFullChanged);
+            _playbackBufferEmptyToken = Player.AddObserver("currentItem.playbackBufferEmpty", options, PlaybackBufferEmptyChanged);
+            _presentationSizeToken = Player.AddObserver("currentItem.presentationSize", options, PresentationSizeChanged);
+            _timedMetaDataToken = Player.AddObserver("currentItem.timedMetadata", options, TimedMetaDataChanged);
         }
 
         protected virtual void PresentationSizeChanged(NSObservedChange obj)
@@ -191,7 +191,7 @@ namespace MediaManager.Platforms.Apple.Player
         public override async Task Play(IMediaItem mediaItem)
         {
             BeforePlaying?.Invoke(this, new MediaPlayerEventArgs(mediaItem, this));
-            await Play(mediaItem.ToAVPlayerItem());
+            await Play(mediaItem.ToAvPlayerItem());
             AfterPlaying?.Invoke(this, new MediaPlayerEventArgs(mediaItem, this));
         }
 
@@ -206,10 +206,10 @@ namespace MediaManager.Platforms.Apple.Player
                 NSValue.FromCMTime(CMTime.FromSeconds(endTime.TotalSeconds, TimeScale))
                 };
 
-                playbackTimeObserver = Player.AddBoundaryTimeObserver(values, null, OnPlayerBoundaryReached);
+                _playbackTimeObserver = Player.AddBoundaryTimeObserver(values, null, OnPlayerBoundaryReached);
             }
 
-            await Play(mediaItem.ToAVPlayerItem());
+            await Play(mediaItem.ToAvPlayerItem());
 
             if (startAt != TimeSpan.Zero)
                 await SeekTo(startAt);
@@ -220,7 +220,7 @@ namespace MediaManager.Platforms.Apple.Player
         protected virtual async void OnPlayerBoundaryReached()
         {
             await Pause();
-            Player.RemoveTimeObserver(playbackTimeObserver);
+            Player.RemoveTimeObserver(_playbackTimeObserver);
         }
 
         public virtual async Task Play(AVPlayerItem playerItem)
@@ -257,36 +257,36 @@ namespace MediaManager.Platforms.Apple.Player
                 MediaManager.State = MediaPlayerState.Stopped;
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
             NSNotificationCenter.DefaultCenter.RemoveObservers(new List<NSObject>(){
-                didFinishPlayingObserver,
-                itemFailedToPlayToEndTimeObserver,
-                errorObserver,
-                playbackStalledObserver
+                _didFinishPlayingObserver,
+                _itemFailedToPlayToEndTimeObserver,
+                _errorObserver,
+                _playbackStalledObserver
             });
 
-            if (playbackTimeObserver != null)
-                Player.RemoveTimeObserver(playbackTimeObserver);
+            if (_playbackTimeObserver != null)
+                Player.RemoveTimeObserver(_playbackTimeObserver);
 
-            rateToken?.Dispose();
-            statusToken?.Dispose();
-            timeControlStatusToken?.Dispose();
-            reasonForWaitingToPlayToken?.Dispose();
-            playbackLikelyToKeepUpToken?.Dispose();
-            loadedTimeRangesToken?.Dispose();
-            playbackBufferFullToken?.Dispose();
-            playbackBufferEmptyToken?.Dispose();
-            presentationSizeToken?.Dispose();
-            timedMetaDataToken?.Dispose();
+            _rateToken?.Dispose();
+            _statusToken?.Dispose();
+            _timeControlStatusToken?.Dispose();
+            _reasonForWaitingToPlayToken?.Dispose();
+            _playbackLikelyToKeepUpToken?.Dispose();
+            _loadedTimeRangesToken?.Dispose();
+            _playbackBufferFullToken?.Dispose();
+            _playbackBufferEmptyToken?.Dispose();
+            _presentationSizeToken?.Dispose();
+            _timedMetaDataToken?.Dispose();
 
-            disposed = true;
+            _disposed = true;
         }
     }
 }

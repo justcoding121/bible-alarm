@@ -15,9 +15,9 @@ namespace MediaManager.Platforms.Apple.Media
         public override IList<IMediaExtractorProvider> CreateProviders()
         {
             var providers = base.CreateProviders();
-            providers.Add(new AVAssetProvider());
+            providers.Add(new AvAssetProvider());
 #if __IOS__ || __TVOS__
-            providers.Add(new Ios.Media.AVAssetImageProvider());
+            providers.Add(new Ios.Media.AvAssetImageProvider());
 #endif
             return providers;
         }

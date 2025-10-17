@@ -6,15 +6,15 @@ namespace Bible.Alarm.Droid.Services.Platform
 {
     public class VersionFinder : IVersionFinder
     {
-        private static readonly Lazy<string> version = new Lazy<string>(() => getVersionName());
+        private static readonly Lazy<string> Version = new Lazy<string>(() => GetVersionNameInternal());
         public static VersionFinder Default => new VersionFinder();
 
         public string GetVersionName()
         {
-            return version.Value;
+            return Version.Value;
         }
 
-        private static string getVersionName()
+        private static string GetVersionNameInternal()
         {
             return "Android " + Android.App.Application.Context.ApplicationContext.PackageManager
                   .GetPackageInfo(Android.App.Application.Context.ApplicationContext.PackageName, 0).VersionName;

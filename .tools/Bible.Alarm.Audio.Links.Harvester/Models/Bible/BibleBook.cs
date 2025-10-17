@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace AudioLinkHarvester.Models.Bible
+namespace Bible.Alarm.Audio.Links.Harvester.Models.Bible
 {
     public class BibleBook : IComparable
     {

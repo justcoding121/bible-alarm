@@ -13,7 +13,7 @@
 
         #region Fields
 
-        private Func<bool> canExecute = canExecute ?? (() => true);
+        private Func<bool> _canExecute = canExecute ?? (() => true);
 
         #endregion
 
@@ -27,7 +27,7 @@
 
         public void RaiseCanExecuteChanged() => this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 
-        public bool CanExecute(object parameter) => this.canExecute();
+        public bool CanExecute(object parameter) => this._canExecute();
 
         public void Execute(object parameter) => execute();
 

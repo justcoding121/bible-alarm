@@ -18,10 +18,10 @@ namespace Bible.Alarm.Common.Extensions
 {
     public static class MediaManagerExtensions
     {
-        private static readonly int retryAttempts = 3;
+        private static readonly int RetryAttempts = 3;
 
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
         public static bool IsPreparedEx(this IMediaManager mediaManager)
@@ -86,11 +86,11 @@ namespace Bible.Alarm.Common.Extensions
                     cts.CancelAfter(3000);
                     return await Task.Run(async () => await mediaExtractor.CreateMediaItem(url), cts.Token);
 
-                }, retryAttempts, true);
+                }, RetryAttempts, true);
             }
             catch (OperationCanceledException e)
             {
-                logger.Info(e, $"CreateMediaItem from URL timed Out. URL: {url}");
+                Logger.Info(e, $"CreateMediaItem from URL timed Out. URL: {url}");
                 return null;
             }
         }
@@ -105,11 +105,11 @@ namespace Bible.Alarm.Common.Extensions
                     cts.CancelAfter(1000);
                     return await Task.Run(async () => await mediaExtractor.CreateMediaItem(fileInfo), cts.Token);
 
-                }, retryAttempts, true);
+                }, RetryAttempts, true);
             }
             catch (OperationCanceledException e)
             {
-                logger.Info(e, $"CreateMediaItem from FileInfo timed Out. Path: {fileInfo.FullName}");
+                Logger.Info(e, $"CreateMediaItem from FileInfo timed Out. Path: {fileInfo.FullName}");
                 return null;
             }
         }

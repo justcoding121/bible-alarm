@@ -1,27 +1,26 @@
-﻿using Amazon;
-using Amazon.S3;
-using Amazon.S3.Model;
-using AudioLinkHarvester.Audio;
-using AudioLinkHarvester.Bible;
-using AudioLinkHarvester.Models;
-using AudioLinkHarvestor.Utility;
-using Bible.Alarm.Audio.Links.Harvestor;
-using Bible.Alarm.Common.Helpers;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon;
+using Amazon.S3;
+using Amazon.S3.Model;
+using Bible.Alarm.Audio.Links.Harvester.Harvesters.Bible;
+using Bible.Alarm.Audio.Links.Harvester.Harvesters.Music;
+using Bible.Alarm.Audio.Links.Harvester.Models;
+using Bible.Alarm.Audio.Links.Harvester.Utility;
+using Bible.Alarm.Common.Helpers;
+using Newtonsoft.Json;
 
-namespace AudioLinkHarvester
+namespace Bible.Alarm.Audio.Links.Harvester
 {
     public class Program
     {
 
-        private static readonly Dictionary<string, string> _biblePublicationCodeToNameMappings =
+        private static readonly Dictionary<string, string> BiblePublicationCodeToNameMappings =
             JwSourceHelper.PublicationCodeToNameMappings.Select(x => x)
                     .ToDictionary(x => x.Key, x => x.Value);
 
@@ -37,7 +36,7 @@ namespace AudioLinkHarvester
                 var originalIndexFileSize =
                     (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
 
-                deleteDirectory(DirectoryHelper.IndexDirectory);
+                DeleteDirectory(DirectoryHelper.IndexDirectory);
 
                 var bibleTasks = new List<Task>();
 
@@ -57,7 +56,7 @@ namespace AudioLinkHarvester
 
                 await Task.WhenAll(bibleTasks.Concat(musicTasks).ToArray());
 
-                writeBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
+                WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
 
                 var index = new
                 {
@@ -87,7 +86,7 @@ namespace AudioLinkHarvester
                     throw new ApplicationException("New index file size is strangely smaller than old index file size.");
                 }
 
-                await publishToCloudFront();
+                await PublishToCloudFront();
             }
             finally
             {
@@ -99,7 +98,7 @@ namespace AudioLinkHarvester
             }
         }
 
-        private static void writeBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
+        private static void WriteBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
                 ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
         {
             if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
@@ -128,7 +127,7 @@ namespace AudioLinkHarvester
                 new Publication
                 {
                     Code = x,
-                    Name = _biblePublicationCodeToNameMappings[x]
+                    Name = BiblePublicationCodeToNameMappings[x]
                 }).OrderBy(x => x.Code)));
             }
 
@@ -150,7 +149,7 @@ namespace AudioLinkHarvester
         /// Depth-first recursive delete, with handling for descendant 
         /// directories open in Windows Explorer.
         /// </summary>
-        private static void deleteDirectory(string path)
+        private static void DeleteDirectory(string path)
         {
             if (!Directory.Exists(path))
             {
@@ -159,7 +158,7 @@ namespace AudioLinkHarvester
 
             foreach (string directory in Directory.GetDirectories(path))
             {
-                deleteDirectory(directory);
+                DeleteDirectory(directory);
             }
 
             var files = Directory.GetFiles(path);
@@ -192,7 +191,7 @@ namespace AudioLinkHarvester
             }
         }
 
-        private async static Task publishToCloudFront()
+        private static async Task PublishToCloudFront()
         {
             var keyPrefix = "bible-alarm/media-index";
             var bucketName = "jthomas.info";

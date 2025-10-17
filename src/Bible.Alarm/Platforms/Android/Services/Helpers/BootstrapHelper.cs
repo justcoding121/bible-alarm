@@ -35,13 +35,13 @@ namespace Bible.Alarm.Services.Droid.Helpers
             {
                 var application = (Android.App.Application)context.ApplicationContext;
                 // MAUI handles platform initialization automatically
-                createNotificationChannel(container);
+                CreateNotificationChannel(container);
             }
 
             return result.Item1;
         }
 
-        public static IContainer InitializeUI(Logger logger, Context context, Android.App.Application application)
+        public static IContainer InitializeUi(Logger logger, Context context, Android.App.Application application)
         {
             var result = Bible.Alarm.Services.Droid.IocSetup.Initialize(context, false);
             var container = result.Item1;
@@ -56,7 +56,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
                     try
                     {
                         await VerifyServices(container);
-                        createNotificationChannel(container);
+                        CreateNotificationChannel(container);
 
                         Messenger<bool>.Publish(MvvmMessages.Initialized, true);
 
@@ -99,11 +99,11 @@ namespace Bible.Alarm.Services.Droid.Helpers
 
         public static void VerifyBackgroundTasks(Context context)
         {
-            schedulerSetupTask(context);
-            updateMediaIndexJobTask(context);
+            SchedulerSetupTask(context);
+            UpdateMediaIndexJobTask(context);
         }
 
-        private static bool schedulerSetupTask(Context context)
+        private static bool SchedulerSetupTask(Context context)
         {
             // Sample usage - creates a JobBuilder for a SchedulerJob and sets the Job ID to 1.
             using var jobBuilder = context.CreateJobBuilderUsingJobId<SchedulerJob>(SchedulerJob.JobId, 30);
@@ -121,7 +121,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
         }
 
 
-        private static bool updateMediaIndexJobTask(Context context)
+        private static bool UpdateMediaIndexJobTask(Context context)
         {
             // Sample usage - creates a JobBuilder for a SchedulerJob and sets the Job ID to 2.
             using var jobBuilder = context.CreateJobBuilderUsingJobId<UpdateMediaIndexJob>(UpdateMediaIndexJob.JobId, 60);
@@ -138,7 +138,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
             return false;
         }
 
-        private static void createNotificationChannel(IContainer container)
+        private static void CreateNotificationChannel(IContainer container)
         {
             if (Build.VERSION.SdkInt < BuildVersionCodes.O)
             {
@@ -148,9 +148,9 @@ namespace Bible.Alarm.Services.Droid.Helpers
                 return;
             }
 
-            var channelId = DroidNotificationService.CHANNEL_ID_AND_NAME;
-            var channelName = DroidNotificationService.CHANNEL_ID_AND_NAME;
-            var channelDescription = DroidNotificationService.CHANNEL_DESCRIPTION;
+            var channelId = DroidNotificationService.ChannelIdAndName;
+            var channelName = DroidNotificationService.ChannelIdAndName;
+            var channelDescription = DroidNotificationService.ChannelDescription;
             var channel = new NotificationChannel(channelId, channelName, NotificationImportance.High)
             {
                 Description = channelDescription
@@ -163,7 +163,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
 
             var soundUri = Android.Net.Uri.Parse("android.resource://" + Android.App.Application.Context.PackageName + "/" + Resource.Raw.cool_alarm_tone_notification_sound);
             // Configure the notification channel.
-            channel.Description = DroidNotificationService.CHANNEL_DESCRIPTION;
+            channel.Description = DroidNotificationService.ChannelDescription;
             channel.EnableLights(true);
             channel.EnableVibration(true);
             channel.SetSound(soundUri, attributes);

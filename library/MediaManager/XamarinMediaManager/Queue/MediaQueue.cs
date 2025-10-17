@@ -21,20 +21,20 @@ namespace MediaManager.Queue
             MediaManager.MediaItemFinished += MediaManager_MediaItemFinished;
         }
 
-        private int shuffleKey = int.MinValue;
+        private int _shuffleKey = int.MinValue;
         private void MediaManager_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(MediaManager.ShuffleMode))
             {
                 if (MediaManager.ShuffleMode == ShuffleMode.All)
                 {
-                    shuffleKey = new Random().Next(int.MinValue + 1, int.MaxValue);
-                    MediaItems.Shuffle(shuffleKey);
+                    _shuffleKey = new Random().Next(int.MinValue + 1, int.MaxValue);
+                    MediaItems.Shuffle(_shuffleKey);
                 }
-                else if (shuffleKey != int.MinValue)
+                else if (_shuffleKey != int.MinValue)
                 {
-                    MediaItems.DeShuffle(shuffleKey);
-                    shuffleKey = int.MinValue;
+                    MediaItems.DeShuffle(_shuffleKey);
+                    _shuffleKey = int.MinValue;
                 }
             }
         }

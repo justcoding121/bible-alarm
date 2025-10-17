@@ -30,11 +30,11 @@ namespace Bible.Alarm.Droid
     [Activity(Label = "Bible Alarm", Icon = "@mipmap/icon", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation)]
     public class MainActivity : global::Android.App.Activity
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
-        private IContainer container;
-        private CastContext castContext;
+        private IContainer _container;
+        private CastContext _castContext;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -46,13 +46,13 @@ namespace Bible.Alarm.Droid
             CrossMediaManager.Current.Init(this);
 
             // Initialize Cast Framework
-            castContext = CastContext.GetSharedInstance(this);
+            _castContext = CastContext.GetSharedInstance(this);
 
             // Initialize container
-            container = BootstrapHelper.InitializeUI(logger, this, this.Application);
+            _container = BootstrapHelper.InitializeUi(Logger, this, this.Application);
 
             // Initialize MAUI application
-            var app = new App(container);
+            var app = new App(_container);
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Android.Content.PM.Permission[] grantResults)

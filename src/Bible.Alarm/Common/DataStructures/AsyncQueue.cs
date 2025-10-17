@@ -10,13 +10,13 @@ namespace Advanced.Algorithms.Distributed
     public class AsyncQueue<T>
     {
         //data queue.
-        private readonly Queue<T> queue = new Queue<T>();
+        private readonly Queue<T> _queue = new Queue<T>();
 
         //consumer task queue and lock.
-        private readonly Queue<TaskCompletionSource<T>> consumerQueue = new Queue<TaskCompletionSource<T>>();
-        private SemaphoreSlim consumerQueueLock = new SemaphoreSlim(1);
+        private readonly Queue<TaskCompletionSource<T>> _consumerQueue = new Queue<TaskCompletionSource<T>>();
+        private SemaphoreSlim _consumerQueueLock = new SemaphoreSlim(1);
 
-        public int Count => queue.Count;
+        public int Count => _queue.Count;
 
         /// <summary>
         ///     Supports multi-threaded producers.
@@ -24,19 +24,19 @@ namespace Advanced.Algorithms.Distributed
         /// </summary>
         public async Task EnqueueAsync(T value, int millisecondsTimeout = int.MaxValue, CancellationToken taskCancellationToken = default(CancellationToken))
         {
-            await consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
+            await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
 
-            if (consumerQueue.Count > 0)
+            if (_consumerQueue.Count > 0)
             {
-                var consumer = consumerQueue.Dequeue();
+                var consumer = _consumerQueue.Dequeue();
                 consumer.TrySetResult(value);
             }
             else
             {
-                queue.Enqueue(value);
+                _queue.Enqueue(value);
             }
 
-            consumerQueueLock.Release();
+            _consumerQueueLock.Release();
         }
 
         /// <summary>
@@ -45,25 +45,25 @@ namespace Advanced.Algorithms.Distributed
         /// </summary>
         public async Task<T> DequeueAsync(int millisecondsTimeout = int.MaxValue, CancellationToken taskCancellationToken = default(CancellationToken))
         {
-            await consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
+            await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
 
             TaskCompletionSource<T> consumer;
 
             try
             {
-                if (queue.Count > 0)
+                if (_queue.Count > 0)
                 {
-                    var result = queue.Dequeue();
+                    var result = _queue.Dequeue();
                     return result;
                 }
 
                 consumer = new TaskCompletionSource<T>();
                 taskCancellationToken.Register(() => consumer.TrySetCanceled());
-                consumerQueue.Enqueue(consumer);
+                _consumerQueue.Enqueue(consumer);
             }
             finally
             {
-                consumerQueueLock.Release();
+                _consumerQueueLock.Release();
             }
 
             return await consumer.Task;
@@ -72,20 +72,20 @@ namespace Advanced.Algorithms.Distributed
 
         public async Task<T> PeekAsync()
         {
-            await consumerQueueLock.WaitAsync();
+            await _consumerQueueLock.WaitAsync();
 
             try
             {
-                if(queue.Count == 0)
+                if(_queue.Count == 0)
                 {
                     return default;
                 }
 
-                return queue.Peek();
+                return _queue.Peek();
             }
             finally
             {
-                consumerQueueLock.Release();
+                _consumerQueueLock.Release();
             }
         }
     }

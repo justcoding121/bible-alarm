@@ -10,7 +10,7 @@ namespace Bible.Alarm.iOS.Extensions
 {
     public static class DateExtensions
     {
-        public static NSDateComponents ToNSDateComponents(this DateTime date, nint dayOfWeek)
+        public static NSDateComponents ToNsDateComponents(this DateTime date, nint dayOfWeek)
         {
             return new NSDateComponents()
             {

@@ -9,7 +9,7 @@ namespace MediaManager.Player
     {
         public abstract IVideoView VideoView { get; set; }
 
-        protected bool _autoAttachVideoView = true;
+        private bool _autoAttachVideoView = true;
         public virtual bool AutoAttachVideoView
         {
             get => _autoAttachVideoView;
@@ -23,7 +23,7 @@ namespace MediaManager.Player
             UpdateVideoPlaceholder(VideoPlaceholder);
         }
 
-        protected VideoAspectMode _videoAspect;
+        private VideoAspectMode _videoAspect;
         public virtual VideoAspectMode VideoAspect
         {
             get => _videoAspect;
@@ -36,7 +36,7 @@ namespace MediaManager.Player
 
         public abstract void UpdateVideoAspect(VideoAspectMode videoAspectMode);
 
-        protected bool _showPlaybackControls = false;
+        private bool _showPlaybackControls = false;
         public virtual bool ShowPlaybackControls
         {
             get => _showPlaybackControls;
@@ -49,15 +49,14 @@ namespace MediaManager.Player
 
         public abstract void UpdateShowPlaybackControls(bool showPlaybackControls);
 
-        protected int _videoWidth;
+        private int _videoWidth;
         public virtual int VideoWidth
         {
             get => _videoWidth;
             set => SetProperty(ref _videoWidth, value, () => OnPropertyChanged(nameof(VideoAspectRatio)));
         }
 
-        protected int _videoHeight;
-
+        private int _videoHeight;
         public virtual int VideoHeight
         {
             get => _videoHeight;

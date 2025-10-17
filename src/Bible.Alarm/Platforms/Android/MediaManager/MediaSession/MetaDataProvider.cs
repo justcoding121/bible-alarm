@@ -20,11 +20,11 @@ namespace MediaManager.Platforms.Android.Player
     public class MetaDataProvider(MediaControllerCompat mediaController, String metadataExtrasPrefix)
         : Java.Lang.Object, IMediaMetadataProvider
     {
-        private DefaultMediaMetadataProvider defaultMediaMetadataProvider = new(mediaController, metadataExtrasPrefix);
+        private DefaultMediaMetadataProvider _defaultMediaMetadataProvider = new(mediaController, metadataExtrasPrefix);
 
         public MediaMetadataCompat GetMetadata(IPlayer player)
         {
-            var mediaMetadata = defaultMediaMetadataProvider.GetMetadata(player);
+            var mediaMetadata = _defaultMediaMetadataProvider.GetMetadata(player);
 
             var builder = new MediaMetadataCompat.Builder();
 

@@ -92,7 +92,7 @@ namespace MediaManager
             }
         }
 
-        protected DisplayRequest _displayRequest;
+        protected DisplayRequest DisplayRequest;
         protected bool _keepScreenOn;
         public override bool KeepScreenOn
         {
@@ -104,13 +104,13 @@ namespace MediaManager
             {
                 if (SetProperty(ref _keepScreenOn, value))
                 {
-                    if (_displayRequest == null)
-                        _displayRequest = new DisplayRequest();
+                    if (DisplayRequest == null)
+                        DisplayRequest = new DisplayRequest();
 
                     if (value)
-                        _displayRequest.RequestActive();
+                        DisplayRequest.RequestActive();
                     else
-                        _displayRequest.RequestRelease();
+                        DisplayRequest.RequestRelease();
                 }
             }
         }

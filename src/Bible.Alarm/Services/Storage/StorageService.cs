@@ -59,7 +59,7 @@ namespace Bible.Alarm.Services
         {
             if (!await DirectoryExists(directoryPath))
             {
-                await createDirectory(directoryPath);
+                await CreateDirectoryInternal(directoryPath);
             }
 
             File.WriteAllText(Path.Combine(directoryPath, name), contents);
@@ -69,7 +69,7 @@ namespace Bible.Alarm.Services
         {
             if (!await DirectoryExists(directoryPath))
             {
-                await createDirectory(directoryPath);
+                await CreateDirectoryInternal(directoryPath);
             }
 
             File.WriteAllBytes(Path.Combine(directoryPath, name), contents);
@@ -80,7 +80,7 @@ namespace Bible.Alarm.Services
         {
             if (!await DirectoryExists(destinationDirectoryPath))
             {
-                await createDirectory(destinationDirectoryPath);
+                await CreateDirectoryInternal(destinationDirectoryPath);
             }
 
             using (var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName))
@@ -102,7 +102,7 @@ namespace Bible.Alarm.Services
 
         }
 
-        private Task createDirectory(string path)
+        private Task CreateDirectoryInternal(string path)
         {
             Directory.CreateDirectory(path);
             return Task.FromResult(false);

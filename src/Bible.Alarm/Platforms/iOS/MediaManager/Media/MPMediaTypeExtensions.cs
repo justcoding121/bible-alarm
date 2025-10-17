@@ -3,7 +3,7 @@ using MediaPlayer;
 
 namespace MediaManager.Platforms.Ios.Media
 {
-    public static class MPMediaTypeExtensions
+    public static class MpMediaTypeExtensions
     {
         public static MediaType ToMediaType(this MPMediaType mediaType)
         {

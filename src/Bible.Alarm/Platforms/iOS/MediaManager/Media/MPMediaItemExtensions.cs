@@ -7,7 +7,7 @@ using MediaPlayer;
 
 namespace MediaManager.Platforms.Ios.Media
 {
-    public static class MPMediaItemExtensions
+    public static class MpMediaItemExtensions
     {
         public static IMediaItem ToMediaItem(this MPMediaItem item)
         {

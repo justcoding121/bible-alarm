@@ -12,10 +12,10 @@ namespace Bible.Alarm.Services
     /// </summary>
     public class DownloadService(HttpMessageHandler handler) : IDownloadService
     {
-        private readonly int downloadRetryAttempts = 3;
-        private readonly int fileExistsCheckRetryAttempts = 3;
+        private readonly int _downloadRetryAttempts = 3;
+        private readonly int _fileExistsCheckRetryAttempts = 3;
 
-        private readonly int timeOutSeconds = 3;
+        private readonly int _timeOutSeconds = 3;
 
         /// <summary>
         /// Dowload the file from the Url
@@ -42,7 +42,7 @@ namespace Bible.Alarm.Services
                     return await client.GetByteArrayAsync(alternativeUrl);
                 }
 
-            }, downloadRetryAttempts);
+            }, _downloadRetryAttempts);
         }
 
 
@@ -57,7 +57,7 @@ namespace Bible.Alarm.Services
             {
                 using var client = new HttpClient(handler, false)
                 {
-                    Timeout = TimeSpan.FromSeconds(timeOutSeconds)
+                    Timeout = TimeSpan.FromSeconds(_timeOutSeconds)
                 };
 
                 Func<Task<bool>> getRequest = async () =>
@@ -91,7 +91,7 @@ namespace Bible.Alarm.Services
                     return await getRequest();
                 }
 
-            }, fileExistsCheckRetryAttempts);
+            }, _fileExistsCheckRetryAttempts);
         }
     }
 }

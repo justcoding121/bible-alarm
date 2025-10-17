@@ -11,21 +11,21 @@ namespace Loggly
 {
     internal class HttpMessageTransport : TransportBase, IMessageTransport
     {
-        private static string _urlSingle;
-        private static string _urlBulk;
+        private static string urlSingle;
+        private static string urlBulk;
 
-        private static readonly string _userAgent;
+        private static readonly string UserAgent;
         protected HttpClient HttpClient;
 
         static HttpMessageTransport()
         {
-            _userAgent = "loggly-csharp " + typeof(HttpMessageTransport).GetTypeInfo().Assembly.GetName().Version;
+            UserAgent = "loggly-csharp " + typeof(HttpMessageTransport).GetTypeInfo().Assembly.GetName().Version;
         }
 
         internal HttpMessageTransport(HttpMessageHandler messageHandler)
         {
             HttpClient = new HttpClient(messageHandler);
-            HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd(_userAgent);
+            HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
             HttpClient.DefaultRequestHeaders.Add("Connection", "close");
 
             if (!string.IsNullOrWhiteSpace(LogglyConfig.Instance.Transport.ForwardedForIp))
@@ -44,14 +44,14 @@ namespace Loggly
         {
             get
             {
-                if (string.IsNullOrEmpty(_urlSingle))
+                if (string.IsNullOrEmpty(urlSingle))
                 {
-                    _urlSingle = string.Format("https://{0}:{1}/inputs/{2}"
+                    urlSingle = string.Format("https://{0}:{1}/inputs/{2}"
                         , LogglyConfig.Instance.Transport.EndpointHostname
                         , LogglyConfig.Instance.Transport.EndpointPort
                         , LogglyConfig.Instance.CustomerToken);
                 }
-                return _urlSingle;
+                return urlSingle;
             }
         }
 
@@ -59,14 +59,14 @@ namespace Loggly
         {
             get
             {
-                if (string.IsNullOrEmpty(_urlBulk))
+                if (string.IsNullOrEmpty(urlBulk))
                 {
-                    _urlBulk = string.Format("https://{0}:{1}/bulk/{2}"
+                    urlBulk = string.Format("https://{0}:{1}/bulk/{2}"
                         , LogglyConfig.Instance.Transport.EndpointHostname
                         , LogglyConfig.Instance.Transport.EndpointPort
                         , LogglyConfig.Instance.CustomerToken);
                 }
-                return _urlBulk;
+                return urlBulk;
             }
         }
 

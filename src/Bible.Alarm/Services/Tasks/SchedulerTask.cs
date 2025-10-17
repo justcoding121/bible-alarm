@@ -19,8 +19,8 @@ namespace Bible.Alarm.Services.Tasks
         IStorageService storageService)
         : IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
 
@@ -42,7 +42,7 @@ namespace Bible.Alarm.Services.Tasks
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, "An error happenned inside cleanup task.");
+                        Logger.Error(e, "An error happenned inside cleanup task.");
                     }
 
                     var schedules = await scheduleDbContext.AlarmSchedules.Where(x => x.IsEnabled).ToListAsync();
@@ -61,7 +61,7 @@ namespace Bible.Alarm.Services.Tasks
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, $"Failed to process scheduler task. Db directory: {storageService.CacheRoot}");
+                    Logger.Error(e, $"Failed to process scheduler task. Db directory: {storageService.CacheRoot}");
                 }
                 finally
                 {
@@ -71,7 +71,7 @@ namespace Bible.Alarm.Services.Tasks
                     }
                     catch (ObjectDisposedException e)
                     {
-                        logger.Error(e, "SchedulerTask: @lock disposed error.");
+                        Logger.Error(e, "SchedulerTask: @lock disposed error.");
                     }
                 }
             }

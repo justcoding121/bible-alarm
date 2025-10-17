@@ -11,12 +11,12 @@ namespace Bible.Alarm.UI.Views.Bible
 {
     public partial class ChapterSelection : ContentPage
     {
-        private readonly IContainer container;
+        private readonly IContainer _container;
         public ChapterSelectionViewModel ViewModel => BindingContext as ChapterSelectionViewModel;
 
         public ChapterSelection(IContainer container)
         {
-            this.container = container;
+            this._container = container;
 
             InitializeComponent();
 
@@ -26,17 +26,17 @@ namespace Bible.Alarm.UI.Views.Bible
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
             });
 
-            this.Appearing += onAppearing;
+            this.Appearing += OnAppearing;
         }
 
-        private void onAppearing(object sender, EventArgs e)
+        private void OnAppearing(object sender, EventArgs e)
         {
             Task.Delay(100).ContinueWith(x =>
             {
                 chapterListView.ScrollTo(ViewModel.SelectedChapter, ScrollToPosition.Center, true);
-                this.Appearing -= onAppearing;
+                this.Appearing -= OnAppearing;
 
-            }, container.Resolve<TaskScheduler>());
+            }, _container.Resolve<TaskScheduler>());
         }
 
 

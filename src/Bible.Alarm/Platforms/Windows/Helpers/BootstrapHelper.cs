@@ -28,11 +28,11 @@ namespace Bible.Alarm.Services.Windows.Helpers
                     break;
             }
 
-            registerSchedulerTask();
-            registerMediaIndexUpdateTask();
+            RegisterSchedulerTask();
+            RegisterMediaIndexUpdateTask();
         }
 
-        private static void registerMediaIndexUpdateTask()
+        private static void RegisterMediaIndexUpdateTask()
         {
             var registered = false;
 
@@ -56,7 +56,7 @@ namespace Bible.Alarm.Services.Windows.Helpers
             }
         }
 
-        private static void registerSchedulerTask()
+        private static void RegisterSchedulerTask()
         {
             var registered = false;
 

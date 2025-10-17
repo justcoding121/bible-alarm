@@ -14,8 +14,8 @@ namespace Bible.Alarm.Common.Helpers
 
             try
             {
-                var task1 = verifyMediaLookUpService(container);
-                var task2 = initializeDatabase(container);
+                var task1 = VerifyMediaLookUpService(container);
+                var task2 = InitializeDatabase(container);
 
                 await Task.WhenAll(task1, task2);
             }
@@ -25,14 +25,14 @@ namespace Bible.Alarm.Common.Helpers
             }
         }
 
-        private static async Task verifyMediaLookUpService(IContainer container)
+        private static async Task VerifyMediaLookUpService(IContainer container)
         {
             using var service = container.Resolve<MediaIndexService>();
             await service.Verify();
 
         }
 
-        private static async Task initializeDatabase(IContainer container)
+        private static async Task InitializeDatabase(IContainer container)
         {
             using var db = container.Resolve<ScheduleDbContext>();
             await db.Database.MigrateAsync();

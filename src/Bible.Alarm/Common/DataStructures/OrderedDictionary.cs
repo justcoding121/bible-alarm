@@ -14,13 +14,13 @@ namespace Advanced.Algorithms.DataStructures.Foundation
     public class OrderedDictionary<K, V> : IEnumerable<KeyValuePair<K, V>> where K : IComparable
     {
         //use red-black tree as our balanced BST since it gives good performance for both deletion/insertion
-        private readonly RedBlackTree<OrderedKeyValuePair<K, V>> binarySearchTree;
+        private readonly RedBlackTree<OrderedKeyValuePair<K, V>> _binarySearchTree;
 
-        public int Count => binarySearchTree.Count;
+        public int Count => _binarySearchTree.Count;
 
         public OrderedDictionary()
         {
-            binarySearchTree = new RedBlackTree<OrderedKeyValuePair<K, V>>(true);
+            _binarySearchTree = new RedBlackTree<OrderedKeyValuePair<K, V>>(true);
         }
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public OrderedDictionary(IEnumerable<KeyValuePair<K, V>> sortedKeyValuePairs)
         {
-            binarySearchTree = new RedBlackTree<OrderedKeyValuePair<K, V>>(sortedKeyValuePairs.Select(x => new OrderedKeyValuePair<K, V>(x.Key, x.Value)));
+            _binarySearchTree = new RedBlackTree<OrderedKeyValuePair<K, V>>(sortedKeyValuePairs.Select(x => new OrderedKeyValuePair<K, V>(x.Key, x.Value)));
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// <returns>True if this dictionary contains the given key.</returns> 
         public bool ContainsKey(K key)
         {
-            return binarySearchTree.HasItem(new OrderedKeyValuePair<K, V>(key, default(V)));
+            return _binarySearchTree.HasItem(new OrderedKeyValuePair<K, V>(key, default(V)));
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public int Add(K key, V value)
         {
-            return binarySearchTree.Insert(new OrderedKeyValuePair<K, V>(key, value));
+            return _binarySearchTree.Insert(new OrderedKeyValuePair<K, V>(key, value));
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         {
             get
             {
-                var node = binarySearchTree.FindNode(new OrderedKeyValuePair<K, V>(key, default(V)));
+                var node = _binarySearchTree.FindNode(new OrderedKeyValuePair<K, V>(key, default(V)));
                 if (node == null)
                 {
                     throw new Exception("Key not found.");
@@ -85,7 +85,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public KeyValuePair<K, V> ElementAt(int index)
         {
-            return binarySearchTree.ElementAt(index).ToKeyValuePair();
+            return _binarySearchTree.ElementAt(index).ToKeyValuePair();
         }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public int IndexOf(K key)
         {
-            return binarySearchTree.IndexOf(new OrderedKeyValuePair<K, V>(key, default(V)));
+            return _binarySearchTree.IndexOf(new OrderedKeyValuePair<K, V>(key, default(V)));
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public int Remove(K key)
         {
-            return binarySearchTree.Delete(new OrderedKeyValuePair<K, V>(key, default(V)));
+            return _binarySearchTree.Delete(new OrderedKeyValuePair<K, V>(key, default(V)));
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public KeyValuePair<K, V> RemoveAt(int index)
         {
-            return binarySearchTree.RemoveAt(index).ToKeyValuePair();
+            return _binarySearchTree.RemoveAt(index).ToKeyValuePair();
         }
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// <returns>Null if the given key does'nt exist or next key does'nt exist.</returns>
         public KeyValuePair<K, V> NextHigher(K key)
         {
-            var next = binarySearchTree.NextHigher(new OrderedKeyValuePair<K, V>(key, default(V)));
+            var next = _binarySearchTree.NextHigher(new OrderedKeyValuePair<K, V>(key, default(V)));
 
             if (next.Equals(default(OrderedKeyValuePair<K, V>)))
             {
@@ -139,7 +139,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// <returns>Null if the given key does'nt exist or previous key does'nt exist.</returns>
         public KeyValuePair<K, V> NextLower(K key)
         {
-            var prev = binarySearchTree.NextLower(new OrderedKeyValuePair<K, V>(key, default(V)));
+            var prev = _binarySearchTree.NextLower(new OrderedKeyValuePair<K, V>(key, default(V)));
 
             if (prev.Equals(default(OrderedKeyValuePair<K, V>)))
             {
@@ -154,7 +154,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public KeyValuePair<K, V> Max()
         {
-            var max = binarySearchTree.Max();
+            var max = _binarySearchTree.Max();
             return max.Equals(default(OrderedKeyValuePair<K, V>)) ? default(KeyValuePair<K, V>)
                 : max.ToKeyValuePair();
         }
@@ -164,7 +164,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         public KeyValuePair<K, V> Min()
         {
-            var min = binarySearchTree.Min();
+            var min = _binarySearchTree.Min();
             return min.Equals(default(OrderedKeyValuePair<K, V>)) ? default(KeyValuePair<K, V>)
                 : min.ToKeyValuePair();
         }
@@ -176,7 +176,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         /// </summary>
         internal void Clear()
         {
-            binarySearchTree.Clear();
+            _binarySearchTree.Clear();
         }
 
         /// <summary>
@@ -194,12 +194,12 @@ namespace Advanced.Algorithms.DataStructures.Foundation
 
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
-            return new SortedDictionaryEnumerator<K, V>(binarySearchTree);
+            return new SortedDictionaryEnumerator<K, V>(_binarySearchTree);
         }
 
         public IEnumerator<KeyValuePair<K, V>> GetEnumeratorDesc()
         {
-            return new SortedDictionaryEnumerator<K, V>(binarySearchTree, false);
+            return new SortedDictionaryEnumerator<K, V>(_binarySearchTree, false);
         }
     }
 
@@ -243,24 +243,24 @@ namespace Advanced.Algorithms.DataStructures.Foundation
 
     internal class SortedDictionaryEnumerator<K, V> : IEnumerator<KeyValuePair<K, V>> where K : IComparable
     {
-        private RedBlackTree<OrderedKeyValuePair<K, V>> bst;
-        private IEnumerator<OrderedKeyValuePair<K, V>> enumerator;
+        private RedBlackTree<OrderedKeyValuePair<K, V>> _bst;
+        private IEnumerator<OrderedKeyValuePair<K, V>> _enumerator;
 
         internal SortedDictionaryEnumerator(RedBlackTree<OrderedKeyValuePair<K, V>> bst, bool asc = true)
         {
 
-            this.bst = bst;
-            this.enumerator = asc ? bst.GetEnumerator() : bst.GetEnumeratorDesc();
+            this._bst = bst;
+            this._enumerator = asc ? bst.GetEnumerator() : bst.GetEnumeratorDesc();
         }
 
         public bool MoveNext()
         {
-            return enumerator.MoveNext();
+            return _enumerator.MoveNext();
         }
 
         public void Reset()
         {
-            enumerator.Reset();
+            _enumerator.Reset();
         }
 
         object IEnumerator.Current => Current;
@@ -269,14 +269,14 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         {
             get
             {
-                return new KeyValuePair<K, V>(enumerator.Current.Key, enumerator.Current.Value);
+                return new KeyValuePair<K, V>(_enumerator.Current.Key, _enumerator.Current.Value);
             }
         }
 
         public void Dispose()
         {
-            bst = null;
-            enumerator = null;
+            _bst = null;
+            _enumerator = null;
         }
     }
 }

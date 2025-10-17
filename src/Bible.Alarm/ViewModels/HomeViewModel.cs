@@ -29,22 +29,22 @@ namespace Bible.Alarm.ViewModels
 {
     public class HomeViewModel : ViewModel, IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
-        private IContainer container;
+        private IContainer _container;
 
-        private ScheduleDbContext scheduleDbContext;
-        private MediaDbContext mediaDbContext;
+        private ScheduleDbContext _scheduleDbContext;
+        private MediaDbContext _mediaDbContext;
 
-        private IToastService popUpService;
-        private INavigationService navigationService;
-        private IMediaCacheService mediaCacheService;
-        private IAlarmService alarmService;
+        private IToastService _popUpService;
+        private INavigationService _navigationService;
+        private IMediaCacheService _mediaCacheService;
+        private IAlarmService _alarmService;
 
-        private INotificationService notificationService;
+        private INotificationService _notificationService;
 
-        private List<IDisposable> subscriptions = new List<IDisposable>();
+        private List<IDisposable> _subscriptions = new List<IDisposable>();
 
 
         public HomeViewModel(IContainer container,
@@ -55,22 +55,22 @@ namespace Bible.Alarm.ViewModels
             INotificationService notificationService,
             MediaDbContext mediaDbContext)
         {
-            this.container = container;
-            this.scheduleDbContext = scheduleDbContext;
-            this.popUpService = popUpService;
-            this.navigationService = navigationService;
-            this.mediaCacheService = mediaCacheService;
-            this.alarmService = alarmService;
-            this.notificationService = notificationService;
-            this.mediaDbContext = mediaDbContext;
+            this._container = container;
+            this._scheduleDbContext = scheduleDbContext;
+            this._popUpService = popUpService;
+            this._navigationService = navigationService;
+            this._mediaCacheService = mediaCacheService;
+            this._alarmService = alarmService;
+            this._notificationService = notificationService;
+            this._mediaDbContext = mediaDbContext;
 
-            subscriptions.Add(scheduleDbContext);
+            _subscriptions.Add(scheduleDbContext);
 
             AddScheduleCommand = new Command(async () =>
             {
                 ReduxContainer.Store.Dispatch(new ViewScheduleAction());
-                var viewModel = this.container.Resolve<ScheduleViewModel>();
-                await this.navigationService.Navigate(viewModel);
+                var viewModel = this._container.Resolve<ScheduleViewModel>();
+                await this._navigationService.Navigate(viewModel);
             });
 
             ViewScheduleCommand = new Command<ScheduleListItem>(async x =>
@@ -82,8 +82,8 @@ namespace Bible.Alarm.ViewModels
                     SelectedScheduleListItem = x
                 });
 
-                var viewModel = this.container.Resolve<ScheduleViewModel>();
-                await this.navigationService.Navigate(viewModel);
+                var viewModel = this._container.Resolve<ScheduleViewModel>();
+                await this._navigationService.Navigate(viewModel);
 
             });
 
@@ -97,86 +97,86 @@ namespace Bible.Alarm.ViewModels
                .Subscribe(x =>
                {
                    Schedules = x;
-                   listenIsEnabledChanges();
+                   ListenIsEnabledChanges();
                    IsBusy = false;
                });
-            subscriptions.Add(subscription);
+            _subscriptions.Add(subscription);
 
-            initialize();
+            Initialize();
         }
 
-        private async Task seedDefaultAlarm()
+        private async Task SeedDefaultAlarm()
         {
-            if (!await scheduleDbContext.AlarmSchedules.AnyAsync()
-                && !await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AlarmSeeded")
+            if (!await _scheduleDbContext.AlarmSchedules.AnyAsync()
+                && !await _scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AlarmSeeded")
                 //for existing apps before version 1.30
-                && !await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+                && !await _scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
             {
-                var schedule = await AlarmSchedule.GetSampleSchedule(false, mediaDbContext);
+                var schedule = await AlarmSchedule.GetSampleSchedule(false, _mediaDbContext);
 
-                await scheduleDbContext.AlarmSchedules.AddAsync(schedule);
-                await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings()
+                await _scheduleDbContext.AlarmSchedules.AddAsync(schedule);
+                await _scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings()
                 {
                     Key = "AlarmSeeded",
                     Value = "True"
                 });
 
-                await scheduleDbContext.SaveChangesAsync();
+                await _scheduleDbContext.SaveChangesAsync();
             }
         }
 
-        private ObservableHashSet<ScheduleListItem> schedules;
+        private ObservableHashSet<ScheduleListItem> _schedules;
         public ObservableHashSet<ScheduleListItem> Schedules
         {
-            get => schedules;
-            set => this.Set(ref schedules, value);
+            get => _schedules;
+            set => this.Set(ref _schedules, value);
         }
 
-        private bool isBusy = true;
+        private bool _isBusy = true;
         public bool IsBusy
         {
-            get => isBusy;
+            get => _isBusy;
             set
             {
-                this.Set(ref isBusy, value);
-                Loaded = !isBusy;
+                this.Set(ref _isBusy, value);
+                Loaded = !_isBusy;
             }
         }
 
 
-        private bool loaded = false;
+        private bool _loaded = false;
         public bool Loaded
         {
-            get => loaded;
-            set => this.Set(ref loaded, value);
+            get => _loaded;
+            set => this.Set(ref _loaded, value);
         }
 
         public ICommand AddScheduleCommand { get; set; }
         public ICommand ViewScheduleCommand { get; set; }
 
-        private ScheduleViewModel selectedSchedule;
+        private ScheduleViewModel _selectedSchedule;
 
         public ScheduleViewModel SelectedSchedule
         {
-            get => selectedSchedule;
-            set => this.Set(ref selectedSchedule, value);
+            get => _selectedSchedule;
+            set => this.Set(ref _selectedSchedule, value);
         }
 
-        private bool initialized = false;
-        private SemaphoreSlim @lock = new SemaphoreSlim(1);
-        private void initialize()
+        private bool _initialized = false;
+        private SemaphoreSlim _lock = new SemaphoreSlim(1);
+        private void Initialize()
         {
             Messenger<bool>.Subscribe(MvvmMessages.Initialized, async vm =>
             {
-                await @lock.WaitAsync();
+                await _lock.WaitAsync();
 
                 try
                 {
-                    if (!initialized)
+                    if (!_initialized)
                     {
-                        await seedDefaultAlarm();
+                        await SeedDefaultAlarm();
 
-                        var alarmSchedules = await scheduleDbContext.AlarmSchedules
+                        var alarmSchedules = await _scheduleDbContext.AlarmSchedules
                                             .Include(x => x.BibleReadingSchedule)
                                             .Include(x => x.Music)
                                             .ToListAsync();
@@ -194,37 +194,37 @@ namespace Bible.Alarm.ViewModels
                                     item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                                 }
 
-                                await scheduleDbContext.SaveChangesAsync();
+                                await _scheduleDbContext.SaveChangesAsync();
                             }
                         }
 
                         var initialSchedules = new ObservableHashSet<ScheduleListItem>();
                         foreach (var schedule in alarmSchedules)
                         {
-                            initialSchedules.Add(new ScheduleListItem(container, schedule));
+                            initialSchedules.Add(new ScheduleListItem(_container, schedule));
                         }
 
                         ReduxContainer.Store.Dispatch(new InitializeAction() { ScheduleList = initialSchedules });
 
-                        initialized = true;
+                        _initialized = true;
                     }
                 }
                 finally
                 {
                     try
                     {
-                        @lock.Release();
+                        _lock.Release();
                     }
                     catch (ObjectDisposedException e)
                     {
-                        logger.Error(e, "HomeViewModel: @lock disposed error.");
+                        Logger.Error(e, "HomeViewModel: @lock disposed error.");
                     }
                 }
 
             }, true);
         }
 
-        private void listenIsEnabledChanges()
+        private void ListenIsEnabledChanges()
         {
             var scheduleListChangedObservable = Observable.FromEventPattern((EventHandler<NotifyCollectionChangedEventArgs> ev)
                             => new NotifyCollectionChangedEventHandler(ev),
@@ -292,18 +292,18 @@ namespace Bible.Alarm.ViewModels
                                      if (y.IsEnabled &&
                                        (CurrentDevice.RuntimePlatform == Device.iOS
                                        || CurrentDevice.RuntimePlatform == Device.WinUI)
-                                       && !await notificationService.CanSchedule())
+                                       && !await _notificationService.CanSchedule())
                                      {
                                          y.IsEnabled = false;
 
                                          if (CurrentDevice.RuntimePlatform == Device.iOS)
                                          {
-                                             await popUpService.ShowMessage("Cannot schedule alarm because you've disabled notifications. " +
+                                             await _popUpService.ShowMessage("Cannot schedule alarm because you've disabled notifications. " +
                                                  "Please enable notification for this app under system settings.", 7);
                                          }
                                          else
                                          {
-                                             await popUpService.ShowMessage("Cannot schedule alarm because you've denied backgroud apps permission. " +
+                                             await _popUpService.ShowMessage("Cannot schedule alarm because you've denied backgroud apps permission. " +
                                                "Please grant background apps permission for this app under system settings.", 7);
                                          }
 
@@ -313,20 +313,20 @@ namespace Bible.Alarm.ViewModels
 
                                      await Task.Run(async () =>
                                      {
-                                         using var scheduleDbContext = container.Resolve<ScheduleDbContext>();
+                                         using var scheduleDbContext = _container.Resolve<ScheduleDbContext>();
                                          var existing = await scheduleDbContext.AlarmSchedules.FirstAsync(x => x.Id == y.ScheduleId);
                                          existing.IsEnabled = y.IsEnabled;
                                          await scheduleDbContext.SaveChangesAsync();
 
-                                         alarmService.Update(existing);
+                                         _alarmService.Update(existing);
                                      });
 
                                      if (y.IsEnabled)
                                      {
-                                         await popUpService.ShowScheduledNotification(y.Schedule);
+                                         await _popUpService.ShowScheduledNotification(y.Schedule);
                                      }
 
-                                     setupMediaCache(y.Schedule.Id);
+                                     SetupMediaCache(y.Schedule.Id);
 
                                      y.RaisePropertiesChangedEvent();
 
@@ -334,21 +334,21 @@ namespace Bible.Alarm.ViewModels
                                  })
                                 .Subscribe();
 
-            subscriptions.Add(subscription);
+            _subscriptions.Add(subscription);
         }
 
-        private void setupMediaCache(long scheduleId)
+        private void SetupMediaCache(long scheduleId)
         {
             Task.Run(async () =>
             {
                 try
                 {
-                    using var mediaCacheService = container.Resolve<IMediaCacheService>();
+                    using var mediaCacheService = _container.Resolve<IMediaCacheService>();
                     await mediaCacheService.SetupAlarmCache(scheduleId);
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happened in SetupAlarmCache task.");
+                    Logger.Error(e, "An error happened in SetupAlarmCache task.");
                 }
             });
         }
@@ -356,35 +356,35 @@ namespace Bible.Alarm.ViewModels
 
         public void Dispose()
         {
-            subscriptions.ForEach(x => x.Dispose());
+            _subscriptions.ForEach(x => x.Dispose());
 
-            this.scheduleDbContext.Dispose();
-            this.popUpService.Dispose();
-            this.mediaCacheService.Dispose();
-            this.alarmService.Dispose();
-            this.notificationService.Dispose();
-            this.mediaDbContext.Dispose();
+            this._scheduleDbContext.Dispose();
+            this._popUpService.Dispose();
+            this._mediaCacheService.Dispose();
+            this._alarmService.Dispose();
+            this._notificationService.Dispose();
+            this._mediaDbContext.Dispose();
 
-            @lock.Dispose();
+            _lock.Dispose();
         }
     }
 
     public class ScheduleListItem : ViewModel, IComparable, IDisposable
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
+        private static Logger Logger => LazyLogger.Value;
 
 
-        private readonly IContainer container;
+        private readonly IContainer _container;
 
         public AlarmSchedule Schedule;
-        private IDisposable subscription;
+        private IDisposable _subscription;
         public ScheduleListItem(IContainer container, AlarmSchedule schedule)
         {
-            this.container = container;
+            this._container = container;
 
             Schedule = schedule;
-            isEnabled = schedule.IsEnabled;
+            _isEnabled = schedule.IsEnabled;
 
             PlayCommand = new Command(() =>
             {
@@ -406,7 +406,7 @@ namespace Bible.Alarm.ViewModels
                     }
                     catch (Exception e)
                     {
-                        logger.Info(e, "An error happenned when playing alarm.");
+                        Logger.Info(e, "An error happenned when playing alarm.");
                         await toastService.ShowMessage("Error. Network may not be available." +
                             "Please try again.", 5);
                     }
@@ -415,7 +415,7 @@ namespace Bible.Alarm.ViewModels
 
             RefreshChapterName(true);
 
-            subscription = Messenger<object>.Subscribe(MvvmMessages.TrackChanged,
+            _subscription = Messenger<object>.Subscribe(MvvmMessages.TrackChanged,
                    (x) =>
                    {
                        if ((int)x == Schedule.Id)
@@ -428,7 +428,7 @@ namespace Bible.Alarm.ViewModels
 
             PreviousCommand = new Command(async () =>
             {
-                if (await canMove(schedule.Id))
+                if (await CanMove(schedule.Id))
                 {
                     using var playlistService = container.Resolve<IPlaylistService>();
                     await playlistService.MoveToPreviousBibleChapter(schedule.Id);
@@ -439,7 +439,7 @@ namespace Bible.Alarm.ViewModels
 
             NextCommand = new Command(async () =>
             {
-                if (await canMove(schedule.Id))
+                if (await CanMove(schedule.Id))
                 {
                     using var playlistService = container.Resolve<IPlaylistService>();
                     await playlistService.MoveToNextBibleChapter(schedule.Id);
@@ -449,16 +449,16 @@ namespace Bible.Alarm.ViewModels
             });
         }
 
-        private async Task<bool> canMove(long scheduleId)
+        private async Task<bool> CanMove(long scheduleId)
         {
-            var playbackService = container.Resolve<IPlaybackService>();
+            var playbackService = _container.Resolve<IPlaybackService>();
             
             if(!playbackService.IsPlaying)
             {
                 return true;
             }
 
-            var toastService = container.Resolve<IToastService>();
+            var toastService = _container.Resolve<IToastService>();
 
             await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
 
@@ -471,11 +471,11 @@ namespace Bible.Alarm.ViewModels
 
         public string SubTitle { get; private set; }
 
-        private bool isEnabled;
+        private bool _isEnabled;
         public bool IsEnabled
         {
-            get => isEnabled;
-            set => this.Set(ref isEnabled, value);
+            get => _isEnabled;
+            set => this.Set(ref _isEnabled, value);
         }
 
         public DaysOfWeek DaysOfWeek => Schedule.DaysOfWeek;
@@ -505,20 +505,20 @@ namespace Bible.Alarm.ViewModels
 
         public void RefreshChapterName(bool force = false)
         {
-            var syncContext = this.container.Resolve<TaskScheduler>();
+            var syncContext = this._container.Resolve<TaskScheduler>();
 
             _ = Task.Run(async () =>
              {
                  try
                  {
-                     var mediaManager = container.Resolve<IMediaManager>();
+                     var mediaManager = _container.Resolve<IMediaManager>();
 
                      if (Schedule == null || (!force && !mediaManager.IsPreparedEx()))
                      {
                          return null;
                      }
 
-                     using var scheduleDbContext = container.Resolve<ScheduleDbContext>();
+                     using var scheduleDbContext = _container.Resolve<ScheduleDbContext>();
 
                      var schedule = await scheduleDbContext.AlarmSchedules
                                              .Include(x => x.BibleReadingSchedule)
@@ -528,7 +528,7 @@ namespace Bible.Alarm.ViewModels
 
                      if (schedule != null)
                      {
-                         using var mediaDbContext = container.Resolve<MediaDbContext>();
+                         using var mediaDbContext = _container.Resolve<MediaDbContext>();
 
                          var bookName = await mediaDbContext.BibleBook
                                          .Where(x => x.BibleTranslation.Code == schedule.BibleReadingSchedule.PublicationCode
@@ -549,7 +549,7 @@ namespace Bible.Alarm.ViewModels
                  }
                  catch (Exception e)
                  {
-                     logger.Error(e, "An error happened in RefreshChapterName task under list item.");
+                     Logger.Error(e, "An error happened in RefreshChapterName task under list item.");
                  }
 
                  return null;
@@ -566,7 +566,7 @@ namespace Bible.Alarm.ViewModels
                   }
                   catch (Exception e)
                   {
-                      logger.Error(e, "An error happened in RefreshChapterName continue with task under list item.");
+                      Logger.Error(e, "An error happened in RefreshChapterName continue with task under list item.");
                   }
 
               }, syncContext);
@@ -579,7 +579,7 @@ namespace Bible.Alarm.ViewModels
 
         public void Dispose()
         {
-            subscription?.Dispose();
+            _subscription?.Dispose();
         }
     }
 }

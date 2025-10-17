@@ -11,36 +11,36 @@ namespace Bible.Alarm.Services
         ScheduleDbContext scheduleDbContext)
         : IAlarmService
     {
-        private readonly IContainer container = container;
+        private readonly IContainer _container = container;
 
         public Task Create(AlarmSchedule schedule)
         {
-            scheduleNotification(schedule);
+            ScheduleNotification(schedule);
             return Task.CompletedTask;
         }
 
         public void Update(AlarmSchedule schedule)
         {
-            removeNotification(schedule.Id);
+            RemoveNotification(schedule.Id);
 
             if (schedule.IsEnabled)
             {
-                scheduleNotification(schedule);
+                ScheduleNotification(schedule);
             }
         }
 
         public void Delete(long scheduleId)
         {
-            removeNotification(scheduleId);
+            RemoveNotification(scheduleId);
         }
 
-        private void scheduleNotification(AlarmSchedule schedule)
+        private void ScheduleNotification(AlarmSchedule schedule)
         {
             notificationService.ScheduleNotification(schedule, string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name,
                 "Press to start listening now.");
         }
 
-        private void removeNotification(long scheduleId)
+        private void RemoveNotification(long scheduleId)
         {
             notificationService.Remove(scheduleId);
         }
