@@ -6,4 +6,8 @@
     <LangVersion>13.0</LangVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

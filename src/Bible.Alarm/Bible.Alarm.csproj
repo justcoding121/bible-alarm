@@ -1,8 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-windows10.0.19041.0</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">net9.0-ios</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">net9.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>Bible.Alarm</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -65,7 +63,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
-		<ProjectReference Include="..\..\library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj" />
+		<ProjectReference Include="..\..\library\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
 	</ItemGroup>
 
 	<!-- App Icon (MauiIcon) -->

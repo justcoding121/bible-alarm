@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <Title>NLog.Targets.Loggly</Title>
+    <Description>A custom target for NLog that sends log messages to loggly.com using the loggly-csharp library</Description>
+    <Authors>neutmute</Authors>
+    <LangVersion>13.0</LangVersion>
+    <RepositoryUrl>https://github.com/neutmute/nlog-targets-loggly.git</RepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NLog" Version="6.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Loggly\Loggly.csproj" />
+  </ItemGroup>
+
+</Project>

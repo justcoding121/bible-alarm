@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>13.0</LangVersion>
     <TargetFramework>net9.0</TargetFramework>
     <Description>Configuration classes for loggly clients. Settings are read from app.config or can be programmatically injected at runtime. See readme.md for documentation</Description>
     <AssemblyTitle>loggly-csharp-config</AssemblyTitle>

@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Bible.Alarm.Shared.Utilities;
+using System;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
-using Bible.Alarm.Shared.Utilities;
+
 
 namespace Bible.Alarm.VersionPatcher
 {
