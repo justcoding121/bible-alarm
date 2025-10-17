@@ -95,10 +95,9 @@
                             VerticalOptions="Fill">
                             <Label
                                 Margin="5,0,2,0"
-                                BindingContext="{Binding Path=CurrentLanguage, Mode=TwoWay}"
                                 HorizontalOptions="End"
                                 HorizontalTextAlignment="End"
-                                Text="{Binding Path=Name, Mode=OneWay}"
+                                Text="{Binding Path=CurrentLanguage.Name, Mode=OneWay}"
                                 TextColor="SlateBlue"
                                 VerticalOptions="Fill"
                                 VerticalTextAlignment="Center" />

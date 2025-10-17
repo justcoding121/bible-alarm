@@ -39,7 +39,7 @@ namespace MediaManager.Platforms.Uap.Video
 
         public void Dispose()
         {
-            if (MediaManager.MediaPlayer.AutoAttachVideoView && MediaManager.MediaPlayer.VideoView == this)
+            if (MediaManager.MediaPlayer.AutoAttachVideoView && ReferenceEquals(MediaManager.MediaPlayer.VideoView, this))
                 MediaManager.MediaPlayer.VideoView = null;
         }
     }
