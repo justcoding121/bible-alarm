@@ -255,7 +255,7 @@ namespace MediaManager.Platforms.Android.Player
             {
                 try
                 {
-                    var castContext = CastContext.GetSharedInstance(Android.App.Application.Context);
+                    var castContext = CastContext.GetSharedInstance(global::Android.App.Application.Context);
                     var player = new CastPlayer(castContext);
                     player.AddListener(PlayerEventListener);
                     return player;

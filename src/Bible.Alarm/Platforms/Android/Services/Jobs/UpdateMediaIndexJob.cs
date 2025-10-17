@@ -1,6 +1,7 @@
 ﻿using Android.App;
 using Android.App.Job;
 using Android.Content;
+using Bible.Alarm.Services;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
@@ -21,7 +22,7 @@ namespace Bible.Alarm.Services.Droid.Tasks
         public UpdateMediaIndexJob()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, Microsoft.Maui.Devices.DeviceInfo.Platform.Android);
+                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;
         }
@@ -43,8 +44,8 @@ namespace Bible.Alarm.Services.Droid.Tasks
                 try
                 {
                     var container = BootstrapHelper.GetInitializedContainer();
-                    var mediaIndexService = container.Resolve<IMediaIndexService>();
-                    await mediaIndexService.UpdateMediaIndex();
+                    var mediaIndexService = container.Resolve<MediaIndexService>();
+                    await mediaIndexService.UpdateIndexIfAvailable();
                 }
                 catch (Exception e)
                 {

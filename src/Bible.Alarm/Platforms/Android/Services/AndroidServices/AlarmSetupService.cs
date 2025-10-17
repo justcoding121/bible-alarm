@@ -2,17 +2,14 @@
 using Android.Content;
 using Android.OS;
 using Android.Runtime;
-using Bible.Alarm.Droid;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Droid.Services.Tasks;
+using Bible.Alarm.Services.Droid.Extensions;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
-using Newtonsoft.Json;
 using NLog;
-using System;
-using System.Threading.Tasks;
-using Microsoft.Maui.Devices;
+using Bible.Alarm.Platforms.Android;
 using static Android.App.AlarmManager;
 
 namespace Bible.Alarm.Services.Droid.Tasks

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Android.App;
+﻿using Android.App;
 using Android.Content;
 using Android.OS;
 using Android.Runtime;
@@ -8,26 +6,19 @@ using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using AndroidX.Core.Content;
 using AndroidX.Media;
-using Bible.Alarm;
-using Bible.Alarm.Droid;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
-using MediaManager.Platforms.Android;
 using Com.Google.Android.Exoplayer2;
 using Com.Google.Android.Exoplayer2.Ext.Mediasession;
 using Com.Google.Android.Exoplayer2.UI;
 using Com.Google.Android.Exoplayer2.Ext.Cast;
-using MediaManager.Platforms.Android.Media;
 using NLog;
-using Android.Gms.Cast.Framework;
-using MediaManager.Platforms.Android.Player;
-using MediaManager.Library;
-using System.IO;
 using AndroidX.Media.Session;
-using System.Threading;
-using Newtonsoft.Json;
+using MediaManager.Library;
+using MediaManager.Platforms.Android.Media;
+using MediaManager.Platforms.Android.Player;
 
 namespace MediaManager.Platforms.Android.MediaSession
 {
@@ -59,7 +50,7 @@ namespace MediaManager.Platforms.Android.MediaSession
         public MediaBrowserService()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, Microsoft.Maui.Devices.DeviceInfo.Platform.Android);
+                [$"AndroidSdk {Build.VERSION.SdkInt}"], "Android");
 
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;
@@ -142,7 +133,7 @@ namespace MediaManager.Platforms.Android.MediaSession
                 PlayerNotificationManager.SetUsePlayPauseActions(MediaManager.Notification.ShowPlayPauseControls);
                 PlayerNotificationManager.SetUseNavigationActions(MediaManager.Notification.ShowNavigationControls);
 
-                mediaManager.Init(Android.App.Application.Context);
+                mediaManager.Init(global::Android.App.Application.Context);
                 mediaManager.AndroidMediaPlayer.Initialize();
 
                 if (CastPlayer != null)

@@ -2,6 +2,7 @@
 using Android.Content;
 using Android.OS;
 using Bible.Alarm.Droid.Services.Platform;
+using Bible.Alarm.Services.Droid.Extensions;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Services.Infrastructure;

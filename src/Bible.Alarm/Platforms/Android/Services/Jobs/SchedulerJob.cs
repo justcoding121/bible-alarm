@@ -2,6 +2,7 @@
 using Android.App.Job;
 using Android.Content;
 using Bible.Alarm.Services.Droid.Helpers;
+using Bible.Alarm.Services.Tasks;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
 using NLog;
@@ -21,7 +22,7 @@ namespace Bible.Alarm.Services.Droid.Tasks
         public SchedulerJob()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, Microsoft.Maui.Devices.DeviceInfo.Platform.Android);
+                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;
         }
@@ -43,8 +44,8 @@ namespace Bible.Alarm.Services.Droid.Tasks
                 try
                 {
                     var container = BootstrapHelper.GetInitializedContainer();
-                    var schedulerService = container.Resolve<ISchedulerService>();
-                    await schedulerService.ProcessScheduledTasks();
+                    var schedulerService = container.Resolve<SchedulerTask>();
+                    await schedulerService.Handle();
                 }
                 catch (Exception e)
                 {

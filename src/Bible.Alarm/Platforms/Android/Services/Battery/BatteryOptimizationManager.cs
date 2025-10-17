@@ -1,5 +1,6 @@
 ﻿using Android.Content;
 using Bible.Alarm.Contracts.Battery;
+using Bible.Alarm.Services.Droid.Extensions;
 using NLog;
 using System;
 

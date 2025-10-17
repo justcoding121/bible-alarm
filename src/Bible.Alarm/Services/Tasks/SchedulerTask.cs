@@ -34,6 +34,11 @@ namespace Bible.Alarm.Services.Tasks
             this.storageService = storageService;
         }
 
+        public async Task ProcessScheduledTasks()
+        {
+            await Handle();
+        }
+
         public async Task<bool> Handle()
         {
             var downloaded = false;

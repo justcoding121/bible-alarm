@@ -69,6 +69,11 @@ namespace Bible.Alarm.Services
             }
         }
 
+        public async Task UpdateMediaIndex()
+        {
+            await UpdateIndexIfAvailable();
+        }
+
         public async Task<bool> UpdateIndexIfAvailable()
         {
             await @lock.WaitAsync();
