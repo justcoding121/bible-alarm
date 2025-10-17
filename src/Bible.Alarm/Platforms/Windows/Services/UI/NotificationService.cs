@@ -2,14 +2,14 @@
 using NLog;
 using System;
 using System.Threading.Tasks;
-using Bible.Alarm.UWP.Services.Handlers;
-using Microsoft.Toolkit.Uwp.Notifications;
+using Bible.Alarm.Services.Windows.Handlers;
+using Microsoft.Windows.AppNotifications;
 using Windows.UI.Notifications;
 using System.Linq;
-using Bible.Alarm.Services.Uwp.Helpers;
+using Bible.Alarm.Services.Windows.Helpers;
 using Bible.Alarm.Models;
 
-namespace Bible.Alarm.Services.UWP
+namespace Bible.Alarm.Services.Windows
 {
     public class UwpNotificationService : INotificationService
     {

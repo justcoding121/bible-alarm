@@ -11,6 +11,8 @@
     <EnableDefaultMauiItems>False</EnableDefaultMauiItems>
     <EnableDefaultCompileItems>False</EnableDefaultCompileItems>
     <SingleProject>true</SingleProject>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>False</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />

@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using Windows.Storage;
 
-namespace Bible.Alarm.Uwp.Services.Storage
+namespace Bible.Alarm.Services.Windows.Storage
 {
     public class UwpStorageService : StorageService
     {

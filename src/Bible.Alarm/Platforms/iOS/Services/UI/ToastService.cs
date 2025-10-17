@@ -3,9 +3,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UIKit;
-using Xamarin.Essentials;
+using Microsoft.Maui.ApplicationModel;
 
-[assembly: Xamarin.Forms.Dependency(typeof(iOSToastService))]
+[assembly: Microsoft.Maui.Controls.Dependency(typeof(iOSToastService))]
 namespace Bible.Alarm.Services.iOS
 {
     public class iOSToastService : ToastService, IDisposable

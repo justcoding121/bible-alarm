@@ -1,12 +1,12 @@
 ﻿using Bible.Alarm.Services;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Xamarin.Essentials;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.Maui.ApplicationModel;
 
-namespace JW.Alarm.Services.UWP
+namespace Bible.Alarm.Services.Windows
 {
     public class UwpToastService : ToastService
     {

@@ -7,7 +7,7 @@ using MediaManager.Platforms.Uap.Video;
 using MediaManager.Player;
 using MediaManager.Video;
 using Windows.Media.Playback;
-using Windows.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media;
 using MediaPlayerState = MediaManager.Player.MediaPlayerState;
 
 namespace MediaManager.Platforms.Uap.Player

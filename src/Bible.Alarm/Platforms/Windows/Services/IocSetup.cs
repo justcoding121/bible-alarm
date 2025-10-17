@@ -1,15 +1,14 @@
-﻿namespace Bible.Alarm.Services.Uwp
+﻿namespace Bible.Alarm.Services.Windows
 {
     using Bible.Alarm;
     using Bible.Alarm.Contracts.Network;
     using Bible.Alarm.Contracts.Platform;
     using Bible.Alarm.Services;
     using Bible.Alarm.Services.Contracts;
-    using Bible.Alarm.Services.UWP;
-    using Bible.Alarm.Uwp.Services.Platform;
-    using Bible.Alarm.Uwp.Services.Storage;
-    using Bible.Alarm.UWP.Services.Handlers;
-    using JW.Alarm.Services.UWP;
+    using Bible.Alarm.Services.Windows;
+    using Bible.Alarm.Services.Windows.Platform;
+    using Bible.Alarm.Services.Windows.Storage;
+    using Bible.Alarm.Services.Windows.Handlers;
     using MediaManager;
     using MediaManager.Platforms.Uap.Player;
     using Microsoft.EntityFrameworkCore;

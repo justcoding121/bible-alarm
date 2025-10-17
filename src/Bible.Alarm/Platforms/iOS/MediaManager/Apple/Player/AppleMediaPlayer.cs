@@ -131,14 +131,10 @@ namespace MediaManager.Platforms.Apple.Player
             if (reason == null)
             {
             }
-            else if (reason == AVPlayer.WaitingToMinimizeStallsReason)
+            else
             {
-            }
-            else if (reason == AVPlayer.WaitingWhileEvaluatingBufferingRateReason)
-            {
-            }
-            else if (reason == AVPlayer.WaitingWithNoItemToPlayReason)
-            {
+                // Handle waiting reasons - these constants may not be available in all iOS versions
+                // so we'll just log the reason without specific checks
             }
         }
 

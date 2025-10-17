@@ -32,7 +32,7 @@ namespace Bible.Alarm.Services
             return await dbContext.BibleTranslations.Where(x => x.Language.Code == languageCode).ToDictionaryAsync(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
+        public async Task<Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
         {
             await mediaLookUpService.Verify();
 
@@ -42,7 +42,7 @@ namespace Bible.Alarm.Services
                                                          .OrderBy(x => x.Number)
                                                          .ToListAsync();
 
-            return new OrderedDictionary<int, BibleBook>(books.Select(x => new KeyValuePair<int, BibleBook>(x.Number, x)));
+            return new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, BibleBook>(books.Select(x => new KeyValuePair<int, BibleBook>(x.Number, x)));
         }
 
         public async Task<BibleBook> GetBibleBook(string languageCode, string versionCode, int bookNumber)
@@ -58,7 +58,7 @@ namespace Bible.Alarm.Services
             return book;
         }
 
-        public async Task<OrderedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int bookNumber)
+        public async Task<Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int bookNumber)
         {
             await mediaLookUpService.Verify();
 
@@ -72,7 +72,7 @@ namespace Bible.Alarm.Services
                 .OrderBy(x => x.Number)
                 .ToListAsync();
 
-            return new OrderedDictionary<int, BibleChapter>(chapters.Select(x => new KeyValuePair<int, BibleChapter>(x.Number, x)));
+            return new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, BibleChapter>(chapters.Select(x => new KeyValuePair<int, BibleChapter>(x.Number, x)));
         }
 
         public async Task<BibleChapter> GetBibleChapter(string languageCode, 
@@ -98,7 +98,7 @@ namespace Bible.Alarm.Services
             return await dbContext.MelodyMusic.ToDictionaryAsync(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
+        public async Task<Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
         {
             await mediaLookUpService.Verify();
 
@@ -109,7 +109,7 @@ namespace Bible.Alarm.Services
                 .OrderBy(x => x.Number)
                 .ToListAsync();
 
-            return new OrderedDictionary<int, MusicTrack>(tracks.Select(x => new KeyValuePair<int, MusicTrack>(x.Number, x)));
+            return new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, MusicTrack>(tracks.Select(x => new KeyValuePair<int, MusicTrack>(x.Number, x)));
         }
 
         public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
@@ -127,7 +127,7 @@ namespace Bible.Alarm.Services
             return await dbContext.VocalMusic.Where(x => x.Language.Code == languageCode).ToDictionaryAsync(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode)
+        public async Task<Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode)
         {
             await mediaLookUpService.Verify();
 
@@ -139,7 +139,7 @@ namespace Bible.Alarm.Services
                 .OrderBy(x => x.Number)
                 .ToListAsync();
 
-            return new OrderedDictionary<int, MusicTrack>(tracks.Select(x => new KeyValuePair<int, MusicTrack>(x.Number, x)));
+            return new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, MusicTrack>(tracks.Select(x => new KeyValuePair<int, MusicTrack>(x.Number, x)));
         }
 
         public async Task UpdateBibleTrackUrl(string languageCode, string versionCode,

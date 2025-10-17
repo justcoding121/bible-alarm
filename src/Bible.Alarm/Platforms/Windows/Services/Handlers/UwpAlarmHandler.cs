@@ -13,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Media;
 
-namespace Bible.Alarm.UWP.Services.Handlers
+namespace Bible.Alarm.Services.Windows.Handlers
 {
     public class UwpAlarmHandler : IDisposable
     {

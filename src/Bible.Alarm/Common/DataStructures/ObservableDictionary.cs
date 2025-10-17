@@ -11,11 +11,11 @@ namespace Bible.Alarm.Common.DataStructures
                                                         INotifyCollectionChanged
                                                             where TKey : IComparable
     {
-        private readonly OrderedDictionary<TKey, TValue> dictionary;
+        private readonly Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<TKey, TValue> dictionary;
 
         public ObservableDictionary()
         {
-            dictionary = new OrderedDictionary<TKey, TValue>();
+            dictionary = new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<TKey, TValue>();
         }
 
         public TValue this[TKey key]

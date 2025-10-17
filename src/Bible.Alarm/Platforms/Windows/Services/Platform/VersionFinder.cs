@@ -2,7 +2,7 @@
 using System;
 using Windows.ApplicationModel;
 
-namespace Bible.Alarm.Uwp.Services.Platform
+namespace Bible.Alarm.Services.Windows.Platform
 {
     public class UwpVersionFinder : IVersionFinder
     {

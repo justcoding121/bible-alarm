@@ -132,8 +132,8 @@ namespace Bible.Alarm.Services
 
             var nextTracks = await playlistService.NextTracks(scheduleId);
 
-            var downloadedTracks = new OrderedDictionary<int, FileInfo>();
-            var streamingTracks = new OrderedDictionary<int, string>();
+            var downloadedTracks = new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, FileInfo>();
+            var streamingTracks = new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, string>();
 
             var playDetailMap = new Dictionary<int, NotificationDetail>();
 
@@ -268,7 +268,7 @@ namespace Bible.Alarm.Services
 
             }))).ToList();
 
-            var mergedMediaItems = new OrderedDictionary<int, IMediaItem>();
+            var mergedMediaItems = new Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, IMediaItem>();
 
             i = 0;
             foreach (var item in downloadedTracks)
