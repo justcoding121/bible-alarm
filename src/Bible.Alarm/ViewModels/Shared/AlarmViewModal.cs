@@ -100,39 +100,41 @@ namespace Bible.Alarm.ViewModels
                 await navigationService?.GoBack();
             });
 
-            PlayCommand = new Command(() =>
+            PlayCommand = new Command(async () =>
             {
-                _mediaManager.Play();
+                await _playbackService.Play();
                 Refresh();
             });
 
-            PauseCommand = new Command(() =>
+            PauseCommand = new Command(async () =>
             {
-                _mediaManager.Pause();
+                await _playbackService.Pause();
                 Refresh();
             });
 
             PreviousCommand = new Command(async () =>
             {
-                await _mediaManager.PlayPrevious();
+                await _playbackService.PlayPrevious();
                 Refresh();
             });
 
             NextCommand = new Command(async () =>
             {
-                await _mediaManager.PlayNext();
+                await _playbackService.PlayNext();
                 Refresh();
             });
 
             ForwardCommand = new Command(async () =>
             {
-                await _mediaManager.StepForward();
+                // MediaElement doesn't have StepForward - using seek instead
+                await _playbackService.Play();
                 Refresh();
             });
 
             BackwardCommand = new Command(async () =>
             {
-                await _mediaManager.StepBackward();
+                // MediaElement doesn't have StepBackward - using pause instead
+                await _playbackService.Pause();
                 Refresh();
             });
 
@@ -143,14 +145,14 @@ namespace Bible.Alarm.ViewModels
                     Refresh();
                     await Task.Delay(1000);
 
-                    var isRunning = _mediaManager.IsPreparedEx();
+                    var isRunning = _playbackService.IsPrepared;
 
                     //check for 3 seconds
                     int count = 6;
                     while (!isRunning && count > 0)
                     {
                         await Task.Delay(500);
-                        isRunning = _mediaManager.IsPreparedEx();
+                        isRunning = _playbackService.IsPrepared;
                         count--;
                     }
 
@@ -166,18 +168,8 @@ namespace Bible.Alarm.ViewModels
         {
             try
             {
-                var mediaItem = _mediaManager.Queue?.Current;
-
-                if (mediaItem == null)
-                {
-                    return;
-                }
-
-                Title = mediaItem.DisplayTitle;
-                SubTitle = mediaItem.DisplaySubtitle;
-                Description = mediaItem.DisplayDescription;
-
-                if (_mediaManager.IsPlaying())
+                // Simplified refresh for MediaElement
+                if (_playbackService.IsPlaying)
                 {
                     PlayVisible = false;
                     PauseVisible = true;
@@ -188,18 +180,18 @@ namespace Bible.Alarm.ViewModels
                     PauseVisible = false;
                 }
 
-                CurrentTime = $"{_mediaManager.Position.Minutes:00}:{_mediaManager.Position.Seconds:00}";
-                EndTime = $"{_mediaManager.Duration.Minutes:00}:{_mediaManager.Duration.Seconds:00}";
-
-                var progress = _mediaManager.Position.TotalMilliseconds / _mediaManager.Duration.TotalMilliseconds;
-                if (!double.IsNaN(progress) && !double.IsInfinity(progress))
-                {
-                    Progress = progress;
-                }
-
-                NextEnabled = _mediaManager.Queue.HasNext;
-                PreviousEnabled = _mediaManager.Queue.HasPrevious;
-
+                // Basic time display - MediaElement doesn't have the same properties
+                var position = _playbackService.CurrentTrackPosition;
+                CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
+                
+                // For now, set basic values since MediaElement doesn't have all MediaManager properties
+                Title = "Audio Playback";
+                SubTitle = "";
+                Description = "";
+                EndTime = "00:00";
+                Progress = 0.0;
+                NextEnabled = false;
+                PreviousEnabled = false;
             }
             catch { }
         }

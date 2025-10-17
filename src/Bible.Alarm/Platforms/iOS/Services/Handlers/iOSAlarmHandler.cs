@@ -31,7 +31,7 @@ namespace Bible.Alarm.iOS.Services.Handlers
             {
                 await @lock.WaitAsync();
 
-                if (mediaManager.IsPreparedEx())
+                if (playbackService.IsPrepared)
                 {
                     Dispose();
                     return;

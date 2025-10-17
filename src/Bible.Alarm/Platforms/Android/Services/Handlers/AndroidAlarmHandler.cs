@@ -22,7 +22,7 @@ namespace Bible.Alarm.Droid.Services.Handlers
         private static Logger Logger => LazyLogger.Value;
 
 
-        private bool _mediaManagerInitialized = false;
+        private bool _playbackServiceInitialized = false;
         private PlayerNotificationManager _playerNotificationManager;
 
         public event EventHandler<bool> Disposed;
@@ -55,7 +55,7 @@ namespace Bible.Alarm.Droid.Services.Handlers
                 notificationService.RemoveLocalNotification(schedule.Id);
             }
 
-            mediaManager.Init(Android.App.Application.Context);
+            // MediaManager removed - using MediaElement instead
 
             await Task.Run(async () =>
             {
@@ -63,10 +63,9 @@ namespace Bible.Alarm.Droid.Services.Handlers
                 {
                     await playbackService.PrepareAndPlay(scheduleId, isImmediate);
 
-                    _mediaManagerInitialized = true;
+                    _playbackServiceInitialized = true;
 
-                    _playerNotificationManager = (mediaManager.Notification as NotificationManager).PlayerNotificationManager;
-                    _playerNotificationManager.NotificationCancelled += NotificationCancelled;
+                    // Notification manager removed - using MediaElement instead
                 }
                 catch (Exception e)
                 {
@@ -80,7 +79,7 @@ namespace Bible.Alarm.Droid.Services.Handlers
         {
             if (e.DismissedByUser)
             {
-                await mediaManager.Stop();
+                await playbackService.Dismiss();
             }
         }
 
@@ -98,9 +97,9 @@ namespace Bible.Alarm.Droid.Services.Handlers
             dbContext.Dispose();
             notificationService.Dispose();
 
-            if (_mediaManagerInitialized)
+            if (_playbackServiceInitialized)
             {
-                mediaManager?.Dispose();
+                // MediaManager removed - using MediaElement instead
             }
 
             Disposed?.Invoke(this, true);

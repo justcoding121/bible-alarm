@@ -39,8 +39,7 @@ namespace Bible.Alarm.Droid
         {
             base.OnCreate(savedInstanceState);
 
-            // Initialize MediaManager
-            CrossMediaManager.Current.Init(this);
+            // MediaManager removed - using MediaElement instead
 
             // Initialize Cast Framework
             _castContext = CastContext.GetSharedInstance(this);
@@ -61,13 +60,13 @@ namespace Bible.Alarm.Droid
         protected override void OnResume()
         {
             base.OnResume();
-            CrossMediaManager.Current.MediaPlayer.Play();
+            // MediaManager removed - using MediaElement instead
         }
 
         protected override void OnPause()
         {
             base.OnPause();
-            CrossMediaManager.Current.MediaPlayer.Pause();
+            // MediaManager removed - using MediaElement instead
         }
 
         protected override void OnDestroy()

@@ -153,7 +153,7 @@ namespace Bible.Alarm.ViewModels
 
                 if (!IsNewSchedule)
                 {
-                    if (_mediaManager.IsPreparedEx()
+                    if (_playbackService.IsPrepared
                         && _scheduleId == _playbackService.CurrentlyPlayingScheduleId)
                     {
                         await _playbackService.Dismiss();
@@ -179,7 +179,7 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                if (_mediaManager.IsPreparedEx()
+                if (_playbackService.IsPrepared
                        && _scheduleId == _playbackService.CurrentlyPlayingScheduleId)
                 {
                     await _playbackService.Dismiss();

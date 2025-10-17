@@ -396,7 +396,7 @@ namespace Bible.Alarm.ViewModels
                     {
                         if (Schedule.Id > 0)
                         {
-                            var mediaManager = container.Resolve<IMediaManager>();
+                            var playbackService = container.Resolve<IPlaybackService>();
 
                             await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
 
@@ -511,9 +511,9 @@ namespace Bible.Alarm.ViewModels
              {
                  try
                  {
-                     var mediaManager = _container.Resolve<IMediaManager>();
+                     var playbackService = _container.Resolve<IPlaybackService>();
 
-                     if (Schedule == null || (!force && !mediaManager.IsPreparedEx()))
+                     if (Schedule == null || (!force && !playbackService.IsPrepared))
                      {
                          return null;
                      }

@@ -84,8 +84,8 @@ namespace Bible.Alarm.UI
                         case MvvmMessages.ShowAlarmModal:
                             {
                                 //hack to prevent pop-ups in quick succession
-                                var mediaManager = container.Resolve<IMediaManager>();
-                                if (!mediaManager.IsPlaying())
+                                var playbackService = container.Resolve<IPlaybackService>();
+                                if (!playbackService.IsPlaying)
                                 {
                                     break;
                                 }

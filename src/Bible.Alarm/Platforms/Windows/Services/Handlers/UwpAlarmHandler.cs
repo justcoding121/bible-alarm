@@ -31,7 +31,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
             {
                 await @lock.WaitAsync();
 
-                if (_mediaManager.IsPreparedEx())
+                if (_playbackService.IsPrepared)
                 {
                     Dispose();
                     return;

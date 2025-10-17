@@ -1,8 +1,6 @@
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Controls;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Contracts;
 using NLog;
@@ -19,15 +17,12 @@ namespace Bible.Alarm.Services.Media
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
         
         private bool _isPlaying = false;
-        private long _currentScheduleId;
-        private int _currentTrackIndex = 0;
-        private TimeSpan _currentTrackPosition = TimeSpan.Zero;
-        private List<string> _currentPlaylist = new List<string>();
         private bool _isPrepared = false;
+        private TimeSpan _currentTrackPosition = TimeSpan.Zero;
 
         public TimeSpan CurrentTrackPosition => _currentTrackPosition;
-        public int CurrentTrackIndex => _currentTrackIndex;
-        public long CurrentlyPlayingScheduleId => _currentScheduleId;
+        public int CurrentTrackIndex => 0; // MediaElement doesn't have built-in playlist support
+        public long CurrentlyPlayingScheduleId => 0; // Not managed by this service
         public bool IsPlaying => _isPlaying;
         public bool IsPrepared => _isPrepared;
 
@@ -48,22 +43,6 @@ namespace Bible.Alarm.Services.Media
             _mediaElement.PositionChanged += OnPositionChanged;
         }
 
-        public async Task PrepareRelavantPlaylist()
-        {
-            await _lock.WaitAsync();
-            try
-            {
-                // This method would be implemented based on your playlist logic
-                // For now, we'll just mark as prepared
-                _isPrepared = true;
-                Logger.Info("Playlist prepared");
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        }
-
         public async Task Play()
         {
             await _lock.WaitAsync();
@@ -71,7 +50,7 @@ namespace Bible.Alarm.Services.Media
             {
                 if (!_isPrepared)
                 {
-                    throw new InvalidOperationException("Cannot play without preparing.");
+                    throw new InvalidOperationException("Cannot play without setting source first.");
                 }
 
                 if (_mediaElement != null)
@@ -80,27 +59,6 @@ namespace Bible.Alarm.Services.Media
                     _isPlaying = true;
                     Logger.Info("Playback started");
                 }
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        }
-
-        public async Task PrepareAndPlay(long scheduleId, bool isImmediate)
-        {
-            await _lock.WaitAsync();
-            try
-            {
-                _currentScheduleId = scheduleId;
-                _isPrepared = true;
-                
-                if (isImmediate)
-                {
-                    await Play();
-                }
-                
-                Logger.Info($"Prepared and {(isImmediate ? "playing" : "ready to play")} schedule {scheduleId}");
             }
             finally
             {
@@ -120,10 +78,7 @@ namespace Bible.Alarm.Services.Media
                 
                 _isPlaying = false;
                 _isPrepared = false;
-                _currentScheduleId = 0;
-                _currentTrackIndex = 0;
                 _currentTrackPosition = TimeSpan.Zero;
-                _currentPlaylist.Clear();
                 
                 Logger.Info("Playback dismissed");
             }
@@ -141,6 +96,7 @@ namespace Bible.Alarm.Services.Media
                 if (_mediaElement != null)
                 {
                     _mediaElement.Source = source;
+                    _isPrepared = true;
                     Logger.Info($"Media source set to: {source}");
                 }
             }
@@ -206,6 +162,9 @@ namespace Bible.Alarm.Services.Media
             }
         }
 
+        public event EventHandler<EventArgs> MediaEnded;
+        public event EventHandler<EventArgs> MediaFailed;
+
         private void OnMediaOpened(object sender, EventArgs e)
         {
             Logger.Info("Media opened successfully");
@@ -215,15 +174,14 @@ namespace Bible.Alarm.Services.Media
         {
             Logger.Info("Media playback ended");
             _isPlaying = false;
-            
-            // Handle next track logic here if needed
-            // This would depend on your playlist implementation
+            MediaEnded?.Invoke(this, e);
         }
 
         private void OnMediaFailed(object sender, EventArgs e)
         {
             Logger.Error("Media playback failed");
             _isPlaying = false;
+            MediaFailed?.Invoke(this, e);
         }
 
         private void OnPositionChanged(object sender, EventArgs e)
@@ -231,20 +189,6 @@ namespace Bible.Alarm.Services.Media
             if (_mediaElement != null)
             {
                 _currentTrackPosition = _mediaElement.Position;
-            }
-        }
-
-        public async Task PrepareRelevantPlaylist()
-        {
-            await _lock.WaitAsync();
-            try
-            {
-                // Implementation for preparing relevant playlist
-                Logger.Info("Preparing relevant playlist");
-            }
-            finally
-            {
-                _lock.Release();
             }
         }
 

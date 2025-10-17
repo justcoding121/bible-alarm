@@ -63,8 +63,7 @@ namespace Bible.Alarm.iOS
         {
                     try
                     {
-                        // Initialize MediaManager for iOS
-                        CrossMediaManager.Current.Init();
+                        // MediaManager removed - using MediaElement instead
 
                         // Initialize iOS-specific services
                         Bible.Alarm.Services.iOS.IocSetup.Initialize(container, false);

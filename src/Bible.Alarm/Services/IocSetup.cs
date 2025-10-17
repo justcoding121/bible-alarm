@@ -51,7 +51,13 @@ namespace Bible.Alarm.Services
 
                     if (playbackService == null)
                     {
-                        playbackService = new PlaybackService(container.Resolve<IMediaElementAudioService>());
+                        playbackService = new PlaybackService(
+                            container.Resolve<IMediaElementAudioService>(),
+                            container.Resolve<IPlaylistService>(),
+                            container.Resolve<IMediaCacheService>(),
+                            container.Resolve<IStorageService>(),
+                            container.Resolve<INetworkStatusService>(),
+                            container.Resolve<IDownloadService>());
                     }
 
                     return playbackService;

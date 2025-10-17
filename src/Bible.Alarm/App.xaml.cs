@@ -76,9 +76,9 @@ namespace Bible.Alarm
                 }, taskScheduler)
                 .ContinueWith(x =>
                 {
-                    var mediaManager = _container.Resolve<IMediaManager>();
+                    var playbackService = _container.Resolve<IPlaybackService>();
 
-                    if (mediaManager.IsPreparedEx())
+                    if (playbackService.IsPrepared)
                     {
                         Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
                     }
@@ -100,9 +100,9 @@ namespace Bible.Alarm
                     // Handle when your app starts  
                     await navigationService.NavigateToHome();
 
-                    var mediaManager = _container.Resolve<IMediaManager>();
+                    var playbackService = _container.Resolve<IPlaybackService>();
 
-                    if (mediaManager.IsPreparedEx())
+                    if (playbackService.IsPrepared)
                     {
                         Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
                     }
@@ -135,9 +135,9 @@ namespace Bible.Alarm
             {
                 try
                 {
-                    var mediaManager = _container.Resolve<IMediaManager>();
+                    var playbackService = _container.Resolve<IPlaybackService>();
                     // Handle when your app resumes
-                    if (mediaManager.IsPreparedEx())
+                    if (playbackService.IsPrepared)
                     {
                         Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
                     }
