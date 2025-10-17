@@ -102,7 +102,7 @@
                             EventName="ItemTapped" />
                     </ListView.Behaviors>
                     <ListView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="vm:BibleChapterListViewItemModel">
                             <ViewCell>
                                 <Grid
                                     Padding="5,0,5,0"

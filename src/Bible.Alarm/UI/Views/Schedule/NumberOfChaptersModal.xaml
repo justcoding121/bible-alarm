@@ -60,8 +60,8 @@
                         EventArgsConverter="{StaticResource itemTappedConverter}"
                         EventName="ItemTapped" />
                 </ListView.Behaviors>
-                <ListView.ItemTemplate>
-                    <DataTemplate>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NumberOfChaptersListViewItemModel">
                         <ViewCell>
                             <Grid BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}" HorizontalOptions="Fill">
                                 <Label
