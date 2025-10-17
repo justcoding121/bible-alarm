@@ -30,7 +30,7 @@
                 Grid.Row="0"
                 Margin="10,2,2,2"
                 BackgroundColor="White"
-                Font="Bold,18"
+                FontSize="18" FontAttributes="Bold"
                 HeightRequest="50"
                 Text="Number of chapters to read"
                 TextColor="Black"
@@ -81,7 +81,7 @@
                 Margin="2"
                 Padding="0"
                 Command="{Binding CloseModalCommand}"
-                Font="Bold,18"
+                FontSize="18" FontAttributes="Bold"
                 HeightRequest="{OnPlatform Default='50',
                                            UWP='37'}"
                 HorizontalOptions="Fill"

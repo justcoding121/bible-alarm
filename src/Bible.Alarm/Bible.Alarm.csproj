@@ -35,8 +35,8 @@
   
 
   <ItemGroup>
-    <EmbeddedResource Include="App.xaml" />
-    <EmbeddedResource Include="UI\Views\**\*.xaml" />
+    <MauiXaml Include="App.xaml" />
+    <MauiXaml Include="UI\Views\**\*.xaml" />
   </ItemGroup>
   
   <!-- Platform-specific code -->
@@ -231,6 +231,61 @@
     <Compile Include="Services\Storage\StorageService.cs" />
     <Compile Include="Services\Tasks\SchedulerTask.cs" />
     <Compile Include="Services\UI\ToastService.cs" />
+    <Compile Include="UI\IocSetup.cs" />
+    <Compile Include="UI\Services\NavigationService.cs" />
+    <Compile Include="UI\ViewHelpers\AnimateUtils.cs" />
+    <Compile Include="UI\ViewHelpers\Behaviours\BindingBehaviour.cs" />
+    <Compile Include="UI\ViewHelpers\Behaviours\EventToCommandBehaviour.cs" />
+    <Compile Include="UI\ViewHelpers\ColorUtils.cs" />
+    <Compile Include="UI\ViewHelpers\Converters\DayColorConverter.cs" />
+    <Compile Include="UI\ViewHelpers\Converters\IsEnabledConverter.cs" />
+    <Compile Include="UI\ViewHelpers\Converters\IsSelectedColorConverter.cs" />
+    <Compile Include="UI\ViewHelpers\Converters\ItemTappedEventArgsConverter.cs" />
+    <Compile Include="UI\ViewHelpers\Converters\NegateBooleanConverter.cs" />
+    <Compile Include="UI\ViewHelpers\Converters\PlayStatusIconConverter.cs" />
+    <Compile Include="UI\ViewHelpers\Converters\RepeatColorConverter.cs" />
+    <Compile Include="UI\Views\Bible\BibleSelection.xaml.cs">
+      <DependentUpon>BibleSelection.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Bible\BookSelection.xaml.cs">
+      <DependentUpon>BookSelection.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Bible\ChapterSelection.xaml.cs">
+      <DependentUpon>ChapterSelection.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\FontFileResources.xaml.cs">
+      <DependentUpon>FontFileResources.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\General\AlarmModal.xaml.cs">
+      <DependentUpon>AlarmModal.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\General\BatteryOptimizationExclusionModal.xaml.cs">
+      <DependentUpon>BatteryOptimizationExclusionModal.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\General\MediaProgressModal.xaml.cs">
+      <DependentUpon>MediaProgressModal.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Home.xaml.cs">
+      <DependentUpon>Home.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Music\MusicSelection.xaml.cs">
+      <DependentUpon>MusicSelection.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Music\SongBookSelection.xaml.cs">
+      <DependentUpon>SongBookSelection.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Music\TrackSelection.xaml.cs">
+      <DependentUpon>TrackSelection.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Schedule\NumberOfChaptersModal.xaml.cs">
+      <DependentUpon>NumberOfChaptersModal.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Schedule\Schedule.xaml.cs">
+      <DependentUpon>Schedule.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Views\Shared\LanguageModal.xaml.cs">
+      <DependentUpon>LanguageModal.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ViewModels\Bible\BibleSelectionViewModel.cs" />
     <Compile Include="ViewModels\Bible\BookSelectionViewModel.cs" />
     <Compile Include="ViewModels\Bible\ChapterSelectionViewModel.cs" />

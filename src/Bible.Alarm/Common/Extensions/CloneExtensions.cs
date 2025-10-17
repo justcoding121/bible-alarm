@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+﻿using Newtonsoft.Json;
 
 namespace Bible.Alarm.Common.Extensions
 {
@@ -7,14 +6,8 @@ namespace Bible.Alarm.Common.Extensions
     {
         public static T DeepClone<T>(this T obj)
         {
-            using (var ms = new MemoryStream())
-            {
-                var formatter = new BinaryFormatter();
-                formatter.Serialize(ms, obj);
-                ms.Position = 0;
-
-                return (T)formatter.Deserialize(ms);
-            }
+            var json = JsonConvert.SerializeObject(obj);
+            return JsonConvert.DeserializeObject<T>(json);
         }
     }
 }

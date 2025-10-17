@@ -59,8 +59,9 @@
                             Margin="2,2,0,2"
                             AutomationId="CancelButton"
                             Command="{Binding CancelCommand}"
-                            Font="{OnPlatform Default='Bold,18',
-                                          UWP='Bold,16'}"
+                            FontSize="{OnPlatform Default='18',
+                                          UWP='16'}"
+                            FontAttributes="Bold"
                             HeightRequest="{OnPlatform Default='50',
                                                    UWP='37'}"
                             HorizontalOptions="Fill"
@@ -73,8 +74,9 @@
                             Margin="0,2,2,2"
                             AutomationId="SaveButton"
                             Command="{Binding SaveCommand}"
-                            Font="{OnPlatform Default='Bold,18',
-                                          UWP='Bold,16'}"
+                            FontSize="{OnPlatform Default='18',
+                                          UWP='16'}"
+                            FontAttributes="Bold"
                             HeightRequest="{OnPlatform Default='50',
                                                    UWP='37'}"
                             HorizontalOptions="Fill"
@@ -425,8 +427,7 @@
                               HorizontalOptions="Fill"
                               VerticalOptions="Fill">
                             <Grid.IsVisible>
-                                <OnPlatform x:TypeArguments="x:Boolean"
-                                            Default="false"
+                                <OnPlatform Default="false"
                                             Android="true" />
                             </Grid.IsVisible>
                             <Grid.ColumnDefinitions>
@@ -520,8 +521,8 @@
                     <Button Margin="2,2,2,10"
                             Padding="0"
                             Command="{Binding DeleteCommand}"
-                            Font="{OnPlatform Default='Bold,16',
-                                          UWP='Bold,14'}"
+                            FontSize="{OnPlatform Default='16',
+                                          UWP='14'}"
                             HeightRequest="{OnPlatform Default='50',
                                                    UWP='37'}"
                             HorizontalOptions="Fill"

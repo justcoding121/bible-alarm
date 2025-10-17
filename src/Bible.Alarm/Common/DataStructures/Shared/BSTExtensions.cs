@@ -215,10 +215,10 @@ namespace Advanced.Algorithms.DataStructures
 
             if (item.CompareTo(node.Value) < 0)
             {
-                return Location(node.Left, item);
+                return Position(node.Left, item);
             }
 
-            var position = Location(node.Right, item);
+            var position = Position(node.Right, item);
 
             return position < 0 ? position : position + leftCount + 1;
         }
