@@ -6,7 +6,7 @@ namespace Bible.Alarm.iOS.Services.Platform
 {
     public class VersionFinder : IVersionFinder
     {
-        private readonly static Lazy<string> version = new Lazy<string>(() => getVersionName());
+        private static readonly Lazy<string> version = new Lazy<string>(() => getVersionName());
         public static VersionFinder Default => new VersionFinder();
 
         public string GetVersionName()

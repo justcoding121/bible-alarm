@@ -14,7 +14,7 @@ namespace Bible.Alarm.Services.Droid
         private static readonly SemaphoreSlim @lock = new SemaphoreSlim(1);
         private static Toast latest;
 
-        public async override Task ShowMessage(string message, int seconds)
+        public override async Task ShowMessage(string message, int seconds)
         {
             await @lock.WaitAsync();
 
@@ -57,7 +57,7 @@ namespace Bible.Alarm.Services.Droid
         }
 
         //not needed for android
-        public async override Task Clear()
+        public override async Task Clear()
         {
             await @lock.WaitAsync();
 

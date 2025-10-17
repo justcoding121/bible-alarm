@@ -50,7 +50,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
               logger.Error("Unhandled exception.", e.SerializeObject());
         }
 
-        public async override void OnReceive(Context context, Intent intent)
+        public override async void OnReceive(Context context, Intent intent)
         {
             var pendingIntent = GoAsync();
 

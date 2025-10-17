@@ -37,7 +37,7 @@ namespace Bible.Alarm.Platforms.Android
             logger.Error("Unhandled exception.", e.SerializeObject());
         }
 
-        protected async override void OnCreate(Bundle bundle)
+        protected override async void OnCreate(Bundle bundle)
         {
             base.OnCreate(bundle);
 
@@ -73,7 +73,7 @@ namespace Bible.Alarm.Platforms.Android
         }
 
 
-        public async override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
+        public override async void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
         {
             try
             {

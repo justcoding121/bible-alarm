@@ -11,7 +11,7 @@ namespace Bible.Alarm.Services.iOS
     public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
-        public async override Task ShowMessage(string message, int seconds)
+        public override async Task ShowMessage(string message, int seconds)
         {
             if (clearRequest != null)
             {

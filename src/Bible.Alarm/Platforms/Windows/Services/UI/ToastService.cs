@@ -23,7 +23,7 @@ namespace Bible.Alarm.Services.Windows
             return Task.CompletedTask;
         }
 
-        public async override Task ShowMessage(string message, int seconds)
+        public override async Task ShowMessage(string message, int seconds)
         {
             if (clearRequest != null)
             {

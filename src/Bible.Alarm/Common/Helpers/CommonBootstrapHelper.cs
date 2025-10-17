@@ -8,7 +8,7 @@ namespace Bible.Alarm.Common.Helpers
     public static class CommonBootstrapHelper
     {
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
-        public async static Task VerifyServices(IContainer container)
+        public static async Task VerifyServices(IContainer container)
         {
             await @lock.WaitAsync();
 
@@ -25,7 +25,7 @@ namespace Bible.Alarm.Common.Helpers
             }
         }
 
-        private async static Task verifyMediaLookUpService(IContainer container)
+        private static async Task verifyMediaLookUpService(IContainer container)
         {
             using var service = container.Resolve<MediaIndexService>();
             await service.Verify();

@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.Windows.Platform
 {
     public class UwpVersionFinder : IVersionFinder
     {
-        private readonly static Lazy<string> version = new Lazy<string>(() => getVersionName());
+        private static readonly Lazy<string> version = new Lazy<string>(() => getVersionName());
         public static UwpVersionFinder Default => new UwpVersionFinder();
 
         public string GetVersionName()

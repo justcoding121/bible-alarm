@@ -87,7 +87,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
             return container;
         }
 
-        public async static Task VerifyServices(IContainer container)
+        public static async Task VerifyServices(IContainer container)
         {
             await CommonBootstrapHelper.VerifyServices(container);
         }
