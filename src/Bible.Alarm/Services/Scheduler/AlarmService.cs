@@ -4,23 +4,14 @@ using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services
 {
-    public class AlarmService : IAlarmService
+    public class AlarmService(
+        IContainer container,
+        INotificationService notificationService,
+        IMediaCacheService mediaCacheService,
+        ScheduleDbContext scheduleDbContext)
+        : IAlarmService
     {
-        private readonly IContainer container;
-        private INotificationService notificationService;
-        private IMediaCacheService mediaCacheService;
-        private ScheduleDbContext scheduleDbContext;
-
-        public AlarmService(IContainer container,
-            INotificationService notificationService,
-            IMediaCacheService mediaCacheService,
-            ScheduleDbContext scheduleDbContext)
-        {
-            this.container = container;
-            this.notificationService = notificationService;
-            this.mediaCacheService = mediaCacheService;
-            this.scheduleDbContext = scheduleDbContext;
-        }
+        private readonly IContainer container = container;
 
         public Task Create(AlarmSchedule schedule)
         {

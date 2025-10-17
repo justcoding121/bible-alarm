@@ -21,14 +21,9 @@ namespace Bible.Alarm.Common.Mvvm
 
     public static class Messenger<T>
     {
-        private class MessageWrapper
+        private class MessageWrapper(T parameter)
         {
-            public T Parameter { get; private set; }
-
-            public MessageWrapper(T parameter)
-            {
-                Parameter = parameter;
-            }
+            public T Parameter { get; private set; } = parameter;
         }
 
         private static ConcurrentDictionary<MvvmMessages, BehaviorSubject<MessageWrapper>> cache

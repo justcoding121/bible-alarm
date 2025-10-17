@@ -11,28 +11,18 @@ using Microsoft.Maui;
 
 namespace Bible.Alarm.Services.Tasks
 {
-    public class SchedulerTask : IDisposable
+    public class SchedulerTask(
+        ScheduleDbContext scheduleDbContext,
+        IMediaCacheService mediaCacheService,
+        IAlarmService alarmService,
+        INotificationService notificationService,
+        IStorageService storageService)
+        : IDisposable
     {
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
-        private ScheduleDbContext scheduleDbContext;
-        private IMediaCacheService mediaCacheService;
-        private IAlarmService alarmService;
-        private INotificationService notificationService;
-        private IStorageService storageService;
-
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
-        public SchedulerTask(ScheduleDbContext scheduleDbContext, IMediaCacheService mediaCacheService,
-              IAlarmService alarmService, INotificationService notificationService,
-              IStorageService storageService)
-        {
-            this.scheduleDbContext = scheduleDbContext;
-            this.mediaCacheService = mediaCacheService;
-            this.alarmService = alarmService;
-            this.notificationService = notificationService;
-            this.storageService = storageService;
-        }
 
         public async Task ProcessScheduledTasks()
         {

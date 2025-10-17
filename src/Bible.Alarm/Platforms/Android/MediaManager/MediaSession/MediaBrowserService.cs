@@ -158,14 +158,9 @@ namespace MediaManager.Platforms.Android.MediaSession
             }
         }
 
-        private class CastSessionAvailabilityListener : Java.Lang.Object, ISessionAvailabilityListener
+        private class CastSessionAvailabilityListener(MediaBrowserService service)
+            : Java.Lang.Object, ISessionAvailabilityListener
         {
-            private MediaBrowserService service;
-            public CastSessionAvailabilityListener(MediaBrowserService service)
-            {
-                this.service = service;
-            }
-
             public void OnCastSessionUnavailable()
             {
                 service.SwitchToPlayer(service.CurrentPlayer, service.CastPlayer);

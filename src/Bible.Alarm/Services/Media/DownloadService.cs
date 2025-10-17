@@ -10,18 +10,12 @@ namespace Bible.Alarm.Services
     /// <summary>
     /// Download service
     /// </summary>
-    public class DownloadService : IDownloadService
+    public class DownloadService(HttpMessageHandler handler) : IDownloadService
     {
         private readonly int downloadRetryAttempts = 3;
         private readonly int fileExistsCheckRetryAttempts = 3;
 
         private readonly int timeOutSeconds = 3;
-
-        private HttpMessageHandler handler;
-        public DownloadService(HttpMessageHandler handler)
-        {
-            this.handler = handler;
-        }
 
         /// <summary>
         /// Dowload the file from the Url

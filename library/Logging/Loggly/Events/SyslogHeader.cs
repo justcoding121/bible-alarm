@@ -6,11 +6,6 @@ namespace Loggly
     {
         public int MessageId { get; set; }
 
-        public Level Level { get; set; }
-
-        public SyslogHeader()
-        {
-            Level = Level.Information;
-        }
+        public Level Level { get; set; } = Level.Information;
     }
 }

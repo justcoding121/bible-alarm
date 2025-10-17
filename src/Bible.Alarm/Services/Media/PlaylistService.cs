@@ -10,23 +10,14 @@ using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services
 {
-    public class PlaylistService : IPlaylistService
+    public class PlaylistService(
+        ScheduleDbContext scheduleDbContext,
+        MediaDbContext mediaDbContext,
+        MediaService mediaService)
+        : IPlaylistService
     {
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
-
-        private ScheduleDbContext scheduleDbContext;
-        private MediaDbContext mediaDbContext;
-        private MediaService mediaService;
-
-        public PlaylistService(ScheduleDbContext scheduleDbContext,
-            MediaDbContext mediaDbContext,
-            MediaService mediaService)
-        {
-            this.scheduleDbContext = scheduleDbContext;
-            this.mediaService = mediaService;
-            this.mediaDbContext = mediaDbContext;
-        }
 
         public async Task<long> GetRelavantScheduleToPlay()
         {

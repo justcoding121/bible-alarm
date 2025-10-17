@@ -4,13 +4,9 @@ using Microsoft.Maui.Networking;
 
 namespace Bible.Alarm.Services.Network
 {
-    public class NetworkStatusService : INetworkStatusService
+    public class NetworkStatusService(IContainer container) : INetworkStatusService
     {
-        public IContainer container { get; set; }
-        public NetworkStatusService(IContainer container)
-        {
-            this.container = container;
-        }
+        public IContainer container { get; set; } = container;
 
         public Task<bool> IsInternetAvailable()
         {

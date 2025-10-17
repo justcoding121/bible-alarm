@@ -13,30 +13,20 @@ using UIKit;
 
 namespace Bible.Alarm.iOS.Services.Handlers
 {
-    public class iOSAlarmHandler : IDisposable
+    public class iOSAlarmHandler(
+        IPlaybackService playbackService,
+        IMediaManager mediaManager,
+        TaskScheduler taskScheduler)
+        : IDisposable
     {
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
 
-        private IPlaybackService playbackService;
-        private IMediaManager mediaManager;
-        private TaskScheduler taskScheduler;
-
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
 
         //Need this to fix issue in XamarinMediaManager (notification stays on screen)
         private static bool firstTime = true;
-
-        public iOSAlarmHandler(IPlaybackService playbackService,
-                                IMediaManager mediaManager,
-                                TaskScheduler taskScheduler)
-        {
-            this.playbackService = playbackService;
-            this.mediaManager = mediaManager;
-            this.taskScheduler = taskScheduler;
-
-        }
 
         public async Task Handle(long scheduleId, bool isImmediate)
         {

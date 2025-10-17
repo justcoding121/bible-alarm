@@ -8,17 +8,10 @@ using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services.Droid
 {
-    public class PreviewPlayService : Java.Lang.Object,
+    public class PreviewPlayService(IContainer container, MediaPlayer player) : Java.Lang.Object,
         MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable
     {
-        private readonly IContainer container;
-        private MediaPlayer player;
-
-        public PreviewPlayService(IContainer container, MediaPlayer player)
-        {
-            this.container = container;
-            this.player = player;
-        }
+        private MediaPlayer player = player;
 
         public event Action OnStopped;
 

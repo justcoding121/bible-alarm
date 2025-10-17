@@ -24,7 +24,7 @@ using Android.Content.Res;
 
 namespace Bible.Alarm.Services.Droid
 {
-    public class DroidNotificationService : INotificationService
+    public class DroidNotificationService(IContainer container, IStorageService storageService) : INotificationService
     {
         public static readonly string CHANNEL_ID_AND_NAME = "alarm_notification";
         public static readonly string CHANNEL_DESCRIPTION = "alarm_notification are send to this channel";
@@ -33,15 +33,6 @@ namespace Bible.Alarm.Services.Droid
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
-
-        private readonly IContainer container;
-        private readonly IStorageService storageService;
-
-        public DroidNotificationService(IContainer container, IStorageService storageService)
-        {
-            this.container = container;
-            this.storageService = storageService;
-        }
 
         public async Task ShowNotification(long scheduleId)
         {

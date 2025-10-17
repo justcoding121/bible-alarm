@@ -4,22 +4,16 @@ using System;
 
 namespace Bible.Alarm.ViewModels
 {
-    public class LanguageListViewItemModel : ViewModel, IComparable
+    public class LanguageListViewItemModel(Language language) : ViewModel, IComparable
     {
-        public string Name { get; set; }
-        public string Code { get; set; }
+        public string Name { get; set; } = language.Name;
+        public string Code { get; set; } = language.Code;
 
         private bool isSelected;
         public bool IsSelected
         {
             get => isSelected;
             set => this.Set(ref isSelected, value);
-        }
-
-        public LanguageListViewItemModel(Language language)
-        {
-            Name = language.Name;
-            Code = language.Code;
         }
 
         public int CompareTo(object obj)

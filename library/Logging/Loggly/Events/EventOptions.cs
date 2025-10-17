@@ -8,11 +8,6 @@ namespace Loggly
         /// <summary>
         /// Custom tags per event
         /// </summary>
-        public List<ITag> Tags { get; set; }
-
-        public EventOptions()
-        {
-            Tags = new List<ITag>();
-        }
+        public List<ITag> Tags { get; set; } = new List<ITag>();
     }
 }

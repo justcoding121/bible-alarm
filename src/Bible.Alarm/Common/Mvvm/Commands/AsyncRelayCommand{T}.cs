@@ -8,13 +8,12 @@
     /// <summary>
     /// An helper command to create asynchronous implementations of ICommand with a typed argument.
     /// </summary>
-    public class AsyncRelayCommand<T> : IAsyncRelayCommand
+    public class AsyncRelayCommand<T>(Func<T, CancellationToken, Task> execute, Func<T, bool> canExecute = null)
+        : IAsyncRelayCommand
     {
-        #region Fields 
+        #region Fields
 
-        private readonly Func<T, CancellationToken, Task> execute;
-
-        private readonly Func<T, bool> canExecute;
+        private readonly Func<T, bool> canExecute = canExecute ?? ((p) => true);
 
         private DateTime? lastExecution;
 
@@ -43,12 +42,6 @@
         #endregion
 
         #region Constructors
-
-        public AsyncRelayCommand(Func<T, CancellationToken, Task> execute, Func<T, bool> canExecute = null)
-        {
-            this.execute = execute;
-            this.canExecute = canExecute ?? ((p) => true);
-        }
 
         #endregion
 

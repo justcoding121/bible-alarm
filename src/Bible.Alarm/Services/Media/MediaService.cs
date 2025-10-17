@@ -8,18 +8,11 @@ using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services
 {
-    public class MediaService : IDisposable
+    public class MediaService(
+        MediaIndexService mediaLookUpService,
+        MediaDbContext dbContext)
+        : IDisposable
     {
-        private MediaIndexService mediaLookUpService;
-        private MediaDbContext dbContext;
-
-        public MediaService(MediaIndexService mediaLookUpService,
-            MediaDbContext dbContext)
-        {
-            this.mediaLookUpService = mediaLookUpService;
-            this.dbContext = dbContext;
-        }
-
         public async Task<Dictionary<string, Language>> GetBibleLanguages()
         {
             await mediaLookUpService.Verify();

@@ -8,19 +8,13 @@ using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services.iOS
 {
-    public class PreviewPlayService : IPreviewPlayService, IDisposable
+    public class PreviewPlayService(IContainer container, IDownloadService downloadService)
+        : IPreviewPlayService, IDisposable
     {
-        private readonly IContainer container;
+        private readonly IContainer container = container;
         private AVAudioPlayer player;
-        private IDownloadService downloadService;
 
         public event Action OnStopped;
-
-        public PreviewPlayService(IContainer container, IDownloadService downloadService)
-        {
-            this.container = container;
-            this.downloadService = downloadService;
-        }
 
         ///<Summary>
         /// Load wave or mp3 audio file from the Android assets folder

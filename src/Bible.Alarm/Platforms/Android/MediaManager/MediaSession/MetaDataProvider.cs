@@ -17,16 +17,10 @@ using static Com.Google.Android.Exoplayer2.Ext.Mediasession.MediaSessionConnecto
 
 namespace MediaManager.Platforms.Android.Player
 {
-    public class MetaDataProvider : Java.Lang.Object, IMediaMetadataProvider
+    public class MetaDataProvider(MediaControllerCompat mediaController, String metadataExtrasPrefix)
+        : Java.Lang.Object, IMediaMetadataProvider
     {
-        private DefaultMediaMetadataProvider defaultMediaMetadataProvider;
-
-        public MetaDataProvider(
-            MediaControllerCompat mediaController, String metadataExtrasPrefix)
-        {
-            defaultMediaMetadataProvider =
-                    new DefaultMediaMetadataProvider(mediaController, metadataExtrasPrefix);
-        }
+        private DefaultMediaMetadataProvider defaultMediaMetadataProvider = new(mediaController, metadataExtrasPrefix);
 
         public MediaMetadataCompat GetMetadata(IPlayer player)
         {

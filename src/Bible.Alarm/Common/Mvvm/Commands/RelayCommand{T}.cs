@@ -5,23 +5,15 @@
     /// <summary>
     /// An helper command to create implementations of ICommand with a typed argument.
     /// </summary>
-    public class RelayCommand<T> : IRelayCommand
+    public class RelayCommand<T>(Action<T> execute, Func<T, bool> canExecute = null) : IRelayCommand
     {
         #region Constructors
-
-        public RelayCommand(Action<T> execute, Func<T, bool> canExecute = null)
-        {
-            this.execute = execute;
-            this.canExecute = canExecute ?? ((o) => true);
-        }
 
         #endregion
 
         #region Fields
 
-        private Action<T> execute;
-
-        private Func<T, bool> canExecute;
+        private Func<T, bool> canExecute = canExecute ?? ((o) => true);
 
         #endregion
 
@@ -37,7 +29,7 @@
 
         public bool CanExecute(object parameter) => this.canExecute((T)parameter);
 
-        public void Execute(object parameter) => this.execute((T)parameter);
+        public void Execute(object parameter) => execute((T)parameter);
 
         #endregion
     }

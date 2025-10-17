@@ -8,15 +8,8 @@ using Microsoft.Maui.ApplicationModel;
 [assembly: Microsoft.Maui.Controls.Dependency(typeof(iOSToastService))]
 namespace Bible.Alarm.Services.iOS
 {
-    public class iOSToastService : ToastService, IDisposable
+    public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
-        private readonly TaskScheduler taskScheduler;
-
-        public iOSToastService(TaskScheduler taskScheduler)
-        {
-            this.taskScheduler = taskScheduler;
-        }
-
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
         public async override Task ShowMessage(string message, int seconds)
         {

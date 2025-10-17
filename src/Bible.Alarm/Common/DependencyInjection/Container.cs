@@ -3,13 +3,9 @@
     using System;
     using System.Collections.Generic;
 
-    public class Container : IContainer
+    public class Container(Dictionary<string, object> context) : IContainer
     {
-        public Dictionary<string, object> Context { get; private set; }
-        public Container(Dictionary<string, object> context)
-        {
-            Context = context;
-        }
+        public Dictionary<string, object> Context { get; private set; } = context;
 
         #region Fields
 

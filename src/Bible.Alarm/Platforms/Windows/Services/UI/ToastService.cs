@@ -8,15 +8,8 @@ using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Services.Windows
 {
-    public class UwpToastService : ToastService
+    public class UwpToastService(TaskScheduler taskScheduler) : ToastService
     {
-        private readonly TaskScheduler taskScheduler;
-
-        public UwpToastService(TaskScheduler taskScheduler)
-        {
-            this.taskScheduler = taskScheduler;
-        }
-
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
 
         private static TaskCompletionSource<bool> clearRequest;

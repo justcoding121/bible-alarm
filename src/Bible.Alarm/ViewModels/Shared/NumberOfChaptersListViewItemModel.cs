@@ -3,21 +3,16 @@ using System;
 
 namespace Bible.Alarm.ViewModels
 {
-    public class NumberOfChaptersListViewItemModel : ViewModel, IComparable
+    public class NumberOfChaptersListViewItemModel(int number) : ViewModel, IComparable
     {
         public string Text => $"{Value} {(Value == 1 ? "chapter" : "chapters")}";
-        public int Value { get; set; }
+        public int Value { get; set; } = number;
 
         private bool isSelected;
         public bool IsSelected
         {
             get => isSelected;
             set => this.Set(ref isSelected, value);
-        }
-
-        public NumberOfChaptersListViewItemModel(int number)
-        {
-            Value = number;
         }
 
         public int CompareTo(object obj)

@@ -6,18 +6,13 @@ using System;
 
 namespace Bible.Alarm.Droid.Services.Battery
 {
-    public class BatteryOptimizationManager : IBatteryOptimizationManager
+    public class BatteryOptimizationManager(IContainer container) : IBatteryOptimizationManager
     {
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
 
-        public IContainer container { get; set; }
-
-        public BatteryOptimizationManager(IContainer container)
-        {
-            this.container = container;
-        }
+        public IContainer container { get; set; } = container;
 
         public void ShowBatteryOptimizationExclusionSettingsPage()
         {

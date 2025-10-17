@@ -4,15 +4,8 @@ using System;
 
 namespace Bible.Alarm.ViewModels
 {
-    public class PublicationListViewItemModel : ViewModel, IComparable
+    public class PublicationListViewItemModel(Publication publication) : ViewModel, IComparable
     {
-        private readonly Publication publication;
-
-        public PublicationListViewItemModel(Publication publication)
-        {
-            this.publication = publication;
-        }
-
         private bool isSelected;
         public bool IsSelected
         {

@@ -7,46 +7,38 @@
     /// <summary>
     /// The result of an assignment of an Observable property.
     /// </summary>
-    public class Assignement<TObservable, T> where TObservable : VMObservable
+    public class Assignement<TObservable, T>(TObservable owner, string property, T oldValue, T newValue)
+        where TObservable : VMObservable
     {
-        public Assignement(TObservable owner, string property, T oldValue, T newValue)
-        {
-            this.Owner = owner;
-            this.PropertyName = property;
-            this.OldValue = oldValue;
-            this.NewValue = newValue;
-            this.HasChanged = !EqualityComparer<T>.Default.Equals(oldValue, newValue);
-        }
-
         /// <summary>
         /// Gets the Obserbable object that has the updated property.
         /// </summary>
         /// <value>The owner.</value>
-        public TObservable Owner { get; }
+        public TObservable Owner { get; } = owner;
 
         /// <summary>
         /// Gets the name of the property that has been assigned.
         /// </summary>
         /// <value>The name of the property.</value>
-        public string PropertyName { get; }
+        public string PropertyName { get; } = property;
 
         /// <summary>
         /// Gets a value indicating whether the new value is different from the old one.
         /// </summary>
         /// <value><c>true</c> if has changed; otherwise, <c>false</c>.</value>
-        public bool HasChanged { get; }
+        public bool HasChanged { get; } = !EqualityComparer<T>.Default.Equals(oldValue, newValue);
 
         /// <summary>
         /// Gets the old value.
         /// </summary>
         /// <value>The old value.</value>
-        public T OldValue { get; }
+        public T OldValue { get; } = oldValue;
 
         /// <summary>
         /// Gets the new value.
         /// </summary>
         /// <value>The new value.</value>
-        public T NewValue { get; }
+        public T NewValue { get; } = newValue;
 
         /// <summary>
         /// If the value has changed, then raise a set of other property.

@@ -14,30 +14,19 @@ using NLog;
 
 namespace Bible.Alarm.Droid.Services.Handlers
 {
-    public class AndroidAlarmHandler : IAndroidAlarmHandler, IDisposable
+    public class AndroidAlarmHandler(
+        IMediaManager mediaManager,
+        IPlaybackService playbackService,
+        ScheduleDbContext dbContext,
+        DroidNotificationService notificationService)
+        : IAndroidAlarmHandler, IDisposable
     {
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
 
-        private IMediaManager mediaManager;
-        private IPlaybackService playbackService;
         private bool mediaManagerInitialized = false;
         private PlayerNotificationManager playerNotificationManager;
-        private DroidNotificationService notificationService;
-        private ScheduleDbContext dbContext;
-
-        public AndroidAlarmHandler(IMediaManager mediaManager,
-            IPlaybackService playbackService,
-            ScheduleDbContext dbContext,
-            DroidNotificationService notificationService)
-        {
-            this.mediaManager = mediaManager;
-            this.playbackService = playbackService;
-            this.notificationService = notificationService;
-            this.dbContext = dbContext;
-
-        }
 
         public event EventHandler<bool> Disposed;
 

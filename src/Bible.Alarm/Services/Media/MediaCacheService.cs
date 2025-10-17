@@ -18,41 +18,24 @@ using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services
 {
-    public class MediaCacheService : IMediaCacheService
+    public class MediaCacheService(
+        IStorageService storageService,
+        IDownloadService downloadService,
+        IPlaylistService mediaPlayService,
+        ScheduleDbContext dbContext,
+        MediaService mediaService,
+        INetworkStatusService networkStatusService,
+        IMediaManager mediaManager)
+        : IMediaCacheService
     {
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
 
-        private readonly string cacheRoot;
-
-        private IStorageService storageService;
-        private IDownloadService downloadService;
-        private IPlaylistService mediaPlayService;
-        private ScheduleDbContext scheduleDbContext;
-        private INetworkStatusService networkStatusService;
-        private IMediaManager mediaManager;
-        private MediaService mediaService;
+        private readonly string cacheRoot = Path.Combine(storageService.CacheRoot, "MediaCache");
 
         private static ConcurrentDictionary<long, SemaphoreSlim> lockStore =
                     new ConcurrentDictionary<long, SemaphoreSlim>();
-
-        public MediaCacheService(IStorageService storageService,
-            IDownloadService downloadService, IPlaylistService mediaPlayService,
-            ScheduleDbContext dbContext, MediaService mediaService,
-            INetworkStatusService networkStatusService,
-            IMediaManager mediaManager)
-        {
-            this.storageService = storageService;
-            this.downloadService = downloadService;
-            this.mediaPlayService = mediaPlayService;
-            this.scheduleDbContext = dbContext;
-            this.mediaService = mediaService;
-            this.networkStatusService = networkStatusService;
-            this.mediaManager = mediaManager;
-
-            cacheRoot = Path.Combine(storageService.CacheRoot, "MediaCache");
-        }
 
         public string GetCacheFileName(string url)
         {
@@ -253,7 +236,7 @@ namespace Bible.Alarm.Services
 
         public async Task CleanUp()
         {
-            var schedules = await scheduleDbContext
+            var schedules = await dbContext
                 .AlarmSchedules
                 .AsNoTracking()
                 .ToListAsync();
@@ -303,7 +286,7 @@ namespace Bible.Alarm.Services
             storageService.Dispose();
             downloadService.Dispose();
             mediaPlayService.Dispose();
-            scheduleDbContext.Dispose();
+            dbContext.Dispose();
             networkStatusService.Dispose();
             mediaService.Dispose();
 

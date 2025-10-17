@@ -180,14 +180,8 @@ namespace Bible.Alarm.ViewModels
         }
     }
 
-    public class BibleBookListViewItemModel : ViewModel, IComparable
+    public class BibleBookListViewItemModel(BibleBook book) : ViewModel, IComparable
     {
-        private readonly BibleBook book;
-        public BibleBookListViewItemModel(BibleBook book)
-        {
-            this.book = book;
-        }
-
         private bool isSelected;
         public bool IsSelected
         {

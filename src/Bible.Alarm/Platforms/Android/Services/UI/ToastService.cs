@@ -8,17 +8,12 @@ using Bible.Alarm.Services.Droid.Extensions;
 
 namespace Bible.Alarm.Services.Droid
 {
-    public class DroidToastService : ToastService, IDisposable
+    public class DroidToastService(IContainer container) : ToastService, IDisposable
     {
-        private readonly IContainer container;
-        private readonly TaskScheduler taskScheduler;
+        private readonly TaskScheduler taskScheduler = container.Resolve<TaskScheduler>();
         private static readonly SemaphoreSlim @lock = new SemaphoreSlim(1);
         private static Toast latest;
-        public DroidToastService(IContainer container)
-        {
-            this.container = container;
-            this.taskScheduler = container.Resolve<TaskScheduler>();
-        }
+
         public async override Task ShowMessage(string message, int seconds)
         {
             await @lock.WaitAsync();

@@ -11,15 +11,8 @@ using Bible.Alarm.Models;
 
 namespace Bible.Alarm.Services.Windows
 {
-    public class UwpNotificationService : INotificationService
+    public class UwpNotificationService(IContainer container) : INotificationService
     {
-        private readonly IContainer container;
-
-        public UwpNotificationService(IContainer container)
-        {
-            this.container = container;
-        }
-
         public async Task ShowNotification(long scheduleId)
         {
             var uwpAlarmHandler = container.Resolve<UwpAlarmHandler>();
