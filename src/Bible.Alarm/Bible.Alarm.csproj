@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <UseMaui>true</UseMaui>
+    <TargetFrameworks>net9.0-ios;net9.0-android;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
+    <EnableDefaultMauiItems>False</EnableDefaultMauiItems>
+    <EnableDefaultCompileItems>False</EnableDefaultCompileItems>
+    <SingleProject>true</SingleProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.1.9" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NLog" Version="4.7.14" />
+    <PackageReference Include="System.Reactive.Linq" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.0" />
+    <PackageReference Include="Plugin.StoreReview" Version="3.3.0" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
+    <PackageReference Include="Xamarin.AndroidX.Browser" Version="1.8.0.6" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
+    <ProjectReference Include="..\..\Library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj" />
+  </ItemGroup>
+  
+  <!-- Main project files -->
+  <ItemGroup>
+    <Compile Include="App.xaml.cs" />
+    <Compile Include="MauiProgramExtensions.cs" />
+    <Compile Include="Common\**\*.cs" />
+    <Compile Include="Contracts\**\*.cs" />
+    <Compile Include="Models\**\*.cs" />
+    <Compile Include="Services\**\*.cs" />
+    <Compile Include="UI\**\*.cs" />
+    <Compile Include="ViewModels\**\*.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Include="App.xaml" />
+    <EmbeddedResource Include="UI\Views\**\*.xaml" />
+  </ItemGroup>
+  
+  <!-- Platform-specific code -->
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
+    <Compile Include="Platforms\Android\**\*.cs" />
+    <AndroidResource Include="Platforms\Android\Resources\**" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-ios'))">
+    <Compile Include="Platforms\iOS\**\*.cs" />
+    <BundleResource Include="Platforms\iOS\Resources\**" />
+    <BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
+    <Compile Include="Platforms\Windows\**\*.cs" />
+    <Content Include="Platforms\Windows\Assets\**" />
+  </ItemGroup>
+</Project>
