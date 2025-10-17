@@ -33,8 +33,8 @@
 
             container.Register<INotificationService>((x) => new UwpNotificationService(container));
 
-            container.Register<Windows.Media.Playback.MediaPlayer>((x) => new Windows.Media.Playback.MediaPlayer());
-            container.Register<IPreviewPlayService>((x) => new Bible.Alarm.Services.Windows.PreviewPlayService(container.Resolve<Windows.Media.Playback.MediaPlayer>()));
+            container.Register<global::Windows.Media.Playback.MediaPlayer>((x) => new global::Windows.Media.Playback.MediaPlayer());
+            container.Register<IPreviewPlayService>((x) => new Bible.Alarm.Services.Windows.PreviewPlayService(container.Resolve<global::Windows.Media.Playback.MediaPlayer>()));
 
             container.Register((x) =>
             {

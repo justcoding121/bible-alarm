@@ -34,7 +34,7 @@
             return JsonConvert.DeserializeObject<IEnumerable<Publication>>(bibleTranslations).ToDictionary(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
+        public async Task<Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
         {
             var root = indexRoot;
             var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, "books.json");
@@ -43,7 +43,7 @@
                                                     .Select(x => new KeyValuePair<int, BibleBook>(x.Number, x)));
         }
 
-        public async Task<OrderedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int bookNumber)
+        public async Task<Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int bookNumber)
         {
             var root = indexRoot;
             var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, bookNumber.ToString(), "chapters.json");
@@ -60,7 +60,7 @@
             return JsonConvert.DeserializeObject<IEnumerable<Publication>>(fileContent).ToDictionary(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
+        public async Task<Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
         {
             var root = indexRoot;
             var trackIndex = Path.Combine(root, "Music", "Melodies", publicationCode, "tracks.json");

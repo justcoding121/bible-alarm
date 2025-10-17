@@ -33,7 +33,7 @@ namespace Bible.Alarm.Services.Windows
             var scheduleId = schedule.Id;
             var time = schedule.NextFireDate();
             // Construct the toast content using built-in Windows APIs
-            var toastXml = Windows.UI.Notifications.ToastNotificationManager.GetTemplateContent(Windows.UI.Notifications.ToastTemplateType.ToastText02);
+            var toastXml = global::Windows.UI.Notifications.ToastNotificationManager.GetTemplateContent(global::Windows.UI.Notifications.ToastTemplateType.ToastText02);
             var textNodes = toastXml.GetElementsByTagName("text");
             textNodes[0].AppendChild(toastXml.CreateTextNode(title));
             textNodes[1].AppendChild(toastXml.CreateTextNode(body));
@@ -45,7 +45,7 @@ namespace Bible.Alarm.Services.Windows
             // Add launch arguments
             var launchAttribute = toastXml.CreateAttribute("launch");
             launchAttribute.Value = scheduleId.ToString();
-            toastElement.SetAttributeNode(launchAttribute);
+            ((global::Windows.Data.Xml.Dom.XmlElement)toastElement).SetAttributeNode(launchAttribute);
 
             // Create the toast notification object.
             var toast = new ScheduledToastNotification(toastXml, time)

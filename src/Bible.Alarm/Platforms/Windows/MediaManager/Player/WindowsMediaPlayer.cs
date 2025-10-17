@@ -75,16 +75,16 @@ namespace MediaManager.Platforms.Uap.Player
             switch (videoAspectMode)
             {
                 case VideoAspectMode.None:
-                    playerView.Stretch = Windows.UI.Xaml.Media.Stretch.None;
+                    playerView.Stretch = Microsoft.UI.Xaml.Media.Stretch.None;
                     break;
                 case VideoAspectMode.AspectFit:
-                    playerView.Stretch = Windows.UI.Xaml.Media.Stretch.Uniform;
+                    playerView.Stretch = Microsoft.UI.Xaml.Media.Stretch.Uniform;
                     break;
                 case VideoAspectMode.AspectFill:
-                    playerView.Stretch = Windows.UI.Xaml.Media.Stretch.UniformToFill;
+                    playerView.Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill;
                     break;
                 default:
-                    playerView.Stretch = Windows.UI.Xaml.Media.Stretch.None;
+                    playerView.Stretch = Microsoft.UI.Xaml.Media.Stretch.None;
                     break;
             }
         }

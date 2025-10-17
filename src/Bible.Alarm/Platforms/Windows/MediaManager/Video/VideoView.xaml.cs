@@ -27,7 +27,6 @@ namespace MediaManager.Platforms.Uap.Video
 
         public VideoView()
         {
-            this.InitializeComponent();
             Content = PlayerView;
             InitView();
         }
