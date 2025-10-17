@@ -26,7 +26,13 @@
   </ItemGroup>
   
   <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-    <PackageReference Include="Xamarin.AndroidX.Browser" Version="1.8.0.9" />
+    <PackageReference Include="Xam.Plugins.Android.ExoPlayer" Version="2.11.8" />
+    <PackageReference Include="Xam.Plugins.Android.ExoPlayer.Cast" Version="2.11.6" />
+    <PackageReference Include="Xam.Plugins.Android.ExoPlayer.MediaSession" Version="2.11.8" />
+    <PackageReference Include="Xamarin.Google.Dagger" Version="2.39.1" />
+    <PackageReference Include="Xamarin.AndroidX.Work.Runtime" Version="2.7.0" />
+    <PackageReference Include="Xamarin.AndroidX.Work.Work.Runtime.Ktx" Version="2.7.0" />
+    <PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
@@ -42,7 +48,7 @@
   <!-- Platform-specific code -->
   <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
     <Compile Include="Platforms\Android\**\*.cs" />
-    <AndroidResource Include="Platforms\Android\Resources\**" />
+    <AndroidResource Include="Platforms\Android\Resources\**" Exclude="Platforms\Android\Resources\raw\cool_alarm_tone_notification_sound.mp3" />
   </ItemGroup>
   
   <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-ios'))">
@@ -54,6 +60,19 @@
   <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
     <Compile Include="Platforms\Windows\**\*.cs" />
     <Content Include="Platforms\Windows\Assets\**" />
+  </ItemGroup>
+  
+  <!-- Shared resources for all platforms -->
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
+    <AndroidResource Include="Resources\cool_alarm_tone_notification_sound.mp3" Link="Resources\raw\cool_alarm_tone_notification_sound.mp3" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-ios'))">
+    <BundleResource Include="Resources\cool_alarm_tone_notification_sound.mp3" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
+    <Content Include="Resources\cool_alarm_tone_notification_sound.mp3" />
   </ItemGroup>
   
   <ItemGroup>
@@ -148,49 +167,6 @@
     <Compile Include="Models\Schedule\AlarmNotification.cs" />
     <Compile Include="Models\Schedule\AlarmSchedule.cs" />
     <Compile Include="Models\Schedule\BibleReadingSchedule.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaManagerExtensions.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaManagerImplementation.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\CastOptionsProvider.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserConnectionCallback.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserManager.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserService.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaBrowserSubscriptionCallback.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaControllerCallback.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\MediaSessionCallback.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\MetaDataProvider.cs" />
-    <Compile Include="Platforms\Android\MediaManager\MediaSession\NotificationListener.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Media\FileImageProvider.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Media\ID3Provider.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Media\MediaDescriptionAdapter.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Media\MediaExtractor.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Media\MediaItemExtensions.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Media\ResourceImageProvider.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Media\UriImageProvider.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Notifications\NotificationManager.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Playback\PlaybackStateExtensions.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Player\AndroidMediaPlayer.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Player\MetadataOutput.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Player\PlaybackPreparer.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Player\PlayerEventListener.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Player\RatingCallback.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Queue\QueueDataAdapter.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Queue\QueueMediaSourceFactory.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Queue\QueueNavigator.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Video\VideoView.cs" />
-    <Compile Include="Platforms\Android\MediaManager\Volume\VolumeManager.cs" />
-    <Compile Include="Platforms\Android\Services\AndroidServices\AlarmSetupService.cs" />
-    <Compile Include="Platforms\Android\Services\Battery\BatteryOptimizationManager.cs" />
-    <Compile Include="Platforms\Android\Services\BroadcastReceivers\AlarmRingerReceiver.cs" />
-    <Compile Include="Platforms\Android\Services\BroadcastReceivers\RestartReceiver.cs" />
-    <Compile Include="Platforms\Android\Services\Handlers\AndroidAlarmHandler.cs" />
-    <Compile Include="Platforms\Android\Services\IocSetup.cs" />
-    <Compile Include="Platforms\Android\Services\Jobs\SchedulerJob.cs" />
-    <Compile Include="Platforms\Android\Services\Jobs\UpdateMediaIndexJob.cs" />
-    <Compile Include="Platforms\Android\Services\Media\PreviewPlayService.cs" />
-    <Compile Include="Platforms\Android\Services\Platform\VersionFinder.cs" />
-    <Compile Include="Platforms\Android\Services\Storage\StorageService.cs" />
-    <Compile Include="Platforms\Android\Services\UI\NotificationService.cs" />
-    <Compile Include="Platforms\Android\Services\UI\ToastService.cs" />
     <Compile Include="Platforms\Windows\Helpers\BootstrapHelper.cs" />
     <Compile Include="Platforms\Windows\Services\Handlers\UwpAlarmHandler.cs" />
     <Compile Include="Platforms\Windows\Services\IocSetup.cs" />

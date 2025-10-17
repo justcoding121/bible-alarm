@@ -3,7 +3,8 @@ using Bible.Alarm.Droid;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Xamarin.Essentials;
+using Microsoft.Maui.Devices;
+using Bible.Alarm.Services.Droid.Extensions;
 
 namespace Bible.Alarm.Services.Droid
 {

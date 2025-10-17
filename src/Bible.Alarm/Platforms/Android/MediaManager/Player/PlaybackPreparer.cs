@@ -22,7 +22,7 @@ namespace MediaManager.Platforms.Android.Player
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
-        private IContainer container;
+        private Bible.Alarm.IContainer container;
 
         protected MediaManagerImplementation MediaManager => (MediaManagerImplementation)CrossMediaManager.Current;
         protected IPlayer currentPlayer => MediaManager.AndroidMediaPlayer.CurrentPlayer;

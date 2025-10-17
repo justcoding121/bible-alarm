@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using NLog;
 using System;
 using System.Threading.Tasks;
-using Xamarin.Forms;
+using Microsoft.Maui.Devices;
 
 namespace Bible.Alarm.Droid.Services.Tasks
 {

@@ -53,12 +53,12 @@ namespace MediaManager.Platforms.Android.MediaSession
 
         public bool IsForegroundService = false;
 
-        private IContainer container;
+        private Bible.Alarm.IContainer container;
 
         public MediaBrowserService()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, Xamarin.Forms.Device.Android);
+                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, DeviceInfo.Platform.Android);
 
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;

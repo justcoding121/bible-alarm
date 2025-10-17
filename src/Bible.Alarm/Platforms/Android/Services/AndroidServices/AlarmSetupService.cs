@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 using NLog;
 using System;
 using System.Threading.Tasks;
-using Xamarin.Forms;
+using Microsoft.Maui.Devices;
 using static Android.App.AlarmManager;
 
 namespace Bible.Alarm.Services.Droid.Tasks

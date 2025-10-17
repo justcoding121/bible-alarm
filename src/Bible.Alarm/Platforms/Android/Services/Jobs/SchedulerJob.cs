@@ -1,96 +1,67 @@
 ﻿using Android.App;
 using Android.App.Job;
-using Android.OS;
-using Bible.Alarm.Droid.Services.Platform;
+using Android.Content;
 using Bible.Alarm.Services.Droid.Helpers;
-using Bible.Alarm.Services.Droid.Tasks;
+using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
-using Bible.Alarm.Services.Tasks;
-using Newtonsoft.Json;
 using NLog;
 using System;
 using System.Threading.Tasks;
 
-namespace Bible.Alarm.Droid.Services.Tasks
+namespace Bible.Alarm.Services.Droid.Tasks
 {
-    [Service(Name = "com.jthomas.info.Bible.Alarm.jobscheduler.SchedulerJob",
-         Permission = "android.permission.BIND_JOB_SERVICE")]
-    public class SchedulerJob : JobService, IDisposable
+    [Service(Enabled = true)]
+    public class SchedulerJob : JobService
     {
         public const int JobId = 1;
-        private IContainer container;
+
         private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger logger => lazyLogger.Value;
 
         public SchedulerJob()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, Xamarin.Forms.Device.Android);
+                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, DeviceInfo.Platform.Android);
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;
         }
 
         private void unobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            logger.Error(e.Exception, "Unobserved task exception.");
+            logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
         }
 
         private void unhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            logger.Error("Unhandled exception.", e.SerializeObject());
+            logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
         }
 
-        public override bool OnStartJob(JobParameters jobParams)
+        public override bool OnStartJob(JobParameters @params)
         {
-
             Task.Run(async () =>
             {
                 try
                 {
-                    this.container = BootstrapHelper.InitializeService(this);
-
-                    await BootstrapHelper.VerifyServices(container);
-
-                    using var schedulerTask = container.Resolve<SchedulerTask>();
-                    await schedulerTask.Handle();
+                    var container = BootstrapHelper.GetInitializedContainer();
+                    var schedulerService = container.Resolve<ISchedulerService>();
+                    await schedulerService.ProcessScheduledTasks();
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happened when handling the repeating scheduler task.");
+                    logger.Error(e, "Error processing scheduled tasks");
                 }
-
-                // Have to tell the JobScheduler the work is done. 
-                JobFinished(jobParams, false);
+                finally
+                {
+                    JobFinished(@params, false);
+                }
             });
 
-            // Return true because of the asynchronous work
             return true;
         }
 
-        public override bool OnStopJob(JobParameters jobParams)
+        public override bool OnStopJob(JobParameters @params)
         {
-            // we don't want to reschedule the job 
-            // if it is stopped or cancelled.
             return false;
-        }
-
-        private bool disposed = false;
-        protected override void Dispose(bool disposing)
-        {
-            if (disposed)
-            {
-                return;
-            }
-
-            container = null;
-            BootstrapHelper.Remove(this);
-
-            AppDomain.CurrentDomain.UnhandledException -= unhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException -= unobserverdTaskException;
-
-            disposed = true;
-
-            base.Dispose(disposing);
         }
     }
 }

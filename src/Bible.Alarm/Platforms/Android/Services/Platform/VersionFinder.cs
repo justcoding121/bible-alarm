@@ -16,8 +16,8 @@ namespace Bible.Alarm.Droid.Services.Platform
 
         private static string getVersionName()
         {
-            return "Android " + Application.Context.ApplicationContext.PackageManager
-                  .GetPackageInfo(Application.Context.ApplicationContext.PackageName, 0).VersionName;
+            return "Android " + Android.App.Application.Context.ApplicationContext.PackageManager
+                  .GetPackageInfo(Android.App.Application.Context.ApplicationContext.PackageName, 0).VersionName;
         }
 
     }
