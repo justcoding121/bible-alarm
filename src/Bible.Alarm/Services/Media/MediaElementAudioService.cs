@@ -33,7 +33,7 @@ namespace Bible.Alarm.Services.Media
             {
                 ShouldAutoPlay = false,
                 ShouldLoopPlayback = false,
-                ShouldShowPlaybackControls = false
+                ShouldShowPlaybackControls = true
             };
 
             // Subscribe to events

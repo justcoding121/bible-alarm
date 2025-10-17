@@ -92,6 +92,10 @@ namespace Bible.Alarm.Services.Media
 
                 await _mediaElementService.Play();
                 _isPlaying = true;
+                
+                // Start watching and saving progress
+                await WatchAndSaveProgress();
+                
                 Logger.Info("Playback started");
             }
             catch (Exception ex)
@@ -107,6 +111,10 @@ namespace Bible.Alarm.Services.Media
             {
                 await _mediaElementService.Pause();
                 _isPlaying = false;
+                
+                // Stop watching and saving progress
+                await StopWatching();
+                
                 Logger.Info("Playback paused");
             }
             catch (Exception ex)
@@ -124,6 +132,7 @@ namespace Bible.Alarm.Services.Media
                 {
                     CurrentTrackIndex--;
                     await LoadAndPlayCurrentTrack();
+                    await Play();
                     Logger.Info($"Playing previous track {CurrentTrackIndex + 1}");
                 }
                 else
@@ -142,10 +151,20 @@ namespace Bible.Alarm.Services.Media
         {
             try
             {
-                if (CurrentTrackIndex < _currentlyPlaying.Count - 1)
+                if (_currentlyPlaying != null && CurrentTrackIndex < _currentlyPlaying.Count - 1)
                 {
+                    // Mark current track as finished before moving to next
+                    if (CurrentTrackIndex >= 0)
+                    {
+                        var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
+                        var playDetail = currentTrack.Value;
+                        await _playlistService.MarkTrackAsFinished(playDetail);
+                        await _playlistService.SaveLastPlayed(_currentScheduleId);
+                    }
+
                     CurrentTrackIndex++;
                     await LoadAndPlayCurrentTrack();
+                    await Play();
                     Logger.Info($"Playing next track {CurrentTrackIndex + 1}");
                 }
                 else
@@ -345,6 +364,9 @@ namespace Bible.Alarm.Services.Media
                 {
                     _firstChapter = _currentlyPlaying.FirstOrDefault(x => x.Value.IsBibleReading).Key;
                     _isPrepared = true;
+                    
+                    // Initialize track index to start from the first track
+                    CurrentTrackIndex = 0;
 
                     if (prepareOnly)
                     {
@@ -435,37 +457,40 @@ namespace Bible.Alarm.Services.Media
                 Logger.Info("Media ended");
                 _isPlaying = false;
                 await StopWatching();
-                Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
 
-                // Check if this is the last track
+                // Mark current track as finished
+                if (_currentlyPlaying != null && CurrentTrackIndex >= 0 && CurrentTrackIndex < _currentlyPlaying.Count)
+                {
+                    var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
+                    var playDetail = currentTrack.Value;
+                    
+                    // Mark track as finished
+                    await _playlistService.MarkTrackAsFinished(playDetail);
+                    await _playlistService.SaveLastPlayed(_currentScheduleId);
+                }
+
+                // Check if there are more tracks to play
                 if (_currentlyPlaying != null && CurrentTrackIndex < _currentlyPlaying.Count - 1)
                 {
                     // Move to next track
                     CurrentTrackIndex++;
+                    Logger.Info($"Moving to next track: {CurrentTrackIndex + 1}");
+                    
                     await LoadAndPlayCurrentTrack();
                     await Play();
                 }
                 else
                 {
-                    // Mark track as finished and restart playlist
-                    var currentTrack = _currentlyPlaying?.ElementAt(CurrentTrackIndex);
-                    if (currentTrack.HasValue)
-                    {
-                        var playDetail = currentTrack.Value.Value;
-                        if (playDetail.IsLastTrack)
-                        {
-                            await _playlistService.MarkTrackAsFinished(playDetail);
-                            await Dismiss();
+                    // No more tracks - restart the playlist
+                    Logger.Info("Playlist completed, restarting...");
+                    Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
+                    
+                    var scheduleId = _currentScheduleId;
+                    await Dismiss();
+                    Reset();
 
-                            var scheduleId = _currentScheduleId;
-                            Reset();
-
-                            // Restart the playlist
-                            await PrepareAndPlay(scheduleId, true);
-                            await Task.Delay(500);
-                            await Dismiss();
-                        }
-                    }
+                    // Restart the playlist
+                    await PrepareAndPlay(scheduleId, true);
                 }
             }
             catch (Exception ex)
