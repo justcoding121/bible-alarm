@@ -9,6 +9,7 @@ using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using MediaManager;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.Devices;
 using Mvvmicro;
 using NLog;
 using System;
@@ -60,7 +61,7 @@ namespace Bible.Alarm.ViewModels
         {
             _container = container;
 
-            if (CurrentDevice.RuntimePlatform == Device.Android)
+            if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
             {
                 _batteryOptimizationManager = container.Resolve<IBatteryOptimizationManager>();
             }
@@ -146,8 +147,8 @@ namespace Bible.Alarm.ViewModels
                 IsBusy = true;
 
                 if (IsEnabled &&
-                      (CurrentDevice.RuntimePlatform == Device.iOS
-                        || CurrentDevice.RuntimePlatform == Device.WinUI)
+                      (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString()
+                        || CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
                      && !await _notificationService.CanSchedule())
                 {
                     IsEnabled = false;

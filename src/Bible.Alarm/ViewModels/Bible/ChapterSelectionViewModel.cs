@@ -3,6 +3,7 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions.Bible;
+using Microsoft.Maui.Devices;
 using Mvvmicro;
 using NLog;
 using System;
@@ -259,7 +260,7 @@ namespace Bible.Alarm.ViewModels
             var chapters = await _mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
             var chapterVMs = new ObservableCollection<BibleChapterListViewItemModel>();
 
-            if (CurrentDevice.RuntimePlatform == Device.WinUI)
+            if (CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
             {
                 Chapters = chapterVMs;
             }
@@ -280,7 +281,7 @@ namespace Bible.Alarm.ViewModels
                 }
             }
 
-            if (CurrentDevice.RuntimePlatform != Device.WinUI)
+            if (CurrentDevice.RuntimePlatform != DevicePlatform.WinUI.ToString())
             {
                 Chapters = chapterVMs;
             }

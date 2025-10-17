@@ -1,5 +1,6 @@
 ﻿using Bible.Alarm.Contracts.Platform;
 using Bible.Alarm.Services.Contracts;
+using Microsoft.Maui.Devices;
 using NLog;
 using System;
 using System.IO;
@@ -188,7 +189,7 @@ namespace Bible.Alarm.Services
             {
                 await _storageService.DeleteFile(tmpIndexFilePath);
             }
-            if (CurrentDevice.RuntimePlatform == Device.Android &&
+            if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString() &&
                 await _storageService.FileExists(Path.Combine(IndexRoot, defaultAlarmFile)))
             {
                 await _storageService.DeleteFile(Path.Combine(IndexRoot, defaultAlarmFile));
@@ -203,7 +204,7 @@ namespace Bible.Alarm.Services
 
             ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
 
-            if (CurrentDevice.RuntimePlatform == Device.Android)
+            if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
             {
                 await _storageService.CopyResourceFile(defaultAlarmFile, IndexRoot, defaultAlarmFile);
             }

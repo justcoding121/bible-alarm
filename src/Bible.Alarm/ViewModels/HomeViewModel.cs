@@ -9,6 +9,7 @@ using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using MediaManager;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.Devices;
 using Mvvmicro;
 using NLog;
 using System;
@@ -181,7 +182,7 @@ namespace Bible.Alarm.ViewModels
                                             .Include(x => x.Music)
                                             .ToListAsync();
 
-                        if (CurrentDevice.RuntimePlatform == Device.Android)
+                        if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
                         {
                             //bible gateway is not supported anymore due to copyright issues
                             var toRemove = alarmSchedules.Where(x => BgSourceHelper.PublicationCodeToNameMappings.Any(y => y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
@@ -290,13 +291,13 @@ namespace Bible.Alarm.ViewModels
                                      IsBusy = true;
 
                                      if (y.IsEnabled &&
-                                       (CurrentDevice.RuntimePlatform == Device.iOS
-                                       || CurrentDevice.RuntimePlatform == Device.WinUI)
+                                       (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString()
+                                       || CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
                                        && !await _notificationService.CanSchedule())
                                      {
                                          y.IsEnabled = false;
 
-                                         if (CurrentDevice.RuntimePlatform == Device.iOS)
+                                         if (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString())
                                          {
                                              await _popUpService.ShowMessage("Cannot schedule alarm because you've disabled notifications. " +
                                                  "Please enable notification for this app under system settings.", 7);

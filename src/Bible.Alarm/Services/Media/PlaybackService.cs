@@ -9,6 +9,7 @@ using MediaManager.Library;
 using MediaManager.Media;
 using MediaManager.Playback;
 using MediaManager.Player;
+using Microsoft.Maui.Devices;
 using NLog;
 using System;
 using System.Collections.Generic;
@@ -176,7 +177,7 @@ namespace Bible.Alarm.Services
                     {
                         IMediaItem item;
 
-                        if (CurrentDevice.RuntimePlatform == Device.WinUI)
+                        if (CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
                         {
                             item = new MediaItem(x.Value.FullName);
                             //TODO: Fix this
@@ -421,7 +422,7 @@ namespace Bible.Alarm.Services
                         var scheduleId = _currentScheduleId;
                         Reset();
 
-                        if (CurrentDevice.RuntimePlatform == Device.Android)
+                        if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
                         {
                             await PrepareRelavantPlaylist();
                             await Play();
@@ -508,7 +509,7 @@ namespace Bible.Alarm.Services
                                             && mediaItem == _firstChapter)
                                         {
                                             await _mediaManager.SeekTo(track.FinishedDuration);
-                                            if (CurrentDevice.RuntimePlatform == Device.iOS)
+                                            if (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString())
                                             {
                                                 _mediaManager.Notification.UpdateNotification();
                                             }
@@ -528,7 +529,7 @@ namespace Bible.Alarm.Services
                                             track.FinishedDuration = _mediaManager.Position;
                                             await _playlistService.MarkTrackAsPlayed(track);
                                             await _playlistService.SaveLastPlayed(_currentScheduleId);
-                                            if (CurrentDevice.RuntimePlatform == Device.iOS)
+                                            if (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString())
                                             {
                                                 _mediaManager.Notification.UpdateNotification();
                                             }

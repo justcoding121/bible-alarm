@@ -3,6 +3,7 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions.Music;
+using Microsoft.Maui.Devices;
 using Mvvmicro;
 using NLog;
 using System;
@@ -296,7 +297,7 @@ namespace Bible.Alarm.ViewModels
 
             var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
 
-            if (CurrentDevice.RuntimePlatform == Device.WinUI)
+            if (CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
             {
                 Tracks = trackVMs;
             }
@@ -320,7 +321,7 @@ namespace Bible.Alarm.ViewModels
                 }
             }
 
-            if (CurrentDevice.RuntimePlatform != Device.WinUI)
+            if (CurrentDevice.RuntimePlatform != DevicePlatform.WinUI.ToString())
             {
                 Tracks = trackVMs;
             }

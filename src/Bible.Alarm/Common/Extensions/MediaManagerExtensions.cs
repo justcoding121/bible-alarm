@@ -3,6 +3,7 @@ using Bible.Alarm.Models;
 using MediaManager;
 using MediaManager.Library;
 using MediaManager.Media;
+using Microsoft.Maui.Devices;
 using NLog;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace Bible.Alarm.Common.Extensions
 
         public static bool IsPreparedEx(this IMediaManager mediaManager)
         {
-            if (CurrentDevice.RuntimePlatform == Device.Android)
+            if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
             {
                 return mediaManager.IsPrepared();
             }
@@ -50,7 +51,7 @@ namespace Bible.Alarm.Common.Extensions
             else
             {
                 if (string.IsNullOrEmpty(item.Title)
-                    || CurrentDevice.RuntimePlatform == Device.WinUI)
+                    || CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
                 {
                     item.Title = "Orchestral Melodies";
                 }
@@ -63,13 +64,13 @@ namespace Bible.Alarm.Common.Extensions
                 }
 
                 if (string.IsNullOrEmpty(item.DisplaySubtitle)
-                    || CurrentDevice.RuntimePlatform == Device.WinUI)
+                    || CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
                 {
                     item.DisplaySubtitle = "Watch Tower Bible and Tract Society of Pennsylvania";
                 }
 
                 if (string.IsNullOrEmpty(item.DisplayDescription)
-                    || CurrentDevice.RuntimePlatform == Device.WinUI)
+                    || CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
                 {
                     item.DisplayDescription = "jw.org";
                 }

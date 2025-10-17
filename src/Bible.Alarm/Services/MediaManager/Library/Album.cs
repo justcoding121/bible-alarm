@@ -73,7 +73,7 @@ namespace MediaManager.Library
             set => SetProperty(ref _releaseDate, value);
         }
 
-        private TimeSpan _duration;
+        private TimeSpan? _duration;
         public virtual TimeSpan Duration
         {
             get
@@ -85,7 +85,7 @@ namespace MediaManager.Library
                     MediaItems?.Select(x => totalDuration.Add(x.Duration));
                     return totalDuration;
                 }
-                return _duration;
+                return _duration.Value;
             }
             set => SetProperty(ref _duration, value);
         }

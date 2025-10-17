@@ -67,10 +67,10 @@ namespace MediaManager.Library
             set => SetProperty(ref _rating, value);
         }
 
-        private DateTime _createdAt;
+        private DateTime? _createdAt;
         public DateTime CreatedAt
         {
-            get => _createdAt;
+            get => _createdAt ?? DateTime.Now;
             set => SetProperty(ref _createdAt, value);
         }
 

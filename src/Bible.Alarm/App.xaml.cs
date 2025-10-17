@@ -62,14 +62,14 @@ namespace Bible.Alarm
                     await navigationPage.Navigation.PushAsync(homePage);
                 };
 
-                if (CurrentDevice.RuntimePlatform != Device.Android)
+                if (CurrentDevice.RuntimePlatform != DevicePlatform.Android.ToString())
                 {
                     homePageSetter().Wait();
                 }
 
                 Task.Delay(100).ContinueWith(async (a) =>
                 {
-                    if (CurrentDevice.RuntimePlatform == Device.Android)
+                    if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
                     {
                         await homePageSetter();
                     }

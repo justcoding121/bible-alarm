@@ -7,6 +7,8 @@
     xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
     xmlns:fn="clr-namespace:FontNameResources"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+    x:DataType="vm:BibleSelectionViewModel"
     NavigationPage.HasBackButton="False"
     NavigationPage.HasNavigationBar="False">
     <ContentPage.Resources>

@@ -5,6 +5,8 @@
              xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
              xmlns:fn="clr-namespace:FontNameResources"
              xmlns:models="clr-namespace:Bible.Alarm.Models"
+             xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+             x:DataType="vm:ScheduleViewModel"
              NavigationPage.HasBackButton="False"
              NavigationPage.HasNavigationBar="False">
     <ContentPage.Resources>

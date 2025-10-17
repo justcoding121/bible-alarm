@@ -68,10 +68,10 @@ namespace MediaManager.Library
             set => SetProperty(ref _rating, value);
         }
 
-        private DateTime _createdAt;
+        private DateTime? _createdAt;
         public DateTime CreatedAt
         {
-            get => _createdAt;
+            get => _createdAt ?? DateTime.Now;
             set => SetProperty(ref _createdAt, value);
         }
 
@@ -82,7 +82,7 @@ namespace MediaManager.Library
             set => SetProperty(ref _updatedAt, value);
         }
 
-        private TimeSpan _totalTime;
+        private TimeSpan? _totalTime;
         public virtual TimeSpan TotalTime
         {
             get
@@ -94,7 +94,7 @@ namespace MediaManager.Library
                     MediaItems?.Select(x => totalTime.Add(x.Duration));
                     return totalTime;
                 }
-                return _totalTime;
+                return _totalTime.Value;
             }
             set => SetProperty(ref _totalTime, value);
         }
