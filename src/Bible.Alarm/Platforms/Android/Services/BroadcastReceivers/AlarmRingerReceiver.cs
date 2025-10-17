@@ -34,7 +34,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
         public AlarmRingerReceiver()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, DeviceInfo.Platform.Android);
+                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, Microsoft.Maui.Devices.DeviceInfo.Platform.Android);
 
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;

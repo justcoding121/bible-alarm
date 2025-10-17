@@ -14,6 +14,7 @@ using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
+using MediaManager.Platforms.Android;
 using Com.Google.Android.Exoplayer2;
 using Com.Google.Android.Exoplayer2.Ext.Mediasession;
 using Com.Google.Android.Exoplayer2.UI;
@@ -58,7 +59,7 @@ namespace MediaManager.Platforms.Android.MediaSession
         public MediaBrowserService()
         {
             LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, DeviceInfo.Platform.Android);
+                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, Microsoft.Maui.Devices.DeviceInfo.Platform.Android);
 
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;
@@ -126,8 +127,8 @@ namespace MediaManager.Platforms.Android.MediaSession
                 PlayerNotificationManager = PlayerNotificationManager.CreateWithNotificationChannel(
                     this,
                     ChannelId,
-                    Resource.String.notification_channel,
-                    Resource.String.notification_channel_description,
+                    Bible.Alarm.Resource.String.notification_channel,
+                    Bible.Alarm.Resource.String.notification_channel_description,
                     NotificationId,
                     MediaDescriptionAdapter,
                     NotificationListener);
@@ -141,7 +142,7 @@ namespace MediaManager.Platforms.Android.MediaSession
                 PlayerNotificationManager.SetUsePlayPauseActions(MediaManager.Notification.ShowPlayPauseControls);
                 PlayerNotificationManager.SetUseNavigationActions(MediaManager.Notification.ShowNavigationControls);
 
-                mediaManager.Init(Application.Context);
+                mediaManager.Init(Android.App.Application.Context);
                 mediaManager.AndroidMediaPlayer.Initialize();
 
                 if (CastPlayer != null)

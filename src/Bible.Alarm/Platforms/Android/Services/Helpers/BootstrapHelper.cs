@@ -160,14 +160,14 @@ namespace Bible.Alarm.Services.Droid.Helpers
                     .SetContentType(AudioContentType.Sonification)
                     .Build();
 
-            var soundUri = Android.Net.Uri.Parse("android.resource://" + Application.Context.PackageName + "/" + Resource.Raw.cool_alarm_tone_notification_sound);
+            var soundUri = Android.Net.Uri.Parse("android.resource://" + Android.App.Application.Context.PackageName + "/" + Resource.Raw.cool_alarm_tone_notification_sound);
             // Configure the notification channel.
             channel.Description = DroidNotificationService.CHANNEL_DESCRIPTION;
             channel.EnableLights(true);
             channel.EnableVibration(true);
             channel.SetSound(soundUri, attributes);
 
-            var notificationManager = (NotificationManager)Application.Context.GetSystemService(Context.NotificationService);
+            var notificationManager = (NotificationManager)Android.App.Application.Context.GetSystemService(Context.NotificationService);
             notificationManager.CreateNotificationChannel(channel);
         }
     }

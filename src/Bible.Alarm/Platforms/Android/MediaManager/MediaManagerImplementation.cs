@@ -34,7 +34,7 @@ namespace MediaManager
             IsInitialized = false;
         }
 
-        private Context _context = Application.Context;
+        private Context _context = Android.App.Application.Context;
         public virtual Context Context
         {
             get => _context;
@@ -45,7 +45,7 @@ namespace MediaManager
             }
         }
 
-        private int _notificationIconResource = Resource.Drawable.exo_notification_small_icon;
+        private int _notificationIconResource = Microsoft.Maui.Resource.Drawable.exo_notification_small_icon;
         public int NotificationIconResource
         {
             get => _notificationIconResource;

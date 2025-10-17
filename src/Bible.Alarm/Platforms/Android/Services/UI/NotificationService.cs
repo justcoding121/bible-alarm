@@ -87,27 +87,27 @@ namespace Bible.Alarm.Services.Droid
 
         public void ShowLocalNotification(int scheduleId, string title, string body)
         {
-            var notificationManagerCompat = NotificationManagerCompat.From(Application.Context);
+            var notificationManagerCompat = NotificationManagerCompat.From(Android.App.Application.Context);
 
             // Pass the current button press count value to the next activity:
             var valuesForActivity = new Bundle();
             valuesForActivity.PutInt(SCHEDULE_ID, scheduleId);
 
-            var resultIntent = new Intent(Application.Context, typeof(MainActivity));
+            var resultIntent = new Intent(Android.App.Application.Context, typeof(MainActivity));
             resultIntent.PutExtras(valuesForActivity);
 
-            var stackBuilder = TaskStackBuilder.Create(Application.Context);
+            var stackBuilder = TaskStackBuilder.Create(Android.App.Application.Context);
             stackBuilder.AddParentStack(Class.FromType(typeof(MainActivity)));
             stackBuilder.AddNextIntent(resultIntent);
 
             // Create the PendingIntent with the back stack:
             var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)(PendingIntentFlags.UpdateCurrent));
 
-            var drawable = ContextCompat.GetDrawable(Application.Context, Resource.Drawable.ic_launcher_round);
+            var drawable = ContextCompat.GetDrawable(Android.App.Application.Context, Resource.Drawable.ic_launcher_round);
             var bitmap = drawableToBitmap(drawable);
 
             // Build the notification:
-            var builder = new NotificationCompat.Builder(Application.Context, CHANNEL_ID_AND_NAME)
+            var builder = new NotificationCompat.Builder(Android.App.Application.Context, CHANNEL_ID_AND_NAME)
                           .SetAutoCancel(true)
                           .SetContentIntent(resultPendingIntent)
                           .SetContentTitle(title)
@@ -118,7 +118,7 @@ namespace Bible.Alarm.Services.Droid
             if (Build.VERSION.SdkInt < BuildVersionCodes.O)
             {
 
-                var soundUri = Android.Net.Uri.Parse("android.resource://" + Application.Context.PackageName + "/" + Resource.Raw.cool_alarm_tone_notification_sound);
+                var soundUri = Android.Net.Uri.Parse("android.resource://" + Android.App.Application.Context.PackageName + "/" + Resource.Raw.cool_alarm_tone_notification_sound);
 
                 builder.SetSound(soundUri);
                 builder.SetDefaults(0);
@@ -156,7 +156,7 @@ namespace Bible.Alarm.Services.Droid
 
         public void RemoveLocalNotification(int scheduleId)
         {
-            var notificationManager = NotificationManagerCompat.From(Application.Context);
+            var notificationManager = NotificationManagerCompat.From(Android.App.Application.Context);
             notificationManager.Cancel(scheduleId);
         }
 
