@@ -27,8 +27,8 @@
     <PackageReference Include="Xamarin.AndroidX.Browser" Version="1.8.0.6" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
-    <ProjectReference Include="..\..\Library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj" />
+    <ProjectReference Include="..\..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
+    <ProjectReference Include="..\..\library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj" />
   </ItemGroup>
   
   <!-- Main project files -->

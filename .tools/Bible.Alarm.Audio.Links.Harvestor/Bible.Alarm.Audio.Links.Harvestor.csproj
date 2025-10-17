@@ -15,7 +15,7 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Bible.Alarm\Bible.Alarm.csproj" />
+    <ProjectReference Include="..\..\src\Bible.Alarm\Bible.Alarm.csproj" />
   </ItemGroup>
 
 </Project>
