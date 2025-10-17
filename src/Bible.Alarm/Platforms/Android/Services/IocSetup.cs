@@ -48,10 +48,9 @@ namespace Bible.Alarm.Services.Droid
             IContainer container = new Container(context);
 
             // Initialize other IocSetups
-            // UI.IocSetup.Initialize(container, isService);
-            // Alarm.Services.IocSetup.Initialize(container, isService);
-            // Alarm.Services.Droid.IocSetup.Initialize(container, isService);
-            // ViewModels.IocSetup.Initialize(container, isService);
+            Bible.Alarm.UI.IocSetup.Initialize(container, isService);
+            Bible.Alarm.Services.IocSetup.Initialize(container, isService);
+            Bible.Alarm.ViewModels.IocSetup.Initialize(container, isService);
 
             container = containers.GetOrAdd(androidContext, container);
 

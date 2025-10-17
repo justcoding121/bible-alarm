@@ -62,14 +62,20 @@ namespace Bible.Alarm.iOS
 
         protected override MauiApp CreateMauiApp()
         {
-            try
-            {
-                // Initialize MediaManager for iOS
-                CrossMediaManager.Current.Init();
+                    try
+                    {
+                        // Initialize MediaManager for iOS
+                        CrossMediaManager.Current.Init();
 
-                // Create and return the MAUI app with container
-                return Bible.Alarm.MauiProgram.CreateMauiApp(container);
-            }
+                        // Initialize iOS-specific services
+                        Bible.Alarm.Services.iOS.IocSetup.Initialize(container, false);
+                        Bible.Alarm.Services.IocSetup.Initialize(container, false);
+                        Bible.Alarm.UI.IocSetup.Initialize(container, false);
+                        Bible.Alarm.ViewModels.IocSetup.Initialize(container, false);
+
+                        // Create and return the MAUI app with container
+                        return Bible.Alarm.MauiProgram.CreateMauiApp(container);
+                    }
             catch (Exception e)
             {
                 logger.Fatal(e, "iOS MAUI app creation failed.");

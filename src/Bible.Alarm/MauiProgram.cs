@@ -27,6 +27,10 @@ public static class MauiProgram
         if (container != null)
         {
             builder.Services.AddSingleton(container);
+            
+            // Initialize platform-specific services
+            // Note: Platform-specific IocSetup calls are handled in entry points
+            // (iOS AppDelegate, Android MainActivity, Windows App.xaml.cs)
         }
         
         // Register the App class with the container

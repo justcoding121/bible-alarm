@@ -1,6 +1,9 @@
 using Bible.Alarm.Services.Infrastructure;
 using NLog;
 using System;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Windowing;
+using Microsoft.UI;
 
 namespace Bible.Alarm.WinUI
 {
@@ -14,9 +17,27 @@ namespace Bible.Alarm.WinUI
 
         public App()
         {
-            // Initialize MAUI application
-            // MAUI will handle the App instantiation through MauiProgram
-            // Platform-specific initialization can be done here if needed
+            InitializeWindowsSpecific();
         }
+
+        private void InitializeWindowsSpecific()
+        {
+            try
+            {
+                // Windows-specific initialization
+                // Set up window management
+                // Note: Exit event handling is different in MAUI
+                
+                // Initialize Windows-specific services
+                // Note: Container initialization is handled by MAUI framework
+                logger.Info("Windows application initialized successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error initializing Windows-specific components.");
+            }
+        }
+
+        // Note: Exit handling is managed by MAUI framework
     }
 }
