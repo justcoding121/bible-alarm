@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Bible.Alarm.UI.Views.Music.TrackSelection"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.Views.Behaviours"
+    xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
+    xmlns:fn="clr-namespace:FontNameResources"
+    xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+    NavigationPage.HasBackButton="False"
+    NavigationPage.HasNavigationBar="False">
+    <ContentPage.Resources>
+        <converters:PlayStatusIconConverter x:Key="playStatusIconConverter" />
+        <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
+        <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
+        <converters:RepeatColorConverter x:Key="repeatColorConverter" />
+    </ContentPage.Resources>
+    <ContentPage.Content>
+        <Grid BackgroundColor="White">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <ActivityIndicator
+                Grid.Row="0"
+                HorizontalOptions="Center"
+                IsEnabled="True"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Scale="0.5"
+                VerticalOptions="Center"
+                Color="SlateBlue">
+                <ActivityIndicator.Scale>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <OnPlatform.Platforms>
+                            <On Platform="iOS" Value="4.0" />
+                            <On Platform="Android" Value="1.0" />
+                            <On Platform="UWP" Value="1.0" />
+                        </OnPlatform.Platforms>
+                    </OnPlatform>
+                </ActivityIndicator.Scale>
+            </ActivityIndicator>
+            <Grid
+                Grid.Row="0"
+                Margin="{OnPlatform iOS='0,10,0,0'}"
+                IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                RowSpacing="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid
+                    x:Name="BackButton"
+                    Grid.Row="0"
+                    Margin="{OnPlatform Default='0',
+                                        iOS='0,18,0,0'}"
+                    BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                 iOS='White'}"
+                    HeightRequest="50"
+                    HorizontalOptions="Fill"
+                    MinimumHeightRequest="50">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="8*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
+                    </Grid.GestureRecognizers>
+                    <StackLayout
+                        Grid.Column="0"
+                        HorizontalOptions="Start"
+                        VerticalOptions="Center">
+                        <Label
+                            Margin="5,0,0,0"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="Medium"
+                            Text="{x:Static fn:GlyphNames.Left}"
+                            TextColor="Gray" />
+                    </StackLayout>
+                    <Label
+                        Grid.Column="1"
+                        HorizontalOptions="Fill"
+                        HorizontalTextAlignment="Start"
+                        TextColor="Black"
+                        VerticalOptions="Center" />
+                </Grid>
+                <ListView
+                    x:Name="trackListView"
+                    Grid.Row="1"
+                    ios:ListView.SeparatorStyle="FullWidth"
+                    BackgroundColor="White"
+                    CachingStrategy="RecycleElementAndDataTemplate"
+                    Footer="{OnPlatform iOS=''}"
+                    HorizontalOptions="Fill"
+                    ItemsSource="{Binding Tracks}"
+                    SelectionMode="Single">
+                    SelectionMode=&quot;Single&quot;&gt;
+                    SelectionMode=&quot;Single&quot;&gt;
+                    <ListView.Behaviors>
+                        <behaviours:EventToCommandBehavior
+                            Command="{Binding SetTrackCommand}"
+                            EventArgsConverter="{StaticResource itemTappedConverter}"
+                            EventName="ItemTapped" />
+                    </ListView.Behaviors>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <ViewCell>
+                                <Grid
+                                    Padding="5,0,5,0"
+                                    BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
+                                    HeightRequest="45"
+                                    HorizontalOptions="Fill">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Label
+                                        Grid.Column="0"
+                                        Margin="10,0,0,0"
+                                        HorizontalOptions="Fill"
+                                        HorizontalTextAlignment="Start"
+                                        Text="{Binding Title}"
+                                        TextColor="Black"
+                                        VerticalOptions="Center"
+                                        VerticalTextAlignment="Center" />
+                                    <StackLayout
+                                        Grid.Column="1"
+                                        Margin="5,0,15,0"
+                                        HorizontalOptions="Start"
+                                        Orientation="Horizontal"
+                                        VerticalOptions="Center">
+                                        <ActivityIndicator
+                                            HorizontalOptions="Center"
+                                            IsEnabled="True"
+                                            IsRunning="{Binding IsBusy}"
+                                            IsVisible="{Binding IsBusy}"
+                                            MinimumWidthRequest="40"
+                                            Scale="0.5"
+                                            VerticalOptions="Center"
+                                            WidthRequest="40"
+                                            Color="SlateBlue">
+                                            <ActivityIndicator.Scale>
+                                                <OnPlatform x:TypeArguments="x:Double">
+                                                    <OnPlatform.Platforms>
+                                                        <On Platform="iOS" Value="1.0" />
+                                                        <On Platform="Android" Value="0.5" />
+                                                        <On Platform="UWP" Value="1.0" />
+                                                    </OnPlatform.Platforms>
+                                                </OnPlatform>
+                                            </ActivityIndicator.Scale>
+                                        </ActivityIndicator>
+                                        <Button
+                                            Command="{Binding ToggleRepeatCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            IsVisible="{Binding IsSelected}"
+                                            MinimumWidthRequest="40"
+                                            Text="{x:Static fn:GlyphNames.Repeat}"
+                                            TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"
+                                            VerticalOptions="Center"
+                                            WidthRequest="40" />
+                                        <Button
+                                            Command="{Binding TogglePlayCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            MinimumWidthRequest="40"
+                                            Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
+                                            TextColor="Gray"
+                                            VerticalOptions="Center"
+                                            WidthRequest="40" />
+                                    </StackLayout>
+                                </Grid>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Grid>
+    </ContentPage.Content>
+</ContentPage>

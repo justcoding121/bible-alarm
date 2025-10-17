@@ -1,8 +1,10 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.Maui", "Bible.Alarm\Bible.Alarm.Maui\Bible.Alarm.Maui.csproj", "{dde4af0c-a128-4feb-adac-fbd3cdedebaf}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm", "Bible.Alarm\Bible.Alarm\Bible.Alarm.csproj", "{88314728-92AD-49BB-9092-3DF53C686066}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_tools", "_tools", "{8BBDFD16-37FB-4C4C-AA4F-525913416EBE}"

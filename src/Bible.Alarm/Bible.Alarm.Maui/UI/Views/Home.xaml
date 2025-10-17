@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Bible.Alarm.UI.Home"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.Views.Behaviours"
+    xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
+    xmlns:fn="clr-namespace:FontNameResources"
+    xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+    xmlns:models="clr-namespace:Bible.Alarm.Models"
+    Title="Bible Alarm"
+    NavigationPage.HasNavigationBar="False">
+    <ContentPage.Resources>
+        <converters:DayColorConverter x:Key="dayColorConverter" />
+        <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
+        <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+    </ContentPage.Resources>
+    <Grid AutomationId="HomePage" BackgroundColor="White">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <ActivityIndicator
+            Grid.Row="0"
+            HorizontalOptions="Center"
+            IsEnabled="True"
+            IsRunning="{Binding IsBusy}"
+            IsVisible="{Binding IsBusy}"
+            Scale="0.5"
+            VerticalOptions="Center"
+            Color="SlateBlue">
+            <ActivityIndicator.Scale>
+                <OnPlatform x:TypeArguments="x:Double">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS" Value="4.0" />
+                        <On Platform="Android" Value="1.0" />
+                        <On Platform="UWP" Value="1.0" />
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </ActivityIndicator.Scale>
+        </ActivityIndicator>
+        <Grid
+            Grid.Row="0"
+            Margin="{OnPlatform iOS='0,10,0,0'}"
+            RowSpacing="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackLayout Grid.Row="0">
+                <Button
+                    Margin="{OnPlatform Default='2',
+                                        iOS='2,25,2,2'}"
+                    AutomationId="AddScheduleButton"
+                    Command="{Binding AddScheduleCommand}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="{OnPlatform Default='18',
+                                          iOS='25'}"
+                    HeightRequest="{OnPlatform Default='50',
+                                               UWP='35'}"
+                    HorizontalOptions="Fill"
+                    MinimumHeightRequest="{OnPlatform Default='50',
+                                                      UWP='30'}"
+                    Text="{x:Static fn:GlyphNames.Plus}"
+                    TextColor="SlateBlue" />
+            </StackLayout>
+            <ListView
+                Grid.Row="1"
+                ios:ListView.SeparatorStyle="FullWidth"
+                BackgroundColor="White"
+                Footer="{OnPlatform iOS=''}"
+                HorizontalOptions="Fill"
+                VerticalOptions="FillAndExpand"
+                HasUnevenRows="True"
+                ItemsSource="{Binding Schedules}"
+                SelectionMode="None">
+                <ListView.Behaviors>
+                    <behaviours:EventToCommandBehavior
+                        Command="{Binding ViewScheduleCommand}"
+                        EventArgsConverter="{StaticResource itemTappedConverter}"
+                        EventName="ItemTapped" />
+                </ListView.Behaviors>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <Grid
+                                Margin="{OnPlatform Default='0,10,0,10'}"
+                                ColumnSpacing="{OnPlatform iOS='0'}"
+                                HorizontalOptions="Fill"
+                                HeightRequest="{OnPlatform iOS='175'}"
+                                VerticalOptions="CenterAndExpand">
+                                <Grid.Resources>
+                                    <models:DaysOfWeek x:Key="Sunday">Sunday</models:DaysOfWeek>
+                                    <models:DaysOfWeek x:Key="Monday">Monday</models:DaysOfWeek>
+                                    <models:DaysOfWeek x:Key="Tuesday">Tuesday</models:DaysOfWeek>
+                                    <models:DaysOfWeek x:Key="Wednesday">Wednesday</models:DaysOfWeek>
+                                    <models:DaysOfWeek x:Key="Thursday">Thursday</models:DaysOfWeek>
+                                    <models:DaysOfWeek x:Key="Friday">Friday</models:DaysOfWeek>
+                                    <models:DaysOfWeek x:Key="Saturday">Saturday</models:DaysOfWeek>
+                                </Grid.Resources>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="auto"/>
+                                </Grid.RowDefinitions>
+                                <StackLayout VerticalOptions="CenterAndExpand"
+                                    Grid.Column="0"
+                                    Margin="{OnIdiom Default={OnPlatform Default='10,3,0,0',
+                                                                         iOS='10,3,0,0',
+                                                                         UWP='30,3,0,0'},
+                                                     Tablet={OnPlatform Default='30,3,0,0'}}"
+                                    Padding="0"
+                                    Orientation="Vertical">
+                                    <Button
+                                        Margin="0"
+                                        Padding="0"
+                                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                                     UWP='LightGray'}"
+                                        Command="{Binding PlayCommand}"
+                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                        HeightRequest="{OnPlatform UWP='50',
+                                                                   iOS='50'}"
+                                        HorizontalOptions="Center"
+                                        MinimumHeightRequest="{OnPlatform UWP='50',
+                                                                          iOS='50'}"
+                                        MinimumWidthRequest="{OnPlatform iOS='75',
+                                                                         UWP='75'}"
+                                        Text="{x:Static fn:GlyphNames.Play}"
+                                        TextColor="SlateBlue"
+                                        VerticalOptions="CenterAndExpand"
+                                        WidthRequest="{OnPlatform iOS='75',
+                                                                  UWP='75'}" />
+                                    <StackLayout
+                                        Margin="0"
+                                        Padding="0"
+                                        HorizontalOptions="Start"
+                                        Orientation="Horizontal"
+                                        VerticalOptions="CenterAndExpand">
+                                        <Label
+                                            Padding="0"
+                                            FontSize="30"
+                                            Text="{Binding TimeText}"
+                                            VerticalOptions="CenterAndExpand"
+                                            TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
+                                        <Label
+                                            Margin="0"
+                                            Padding="0"
+                                            FontSize="Small"
+                                            Text="{Binding Meridien}"
+                                            VerticalOptions="CenterAndExpand"
+                                            TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                            VerticalTextAlignment="Center" />
+                                    </StackLayout>
+                                </StackLayout>
+                                <StackLayout
+                                    Grid.Column="1"
+                                    Margin="{OnPlatform Default='20,0,0,0',
+                                                        iOS='10,0,0,0'}"
+                                    HorizontalOptions="Start"
+                                    Orientation="Vertical"
+                                    VerticalOptions="FillAndExpand">
+                                    <StackLayout Orientation="Horizontal">
+                                        <Label
+                                            Margin="5,0,0,0"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            Text="S"
+                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}" />
+                                        <Label
+                                            Margin="0,0,0,0"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            Text="M"
+                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}" />
+                                        <Label
+                                            Margin="0,0,0,0"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            Text="T"
+                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}" />
+                                        <Label
+                                            Margin="0,0,0,0"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            Text="W"
+                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}" />
+                                        <Label
+                                            Margin="0,0,0,0"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            Text="T"
+                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}" />
+                                        <Label
+                                            Margin="0,0,0,0"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            Text="F"
+                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}" />
+                                        <Label
+                                            Margin="0,0,0,0"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            Text="S"
+                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}" />
+                                    </StackLayout>
+                                    <Label
+                                        VerticalOptions="FillAndExpand"
+                                        Margin="2,0,0,0"
+                                        Text="{Binding Name}"
+                                        TextColor="Black" />
+                                    <Label
+                                        VerticalOptions="FillAndExpand"
+                                        Margin="2,0,0,0"
+                                        Text="{Binding SubTitle}"
+                                        TextColor="SlateBlue" />
+                                    <StackLayout Orientation="Horizontal" HorizontalOptions="Start" 
+                                                 MinimumHeightRequest="30" VerticalOptions="FillAndExpand">
+                                        <Button
+                                            CharacterSpacing="0"
+                                            Padding="0"
+                                            Margin="0,0,10,0"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding PreviousCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="{OnPlatform Default='Medium',
+                                                                  UWP='Micro'}"
+                                            HorizontalOptions="Start"
+                                            MinimumHeightRequest="25"
+                                            Text="{x:Static fn:GlyphNames.Previous}"
+                                            TextColor="LightGray"
+                                            VerticalOptions="FillAndExpand" />
+                                        <Button
+                                            CharacterSpacing="0"
+                                            Padding="0"
+                                            Margin="10,0,10,0"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding NextCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="{OnPlatform Default='Medium',
+                                                                  UWP='Micro'}"
+                                            MinimumHeightRequest="25"
+                                            HorizontalOptions="Start"
+                                            Text="{x:Static fn:GlyphNames.Next}"
+                                            TextColor="LightGray"
+                                            VerticalOptions="FillAndExpand" />
+                                    </StackLayout>
+                                </StackLayout>
+                                <StackLayout 
+                                    Grid.Column="2"
+                                    Margin="{OnIdiom Default={OnPlatform Default='15,0,30,0',
+                                                                         iOS='5,0,10,0',
+                                                                         UWP='5,0,10,0'},
+                                                     Tablet={OnPlatform Default='15,0,50,0'}}"
+                                    HorizontalOptions="End"
+                                    Orientation="Vertical"
+                                    VerticalOptions="CenterAndExpand">
+                                    <Switch
+                                        Margin="{OnPlatform UWP='0,0,-100,0'}"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="CenterAndExpand"
+                                        IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                        Scale="{OnPlatform Default='1',
+                                                           iOS='1'}" />
+                                </StackLayout>
+                            </Grid>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+    </Grid>
+</ContentPage>
