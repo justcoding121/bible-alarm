@@ -4,9 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Bible.Alarm.Audio.Links.Harvester.Models.Bible;
-using Bible.Alarm.Audio.Links.Harvester.Utility;
-using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Models.Bible;
+using Bible.Alarm.Shared.Utilities;
 using Newtonsoft.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvester.Harvesters.Bible

@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Audio.Links.Harvester.Models
+namespace Bible.Alarm.Shared.Models
 {
     public class Publication
     {

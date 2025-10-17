@@ -10,9 +10,8 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Bible.Alarm.Audio.Links.Harvester.Harvesters.Bible;
 using Bible.Alarm.Audio.Links.Harvester.Harvesters.Music;
-using Bible.Alarm.Audio.Links.Harvester.Models;
-using Bible.Alarm.Audio.Links.Harvester.Utility;
-using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Models;
+using Bible.Alarm.Shared.Utilities;
 using Newtonsoft.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvester
@@ -71,7 +70,7 @@ namespace Bible.Alarm.Audio.Links.Harvester
 
                 await File.WriteAllTextAsync(indexFile, JsonConvert.SerializeObject(index));
 
-                await DbSeeder.Seed($"{DirectoryHelper.IndexDirectory}");
+                // await DbSeeder.Seed($"{DirectoryHelper.IndexDirectory}"); // TODO: Implement DbSeeder in shared library
 
                 ZipFiles();
 

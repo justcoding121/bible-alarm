@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Bible.Alarm.Audio.Links.Harvester.Models.Music
+namespace Bible.Alarm.Shared.Models.Music
 {
     public class MusicTrack : IComparable
     {

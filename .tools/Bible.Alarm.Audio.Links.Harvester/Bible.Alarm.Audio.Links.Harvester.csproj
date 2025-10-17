@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>13.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +15,7 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Bible.Alarm\Bible.Alarm.csproj" />
+    <ProjectReference Include="..\..\src\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
   </ItemGroup>
 
 </Project>

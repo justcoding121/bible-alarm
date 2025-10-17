@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.IO;
 
-namespace Bible.Alarm.Audio.Links.Harvester.Utility
+namespace Bible.Alarm.Shared.Utilities
 {
     public static class DirectoryHelper
     {
-        internal static string IndexDirectory => indexDirectory.Value;
+        public static string IndexDirectory => indexDirectory.Value;
 
         private static Lazy<string> indexDirectory = new Lazy<string>(() =>
          {

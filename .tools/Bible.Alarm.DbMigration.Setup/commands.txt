@@ -1,2 +1,0 @@
-﻿Add-Migration InitialCreate -StartupProject Bible.Alarm.DbMigration.Setup -context ScheduleDbContext -OutputDir Services/Infrastructure/Schedule/Migrations
-Add-Migration InitialCreate -StartupProject Bible.Alarm.DbMigration.Setup -context MediaDbContext -OutputDir Services/Infrastructure/Media/Migrations

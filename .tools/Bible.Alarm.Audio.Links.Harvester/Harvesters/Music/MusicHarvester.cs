@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Bible.Alarm.Audio.Links.Harvester.Models;
-using Bible.Alarm.Audio.Links.Harvester.Models.Music;
-using Bible.Alarm.Audio.Links.Harvester.Utility;
-using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Models;
+using Bible.Alarm.Shared.Models.Music;
+using Bible.Alarm.Shared.Utilities;
 using Newtonsoft.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvester.Harvesters.Music

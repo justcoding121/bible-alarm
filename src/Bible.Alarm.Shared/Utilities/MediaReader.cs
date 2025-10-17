@@ -1,13 +1,13 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Bible.Alarm.Audio.Links.Harvester.Models;
-using Bible.Alarm.Audio.Links.Harvester.Models.Bible;
-using Bible.Alarm.Audio.Links.Harvester.Models.Music;
+using Bible.Alarm.Shared.Models;
+using Bible.Alarm.Shared.Models.Bible;
+using Bible.Alarm.Shared.Models.Music;
 using Newtonsoft.Json;
 
-namespace Bible.Alarm.Audio.Links.Harvester.Utility
+namespace Bible.Alarm.Shared.Utilities
 {
     public class MediaReader
     {
@@ -92,8 +92,5 @@ namespace Bible.Alarm.Audio.Links.Harvester.Utility
             return new OrderedDictionary<int, MusicTrack>(JsonConvert.DeserializeObject<IEnumerable<MusicTrack>>(melodyTracks)
                                                     .Select(x => new KeyValuePair<int, MusicTrack>(x.Number, x)));
         }
-
     }
 }
-
-

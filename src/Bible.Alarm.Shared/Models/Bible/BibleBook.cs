@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Bible.Alarm.Audio.Links.Harvester.Models.Bible
+namespace Bible.Alarm.Shared.Models.Bible
 {
     public class BibleBook : IComparable
     {
