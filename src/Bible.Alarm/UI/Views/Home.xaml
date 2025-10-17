@@ -83,7 +83,7 @@
                         EventName="ItemTapped" />
                 </ListView.Behaviors>
                 <ListView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="vm:ScheduleListItem">
                         <ViewCell>
                             <Grid
                                 Margin="{OnPlatform Default='0,10,0,10'}"

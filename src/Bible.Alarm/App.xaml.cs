@@ -37,7 +37,7 @@ namespace Bible.Alarm
 
             if (_container.RegisteredTypes.Any(x => x == typeof(NavigationPage)))
             {
-                MainPage = _container.Resolve<NavigationPage>();
+                Windows[0].Page = _container.Resolve<NavigationPage>();
             }
             else
             {
@@ -50,10 +50,10 @@ namespace Bible.Alarm
                 _container.RegisterSingleton(x => navigationPage.Navigation);
                 _container.RegisterSingleton<INavigationService>(x => new NavigationService(_container, navigationPage.Navigation));
 
-                MainPage = navigationPage;
+                Windows[0].Page = navigationPage;
 
-                MainPage.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
-                MainPage.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
+                Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
+                Windows[0].Page.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
 
                 Func<Task> homePageSetter = async () =>
                 {

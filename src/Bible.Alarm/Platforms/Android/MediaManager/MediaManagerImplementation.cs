@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Android.App;
@@ -26,7 +27,6 @@ using MediaManager.Volume;
 [assembly: UsesPermission(Android.Manifest.Permission.WakeLock)]
 namespace MediaManager
 {
-    [global::Android.Runtime.Preserve(AllMembers = true)]
     public class MediaManagerImplementation : MediaManagerBase, IMediaManager<IPlayer>
     {
         public MediaManagerImplementation()

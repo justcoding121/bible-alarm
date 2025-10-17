@@ -106,7 +106,7 @@
                             EventName="ItemTapped" />
                     </ListView.Behaviors>
                     <ListView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="vm:MusicTrackListViewItemModel">
                             <ViewCell>
                                 <Grid
                                     Padding="5,0,5,0"
