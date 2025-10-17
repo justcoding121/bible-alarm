@@ -1,294 +1,108 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <UseMaui>true</UseMaui>
-    <TargetFrameworks>net9.0-ios;net9.0-android;net9.0</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
-    <OutputType>Library</OutputType>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
-    <EnableDefaultMauiItems>False</EnableDefaultMauiItems>
-    <EnableDefaultCompileItems>False</EnableDefaultCompileItems>
-    <SingleProject>true</SingleProject>
-    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
-    <GenerateTargetFrameworkAttribute>False</GenerateTargetFrameworkAttribute>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="NLog" Version="6.0.5" />
-    <PackageReference Include="System.Reactive.Linq" Version="6.1.0" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
-    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
-    <PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
-  </ItemGroup>
-  
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-    <PackageReference Include="Xam.Plugins.Android.ExoPlayer" Version="2.11.8" />
-    <PackageReference Include="Xam.Plugins.Android.ExoPlayer.Cast" Version="2.11.6" />
-    <PackageReference Include="Xam.Plugins.Android.ExoPlayer.MediaSession" Version="2.11.8" />
-    <PackageReference Include="Xamarin.Google.Dagger" Version="2.39.1" />
-    <PackageReference Include="Xamarin.AndroidX.Work.Runtime" Version="2.7.0" />
-    <PackageReference Include="Xamarin.AndroidX.Work.Work.Runtime.Ktx" Version="2.7.0" />
-    <PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
-    <ProjectReference Include="..\..\library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj" />
-  </ItemGroup>
-  
+	<PropertyGroup>
+		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">net9.0-ios</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">net9.0-windows10.0.19041.0</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>Bible.Alarm</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>enable</ImplicitUsings>
 
-  <ItemGroup>
-    <MauiXaml Include="App.xaml" />
-    <MauiXaml Include="UI\Views\**\*.xaml" />
-  </ItemGroup>
-  
-  <!-- Platform-specific code -->
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-    <Compile Include="Platforms\Android\**\*.cs" />
-    <AndroidResource Include="Platforms\Android\Resources\**" Exclude="Platforms\Android\Resources\raw\cool_alarm_tone_notification_sound.mp3" />
-  </ItemGroup>
-  
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-ios'))">
-    <Compile Include="Platforms\iOS\**\*.cs" />
-    <BundleResource Include="Platforms\iOS\Resources\**" />
-    <BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
-  </ItemGroup>
-  
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
-    <Compile Include="Platforms\Windows\**\*.cs" />
-    <Content Include="Platforms\Windows\Assets\**" />
-  </ItemGroup>
-  
-  <!-- Shared resources for all platforms -->
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-    <AndroidResource Include="Resources\cool_alarm_tone_notification_sound.mp3" Link="Resources\raw\cool_alarm_tone_notification_sound.mp3" />
-  </ItemGroup>
-  
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-ios'))">
-    <BundleResource Include="Resources\cool_alarm_tone_notification_sound.mp3" />
-  </ItemGroup>
-  
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
-    <Content Include="Resources\cool_alarm_tone_notification_sound.mp3" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Compile Include="App.xaml.cs" />
-    <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="Common\CurrentDevice.cs" />
-    <Compile Include="Common\DataStructures\AsyncQueue.cs" />
-    <Compile Include="Common\DataStructures\ObservableDictionary.cs" />
-    <Compile Include="Common\DataStructures\ObservableHashSet.cs" />
-    <Compile Include="Common\DataStructures\OrderedDictionary.cs" />
-    <Compile Include="Common\DataStructures\OrderedHashSet.cs" />
-    <Compile Include="Common\DataStructures\RedBlackTree.cs" />
-    <Compile Include="Common\DataStructures\Shared\BSTBase.cs" />
-    <Compile Include="Common\DataStructures\Shared\BSTEnumerator.cs" />
-    <Compile Include="Common\DataStructures\Shared\BSTExtensions.cs" />
-    <Compile Include="Common\DataStructures\Shared\BSTNodeBase.cs" />
-    <Compile Include="Common\DataStructures\Shared\IEnumerableExtensions.cs" />
-    <Compile Include="Common\DependencyInjection\Container.cs" />
-    <Compile Include="Common\DependencyInjection\IContainer.cs" />
-    <Compile Include="Common\Extensions\CloneExtensions.cs" />
-    <Compile Include="Common\Extensions\LinqExtensions.cs" />
-    <Compile Include="Common\Extensions\MediaManagerExtensions.cs" />
-    <Compile Include="Common\Extensions\ObservableDictionaryExtensions.cs" />
-    <Compile Include="Common\Extensions\TaskExtensions.cs" />
-    <Compile Include="Common\Helpers\AsyncLazy.cs" />
-    <Compile Include="Common\Helpers\BgSourceHelper.cs" />
-    <Compile Include="Common\Helpers\CommonBootstrapHelper.cs" />
-    <Compile Include="Common\Helpers\JwSourceHelper.cs" />
-    <Compile Include="Common\Helpers\RetryHelper.cs" />
-    <Compile Include="Common\Helpers\SourceHelper.cs" />
-    <Compile Include="Common\Helpers\UrlHelper.cs" />
-    <Compile Include="Common\Mvvm\Assignments\Assignement.cs" />
-    <Compile Include="Common\Mvvm\Commands\AsyncRelayCommand.cs" />
-    <Compile Include="Common\Mvvm\Commands\AsyncRelayCommand{T}.cs" />
-    <Compile Include="Common\Mvvm\Commands\CommandExtensions.cs" />
-    <Compile Include="Common\Mvvm\Commands\IAsyncRelayCommand.cs" />
-    <Compile Include="Common\Mvvm\Commands\IRelayCommand.cs" />
-    <Compile Include="Common\Mvvm\Commands\RelayCommand.cs" />
-    <Compile Include="Common\Mvvm\Commands\RelayCommand{T}.cs" />
-    <Compile Include="Common\Mvvm\Extensions\QueryExtensions.cs" />
-    <Compile Include="Common\Mvvm\IDisposableModal.cs" />
-    <Compile Include="Common\Mvvm\Messenger\Messenger.cs" />
-    <Compile Include="Common\Mvvm\Observable.cs" />
-    <Compile Include="Common\Mvvm\Observers\NotifyPropertyObserver.cs" />
-    <Compile Include="Common\Mvvm\Observers\ObserversExtensions.cs" />
-    <Compile Include="Common\Mvvm\ViewModelBase.cs" />
-    <Compile Include="Common\Quartz\CronExpression.cs" />
-    <Compile Include="Common\Quartz\QuartzEnvironment.cs" />
-    <Compile Include="Common\Quartz\SortedSetExtensions.cs" />
-    <Compile Include="Common\Quartz\SystemTime.cs" />
-    <Compile Include="Common\Quartz\TimeZoneUtil.cs" />
-    <Compile Include="Common\Redux\Dispatcher.cs" />
-    <Compile Include="Common\Redux\IAction.cs" />
-    <Compile Include="Common\Redux\IStore.cs" />
-    <Compile Include="Common\Redux\Middleware`1.cs" />
-    <Compile Include="Common\Redux\Reducer`1.cs" />
-    <Compile Include="Common\Redux\Store.cs" />
-    <Compile Include="Contracts\Battery\IBatteryOptimizationManager.cs" />
-    <Compile Include="Contracts\Media\IAndroidAlarmHandler.cs" />
-    <Compile Include="Contracts\Media\IDownloadService.cs" />
-    <Compile Include="Contracts\Media\IMediaCacheService.cs" />
-    <Compile Include="Contracts\Media\IPlaybackService.cs" />
-    <Compile Include="Contracts\Media\IPlaylistService.cs" />
-    <Compile Include="Contracts\Media\IPreviewPlayService.cs" />
-    <Compile Include="Contracts\Network\INetworkStatusService.cs" />
-    <Compile Include="Contracts\Platform\IVersionFinder.cs" />
-    <Compile Include="Contracts\Scheduler\IAlarmService.cs" />
-    <Compile Include="Contracts\Storage\IStorageService.cs" />
-    <Compile Include="Contracts\UI\IListViewModel.cs" />
-    <Compile Include="Contracts\UI\INavigationService.cs" />
-    <Compile Include="Contracts\UI\INotificationService.cs" />
-    <Compile Include="Contracts\UI\IToastService.cs" />
-    <Compile Include="MauiProgram.cs" />
-    <Compile Include="MauiProgramExtensions.cs" />
-    <Compile Include="Models\Enums\DaysOfWeek.cs" />
-    <Compile Include="Models\Enums\Meridien.cs" />
-    <Compile Include="Models\Enums\MusicType.cs" />
-    <Compile Include="Models\Enums\PlayType.cs" />
-    <Compile Include="Models\Enums\SourceWebsite.cs" />
-    <Compile Include="Models\GeneralSettings.cs" />
-    <Compile Include="Models\Media\AudioSource.cs" />
-    <Compile Include="Models\Media\Bible\BibleBook.cs" />
-    <Compile Include="Models\Media\Bible\BibleChapter.cs" />
-    <Compile Include="Models\Media\Bible\BibleTranslation.cs" />
-    <Compile Include="Models\Media\Language.cs" />
-    <Compile Include="Models\Media\Music\MelodyMusic.cs" />
-    <Compile Include="Models\Media\Music\MusicTrack.cs" />
-    <Compile Include="Models\Media\Music\VocalMusic.cs" />
-    <Compile Include="Models\Media\NotificationDetail.cs" />
-    <Compile Include="Models\Media\PlayItem.cs" />
-    <Compile Include="Models\Media\Publication.cs" />
-    <Compile Include="Models\Schedule\AlarmMusic.cs" />
-    <Compile Include="Models\Schedule\AlarmNotification.cs" />
-    <Compile Include="Models\Schedule\AlarmSchedule.cs" />
-    <Compile Include="Models\Schedule\BibleReadingSchedule.cs" />
-    <Compile Include="Services\Infrastructure\LogSetup.cs" />
-    <Compile Include="Services\Infrastructure\Media\MediaDbContext.cs" />
-    <Compile Include="Services\Infrastructure\Media\Migrations\20200407051322_InitialCreate.cs" />
-    <Compile Include="Services\Infrastructure\Media\Migrations\20200407051322_InitialCreate.Designer.cs" />
-    <Compile Include="Services\Infrastructure\Media\Migrations\MediaDbContextModelSnapshot.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20190922162956_InitialCreate.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20190922162956_InitialCreate.Designer.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101225511_Add_General_Settings_Table.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101225511_Add_General_Settings_Table.Designer.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101234748_Add_Number_Of_Chapters_To_Read_Column.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191101234748_Add_Number_Of_Chapters_To_Read_Column.Designer.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191104225343_Add_FinishedDuration_Column.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20191104225343_Add_FinishedDuration_Column.Designer.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20200330025928_AddAlarmNotificationsTable.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20200330025928_AddAlarmNotificationsTable.Designer.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20210408045321_Add_NotificationEnabled_Column.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\20210408045321_Add_NotificationEnabled_Column.Designer.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\Migrations\ScheduleDbContextModelSnapshot.cs" />
-    <Compile Include="Services\Infrastructure\Schedule\ScheduleDbContext.cs" />
-    <Compile Include="Services\IocSetup.cs" />
-    <Compile Include="Services\Media\DownloadService.cs" />
-    <Compile Include="Services\Media\MediaCacheService.cs" />
-    <Compile Include="Services\Media\MediaIndexService.cs" />
-    <Compile Include="Services\Media\MediaService.cs" />
-    <Compile Include="Services\Media\PlaybackService.cs" />
-    <Compile Include="Services\Media\PlaylistService.cs" />
-    <Compile Include="Services\Network\NetworkStatusService.cs" />
-    <Compile Include="Services\Scheduler\AlarmService.cs" />
-    <Compile Include="Services\Storage\ResourceLoader.cs" />
-    <Compile Include="Services\Storage\StorageService.cs" />
-    <Compile Include="Services\Tasks\SchedulerTask.cs" />
-    <Compile Include="Services\UI\ToastService.cs" />
-    <Compile Include="UI\IocSetup.cs" />
-    <Compile Include="UI\Services\NavigationService.cs" />
-    <Compile Include="UI\ViewHelpers\AnimateUtils.cs" />
-    <Compile Include="UI\ViewHelpers\Behaviours\BindingBehaviour.cs" />
-    <Compile Include="UI\ViewHelpers\Behaviours\EventToCommandBehaviour.cs" />
-    <Compile Include="UI\ViewHelpers\ColorUtils.cs" />
-    <Compile Include="UI\ViewHelpers\Converters\DayColorConverter.cs" />
-    <Compile Include="UI\ViewHelpers\Converters\IsEnabledConverter.cs" />
-    <Compile Include="UI\ViewHelpers\Converters\IsSelectedColorConverter.cs" />
-    <Compile Include="UI\ViewHelpers\Converters\ItemTappedEventArgsConverter.cs" />
-    <Compile Include="UI\ViewHelpers\Converters\NegateBooleanConverter.cs" />
-    <Compile Include="UI\ViewHelpers\Converters\PlayStatusIconConverter.cs" />
-    <Compile Include="UI\ViewHelpers\Converters\RepeatColorConverter.cs" />
-    <Compile Include="UI\Views\Bible\BibleSelection.xaml.cs">
-      <DependentUpon>BibleSelection.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Bible\BookSelection.xaml.cs">
-      <DependentUpon>BookSelection.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Bible\ChapterSelection.xaml.cs">
-      <DependentUpon>ChapterSelection.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\FontFileResources.xaml.cs">
-      <DependentUpon>FontFileResources.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\General\AlarmModal.xaml.cs">
-      <DependentUpon>AlarmModal.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\General\BatteryOptimizationExclusionModal.xaml.cs">
-      <DependentUpon>BatteryOptimizationExclusionModal.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\General\MediaProgressModal.xaml.cs">
-      <DependentUpon>MediaProgressModal.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Home.xaml.cs">
-      <DependentUpon>Home.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Music\MusicSelection.xaml.cs">
-      <DependentUpon>MusicSelection.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Music\SongBookSelection.xaml.cs">
-      <DependentUpon>SongBookSelection.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Music\TrackSelection.xaml.cs">
-      <DependentUpon>TrackSelection.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Schedule\NumberOfChaptersModal.xaml.cs">
-      <DependentUpon>NumberOfChaptersModal.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Schedule\Schedule.xaml.cs">
-      <DependentUpon>Schedule.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Views\Shared\LanguageModal.xaml.cs">
-      <DependentUpon>LanguageModal.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="ViewModels\Bible\BibleSelectionViewModel.cs" />
-    <Compile Include="ViewModels\Bible\BookSelectionViewModel.cs" />
-    <Compile Include="ViewModels\Bible\ChapterSelectionViewModel.cs" />
-    <Compile Include="ViewModels\HomeViewModel.cs" />
-    <Compile Include="ViewModels\IocSetup.cs" />
-    <Compile Include="ViewModels\Music\MusicSelectionViewModel.cs" />
-    <Compile Include="ViewModels\Music\SongBookSelectionViewModel.cs" />
-    <Compile Include="ViewModels\Music\TrackSelectionViewModel.cs" />
-    <Compile Include="ViewModels\Redux\Actions\BackAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Bible\BibleSelectionAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Bible\BookSelectionAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Bible\ChapterSelectedAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Bible\ChapterSelectionAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\InitializeAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Music\MusicSelectionAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Music\SongBookSelectionAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Music\TrackSelectedAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Music\TrackSelectionAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Schedule\AddScheduleAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Schedule\RemoveScheduleAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Schedule\UpdateScheduleAction.cs" />
-    <Compile Include="ViewModels\Redux\Actions\Schedule\ViewScheduleAction.cs" />
-    <Compile Include="ViewModels\Redux\Reducers\RootReducer.cs" />
-    <Compile Include="ViewModels\Redux\ReduxContainer.cs" />
-    <Compile Include="ViewModels\Redux\State.cs" />
-    <Compile Include="ViewModels\ScheduleViewModel.cs" />
-    <Compile Include="ViewModels\Shared\AlarmViewModal.cs" />
-    <Compile Include="ViewModels\Shared\LanguageListViewItemModel.cs" />
-    <Compile Include="ViewModels\Shared\MediaProgressViewModal.cs" />
-    <Compile Include="ViewModels\Shared\NumberOfChaptersListViewItemModel.cs" />
-    <Compile Include="ViewModels\Shared\PublicationListViewItemModel.cs" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Platforms\iOS\MediaManager\Properties\" />
-  </ItemGroup>
+		<!-- Display Version -->
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+
+		<!-- Android-specific -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+
+		<!-- iOS-specific -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
+
+		<!-- Windows-specific -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
+		<UseWinUI>true</UseWinUI>
+
+		<!-- Assembly Information -->
+		<AssemblyTitle>Bible Alarm</AssemblyTitle>
+		<AssemblyProduct>Bible Alarm</AssemblyProduct>
+		<AssemblyCompany>Bible Alarm</AssemblyCompany>
+		<AssemblyConfiguration>Debug</AssemblyConfiguration>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<AssemblyFileVersion>1.0.0.0</AssemblyFileVersion>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="NLog" Version="6.0.5" />
+		<PackageReference Include="System.Reactive.Linq" Version="6.1.0" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
+		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
+		<PackageReference Include="Xam.Plugins.Android.ExoPlayer" Version="2.11.8" />
+		<PackageReference Include="Xam.Plugins.Android.ExoPlayer.Cast" Version="2.11.6" />
+		<PackageReference Include="Xam.Plugins.Android.ExoPlayer.MediaSession" Version="2.11.8" />
+		<PackageReference Include="Xamarin.Google.Dagger" Version="2.39.1" />
+		<PackageReference Include="Xamarin.AndroidX.Work.Runtime" Version="2.7.0" />
+		<PackageReference Include="Xamarin.AndroidX.Work.Work.Runtime.Ktx" Version="2.7.0" />
+		<PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
+		<ProjectReference Include="..\..\library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj" />
+	</ItemGroup>
+
+	<!-- App Icon (MauiIcon) -->
+	<ItemGroup>
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#512BD4" />
+	</ItemGroup>
+
+	<!-- Splash Screen (MauiSplashScreen) -->
+	<ItemGroup>
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+	</ItemGroup>
+
+	<!-- XAML Files -->
+	<ItemGroup>
+		<MauiXaml Include="App.xaml" />
+		<MauiXaml Include="UI\Views\**\*.xaml" />
+	</ItemGroup>
+
+	<!-- Enable platform-specific multi-targeting for files with platform extensions -->
+	<ItemGroup>
+		<Compile Update="**\*.Android.cs" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+			<Visible>false</Visible>
+		</Compile>
+		<Compile Update="**\*.iOS.cs" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+			<Visible>false</Visible>
+		</Compile>
+		<Compile Update="**\*.Windows.cs" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+			<Visible>false</Visible>
+		</Compile>
+	</ItemGroup>
+
+	<!-- Platform-specific resources -->
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
+		<AndroidResource Include="Platforms\Android\Resources\**" Exclude="Platforms\Android\Resources\raw\cool_alarm_tone_notification_sound.mp3" />
+		<AndroidResource Include="Resources\cool_alarm_tone_notification_sound.mp3" Link="Resources\raw\cool_alarm_tone_notification_sound.mp3" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-ios'))">
+		<BundleResource Include="Platforms\iOS\Resources\**" />
+		<BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
+		<BundleResource Include="Resources\cool_alarm_tone_notification_sound.mp3" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
+		<Content Include="Platforms\Windows\Assets\**" />
+		<Content Include="Resources\cool_alarm_tone_notification_sound.mp3" />
+	</ItemGroup>
 </Project>
