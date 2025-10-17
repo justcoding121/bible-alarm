@@ -31,7 +31,7 @@ namespace MediaManager
             protected set => SetProperty(ref _isInitialized, value);
         }
 
-        public Timer Timer { get; protected set; } = new Timer(TimerInterval);
+        public System.Timers.Timer Timer { get; protected set; } = new System.Timers.Timer(TimerInterval);
 
         public static double TimerInterval { get; set; } = 1000;
 
@@ -400,7 +400,7 @@ namespace MediaManager
         }
 
         public void OnMediaItemFinished(object sender, MediaItemEventArgs e) => MediaItemFinished?.Invoke(sender, e);
-        internal void OnPositionChanged(object sender, PositionChangedEventArgs e) => PositionChanged?.Invoke(sender, e);
+        internal void OnPositionChanged(object sender, Playback.PositionChangedEventArgs e) => PositionChanged?.Invoke(sender, e);
 
         internal void OnStateChanged(object sender, StateChangedEventArgs e)
         {
@@ -419,7 +419,7 @@ namespace MediaManager
             set
             {
                 if (SetProperty(ref _previousPosition, value))
-                    OnPositionChanged(this, new PositionChangedEventArgs(Position));
+                    OnPositionChanged(this, new Playback.PositionChangedEventArgs(Position));
             }
         }
 

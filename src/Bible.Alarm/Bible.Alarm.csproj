@@ -61,11 +61,6 @@
 		<AndroidProguardConfiguration Include="proguard.cfg" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
-		<ProjectReference Include="..\..\library\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
-	</ItemGroup>
-
 	<!-- App Icon (MauiIcon) -->
 	<ItemGroup>
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#512BD4" />
@@ -91,6 +86,9 @@
 	<PropertyGroup>
 		<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
 	</PropertyGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\library\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
+	</ItemGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->
 	<ItemGroup>
