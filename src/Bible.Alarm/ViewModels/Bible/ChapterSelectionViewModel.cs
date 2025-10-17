@@ -42,14 +42,14 @@ namespace Bible.Alarm.ViewModels
 
         public ChapterSelectionViewModel(IContainer container)
         {
-            this._container = container;
+            _container = container;
 
-            this._mediaService = this._container.Resolve<MediaService>();
-            this._toastService = this._container.Resolve<IToastService>();
-            this._playService = this._container.Resolve<IPreviewPlayService>();
-            this._navigationService = this._container.Resolve<INavigationService>();
-            this._downloadService = this._container.Resolve<IDownloadService>();
-            this._cacheService = this._container.Resolve<IMediaCacheService>();
+            _mediaService = _container.Resolve<MediaService>();
+            _toastService = _container.Resolve<IToastService>();
+            _playService = _container.Resolve<IPreviewPlayService>();
+            _navigationService = _container.Resolve<INavigationService>();
+            _downloadService = _container.Resolve<IDownloadService>();
+            _cacheService = _container.Resolve<IMediaCacheService>();
 
             BackCommand = new Command(async () =>
             {
@@ -305,7 +305,7 @@ namespace Bible.Alarm.ViewModels
 
         public BibleChapterListViewItemModel(BibleChapter chapter)
         {
-            this._chapter = chapter;
+            _chapter = chapter;
             TogglePlayCommand = new Command(() => Play = !Play);
         }
 

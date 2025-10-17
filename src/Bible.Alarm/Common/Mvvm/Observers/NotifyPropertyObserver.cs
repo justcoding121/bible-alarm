@@ -16,9 +16,9 @@
 
         public NotifyPropertyObserver(TObservable observable, TObserver observer)
         {
-            this._observable = observable;
-            this._observable.PropertyChanged += OnPropertyChanged;
-            this._observer = new WeakReference<TObserver>(observer);
+            _observable = observable;
+            _observable.PropertyChanged += OnPropertyChanged;
+            _observer = new WeakReference<TObserver>(observer);
         }
 
         #endregion
@@ -70,7 +70,7 @@
         /// <typeparam name="T">The 1st type parameter.</typeparam>
         public NotifyPropertyObserver<TObserver, TObservable> Observe<T>(Expression<Func<TObservable, T>> property, Action<TObservable, T> whenChanged)
         {
-            if (this.IsActive)
+            if (IsActive)
                 throw new InvalidOperationException("Property observers can only be configured before activation.");
 
             var expression = (MemberExpression)property.Body;
@@ -78,10 +78,10 @@
             var getter = property.Compile();
             void Action()
             {
-                var newValue = getter(this._observable);
-                whenChanged(this._observable, newValue);
+                var newValue = getter(_observable);
+                whenChanged(_observable, newValue);
             }
-            this._propertyObservers[propertyName] = Action;
+            _propertyObservers[propertyName] = Action;
 
             return this;
         }
@@ -91,30 +91,30 @@
         /// </summary>
         public void Start()
         {
-            if (!this.IsActive)
+            if (!IsActive)
             {
-                if (!this._hasBeenActive && this.ShouldTriggerInitialValues)
+                if (!_hasBeenActive && ShouldTriggerInitialValues)
                 {
-                    foreach (var property in this._propertyObservers)
+                    foreach (var property in _propertyObservers)
                     {
                         property.Value();
                     }
                 }
 
-                if (this.ShouldTriggerPendingChanges)
+                if (ShouldTriggerPendingChanges)
                 {
-                    foreach (var change in this._pendingChanges)
+                    foreach (var change in _pendingChanges)
                     {
-                        if (this._propertyObservers.TryGetValue(change, out Action action))
+                        if (_propertyObservers.TryGetValue(change, out Action action))
                         {
                             action();
                         }
                     }
                 }
 
-                this._pendingChanges = new HashSet<string>();
-                this.IsActive = true;
-                this._hasBeenActive = true;
+                _pendingChanges = new HashSet<string>();
+                IsActive = true;
+                _hasBeenActive = true;
             }
         }
 
@@ -123,10 +123,10 @@
         /// </summary>
         public void Stop()
         {
-            if (this.IsActive)
+            if (IsActive)
             {
-                this._propertyObservers = new Dictionary<string, Action>();
-                this.IsActive = false;
+                _propertyObservers = new Dictionary<string, Action>();
+                IsActive = false;
             }
         }
 
@@ -134,16 +134,16 @@
         {
             if (_observer.TryGetTarget(out TObserver _))
             {
-                if (this.IsActive)
+                if (IsActive)
                 {
-                    if (this._propertyObservers.TryGetValue(e.PropertyName, out Action action))
+                    if (_propertyObservers.TryGetValue(e.PropertyName, out Action action))
                     {
                         action();
                     }
                 }
                 else
                 {
-                    this._pendingChanges.Add(e.PropertyName);
+                    _pendingChanges.Add(e.PropertyName);
                 }
             }
             else

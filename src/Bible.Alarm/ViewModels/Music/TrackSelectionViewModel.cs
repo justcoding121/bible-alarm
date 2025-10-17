@@ -43,14 +43,14 @@ namespace Bible.Alarm.ViewModels
 
         public TrackSelectionViewModel(IContainer container)
         {
-            this._container = container;
+            _container = container;
 
-            this._mediaService = this._container.Resolve<MediaService>();
-            this._toastService = this._container.Resolve<IToastService>();
-            this._playService = this._container.Resolve<IPreviewPlayService>();
-            this._navigationService = this._container.Resolve<INavigationService>();
-            this._downloadService = this._container.Resolve<IDownloadService>();
-            this._cacheService = this._container.Resolve<IMediaCacheService>();
+            _mediaService = _container.Resolve<MediaService>();
+            _toastService = _container.Resolve<IToastService>();
+            _playService = _container.Resolve<IPreviewPlayService>();
+            _navigationService = _container.Resolve<INavigationService>();
+            _downloadService = _container.Resolve<IDownloadService>();
+            _cacheService = _container.Resolve<IMediaCacheService>();
 
             _subscriptions.Add(_mediaService);
 
@@ -292,7 +292,7 @@ namespace Bible.Alarm.ViewModels
             var isVocal = languageCode != null;
 
             var tracks = isVocal ? await _mediaService.GetVocalMusicTracks(languageCode, publicationCode)
-               : await _mediaService.GetMelodyMusicTracks((await this._mediaService.GetMelodyMusicReleases()).First().Value.Code);
+               : await _mediaService.GetMelodyMusicTracks((await _mediaService.GetMelodyMusicReleases()).First().Value.Code);
 
             var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
 
@@ -347,8 +347,8 @@ namespace Bible.Alarm.ViewModels
 
         public MusicTrackListViewItemModel(MusicTrack track, bool isMelody)
         {
-            this._track = track;
-            this._isMelody = isMelody;
+            _track = track;
+            _isMelody = isMelody;
 
             TogglePlayCommand = new Command(() => Play = !Play);
             ToggleRepeatCommand = new Command(() => Repeat = !Repeat);

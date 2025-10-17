@@ -60,8 +60,8 @@ namespace Bible.Alarm.Droid.Services.Tasks
             {
                 _container = BootstrapHelper.InitializeService(context);
 
-                this._context = context;
-                this._intent = intent;
+                _context = context;
+                _intent = intent;
 
                 var scheduleId = intent.GetStringExtra("ScheduleId");
                 var isImmediate = intent.GetBooleanExtra("IsImmediate", false);

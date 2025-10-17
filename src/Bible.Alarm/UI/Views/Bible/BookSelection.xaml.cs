@@ -16,7 +16,7 @@ namespace Bible.Alarm.UI.Views.Bible
 
         public BookSelection(IContainer container)
         {
-            this._container = container;
+            _container = container;
 
             InitializeComponent();
 
@@ -26,7 +26,7 @@ namespace Bible.Alarm.UI.Views.Bible
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
             });
 
-            this.Appearing += OnAppearing;
+            Appearing += OnAppearing;
         }
 
         private void OnAppearing(object sender, EventArgs e)
@@ -34,7 +34,7 @@ namespace Bible.Alarm.UI.Views.Bible
             Task.Delay(100).ContinueWith(x =>
             {
                 bookListView.ScrollTo(ViewModel.SelectedBook, ScrollToPosition.Center, true);
-                this.Appearing -= OnAppearing;
+                Appearing -= OnAppearing;
 
             }, _container.Resolve<TaskScheduler>());
         }

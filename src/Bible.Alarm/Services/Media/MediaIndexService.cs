@@ -28,11 +28,11 @@ namespace Bible.Alarm.Services
 
         public MediaIndexService(IStorageService storageService, IVersionFinder versionFinder, IDownloadService downloadService)
         {
-            this._storageService = storageService;
-            this._versionFinder = versionFinder;
-            this._downloadService = downloadService;
+            _storageService = storageService;
+            _versionFinder = versionFinder;
+            _downloadService = downloadService;
 
-            _indexRoot = new Lazy<string>(() => this._storageService.StorageRoot);
+            _indexRoot = new Lazy<string>(() => _storageService.StorageRoot);
         }
 
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);

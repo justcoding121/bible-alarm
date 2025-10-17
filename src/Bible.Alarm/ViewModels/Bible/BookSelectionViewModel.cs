@@ -35,10 +35,10 @@ namespace Bible.Alarm.ViewModels
 
         public BookSelectionViewModel(IContainer container)
         {
-            this.Container = container;
+            Container = container;
 
-            this._mediaService = this.Container.Resolve<MediaService>();
-            this._navigationService = this.Container.Resolve<INavigationService>();
+            _mediaService = Container.Resolve<MediaService>();
+            _navigationService = Container.Resolve<INavigationService>();
 
             BackCommand = new Command(async () =>
             {
@@ -60,7 +60,7 @@ namespace Bible.Alarm.ViewModels
                     }
                 });
 
-                var viewModel = this.Container.Resolve<ChapterSelectionViewModel>();
+                var viewModel = Container.Resolve<ChapterSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
                 IsBusy = false;
             });
@@ -100,7 +100,7 @@ namespace Bible.Alarm.ViewModels
 
         private void OnNavigated(object viewModal)
         {
-            if (viewModal.GetType() == this.GetType())
+            if (viewModal.GetType() == GetType())
             {
                 SetSelectedBook();
             }

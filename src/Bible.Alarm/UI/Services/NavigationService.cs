@@ -37,8 +37,8 @@ namespace Bible.Alarm.UI
 
         public NavigationService(IContainer container, INavigation navigater)
         {
-            this._container = container;
-            this._navigater = navigater;
+            _container = container;
+            _navigater = navigater;
 
             Messenger<object>.Subscribe(MvvmMessages.ShowAlarmModal, async @param =>
             {
@@ -70,7 +70,7 @@ namespace Bible.Alarm.UI
                 await _queue.EnqueueAsync((MvvmMessages.ClearToasts, @param));
             });
 
-            var syncContext = this._container.Resolve<TaskScheduler>();
+            var syncContext = _container.Resolve<TaskScheduler>();
 
             Task.Run(async () =>
             {
@@ -114,7 +114,7 @@ namespace Bible.Alarm.UI
                             {
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
-                                    using var toastService = this._container.Resolve<IToastService>();
+                                    using var toastService = _container.Resolve<IToastService>();
                                     await toastService.ShowMessage(@object as string);
 
                                 }, syncContext);
@@ -125,7 +125,7 @@ namespace Bible.Alarm.UI
                             {
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
-                                    using var toastService = this._container.Resolve<IToastService>();
+                                    using var toastService = _container.Resolve<IToastService>();
                                     await toastService.Clear();
 
                                 }, syncContext);
@@ -133,7 +133,7 @@ namespace Bible.Alarm.UI
                             break;
                         case MvvmMessages.ShowMediaProgessModal:
                             {
-                                var vm = this._container.Resolve<MediaProgressViewModal>();
+                                var vm = _container.Resolve<MediaProgressViewModal>();
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
                                     await ShowModal("MediaProgressModal", vm);

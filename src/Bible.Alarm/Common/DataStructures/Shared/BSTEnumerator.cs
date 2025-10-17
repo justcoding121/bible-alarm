@@ -14,8 +14,8 @@ namespace Advanced.Algorithms.DataStructures
 
         internal BstEnumerator(BstNodeBase<T> root, bool asc = true)
         {
-            this._root = root;
-            this._asc = asc;
+            _root = root;
+            _asc = asc;
         }
 
         public bool MoveNext()

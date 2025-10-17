@@ -18,7 +18,7 @@ namespace MediaManager.Platforms.Android.Media
         private readonly MediaControllerCompat _controller;
         public MediaDescriptionAdapter(MediaControllerCompat controller)
         {
-            this._controller = controller;
+            _controller = controller;
         }
 
         protected MediaDescriptionAdapter(IntPtr handle, JniHandleOwnership transfer) : base(handle, transfer)

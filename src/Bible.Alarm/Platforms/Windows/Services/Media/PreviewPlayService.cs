@@ -12,7 +12,7 @@ namespace Bible.Alarm.Services.Windows
         private TaskCompletionSource<bool> _tcs;
         public PreviewPlayService(MediaPlayer player)
         {
-            this._mediaPlayer = player;
+            _mediaPlayer = player;
             _mediaPlayer.MediaEnded += MediaEndHandler;
             _mediaPlayer.CurrentStateChanged += BufferingStartedHandler;
         }
@@ -42,7 +42,7 @@ namespace Bible.Alarm.Services.Windows
 
         public async Task Play(string url)
         {
-            this._tcs = new TaskCompletionSource<bool>();
+            _tcs = new TaskCompletionSource<bool>();
 
             var manifestUri = new Uri(url);
             _mediaPlayer.Source = MediaSource.CreateFromUri(manifestUri);

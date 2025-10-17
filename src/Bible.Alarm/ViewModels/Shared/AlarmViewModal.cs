@@ -41,18 +41,18 @@ namespace Bible.Alarm.ViewModels
 
         public AlarmViewModal(IContainer container)
         {
-            this._container = container;
+            _container = container;
 
-            this._playbackService = this._container.Resolve<IPlaybackService>();
-            this._mediaManager = this._container.Resolve<IMediaManager>();
+            _playbackService = _container.Resolve<IPlaybackService>();
+            _mediaManager = _container.Resolve<IMediaManager>();
 
             DismissCommand = new Command(async () =>
             {
                 await _playbackService.Dismiss();
-                var navigationService = this._container.Resolve<INavigationService>();
+                var navigationService = _container.Resolve<INavigationService>();
                 await navigationService?.CloseModal();
 
-                using var scheduleDbContext = this._container.Resolve<ScheduleDbContext>();
+                using var scheduleDbContext = _container.Resolve<ScheduleDbContext>();
 
                 try
                 {
@@ -99,7 +99,7 @@ namespace Bible.Alarm.ViewModels
 
             CancelCommand = new Command(async () =>
             {
-                var navigationService = this._container.Resolve<INavigationService>();
+                var navigationService = _container.Resolve<INavigationService>();
                 await navigationService?.GoBack();
             });
 

@@ -9,7 +9,7 @@ namespace Loggly
         public override IDictionary<string, object> ToParameters()
         {
             IDictionary<string, object> parameters = base.ToParameters();
-            parameters.Add("fieldname", this.FieldName);
+            parameters.Add("fieldname", FieldName);
 
             return parameters;
         }

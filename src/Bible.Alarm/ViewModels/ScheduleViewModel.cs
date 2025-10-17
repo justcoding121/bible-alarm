@@ -58,21 +58,21 @@ namespace Bible.Alarm.ViewModels
 
         public ScheduleViewModel(IContainer container)
         {
-            this._container = container;
+            _container = container;
 
             if (CurrentDevice.RuntimePlatform == Device.Android)
             {
-                this._batteryOptimizationManager = container.Resolve<IBatteryOptimizationManager>();
+                _batteryOptimizationManager = container.Resolve<IBatteryOptimizationManager>();
             }
 
-            this._scheduleDbContext = this._container.Resolve<ScheduleDbContext>();
-            this._mediaDbContext = this._container.Resolve<MediaDbContext>();
-            this._popUpService = this._container.Resolve<IToastService>();
-            this._alarmService = this._container.Resolve<IAlarmService>();
-            this._navigationService = this._container.Resolve<INavigationService>();
-            this._playbackService = this._container.Resolve<IPlaybackService>();
-            this._mediaManager = this._container.Resolve<IMediaManager>();
-            this._notificationService = this._container.Resolve<INotificationService>();
+            _scheduleDbContext = _container.Resolve<ScheduleDbContext>();
+            _mediaDbContext = _container.Resolve<MediaDbContext>();
+            _popUpService = _container.Resolve<IToastService>();
+            _alarmService = _container.Resolve<IAlarmService>();
+            _navigationService = _container.Resolve<INavigationService>();
+            _playbackService = _container.Resolve<IPlaybackService>();
+            _mediaManager = _container.Resolve<IMediaManager>();
+            _notificationService = _container.Resolve<INotificationService>();
 
             _subscriptions.Add(_scheduleDbContext);
 
@@ -155,10 +155,10 @@ namespace Bible.Alarm.ViewModels
 
                 if (!IsNewSchedule)
                 {
-                    if (this._mediaManager.IsPreparedEx()
-                        && _scheduleId == this._playbackService.CurrentlyPlayingScheduleId)
+                    if (_mediaManager.IsPreparedEx()
+                        && _scheduleId == _playbackService.CurrentlyPlayingScheduleId)
                     {
-                        await this._playbackService.Dismiss();
+                        await _playbackService.Dismiss();
                     }
                 }
 
@@ -181,10 +181,10 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                if (this._mediaManager.IsPreparedEx()
-                       && _scheduleId == this._playbackService.CurrentlyPlayingScheduleId)
+                if (_mediaManager.IsPreparedEx()
+                       && _scheduleId == _playbackService.CurrentlyPlayingScheduleId)
                 {
-                    await this._playbackService.Dismiss();
+                    await _playbackService.Dismiss();
                 }
 
                 await DeleteAsync();
@@ -205,7 +205,7 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                var viewModel = this._container.Resolve<MusicSelectionViewModel>();
+                var viewModel = _container.Resolve<MusicSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
 
                 await Task.Run(async () =>
@@ -232,7 +232,7 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                var viewModel = this._container.Resolve<BibleSelectionViewModel>();
+                var viewModel = _container.Resolve<BibleSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
 
                 await Task.Run(async () =>
@@ -305,7 +305,7 @@ namespace Bible.Alarm.ViewModels
 
                 await _navigationService.CloseModal();
 
-                this._batteryOptimizationManager.ShowBatteryOptimizationExclusionSettingsPage();
+                _batteryOptimizationManager.ShowBatteryOptimizationExclusionSettingsPage();
             });
 
             BatteryOptimizationDismissCommand = new Command(async () =>
@@ -476,7 +476,7 @@ namespace Bible.Alarm.ViewModels
 
         private void SetModel(AlarmSchedule model)
         {
-            this.Model = model.DeepClone();
+            Model = model.DeepClone();
 
             _scheduleId = model.Id;
             _name = model.Name;
@@ -601,7 +601,7 @@ namespace Bible.Alarm.ViewModels
                 DaysOfWeek = DaysOfWeek | day;
             }
 
-            this.RaiseProperty("DaysOfWeek");
+            RaiseProperty("DaysOfWeek");
         }
 
         private void SetupMediaCache(long scheduleId)
@@ -743,7 +743,7 @@ namespace Bible.Alarm.ViewModels
 
         private void RefreshChapterName()
         {
-            var syncContext = this._container.Resolve<TaskScheduler>();
+            var syncContext = _container.Resolve<TaskScheduler>();
 
             Task.Run(async () =>
             {
@@ -792,12 +792,12 @@ namespace Bible.Alarm.ViewModels
             _subscriptions.ForEach(x => x.Dispose());
             _subscriptions.Clear();
 
-            this._scheduleDbContext.Dispose();
-            this._popUpService.Dispose();
-            this._alarmService.Dispose();
-            this._notificationService.Dispose();
-            this._mediaDbContext.Dispose();
-            this._batteryOptimizationManager?.Dispose();
+            _scheduleDbContext.Dispose();
+            _popUpService.Dispose();
+            _alarmService.Dispose();
+            _notificationService.Dispose();
+            _mediaDbContext.Dispose();
+            _batteryOptimizationManager?.Dispose();
         }
     }
 }

@@ -60,7 +60,7 @@ namespace Bible.Alarm.Services.Droid.Tasks
 
             try
             {
-                this._container = BootstrapHelper.InitializeService(this);
+                _container = BootstrapHelper.InitializeService(this);
             }
             catch (Exception e)
             {

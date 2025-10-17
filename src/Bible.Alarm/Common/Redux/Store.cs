@@ -22,30 +22,30 @@ namespace Redux
           TState initialState = default(TState),
           params Middleware<TState>[] middlewares)
         {
-            this._reducer = reducer;
-            this._dispatcher = this.ApplyMiddlewares(middlewares);
-            this._lastState = initialState;
-            this._stateSubject.OnNext(this._lastState);
+            _reducer = reducer;
+            _dispatcher = ApplyMiddlewares(middlewares);
+            _lastState = initialState;
+            _stateSubject.OnNext(_lastState);
         }
 
         public IAction Dispatch(IAction action)
         {
-            return this._dispatcher(action);
+            return _dispatcher(action);
         }
 
         public TState GetState()
         {
-            return this._lastState;
+            return _lastState;
         }
 
         public IDisposable Subscribe(IObserver<TState> observer)
         {
-            return this._stateSubject.Subscribe(observer);
+            return _stateSubject.Subscribe(observer);
         }
 
         private Dispatcher ApplyMiddlewares(params Middleware<TState>[] middlewares)
         {
-            Dispatcher dispatcher = new Dispatcher(this.InnerDispatch);
+            Dispatcher dispatcher = new Dispatcher(InnerDispatch);
             foreach (Middleware<TState> middleware in middlewares)
                 dispatcher = middleware((IStore<TState>)this)(dispatcher);
             return dispatcher;
@@ -53,9 +53,9 @@ namespace Redux
 
         private IAction InnerDispatch(IAction action)
         {
-            lock (this._syncRoot)
-                this._lastState = this._reducer(this._lastState, action);
-            this._stateSubject.OnNext(this._lastState);
+            lock (_syncRoot)
+                _lastState = _reducer(_lastState, action);
+            _stateSubject.OnNext(_lastState);
             return action;
         }
     }

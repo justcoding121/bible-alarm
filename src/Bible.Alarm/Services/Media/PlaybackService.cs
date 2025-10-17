@@ -45,15 +45,15 @@ namespace Bible.Alarm.Services
             INetworkStatusService networkStatusService,
             IDownloadService downloadService)
         {
-            this._mediaManager = mediaManager;
-            this._playlistService = playlistService;
-            this._cacheService = cacheService;
-            this._storageService = storageService;
-            this._networkStatusService = networkStatusService;
-            this._downloadService = downloadService;
+            _mediaManager = mediaManager;
+            _playlistService = playlistService;
+            _cacheService = cacheService;
+            _storageService = storageService;
+            _networkStatusService = networkStatusService;
+            _downloadService = downloadService;
 
-            this._mediaManager.MediaItemFinished += MarkTrackAsFinished;
-            this._mediaManager.StateChanged += StateChanged;
+            _mediaManager.MediaItemFinished += MarkTrackAsFinished;
+            _mediaManager.StateChanged += StateChanged;
         }
 
         private bool _isPlaying = false;
@@ -82,7 +82,7 @@ namespace Bible.Alarm.Services
                 throw new Exception("Cannot play without preparing.");
             }
 
-            await this._mediaManager.Play();
+            await _mediaManager.Play();
         }
 
         public async Task PrepareAndPlay(long scheduleId, bool isImmediatePlayRequest)
@@ -104,9 +104,9 @@ namespace Bible.Alarm.Services
         {
             try
             {
-                if (this._mediaManager.IsPlaying())
+                if (_mediaManager.IsPlaying())
                 {
-                    await this._mediaManager.Stop();
+                    await _mediaManager.Stop();
                 }
             }
             catch (Exception e)
@@ -144,7 +144,7 @@ namespace Bible.Alarm.Services
 
                 if (await _cacheService.Exists(item.Url))
                 {
-                    downloadedTracks.Add(i, new FileInfo(this._cacheService.GetCacheFilePath(item.Url)));
+                    downloadedTracks.Add(i, new FileInfo(_cacheService.GetCacheFilePath(item.Url)));
                 }
                 else
                 {
@@ -312,7 +312,7 @@ namespace Bible.Alarm.Services
             else
             {
                 _firstChapter = _currentlyPlaying.FirstOrDefault(x => x.Value.IsBibleReading).Key;
-                this._mediaManager.RepeatMode = RepeatMode.Off;
+                _mediaManager.RepeatMode = RepeatMode.Off;
 
                 var list = mergedMediaItems.Select(x => x.Value).ToList();
                 if (prepareOnly)
@@ -321,7 +321,7 @@ namespace Bible.Alarm.Services
                 }
                 else
                 {
-                    await this._mediaManager.PlayEx(list);
+                    await _mediaManager.PlayEx(list);
                 }
             }
         }
@@ -332,16 +332,16 @@ namespace Bible.Alarm.Services
             {
                 if (!isImmediate)
                 {
-                    var file = new FileInfo(Path.Combine(this._storageService.StorageRoot, "cool-alarm-tone-notification-sound.mp3"));
-                    this._mediaManager.RepeatMode = RepeatMode.All;
+                    var file = new FileInfo(Path.Combine(_storageService.StorageRoot, "cool-alarm-tone-notification-sound.mp3"));
+                    _mediaManager.RepeatMode = RepeatMode.All;
                     if (prepareOnly)
                     {
                         var mediaItem = await MediaExtractor.CreateMediaItem(file);
-                        await (this._mediaManager as MediaManagerBase).PrepareQueueForPlayback(mediaItem);
+                        await (_mediaManager as MediaManagerBase).PrepareQueueForPlayback(mediaItem);
                     }
                     else
                     {
-                        await this._mediaManager.PlayEx(file);
+                        await _mediaManager.PlayEx(file);
                     }
                 }
                 else
@@ -359,7 +359,7 @@ namespace Bible.Alarm.Services
         {
             try
             {
-                var mediaItem = this._mediaManager?.Queue?.Current;
+                var mediaItem = _mediaManager?.Queue?.Current;
 
                 if (mediaItem == null)
                 {
@@ -381,7 +381,7 @@ namespace Bible.Alarm.Services
                                 && _firstChapter != null
                                 && mediaItem == _firstChapter)
                             {
-                                await this._mediaManager.SeekTo(track.FinishedDuration);
+                                await _mediaManager.SeekTo(track.FinishedDuration);
                                 _firstChapter = null;
                             }
                             break;
@@ -493,9 +493,9 @@ namespace Bible.Alarm.Services
 
                         try
                         {
-                            if (IsPlaying && this._mediaManager.IsPlaying())
+                            if (IsPlaying && _mediaManager.IsPlaying())
                             {
-                                var mediaItem = this._mediaManager.Queue?.Current;
+                                var mediaItem = _mediaManager.Queue?.Current;
 
                                 if (mediaItem != null && _currentlyPlaying != null)
                                 {
@@ -507,7 +507,7 @@ namespace Bible.Alarm.Services
                                             && _firstChapter != null
                                             && mediaItem == _firstChapter)
                                         {
-                                            await this._mediaManager.SeekTo(track.FinishedDuration);
+                                            await _mediaManager.SeekTo(track.FinishedDuration);
                                             if (CurrentDevice.RuntimePlatform == Device.iOS)
                                             {
                                                 _mediaManager.Notification.UpdateNotification();
@@ -526,8 +526,8 @@ namespace Bible.Alarm.Services
                                             CurrentTrackPosition = _mediaManager.Position;
 
                                             track.FinishedDuration = _mediaManager.Position;
-                                            await this._playlistService.MarkTrackAsPlayed(track);
-                                            await this._playlistService.SaveLastPlayed(_currentScheduleId);
+                                            await _playlistService.MarkTrackAsPlayed(track);
+                                            await _playlistService.SaveLastPlayed(_currentScheduleId);
                                             if (CurrentDevice.RuntimePlatform == Device.iOS)
                                             {
                                                 _mediaManager.Notification.UpdateNotification();
@@ -570,13 +570,13 @@ namespace Bible.Alarm.Services
             {
                 _disposed = true;
 
-                this._mediaManager.MediaItemFinished -= MarkTrackAsFinished;
+                _mediaManager.MediaItemFinished -= MarkTrackAsFinished;
 
-                this._playlistService.Dispose();
-                this._cacheService.Dispose();
-                this._storageService.Dispose();
-                this._networkStatusService.Dispose();
-                this._mediaManager.Dispose();
+                _playlistService.Dispose();
+                _cacheService.Dispose();
+                _storageService.Dispose();
+                _networkStatusService.Dispose();
+                _mediaManager.Dispose();
             }
 
             GC.SuppressFinalize(this);

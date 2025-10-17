@@ -27,8 +27,8 @@ namespace Bible.Alarm.Services.Windows.Handlers
         public UwpAlarmHandler(IPlaybackService playbackService,
                                 IMediaManager mediaManager)
         {
-            this._playbackService = playbackService;
-            this._mediaManager = mediaManager;
+            _playbackService = playbackService;
+            _mediaManager = mediaManager;
    
             var windowsMediaPlayer = mediaManager.MediaPlayer as WindowsMediaPlayer;
             var mediaPlayer = windowsMediaPlayer.Player;

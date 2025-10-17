@@ -25,7 +25,7 @@
 
         public object Resolve(Type type)
         {
-            var factory = this._factories[type];
+            var factory = _factories[type];
 
             if (factory.Item1)
             {
@@ -46,18 +46,18 @@
 
         public void Register<T>(Func<IContainer, T> factory)
         {
-            this._factories[typeof(T)] = new Tuple<bool, Func<object>>(false, () => factory(this));
+            _factories[typeof(T)] = new Tuple<bool, Func<object>>(false, () => factory(this));
         }
 
         public void RegisterSingleton<T>(Func<IContainer, T> factory)
         {
-            this._factories[typeof(T)] = new Tuple<bool, Func<object>>(true, () => factory(this));
+            _factories[typeof(T)] = new Tuple<bool, Func<object>>(true, () => factory(this));
         }
 
         public void WipeContainer()
         {
-            this._instances = new Dictionary<Type, object>();
-            this._factories = new Dictionary<Type, Tuple<bool, Func<object>>>();
+            _instances = new Dictionary<Type, object>();
+            _factories = new Dictionary<Type, Tuple<bool, Func<object>>>();
         }
 
         #endregion

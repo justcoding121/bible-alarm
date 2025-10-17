@@ -14,7 +14,7 @@ namespace Bible.Alarm.Audio.Links.Harvester.Utility
         private readonly string _indexRoot;
         public MediaReader(string indexRoot)
         {
-            this._indexRoot = indexRoot;
+            _indexRoot = indexRoot;
         }
 
         public async Task<Dictionary<string, Language>> GetBibleLanguages()

@@ -47,11 +47,11 @@
         /// <param name="properties">Properties.</param>
         public Assignement<TObservable, T> ThenRaise<TProperty>(Expression<Func<TProperty>> property)
         {
-            if (this.HasChanged)
+            if (HasChanged)
             {
                 var expression = (MemberExpression)property.Body;
                 var propertyName = expression.Member.Name;
-                this.Owner.RaiseProperties(propertyName);
+                Owner.RaiseProperties(propertyName);
             }
 
             return this;
@@ -64,7 +64,7 @@
         /// <param name="commands">Commands.</param>
         public Assignement<TObservable, T> ThenRaiseCanExecuteChanged(params IRelayCommand[] commands)
         {
-            if (this.HasChanged)
+            if (HasChanged)
             {
                 foreach (var c in commands)
                 {

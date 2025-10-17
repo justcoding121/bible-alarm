@@ -9,13 +9,13 @@
 
         public void Raise([CallerMemberName] string name = null)
         {
-            this.RaiseProperty(name);
+            RaiseProperty(name);
         }
         /// <summary>
         /// Raise the PropertyChanged event with the given property name.
         /// </summary>
         /// <param name="property">Property.</param>
-        public void RaiseProperty(string property) => this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+        public void RaiseProperty(string property) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
 
         /// <summary>
         /// Raise the PropertyChanged event for all the given property names.
@@ -25,7 +25,7 @@
         {
             foreach (var property in properties)
             {
-                this.RaiseProperty(property);
+                RaiseProperty(property);
             }
         }
 

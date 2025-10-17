@@ -38,8 +38,8 @@ namespace Loggly.Responses
 
         protected override async Task<EntryJsonResponseBase> GetEntryJsonResponse(int page)
         {
-            var eventQuery = new EventQuery { Rsid = this.Rsid.Id, Page = page };
-            var entryResonse = await this.Transport.Search(eventQuery).ConfigureAwait(false);
+            var eventQuery = new EventQuery { Rsid = Rsid.Id, Page = page };
+            var entryResonse = await Transport.Search(eventQuery).ConfigureAwait(false);
             return entryResonse;
         }
     }

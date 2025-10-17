@@ -31,10 +31,10 @@ namespace Bible.Alarm.ViewModels
 
         public MusicSelectionViewModel(IContainer container)
         {
-            this._container = container;
+            _container = container;
 
-            this._mediaService = this._container.Resolve<MediaService>();
-            this._navigationService = this._container.Resolve<INavigationService>();
+            _mediaService = _container.Resolve<MediaService>();
+            _navigationService = _container.Resolve<INavigationService>();
 
             //set schedules from initial state.
             //this should fire only once 
@@ -67,7 +67,7 @@ namespace Bible.Alarm.ViewModels
                         }
                     });
 
-                    var viewModel = this._container.Resolve<SongBookSelectionViewModel>();
+                    var viewModel = _container.Resolve<SongBookSelectionViewModel>();
                     await _navigationService.Navigate(viewModel);
                 }
                 else
@@ -81,7 +81,7 @@ namespace Bible.Alarm.ViewModels
                             PublicationCode = "iam"
                         }
                     });
-                    var viewModel = this._container.Resolve<TrackSelectionViewModel>();
+                    var viewModel = _container.Resolve<TrackSelectionViewModel>();
                     await _navigationService.Navigate(viewModel);
                 }
 
@@ -101,7 +101,7 @@ namespace Bible.Alarm.ViewModels
 
         private void OnNavigated(object viewModal)
         {
-            if (viewModal.GetType() == this.GetType())
+            if (viewModal.GetType() == GetType())
             {
                 SetSelectedMusicType();
             }

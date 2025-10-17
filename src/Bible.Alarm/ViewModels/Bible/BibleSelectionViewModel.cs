@@ -42,10 +42,10 @@ namespace Bible.Alarm.ViewModels
 
         public BibleSelectionViewModel(IContainer container)
         {
-            this._container = container;
+            _container = container;
 
-            this._mediaService = this._container.Resolve<MediaService>();
-            this._navigationService = this._container.Resolve<INavigationService>();
+            _mediaService = _container.Resolve<MediaService>();
+            _navigationService = _container.Resolve<INavigationService>();
 
             //set schedules from initial state.
             //this should fire only once 
@@ -90,7 +90,7 @@ namespace Bible.Alarm.ViewModels
                         LanguageCode = CurrentLanguage.Code
                     }
                 });
-                var viewModel = this._container.Resolve<BookSelectionViewModel>();
+                var viewModel = _container.Resolve<BookSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
 
                 IsBusy = false;
@@ -139,7 +139,7 @@ namespace Bible.Alarm.ViewModels
 
         private void OnNavigated(object viewModal)
         {
-            if (viewModal.GetType() == this.GetType())
+            if (viewModal.GetType() == GetType())
             {
                 SetSelectedTranslation();
             }

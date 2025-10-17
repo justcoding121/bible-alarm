@@ -16,7 +16,7 @@ namespace Bible.Alarm.UI.Views
         public LanguageModal()
         {
             InitializeComponent();
-            this.Appearing += OnAppearing;
+            Appearing += OnAppearing;
         }
 
         private void OnAppearing(object sender, EventArgs e)
@@ -25,7 +25,7 @@ namespace Bible.Alarm.UI.Views
             Task.Delay(100).ContinueWith(x =>
             {
                 LanguageListView.ScrollTo(ViewModel.SelectedItem, ScrollToPosition.Center, true);
-                this.Appearing -= OnAppearing;
+                Appearing -= OnAppearing;
 
             }, scheduler);
         }

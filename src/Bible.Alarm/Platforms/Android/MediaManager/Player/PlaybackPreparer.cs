@@ -31,7 +31,7 @@ namespace MediaManager.Platforms.Android.Player
         private IPlaybackService _playbackService;
         public MediaSessionConnectorPlaybackPreparer(ConcatenatingMediaSource mediaSource)
         {
-            this._mediaSource = mediaSource;
+            _mediaSource = mediaSource;
             _container = BootstrapHelper.GetInitializedContainer();
             _playbackService = _container.Resolve<IPlaybackService>();
         }

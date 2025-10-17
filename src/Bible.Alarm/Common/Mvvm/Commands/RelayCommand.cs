@@ -25,9 +25,9 @@
 
         #region Methods
 
-        public void RaiseCanExecuteChanged() => this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 
-        public bool CanExecute(object parameter) => this._canExecute();
+        public bool CanExecute(object parameter) => _canExecute();
 
         public void Execute(object parameter) => execute();
 

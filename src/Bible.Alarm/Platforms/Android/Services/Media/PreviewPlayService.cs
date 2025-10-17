@@ -28,11 +28,11 @@ namespace Bible.Alarm.Services.Droid
         Task IPreviewPlayService.Play(string url)
         {
             var uri = Android.Net.Uri.Parse(url);
-            this._player.Reset();
-            this._player.SetOnCompletionListener(this);
-            this._player.SetDataSource(container.AndroidContext(), uri);
-            this._player.Prepare();
-            this._player.Start();
+            _player.Reset();
+            _player.SetOnCompletionListener(this);
+            _player.SetDataSource(container.AndroidContext(), uri);
+            _player.Prepare();
+            _player.Start();
 
             return Task.CompletedTask;
         }
@@ -45,9 +45,9 @@ namespace Bible.Alarm.Services.Droid
                 return;
             }
 
-            this._player?.Stop();
-            this._player?.Dispose();
-            this._player = null;
+            _player?.Stop();
+            _player?.Dispose();
+            _player = null;
 
             _disposed = true;
             base.Dispose(disposing);

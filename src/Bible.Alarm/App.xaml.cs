@@ -27,7 +27,7 @@ namespace Bible.Alarm
 
         public App(IContainer container)
         {
-            this._container = container;
+            _container = container;
             Init();
         }
 

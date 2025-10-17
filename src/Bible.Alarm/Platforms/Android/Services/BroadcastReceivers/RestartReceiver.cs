@@ -50,13 +50,13 @@ namespace Bible.Alarm.Droid.Services.Tasks
 
         public override async void OnReceive(Context context, Intent intent)
         {
-            this._context = context;
+            _context = context;
 
             var pendingIntent = GoAsync();
 
             try
             {
-                this._container = BootstrapHelper.InitializeService(context);
+                _container = BootstrapHelper.InitializeService(context);
 
                 BootstrapHelper.VerifyBackgroundTasks(_container.AndroidContext());
 

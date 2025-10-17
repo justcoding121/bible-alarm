@@ -37,7 +37,7 @@
 
         public bool IsExecuting => _execution != null;
 
-        public DateTime? LastSuccededExecution => this._lastExecution;
+        public DateTime? LastSuccededExecution => _lastExecution;
 
         #endregion
 
@@ -47,40 +47,40 @@
 
         #region Methods
 
-        public void RaiseCanExecuteChanged() => this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 
         private void RaiseIsExecuting()
         {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExecuting)));
-            this.RaiseCanExecuteChanged();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExecuting)));
+            RaiseCanExecuteChanged();
         }
 
         public async void Execute(object parameter)
         {
             try
             {
-                this._cts = new CancellationTokenSource();
-                this._execution = execute((T)parameter, _cts.Token);
-                this.RaiseIsExecuting();
-                await this._execution;
-                this._lastExecution = DateTime.Now;
-                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastSuccededExecution)));
+                _cts = new CancellationTokenSource();
+                _execution = execute((T)parameter, _cts.Token);
+                RaiseIsExecuting();
+                await _execution;
+                _lastExecution = DateTime.Now;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastSuccededExecution)));
             }
             catch (Exception e)
             {
-                this.ExecutionFailed?.Invoke(this, e);
+                ExecutionFailed?.Invoke(this, e);
             }
             finally
             {
-                this._cts = null;
-                this._execution = null;
-                this.RaiseIsExecuting();
+                _cts = null;
+                _execution = null;
+                RaiseIsExecuting();
             }
         }
 
-        public void Cancel() => this._cts?.Cancel();
+        public void Cancel() => _cts?.Cancel();
 
-        public bool CanExecute(object parameter) => !this.IsExecuting && this._canExecute((T)parameter);
+        public bool CanExecute(object parameter) => !IsExecuting && _canExecute((T)parameter);
 
         #endregion
     }

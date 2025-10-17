@@ -49,7 +49,7 @@ namespace Bible.Alarm.Droid
             _castContext = CastContext.GetSharedInstance(this);
 
             // Initialize container
-            _container = BootstrapHelper.InitializeUi(Logger, this, this.Application);
+            _container = BootstrapHelper.InitializeUi(Logger, this, Application);
 
             // Initialize MAUI application
             var app = new App(_container);
@@ -76,7 +76,7 @@ namespace Bible.Alarm.Droid
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            BootstrapHelper.Remove(this.Application);
+            BootstrapHelper.Remove(Application);
         }
     }
 }

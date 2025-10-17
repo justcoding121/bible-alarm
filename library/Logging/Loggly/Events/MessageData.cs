@@ -45,7 +45,7 @@ namespace Loggly
 
             foreach (var pair in source)
             {
-                this.Add(pair.Key.ToString(), pair.Value);
+                Add(pair.Key.ToString(), pair.Value);
             }
         }
 
@@ -62,7 +62,7 @@ namespace Loggly
 
             foreach (var pair in source)
             {
-                this.Add(pair.Key, pair.Value);
+                Add(pair.Key, pair.Value);
             }
         }
 

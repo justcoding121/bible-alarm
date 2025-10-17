@@ -18,7 +18,7 @@ namespace Loggly.Responses
         [JsonProperty("logmsg")]
         public string Json { get; set; }
         [JsonIgnore]
-        public TMessage Message { get { return JsonConvert.DeserializeObject<TMessage>(this.Json); } }
+        public TMessage Message { get { return JsonConvert.DeserializeObject<TMessage>(Json); } }
 
         public override string ToString()
         {

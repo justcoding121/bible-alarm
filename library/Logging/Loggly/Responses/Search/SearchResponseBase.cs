@@ -18,12 +18,12 @@ namespace Loggly.Responses
         {
             get
             {
-                if (this.FirstEntryResponse == null)
+                if (FirstEntryResponse == null)
                 {
-                    this.FirstEntryResponse = GetEntryJsonResponse(0).Result;
+                    FirstEntryResponse = GetEntryJsonResponse(0).Result;
                 }
 
-                return this.FirstEntryResponse.TotalEvents;
+                return FirstEntryResponse.TotalEvents;
             }
         }
 

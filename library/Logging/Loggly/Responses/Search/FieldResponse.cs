@@ -12,7 +12,7 @@ namespace Loggly.Responses
 
         public FieldResponse(JObject json, string fieldName)
         {
-            this.Fields = json[fieldName]
+            Fields = json[fieldName]
                 .Take(json["unique_field_count"].ToObject<int>())
                 .Select(field => field.ToObject<Field>())
                 .ToArray();

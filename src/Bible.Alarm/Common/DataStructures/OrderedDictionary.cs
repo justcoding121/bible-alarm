@@ -211,8 +211,8 @@ namespace Advanced.Algorithms.DataStructures.Foundation
 
         internal OrderedKeyValuePair(K key, V value)
         {
-            this.Key = key;
-            this.Value = value;
+            Key = key;
+            Value = value;
         }
 
         public KeyValuePair<K, V> ToKeyValuePair()
@@ -249,8 +249,8 @@ namespace Advanced.Algorithms.DataStructures.Foundation
         internal SortedDictionaryEnumerator(RedBlackTree<OrderedKeyValuePair<K, V>> bst, bool asc = true)
         {
 
-            this._bst = bst;
-            this._enumerator = asc ? bst.GetEnumerator() : bst.GetEnumeratorDesc();
+            _bst = bst;
+            _enumerator = asc ? bst.GetEnumerator() : bst.GetEnumeratorDesc();
         }
 
         public bool MoveNext()

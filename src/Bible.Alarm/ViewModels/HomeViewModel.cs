@@ -55,22 +55,22 @@ namespace Bible.Alarm.ViewModels
             INotificationService notificationService,
             MediaDbContext mediaDbContext)
         {
-            this._container = container;
-            this._scheduleDbContext = scheduleDbContext;
-            this._popUpService = popUpService;
-            this._navigationService = navigationService;
-            this._mediaCacheService = mediaCacheService;
-            this._alarmService = alarmService;
-            this._notificationService = notificationService;
-            this._mediaDbContext = mediaDbContext;
+            _container = container;
+            _scheduleDbContext = scheduleDbContext;
+            _popUpService = popUpService;
+            _navigationService = navigationService;
+            _mediaCacheService = mediaCacheService;
+            _alarmService = alarmService;
+            _notificationService = notificationService;
+            _mediaDbContext = mediaDbContext;
 
             _subscriptions.Add(scheduleDbContext);
 
             AddScheduleCommand = new Command(async () =>
             {
                 ReduxContainer.Store.Dispatch(new ViewScheduleAction());
-                var viewModel = this._container.Resolve<ScheduleViewModel>();
-                await this._navigationService.Navigate(viewModel);
+                var viewModel = _container.Resolve<ScheduleViewModel>();
+                await _navigationService.Navigate(viewModel);
             });
 
             ViewScheduleCommand = new Command<ScheduleListItem>(async x =>
@@ -82,8 +82,8 @@ namespace Bible.Alarm.ViewModels
                     SelectedScheduleListItem = x
                 });
 
-                var viewModel = this._container.Resolve<ScheduleViewModel>();
-                await this._navigationService.Navigate(viewModel);
+                var viewModel = _container.Resolve<ScheduleViewModel>();
+                await _navigationService.Navigate(viewModel);
 
             });
 
@@ -358,12 +358,12 @@ namespace Bible.Alarm.ViewModels
         {
             _subscriptions.ForEach(x => x.Dispose());
 
-            this._scheduleDbContext.Dispose();
-            this._popUpService.Dispose();
-            this._mediaCacheService.Dispose();
-            this._alarmService.Dispose();
-            this._notificationService.Dispose();
-            this._mediaDbContext.Dispose();
+            _scheduleDbContext.Dispose();
+            _popUpService.Dispose();
+            _mediaCacheService.Dispose();
+            _alarmService.Dispose();
+            _notificationService.Dispose();
+            _mediaDbContext.Dispose();
 
             _lock.Dispose();
         }
@@ -381,7 +381,7 @@ namespace Bible.Alarm.ViewModels
         private IDisposable _subscription;
         public ScheduleListItem(IContainer container, AlarmSchedule schedule)
         {
-            this._container = container;
+            _container = container;
 
             Schedule = schedule;
             _isEnabled = schedule.IsEnabled;
@@ -505,7 +505,7 @@ namespace Bible.Alarm.ViewModels
 
         public void RefreshChapterName(bool force = false)
         {
-            var syncContext = this._container.Resolve<TaskScheduler>();
+            var syncContext = _container.Resolve<TaskScheduler>();
 
             _ = Task.Run(async () =>
              {
