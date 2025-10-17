@@ -8,8 +8,6 @@ using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
-using MediaManager;
-using MediaManager.Player;
 using Newtonsoft.Json;
 using NLog;
 using System;

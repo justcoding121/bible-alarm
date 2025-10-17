@@ -7,7 +7,6 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
-using MediaManager;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.Devices;
 using Mvvmicro;
@@ -41,7 +40,6 @@ namespace Bible.Alarm.ViewModels
         IToastService _popUpService;
         INavigationService _navigationService;
         IPlaybackService _playbackService;
-        IMediaManager _mediaManager;
         INotificationService _notificationService;
 
         private List<IDisposable> _subscriptions = new List<IDisposable>();
@@ -72,7 +70,6 @@ namespace Bible.Alarm.ViewModels
             _alarmService = _container.Resolve<IAlarmService>();
             _navigationService = _container.Resolve<INavigationService>();
             _playbackService = _container.Resolve<IPlaybackService>();
-            _mediaManager = _container.Resolve<IMediaManager>();
             _notificationService = _container.Resolve<INotificationService>();
 
             _subscriptions.Add(_scheduleDbContext);

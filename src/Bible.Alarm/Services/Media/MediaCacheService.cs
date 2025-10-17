@@ -3,7 +3,6 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Models.Enums;
 using Bible.Alarm.Services.Contracts;
-using MediaManager;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using NLog;
@@ -25,7 +24,7 @@ namespace Bible.Alarm.Services
         ScheduleDbContext dbContext,
         MediaService mediaService,
         INetworkStatusService networkStatusService,
-        IMediaManager mediaManager)
+        IPlaybackService playbackService)
         : IMediaCacheService
     {
         private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
@@ -76,7 +75,7 @@ namespace Bible.Alarm.Services
                     foreach (var playItem in playlist)
                     {
                         //do not download while playing
-                        if (mediaManager.IsPreparedEx())
+                        if (playbackService.IsPrepared)
                         {
                             break;
                         }
@@ -250,7 +249,7 @@ namespace Bible.Alarm.Services
 
                 //do not delete anything when alarm is playing!
                 if (schedule.NextFireDate(DateTime.Now.AddMinutes(-5)) <= DateTimeOffset.Now.AddMinutes(5)
-                    || mediaManager.IsPreparedEx())
+                    || playbackService.IsPrepared)
                 {
                     return;
                 }
@@ -266,7 +265,7 @@ namespace Bible.Alarm.Services
 
             filePathsToDelete.ToList().ForEach(x =>
             {
-                if (mediaManager.IsPreparedEx())
+                if (playbackService.IsPrepared)
                     return;
 
                 try

@@ -7,7 +7,6 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
-using MediaManager;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.Devices;
 using Mvvmicro;

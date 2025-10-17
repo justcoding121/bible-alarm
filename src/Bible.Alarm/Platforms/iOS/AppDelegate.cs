@@ -8,7 +8,6 @@ using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Foundation;
-using MediaManager;
 using NLog;
 using System;
 using System.Linq;

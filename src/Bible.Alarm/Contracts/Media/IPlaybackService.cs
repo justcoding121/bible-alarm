@@ -1,6 +1,4 @@
-﻿using MediaManager.Library;
-using MediaManager.Player;
-using System;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services.Contracts

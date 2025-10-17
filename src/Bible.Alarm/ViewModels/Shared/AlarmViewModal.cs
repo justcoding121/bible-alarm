@@ -3,7 +3,6 @@ using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
-using MediaManager;
 using Microsoft.EntityFrameworkCore;
 using Mvvmicro;
 using NLog;
@@ -24,7 +23,6 @@ namespace Bible.Alarm.ViewModels
 
 
         private readonly IContainer _container;
-        private readonly IMediaManager _mediaManager;
         private readonly IPlaybackService _playbackService;
 
         private bool _isDisposed = false;
@@ -44,7 +42,6 @@ namespace Bible.Alarm.ViewModels
             _container = container;
 
             _playbackService = _container.Resolve<IPlaybackService>();
-            _mediaManager = _container.Resolve<IMediaManager>();
 
             DismissCommand = new Command(async () =>
             {

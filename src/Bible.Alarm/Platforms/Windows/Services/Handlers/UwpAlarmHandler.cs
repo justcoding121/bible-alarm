@@ -2,9 +2,6 @@
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
-using MediaManager;
-using MediaManager.Platforms.Uap.Player;
-using MediaManager.Player;
 using Microsoft.EntityFrameworkCore;
 using NLog;
 using System;
@@ -21,19 +18,11 @@ namespace Bible.Alarm.Services.Windows.Handlers
 
 
         private IPlaybackService _playbackService;
-        private IMediaManager _mediaManager;
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
-        public UwpAlarmHandler(IPlaybackService playbackService,
-                                IMediaManager mediaManager)
+        public UwpAlarmHandler(IPlaybackService playbackService)
         {
             _playbackService = playbackService;
-            _mediaManager = mediaManager;
-   
-            var windowsMediaPlayer = mediaManager.MediaPlayer as WindowsMediaPlayer;
-            var mediaPlayer = windowsMediaPlayer.Player;
-
-            mediaPlayer.SystemMediaTransportControls.IsEnabled = false;
         }
 
         public async Task Handle(long scheduleId, bool isImmediate)

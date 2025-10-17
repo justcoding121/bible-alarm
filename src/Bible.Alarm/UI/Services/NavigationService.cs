@@ -9,7 +9,6 @@ using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Bible.Alarm.ViewModels.Shared;
-using MediaManager;
 using NLog;
 using System;
 using System.Linq;

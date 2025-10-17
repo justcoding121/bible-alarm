@@ -1,6 +1,7 @@
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Infrastructure;
 using Microsoft.Extensions.Logging;
+using CommunityToolkit.Maui;
 
 namespace Bible.Alarm;
 
@@ -11,6 +12,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseMauiCommunityToolkitMediaElement()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

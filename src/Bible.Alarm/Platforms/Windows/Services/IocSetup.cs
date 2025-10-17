@@ -8,8 +8,6 @@
     using Bible.Alarm.Services.Windows.Platform;
     using Bible.Alarm.Services.Windows.Storage;
     using Bible.Alarm.Services.Windows.Handlers;
-    using MediaManager;
-    using MediaManager.Platforms.Uap.Player;
     using Microsoft.EntityFrameworkCore;
     using System;
     using System.IO;
@@ -20,8 +18,6 @@
     {
         public static IContainer Container { get; private set; }
 
-        private static Lazy<IMediaManager> mediaManagerImplementation
-             = new Lazy<IMediaManager>(() => new MediaManagerImplementation(), System.Threading.LazyThreadSafetyMode.PublicationOnly);
 
         public static void Initialize(IContainer container, bool isService)
         {
@@ -56,17 +52,11 @@
                 return new MediaDbContext(mediaDbConfig);
             });
 
-            container.RegisterSingleton((x) =>
-            {
-                CrossMediaManager.Implementation = mediaManagerImplementation;
-                return CrossMediaManager.Current;
-            });
 
             container.Register<IVersionFinder>((x) => new UwpVersionFinder());
             container.Register<IStorageService>((x) => new UwpStorageService());
             container.Register((x) =>
-                    new UwpAlarmHandler(container.Resolve<IPlaybackService>(),
-                                container.Resolve<IMediaManager>()));
+                    new UwpAlarmHandler(container.Resolve<IPlaybackService>()));
         }
     }
 }

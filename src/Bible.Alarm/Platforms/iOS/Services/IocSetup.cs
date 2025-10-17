@@ -6,7 +6,6 @@
     using Bible.Alarm.iOS.Services.Handlers;
     using Bible.Alarm.iOS.Services.Platform;
     using Bible.Alarm.Services.Contracts;
-    using MediaManager;
     using Microsoft.EntityFrameworkCore;
     using System;
     using System.IO;
@@ -15,9 +14,6 @@
 
     public static class IocSetup
     {
-        private static Lazy<IMediaManager> mediaManagerImplementation
-       = new Lazy<IMediaManager>(() => new MediaManagerImplementation(),
-            System.Threading.LazyThreadSafetyMode.PublicationOnly);
 
         public static void Initialize(IContainer container, bool isService)
         {
@@ -53,17 +49,11 @@
                 return new MediaDbContext(mediaDbConfig);
             });
 
-            container.RegisterSingleton((x) =>
-            {
-                CrossMediaManager.Implementation = mediaManagerImplementation;
-                return CrossMediaManager.Current;
-            });
 
             container.Register<IVersionFinder>((x) => new VersionFinder());
             container.Register<IStorageService>((x) => new IOsStorageService());
             container.Register((x) =>
                     new IOsAlarmHandler(container.Resolve<IPlaybackService>(),
-                                container.Resolve<IMediaManager>(),
                                 container.Resolve<TaskScheduler>()));
         }
     }

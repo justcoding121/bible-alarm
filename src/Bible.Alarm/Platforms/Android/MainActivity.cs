@@ -15,7 +15,6 @@ using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Services.Droid.Extensions;
 using Bible.Alarm.Services.Infrastructure;
 using Java.Interop;
-using MediaManager;
 using Newtonsoft.Json;
 using NLog;
 using Plugin.CurrentActivity;

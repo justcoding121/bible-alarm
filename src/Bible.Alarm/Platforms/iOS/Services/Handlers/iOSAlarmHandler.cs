@@ -2,8 +2,6 @@
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
-using MediaManager;
-using MediaManager.Player;
 using Microsoft.EntityFrameworkCore;
 using NLog;
 using System;
@@ -15,7 +13,6 @@ namespace Bible.Alarm.iOS.Services.Handlers
 {
     public class IOsAlarmHandler(
         IPlaybackService playbackService,
-        IMediaManager mediaManager,
         TaskScheduler taskScheduler)
         : IDisposable
     {

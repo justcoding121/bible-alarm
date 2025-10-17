@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services
     using Bible.Alarm.Services.Contracts;
     using Bible.Alarm.Services.Network;
     using Bible.Alarm.Services.Tasks;
-    using MediaManager;
+    using Bible.Alarm.Services.Media;
     using System;
     using System.Net.Http;
 
@@ -28,7 +28,7 @@ namespace Bible.Alarm.Services
                 container.Resolve<ScheduleDbContext>(),
                 container.Resolve<MediaService>(),
                 container.Resolve<INetworkStatusService>(),
-                container.Resolve<IMediaManager>()));
+                container.Resolve<IPlaybackService>()));
 
             container.Register<IPlaylistService>((x) => new PlaylistService(container.Resolve<ScheduleDbContext>(),
                 container.Resolve<MediaDbContext>(),
@@ -40,6 +40,9 @@ namespace Bible.Alarm.Services
               container.Resolve<ScheduleDbContext>()));
 
             container.Register<INetworkStatusService>((x) => new NetworkStatusService(container));
+            
+            // Register MediaElement-based audio service
+            container.RegisterSingleton<IMediaElementAudioService>((x) => new MediaElementAudioService());
 
             Func<IPlaybackService> playbackServiceFactory = new Func<IPlaybackService>(() =>
             {
@@ -48,12 +51,7 @@ namespace Bible.Alarm.Services
 
                     if (playbackService == null)
                     {
-                        playbackService = new PlaybackService(container.Resolve<IMediaManager>(),
-                          container.Resolve<IPlaylistService>(),
-                          container.Resolve<IMediaCacheService>(),
-                          container.Resolve<IStorageService>(),
-                          container.Resolve<INetworkStatusService>(),
-                          container.Resolve<IDownloadService>());
+                        playbackService = new PlaybackService(container.Resolve<IMediaElementAudioService>());
                     }
 
                     return playbackService;

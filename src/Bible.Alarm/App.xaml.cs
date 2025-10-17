@@ -4,7 +4,6 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.UI;
 using Bible.Alarm.ViewModels;
-using MediaManager;
 using NLog;
 using System;
 using System.Linq;

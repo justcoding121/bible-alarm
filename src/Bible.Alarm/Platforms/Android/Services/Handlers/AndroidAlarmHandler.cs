@@ -7,15 +7,12 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid;
 using Com.Google.Android.Exoplayer2.UI;
-using MediaManager;
-using MediaManager.Platforms.Android.Notifications;
 using Microsoft.EntityFrameworkCore;
 using NLog;
 
 namespace Bible.Alarm.Droid.Services.Handlers
 {
     public class AndroidAlarmHandler(
-        IMediaManager mediaManager,
         IPlaybackService playbackService,
         ScheduleDbContext dbContext,
         DroidNotificationService notificationService)
