@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="Bible.Alarm"
+    Publisher="CN=YourPublisherName"
+    Version="1.64.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="your-guid-here" PhonePublisherId="your-guid-here" />
+
+  <Properties>
+    <DisplayName>Bible Alarm</DisplayName>
+    <PublisherDisplayName>Your Publisher Name</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.19041.0" MaxVersionTested="10.0.19041.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="Bible Alarm"
+        Description="Bible Alarm - Wake up to God's Word"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+    <uap:Capability Name="backgroundMediaPlayback" />
+    <uap:Capability Name="backgroundTaskExecution" />
+    <rescap:Capability Name="backgroundTaskExecution" />
+  </Capabilities>
+
+  <Extensions>
+    <uap:Extension Category="windows.backgroundTasks" EntryPoint="Bible.Alarm.WinUI.App">
+      <uap:BackgroundTasks>
+        <uap:Task Type="systemEvent" />
+        <uap:Task Type="timer" />
+      </uap:BackgroundTasks>
+    </uap:Extension>
+  </Extensions>
+</Package>

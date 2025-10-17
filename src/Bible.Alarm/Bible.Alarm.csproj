@@ -145,6 +145,7 @@
     <Compile Include="Contracts\UI\INavigationService.cs" />
     <Compile Include="Contracts\UI\INotificationService.cs" />
     <Compile Include="Contracts\UI\IToastService.cs" />
+    <Compile Include="MauiProgram.cs" />
     <Compile Include="MauiProgramExtensions.cs" />
     <Compile Include="Models\Enums\DaysOfWeek.cs" />
     <Compile Include="Models\Enums\Meridien.cs" />
@@ -167,14 +168,6 @@
     <Compile Include="Models\Schedule\AlarmNotification.cs" />
     <Compile Include="Models\Schedule\AlarmSchedule.cs" />
     <Compile Include="Models\Schedule\BibleReadingSchedule.cs" />
-    <Compile Include="Platforms\Windows\Helpers\BootstrapHelper.cs" />
-    <Compile Include="Platforms\Windows\Services\Handlers\UwpAlarmHandler.cs" />
-    <Compile Include="Platforms\Windows\Services\IocSetup.cs" />
-    <Compile Include="Platforms\Windows\Services\Media\PreviewPlayService.cs" />
-    <Compile Include="Platforms\Windows\Services\Platform\VersionFinder.cs" />
-    <Compile Include="Platforms\Windows\Services\Storage\StorageService.cs" />
-    <Compile Include="Platforms\Windows\Services\UI\NotificationService.cs" />
-    <Compile Include="Platforms\Windows\Services\UI\ToastService.cs" />
     <Compile Include="Services\Infrastructure\LogSetup.cs" />
     <Compile Include="Services\Infrastructure\Media\MediaDbContext.cs" />
     <Compile Include="Services\Infrastructure\Media\Migrations\20200407051322_InitialCreate.cs" />

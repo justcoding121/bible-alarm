@@ -27,8 +27,8 @@ using Microsoft.Maui.Controls.Compatibility;
 
 namespace Bible.Alarm.Droid
 {
-    [Activity(Label = "Bible Alarm", Icon = "@mipmap/icon", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation)]
-    public class MainActivity : global::Android.App.Activity
+    [Activity(Label = "Bible Alarm", Icon = "@mipmap/ic_launcher", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation)]
+    public class MainActivity : MauiAppCompatActivity
     {
         private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
         private static Logger Logger => LazyLogger.Value;
@@ -40,8 +40,6 @@ namespace Bible.Alarm.Droid
         {
             base.OnCreate(savedInstanceState);
 
-            // MAUI initialization is handled automatically
-
             // Initialize MediaManager
             CrossMediaManager.Current.Init(this);
 
@@ -51,8 +49,8 @@ namespace Bible.Alarm.Droid
             // Initialize container
             _container = BootstrapHelper.InitializeUi(Logger, this, Application);
 
-            // Initialize MAUI application
-            var app = new App(_container);
+            // MAUI will handle App instantiation through MauiProgram
+            // No need to manually create App instance
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Android.Content.PM.Permission[] grantResults)
