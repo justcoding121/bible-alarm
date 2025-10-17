@@ -5,25 +5,25 @@ VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_tools", "_tools", "{8BBDFD16-37FB-4C4C-AA4F-525913416EBE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.Audio.Links.Harvestor", "_tools\Bible.Alarm.Audio.Links.Harvestor\Bible.Alarm.Audio.Links.Harvestor.csproj", "{1D8DA005-6359-422B-9ACF-E3CBB05B25F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.Audio.Links.Harvestor", "..\.tools\Bible.Alarm.Audio.Links.Harvestor\Bible.Alarm.Audio.Links.Harvestor.csproj", "{1D8DA005-6359-422B-9ACF-E3CBB05B25F4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.DbMigration.Setup", "_tools\Bible.Alarm.DbMigration.Setup\Bible.Alarm.DbMigration.Setup.csproj", "{2DA76390-D8E0-4DD4-B342-2E2DD315FB83}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.DbMigration.Setup", "..\.tools\Bible.Alarm.DbMigration.Setup\Bible.Alarm.DbMigration.Setup.csproj", "{2DA76390-D8E0-4DD4-B342-2E2DD315FB83}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Library", "Library", "{26735473-D93B-4EBC-BCA3-AD3518DCEA4A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Logging", "Logging", "{C1196B56-6825-4989-B8F1-C9D90627BB57}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Loggly", "Library\Logging\Loggly\Loggly.csproj", "{A294ED02-19F3-428F-B25A-A94EDD8C03CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Loggly", "..\library\Logging\Loggly\Loggly.csproj", "{A294ED02-19F3-428F-B25A-A94EDD8C03CC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Loggly.Config", "Library\Logging\Loggly.Config\Loggly.Config.csproj", "{4F8457F7-2B13-4020-9154-179BFE40DC0E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Loggly.Config", "..\library\Logging\Loggly.Config\Loggly.Config.csproj", "{4F8457F7-2B13-4020-9154-179BFE40DC0E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NLog.Targets.Loggly", "Library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj", "{C9C75F14-858D-4136-ADF0-88D6699749E7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NLog.Targets.Loggly", "..\library\Logging\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj", "{C9C75F14-858D-4136-ADF0-88D6699749E7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MediaManager", "MediaManager", "{CF7AAADB-4388-4522-90F0-49265E8E87C6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XamarinMediaManager", "Library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj", "{1C218EBA-3935-4BCB-BE85-D3400CD1D680}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XamarinMediaManager", "..\library\MediaManager\XamarinMediaManager\XamarinMediaManager.csproj", "{1C218EBA-3935-4BCB-BE85-D3400CD1D680}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.VersionPatcher", "_tools\Bible.Alarm.VersionPatcher\Bible.Alarm.VersionPatcher.csproj", "{EF8D0ED7-45C2-4176-B01E-0BF199108B05}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bible.Alarm.VersionPatcher", "..\.tools\Bible.Alarm.VersionPatcher\Bible.Alarm.VersionPatcher.csproj", "{EF8D0ED7-45C2-4176-B01E-0BF199108B05}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm", "Bible.Alarm\Bible.Alarm.csproj", "{8F083081-CE5F-3DD2-A49A-CAAC866C0A5E}"
 EndProject
