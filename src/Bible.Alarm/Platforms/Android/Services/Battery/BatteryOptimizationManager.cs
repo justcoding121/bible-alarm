@@ -6,12 +6,9 @@ using System;
 
 namespace Bible.Alarm.Droid.Services.Battery
 {
-    public class BatteryOptimizationManager(IContainer container) : IBatteryOptimizationManager
+    public class BatteryOptimizationManager() : IBatteryOptimizationManager
     {
         private static readonly ILogger Logger = Log.ForContext<BatteryOptimizationManager>();
-
-
-        public IContainer Container { get; set; } = container;
 
         public void ShowBatteryOptimizationExclusionSettingsPage()
         {
@@ -24,7 +21,7 @@ namespace Bible.Alarm.Droid.Services.Battery
 #pragma warning disable CA1416
                     intent.SetAction(Android.Provider.Settings.ActionIgnoreBatteryOptimizationSettings);
 #pragma warning restore CA1416
-                    Container.AndroidContext().StartActivity(intent);
+                    Android.App.Application.Context.StartActivity(intent);
                 }
             }
             catch (Exception e)

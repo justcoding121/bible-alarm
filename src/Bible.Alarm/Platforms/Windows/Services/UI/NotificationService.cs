@@ -11,11 +11,11 @@ using Bible.Alarm.Models;
 
 namespace Bible.Alarm.Services.Windows
 {
-    public class UwpNotificationService(IContainer container) : INotificationService
+    public class UwpNotificationService() : INotificationService
     {
         public async Task ShowNotification(long scheduleId)
         {
-            var uwpAlarmHandler = container.Resolve<UwpAlarmHandler>();
+            var uwpAlarmHandler = ServiceProviderManager.GetService<UwpAlarmHandler>();
             await uwpAlarmHandler.Handle(scheduleId, true);
         }
 

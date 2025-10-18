@@ -42,8 +42,8 @@ namespace Bible.Alarm.Services.Droid.Tasks
             {
                 try
                 {
-                    var container = BootstrapHelper.GetInitializedContainer();
-                    var schedulerService = container.Resolve<SchedulerTask>();
+                    // Container no longer needed - using ServiceProviderManager
+                    var schedulerService = ServiceProviderManager.GetService<SchedulerTask>();
                     await schedulerService.Handle();
                 }
                 catch (Exception e)

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Bible.Alarm.Services.Droid
 {
-    public class PreviewPlayService(IContainer container, MediaPlayer player) : Java.Lang.Object,
+    public class PreviewPlayService(MediaPlayer player) : Java.Lang.Object,
         MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable
     {
         private MediaPlayer _player = player;
@@ -30,7 +30,7 @@ namespace Bible.Alarm.Services.Droid
             var uri = Android.Net.Uri.Parse(url);
             _player.Reset();
             _player.SetOnCompletionListener(this);
-            _player.SetDataSource(container.AndroidContext(), uri);
+            _player.SetDataSource(Android.App.Application.Context, uri);
             _player.Prepare();
             _player.Start();
 

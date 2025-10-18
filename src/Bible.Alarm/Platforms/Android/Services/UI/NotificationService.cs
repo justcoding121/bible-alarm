@@ -37,7 +37,7 @@ namespace Bible.Alarm.Services.Droid
         {
             try
             {
-                var context = container.AndroidContext();
+                var context = Android.App.Application.Context;
                 var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
                 alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
                 alarmIntent.PutExtra("IsImmediate", true);
@@ -57,19 +57,19 @@ namespace Bible.Alarm.Services.Droid
         {
             var time = schedule.NextFireDate();
 
-            if (container.IsAndroidService())
+            if (IsAndroidService())
             {
-                AlarmSetupService.ScheduleNotification(container.AndroidContext(), schedule.Id, time, title, body);
+                AlarmSetupService.ScheduleNotification(Android.App.Application.Context, schedule.Id, time, title, body);
             }
             else
             {
-                Intent intent = new Intent(container.AndroidContext(), typeof(AlarmSetupService));
+                Intent intent = new Intent(Android.App.Application.Context, typeof(AlarmSetupService));
                 intent.PutExtra("Action", "Add");
                 intent.PutExtra("ScheduleId", schedule.Id.ToString());
                 intent.PutExtra("Time", time.ToString());
                 intent.PutExtra("Title", title);
                 intent.PutExtra("Body", body);
-                container.AndroidContext().StartService(intent);
+                Android.App.Application.Context.StartService(intent);
             }
 
             return Task.CompletedTask;
@@ -156,7 +156,7 @@ namespace Bible.Alarm.Services.Droid
 
             if (pIntent != null)
             {
-                var alarmManager = (AlarmManager)container.AndroidContext().GetSystemService(Context.AlarmService);
+                var alarmManager = (AlarmManager)Android.App.Application.Context.GetSystemService(Context.AlarmService);
                 alarmManager?.Cancel(pIntent);
                 pIntent.Cancel();
             }
@@ -172,7 +172,7 @@ namespace Bible.Alarm.Services.Droid
 
         private PendingIntent FindIntent(long scheduleId)
         {
-            var context = container.AndroidContext();
+            var context = Android.App.Application.Context;
 
             var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
             alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
@@ -189,6 +189,11 @@ namespace Bible.Alarm.Services.Droid
         public Task<bool> CanSchedule()
         {
             return Task.FromResult(true);
+        }
+
+        private bool IsAndroidService()
+        {
+            return Android.App.Application.Context != null;
         }
 
         public void Dispose()

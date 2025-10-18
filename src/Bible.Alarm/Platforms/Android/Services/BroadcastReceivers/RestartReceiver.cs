@@ -67,7 +67,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
                     Logger.Warning(ex, $"Failed to process restart task: copy media index. Intent action {intent.Action}");
                 }
 
-                using var schedulerTask = _container.Resolve<SchedulerTask>();
+                using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
                 await schedulerTask.Handle();
 
                 context.StopService(intent);
@@ -88,7 +88,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
             if (!_disposed)
             {
                 _disposed = true;
-                _container = null;
+                // _container = null; // No longer needed
                 BootstrapHelper.Remove(_context);
             }
 

@@ -22,7 +22,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
         private static readonly ILogger Logger = Log.ForContext<AlarmRingerReceiver>();
 
 
-        private IContainer _container;
+        // private IContainer _container; // No longer needed
         private Context _context;
         private Intent _intent;
         private AndroidAlarmHandler _alarmHandler;
@@ -55,7 +55,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
 
             try
             {
-                _container = BootstrapHelper.InitializeService(context);
+                // _container = BootstrapHelper.InitializeService(context); // No longer needed
 
                 _context = context;
                 _intent = intent;
@@ -63,7 +63,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
                 var scheduleId = intent.GetStringExtra("ScheduleId");
                 var isImmediate = intent.GetBooleanExtra("IsImmediate", false);
 
-                _alarmHandler = _container.Resolve<AndroidAlarmHandler>();
+                _alarmHandler = ServiceProviderManager.GetService<AndroidAlarmHandler>();
                 _alarmHandler.Disposed += OnDisposed;
                 await _alarmHandler.Handle(long.Parse(scheduleId), isImmediate);
             }

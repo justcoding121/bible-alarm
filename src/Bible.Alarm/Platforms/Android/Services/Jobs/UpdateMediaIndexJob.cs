@@ -42,8 +42,8 @@ namespace Bible.Alarm.Services.Droid.Tasks
             {
                 try
                 {
-                    var container = BootstrapHelper.GetInitializedContainer();
-                    var mediaIndexService = container.Resolve<MediaIndexService>();
+                    // Container no longer needed - using ServiceProviderManager
+                    var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                     await mediaIndexService.UpdateIndexIfAvailable();
                 }
                 catch (Exception e)

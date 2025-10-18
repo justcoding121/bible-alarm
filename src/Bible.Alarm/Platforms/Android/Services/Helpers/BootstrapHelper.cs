@@ -56,7 +56,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
 
         internal static void Remove(Context context)
         {
-            Bible.Alarm.Services.Droid.IocSetup.Remove(context);
+            // IocSetup removed - MAUI handles DI automatically
         }
 
         public static void VerifyBackgroundTasks(Context context)

@@ -4,8 +4,18 @@ using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Network;
+using Bible.Alarm.Services.Tasks;
 using Bible.Alarm.ViewModels;
+using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.UI;
+using Bible.Alarm.UI.Views;
+using Bible.Alarm.UI.Views.Bible;
+using Bible.Alarm.UI.Views.Music;
+// using Bible.Alarm.UI.Views.Schedule; // Schedule is a type, not a namespace
+using Bible.Alarm.UI.Views.General;
+// using Bible.Alarm.UI.Views.Shared; // Shared is a folder, not a namespace
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http;
 using System.IO;
@@ -76,11 +86,11 @@ public static class MauiProgram
         services.AddSingleton<INotificationService, Bible.Alarm.Services.Droid.DroidNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.Droid.DroidToastService>();
         #elif IOS
-        services.AddSingleton<INotificationService, Bible.Alarm.Services.iOS.IosNotificationService>();
-        services.AddSingleton<IToastService, Bible.Alarm.Services.iOS.IosToastService>();
+        services.AddSingleton<INotificationService, Bible.Alarm.Services.iOS.IOsNotificationService>();
+        services.AddSingleton<IToastService, Bible.Alarm.Services.iOS.IOsToastService>();
         #elif WINDOWS
-        services.AddSingleton<INotificationService, Bible.Alarm.Services.Windows.WindowsNotificationService>();
-        services.AddSingleton<IToastService, Bible.Alarm.Services.Windows.WindowsToastService>();
+        services.AddSingleton<INotificationService, Bible.Alarm.Services.Windows.UwpNotificationService>();
+        services.AddSingleton<IToastService, Bible.Alarm.Services.Windows.UwpToastService>();
         #endif
         
         // Register TaskScheduler for compatibility

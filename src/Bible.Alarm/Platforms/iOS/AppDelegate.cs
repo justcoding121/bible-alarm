@@ -58,19 +58,12 @@ namespace Bible.Alarm.iOS
 
         protected override MauiApp CreateMauiApp()
         {
-                    try
-                    {
-                        // MediaManager removed - using MediaElement instead
-
-                        // Initialize iOS-specific services
-                        Bible.Alarm.Services.iOS.IocSetup.Initialize(container, false);
-                        Bible.Alarm.Services.IocSetup.Initialize(container, false);
-                        Bible.Alarm.UI.IocSetup.Initialize(container, false);
-                        Bible.Alarm.ViewModels.IocSetup.Initialize(container, false);
-
-                        // Create and return the MAUI app with container
-                        return Bible.Alarm.MauiProgram.CreateMauiApp(container);
-                    }
+            try
+            {
+                // MAUI handles dependency injection through MauiProgram
+                // No need for manual IocSetup - services are registered in MauiProgram
+                return Bible.Alarm.MauiProgram.CreateMauiApp();
+            }
             catch (Exception e)
             {
                 Logger.Fatal(e, "iOS MAUI app creation failed.");
@@ -142,7 +135,7 @@ namespace Bible.Alarm.iOS
                     {
                         try
                         {
-                            using var dbContext = container.Resolve<ScheduleDbContext>();
+                            using var dbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
 
                             if (!dbContext.GeneralSettings.Any(x => x.Key == "iOSNotificationDisabledMsgShown"))
                             {
@@ -153,7 +146,7 @@ namespace Bible.Alarm.iOS
                                 });
                                 dbContext.SaveChanges();
 
-                                var popupService = container.Resolve<IToastService>();
+                                var popupService = ServiceProviderManager.GetService<IToastService>();
                                 popupService.ShowMessage("You've disabled notifications. " +
                                     "We won't be able to alert you on scheduled time. " +
                                     "You can however open the app anytime and resume listening.", 8);
@@ -228,10 +221,10 @@ namespace Bible.Alarm.iOS
 
             try
             {
-                using var schedulerTask = container.Resolve<SchedulerTask>();
+                using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
                 downloaded = await schedulerTask.Handle();
 
-                using var mediaIndexService = container.Resolve<MediaIndexService>();
+                using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                 downloaded = downloaded || await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)

@@ -4,6 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Maui.Devices;
+using Android.Content;
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
 namespace Bible.Alarm.Services.Droid
@@ -42,7 +43,7 @@ namespace Bible.Alarm.Services.Droid
 
         private void ShowToast(string message, int seconds)
         {
-            var context = container.AndroidContext();
+            var context = Android.App.Application.Context;
 
             if (seconds <= 3)
             {

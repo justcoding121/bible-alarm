@@ -10,16 +10,15 @@ using UserNotifications;
 
 namespace Bible.Alarm.Services.iOS
 {
-    public class IOsNotificationService(IContainer container) : INotificationService
+    public class IOsNotificationService() : INotificationService
     {
         private static readonly ILogger Logger = Log.ForContext<IOsNotificationService>();
 
-
-        private readonly TaskScheduler _taskScheduler = container.Resolve<TaskScheduler>();
+        private readonly TaskScheduler _taskScheduler = ServiceProviderManager.GetService<TaskScheduler>();
 
         public async Task ShowNotification(long scheduleId)
         {
-            var iosAlarmHandler = container.Resolve<IOsAlarmHandler>();
+            var iosAlarmHandler = ServiceProviderManager.GetService<IOsAlarmHandler>();
             await iosAlarmHandler.Handle(scheduleId, true);
         }
 
