@@ -7,7 +7,7 @@ using Serilog;
 
 namespace Bible.Alarm;
 
-public partial class App : Application
+public partial class App
 {
     private static readonly ILogger Logger = Log.ForContext<App>();
 
@@ -36,18 +36,11 @@ public partial class App : Application
         Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
         Windows[0].Page.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
 
-        var homePageSetter = async () =>
-        {
-            var homePage = new Home();
-            homePage.BindingContext = ServiceProviderManager.GetService<HomeViewModel>();
-            await navigationPage.Navigation.PushAsync(homePage);
-        };
-
-        if (DeviceInfo.Platform != DevicePlatform.Android) homePageSetter().Wait();
+        if (DeviceInfo.Platform != DevicePlatform.Android) HomePageSetter().Wait();
 
         Task.Delay(100).ContinueWith(async (a) =>
             {
-                if (DeviceInfo.Platform == DevicePlatform.Android) await homePageSetter();
+                if (DeviceInfo.Platform == DevicePlatform.Android) await HomePageSetter();
             }, taskScheduler)
             .ContinueWith(x =>
             {
@@ -55,6 +48,13 @@ public partial class App : Application
 
                 if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
             });
+        return;
+
+        async Task HomePageSetter()
+        {
+            var homePage = new Home { BindingContext = ServiceProviderManager.GetService<HomeViewModel>() };
+            await navigationPage.Navigation.PushAsync(homePage);
+        }
     }
 
     protected override void OnStart()

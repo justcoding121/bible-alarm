@@ -1845,8 +1845,10 @@ public class CronExpression : IDeserializationCallback, ISerializable
         CronExpression copy;
         try
         {
-            copy = new CronExpression(CronExpressionString);
-            copy.TimeZone = TimeZone;
+            copy = new CronExpression(CronExpressionString)
+            {
+                TimeZone = TimeZone
+            };
         }
         catch (FormatException e)
         {

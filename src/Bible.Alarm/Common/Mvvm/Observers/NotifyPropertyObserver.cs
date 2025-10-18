@@ -78,15 +78,15 @@ public class NotifyPropertyObserver<TObserver, TObservable>
         var propertyName = expression.Member.Name;
         var getter = property.Compile();
 
+        _propertyObservers[propertyName] = Action;
+
+        return this;
+
         void Action()
         {
             var newValue = getter(_observable);
             whenChanged(_observable, newValue);
         }
-
-        _propertyObservers[propertyName] = Action;
-
-        return this;
     }
 
     /// <summary>
