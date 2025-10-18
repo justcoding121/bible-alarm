@@ -4,41 +4,22 @@ using System.Collections.Specialized;
 
 namespace Bible.Alarm.Common.DataStructures;
 
-public class ObservableHashSet<T> : INotifyCollectionChanged,
-    IList<T>,
+public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
+    ICollection<T>,
     IEnumerable,
-    IList where T : IComparable
+    ICollection where T : IComparable
 {
     private readonly OrderedHashSet<T> _sortedHashSet = [];
-
-    public T this[int i]
-    {
-        get => _sortedHashSet[i];
-        set => throw new NotSupportedException();
-    }
-
-    object IList.this[int i]
-    {
-        get => this[i];
-        set => this[i] = (T)value;
-    }
 
     public int Count => _sortedHashSet.Count;
 
     public bool IsReadOnly => false;
 
-    public bool IsFixedSize => false;
-
     public bool IsSynchronized => false;
 
-    public object SyncRoot => throw new NotImplementedException();
+    public object SyncRoot => this;
 
     public event NotifyCollectionChangedEventHandler CollectionChanged;
-
-    public int Add(object value)
-    {
-        return AddItem((T)value);
-    }
 
     public void Add(T item)
     {
@@ -58,39 +39,9 @@ public class ObservableHashSet<T> : INotifyCollectionChanged,
         OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
 
-    public bool Contains(object value)
-    {
-        return Contains((T)value);
-    }
-
     public bool Contains(T item)
     {
         return _sortedHashSet.Contains(item);
-    }
-
-    public int IndexOf(object value)
-    {
-        return IndexOf((T)value);
-    }
-
-    public int IndexOf(T item)
-    {
-        return _sortedHashSet.IndexOf(item);
-    }
-
-    public void Insert(int i, object value)
-    {
-        Insert(i, (T)value);
-    }
-
-    public void Insert(int i, T item)
-    {
-        throw new NotSupportedException();
-    }
-
-    public void Remove(object value)
-    {
-        Remove((T)value);
     }
 
     public bool Remove(T item)
@@ -106,10 +57,14 @@ public class ObservableHashSet<T> : INotifyCollectionChanged,
         return false;
     }
 
-    public void RemoveAt(int i)
+    public T ElementAt(int index)
     {
-        var element = _sortedHashSet.RemoveAt(i);
-        OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, element));
+        return _sortedHashSet[index];
+    }
+
+    public int IndexOf(T item)
+    {
+        return _sortedHashSet.IndexOf(item);
     }
 
     private void OnNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
@@ -117,14 +72,32 @@ public class ObservableHashSet<T> : INotifyCollectionChanged,
         CollectionChanged?.Invoke(this, args);
     }
 
-    public void CopyTo(Array array, int i)
+    public void CopyTo(T[] array, int arrayIndex)
     {
-        CopyTo((T[])array, i);
+        if (array == null) throw new ArgumentNullException(nameof(array));
+        if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (array.Length - arrayIndex < Count) throw new ArgumentException("Array is too small");
+        
+        var index = 0;
+        foreach (var item in _sortedHashSet)
+        {
+            array[arrayIndex + index] = item;
+            index++;
+        }
     }
 
-    public void CopyTo(T[] array, int i)
+    public void CopyTo(Array array, int index)
     {
-        throw new NotSupportedException();
+        if (array == null) throw new ArgumentNullException(nameof(array));
+        if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+        if (array.Length - index < Count) throw new ArgumentException("Array is too small");
+        
+        var i = 0;
+        foreach (var item in _sortedHashSet)
+        {
+            array.SetValue(item, index + i);
+            i++;
+        }
     }
 
     IEnumerator IEnumerable.GetEnumerator()

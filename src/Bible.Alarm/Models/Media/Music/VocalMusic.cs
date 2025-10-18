@@ -1,4 +1,7 @@
-﻿namespace Bible.Alarm.Models;
+﻿using Bible.Alarm.Shared.Models;
+using Bible.Alarm.Shared.Models.Music;
+
+namespace Bible.Alarm.Models;
 
 public class VocalMusic : TranslatedPublication
 {

@@ -1,4 +1,7 @@
-﻿namespace Bible.Alarm.Models;
+﻿using Bible.Alarm.Shared.Models.Bible;
+using Bible.Alarm.Shared.Models;
+
+namespace Bible.Alarm.Models;
 
 public class BibleTranslation : TranslatedPublication
 {

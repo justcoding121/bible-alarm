@@ -3,14 +3,15 @@
 /// <summary>
 ///     A simple asynchronous multi-thread supporting producer/consumer FIFO queue with minimal locking.
 /// </summary>
-public class AsyncQueue<T>
+public sealed class AsyncQueue<T> : IDisposable
 {
     //data queue.
     private readonly Queue<T> _queue = new();
 
     //consumer task queue and lock.
     private readonly Queue<TaskCompletionSource<T>> _consumerQueue = new();
-    private SemaphoreSlim _consumerQueueLock = new(1);
+    private readonly SemaphoreSlim _consumerQueueLock = new(1);
+    private bool _disposed = false;
 
     public int Count => _queue.Count;
 
@@ -21,19 +22,28 @@ public class AsyncQueue<T>
     public async Task EnqueueAsync(T value, int millisecondsTimeout = int.MaxValue,
         CancellationToken taskCancellationToken = default)
     {
+        ThrowIfDisposed();
+        
         await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
-
-        if (_consumerQueue.Count > 0)
+        
+        try
         {
-            var consumer = _consumerQueue.Dequeue();
-            consumer.TrySetResult(value);
+            if (_disposed) return;
+            
+            if (_consumerQueue.Count > 0)
+            {
+                var consumer = _consumerQueue.Dequeue();
+                consumer.TrySetResult(value);
+            }
+            else
+            {
+                _queue.Enqueue(value);
+            }
         }
-        else
+        finally
         {
-            _queue.Enqueue(value);
+            _consumerQueueLock.Release();
         }
-
-        _consumerQueueLock.Release();
     }
 
     /// <summary>
@@ -43,12 +53,17 @@ public class AsyncQueue<T>
     public async Task<T> DequeueAsync(int millisecondsTimeout = int.MaxValue,
         CancellationToken taskCancellationToken = default)
     {
+        ThrowIfDisposed();
+        
         await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
 
         TaskCompletionSource<T> consumer;
 
         try
         {
+            if (_disposed) 
+                throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+                
             if (_queue.Count > 0)
             {
                 var result = _queue.Dequeue();
@@ -69,10 +84,15 @@ public class AsyncQueue<T>
 
     public async Task<T> PeekAsync()
     {
+        ThrowIfDisposed();
+        
         await _consumerQueueLock.WaitAsync();
 
         try
         {
+            if (_disposed) 
+                throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+                
             if (_queue.Count == 0) return default;
 
             return _queue.Peek();
@@ -80,6 +100,28 @@ public class AsyncQueue<T>
         finally
         {
             _consumerQueueLock.Release();
+        }
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            // Cancel all pending consumers
+            while (_consumerQueue.Count > 0)
+            {
+                var consumer = _consumerQueue.Dequeue();
+                consumer.TrySetCanceled();
+            }
+            
+            _consumerQueueLock?.Dispose();
+            _disposed = true;
         }
     }
 }

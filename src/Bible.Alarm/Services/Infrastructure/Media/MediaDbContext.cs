@@ -1,4 +1,6 @@
 ﻿using Bible.Alarm.Models;
+using Bible.Alarm.Shared.Models;
+using Bible.Alarm.Shared.Models.Bible;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Services;

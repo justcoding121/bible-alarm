@@ -1,6 +1,7 @@
 ﻿using Bible.Alarm.Models;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Models.Bible;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 using Mvvmicro;

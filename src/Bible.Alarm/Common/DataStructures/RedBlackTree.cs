@@ -5,7 +5,7 @@ namespace Advanced.Algorithms.DataStructures;
 /// <summary>
 /// A red black tree implementation.
 /// </summary>
-public class RedBlackTree<T> : BstBase<T>, IEnumerable<T> where T : IComparable
+public sealed class RedBlackTree<T> : BstBase<T>, IEnumerable<T> where T : IComparable
 {
     private readonly Dictionary<T, BstNodeBase<T>> _nodeLookUp;
     internal RedBlackTreeNode<T> Root { get; set; }
@@ -91,9 +91,14 @@ public class RedBlackTree<T> : BstBase<T>, IEnumerable<T> where T : IComparable
     /// </summary>
     public T ElementAt(int index)
     {
-        if (index < 0 || index >= Count) throw new ArgumentNullException("index");
+        if (index < 0 || index >= Count) 
+            throw new ArgumentOutOfRangeException(nameof(index), "Index is out of range.");
 
-        return Root.KthSmallest(index).Value;
+        var node = Root.KthSmallest(index);
+        if (node == null) 
+            throw new InvalidOperationException("Tree structure is corrupted.");
+
+        return node.Value;
     }
 
     //O(log(n)) worst O(n) for unbalanced tree

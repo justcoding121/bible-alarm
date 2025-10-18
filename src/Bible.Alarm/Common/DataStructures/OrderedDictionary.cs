@@ -8,7 +8,7 @@ namespace Advanced.Algorithms.DataStructures.Foundation;
 /// </summary>
 /// <typeparam name="K">The key datatype.</typeparam>
 /// <typeparam name="V">The value datatype.</typeparam>
-public class OrderedDictionary<K, V> : IEnumerable<KeyValuePair<K, V>> where K : IComparable
+public sealed class OrderedDictionary<K, V> : IEnumerable<KeyValuePair<K, V>> where K : IComparable
 {
     //use red-black tree as our balanced BST since it gives good performance for both deletion/insertion
     private readonly RedBlackTree<OrderedKeyValuePair<K, V>> _binarySearchTree;
@@ -61,15 +61,23 @@ public class OrderedDictionary<K, V> : IEnumerable<KeyValuePair<K, V>> where K :
         get
         {
             var node = _binarySearchTree.FindNode(new OrderedKeyValuePair<K, V>(key, default));
-            if (node == null) throw new Exception("Key not found.");
+            if (node == null) throw new KeyNotFoundException($"Key '{key}' not found.");
 
             return node.Value.Value;
         }
         set
         {
-            if (ContainsKey(key)) Remove(key);
-
-            Add(key, value);
+            var existing = _binarySearchTree.FindNode(new OrderedKeyValuePair<K, V>(key, default));
+            if (existing != null)
+            {
+                // Update existing value directly for better performance
+                existing.Value.Value = value;
+            }
+            else
+            {
+                // Add new key-value pair
+                Add(key, value);
+            }
         }
     }
 
@@ -227,7 +235,7 @@ internal struct OrderedKeyValuePair<K, V> : IComparable
     }
 }
 
-internal class SortedDictionaryEnumerator<K, V> : IEnumerator<KeyValuePair<K, V>> where K : IComparable
+internal sealed class SortedDictionaryEnumerator<K, V> : IEnumerator<KeyValuePair<K, V>> where K : IComparable
 {
     private RedBlackTree<OrderedKeyValuePair<K, V>> _bst;
     private IEnumerator<OrderedKeyValuePair<K, V>> _enumerator;

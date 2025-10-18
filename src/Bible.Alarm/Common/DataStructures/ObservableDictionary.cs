@@ -3,7 +3,7 @@ using System.Collections.Specialized;
 
 namespace Bible.Alarm.Common.DataStructures;
 
-public class ObservableDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>,
+public sealed class ObservableDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>,
     IEnumerable,
     INotifyCollectionChanged
     where TKey : IComparable
@@ -13,7 +13,32 @@ public class ObservableDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey,
     public TValue this[TKey key]
     {
         get => _dictionary[key];
-        set => _dictionary[key] = value;
+        set 
+        {
+            var oldValue = _dictionary.ContainsKey(key) ? _dictionary[key] : default(TValue);
+            var index = _dictionary.ContainsKey(key) ? _dictionary.IndexOf(key) : -1;
+            
+            _dictionary[key] = value;
+            
+            if (index >= 0)
+            {
+                // Update existing item
+                OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Replace,
+                    new KeyValuePair<TKey, TValue>(key, value),
+                    new KeyValuePair<TKey, TValue>(key, oldValue),
+                    index));
+            }
+            else
+            {
+                // Add new item
+                var newIndex = _dictionary.IndexOf(key);
+                OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Add,
+                    new KeyValuePair<TKey, TValue>(key, value),
+                    newIndex));
+            }
+        }
     }
 
     public int Count => _dictionary.Count;
