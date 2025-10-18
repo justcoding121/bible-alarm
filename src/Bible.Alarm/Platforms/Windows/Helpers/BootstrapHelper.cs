@@ -12,7 +12,7 @@ namespace Bible.Alarm.Services.Windows.Helpers
     {
         public static bool IsBackgroundTaskEnabled = true;
 
-        public static async Task SetupBackgroundTask(IContainer container)
+        public static async Task SetupBackgroundTask()
         {
             await BackgroundExecutionManager.RequestAccessAsync();
             var allowed = BackgroundExecutionManager.GetAccessStatus();
@@ -80,21 +80,21 @@ namespace Bible.Alarm.Services.Windows.Helpers
             }
         }
 
-        public static void Initialize(IContainer container, ILogger logger)
+        public static void Initialize(ILogger logger)
         {
-            Task.Run(() => SetupBackgroundTask(container));
+            Task.Run(() => SetupBackgroundTask());
 
             Task.Run(async () =>
             {
                 try
                 {
-                    await CommonBootstrapHelper.VerifyServices(container);
+                    await CommonBootstrapHelper.VerifyServices();
 
                     Messenger<bool>.Publish(MvvmMessages.Initialized, true);
 
                     await Task.Delay(1000);
 
-                    await container.Resolve<SchedulerTask>().Handle();
+                    await ServiceProviderManager.GetService<SchedulerTask>().Handle();
                 }
                 catch (Exception e)
                 {

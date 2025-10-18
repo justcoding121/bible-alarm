@@ -12,12 +12,10 @@ namespace Bible.Alarm.UI.Views.Music
 
     public partial class TrackSelection : ContentPage
     {
-        private readonly IContainer _container;
         public TrackSelectionViewModel ViewModel => BindingContext as TrackSelectionViewModel;
 
-        public TrackSelection(IContainer container)
+        public TrackSelection()
         {
-            _container = container;
             InitializeComponent();
 
             BackButton.GestureRecognizers.Add(new TapGestureRecognizer
@@ -36,7 +34,7 @@ namespace Bible.Alarm.UI.Views.Music
                 trackListView.ScrollTo(ViewModel.SelectedTrack, ScrollToPosition.Center, true);
                 Appearing -= OnAppearing;
 
-            }, _container.Resolve<TaskScheduler>());
+            }, ServiceProviderManager.GetService<TaskScheduler>());
         }
 
         protected override bool OnBackButtonPressed()

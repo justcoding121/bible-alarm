@@ -8,7 +8,7 @@ using Bible.Alarm.Droid.Services.Tasks;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid.Tasks;
-using Bible.Alarm.Services.Droid.Extensions;
+// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Java.Lang;
 using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
 using Serilog;
@@ -24,7 +24,7 @@ using Android.Content.Res;
 
 namespace Bible.Alarm.Services.Droid
 {
-    public class DroidNotificationService(IContainer container, IStorageService storageService) : INotificationService
+    public class DroidNotificationService(IStorageService storageService) : INotificationService
     {
         public static readonly string ChannelIdAndName = "alarm_notification";
         public static readonly string ChannelDescription = "alarm_notification are send to this channel";

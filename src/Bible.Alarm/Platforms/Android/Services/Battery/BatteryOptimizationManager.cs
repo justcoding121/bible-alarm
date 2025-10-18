@@ -1,6 +1,6 @@
 ﻿using Android.Content;
 using Bible.Alarm.Contracts.Battery;
-using Bible.Alarm.Services.Droid.Extensions;
+// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Serilog;
 using System;
 

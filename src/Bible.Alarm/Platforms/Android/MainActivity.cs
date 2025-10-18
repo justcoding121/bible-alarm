@@ -11,7 +11,7 @@ using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Droid;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Droid.Tasks;
-using Bible.Alarm.Services.Droid.Extensions;
+// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Bible.Alarm.Services.Infrastructure;
 using Java.Interop;
 using Newtonsoft.Json;
@@ -30,8 +30,6 @@ namespace Bible.Alarm.Droid
     {
         private static readonly ILogger Logger = Log.ForContext<MainActivity>();
 
-        private IContainer _container;
-
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
@@ -40,11 +38,11 @@ namespace Bible.Alarm.Droid
 
             // Cast Framework removed - using MediaElement instead
 
-            // Initialize container
-            _container = BootstrapHelper.InitializeUi(Logger, this, Application);
-
-            // MAUI will handle App instantiation through MauiProgram
-            // No need to manually create App instance
+            // MAUI handles dependency injection through MauiProgram
+            // ServiceProviderManager is initialized in MauiProgram
+            
+            // Initialize platform-specific services
+            BootstrapHelper.InitializeUi(Logger, this, Application);
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Android.Content.PM.Permission[] grantResults)

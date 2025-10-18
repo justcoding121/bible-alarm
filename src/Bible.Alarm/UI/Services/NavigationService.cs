@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.UI
 {
@@ -24,8 +25,6 @@ namespace Bible.Alarm.UI
         private static readonly ILogger Logger = Log.ForContext<NavigationService>();
 
 
-        private readonly IContainer _container;
-
         private readonly INavigation _navigater;
 
         public event Action<object> NavigatedBack;
@@ -33,9 +32,8 @@ namespace Bible.Alarm.UI
 
         private AsyncQueue<(MvvmMessages, object)> _queue = new AsyncQueue<(MvvmMessages, object)>();
 
-        public NavigationService(IContainer container, INavigation navigater)
+        public NavigationService(INavigation navigater)
         {
-            _container = container;
             _navigater = navigater;
 
             Messenger<object>.Subscribe(MvvmMessages.ShowAlarmModal, async @param =>
@@ -68,7 +66,7 @@ namespace Bible.Alarm.UI
                 await _queue.EnqueueAsync((MvvmMessages.ClearToasts, @param));
             });
 
-            var syncContext = _container.Resolve<TaskScheduler>();
+            var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
 
             Task.Run(async () =>
             {
@@ -83,13 +81,13 @@ namespace Bible.Alarm.UI
                         case MvvmMessages.ShowAlarmModal:
                             {
                                 // Prevent showing alarm modal when playback is not active
-                                var playbackService = container.Resolve<IPlaybackService>();
+                                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
                                 if (!playbackService.IsPlaying)
                                 {
                                     break;
                                 }
 
-                                var vm = container.Resolve<AlarmViewModal>();
+                                var vm = ServiceProviderManager.GetService<AlarmViewModal>();
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
                                     await ShowModal("AlarmModal", vm);
@@ -112,7 +110,7 @@ namespace Bible.Alarm.UI
                             {
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
-                                    using var toastService = _container.Resolve<IToastService>();
+                                    using var toastService = ServiceProviderManager.GetService<IToastService>();
                                     await toastService.ShowMessage(@object as string);
 
                                 }, syncContext);
@@ -123,7 +121,7 @@ namespace Bible.Alarm.UI
                             {
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
-                                    using var toastService = _container.Resolve<IToastService>();
+                                    using var toastService = ServiceProviderManager.GetService<IToastService>();
                                     await toastService.Clear();
 
                                 }, syncContext);
@@ -131,7 +129,7 @@ namespace Bible.Alarm.UI
                             break;
                         case MvvmMessages.ShowMediaProgessModal:
                             {
-                                var vm = _container.Resolve<MediaProgressViewModal>();
+                                var vm = ServiceProviderManager.GetService<MediaProgressViewModal>();
                                 await Task.Delay(0).ContinueWith(async (x) =>
                                 {
                                     await ShowModal("MediaProgressModal", vm);
@@ -154,7 +152,7 @@ namespace Bible.Alarm.UI
             {
                 case "LanguageModal":
                     {
-                        var modal = _container.Resolve<LanguageModal>();
+                        var modal = ServiceProviderManager.GetService<LanguageModal>();
                         modal.BindingContext = viewModel;
                         await _navigater.PushModalAsync(modal);
                         break;
@@ -167,7 +165,7 @@ namespace Bible.Alarm.UI
                             return;
                         }
 
-                        var modal = _container.Resolve<AlarmModal>();
+                        var modal = ServiceProviderManager.GetService<AlarmModal>();
                         modal.BindingContext = viewModel;
                         await _navigater.PushModalAsync(modal);
                         break;
@@ -175,7 +173,7 @@ namespace Bible.Alarm.UI
 
                 case "BatteryOptimizationExclusionModal":
                     {
-                        var modal = _container.Resolve<BatteryOptimizationExclusionModal>();
+                        var modal = ServiceProviderManager.GetService<BatteryOptimizationExclusionModal>();
                         modal.BindingContext = viewModel;
                         await _navigater.PushModalAsync(modal);
                         break;
@@ -183,7 +181,7 @@ namespace Bible.Alarm.UI
 
                 case "NumberOfChaptersModal":
                     {
-                        var modal = _container.Resolve<NumberOfChaptersModal>();
+                        var modal = ServiceProviderManager.GetService<NumberOfChaptersModal>();
                         modal.BindingContext = viewModel;
                         await _navigater.PushModalAsync(modal);
                         break;
@@ -196,7 +194,7 @@ namespace Bible.Alarm.UI
                             return;
                         }
 
-                        var modal = _container.Resolve<MediaProgressModal>();
+                        var modal = ServiceProviderManager.GetService<MediaProgressModal>();
                         modal.BindingContext = viewModel;
                         await _navigater.PushModalAsync(modal);
                         break;
@@ -224,7 +222,7 @@ namespace Bible.Alarm.UI
             {
                 case "ScheduleViewModel":
                     {
-                        var view = _container.Resolve<Schedule>();
+                        var view = ServiceProviderManager.GetService<Schedule>();
                         view.BindingContext = viewModel;
                         await _navigater.PushAsync(view);
                         break;
@@ -232,42 +230,42 @@ namespace Bible.Alarm.UI
 
                 case "MusicSelectionViewModel":
                     {
-                        var view = _container.Resolve<MusicSelection>();
+                        var view = ServiceProviderManager.GetService<MusicSelection>();
                         view.BindingContext = viewModel;
                         await _navigater.PushAsync(view);
                         break;
                     }
                 case "SongBookSelectionViewModel":
                     {
-                        var view = _container.Resolve<SongBookSelection>();
+                        var view = ServiceProviderManager.GetService<SongBookSelection>();
                         view.BindingContext = viewModel;
                         await _navigater.PushAsync(view);
                         break;
                     }
                 case "TrackSelectionViewModel":
                     {
-                        var view = _container.Resolve<TrackSelection>();
+                        var view = ServiceProviderManager.GetService<TrackSelection>();
                         view.BindingContext = viewModel;
                         await _navigater.PushAsync(view);
                         break;
                     }
                 case "BibleSelectionViewModel":
                     {
-                        var view = _container.Resolve<BibleSelection>();
+                        var view = ServiceProviderManager.GetService<BibleSelection>();
                         view.BindingContext = viewModel;
                         await _navigater.PushAsync(view);
                         break;
                     }
                 case "BookSelectionViewModel":
                     {
-                        var view = _container.Resolve<BookSelection>();
+                        var view = ServiceProviderManager.GetService<BookSelection>();
                         view.BindingContext = viewModel;
                         await _navigater.PushAsync(view);
                         break;
                     }
                 case "ChapterSelectionViewModel":
                     {
-                        var view = _container.Resolve<ChapterSelection>();
+                        var view = ServiceProviderManager.GetService<ChapterSelection>();
                         view.BindingContext = viewModel;
                         await _navigater.PushAsync(view);
                         break;

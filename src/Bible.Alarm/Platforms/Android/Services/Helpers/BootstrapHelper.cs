@@ -21,75 +21,37 @@ namespace Bible.Alarm.Services.Droid.Helpers
 {
     public class BootstrapHelper
     {
-        public static IContainer GetInitializedContainer()
+        public static void InitializeService(Context context)
         {
-            return Bible.Alarm.Services.Droid.IocSetup.GetContainer();
+            // MAUI handles platform initialization automatically
+            CreateNotificationChannel();
         }
 
-        public static IContainer InitializeService(Context context)
+        public static void InitializeUi(ILogger logger, Context context, Android.App.Application application)
         {
-            var result = Bible.Alarm.Services.Droid.IocSetup.Initialize(context, true);
-            var container = result.Item1;
-            var containerCreated = result.Item2;
-            if (containerCreated)
+            // MAUI handles platform initialization automatically
+
+            Task.Run(async () =>
             {
-                var application = (Android.App.Application)context.ApplicationContext;
-                // MAUI handles platform initialization automatically
-                CreateNotificationChannel(container);
-            }
-
-            return result.Item1;
-        }
-
-        public static IContainer InitializeUi(ILogger logger, Context context, Android.App.Application application)
-        {
-            var result = Bible.Alarm.Services.Droid.IocSetup.Initialize(context, false);
-            var container = result.Item1;
-
-            var containerCreated = result.Item2;
-            if (containerCreated)
-            {
-                // MAUI handles platform initialization automatically
-
-                Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await VerifyServices(container);
-                        CreateNotificationChannel(container);
+                    await VerifyServices();
+                    CreateNotificationChannel();
 
-                        Messenger<bool>.Publish(MvvmMessages.Initialized, true);
+                    Messenger<bool>.Publish(MvvmMessages.Initialized, true);
 
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Fatal(e, "Android initialization crashed.");
-                        throw;
-                    }
-                });
-
-            }
-            else
-            {
-                Task.Run(() =>
+                }
+                catch (Exception e)
                 {
-                    try
-                    {
-                        Messenger<bool>.Publish(MvvmMessages.Initialized, true);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error(e, "An error happened bootstrap helper Messenger publish.");
-                    }
-                });
-            }
-
-            return container;
+                    logger.Fatal(e, "Android initialization crashed.");
+                    throw;
+                }
+            });
         }
 
-        public static async Task VerifyServices(IContainer container)
+        public static async Task VerifyServices()
         {
-            await CommonBootstrapHelper.VerifyServices(container);
+            await CommonBootstrapHelper.VerifyServices();
         }
 
         internal static void Remove(Context context)
@@ -138,7 +100,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
             return false;
         }
 
-        private static void CreateNotificationChannel(IContainer container)
+        private static void CreateNotificationChannel()
         {
             if (Build.VERSION.SdkInt < BuildVersionCodes.O)
             {

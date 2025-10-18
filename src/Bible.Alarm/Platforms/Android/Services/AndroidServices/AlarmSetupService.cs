@@ -4,7 +4,7 @@ using Android.OS;
 using Android.Runtime;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Droid.Services.Tasks;
-using Bible.Alarm.Services.Droid.Extensions;
+// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
@@ -17,7 +17,6 @@ namespace Bible.Alarm.Services.Droid.Tasks
     [Service(Enabled = true)]
     public class AlarmSetupService : Service, IDisposable
     {
-        private IContainer _container;
         private static readonly ILogger Logger = Log.ForContext<AlarmSetupService>();
 
 
@@ -78,16 +77,16 @@ namespace Bible.Alarm.Services.Droid.Tasks
                             var time = DateTimeOffset.Parse(intent.GetStringExtra("Time"));
                             var title = intent.GetStringExtra("Title");
                             var body = intent.GetStringExtra("Body");
-                            ScheduleNotification(_container.AndroidContext(), long.Parse(intent.GetStringExtra("ScheduleId")), time, title, body);
+                            ScheduleNotification(ApplicationContext, long.Parse(intent.GetStringExtra("ScheduleId")), time, title, body);
                             break;
                         }
                     case "SetupBackgroundTasks":
-                        BootstrapHelper.VerifyBackgroundTasks(_container.AndroidContext());
+                        BootstrapHelper.VerifyBackgroundTasks(ApplicationContext);
                         Task.Run(async () =>
                         {
                             try
                             {
-                                using var schedulerTask = _container.Resolve<SchedulerTask>();
+                                using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
                                 await schedulerTask.Handle();
                             }
                             catch (Exception e)

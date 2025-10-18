@@ -27,8 +27,6 @@ namespace Bible.Alarm.iOS
     {
         private static readonly ILogger Logger = Log.ForContext<AppDelegate>();
 
-        private IContainer container;
-
         public AppDelegate()
         {
             LogSetup.Initialize(VersionFinder.Default, new string[] { }, "iOS");
@@ -38,8 +36,8 @@ namespace Bible.Alarm.iOS
 
             try
             {
-                // Initialize container - simplified for MAUI
-                container = new Container(new Dictionary<string, object>());
+                // MAUI handles dependency injection through MauiProgram
+                // ServiceProviderManager is initialized in MauiProgram
             }
             catch (Exception e)
             {

@@ -2,7 +2,7 @@
 using Android.Content;
 using Android.OS;
 using Bible.Alarm.Droid.Services.Platform;
-using Bible.Alarm.Services.Droid.Extensions;
+// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Services.Infrastructure;
@@ -25,7 +25,6 @@ namespace Bible.Alarm.Droid.Services.Tasks
         private static readonly ILogger Logger = Log.ForContext<RestartReceiver>();
 
 
-        private IContainer _container;
         private Context _context;
 
         public RestartReceiver()
@@ -55,13 +54,13 @@ namespace Bible.Alarm.Droid.Services.Tasks
 
             try
             {
-                _container = BootstrapHelper.InitializeService(context);
+                BootstrapHelper.InitializeService(context);
 
-                BootstrapHelper.VerifyBackgroundTasks(_container.AndroidContext());
+                BootstrapHelper.VerifyBackgroundTasks(context);
 
                 try
                 {
-                    await BootstrapHelper.VerifyServices(_container);
+                    await BootstrapHelper.VerifyServices();
                 }
                 catch (Exception ex)
                 {

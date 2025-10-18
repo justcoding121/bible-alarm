@@ -27,7 +27,6 @@ namespace Bible.Alarm.ViewModels
         private static readonly ILogger Logger = Log.ForContext<ChapterSelectionViewModel>();
 
 
-        private readonly IContainer _container;
 
         private MediaService _mediaService;
         private IToastService _toastService;
@@ -40,16 +39,15 @@ namespace Bible.Alarm.ViewModels
 
         private readonly List<IDisposable> _subscriptions = new List<IDisposable>();
 
-        public ChapterSelectionViewModel(IContainer container)
+        public ChapterSelectionViewModel()
         {
-            _container = container;
 
-            _mediaService = _container.Resolve<MediaService>();
-            _toastService = _container.Resolve<IToastService>();
-            _playService = _container.Resolve<IPreviewPlayService>();
-            _navigationService = _container.Resolve<INavigationService>();
-            _downloadService = _container.Resolve<IDownloadService>();
-            _cacheService = _container.Resolve<IMediaCacheService>();
+            _mediaService = ServiceProviderManager.GetService<MediaService>();
+            _toastService = ServiceProviderManager.GetService<IToastService>();
+            _playService = ServiceProviderManager.GetService<IPreviewPlayService>();
+            _navigationService = ServiceProviderManager.GetService<INavigationService>();
+            _downloadService = ServiceProviderManager.GetService<IDownloadService>();
+            _cacheService = ServiceProviderManager.GetService<IMediaCacheService>();
 
             BackCommand = new Command(async () =>
             {

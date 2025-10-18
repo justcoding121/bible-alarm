@@ -21,7 +21,6 @@ namespace Bible.Alarm.ViewModels
         private static readonly ILogger Logger = Log.ForContext<AlarmViewModal>();
 
 
-        private readonly IContainer _container;
         private readonly IPlaybackService _playbackService;
 
         private bool _isDisposed = false;
@@ -36,19 +35,17 @@ namespace Bible.Alarm.ViewModels
         public ICommand ForwardCommand { get; set; }
         public ICommand BackwardCommand { get; set; }
 
-        public AlarmViewModal(IContainer container)
+        public AlarmViewModal()
         {
-            _container = container;
-
-            _playbackService = _container.Resolve<IPlaybackService>();
+            _playbackService = ServiceProviderManager.GetService<IPlaybackService>();
 
             DismissCommand = new Command(async () =>
             {
                 await _playbackService.Dismiss();
-                var navigationService = _container.Resolve<INavigationService>();
+                var navigationService = ServiceProviderManager.GetService<INavigationService>();
                 await navigationService?.CloseModal();
 
-                using var scheduleDbContext = _container.Resolve<ScheduleDbContext>();
+                using var scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
 
                 try
                 {
@@ -95,7 +92,7 @@ namespace Bible.Alarm.ViewModels
 
             CancelCommand = new Command(async () =>
             {
-                var navigationService = _container.Resolve<INavigationService>();
+                var navigationService = ServiceProviderManager.GetService<INavigationService>();
                 await navigationService?.GoBack();
             });
 

@@ -4,13 +4,13 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Maui.Devices;
-using Bible.Alarm.Services.Droid.Extensions;
+// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
 namespace Bible.Alarm.Services.Droid
 {
-    public class DroidToastService(IContainer container) : ToastService, IDisposable
+    public class DroidToastService() : ToastService, IDisposable
     {
-        private readonly TaskScheduler _taskScheduler = container.Resolve<TaskScheduler>();
+        private readonly TaskScheduler _taskScheduler = ServiceProviderManager.GetService<TaskScheduler>();
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
         private static Toast latest;
 

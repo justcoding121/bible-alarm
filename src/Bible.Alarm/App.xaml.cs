@@ -13,20 +13,18 @@ using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui;
 using Microsoft.Maui.Devices;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm
 {
     public partial class App : Application
     {
-        private readonly IContainer _container;
-
         private static readonly ILogger Logger = Log.ForContext<App>();
 
         public static bool IsInForeground { get; set; } = false;
 
-        public App(IContainer container)
+        public App()
         {
-            _container = container;
             Init();
         }
 
@@ -34,57 +32,44 @@ namespace Bible.Alarm
         {
             InitializeComponent();
 
-            if (_container.RegisteredTypes.Any(x => x == typeof(NavigationPage)))
+            var navigationPage = new NavigationPage();
+            var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            var navigationService = new NavigationService(navigationPage.Navigation);
+
+            Windows[0].Page = navigationPage;
+
+            Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
+            Windows[0].Page.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
+
+            Func<Task> homePageSetter = async () =>
             {
-                Windows[0].Page = _container.Resolve<NavigationPage>();
+                var homePage = new Home();
+                homePage.BindingContext = ServiceProviderManager.GetService<HomeViewModel>();
+                await navigationPage.Navigation.PushAsync(homePage);
+            };
+
+            if (DeviceInfo.Platform != DevicePlatform.Android)
+            {
+                homePageSetter().Wait();
             }
-            else
+
+            Task.Delay(100).ContinueWith(async (a) =>
             {
-                var navigationPage = new NavigationPage();
-
-                var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
-
-                _container.Register(x => taskScheduler);
-                _container.RegisterSingleton(x => navigationPage);
-                _container.RegisterSingleton(x => navigationPage.Navigation);
-                _container.RegisterSingleton<INavigationService>(x => new NavigationService(_container, navigationPage.Navigation));
-
-                Windows[0].Page = navigationPage;
-
-                Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
-                Windows[0].Page.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
-
-                Func<Task> homePageSetter = async () =>
+                if (DeviceInfo.Platform == DevicePlatform.Android)
                 {
-                    var homePage = new Home();
-                    homePage.BindingContext = _container.Resolve<HomeViewModel>();
-                    await navigationPage.Navigation.PushAsync(homePage);
-                };
-
-                if (DeviceInfo.Platform != DevicePlatform.Android)
-                {
-                    homePageSetter().Wait();
+                    await homePageSetter();
                 }
 
-                Task.Delay(100).ContinueWith(async (a) =>
+            }, taskScheduler)
+            .ContinueWith(x =>
+            {
+                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+
+                if (playbackService.IsPrepared)
                 {
-                    if (DeviceInfo.Platform == DevicePlatform.Android)
-                    {
-                        await homePageSetter();
-                    }
-
-                }, taskScheduler)
-                .ContinueWith(x =>
-                {
-                    var playbackService = _container.Resolve<IPlaybackService>();
-
-                    if (playbackService.IsPrepared)
-                    {
-                        Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
-                    }
-                });
-            }
-
+                    Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
+                }
+            });
         }
 
         protected override void OnStart()
@@ -96,11 +81,11 @@ namespace Bible.Alarm
             {
                 try
                 {
-                    var navigationService = _container.Resolve<INavigationService>();
+                    var navigationService = ServiceProviderManager.GetService<INavigationService>();
                     // Handle when your app starts  
                     await navigationService.NavigateToHome();
 
-                    var playbackService = _container.Resolve<IPlaybackService>();
+                    var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
 
                     if (playbackService.IsPrepared)
                     {
@@ -109,7 +94,7 @@ namespace Bible.Alarm
 
                     await Task.Delay(1000);
 
-                    using var mediaIndexService = _container.Resolve<MediaIndexService>();
+                    using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                     await mediaIndexService.UpdateIndexIfAvailable();
                 }
                 catch (Exception e)
@@ -135,7 +120,7 @@ namespace Bible.Alarm
             {
                 try
                 {
-                    var playbackService = _container.Resolve<IPlaybackService>();
+                    var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
                     // Handle when your app resumes
                     if (playbackService.IsPrepared)
                     {
@@ -144,7 +129,7 @@ namespace Bible.Alarm
 
                     await Task.Delay(1000);
 
-                    using var mediaIndexService = _container.Resolve<MediaIndexService>();
+                    using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                     await mediaIndexService.UpdateIndexIfAvailable();
                 }
                 catch (Exception e)

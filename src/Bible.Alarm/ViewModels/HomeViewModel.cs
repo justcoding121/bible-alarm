@@ -24,6 +24,7 @@ using System.Windows.Input;
 using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels
 {
@@ -31,7 +32,6 @@ namespace Bible.Alarm.ViewModels
     {
         private static readonly ILogger Logger = Log.ForContext<HomeViewModel>();
 
-        private IContainer _container;
 
         private ScheduleDbContext _scheduleDbContext;
         private MediaDbContext _mediaDbContext;
@@ -46,7 +46,7 @@ namespace Bible.Alarm.ViewModels
         private List<IDisposable> _subscriptions = new List<IDisposable>();
 
 
-        public HomeViewModel(IContainer container,
+        public HomeViewModel(
             ScheduleDbContext scheduleDbContext,
             IToastService popUpService, INavigationService navigationService,
             IMediaCacheService mediaCacheService,
@@ -54,7 +54,6 @@ namespace Bible.Alarm.ViewModels
             INotificationService notificationService,
             MediaDbContext mediaDbContext)
         {
-            _container = container;
             _scheduleDbContext = scheduleDbContext;
             _popUpService = popUpService;
             _navigationService = navigationService;
@@ -68,7 +67,7 @@ namespace Bible.Alarm.ViewModels
             AddScheduleCommand = new Command(async () =>
             {
                 ReduxContainer.Store.Dispatch(new ViewScheduleAction());
-                var viewModel = _container.Resolve<ScheduleViewModel>();
+                var viewModel = ServiceProviderManager.GetService<ScheduleViewModel>();
                 await _navigationService.Navigate(viewModel);
             });
 
@@ -81,7 +80,7 @@ namespace Bible.Alarm.ViewModels
                     SelectedScheduleListItem = x
                 });
 
-                var viewModel = _container.Resolve<ScheduleViewModel>();
+                var viewModel = ServiceProviderManager.GetService<ScheduleViewModel>();
                 await _navigationService.Navigate(viewModel);
 
             });
@@ -200,7 +199,7 @@ namespace Bible.Alarm.ViewModels
                         var initialSchedules = new ObservableHashSet<ScheduleListItem>();
                         foreach (var schedule in alarmSchedules)
                         {
-                            initialSchedules.Add(new ScheduleListItem(_container, schedule));
+                            initialSchedules.Add(new ScheduleListItem(schedule));
                         }
 
                         ReduxContainer.Store.Dispatch(new InitializeAction() { ScheduleList = initialSchedules });
@@ -312,7 +311,7 @@ namespace Bible.Alarm.ViewModels
 
                                      await Task.Run(async () =>
                                      {
-                                         using var scheduleDbContext = _container.Resolve<ScheduleDbContext>();
+                                         using var scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
                                          var existing = await scheduleDbContext.AlarmSchedules.FirstAsync(x => x.Id == y.ScheduleId);
                                          existing.IsEnabled = y.IsEnabled;
                                          await scheduleDbContext.SaveChangesAsync();
@@ -342,7 +341,7 @@ namespace Bible.Alarm.ViewModels
             {
                 try
                 {
-                    using var mediaCacheService = _container.Resolve<IMediaCacheService>();
+                    using var mediaCacheService = ServiceProviderManager.GetService<IMediaCacheService>();
                     await mediaCacheService.SetupAlarmCache(scheduleId);
                 }
                 catch (Exception e)
@@ -373,13 +372,10 @@ namespace Bible.Alarm.ViewModels
         private static readonly ILogger Logger = Log.ForContext<ScheduleListItem>();
 
 
-        private readonly IContainer _container;
-
         public AlarmSchedule Schedule;
         private IDisposable _subscription;
-        public ScheduleListItem(IContainer container, AlarmSchedule schedule)
+        public ScheduleListItem(AlarmSchedule schedule)
         {
-            _container = container;
 
             Schedule = schedule;
             _isEnabled = schedule.IsEnabled;
@@ -388,17 +384,17 @@ namespace Bible.Alarm.ViewModels
             {
                 _ = Task.Run(async () =>
                 {
-                    using var toastService = container.Resolve<IToastService>();
+                    using var toastService = ServiceProviderManager.GetService<IToastService>();
 
                     try
                     {
                         if (Schedule.Id > 0)
                         {
-                            var playbackService = container.Resolve<IPlaybackService>();
+                            var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
 
                             await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
 
-                            using var notificationService = container.Resolve<INotificationService>();
+                            using var notificationService = ServiceProviderManager.GetService<INotificationService>();
                             await notificationService.ShowNotification(Schedule.Id);
                         }
                     }
@@ -428,7 +424,7 @@ namespace Bible.Alarm.ViewModels
             {
                 if (await CanMove(schedule.Id))
                 {
-                    using var playlistService = container.Resolve<IPlaylistService>();
+                    using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
                     await playlistService.MoveToPreviousBibleChapter(schedule.Id);
 
                     RefreshChapterName(true);
@@ -439,7 +435,7 @@ namespace Bible.Alarm.ViewModels
             {
                 if (await CanMove(schedule.Id))
                 {
-                    using var playlistService = container.Resolve<IPlaylistService>();
+                    using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
                     await playlistService.MoveToNextBibleChapter(schedule.Id);
 
                     RefreshChapterName(true);
@@ -449,14 +445,14 @@ namespace Bible.Alarm.ViewModels
 
         private async Task<bool> CanMove(long scheduleId)
         {
-            var playbackService = _container.Resolve<IPlaybackService>();
+            var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
             
             if(!playbackService.IsPlaying)
             {
                 return true;
             }
 
-            var toastService = _container.Resolve<IToastService>();
+            var toastService = ServiceProviderManager.GetService<IToastService>();
 
             await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
 
@@ -503,20 +499,20 @@ namespace Bible.Alarm.ViewModels
 
         public void RefreshChapterName(bool force = false)
         {
-            var syncContext = _container.Resolve<TaskScheduler>();
+            var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
 
             _ = Task.Run(async () =>
              {
                  try
                  {
-                     var playbackService = _container.Resolve<IPlaybackService>();
+                     var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
 
                      if (Schedule == null || (!force && !playbackService.IsPrepared))
                      {
                          return null;
                      }
 
-                     using var scheduleDbContext = _container.Resolve<ScheduleDbContext>();
+                     using var scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
 
                      var schedule = await scheduleDbContext.AlarmSchedules
                                              .Include(x => x.BibleReadingSchedule)
@@ -526,7 +522,7 @@ namespace Bible.Alarm.ViewModels
 
                      if (schedule != null)
                      {
-                         using var mediaDbContext = _container.Resolve<MediaDbContext>();
+                         using var mediaDbContext = ServiceProviderManager.GetService<MediaDbContext>();
 
                          var bookName = await mediaDbContext.BibleBook
                                          .Where(x => x.BibleTranslation.Code == schedule.BibleReadingSchedule.PublicationCode

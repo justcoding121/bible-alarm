@@ -23,6 +23,7 @@ using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui;
 using Microsoft.Maui.Devices;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels
 {
@@ -30,7 +31,6 @@ namespace Bible.Alarm.ViewModels
     {
         private static readonly ILogger Logger = Log.ForContext<ScheduleViewModel>();
 
-        private readonly IContainer _container;
 
         ScheduleDbContext _scheduleDbContext;
         MediaDbContext _mediaDbContext;
@@ -54,22 +54,21 @@ namespace Bible.Alarm.ViewModels
 
         private IBatteryOptimizationManager _batteryOptimizationManager;
 
-        public ScheduleViewModel(IContainer container)
+        public ScheduleViewModel()
         {
-            _container = container;
 
             if (DeviceInfo.Platform == DevicePlatform.Android)
             {
-                _batteryOptimizationManager = container.Resolve<IBatteryOptimizationManager>();
+                _batteryOptimizationManager = ServiceProviderManager.GetService<IBatteryOptimizationManager>();
             }
 
-            _scheduleDbContext = _container.Resolve<ScheduleDbContext>();
-            _mediaDbContext = _container.Resolve<MediaDbContext>();
-            _popUpService = _container.Resolve<IToastService>();
-            _alarmService = _container.Resolve<IAlarmService>();
-            _navigationService = _container.Resolve<INavigationService>();
-            _playbackService = _container.Resolve<IPlaybackService>();
-            _notificationService = _container.Resolve<INotificationService>();
+            _scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
+            _mediaDbContext = ServiceProviderManager.GetService<MediaDbContext>();
+            _popUpService = ServiceProviderManager.GetService<IToastService>();
+            _alarmService = ServiceProviderManager.GetService<IAlarmService>();
+            _navigationService = ServiceProviderManager.GetService<INavigationService>();
+            _playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+            _notificationService = ServiceProviderManager.GetService<INotificationService>();
 
             _subscriptions.Add(_scheduleDbContext);
 
@@ -202,7 +201,7 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                var viewModel = _container.Resolve<MusicSelectionViewModel>();
+                var viewModel = ServiceProviderManager.GetService<MusicSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
 
                 await Task.Run(async () =>
@@ -229,7 +228,7 @@ namespace Bible.Alarm.ViewModels
             {
                 IsBusy = true;
 
-                var viewModel = _container.Resolve<BibleSelectionViewModel>();
+                var viewModel = ServiceProviderManager.GetService<BibleSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
 
                 await Task.Run(async () =>
@@ -314,7 +313,7 @@ namespace Bible.Alarm.ViewModels
 
             PreviousBookCommand = new Command(async () =>
             {
-                using var playlistService = container.Resolve<IPlaylistService>();
+                using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
                 var nextBook = await playlistService.GetPreviousBibleBook(BibleReadingSchedule.LanguageCode, BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
 
                 BibleReadingSchedule.BookNumber = nextBook.Value.Number;
@@ -326,7 +325,7 @@ namespace Bible.Alarm.ViewModels
 
             NextBookCommand = new Command(async () =>
             {
-                using var playlistService = container.Resolve<IPlaylistService>();
+                using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
                 var nextBook = await playlistService.GetNextBibleBook(BibleReadingSchedule.LanguageCode, BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
 
                 BibleReadingSchedule.BookNumber = nextBook.Value.Number;
@@ -338,7 +337,7 @@ namespace Bible.Alarm.ViewModels
 
             PreviousChapterCommand = new Command(async () =>
             {
-                using var playlistService = container.Resolve<IPlaylistService>();
+                using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
                 var prevChapter = await playlistService.GetPreviousBibleChapter(BibleReadingSchedule.LanguageCode, BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber, BibleReadingSchedule.ChapterNumber);
 
                 BibleReadingSchedule.BookNumber = prevChapter.Key.Number;
@@ -350,7 +349,7 @@ namespace Bible.Alarm.ViewModels
 
             NextChapterCommand = new Command(async () =>
             {
-                using var playlistService = container.Resolve<IPlaylistService>();
+                using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
                 var nextChapter = await playlistService.GetNextBibleChapter(BibleReadingSchedule.LanguageCode, BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber, BibleReadingSchedule.ChapterNumber);
 
                 BibleReadingSchedule.BookNumber = nextChapter.Key.Number;
@@ -607,7 +606,7 @@ namespace Bible.Alarm.ViewModels
              {
                  try
                  {
-                     using var mediaCacheService = _container.Resolve<IMediaCacheService>();
+                     using var mediaCacheService = ServiceProviderManager.GetService<IMediaCacheService>();
                      await mediaCacheService.SetupAlarmCache(scheduleId);
                  }
                  catch (Exception e)
@@ -645,7 +644,7 @@ namespace Bible.Alarm.ViewModels
 
                 ReduxContainer.Store.Dispatch(new AddScheduleAction()
                 {
-                    ScheduleListItem = new ScheduleListItem(_container, model)
+                    ScheduleListItem = new ScheduleListItem(model)
                 });
             }
             else
@@ -740,13 +739,13 @@ namespace Bible.Alarm.ViewModels
 
         private void RefreshChapterName()
         {
-            var syncContext = _container.Resolve<TaskScheduler>();
+            var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
 
             Task.Run(async () =>
             {
                 try
                 {
-                    using var mediaDbContext = _container.Resolve<MediaDbContext>();
+                    using var mediaDbContext = ServiceProviderManager.GetService<MediaDbContext>();
 
                     var bookName = await mediaDbContext.BibleBook
                                     .Where(x => x.BibleTranslation.Code == BibleReadingSchedule.PublicationCode

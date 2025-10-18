@@ -11,12 +11,10 @@ namespace Bible.Alarm.UI.Views.Bible
 {
     public partial class BookSelection : ContentPage
     {
-        private readonly IContainer _container;
         public BookSelectionViewModel ViewModel => BindingContext as BookSelectionViewModel;
 
-        public BookSelection(IContainer container)
+        public BookSelection()
         {
-            _container = container;
 
             InitializeComponent();
 
@@ -36,7 +34,7 @@ namespace Bible.Alarm.UI.Views.Bible
                 bookListView.ScrollTo(ViewModel.SelectedBook, ScrollToPosition.Center, true);
                 Appearing -= OnAppearing;
 
-            }, _container.Resolve<TaskScheduler>());
+            }, ServiceProviderManager.GetService<TaskScheduler>());
         }
 
         protected override bool OnBackButtonPressed()

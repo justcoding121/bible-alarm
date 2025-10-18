@@ -8,14 +8,14 @@ namespace Bible.Alarm.Common.Helpers
     public static class CommonBootstrapHelper
     {
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
-        public static async Task VerifyServices(IContainer container)
+        public static async Task VerifyServices()
         {
             await @lock.WaitAsync();
 
             try
             {
-                var task1 = VerifyMediaLookUpService(container);
-                var task2 = InitializeDatabase(container);
+                var task1 = VerifyMediaLookUpService();
+                var task2 = InitializeDatabase();
 
                 await Task.WhenAll(task1, task2);
             }
@@ -25,16 +25,16 @@ namespace Bible.Alarm.Common.Helpers
             }
         }
 
-        private static async Task VerifyMediaLookUpService(IContainer container)
+        private static async Task VerifyMediaLookUpService()
         {
-            using var service = container.Resolve<MediaIndexService>();
+            using var service = ServiceProviderManager.GetService<MediaIndexService>();
             await service.Verify();
 
         }
 
-        private static async Task InitializeDatabase(IContainer container)
+        private static async Task InitializeDatabase()
         {
-            using var db = container.Resolve<ScheduleDbContext>();
+            using var db = ServiceProviderManager.GetService<ScheduleDbContext>();
             await db.Database.MigrateAsync();
         }
 

@@ -7,13 +7,9 @@ namespace Bible.Alarm.ViewModels.Shared
 {
     public class MediaProgressViewModal : ViewModel
     {
-        private readonly IContainer _container;
-
-        public MediaProgressViewModal(IContainer container)
+        public MediaProgressViewModal()
         {
-            _container = container;
-
-            var syncContext = _container.Resolve<TaskScheduler>();
+            var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
 
             Messenger<object>.Subscribe(MvvmMessages.MediaProgress, async vm =>
             {

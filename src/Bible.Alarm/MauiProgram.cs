@@ -2,12 +2,22 @@ using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Infrastructure;
 using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui;
+using Bible.Alarm.Services;
+using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.ViewModels;
+using Bible.Alarm.UI;
+using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using System.IO;
+using Bible.Alarm.Contracts.Network;
+using Bible.Alarm.Contracts.Platform;
+using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm;
 
 public static class MauiProgram
 {
-    public static MauiApp CreateMauiApp(IContainer container = null)
+    public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
 #pragma warning disable CA1416
@@ -21,34 +31,96 @@ public static class MauiProgram
             });
 
         // Register services
-        // builder.Services.AddMauiBlazorWebView(); // Not needed for this app
+        RegisterServices(builder.Services);
 
-#if DEBUG
-        // builder.Services.AddLogging(configure => configure.AddDebug()); // Not needed for this app
-#endif
-
-        // Register the container if provided
-        if (container != null)
-        {
-            builder.Services.AddSingleton(container);
-            
-            // Initialize platform-specific services
-            // Platform-specific services are registered in their respective entry points
-            // (iOS AppDelegate, Android MainActivity, Windows App.xaml.cs)
-        }
+        var app = builder.Build();
         
-        // Register the App class with the container
-        builder.Services.AddSingleton<App>(sp => 
-        {
-            if (container != null)
-            {
-                return new App(container);
-            }
-            // Create a default container if none provided
-            var defaultContainer = new Container(new Dictionary<string, object>());
-            return new App(defaultContainer);
-        });
+        // Initialize the global service provider for access from multiple entry points
+        ServiceProviderManager.Initialize(app.Services);
+        
+        return app;
+    }
 
-        return builder.Build();
+    private static void RegisterServices(IServiceCollection services)
+    {
+        // Register core services
+        services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
+        
+        // Register common services
+        RegisterCommonServices(services);
+        
+        // Register ViewModels
+        RegisterViewModels(services);
+        
+        // Register UI components
+        RegisterUIComponents(services);
+    }
+
+
+    private static void RegisterCommonServices(IServiceCollection services)
+    {
+        // Register core services that don't have platform dependencies
+        services.AddSingleton<IDownloadService, DownloadService>();
+        services.AddSingleton<MediaIndexService>();
+        services.AddSingleton<MediaService>();
+        services.AddSingleton<IMediaCacheService, MediaCacheService>();
+        services.AddSingleton<IPlaylistService, PlaylistService>();
+        services.AddSingleton<IAlarmService, AlarmService>();
+        services.AddSingleton<INetworkStatusService, NetworkStatusService>();
+        services.AddSingleton<IMediaElementAudioService, MediaElementAudioService>();
+        services.AddSingleton<IPlaybackService, PlaybackService>();
+        services.AddSingleton<SchedulerTask>();
+        
+        // Register platform-specific services
+        #if ANDROID
+        services.AddSingleton<INotificationService, Bible.Alarm.Services.Droid.DroidNotificationService>();
+        services.AddSingleton<IToastService, Bible.Alarm.Services.Droid.DroidToastService>();
+        #elif IOS
+        services.AddSingleton<INotificationService, Bible.Alarm.Services.iOS.IosNotificationService>();
+        services.AddSingleton<IToastService, Bible.Alarm.Services.iOS.IosToastService>();
+        #elif WINDOWS
+        services.AddSingleton<INotificationService, Bible.Alarm.Services.Windows.WindowsNotificationService>();
+        services.AddSingleton<IToastService, Bible.Alarm.Services.Windows.WindowsToastService>();
+        #endif
+        
+        // Register TaskScheduler for compatibility
+        services.AddSingleton<TaskScheduler>(sp => TaskScheduler.FromCurrentSynchronizationContext());
+        
+        // Register NavigationService
+        services.AddSingleton<INavigationService>(sp => 
+        {
+            // This will be set up properly in App.xaml.cs
+            return new NavigationService(null);
+        });
+    }
+
+    private static void RegisterViewModels(IServiceCollection services)
+    {
+        services.AddSingleton<HomeViewModel>();
+        services.AddTransient<ScheduleViewModel>();
+        services.AddTransient<MusicSelectionViewModel>();
+        services.AddTransient<SongBookSelectionViewModel>();
+        services.AddTransient<TrackSelectionViewModel>();
+        services.AddTransient<BibleSelectionViewModel>();
+        services.AddTransient<BookSelectionViewModel>();
+        services.AddTransient<ChapterSelectionViewModel>();
+        services.AddTransient<AlarmViewModal>();
+        services.AddSingleton<MediaProgressViewModal>();
+    }
+
+    private static void RegisterUIComponents(IServiceCollection services)
+    {
+        services.AddTransient<Schedule>();
+        services.AddTransient<MusicSelection>();
+        services.AddTransient<SongBookSelection>();
+        services.AddTransient<TrackSelection>();
+        services.AddTransient<BibleSelection>();
+        services.AddTransient<BookSelection>();
+        services.AddTransient<ChapterSelection>();
+        services.AddTransient<LanguageModal>();
+        services.AddTransient<AlarmModal>();
+        services.AddTransient<BatteryOptimizationExclusionModal>();
+        services.AddTransient<NumberOfChaptersModal>();
+        services.AddTransient<MediaProgressModal>();
     }
 }

@@ -22,7 +22,6 @@ namespace Bible.Alarm.ViewModels
 {
     public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
     {
-        private readonly IContainer _container;
 
         private MediaService _mediaService;
         private INavigationService _navigationService;
@@ -32,12 +31,11 @@ namespace Bible.Alarm.ViewModels
 
         private List<IDisposable> _subscriptions = new List<IDisposable>();
 
-        public SongBookSelectionViewModel(IContainer container)
+        public SongBookSelectionViewModel()
         {
-            _container = container;
 
-            _mediaService = _container.Resolve<MediaService>();
-            _navigationService = _container.Resolve<INavigationService>();
+            _mediaService = ServiceProviderManager.GetService<MediaService>();
+            _navigationService = ServiceProviderManager.GetService<INavigationService>();
 
             //set schedules from initial state.
             //this should fire only once 
@@ -86,7 +84,7 @@ namespace Bible.Alarm.ViewModels
                     }
                 });
 
-                var viewModel = _container.Resolve<TrackSelectionViewModel>();
+                var viewModel = ServiceProviderManager.GetService<TrackSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
 
                 IsBusy = false;
