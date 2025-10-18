@@ -44,19 +44,9 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-		<PackageReference Include="Xam.Plugins.Android.ExoPlayer" Version="2.11.8" />
-		<PackageReference Include="Xam.Plugins.Android.ExoPlayer.Cast" Version="2.11.6" />
-		<PackageReference Include="Xam.Plugins.Android.ExoPlayer.MediaSession" Version="2.11.8" />
-		<PackageReference Include="Xamarin.Google.Dagger" Version="2.39.1" />
-		<!-- <PackageReference Include="Xamarin.AndroidX.Work.Runtime" Version="2.7.0" /> -->
 		<PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
 	</ItemGroup>
 
-	<!-- Fix Java dependency conflicts -->
-	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-		<AndroidExcludeJar Include="**/guava-*.jar" />
-		<AndroidExcludeJar Include="**/listenablefuture-*.jar" />
-	</ItemGroup>
 
 	<!-- ProGuard rules to handle Java conflicts -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">

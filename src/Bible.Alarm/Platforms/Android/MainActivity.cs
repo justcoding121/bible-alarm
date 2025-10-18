@@ -1,7 +1,6 @@
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
-using Android.Gms.Cast.Framework;
 using Android.OS;
 using Android.Views;
 using Bible.Alarm.Common.Extensions;
@@ -33,7 +32,6 @@ namespace Bible.Alarm.Droid
         private static Logger Logger => LazyLogger.Value;
 
         private IContainer _container;
-        private CastContext _castContext;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -41,8 +39,7 @@ namespace Bible.Alarm.Droid
 
             // MediaManager removed - using MediaElement instead
 
-            // Initialize Cast Framework
-            _castContext = CastContext.GetSharedInstance(this);
+            // Cast Framework removed - using MediaElement instead
 
             // Initialize container
             _container = BootstrapHelper.InitializeUi(Logger, this, Application);

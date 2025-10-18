@@ -6,7 +6,6 @@ using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid;
-using Com.Google.Android.Exoplayer2.UI;
 using Microsoft.EntityFrameworkCore;
 using NLog;
 
@@ -23,7 +22,6 @@ namespace Bible.Alarm.Droid.Services.Handlers
 
 
         private bool _playbackServiceInitialized = false;
-        private PlayerNotificationManager _playerNotificationManager;
 
         public event EventHandler<bool> Disposed;
 
@@ -75,13 +73,8 @@ namespace Bible.Alarm.Droid.Services.Handlers
             });
         }
 
-        private async void NotificationCancelled(object sender, PlayerNotificationManager.NotificationCancelledEventArgs e)
-        {
-            if (e.DismissedByUser)
-            {
-                await playbackService.Dismiss();
-            }
-        }
+        // PlayerNotificationManager removed - using MediaElement instead
+        // Notification handling is now managed by the MediaElement service
 
         private bool _disposed = false;
         public void Dispose()
@@ -89,10 +82,7 @@ namespace Bible.Alarm.Droid.Services.Handlers
             if (_disposed) return;
             _disposed = true;
 
-            if (_playerNotificationManager != null)
-            {
-                _playerNotificationManager.NotificationCancelled -= NotificationCancelled;
-            }
+            // PlayerNotificationManager removed - using MediaElement instead
 
             dbContext.Dispose();
             notificationService.Dispose();
