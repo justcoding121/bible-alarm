@@ -25,10 +25,10 @@ namespace Bible.Alarm.WinUI
             {
                 // Windows-specific initialization
                 // Set up window management
-                // Note: Exit event handling is different in MAUI
+                // MAUI handles application lifecycle events automatically
                 
                 // Initialize Windows-specific services
-                // Note: Container initialization is handled by MAUI framework
+                // Dependency injection container is configured in MauiProgram
                 Logger.Information("Windows application initialized successfully.");
             }
             catch (Exception ex)
@@ -37,6 +37,6 @@ namespace Bible.Alarm.WinUI
             }
         }
 
-        // Note: Exit handling is managed by MAUI framework
+        // Application lifecycle is managed by MAUI framework
     }
 }

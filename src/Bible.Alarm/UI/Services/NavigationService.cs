@@ -82,7 +82,7 @@ namespace Bible.Alarm.UI
                     {
                         case MvvmMessages.ShowAlarmModal:
                             {
-                                //hack to prevent pop-ups in quick succession
+                                // Prevent showing alarm modal when playback is not active
                                 var playbackService = container.Resolve<IPlaybackService>();
                                 if (!playbackService.IsPlaying)
                                 {

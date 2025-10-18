@@ -31,7 +31,7 @@ public static class MauiProgram
             builder.Services.AddSingleton(container);
             
             // Initialize platform-specific services
-            // Note: Platform-specific IocSetup calls are handled in entry points
+            // Platform-specific services are registered in their respective entry points
             // (iOS AppDelegate, Android MainActivity, Windows App.xaml.cs)
         }
         

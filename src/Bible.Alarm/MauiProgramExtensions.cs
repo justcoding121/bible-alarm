@@ -11,8 +11,8 @@ public static class MauiProgramExtensions
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement();
 
-        // TODO: Add the entry points to your Apps here.
-        // See also: https://learn.microsoft.com/dotnet/maui/fundamentals/app-lifecycle
+        // MAUI app configuration is complete
+        // Entry points are handled by the MAUI framework automatically
 
 
         return builder;

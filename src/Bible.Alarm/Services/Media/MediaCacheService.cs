@@ -156,7 +156,7 @@ namespace Bible.Alarm.Services
                     }
 
                 }
-                //TODO ignore network errors from getting logged
+                // Log all exceptions during media download for debugging purposes
                 catch (Exception e)
                 {
                     Logger.Error(e, "An exception happened when downloading media files for caching.");

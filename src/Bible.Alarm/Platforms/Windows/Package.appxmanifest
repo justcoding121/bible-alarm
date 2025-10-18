@@ -8,14 +8,14 @@
 
   <Identity
     Name="Bible.Alarm"
-    Publisher="CN=YourPublisherName"
+    Publisher="CN=BibleAlarmPublisher"
     Version="1.64.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="your-guid-here" PhonePublisherId="your-guid-here" />
+  <mp:PhoneIdentity PhoneProductId="e95433c2-32d9-456d-9cb0-78c31119cc00" PhonePublisherId="dc44ce6c-8de1-425b-9277-58deebfb18ee" />
 
   <Properties>
     <DisplayName>Bible Alarm</DisplayName>
-    <PublisherDisplayName>Your Publisher Name</PublisherDisplayName>
+    <PublisherDisplayName>Bible Alarm Publisher</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
