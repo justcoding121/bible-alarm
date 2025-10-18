@@ -21,7 +21,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
-    private List<IDisposable> _subscriptions = new();
+    private List<IDisposable> _subscriptions = [];
 
     public SongBookSelectionViewModel()
     {
@@ -241,7 +241,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
         Languages = languageVMs;
     }
 
-    private Dictionary<string, PublicationListViewItemModel> _songBookVMsMapping = new();
+    private Dictionary<string, PublicationListViewItemModel> _songBookVMsMapping = [];
 
     private async Task PopulateSongBooks(string languageCode)
     {

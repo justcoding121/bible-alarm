@@ -1,19 +1,9 @@
-﻿using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Mvvm;
+﻿using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.UI;
 using Bible.Alarm.ViewModels;
 using Serilog;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Controls.Compatibility;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui;
-using Microsoft.Maui.Devices;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm;
 
@@ -28,14 +18,19 @@ public partial class App : Application
         Init();
     }
 
+    private INavigationService _navigationService;
+
     private void Init()
     {
         InitializeComponent();
 
         var navigationPage = new NavigationPage();
         var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
-        var navigationService = new NavigationService(navigationPage.Navigation);
+        
+        // Create and store the navigation service for later use
+        _navigationService = new NavigationService(navigationPage.Navigation);
 
+        // Use the new MAUI approach for setting the main page
         Windows[0].Page = navigationPage;
 
         Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
@@ -71,9 +66,8 @@ public partial class App : Application
         {
             try
             {
-                var navigationService = ServiceProviderManager.GetService<INavigationService>();
                 // Handle when your app starts  
-                await navigationService.NavigateToHome();
+                await _navigationService.NavigateToHome();
 
                 var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
 

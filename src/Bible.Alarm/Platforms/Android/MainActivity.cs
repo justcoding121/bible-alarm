@@ -1,8 +1,12 @@
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Bible.Alarm.Services.Droid.Helpers;
-// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
+using Bible.Alarm.Services.Droid.Tasks;
+using Bible.Alarm.Common.Mvvm;
+using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Contracts.Media;
 using Serilog;
 
 namespace Bible.Alarm.Droid;
@@ -12,20 +16,73 @@ namespace Bible.Alarm.Droid;
 public class MainActivity : MauiAppCompatActivity
 {
     private static readonly ILogger Logger = Log.ForContext<MainActivity>();
+    private IAndroidAlarmHandler _alarmHandler;
+    private DateTime? _lastResumeTime;
 
     protected override void OnCreate(Bundle savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
 
-        // MediaManager removed - using MediaElement instead
-
-        // Cast Framework removed - using MediaElement instead
-
-        // MAUI handles dependency injection through MauiProgram
-        // ServiceProviderManager is initialized in MauiProgram
-
         // Initialize platform-specific services
         BootstrapHelper.InitializeUi(Logger, this, Application);
+
+        // Handle incoming intents (e.g., from notifications)
+        HandleIncomingIntent();
+
+        // Set up background tasks
+        SetupBackgroundTasks();
+    }
+
+    private void HandleIncomingIntent()
+    {
+        if (Intent?.Extras != null)
+        {
+            var scheduleId = Intent.Extras.GetInt("schedule_id", int.MinValue);
+            if (scheduleId != int.MinValue)
+            {
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (_alarmHandler == null)
+                        {
+                            _alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
+                        }
+                        await _alarmHandler.Handle(scheduleId, true);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e, "Error handling incoming alarm intent");
+                    }
+                });
+            }
+        }
+    }
+
+    private void SetupBackgroundTasks()
+    {
+        Task.Run(async () =>
+        {
+            while (true)
+            {
+                try
+                {
+                    if (_lastResumeTime.HasValue && DateTime.Now.Subtract(_lastResumeTime.Value).TotalSeconds >= 3)
+                    {
+                        var intent = new Intent(this, typeof(AlarmSetupService));
+                        intent.PutExtra("Action", "SetupBackgroundTasks");
+                        StartService(intent);
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error setting up background tasks");
+                    break;
+                }
+                await Task.Delay(1000);
+            }
+        });
     }
 
     public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
@@ -39,13 +96,13 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnResume()
     {
         base.OnResume();
-        // MediaManager removed - using MediaElement instead
+        _lastResumeTime = DateTime.Now;
     }
 
     protected override void OnPause()
     {
         base.OnPause();
-        // MediaManager removed - using MediaElement instead
+        _lastResumeTime = null;
     }
 
     protected override void OnDestroy()

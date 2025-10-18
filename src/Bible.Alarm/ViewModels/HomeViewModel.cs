@@ -32,7 +32,7 @@ public class HomeViewModel : ViewModel, IDisposable
 
     private INotificationService _notificationService;
 
-    private List<IDisposable> _subscriptions = new();
+    private List<IDisposable> _subscriptions = [];
 
 
     public HomeViewModel(

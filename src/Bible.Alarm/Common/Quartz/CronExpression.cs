@@ -536,13 +536,13 @@ public class CronExpression : IDeserializationCallback, ISerializable
 
         try
         {
-            if (Seconds == null) Seconds = new SortedSet<int>();
-            if (Minutes == null) Minutes = new SortedSet<int>();
-            if (Hours == null) Hours = new SortedSet<int>();
-            if (DaysOfMonth == null) DaysOfMonth = new SortedSet<int>();
-            if (Months == null) Months = new SortedSet<int>();
-            if (DaysOfWeek == null) DaysOfWeek = new SortedSet<int>();
-            if (Years == null) Years = new SortedSet<int>();
+            if (Seconds == null) Seconds = [];
+            if (Minutes == null) Minutes = [];
+            if (Hours == null) Hours = [];
+            if (DaysOfMonth == null) DaysOfMonth = [];
+            if (Months == null) Months = [];
+            if (DaysOfWeek == null) DaysOfWeek = [];
+            if (Years == null) Years = [];
 
             var exprOn = Second;
 

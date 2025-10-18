@@ -5,5 +5,5 @@ namespace Bible.Alarm.ViewModels.Redux.Actions;
 
 public class InitializeAction : IAction
 {
-    public ObservableHashSet<ScheduleListItem> ScheduleList = new();
+    public ObservableHashSet<ScheduleListItem> ScheduleList = [];
 }

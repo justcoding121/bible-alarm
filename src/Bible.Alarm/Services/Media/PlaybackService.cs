@@ -314,7 +314,7 @@ public class PlaybackService : IPlaybackService
 
             Messenger<object>.Publish(MvvmMessages.HideMediaProgressModal);
 
-            _currentlyPlaying = new Dictionary<string, NotificationDetail>();
+            _currentlyPlaying = [];
 
             i = 0;
             foreach (var track in mergedMediaItems.OrderBy(x => x.Key))

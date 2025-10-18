@@ -29,7 +29,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     private IPlaybackService _playbackService;
     private INotificationService _notificationService;
 
-    private List<IDisposable> _subscriptions = new();
+    private List<IDisposable> _subscriptions = [];
 
     public Command BatteryOptimizationExcludeCommand { get; private set; }
     public Command BatteryOptimizationDismissCommand { get; private set; }

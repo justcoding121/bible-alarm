@@ -25,7 +25,7 @@ namespace Quartz.Util;
 
 public static class TimeZoneUtil
 {
-    private static readonly Dictionary<string, string> TimeZoneIdAliases = new();
+    private static readonly Dictionary<string, string> TimeZoneIdAliases = [];
 
     static TimeZoneUtil()
     {

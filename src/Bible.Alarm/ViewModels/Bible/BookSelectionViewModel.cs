@@ -22,7 +22,7 @@ public class BookSelectionViewModel : ViewModel, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    private List<IDisposable> _subscriptions = new();
+    private List<IDisposable> _subscriptions = [];
 
     public BookSelectionViewModel()
     {
@@ -123,7 +123,7 @@ public class BookSelectionViewModel : ViewModel, IDisposable
         await PopulateBooks(languageCode, publicationCode);
     }
 
-    private Dictionary<int, BibleBookListViewItemModel> _bookVMsMapping = new();
+    private Dictionary<int, BibleBookListViewItemModel> _bookVMsMapping = [];
 
     private async Task PopulateBooks(string languageCode, string publicationCode)
     {

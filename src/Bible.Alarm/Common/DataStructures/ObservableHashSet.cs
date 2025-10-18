@@ -9,7 +9,7 @@ public class ObservableHashSet<T> : INotifyCollectionChanged,
     IEnumerable,
     IList where T : IComparable
 {
-    private readonly OrderedHashSet<T> _sortedHashSet = new();
+    private readonly OrderedHashSet<T> _sortedHashSet = [];
 
     public T this[int i]
     {

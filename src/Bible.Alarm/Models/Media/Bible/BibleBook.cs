@@ -10,7 +10,7 @@ public class BibleBook : IComparable
     public int BibleTranslationId { get; set; }
     public BibleTranslation BibleTranslation { get; set; }
 
-    public List<BibleChapter> Chapters { get; set; } = new();
+    public List<BibleChapter> Chapters { get; set; } = [];
 
     public int CompareTo(object obj)
     {

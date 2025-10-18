@@ -19,7 +19,7 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
 
-    private List<IDisposable> _subscriptions = new();
+    private List<IDisposable> _subscriptions = [];
 
     public MusicSelectionViewModel()
     {
@@ -113,8 +113,8 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
     public ICommand SongBookSelectionCommand { get; set; }
 
     public ObservableCollection<MusicTypeListItemViewModel> MusicTypes { get; set; }
-        = new(new List<MusicTypeListItemViewModel>
-        {
+        = new(
+        [
             new()
             {
                 MusicType = MusicType.Melodies,
@@ -125,7 +125,7 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
                 MusicType = MusicType.Vocals,
                 Name = "Vocals"
             }
-        });
+        ]);
 
     private MusicTypeListItemViewModel _selectedMusicType;
 

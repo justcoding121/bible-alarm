@@ -31,9 +31,9 @@ public class NotifyPropertyObserver<TObserver, TObservable>
 
     private WeakReference<TObserver> _observer;
 
-    private Dictionary<string, Action> _propertyObservers = new();
+    private Dictionary<string, Action> _propertyObservers = [];
 
-    private HashSet<string> _pendingChanges = new();
+    private HashSet<string> _pendingChanges = [];
 
     #endregion
 
@@ -105,7 +105,7 @@ public class NotifyPropertyObserver<TObserver, TObservable>
                     if (_propertyObservers.TryGetValue(change, out var action))
                         action();
 
-            _pendingChanges = new HashSet<string>();
+            _pendingChanges = [];
             IsActive = true;
             _hasBeenActive = true;
         }
@@ -118,7 +118,7 @@ public class NotifyPropertyObserver<TObserver, TObservable>
     {
         if (IsActive)
         {
-            _propertyObservers = new Dictionary<string, Action>();
+            _propertyObservers = [];
             IsActive = false;
         }
     }

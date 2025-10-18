@@ -7,7 +7,7 @@ namespace Bible.Alarm.Shared.Utilities;
 
 public class OrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>
 {
-    private readonly List<KeyValuePair<TKey, TValue>> _items = new();
+    private readonly List<KeyValuePair<TKey, TValue>> _items = [];
 
     public OrderedDictionary()
     {

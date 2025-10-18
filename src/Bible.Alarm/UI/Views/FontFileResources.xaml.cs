@@ -4,7 +4,7 @@ namespace FontNameResources;
 
 public partial class FontFileResources : ResourceDictionary
 {
-    private static readonly FontFileResources Instance = new();
+    private static readonly FontFileResources Instance = [];
 
     public FontFileResources()
     {

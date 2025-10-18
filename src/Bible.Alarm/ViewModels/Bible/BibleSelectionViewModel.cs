@@ -21,7 +21,7 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
 
-    private List<IDisposable> _subscriptions = new();
+    private List<IDisposable> _subscriptions = [];
 
     public ICommand BackCommand { get; set; }
     public ICommand BookSelectionCommand { get; set; }
@@ -230,7 +230,7 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
         Languages = languageVMs;
     }
 
-    private Dictionary<string, PublicationListViewItemModel> _translationVMsMapping = new();
+    private Dictionary<string, PublicationListViewItemModel> _translationVMsMapping = [];
 
     private async Task PopulateTranslations(string languageCode)
     {

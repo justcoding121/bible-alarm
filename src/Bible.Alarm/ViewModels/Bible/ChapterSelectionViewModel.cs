@@ -27,7 +27,7 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     private IMediaCacheService _cacheService;
     private IDownloadService _downloadService;
 
-    private readonly List<IDisposable> _subscriptions = new();
+    private readonly List<IDisposable> _subscriptions = [];
 
     public ChapterSelectionViewModel()
     {

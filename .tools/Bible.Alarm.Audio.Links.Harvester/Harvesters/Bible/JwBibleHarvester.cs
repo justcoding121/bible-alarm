@@ -107,7 +107,7 @@ internal class JwBibleHarvester
                 var trackNumber = (int)bookFile["track"].Value;
                 var duration = (double)bookFile["duration"].Value;
                 if (!bookNumberChapterMap.ContainsKey(bookNumber))
-                    bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
+                    bookNumberChapterMap[bookNumber] = [];
 
                 if (!bookNumberChapterMap[bookNumber].ContainsKey(trackNumber))
                     bookNumberChapterMap[bookNumber].Add(trackNumber,

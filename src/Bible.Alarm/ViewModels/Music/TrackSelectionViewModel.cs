@@ -28,7 +28,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
-    private readonly List<IDisposable> _subscriptions = new();
+    private readonly List<IDisposable> _subscriptions = [];
 
     public TrackSelectionViewModel()
     {
@@ -108,7 +108,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
         set => this.Set(ref _isBusy, value);
     }
 
-    public ObservableCollection<MusicTrackListViewItemModel> Tracks { get; set; } = new();
+    public ObservableCollection<MusicTrackListViewItemModel> Tracks { get; set; } = [];
 
     public MusicTrackListViewItemModel SelectedTrack { get; set; }
 

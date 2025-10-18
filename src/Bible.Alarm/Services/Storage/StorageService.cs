@@ -38,7 +38,7 @@ public abstract class StorageService : IStorageService
 
     public async Task<List<string>> GetAllFiles(string path)
     {
-        if (!await DirectoryExists(path)) return new List<string>();
+        if (!await DirectoryExists(path)) return [];
 
         return Directory.GetFiles(path).ToList();
     }

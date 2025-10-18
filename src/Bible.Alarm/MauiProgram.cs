@@ -14,6 +14,7 @@ using Bible.Alarm.UI.Views.Music;
 using Bible.Alarm.UI.Views.General;
 // using Bible.Alarm.UI.Views.Shared; // Shared is a folder, not a namespace
 using Bible.Alarm.Contracts.Network;
+using Bible.Alarm.Contracts.Media;
 
 namespace Bible.Alarm;
 
@@ -52,7 +53,7 @@ public static class MauiProgram
         RegisterViewModels(services);
 
         // Register UI components
-        RegisterUIComponents(services);
+        RegisterUiComponents(services);
     }
 
 
@@ -71,26 +72,20 @@ public static class MauiProgram
         services.AddSingleton<SchedulerTask>();
 
         // Register platform-specific services
-#if ANDROID
+        #if ANDROID
         services.AddSingleton<INotificationService, Bible.Alarm.Services.Droid.DroidNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.Droid.DroidToastService>();
-#elif IOS
+        services.AddSingleton<IAndroidAlarmHandler, Bible.Alarm.Droid.Services.Handlers.AndroidAlarmHandler>();
+        #elif IOS
         services.AddSingleton<INotificationService, Bible.Alarm.Services.iOS.IOsNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.iOS.IOsToastService>();
-#elif WINDOWS
+        #elif WINDOWS
         services.AddSingleton<INotificationService, Bible.Alarm.Services.Windows.UwpNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.Windows.UwpToastService>();
-#endif
+        #endif
 
         // Register TaskScheduler for compatibility
         services.AddSingleton<TaskScheduler>(sp => TaskScheduler.FromCurrentSynchronizationContext());
-
-        // Register NavigationService
-        services.AddSingleton<INavigationService>(sp =>
-        {
-            // This will be set up properly in App.xaml.cs
-            return new NavigationService(null);
-        });
     }
 
     private static void RegisterViewModels(IServiceCollection services)
@@ -107,7 +102,7 @@ public static class MauiProgram
         services.AddSingleton<MediaProgressViewModal>();
     }
 
-    private static void RegisterUIComponents(IServiceCollection services)
+    private static void RegisterUiComponents(IServiceCollection services)
     {
         services.AddTransient<Schedule>();
         services.AddTransient<MusicSelection>();
