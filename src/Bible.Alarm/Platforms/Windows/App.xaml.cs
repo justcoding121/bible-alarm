@@ -1,5 +1,5 @@
 using Bible.Alarm.Services.Infrastructure;
-using NLog;
+using Serilog;
 using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Windowing;
@@ -12,8 +12,7 @@ namespace Bible.Alarm.WinUI
     /// </summary>
     sealed partial class App : Microsoft.UI.Xaml.Application
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<App>();
 
         public App()
         {
@@ -30,11 +29,11 @@ namespace Bible.Alarm.WinUI
                 
                 // Initialize Windows-specific services
                 // Note: Container initialization is handled by MAUI framework
-                logger.Info("Windows application initialized successfully.");
+                Logger.Information("Windows application initialized successfully.");
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error initializing Windows-specific components.");
+                Logger.Error(ex, "Error initializing Windows-specific components.");
             }
         }
 

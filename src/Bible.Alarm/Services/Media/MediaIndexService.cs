@@ -1,7 +1,7 @@
 ﻿using Bible.Alarm.Contracts.Platform;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.Maui.Devices;
-using NLog;
+using Serilog;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -16,8 +16,7 @@ namespace Bible.Alarm.Services
 {
     public class MediaIndexService : IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<MediaIndexService>();
 
         private readonly Lazy<string> _indexRoot;
 

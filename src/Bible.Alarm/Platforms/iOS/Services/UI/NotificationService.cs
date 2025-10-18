@@ -2,7 +2,7 @@
 using Bible.Alarm.iOS.Services.Handlers;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
-using NLog;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -12,8 +12,7 @@ namespace Bible.Alarm.Services.iOS
 {
     public class IOsNotificationService(IContainer container) : INotificationService
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<IOsNotificationService>();
 
 
         private readonly TaskScheduler _taskScheduler = container.Resolve<TaskScheduler>();

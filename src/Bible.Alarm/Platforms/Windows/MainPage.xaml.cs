@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Windowing;
 using Microsoft.UI;
 using System;
-using NLog;
+using Serilog;
 
 namespace Bible.Alarm.WinUI
 {
@@ -12,8 +12,7 @@ namespace Bible.Alarm.WinUI
     /// </summary>
     public sealed partial class MainPage : Microsoft.UI.Xaml.Controls.Page
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<MainPage>();
 
         public MainPage()
         {
@@ -29,7 +28,7 @@ namespace Bible.Alarm.WinUI
                 // This is where you would add Windows-specific window styling code
                 // that was typically in the original Xamarin MainPage.xaml.cs
                 
-                Logger.Info("Windows MainPage initialized with platform-specific styling.");
+                Logger.Information("Windows MainPage initialized with platform-specific styling.");
             }
             catch (Exception ex)
             {

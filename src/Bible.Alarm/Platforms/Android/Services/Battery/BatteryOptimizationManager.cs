@@ -1,15 +1,14 @@
 ﻿using Android.Content;
 using Bible.Alarm.Contracts.Battery;
 using Bible.Alarm.Services.Droid.Extensions;
-using NLog;
+using Serilog;
 using System;
 
 namespace Bible.Alarm.Droid.Services.Battery
 {
     public class BatteryOptimizationManager(IContainer container) : IBatteryOptimizationManager
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<BatteryOptimizationManager>();
 
 
         public IContainer Container { get; set; } = container;

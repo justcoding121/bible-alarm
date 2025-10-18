@@ -2,7 +2,7 @@
 using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
-using NLog;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
@@ -16,8 +16,7 @@ namespace Bible.Alarm.Services
         MediaService mediaService)
         : IPlaylistService
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<PlaylistService>();
 
         public async Task<long> GetRelavantScheduleToPlay()
         {

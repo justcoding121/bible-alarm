@@ -9,7 +9,7 @@ using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Bible.Alarm.ViewModels.Shared;
-using NLog;
+using Serilog;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,8 +21,7 @@ namespace Bible.Alarm.UI
 {
     public class NavigationService : INavigationService
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<NavigationService>();
 
 
         private readonly IContainer _container;

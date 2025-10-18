@@ -8,7 +8,7 @@ using Bible.Alarm.Services.Droid.Extensions;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
-using NLog;
+using Serilog;
 using Bible.Alarm.Platforms.Android;
 using static Android.App.AlarmManager;
 
@@ -18,8 +18,7 @@ namespace Bible.Alarm.Services.Droid.Tasks
     public class AlarmSetupService : Service, IDisposable
     {
         private IContainer _container;
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<AlarmSetupService>();
 
 
         public static bool IsRunning = false;

@@ -15,7 +15,7 @@ using Bible.Alarm.Services.Droid.Extensions;
 using Bible.Alarm.Services.Infrastructure;
 using Java.Interop;
 using Newtonsoft.Json;
-using NLog;
+using Serilog;
 using Plugin.CurrentActivity;
 using System;
 using System.Threading.Tasks;
@@ -28,8 +28,7 @@ namespace Bible.Alarm.Droid
     [Activity(Label = "Bible Alarm", Icon = "@mipmap/ic_launcher", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation)]
     public class MainActivity : MauiAppCompatActivity
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<MainActivity>();
 
         private IContainer _container;
 

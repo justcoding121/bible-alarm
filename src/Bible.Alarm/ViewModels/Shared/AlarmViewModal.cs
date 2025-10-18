@@ -5,7 +5,7 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Mvvmicro;
-using NLog;
+using Serilog;
 using Plugin.StoreReview;
 using System;
 using System.Threading.Tasks;
@@ -18,8 +18,7 @@ namespace Bible.Alarm.ViewModels
 {
     public class AlarmViewModal : ViewModel, IDisposableModal
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<AlarmViewModal>();
 
 
         private readonly IContainer _container;

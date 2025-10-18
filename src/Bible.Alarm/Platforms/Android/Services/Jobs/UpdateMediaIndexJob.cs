@@ -5,7 +5,7 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
-using NLog;
+using Serilog;
 using System;
 using System.Threading.Tasks;
 
@@ -16,8 +16,7 @@ namespace Bible.Alarm.Services.Droid.Tasks
     {
         public const int JobId = 2;
 
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<UpdateMediaIndexJob>();
 
         public UpdateMediaIndexJob()
         {

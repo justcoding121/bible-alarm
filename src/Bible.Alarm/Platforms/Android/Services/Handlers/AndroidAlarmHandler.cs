@@ -7,7 +7,7 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid;
 using Microsoft.EntityFrameworkCore;
-using NLog;
+using Serilog;
 
 namespace Bible.Alarm.Droid.Services.Handlers
 {
@@ -17,8 +17,7 @@ namespace Bible.Alarm.Droid.Services.Handlers
         DroidNotificationService notificationService)
         : IAndroidAlarmHandler, IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<AndroidAlarmHandler>();
 
 
         private bool _playbackServiceInitialized = false;

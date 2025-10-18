@@ -3,7 +3,7 @@ using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
-using NLog;
+using Serilog;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,8 +13,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
 {
     public class UwpAlarmHandler : IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<UwpAlarmHandler>();
 
 
         private IPlaybackService _playbackService;

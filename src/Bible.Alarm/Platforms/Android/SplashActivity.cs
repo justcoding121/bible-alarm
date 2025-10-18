@@ -6,7 +6,7 @@ using Android.Views;
 using AndroidX.AppCompat.App;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
-using NLog;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Android
 {
@@ -14,8 +14,7 @@ namespace Bible.Alarm.Platforms.Android
         MainLauncher = true, NoHistory = true)]
     public class SplashActivity : AppCompatActivity
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<SplashActivity>();
 
 
         public SplashActivity()

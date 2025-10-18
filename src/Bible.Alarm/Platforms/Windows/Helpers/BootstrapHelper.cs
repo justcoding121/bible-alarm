@@ -1,7 +1,7 @@
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Tasks;
-using NLog;
+using Serilog;
 using System;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Background;
@@ -80,7 +80,7 @@ namespace Bible.Alarm.Services.Windows.Helpers
             }
         }
 
-        public static void Initialize(IContainer container, Logger logger)
+        public static void Initialize(IContainer container, ILogger logger)
         {
             Task.Run(() => SetupBackgroundTask(container));
 

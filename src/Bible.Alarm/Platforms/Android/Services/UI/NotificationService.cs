@@ -11,7 +11,7 @@ using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Services.Droid.Extensions;
 using Java.Lang;
 using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
-using NLog;
+using Serilog;
 using System;
 using System.Threading.Tasks;
 using Android.Graphics.Drawables;
@@ -30,8 +30,7 @@ namespace Bible.Alarm.Services.Droid
         public static readonly string ChannelDescription = "alarm_notification are send to this channel";
         public static readonly string ScheduleId = "schedule_id";
 
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<DroidNotificationService>();
 
 
         public async Task ShowNotification(long scheduleId)

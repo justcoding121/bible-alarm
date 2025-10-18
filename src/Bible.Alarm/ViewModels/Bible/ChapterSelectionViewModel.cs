@@ -5,7 +5,7 @@ using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 using Microsoft.Maui.Devices;
 using Mvvmicro;
-using NLog;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,8 +24,7 @@ namespace Bible.Alarm.ViewModels
 {
     public class ChapterSelectionViewModel : ViewModel, IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<ChapterSelectionViewModel>();
 
 
         private readonly IContainer _container;

@@ -3,15 +3,14 @@ using Microsoft.Maui.Controls;
 using System;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Contracts;
-using NLog;
+using Serilog;
 using System.Threading;
 
 namespace Bible.Alarm.Services.Media
 {
     public class MediaElementAudioService : IMediaElementAudioService
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<MediaElementAudioService>();
 
         private MediaElement _mediaElement;
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
@@ -57,7 +56,7 @@ namespace Bible.Alarm.Services.Media
                 {
                     _mediaElement.Play();
                     _isPlaying = true;
-                    Logger.Info("Playback started");
+                    Logger.Information("Playback started");
                 }
             }
             finally
@@ -80,7 +79,7 @@ namespace Bible.Alarm.Services.Media
                 _isPrepared = false;
                 _currentTrackPosition = TimeSpan.Zero;
                 
-                Logger.Info("Playback dismissed");
+                Logger.Information("Playback dismissed");
             }
             finally
             {
@@ -97,7 +96,7 @@ namespace Bible.Alarm.Services.Media
                 {
                     _mediaElement.Source = source;
                     _isPrepared = true;
-                    Logger.Info($"Media source set to: {source}");
+                    Logger.Information($"Media source set to: {source}");
                 }
             }
             finally
@@ -115,7 +114,7 @@ namespace Bible.Alarm.Services.Media
                 {
                     _mediaElement.Pause();
                     _isPlaying = false;
-                    Logger.Info("Playback paused");
+                    Logger.Information("Playback paused");
                 }
             }
             finally
@@ -134,7 +133,7 @@ namespace Bible.Alarm.Services.Media
                     _mediaElement.Stop();
                     _isPlaying = false;
                     _currentTrackPosition = TimeSpan.Zero;
-                    Logger.Info("Playback stopped");
+                    Logger.Information("Playback stopped");
                 }
             }
             finally
@@ -153,7 +152,7 @@ namespace Bible.Alarm.Services.Media
                     // MediaElement doesn't support direct position setting
                     // This would need to be implemented differently for seeking
                     _currentTrackPosition = position;
-                    Logger.Info($"Seeked to position: {position}");
+                    Logger.Information($"Seeked to position: {position}");
                 }
             }
             finally
@@ -167,12 +166,12 @@ namespace Bible.Alarm.Services.Media
 
         private void OnMediaOpened(object sender, EventArgs e)
         {
-            Logger.Info("Media opened successfully");
+            Logger.Information("Media opened successfully");
         }
 
         private void OnMediaEnded(object sender, EventArgs e)
         {
-            Logger.Info("Media playback ended");
+            Logger.Information("Media playback ended");
             _isPlaying = false;
             MediaEnded?.Invoke(this, e);
         }

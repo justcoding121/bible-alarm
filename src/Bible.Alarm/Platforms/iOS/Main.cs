@@ -2,7 +2,7 @@ using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.iOS.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
 using Foundation;
-using NLog;
+using Serilog;
 using System;
 using System.Threading.Tasks;
 using UIKit;
@@ -11,8 +11,7 @@ namespace Bible.Alarm.iOS
 {
     public class Application
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<Application>();
 
         static Application()
         {
@@ -24,12 +23,12 @@ namespace Bible.Alarm.iOS
 
         private static void unobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            logger.Error(e.Exception, "Unobserved task exception.");
+            Logger.Error(e.Exception, "Unobserved task exception.");
         }
 
         private static void unhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            logger.Error("Unhandled exception.", e.SerializeObject());
+            Logger.Error("Unhandled exception.", e.SerializeObject());
         }
 
         // This is the main entry point of the application.
@@ -43,7 +42,7 @@ namespace Bible.Alarm.iOS
             }
             catch (Exception e)
             {
-                logger.Error(e, "Main initialization failed.");
+                Logger.Error(e, "Main initialization failed.");
                 throw;
             }
         }

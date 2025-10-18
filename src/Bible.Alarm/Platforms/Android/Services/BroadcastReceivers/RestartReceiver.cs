@@ -8,7 +8,7 @@ using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Newtonsoft.Json;
-using NLog;
+using Serilog;
 using System;
 using System.Threading.Tasks;
 using Microsoft.Maui.Devices;
@@ -22,8 +22,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
         "com.Bible.Alarm.Restart"})]
     public class RestartReceiver : BroadcastReceiver, IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<RestartReceiver>();
 
 
         private IContainer _container;
@@ -66,7 +65,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, $"Failed to process restart task: copy media index. Intent action {intent.Action}");
+                    Logger.Warning(ex, $"Failed to process restart task: copy media index. Intent action {intent.Action}");
                 }
 
                 using var schedulerTask = _container.Resolve<SchedulerTask>();

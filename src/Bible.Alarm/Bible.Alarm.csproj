@@ -36,7 +36,6 @@
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-		<PackageReference Include="NLog" Version="6.0.5" />
 		<PackageReference Include="System.Reactive.Linq" Version="6.1.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
@@ -79,7 +78,10 @@
 		<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
 	</PropertyGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\..\library\NLog.Targets.Loggly\NLog.Targets.Loggly.csproj" />
+		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 	</ItemGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->

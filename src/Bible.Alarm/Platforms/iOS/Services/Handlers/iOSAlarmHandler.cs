@@ -3,7 +3,7 @@ using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
-using NLog;
+using Serilog;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,8 +16,7 @@ namespace Bible.Alarm.iOS.Services.Handlers
         TaskScheduler taskScheduler)
         : IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<IOsAlarmHandler>();
 
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);

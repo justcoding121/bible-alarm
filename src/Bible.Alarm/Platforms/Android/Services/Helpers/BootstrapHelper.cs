@@ -11,7 +11,7 @@ using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
-using NLog;
+using Serilog;
 using System;
 using System.IO;
 using System.Threading;
@@ -41,7 +41,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
             return result.Item1;
         }
 
-        public static IContainer InitializeUi(Logger logger, Context context, Android.App.Application application)
+        public static IContainer InitializeUi(ILogger logger, Context context, Android.App.Application application)
         {
             var result = Bible.Alarm.Services.Droid.IocSetup.Initialize(context, false);
             var container = result.Item1;

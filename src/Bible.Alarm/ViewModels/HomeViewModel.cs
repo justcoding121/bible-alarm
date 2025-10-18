@@ -10,7 +10,7 @@ using Bible.Alarm.ViewModels.Redux.Actions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.Devices;
 using Mvvmicro;
-using NLog;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -29,8 +29,7 @@ namespace Bible.Alarm.ViewModels
 {
     public class HomeViewModel : ViewModel, IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<HomeViewModel>();
 
         private IContainer _container;
 
@@ -371,8 +370,7 @@ namespace Bible.Alarm.ViewModels
 
     public class ScheduleListItem : ViewModel, IComparable, IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<ScheduleListItem>();
 
 
         private readonly IContainer _container;
@@ -406,7 +404,7 @@ namespace Bible.Alarm.ViewModels
                     }
                     catch (Exception e)
                     {
-                        Logger.Info(e, "An error happenned when playing alarm.");
+                        Logger.Information(e, "An error happenned when playing alarm.");
                         await toastService.ShowMessage("Error. Network may not be available." +
                             "Please try again.", 5);
                     }

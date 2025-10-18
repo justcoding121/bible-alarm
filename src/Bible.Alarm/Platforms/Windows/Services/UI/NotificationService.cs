@@ -1,5 +1,5 @@
 ﻿using Bible.Alarm.Services.Contracts;
-using NLog;
+using Serilog;
 using System;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Windows.Handlers;

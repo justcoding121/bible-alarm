@@ -8,7 +8,7 @@ using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Foundation;
-using NLog;
+using Serilog;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,8 +25,7 @@ namespace Bible.Alarm.iOS
     [Register("AppDelegate")]
     public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterDelegate
     {
-        private static readonly Lazy<Logger> lazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger logger => lazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<AppDelegate>();
 
         private IContainer container;
 
@@ -44,19 +43,19 @@ namespace Bible.Alarm.iOS
             }
             catch (Exception e)
             {
-                logger.Fatal(e, "AppDelegate initialization failed.");
+                Logger.Fatal(e, "AppDelegate initialization failed.");
                 throw;
             }
         }
 
         private void unobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            logger.Error(e.Exception, "Unobserved task exception.");
+            Logger.Error(e.Exception, "Unobserved task exception.");
         }
 
         private void unhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            logger.Error("Unhandled exception.", e.SerializeObject());
+            Logger.Error("Unhandled exception.", e.SerializeObject());
         }
 
         protected override MauiApp CreateMauiApp()
@@ -76,7 +75,7 @@ namespace Bible.Alarm.iOS
                     }
             catch (Exception e)
             {
-                logger.Fatal(e, "iOS MAUI app creation failed.");
+                Logger.Fatal(e, "iOS MAUI app creation failed.");
                 throw;
             }
         }
@@ -99,7 +98,7 @@ namespace Bible.Alarm.iOS
             }
             catch (Exception e)
             {
-                logger.Fatal(e, "iOS application crashed.");
+                Logger.Fatal(e, "iOS application crashed.");
                 throw;
             }
 
@@ -120,7 +119,7 @@ namespace Bible.Alarm.iOS
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "Error handling iOS notification on launch.");
+                    Logger.Error(e, "Error handling iOS notification on launch.");
                 }
             }
 
@@ -155,7 +154,7 @@ namespace Bible.Alarm.iOS
                         }
                         catch (Exception e)
                         {
-                            logger.Error(e, "Error when prompting iOS notification permission on launch.");
+                            Logger.Error(e, "Error when prompting iOS notification permission on launch.");
                         }
                     });
                 }
@@ -186,7 +185,7 @@ namespace Bible.Alarm.iOS
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error when showing notification on iOS activation.");
+                Logger.Error(e, "Error when showing notification on iOS activation.");
             }
 
             base.OnActivated(uiApplication);
@@ -208,7 +207,7 @@ namespace Bible.Alarm.iOS
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error handling iOS notification.");
+                Logger.Error(e, "Error handling iOS notification.");
             }
         }
 
@@ -226,7 +225,7 @@ namespace Bible.Alarm.iOS
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error occurred in doing perform fetch task.");
+                Logger.Error(e, "An error occurred in doing perform fetch task.");
             }
 
             // Inform system of fetch results

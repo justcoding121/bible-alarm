@@ -1,6 +1,6 @@
 ﻿using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
-using NLog;
+using Serilog;
 using System;
 using System.Linq;
 using System.Threading;
@@ -19,8 +19,7 @@ namespace Bible.Alarm.Services.Tasks
         IStorageService storageService)
         : IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<SchedulerTask>();
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
 

@@ -1,16 +1,19 @@
-﻿using Bible.Alarm.Contracts.Platform;
+using Bible.Alarm.Contracts.Platform;
 using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
+using Serilog.Events;
+using System;
 
 namespace Bible.Alarm.Services.Infrastructure
 {
-    public class LogSetup
+    public class SerilogSetup
     {
         private static bool initialized = false;
         private static object @lock = new object();
+        
         public static void Initialize(IVersionFinder versionFinder,
             string[] tags, string device, bool isLoggingEnabled = true)
         {
@@ -28,6 +31,7 @@ namespace Bible.Alarm.Services.Infrastructure
                 }
             }
         }
+
         private static void SetupSerilog(IVersionFinder versionFinder, string[] tags)
         {
             var versionName = GetVersionName(versionFinder);
@@ -58,7 +62,7 @@ namespace Bible.Alarm.Services.Infrastructure
             // Configure file sink for persistent logging
             loggerConfig.WriteTo.File(
                 path: System.IO.Path.Combine(FileSystem.Current.CacheDirectory, "logs", "bible-alarm-.log"),
-                rollingInterval: Serilog.RollingInterval.Day,
+                rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
                 outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
 
@@ -74,22 +78,6 @@ namespace Bible.Alarm.Services.Infrastructure
             catch
             {
                 return "AssemblyVersionNotFound";
-            }
-        }
-
-    }
-
-    public static class JsonConvertExtension
-    {
-        public static string SerializeObject(this object @object)
-        {
-            try
-            {
-                return System.Text.Json.JsonSerializer.Serialize(@object);
-            }
-            catch
-            {
-                return null;
             }
         }
     }

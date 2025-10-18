@@ -3,7 +3,7 @@ using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
-using NLog;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,8 +15,7 @@ namespace Bible.Alarm.Services.Media
 {
     public class PlaybackService : IPlaybackService
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<PlaybackService>();
 
         private readonly IMediaElementAudioService _mediaElementService;
         private readonly IPlaylistService _playlistService;
@@ -65,7 +64,7 @@ namespace Bible.Alarm.Services.Media
         {
             try
             {
-                Logger.Info("Preparing relevant playlist...");
+                Logger.Information("Preparing relevant playlist...");
                 var lastPlayed = await _playlistService.GetRelavantScheduleToPlay();
                 await Prepare(lastPlayed);
             }
@@ -86,9 +85,9 @@ namespace Bible.Alarm.Services.Media
             try
             {
                 if (!IsPrepared)
-                {
-                    throw new Exception("Cannot play without preparing.");
-                }
+            {
+                throw new Exception("Cannot play without preparing.");
+            }
 
                 await _mediaElementService.Play();
                 _isPlaying = true;
@@ -96,7 +95,7 @@ namespace Bible.Alarm.Services.Media
                 // Start watching and saving progress
                 await WatchAndSaveProgress();
                 
-                Logger.Info("Playback started");
+                Logger.Information("Playback started");
             }
             catch (Exception ex)
             {
@@ -115,7 +114,7 @@ namespace Bible.Alarm.Services.Media
                 // Stop watching and saving progress
                 await StopWatching();
                 
-                Logger.Info("Playback paused");
+                Logger.Information("Playback paused");
             }
             catch (Exception ex)
             {
@@ -133,11 +132,11 @@ namespace Bible.Alarm.Services.Media
                     CurrentTrackIndex--;
                     await LoadAndPlayCurrentTrack();
                     await Play();
-                    Logger.Info($"Playing previous track {CurrentTrackIndex + 1}");
+                    Logger.Information($"Playing previous track {CurrentTrackIndex + 1}");
                 }
                 else
                 {
-                    Logger.Info("Already at first track");
+                    Logger.Information("Already at first track");
                 }
             }
             catch (Exception ex)
@@ -165,11 +164,11 @@ namespace Bible.Alarm.Services.Media
                     CurrentTrackIndex++;
                     await LoadAndPlayCurrentTrack();
                     await Play();
-                    Logger.Info($"Playing next track {CurrentTrackIndex + 1}");
+                    Logger.Information($"Playing next track {CurrentTrackIndex + 1}");
                 }
                 else
                 {
-                    Logger.Info("Already at last track");
+                    Logger.Information("Already at last track");
                 }
             }
             catch (Exception ex)
@@ -204,7 +203,7 @@ namespace Bible.Alarm.Services.Media
                     _isPlaying = false;
                 }
                 await StopWatching();
-                Logger.Info("Playback dismissed");
+                Logger.Information("Playback dismissed");
             }
             catch (Exception ex)
             {
@@ -231,47 +230,47 @@ namespace Bible.Alarm.Services.Media
         private async Task PreparePlay(long scheduleId, bool isImmediatePlayRequest, bool prepareOnly)
         {
             try
-            {
-                Messenger<object>.Publish(MvvmMessages.ClearToasts);
+        {
+            Messenger<object>.Publish(MvvmMessages.ClearToasts);
 
-                _currentScheduleId = scheduleId;
+            _currentScheduleId = scheduleId;
 
-                var nextTracks = await _playlistService.NextTracks(scheduleId);
+            var nextTracks = await _playlistService.NextTracks(scheduleId);
 
                 var downloadedTracks = new Dictionary<int, FileInfo>();
                 var streamingTracks = new Dictionary<int, string>();
-                var playDetailMap = new Dictionary<int, NotificationDetail>();
+            var playDetailMap = new Dictionary<int, NotificationDetail>();
 
-                var i = 0;
-                foreach (var item in nextTracks)
+            var i = 0;
+            foreach (var item in nextTracks)
+            {
+                playDetailMap[i] = item.PlayDetail;
+
+                if (await _cacheService.Exists(item.Url))
                 {
-                    playDetailMap[i] = item.PlayDetail;
-
-                    if (await _cacheService.Exists(item.Url))
-                    {
-                        downloadedTracks.Add(i, new FileInfo(_cacheService.GetCacheFilePath(item.Url)));
-                    }
-                    else
-                    {
-                        streamingTracks.Add(i, item.Url);
-                    }
-
-                    i++;
+                    downloadedTracks.Add(i, new FileInfo(_cacheService.GetCacheFilePath(item.Url)));
+                }
+                else
+                {
+                    streamingTracks.Add(i, item.Url);
                 }
 
-                if (downloadedTracks.Count != nextTracks.Count
-                    && isImmediatePlayRequest
-                    && !await _networkStatusService.IsInternetAvailable())
-                {
-                    await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
-                    return;
-                }
+                i++;
+            }
 
-                var preparedTracks = 0;
-                var totalTracks = nextTracks.Count;
+            if (downloadedTracks.Count != nextTracks.Count
+                && isImmediatePlayRequest
+                && !await _networkStatusService.IsInternetAvailable())
+            {
+                await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
+                return;
+            }
 
-                Messenger<object>.Publish(MvvmMessages.ShowMediaProgessModal);
-                Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(preparedTracks, totalTracks));
+            var preparedTracks = 0;
+            var totalTracks = nextTracks.Count;
+
+            Messenger<object>.Publish(MvvmMessages.ShowMediaProgessModal);
+            Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(preparedTracks, totalTracks));
 
                 // Process downloaded tracks
                 var downloadedMediaItems = new Dictionary<int, string>();
@@ -302,8 +301,8 @@ namespace Bible.Alarm.Services.Media
                         if (playDetail.IsBibleReading)
                         {
                             var altUrl = await _cacheService.GetBibleChapterUrl(playDetail.LanguageCode,
-                                playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
-                                playDetail.LookUpPath);
+                                                 playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
+                                                 playDetail.LookUpPath);
 
                             if (await _downloadService.FileExists(altUrl))
                             {
@@ -345,36 +344,36 @@ namespace Bible.Alarm.Services.Media
 
                 i = 0;
                 foreach (var track in mergedMediaItems.OrderBy(x => x.Key))
+            {
+                if (track.Key != i)
                 {
-                    if (track.Key != i)
-                    {
-                        break;
-                    }
-
-                    _currentlyPlaying.Add(track.Value, playDetailMap[track.Key]);
-                    i++;
+                    break;
                 }
 
-                if (!_currentlyPlaying.Any())
-                {
-                    await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
-                    return;
-                }
-                else
-                {
-                    _firstChapter = _currentlyPlaying.FirstOrDefault(x => x.Value.IsBibleReading).Key;
+                _currentlyPlaying.Add(track.Value, playDetailMap[track.Key]);
+                i++;
+            }
+
+            if (!_currentlyPlaying.Any())
+            {
+                await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
+                return;
+            }
+            else
+            {
+                _firstChapter = _currentlyPlaying.FirstOrDefault(x => x.Value.IsBibleReading).Key;
                     _isPrepared = true;
                     
                     // Initialize track index to start from the first track
                     CurrentTrackIndex = 0;
 
-                    if (prepareOnly)
-                    {
+                if (prepareOnly)
+                {
                         // Just prepare, don't play
                         await LoadAndPlayCurrentTrack();
-                    }
-                    else
-                    {
+                }
+                else
+                {
                         await LoadAndPlayCurrentTrack();
                         if (isImmediatePlayRequest)
                         {
@@ -423,7 +422,7 @@ namespace Bible.Alarm.Services.Media
             {
                 if (_currentlyPlaying == null || !_currentlyPlaying.Any())
                 {
-                    Logger.Warn("No tracks available to play");
+                    Logger.Warning("No tracks available to play");
                     return;
                 }
 
@@ -432,15 +431,15 @@ namespace Bible.Alarm.Services.Media
                 var playDetail = currentTrack.Value;
 
                 await _mediaElementService.SetSource(trackUrl);
-                Logger.Info($"Loaded track {CurrentTrackIndex + 1}: {trackUrl}");
+                Logger.Information($"Loaded track {CurrentTrackIndex + 1}: {trackUrl}");
 
                 // Handle resume from previous position
                 if (playDetail.FinishedDuration.TotalSeconds > 0
-                    && _firstChapter != null
+                                && _firstChapter != null
                     && trackUrl == _firstChapter)
-                {
+                            {
                     await _mediaElementService.SeekTo(playDetail.FinishedDuration);
-                    _firstChapter = null;
+                                _firstChapter = null;
                 }
             }
             catch (Exception ex)
@@ -454,7 +453,7 @@ namespace Bible.Alarm.Services.Media
         {
             try
             {
-                Logger.Info("Media ended");
+                Logger.Information("Media ended");
                 _isPlaying = false;
                 await StopWatching();
 
@@ -474,17 +473,17 @@ namespace Bible.Alarm.Services.Media
                 {
                     // Move to next track
                     CurrentTrackIndex++;
-                    Logger.Info($"Moving to next track: {CurrentTrackIndex + 1}");
+                    Logger.Information($"Moving to next track: {CurrentTrackIndex + 1}");
                     
                     await LoadAndPlayCurrentTrack();
-                    await Play();
-                }
-                else
-                {
+                            await Play();
+                        }
+                        else
+                        {
                     // No more tracks - restart the playlist
-                    Logger.Info("Playlist completed, restarting...");
+                    Logger.Information("Playlist completed, restarting...");
                     Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
-                    
+
                     var scheduleId = _currentScheduleId;
                     await Dismiss();
                     Reset();
@@ -573,14 +572,14 @@ namespace Bible.Alarm.Services.Media
                                     else if (_mediaElementService.CurrentTrackPosition.TotalSeconds > 0)
                                     {
                                         if (currentTrack.Key == _firstChapter)
-                                        {
-                                            _firstChapter = null;
-                                        }
+                                            {
+                                                _firstChapter = null;
+                                            }
 
                                         CurrentTrackPosition = _mediaElementService.CurrentTrackPosition;
                                         playDetail.FinishedDuration = _mediaElementService.CurrentTrackPosition;
                                         await _playlistService.MarkTrackAsPlayed(playDetail);
-                                        await _playlistService.SaveLastPlayed(_currentScheduleId);
+                                            await _playlistService.SaveLastPlayed(_currentScheduleId);
                                     }
                                 }
                             }

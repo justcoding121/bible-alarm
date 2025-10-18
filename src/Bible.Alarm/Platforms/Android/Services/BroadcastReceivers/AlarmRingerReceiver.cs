@@ -9,7 +9,7 @@ using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Newtonsoft.Json;
-using NLog;
+using Serilog;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,8 +19,7 @@ namespace Bible.Alarm.Droid.Services.Tasks
     [BroadcastReceiver(Enabled = true)]
     public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<AlarmRingerReceiver>();
 
 
         private IContainer _container;

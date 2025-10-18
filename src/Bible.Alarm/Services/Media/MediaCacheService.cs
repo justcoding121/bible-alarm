@@ -5,7 +5,7 @@ using Bible.Alarm.Models.Enums;
 using Bible.Alarm.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using NLog;
+using Serilog;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -27,8 +27,7 @@ namespace Bible.Alarm.Services
         IPlaybackService playbackService)
         : IMediaCacheService
     {
-        private static readonly Lazy<Logger> LazyLogger = new Lazy<Logger>(() => LogManager.GetCurrentClassLogger());
-        private static Logger Logger => LazyLogger.Value;
+        private static readonly ILogger Logger = Log.ForContext<MediaCacheService>();
 
 
         private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, "MediaCache");
@@ -105,7 +104,7 @@ namespace Bible.Alarm.Services
                                     if (url != null && url != playItem.Url)
                                     {
                                         await mediaService.UpdateBibleTrackUrl(playDetail.LanguageCode, playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber, url);
-                                        Logger.Warn($"Updated URL to {url} for {playItem.ToString()}");
+                                        Logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
                                     }
                                     else
                                     {
@@ -129,7 +128,7 @@ namespace Bible.Alarm.Services
                                             await mediaService.UpdateVocalTrackUrl(playDetail.LanguageCode, playDetail.PublicationCode, playDetail.TrackNumber, url);
                                         }
 
-                                        Logger.Warn($"Updated URL to {url} for {playItem.ToString()}");
+                                        Logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
                                     }
                                     else
                                     {
@@ -146,7 +145,7 @@ namespace Bible.Alarm.Services
                                 if (bytes != null)
                                 {
                                     await storageService.SaveFile(_cacheRoot, GetCacheFileName(url), bytes);
-                                    Logger.Warn($"Downloaded using updated URL {url} for {playItem.ToString()}");
+                                    Logger.Warning($"Downloaded using updated URL {url} for {playItem.ToString()}");
                                     continue;
                                 }
 
