@@ -1,9 +1,6 @@
 ﻿using AVFoundation;
 using Bible.Alarm.Services.Contracts;
 using Foundation;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 
 
 namespace Bible.Alarm.Services.iOS

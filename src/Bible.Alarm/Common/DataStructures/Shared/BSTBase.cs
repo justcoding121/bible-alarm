@@ -1,79 +1,58 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace Advanced.Algorithms.DataStructures;
 
-namespace Advanced.Algorithms.DataStructures
+public class BstBase<T> where T : IComparable
 {
-    public class BstBase<T> where T : IComparable
+    internal void ValidateCollection(IEnumerable<T> collection)
     {
-        internal void ValidateCollection(IEnumerable<T> collection)
+        if (!IsSorted(collection))
+            throw new ArgumentException("Initial collection should have unique keys and be in sorted order.");
+    }
+
+    internal BstNodeBase<T> ToBst(BstNodeBase<T>[] sortedNodes)
+    {
+        return ToBst(sortedNodes, 0, sortedNodes.Length - 1);
+    }
+
+    internal int AssignCount(BstNodeBase<T> node)
+    {
+        if (node == null) return 0;
+
+        node.Count = AssignCount(node.Left) + AssignCount(node.Right) + 1;
+
+        return node.Count;
+    }
+
+    private BstNodeBase<T> ToBst(BstNodeBase<T>[] sortedNodes, int start, int end)
+    {
+        if (start > end)
+            return null;
+
+        var mid = (start + end) / 2;
+        var root = sortedNodes[mid];
+
+        root.Left = ToBst(sortedNodes, start, mid - 1);
+        if (root.Left != null) root.Left.Parent = root;
+
+        root.Right = ToBst(sortedNodes, mid + 1, end);
+        if (root.Right != null) root.Right.Parent = root;
+
+        return root;
+    }
+
+    private bool IsSorted(IEnumerable<T> collection)
+    {
+        var enumerator = collection.GetEnumerator();
+        if (!enumerator.MoveNext()) return true;
+
+        var previous = enumerator.Current;
+
+        while (enumerator.MoveNext())
         {
-            if (!IsSorted(collection))
-            {
-                throw new ArgumentException("Initial collection should have unique keys and be in sorted order.");
-            }
+            var current = enumerator.Current;
+
+            if (current.CompareTo(previous) <= 0) return false;
         }
 
-        internal BstNodeBase<T> ToBst(BstNodeBase<T>[] sortedNodes)
-        {
-            return ToBst(sortedNodes, 0, sortedNodes.Length - 1);
-        }
-
-        internal int AssignCount(BstNodeBase<T> node)
-        {
-            if (node == null)
-            {
-                return 0;
-            }
-
-            node.Count = AssignCount(node.Left) + AssignCount(node.Right) + 1;
-
-            return node.Count;
-        }
-
-        private BstNodeBase<T> ToBst(BstNodeBase<T>[] sortedNodes, int start, int end)
-        {
-            if (start > end)
-                return null;
-
-            int mid = (start + end) / 2;
-            var root = sortedNodes[mid];
-
-            root.Left = ToBst(sortedNodes, start, mid - 1);
-            if (root.Left != null)
-            {
-                root.Left.Parent = root;
-            }
-
-            root.Right = ToBst(sortedNodes, mid + 1, end);
-            if (root.Right != null)
-            {
-                root.Right.Parent = root;
-            }
-
-            return root;
-        }
-
-        private bool IsSorted(IEnumerable<T> collection)
-        {
-            var enumerator = collection.GetEnumerator();
-            if (!enumerator.MoveNext())
-            {
-                return true;
-            }
-
-            var previous = enumerator.Current;
-
-            while (enumerator.MoveNext())
-            {
-                var current = enumerator.Current;
-
-                if (current.CompareTo(previous) <= 0)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
+        return true;
     }
 }

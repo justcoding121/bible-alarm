@@ -1,8 +1,7 @@
-﻿namespace Bible.Alarm.Models.Enums
+﻿namespace Bible.Alarm.Models.Enums;
+
+public enum SourceWebsite
 {
-    public enum SourceWebsite
-    {
-        JwOrg = 0,
-        BibleGateway = 1
-    }
+    JwOrg = 0,
+    BibleGateway = 1
 }

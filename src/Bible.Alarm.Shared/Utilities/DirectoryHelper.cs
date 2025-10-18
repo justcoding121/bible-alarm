@@ -1,30 +1,23 @@
 using System;
 using System.IO;
 
-namespace Bible.Alarm.Shared.Utilities
+namespace Bible.Alarm.Shared.Utilities;
+
+public static class DirectoryHelper
 {
-    public static class DirectoryHelper
+    public static string IndexDirectory => indexDirectory.Value;
+
+    private static Lazy<string> indexDirectory = new(() =>
     {
-        public static string IndexDirectory => indexDirectory.Value;
+        var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 
-        private static Lazy<string> indexDirectory = new Lazy<string>(() =>
-         {
-             var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (currentDir.Name != "bible-alarm") currentDir = currentDir.Parent;
 
-             while (currentDir.Name != "bible-alarm")
-             {
-                 currentDir = currentDir.Parent;
-             }
+        return Path.Combine(currentDir.FullName, "src", "_tools", "_index");
+    });
 
-             return Path.Combine(currentDir.FullName, "src", "_tools", "_index");
-         });
-
-        public static void Ensure(string directory)
-        {
-            if (!Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-        }
+    public static void Ensure(string directory)
+    {
+        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
     }
 }

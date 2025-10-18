@@ -1,10 +1,9 @@
-﻿namespace Mvvmicro
+﻿namespace Mvvmicro;
+
+public interface IRelayCommand : System.Windows.Input.ICommand
 {
-    public interface IRelayCommand : System.Windows.Input.ICommand
-    {
-        /// <summary>
-        /// Raises the CanExecuteChanged event.
-        /// </summary>
-        void RaiseCanExecuteChanged();
-    }
+    /// <summary>
+    /// Raises the CanExecuteChanged event.
+    /// </summary>
+    void RaiseCanExecuteChanged();
 }

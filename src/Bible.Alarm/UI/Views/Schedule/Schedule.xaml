@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+
 <ContentPage x:Class="Bible.Alarm.UI.Views.Schedule"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -16,9 +17,6 @@
     <ContentPage.Content>
         <Grid AutomationId="SchedulePage"
               BackgroundColor="White">
-            <Grid.RowDefinitions>
-                <RowDefinition />
-            </Grid.RowDefinitions>
             <ActivityIndicator Grid.Row="0"
                                HorizontalOptions="Center"
                                IsEnabled="True"
@@ -188,11 +186,12 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     WidthRequest="35" />
                         </StackLayout>
-                        <StackLayout Margin="{OnPlatform Default='0,5,0,5',
+                        <StackLayout
+                            Margin="{OnPlatform Default='0,5,0,5',
                                                 iOS='0,15,0,5',
                                                 WinUI='0,15,0,5'}"
-                                     HorizontalOptions="Center"
-                                     Orientation="Horizontal">
+                            HorizontalOptions="Center"
+                            Orientation="Horizontal">
                             <Label Margin="0,0,5,0"
                                    BackgroundColor="White"
                                    Text="Name:"
@@ -241,14 +240,14 @@
                                                HorizontalTextAlignment="End"
                                                Text="{Binding BibleReadingTitleText}"
                                                TextColor="SlateBlue" />
-                                        <Label Grid.Column="2"
-                                               Margin="0,0,10,0"
-                                               FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                               FontSize="Medium"
-                                               HorizontalOptions="End"
-                                               Text="{x:Static fn:GlyphNames.Right}"
-                                               TextColor="Gray"
-                                               VerticalOptions="Center" />
+                                        <Label
+                                            Margin="0,0,10,0"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="Medium"
+                                            HorizontalOptions="End"
+                                            Text="{x:Static fn:GlyphNames.Right}"
+                                            TextColor="Gray"
+                                            VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
                                 <Grid x:Name="BibleBookButton"
@@ -275,30 +274,30 @@
                                                  HorizontalOptions="End"
                                                  Orientation="Horizontal"
                                                  VerticalOptions="Center">
-                                        <Button Grid.Column="0"
-                                                Margin="10,0,10,0"
-                                                Padding="0"
-                                                BackgroundColor="Transparent"
-                                                Command="{Binding PreviousBookCommand}"
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{OnPlatform Default='Medium',
+                                        <Button
+                                            Margin="10,0,10,0"
+                                            Padding="0"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding PreviousBookCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
-                                                HorizontalOptions="End"
-                                                Text="{x:Static fn:GlyphNames.Previous}"
-                                                TextColor="Gray"
-                                                VerticalOptions="Center" />
-                                        <Button Grid.Column="0"
-                                                Margin="10,0,15,0"
-                                                Padding="0"
-                                                BackgroundColor="Transparent"
-                                                Command="{Binding NextBookCommand}"
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{OnPlatform Default='Medium',
+                                            HorizontalOptions="End"
+                                            Text="{x:Static fn:GlyphNames.Previous}"
+                                            TextColor="Gray"
+                                            VerticalOptions="Center" />
+                                        <Button
+                                            Margin="10,0,15,0"
+                                            Padding="0"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding NextBookCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
-                                                HorizontalOptions="End"
-                                                Text="{x:Static fn:GlyphNames.Next}"
-                                                TextColor="Gray"
-                                                VerticalOptions="Center" />
+                                            HorizontalOptions="End"
+                                            Text="{x:Static fn:GlyphNames.Next}"
+                                            TextColor="Gray"
+                                            VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
                                 <Grid x:Name="BibleChapterButton"
@@ -325,30 +324,30 @@
                                                  HorizontalOptions="End"
                                                  Orientation="Horizontal"
                                                  VerticalOptions="Center">
-                                        <Button Grid.Column="0"
-                                                Margin="10,0,10,0"
-                                                Padding="0"
-                                                BackgroundColor="Transparent"
-                                                Command="{Binding PreviousChapterCommand}"
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{OnPlatform Default='Medium',
+                                        <Button
+                                            Margin="10,0,10,0"
+                                            Padding="0"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding PreviousChapterCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
-                                                HorizontalOptions="End"
-                                                Text="{x:Static fn:GlyphNames.Previous}"
-                                                TextColor="Gray"
-                                                VerticalOptions="Center" />
-                                        <Button Grid.Column="0"
-                                                Margin="10,0,15,0"
-                                                Padding="0"
-                                                BackgroundColor="Transparent"
-                                                Command="{Binding NextChapterCommand}"
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{OnPlatform Default='Medium',
+                                            HorizontalOptions="End"
+                                            Text="{x:Static fn:GlyphNames.Previous}"
+                                            TextColor="Gray"
+                                            VerticalOptions="Center" />
+                                        <Button
+                                            Margin="10,0,15,0"
+                                            Padding="0"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding NextChapterCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
-                                                HorizontalOptions="End"
-                                                Text="{x:Static fn:GlyphNames.Next}"
-                                                TextColor="Gray"
-                                                VerticalOptions="Center" />
+                                            HorizontalOptions="End"
+                                            Text="{x:Static fn:GlyphNames.Next}"
+                                            TextColor="Gray"
+                                            VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
                             </StackLayout>
@@ -412,15 +411,16 @@
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
-                                <Switch Margin="{OnPlatform Default='0,0,15,0',
+                                <Switch
+                                    Margin="{OnPlatform Default='0,0,15,0',
                                                         WinUI='0,0,-95,0'}"
-                                        HeightRequest="30"
-                                        HorizontalOptions="End"
-                                        IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
-                                        Scale="{OnPlatform Android='1.25',
+                                    HeightRequest="30"
+                                    HorizontalOptions="End"
+                                    IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
+                                    Scale="{OnPlatform Android='1.25',
                                                        iOS='1',
                                                        WinUI='1'}"
-                                        VerticalOptions="Center" />
+                                    VerticalOptions="Center" />
                             </StackLayout>
                         </Grid>
                         <Grid x:Name="ShowNotificationButton"
@@ -456,15 +456,16 @@
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
-                                <Switch Margin="{OnPlatform Default='0,0,15,0',
+                                <Switch
+                                    Margin="{OnPlatform Default='0,0,15,0',
                                                         WinUI='0,0,-95,0'}"
-                                        HeightRequest="30"
-                                        HorizontalOptions="End"
-                                        IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
-                                        Scale="{OnPlatform Default='1.25',
+                                    HeightRequest="30"
+                                    HorizontalOptions="End"
+                                    IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
+                                    Scale="{OnPlatform Default='1.25',
                                                        iOS='1',
                                                        WinUI='1'}"
-                                        VerticalOptions="Center" />
+                                    VerticalOptions="Center" />
                             </StackLayout>
                         </Grid>
                         <Grid x:Name="MusicButton"
@@ -497,15 +498,16 @@
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
-                                <Switch Margin="{OnPlatform Default='0,0,15,0',
+                                <Switch
+                                    Margin="{OnPlatform Default='0,0,15,0',
                                                         WinUI='0,0,-95,0'}"
-                                        HeightRequest="30"
-                                        HorizontalOptions="End"
-                                        IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
-                                        Scale="{OnPlatform Default='1.25',
+                                    HeightRequest="30"
+                                    HorizontalOptions="End"
+                                    IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
+                                    Scale="{OnPlatform Default='1.25',
                                                        iOS='1',
                                                        WinUI='1'}"
-                                        VerticalOptions="Center" />
+                                    VerticalOptions="Center" />
                                 <Label Margin="0,0,10,0"
                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                        FontSize="Medium"

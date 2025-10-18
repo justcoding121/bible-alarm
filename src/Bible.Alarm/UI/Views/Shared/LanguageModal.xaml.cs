@@ -1,33 +1,24 @@
-﻿
-using Bible.Alarm.Contracts.UI;
-using Mvvmicro;
-using System;
-using System.Threading.Tasks;
-using Microsoft.Maui.Controls.Compatibility;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui;
+﻿using Bible.Alarm.Contracts.UI;
 
-namespace Bible.Alarm.UI.Views
+namespace Bible.Alarm.UI.Views;
+
+public partial class LanguageModal : ContentPage
 {
-    public partial class LanguageModal : ContentPage
+    public IListViewModel ViewModel => BindingContext as IListViewModel;
+
+    public LanguageModal()
     {
-        public IListViewModel ViewModel => BindingContext as IListViewModel;
+        InitializeComponent();
+        Appearing += OnAppearing;
+    }
 
-        public LanguageModal()
+    private void OnAppearing(object sender, EventArgs e)
+    {
+        var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+        Task.Delay(100).ContinueWith(x =>
         {
-            InitializeComponent();
-            Appearing += OnAppearing;
-        }
-
-        private void OnAppearing(object sender, EventArgs e)
-        {
-            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
-            Task.Delay(100).ContinueWith(x =>
-            {
-                LanguageListView.ScrollTo(ViewModel.SelectedItem, ScrollToPosition.Center, true);
-                Appearing -= OnAppearing;
-
-            }, scheduler);
-        }
+            LanguageListView.ScrollTo(ViewModel.SelectedItem, ScrollToPosition.Center, true);
+            Appearing -= OnAppearing;
+        }, scheduler);
     }
 }

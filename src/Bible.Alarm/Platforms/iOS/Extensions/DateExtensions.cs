@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Bible.Alarm.Models;
 using Foundation;
-using UIKit;
 
 namespace Bible.Alarm.iOS.Extensions
 {
@@ -25,7 +20,7 @@ namespace Bible.Alarm.iOS.Extensions
         {
             var result = new List<nint>();
 
-            if((daysOfWeek & DaysOfWeek.Sunday) == DaysOfWeek.Sunday)
+            if ((daysOfWeek & DaysOfWeek.Sunday) == DaysOfWeek.Sunday)
             {
                 result.Add(1);
             }

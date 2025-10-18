@@ -1,8 +1,7 @@
-﻿namespace Bible.Alarm.Models
+﻿namespace Bible.Alarm.Models;
+
+public enum Meridien
 {
-    public enum Meridien
-    {
-        Am,
-        Pm
-    }
+    Am,
+    Pm
 }

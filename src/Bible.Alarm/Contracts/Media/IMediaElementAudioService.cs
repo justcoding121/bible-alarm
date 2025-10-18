@@ -1,24 +1,20 @@
-using System;
-using System.Threading.Tasks;
+namespace Bible.Alarm.Services.Contracts;
 
-namespace Bible.Alarm.Services.Contracts
+public interface IMediaElementAudioService
 {
-    public interface IMediaElementAudioService
-    {
-        event EventHandler<EventArgs> MediaEnded;
-        event EventHandler<EventArgs> MediaFailed;
-        
-        // Audio properties
-        TimeSpan CurrentTrackPosition { get; }
-        bool IsPlaying { get; }
-        bool IsPrepared { get; }
-        
-        // Audio operations
-        Task SetSource(string source);
-        Task Play();
-        Task Pause();
-        Task Stop();
-        Task SeekTo(TimeSpan position);
-        void Dispose();
-    }
+    event EventHandler<EventArgs> MediaEnded;
+    event EventHandler<EventArgs> MediaFailed;
+
+    // Audio properties
+    TimeSpan CurrentTrackPosition { get; }
+    bool IsPlaying { get; }
+    bool IsPrepared { get; }
+
+    // Audio operations
+    Task SetSource(string source);
+    Task Play();
+    Task Pause();
+    Task Stop();
+    Task SeekTo(TimeSpan position);
+    void Dispose();
 }

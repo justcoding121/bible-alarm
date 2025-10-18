@@ -1,84 +1,64 @@
 ﻿using Android.Widget;
-using Bible.Alarm.Droid;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Maui.Devices;
-using Android.Content;
+
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
-namespace Bible.Alarm.Services.Droid
+namespace Bible.Alarm.Services.Droid;
+
+public class DroidToastService() : ToastService, IDisposable
 {
-    public class DroidToastService() : ToastService, IDisposable
+    private readonly TaskScheduler _taskScheduler = ServiceProviderManager.GetService<TaskScheduler>();
+    private static readonly SemaphoreSlim Lock = new(1);
+    private static Toast latest;
+
+    public override async Task ShowMessage(string message, int seconds)
     {
-        private readonly TaskScheduler _taskScheduler = ServiceProviderManager.GetService<TaskScheduler>();
-        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
-        private static Toast latest;
+        await Lock.WaitAsync();
 
-        public override async Task ShowMessage(string message, int seconds)
+        try
         {
-            await Lock.WaitAsync();
-
-            try
-            {
-
-                //if current is not UI thread, run on UI thread
-                if (!MainThread.IsMainThread)
-                {
-                    await Task.Delay(0)
+            //if current is not UI thread, run on UI thread
+            if (!MainThread.IsMainThread)
+                await Task.Delay(0)
                     .ContinueWith((x) =>
                         ShowToast(message, seconds), _taskScheduler);
-                }
-                else
-                {
-                    ShowToast(message, seconds);
-                }
-
-            }
-            finally
-            {
-                Lock.Release();
-            }
-        }
-
-        private void ShowToast(string message, int seconds)
-        {
-            var context = Android.App.Application.Context;
-
-            if (seconds <= 3)
-            {
-                latest = Toast.MakeText(context, message, ToastLength.Short);
-            }
             else
-            {
-                latest = Toast.MakeText(context, message, ToastLength.Long);
-            }
-
-            latest.Show();
+                ShowToast(message, seconds);
         }
-
-        //not needed for android
-        public override async Task Clear()
+        finally
         {
-            await Lock.WaitAsync();
+            Lock.Release();
+        }
+    }
 
-            try
-            {
-                if (!MainThread.IsMainThread)
-                {
-                    await Task.Delay(0)
+    private void ShowToast(string message, int seconds)
+    {
+        var context = Android.App.Application.Context;
+
+        if (seconds <= 3)
+            latest = Toast.MakeText(context, message, ToastLength.Short);
+        else
+            latest = Toast.MakeText(context, message, ToastLength.Long);
+
+        latest.Show();
+    }
+
+    //not needed for android
+    public override async Task Clear()
+    {
+        await Lock.WaitAsync();
+
+        try
+        {
+            if (!MainThread.IsMainThread)
+                await Task.Delay(0)
                     .ContinueWith((x) =>
                         latest?.Cancel(), _taskScheduler);
-                }
-                else
-                {
-                    latest?.Cancel();
-                }
-            }
-            finally
-            {
-                Lock.Release();
-            }
+            else
+                latest?.Cancel();
+        }
+        finally
+        {
+            Lock.Release();
         }
     }
 }

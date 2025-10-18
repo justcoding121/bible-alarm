@@ -1,8 +1,7 @@
-namespace Bible.Alarm.Shared.Models
+namespace Bible.Alarm.Shared.Models;
+
+public class Language
 {
-    public class Language
-    {
-        public string Name { get; set; }
-        public string Code { get; set; }
-    }
+    public string Name { get; set; }
+    public string Code { get; set; }
 }

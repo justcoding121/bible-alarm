@@ -1,13 +1,5 @@
-﻿using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Services;
-using Bible.Alarm.Services.Contracts;
-using Microsoft.EntityFrameworkCore;
+﻿using Bible.Alarm.Services.Contracts;
 using Serilog;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Windows.Media;
 
 namespace Bible.Alarm.Services.Windows.Handlers
 {
@@ -19,6 +11,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
         private IPlaybackService _playbackService;
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
+
         public UwpAlarmHandler(IPlaybackService playbackService)
         {
             _playbackService = playbackService;
@@ -48,7 +41,6 @@ namespace Bible.Alarm.Services.Windows.Handlers
                         throw;
                     }
                 });
-
             }
             catch (Exception e)
             {
@@ -63,8 +55,6 @@ namespace Bible.Alarm.Services.Windows.Handlers
 
         public void Dispose()
         {
-            
         }
-
     }
 }

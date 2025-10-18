@@ -1,10 +1,6 @@
-using System.Threading.Tasks;
+namespace Bible.Alarm.Services;
 
-namespace Bible.Alarm.Services
+public interface IMediaIndexService
 {
-    public interface IMediaIndexService
-    {
-        Task UpdateMediaIndex();
-    }
+    Task UpdateMediaIndex();
 }
-

@@ -15,130 +15,111 @@ using Microsoft.Maui;
 using Microsoft.Maui.Devices;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Bible.Alarm
+namespace Bible.Alarm;
+
+public partial class App : Application
 {
-    public partial class App : Application
+    private static readonly ILogger Logger = Log.ForContext<App>();
+
+    public static bool IsInForeground { get; set; } = false;
+
+    public App()
     {
-        private static readonly ILogger Logger = Log.ForContext<App>();
+        Init();
+    }
 
-        public static bool IsInForeground { get; set; } = false;
+    private void Init()
+    {
+        InitializeComponent();
 
-        public App()
+        var navigationPage = new NavigationPage();
+        var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+        var navigationService = new NavigationService(navigationPage.Navigation);
+
+        Windows[0].Page = navigationPage;
+
+        Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
+        Windows[0].Page.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
+
+        var homePageSetter = async () =>
         {
-            Init();
-        }
+            var homePage = new Home();
+            homePage.BindingContext = ServiceProviderManager.GetService<HomeViewModel>();
+            await navigationPage.Navigation.PushAsync(homePage);
+        };
 
-        private void Init()
-        {
-            InitializeComponent();
+        if (DeviceInfo.Platform != DevicePlatform.Android) homePageSetter().Wait();
 
-            var navigationPage = new NavigationPage();
-            var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
-            var navigationService = new NavigationService(navigationPage.Navigation);
-
-            Windows[0].Page = navigationPage;
-
-            Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
-            Windows[0].Page.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
-
-            Func<Task> homePageSetter = async () =>
+        Task.Delay(100).ContinueWith(async (a) =>
             {
-                var homePage = new Home();
-                homePage.BindingContext = ServiceProviderManager.GetService<HomeViewModel>();
-                await navigationPage.Navigation.PushAsync(homePage);
-            };
-
-            if (DeviceInfo.Platform != DevicePlatform.Android)
-            {
-                homePageSetter().Wait();
-            }
-
-            Task.Delay(100).ContinueWith(async (a) =>
-            {
-                if (DeviceInfo.Platform == DevicePlatform.Android)
-                {
-                    await homePageSetter();
-                }
-
+                if (DeviceInfo.Platform == DevicePlatform.Android) await homePageSetter();
             }, taskScheduler)
             .ContinueWith(x =>
             {
                 var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
 
-                if (playbackService.IsPrepared)
-                {
-                    Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
-                }
+                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
             });
-        }
+    }
 
-        protected override void OnStart()
+    protected override void OnStart()
+    {
+        IsInForeground = true;
+
+        base.OnStart();
+        Task.Run(async () =>
         {
-            IsInForeground = true;
-
-            base.OnStart();
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    var navigationService = ServiceProviderManager.GetService<INavigationService>();
-                    // Handle when your app starts  
-                    await navigationService.NavigateToHome();
+                var navigationService = ServiceProviderManager.GetService<INavigationService>();
+                // Handle when your app starts  
+                await navigationService.NavigateToHome();
 
-                    var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
 
-                    if (playbackService.IsPrepared)
-                    {
-                        Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
-                    }
+                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
 
-                    await Task.Delay(1000);
+                await Task.Delay(1000);
 
-                    using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
-                    await mediaIndexService.UpdateIndexIfAvailable();
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e, "An error happened inside OnStart task.");
-                }
-            });
-        }
-
-        protected override void OnSleep()
-        {
-            IsInForeground = false;
-
-            base.OnSleep();
-        }
-
-        protected override void OnResume()
-        {
-            IsInForeground = true;
-
-            base.OnResume();
-            Task.Run(async () =>
+                using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                await mediaIndexService.UpdateIndexIfAvailable();
+            }
+            catch (Exception e)
             {
-                try
-                {
-                    var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
-                    // Handle when your app resumes
-                    if (playbackService.IsPrepared)
-                    {
-                        Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
-                    }
+                Logger.Error(e, "An error happened inside OnStart task.");
+            }
+        });
+    }
 
-                    await Task.Delay(1000);
+    protected override void OnSleep()
+    {
+        IsInForeground = false;
 
-                    using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
-                    await mediaIndexService.UpdateIndexIfAvailable();
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e, "An error happened inside OnResume task.");
-                }      
-            });
+        base.OnSleep();
+    }
 
-        }
+    protected override void OnResume()
+    {
+        IsInForeground = true;
 
+        base.OnResume();
+        Task.Run(async () =>
+        {
+            try
+            {
+                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                // Handle when your app resumes
+                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
+
+                await Task.Delay(1000);
+
+                using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                await mediaIndexService.UpdateIndexIfAvailable();
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "An error happened inside OnResume task.");
+            }
+        });
     }
 }

@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+
 <ContentPage
     x:Class="Bible.Alarm.UI.Views.NumberOfChaptersModal"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -60,10 +61,12 @@
                         EventArgsConverter="{StaticResource itemTappedConverter}"
                         EventName="ItemTapped" />
                 </ListView.Behaviors>
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="vm:NumberOfChaptersListViewItemModel">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:NumberOfChaptersListViewItemModel">
                         <ViewCell>
-                            <Grid BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}" HorizontalOptions="Fill">
+                            <Grid
+                                BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
+                                HorizontalOptions="Fill">
                                 <Label
                                     Margin="15,0,0,0"
                                     HeightRequest="45"

@@ -1,142 +1,139 @@
 ﻿using Advanced.Algorithms.DataStructures.Foundation;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 
-namespace Bible.Alarm.Common.DataStructures
+namespace Bible.Alarm.Common.DataStructures;
+
+public class ObservableHashSet<T> : INotifyCollectionChanged,
+    IList<T>,
+    IEnumerable,
+    IList where T : IComparable
 {
-    public class ObservableHashSet<T> : INotifyCollectionChanged,
-                                        IList<T>,
-                                        IEnumerable,
-                                        IList where T : IComparable
+    private readonly OrderedHashSet<T> _sortedHashSet = new();
+
+    public T this[int i]
     {
-        private readonly OrderedHashSet<T> _sortedHashSet = new OrderedHashSet<T>();
+        get => _sortedHashSet[i];
+        set => throw new NotSupportedException();
+    }
 
-        public T this[int i]
+    object IList.this[int i]
+    {
+        get => this[i];
+        set => this[i] = (T)value;
+    }
+
+    public int Count => _sortedHashSet.Count;
+
+    public bool IsReadOnly => false;
+
+    public bool IsFixedSize => false;
+
+    public bool IsSynchronized => false;
+
+    public object SyncRoot => throw new NotImplementedException();
+
+    public event NotifyCollectionChangedEventHandler CollectionChanged;
+
+    public int Add(object value)
+    {
+        return AddItem((T)value);
+    }
+
+    public void Add(T item)
+    {
+        AddItem(item);
+    }
+
+    private int AddItem(T item)
+    {
+        var index = _sortedHashSet.Add(item);
+        OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
+        return index;
+    }
+
+    public void Clear()
+    {
+        _sortedHashSet.Clear();
+        OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+    }
+
+    public bool Contains(object value)
+    {
+        return Contains((T)value);
+    }
+
+    public bool Contains(T item)
+    {
+        return _sortedHashSet.Contains(item);
+    }
+
+    public int IndexOf(object value)
+    {
+        return IndexOf((T)value);
+    }
+
+    public int IndexOf(T item)
+    {
+        return _sortedHashSet.IndexOf(item);
+    }
+
+    public void Insert(int i, object value)
+    {
+        Insert(i, (T)value);
+    }
+
+    public void Insert(int i, T item)
+    {
+        throw new NotSupportedException();
+    }
+
+    public void Remove(object value)
+    {
+        Remove((T)value);
+    }
+
+    public bool Remove(T item)
+    {
+        var index = _sortedHashSet.Remove(item);
+        if (index >= 0)
         {
-            get => _sortedHashSet[i];
-            set => throw new NotSupportedException();
+            OnNotifyCollectionChanged(
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
+            return true;
         }
 
-        object IList.this[int i]
-        {
-            get => this[i];
-            set => this[i] = (T)value;
-        }
+        return false;
+    }
 
-        public int Count => _sortedHashSet.Count;
+    public void RemoveAt(int i)
+    {
+        var element = _sortedHashSet.RemoveAt(i);
+        OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, element));
+    }
 
-        public bool IsReadOnly => false;
+    private void OnNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
+    {
+        CollectionChanged?.Invoke(this, args);
+    }
 
-        public bool IsFixedSize => false;
+    public void CopyTo(Array array, int i)
+    {
+        CopyTo((T[])array, i);
+    }
 
-        public bool IsSynchronized => false;
+    public void CopyTo(T[] array, int i)
+    {
+        throw new NotSupportedException();
+    }
 
-        public object SyncRoot => throw new NotImplementedException();
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
 
-        public event NotifyCollectionChangedEventHandler CollectionChanged;
-
-        public int Add(object value)
-        {
-            return AddItem((T)value);
-        }
-
-        public void Add(T item)
-        {
-            AddItem(item);
-        }
-
-        private int AddItem(T item)
-        {
-            var index = _sortedHashSet.Add(item);
-            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
-            return index;
-        }
-
-        public void Clear()
-        {
-            _sortedHashSet.Clear();
-            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        }
-
-        public bool Contains(object value)
-        {
-            return Contains((T)value);
-        }
-
-        public bool Contains(T item)
-        {
-            return _sortedHashSet.Contains(item);
-        }
-
-        public int IndexOf(object value)
-        {
-            return IndexOf((T)value);
-        }
-
-        public int IndexOf(T item)
-        {
-            return _sortedHashSet.IndexOf(item);
-        }
-
-        public void Insert(int i, object value)
-        {
-            Insert(i, (T)value);
-        }
-
-        public void Insert(int i, T item)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void Remove(object value)
-        {
-            Remove((T)value);
-        }
-
-        public bool Remove(T item)
-        {
-            var index = _sortedHashSet.Remove(item);
-            if (index >= 0)
-            {
-                OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
-                return true;
-            }
-
-            return false;
-        }
-
-        public void RemoveAt(int i)
-        {
-            var element = _sortedHashSet.RemoveAt(i);
-            OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, element));
-        }
-
-        private void OnNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
-        {
-            CollectionChanged?.Invoke(this, args);
-        }
-
-        public void CopyTo(Array array, int i)
-        {
-            CopyTo((T[])array, i);
-        }
-
-        public void CopyTo(T[] array, int i)
-        {
-            throw new NotSupportedException();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return _sortedHashSet.GetEnumerator();
-        }
-
+    public IEnumerator<T> GetEnumerator()
+    {
+        return _sortedHashSet.GetEnumerator();
     }
 }

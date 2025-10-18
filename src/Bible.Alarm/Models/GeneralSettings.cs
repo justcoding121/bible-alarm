@@ -1,9 +1,8 @@
-﻿namespace Bible.Alarm.Models
+﻿namespace Bible.Alarm.Models;
+
+public class GeneralSettings
 {
-    public class GeneralSettings
-    {
-        public int Id { get; set; }
-        public string Key { get; set; }
-        public string Value { get; set; }
-    }
+    public int Id { get; set; }
+    public string Key { get; set; }
+    public string Value { get; set; }
 }

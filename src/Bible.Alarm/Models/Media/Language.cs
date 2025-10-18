@@ -1,17 +1,14 @@
-﻿using System;
+﻿namespace Bible.Alarm.Models;
 
-namespace Bible.Alarm.Models
+public class Language : IComparable
 {
-    public class Language : IComparable
+    public int Id { get; set; }
+
+    public string Code { get; set; }
+    public string Name { get; set; }
+
+    public int CompareTo(object obj)
     {
-        public int Id { get; set; }
-
-        public string Code { get; set; }
-        public string Name { get; set; }
-
-        public int CompareTo(object obj)
-        {
-            return Name.CompareTo((obj as Language).Name);
-        }
+        return Name.CompareTo((obj as Language).Name);
     }
 }

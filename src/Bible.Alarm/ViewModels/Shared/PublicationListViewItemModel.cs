@@ -1,24 +1,23 @@
 ﻿using Bible.Alarm.Models;
 using Mvvmicro;
-using System;
 
-namespace Bible.Alarm.ViewModels
+namespace Bible.Alarm.ViewModels;
+
+public class PublicationListViewItemModel(Publication publication) : ViewModel, IComparable
 {
-    public class PublicationListViewItemModel(Publication publication) : ViewModel, IComparable
+    private bool _isSelected;
+
+    public bool IsSelected
     {
-        private bool _isSelected;
-        public bool IsSelected
-        {
-            get => _isSelected;
-            set => this.Set(ref _isSelected, value);
-        }
+        get => _isSelected;
+        set => this.Set(ref _isSelected, value);
+    }
 
-        public string Name => publication.Name;
-        public string Code => publication.Code;
+    public string Name => publication.Name;
+    public string Code => publication.Code;
 
-        public int CompareTo(object obj)
-        {
-            return Name.CompareTo((obj as PublicationListViewItemModel).Name);
-        }
+    public int CompareTo(object obj)
+    {
+        return Name.CompareTo((obj as PublicationListViewItemModel).Name);
     }
 }

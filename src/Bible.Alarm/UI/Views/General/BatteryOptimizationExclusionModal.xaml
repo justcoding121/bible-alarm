@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+
 <ContentPage
     x:Class="Bible.Alarm.UI.Views.General.BatteryOptimizationExclusionModal"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -57,7 +58,7 @@
                 Text="Exclude Now"
                 TextColor="SlateBlue"
                 WidthRequest="200" />
-            <Label               
+            <Label
                 IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
                 Margin="5,25,5,5"
                 FontSize="Default"

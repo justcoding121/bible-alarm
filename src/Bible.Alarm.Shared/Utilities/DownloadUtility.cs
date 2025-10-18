@@ -1,17 +1,16 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Bible.Alarm.Shared.Utilities
+namespace Bible.Alarm.Shared.Utilities;
+
+public class DownloadUtility
 {
-    public class DownloadUtility
+    public static async Task<string> GetAsync(string harvestLink)
     {
-        public static async Task<string> GetAsync(string harvestLink)
+        using (var client = new HttpClient())
         {
-            using (var client = new HttpClient())
-            {
-                var response = await client.GetAsync(harvestLink);
-                return await response.Content.ReadAsStringAsync();
-            }
+            var response = await client.GetAsync(harvestLink);
+            return await response.Content.ReadAsStringAsync();
         }
     }
 }

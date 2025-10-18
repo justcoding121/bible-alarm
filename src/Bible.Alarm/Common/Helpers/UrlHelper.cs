@@ -1,7 +1,6 @@
-﻿namespace Bible.Alarm.Common.Helpers
+﻿namespace Bible.Alarm.Common.Helpers;
+
+public class UrlHelper
 {
-    public class UrlHelper
-    {
-        public static string JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS";
-    }
+    public static string JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS";
 }

@@ -1,9 +1,4 @@
-using Bible.Alarm.Services.Infrastructure;
 using Serilog;
-using System;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Windowing;
-using Microsoft.UI;
 
 namespace Bible.Alarm.WinUI
 {
@@ -26,7 +21,7 @@ namespace Bible.Alarm.WinUI
                 // Windows-specific initialization
                 // Set up window management
                 // MAUI handles application lifecycle events automatically
-                
+
                 // Initialize Windows-specific services
                 // Dependency injection container is configured in MauiProgram
                 Logger.Information("Windows application initialized successfully.");

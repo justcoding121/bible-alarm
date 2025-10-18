@@ -10,352 +10,297 @@ using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Maui.Controls.Compatibility;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace Bible.Alarm.UI
+namespace Bible.Alarm.UI;
+
+public class NavigationService : INavigationService
 {
-    public class NavigationService : INavigationService
+    private static readonly ILogger Logger = Log.ForContext<NavigationService>();
+
+
+    private readonly INavigation _navigater;
+
+    public event Action<object> NavigatedBack;
+    private bool _disposed = false;
+
+    private AsyncQueue<(MvvmMessages, object)> _queue = new();
+
+    public NavigationService(INavigation navigater)
     {
-        private static readonly ILogger Logger = Log.ForContext<NavigationService>();
+        _navigater = navigater;
 
+        Messenger<object>.Subscribe(MvvmMessages.ShowAlarmModal,
+            async @param => { await _queue.EnqueueAsync((MvvmMessages.ShowAlarmModal, @param)); });
 
-        private readonly INavigation _navigater;
+        Messenger<object>.Subscribe(MvvmMessages.HideAlarmModal,
+            async @param => { await _queue.EnqueueAsync((MvvmMessages.HideAlarmModal, @param)); });
 
-        public event Action<object> NavigatedBack;
-        private bool _disposed = false;
+        Messenger<object>.Subscribe(MvvmMessages.ShowMediaProgessModal,
+            async @param => { await _queue.EnqueueAsync((MvvmMessages.ShowMediaProgessModal, @param)); });
 
-        private AsyncQueue<(MvvmMessages, object)> _queue = new AsyncQueue<(MvvmMessages, object)>();
+        Messenger<object>.Subscribe(MvvmMessages.HideMediaProgressModal,
+            async @param => { await _queue.EnqueueAsync((MvvmMessages.HideMediaProgressModal, @param)); });
 
-        public NavigationService(INavigation navigater)
+        Messenger<object>.Subscribe(MvvmMessages.ShowToast,
+            async @param => { await _queue.EnqueueAsync((MvvmMessages.ShowToast, @param)); });
+
+        Messenger<object>.Subscribe(MvvmMessages.ClearToasts,
+            async @param => { await _queue.EnqueueAsync((MvvmMessages.ClearToasts, @param)); });
+
+        var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
+
+        Task.Run(async () =>
         {
-            _navigater = navigater;
-
-            Messenger<object>.Subscribe(MvvmMessages.ShowAlarmModal, async @param =>
+            while (!_disposed)
             {
-                await _queue.EnqueueAsync((MvvmMessages.ShowAlarmModal, @param));
-            });
+                var item = await _queue.DequeueAsync();
+                var message = item.Item1;
+                var @object = item.Item2;
 
-            Messenger<object>.Subscribe(MvvmMessages.HideAlarmModal, async @param =>
-            {
-                await _queue.EnqueueAsync((MvvmMessages.HideAlarmModal, @param));
-            });
-
-            Messenger<object>.Subscribe(MvvmMessages.ShowMediaProgessModal, async @param =>
-            {
-                await _queue.EnqueueAsync((MvvmMessages.ShowMediaProgessModal, @param));
-            });
-
-            Messenger<object>.Subscribe(MvvmMessages.HideMediaProgressModal, async @param =>
-            {
-                await _queue.EnqueueAsync((MvvmMessages.HideMediaProgressModal, @param));
-            });
-
-            Messenger<object>.Subscribe(MvvmMessages.ShowToast, async @param =>
-            {
-                await _queue.EnqueueAsync((MvvmMessages.ShowToast, @param));
-            });
-
-            Messenger<object>.Subscribe(MvvmMessages.ClearToasts, async @param =>
-            {
-                await _queue.EnqueueAsync((MvvmMessages.ClearToasts, @param));
-            });
-
-            var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
-
-            Task.Run(async () =>
-            {
-                while (!_disposed)
+                switch (message)
                 {
-                    var item = await _queue.DequeueAsync();
-                    var message = item.Item1;
-                    var @object = item.Item2;
-
-                    switch (message)
+                    case MvvmMessages.ShowAlarmModal:
                     {
-                        case MvvmMessages.ShowAlarmModal:
-                            {
-                                // Prevent showing alarm modal when playback is not active
-                                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
-                                if (!playbackService.IsPlaying)
-                                {
-                                    break;
-                                }
+                        // Prevent showing alarm modal when playback is not active
+                        var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                        if (!playbackService.IsPlaying) break;
 
-                                var vm = ServiceProviderManager.GetService<AlarmViewModal>();
-                                await Task.Delay(0).ContinueWith(async (x) =>
-                                {
-                                    await ShowModal("AlarmModal", vm);
-
-                                }, syncContext);
-                            }
-                            break;
-
-                        case MvvmMessages.HideAlarmModal:
-                        case MvvmMessages.HideMediaProgressModal:
-                            {
-                                await Task.Delay(0).ContinueWith(async (x) =>
-                                {
-                                    await CloseModal();
-
-                                }, syncContext);
-                            }
-                            break;
-                        case MvvmMessages.ShowToast:
-                            {
-                                await Task.Delay(0).ContinueWith(async (x) =>
-                                {
-                                    using var toastService = ServiceProviderManager.GetService<IToastService>();
-                                    await toastService.ShowMessage(@object as string);
-
-                                }, syncContext);
-                            }
-                            break;
-
-                        case MvvmMessages.ClearToasts:
-                            {
-                                await Task.Delay(0).ContinueWith(async (x) =>
-                                {
-                                    using var toastService = ServiceProviderManager.GetService<IToastService>();
-                                    await toastService.Clear();
-
-                                }, syncContext);
-                            }
-                            break;
-                        case MvvmMessages.ShowMediaProgessModal:
-                            {
-                                var vm = ServiceProviderManager.GetService<MediaProgressViewModal>();
-                                await Task.Delay(0).ContinueWith(async (x) =>
-                                {
-                                    await ShowModal("MediaProgressModal", vm);
-
-                                }, syncContext);
-                            }
-                            break;
-
+                        var vm = ServiceProviderManager.GetService<AlarmViewModal>();
+                        await Task.Delay(0).ContinueWith(async (x) => { await ShowModal("AlarmModal", vm); },
+                            syncContext);
                     }
+                        break;
 
-                    await Task.Delay(1000);
+                    case MvvmMessages.HideAlarmModal:
+                    case MvvmMessages.HideMediaProgressModal:
+                    {
+                        await Task.Delay(0).ContinueWith(async (x) => { await CloseModal(); }, syncContext);
+                    }
+                        break;
+                    case MvvmMessages.ShowToast:
+                    {
+                        await Task.Delay(0).ContinueWith(async (x) =>
+                        {
+                            using var toastService = ServiceProviderManager.GetService<IToastService>();
+                            await toastService.ShowMessage(@object as string);
+                        }, syncContext);
+                    }
+                        break;
+
+                    case MvvmMessages.ClearToasts:
+                    {
+                        await Task.Delay(0).ContinueWith(async (x) =>
+                        {
+                            using var toastService = ServiceProviderManager.GetService<IToastService>();
+                            await toastService.Clear();
+                        }, syncContext);
+                    }
+                        break;
+                    case MvvmMessages.ShowMediaProgessModal:
+                    {
+                        var vm = ServiceProviderManager.GetService<MediaProgressViewModal>();
+                        await Task.Delay(0).ContinueWith(async (x) => { await ShowModal("MediaProgressModal", vm); },
+                            syncContext);
+                    }
+                        break;
                 }
 
-            });
-        }
-
-        public async Task ShowModal(string name, object viewModel)
-        {
-            switch (name)
-            {
-                case "LanguageModal":
-                    {
-                        var modal = ServiceProviderManager.GetService<LanguageModal>();
-                        modal.BindingContext = viewModel;
-                        await _navigater.PushModalAsync(modal);
-                        break;
-                    }
-
-                case "AlarmModal":
-                    {
-                        if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal))
-                        {
-                            return;
-                        }
-
-                        var modal = ServiceProviderManager.GetService<AlarmModal>();
-                        modal.BindingContext = viewModel;
-                        await _navigater.PushModalAsync(modal);
-                        break;
-                    }
-
-                case "BatteryOptimizationExclusionModal":
-                    {
-                        var modal = ServiceProviderManager.GetService<BatteryOptimizationExclusionModal>();
-                        modal.BindingContext = viewModel;
-                        await _navigater.PushModalAsync(modal);
-                        break;
-                    }
-
-                case "NumberOfChaptersModal":
-                    {
-                        var modal = ServiceProviderManager.GetService<NumberOfChaptersModal>();
-                        modal.BindingContext = viewModel;
-                        await _navigater.PushModalAsync(modal);
-                        break;
-                    }
-
-                case "MediaProgressModal":
-                    {
-                        if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal))
-                        {
-                            return;
-                        }
-
-                        var modal = ServiceProviderManager.GetService<MediaProgressModal>();
-                        modal.BindingContext = viewModel;
-                        await _navigater.PushModalAsync(modal);
-                        break;
-                    }
-
-                default:
-                    throw new ArgumentException("Modal not defined.", name);
+                await Task.Delay(1000);
             }
+        });
+    }
+
+    public async Task ShowModal(string name, object viewModel)
+    {
+        switch (name)
+        {
+            case "LanguageModal":
+            {
+                var modal = ServiceProviderManager.GetService<LanguageModal>();
+                modal.BindingContext = viewModel;
+                await _navigater.PushModalAsync(modal);
+                break;
+            }
+
+            case "AlarmModal":
+            {
+                if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal)) return;
+
+                var modal = ServiceProviderManager.GetService<AlarmModal>();
+                modal.BindingContext = viewModel;
+                await _navigater.PushModalAsync(modal);
+                break;
+            }
+
+            case "BatteryOptimizationExclusionModal":
+            {
+                var modal = ServiceProviderManager.GetService<BatteryOptimizationExclusionModal>();
+                modal.BindingContext = viewModel;
+                await _navigater.PushModalAsync(modal);
+                break;
+            }
+
+            case "NumberOfChaptersModal":
+            {
+                var modal = ServiceProviderManager.GetService<NumberOfChaptersModal>();
+                modal.BindingContext = viewModel;
+                await _navigater.PushModalAsync(modal);
+                break;
+            }
+
+            case "MediaProgressModal":
+            {
+                if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal)) return;
+
+                var modal = ServiceProviderManager.GetService<MediaProgressModal>();
+                modal.BindingContext = viewModel;
+                await _navigater.PushModalAsync(modal);
+                break;
+            }
+
+            default:
+                throw new ArgumentException("Modal not defined.", name);
+        }
+    }
+
+    public async Task Navigate(object viewModel)
+    {
+        var vmName = viewModel.GetType().Name;
+
+        var top = _navigater.NavigationStack.LastOrDefault();
+
+        if (top != null && top.BindingContext.GetType().Name == vmName)
+        {
+            var disposable = viewModel as IDisposable;
+            disposable?.Dispose();
+            return;
         }
 
-        public async Task Navigate(object viewModel)
+        switch (vmName)
         {
-            var vmName = viewModel.GetType().Name;
-
-            var top = _navigater.NavigationStack.LastOrDefault();
-
-            if (top != null && top.BindingContext.GetType().Name == vmName)
+            case "ScheduleViewModel":
             {
-                var disposable = viewModel as IDisposable;
-                disposable?.Dispose();
+                var view = ServiceProviderManager.GetService<Schedule>();
+                view.BindingContext = viewModel;
+                await _navigater.PushAsync(view);
+                break;
+            }
+
+            case "MusicSelectionViewModel":
+            {
+                var view = ServiceProviderManager.GetService<MusicSelection>();
+                view.BindingContext = viewModel;
+                await _navigater.PushAsync(view);
+                break;
+            }
+            case "SongBookSelectionViewModel":
+            {
+                var view = ServiceProviderManager.GetService<SongBookSelection>();
+                view.BindingContext = viewModel;
+                await _navigater.PushAsync(view);
+                break;
+            }
+            case "TrackSelectionViewModel":
+            {
+                var view = ServiceProviderManager.GetService<TrackSelection>();
+                view.BindingContext = viewModel;
+                await _navigater.PushAsync(view);
+                break;
+            }
+            case "BibleSelectionViewModel":
+            {
+                var view = ServiceProviderManager.GetService<BibleSelection>();
+                view.BindingContext = viewModel;
+                await _navigater.PushAsync(view);
+                break;
+            }
+            case "BookSelectionViewModel":
+            {
+                var view = ServiceProviderManager.GetService<BookSelection>();
+                view.BindingContext = viewModel;
+                await _navigater.PushAsync(view);
+                break;
+            }
+            case "ChapterSelectionViewModel":
+            {
+                var view = ServiceProviderManager.GetService<ChapterSelection>();
+                view.BindingContext = viewModel;
+                await _navigater.PushAsync(view);
+                break;
+            }
+            default:
+                throw new ArgumentException("Invalid View Model name", vmName);
+        }
+    }
+
+    public async Task GoBack()
+    {
+        try
+        {
+            if (_navigater.ModalStack.Count > 0)
+            {
+                await CloseModal();
                 return;
             }
 
-            switch (vmName)
+            if (_navigater.NavigationStack.Count > 1)
             {
-                case "ScheduleViewModel":
-                    {
-                        var view = ServiceProviderManager.GetService<Schedule>();
-                        view.BindingContext = viewModel;
-                        await _navigater.PushAsync(view);
-                        break;
-                    }
-
-                case "MusicSelectionViewModel":
-                    {
-                        var view = ServiceProviderManager.GetService<MusicSelection>();
-                        view.BindingContext = viewModel;
-                        await _navigater.PushAsync(view);
-                        break;
-                    }
-                case "SongBookSelectionViewModel":
-                    {
-                        var view = ServiceProviderManager.GetService<SongBookSelection>();
-                        view.BindingContext = viewModel;
-                        await _navigater.PushAsync(view);
-                        break;
-                    }
-                case "TrackSelectionViewModel":
-                    {
-                        var view = ServiceProviderManager.GetService<TrackSelection>();
-                        view.BindingContext = viewModel;
-                        await _navigater.PushAsync(view);
-                        break;
-                    }
-                case "BibleSelectionViewModel":
-                    {
-                        var view = ServiceProviderManager.GetService<BibleSelection>();
-                        view.BindingContext = viewModel;
-                        await _navigater.PushAsync(view);
-                        break;
-                    }
-                case "BookSelectionViewModel":
-                    {
-                        var view = ServiceProviderManager.GetService<BookSelection>();
-                        view.BindingContext = viewModel;
-                        await _navigater.PushAsync(view);
-                        break;
-                    }
-                case "ChapterSelectionViewModel":
-                    {
-                        var view = ServiceProviderManager.GetService<ChapterSelection>();
-                        view.BindingContext = viewModel;
-                        await _navigater.PushAsync(view);
-                        break;
-                    }
-                default:
-                    throw new ArgumentException("Invalid View Model name", vmName);
+                var top = _navigater.NavigationStack.Last();
+                ReduxContainer.Store.Dispatch(new BackAction(top.BindingContext as IDisposable));
+                await _navigater.PopAsync();
             }
-        }
 
-        public async Task GoBack()
+            var currentPage = _navigater.NavigationStack.LastOrDefault();
+
+            if (currentPage != null) NavigatedBack?.Invoke(currentPage.BindingContext);
+        }
+        catch (Exception e)
         {
-            try
-            {
-                if (_navigater.ModalStack.Count > 0)
-                {
-                    await CloseModal();
-                    return;
-                }
-
-                if (_navigater.NavigationStack.Count > 1)
-                {
-                    var top = _navigater.NavigationStack.Last();
-                    ReduxContainer.Store.Dispatch(new BackAction((top.BindingContext as IDisposable)));
-                    await _navigater.PopAsync();
-                }
-
-                var currentPage = _navigater.NavigationStack.LastOrDefault();
-
-                if (currentPage != null)
-                {
-                    NavigatedBack?.Invoke(currentPage.BindingContext);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "An error happened when navigating back.");
-            }
+            Logger.Error(e, "An error happened when navigating back.");
         }
+    }
 
-        public async Task CloseModal()
+    public async Task CloseModal()
+    {
+        try
         {
-            try
+            if (_navigater.ModalStack.Count > 0)
             {
-                if (_navigater.ModalStack.Count > 0)
-                {
-                    var modal = await _navigater.PopModalAsync();
-                    if (modal.BindingContext is IDisposableModal)
-                    {
-                        (modal.BindingContext as IDisposableModal).Dispose();
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "An error happened when closing Modal.");
+                var modal = await _navigater.PopModalAsync();
+                if (modal.BindingContext is IDisposableModal) (modal.BindingContext as IDisposableModal).Dispose();
             }
         }
-
-        public async Task NavigateToHome()
+        catch (Exception e)
         {
-            try
-            {
-                while (_navigater.ModalStack.Count > 0)
-                {
-                    await _navigater.PopModalAsync();
-                }
-
-                while (_navigater.NavigationStack.Count > 1)
-                {
-                    var top = _navigater.NavigationStack.Last();
-                    ReduxContainer.Store.Dispatch(new BackAction((top.BindingContext as IDisposable)));
-                    await _navigater.PopAsync();
-                }
-
-                var currentPage = _navigater.NavigationStack.LastOrDefault();
-
-                if (currentPage != null)
-                {
-                    NavigatedBack?.Invoke(currentPage.BindingContext);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "An error happened when navigating to home.");
-            }
+            Logger.Error(e, "An error happened when closing Modal.");
         }
+    }
 
-        public void Dispose()
+    public async Task NavigateToHome()
+    {
+        try
         {
-            _disposed = true;
+            while (_navigater.ModalStack.Count > 0) await _navigater.PopModalAsync();
+
+            while (_navigater.NavigationStack.Count > 1)
+            {
+                var top = _navigater.NavigationStack.Last();
+                ReduxContainer.Store.Dispatch(new BackAction(top.BindingContext as IDisposable));
+                await _navigater.PopAsync();
+            }
+
+            var currentPage = _navigater.NavigationStack.LastOrDefault();
+
+            if (currentPage != null) NavigatedBack?.Invoke(currentPage.BindingContext);
         }
+        catch (Exception e)
+        {
+            Logger.Error(e, "An error happened when navigating to home.");
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
     }
 }

@@ -1,4 +1,5 @@
 ﻿#region License
+
 /*
  * All content copyright Marko Lahma, unless otherwise indicated. All rights reserved.
  *
@@ -19,20 +20,16 @@
  */
 
 #endregion
-using System;
 
-namespace Quartz.Util
+namespace Quartz.Util;
+
+/// <summary>
+/// Environment access helpers that fail gracefully if under medium trust.
+/// </summary>
+public static class QuartzEnvironment
 {
     /// <summary>
-    /// Environment access helpers that fail gracefully if under medium trust.
+    /// Return whether we are currently running under Mono runtime.
     /// </summary>
-    public static class QuartzEnvironment
-    {
-
-        /// <summary>
-        /// Return whether we are currently running under Mono runtime.
-        /// </summary>
-        public static bool IsRunningOnMono { get; } = Type.GetType("Mono.Runtime") != null;
-
-    }
+    public static bool IsRunningOnMono { get; } = Type.GetType("Mono.Runtime") != null;
 }

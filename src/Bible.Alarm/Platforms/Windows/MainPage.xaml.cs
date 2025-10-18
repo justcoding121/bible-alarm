@@ -1,8 +1,3 @@
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Windowing;
-using Microsoft.UI;
-using System;
 using Serilog;
 
 namespace Bible.Alarm.WinUI
@@ -27,7 +22,7 @@ namespace Bible.Alarm.WinUI
                 // In MAUI, window management is handled through the App class
                 // This is where you would add Windows-specific window styling code
                 // that was typically in the original Xamarin MainPage.xaml.cs
-                
+
                 Logger.Information("Windows MainPage initialized with platform-specific styling.");
             }
             catch (Exception ex)

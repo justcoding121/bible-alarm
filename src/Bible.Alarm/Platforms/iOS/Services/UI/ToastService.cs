@@ -1,16 +1,14 @@
 ﻿using Bible.Alarm.Services.iOS;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using UIKit;
-using Microsoft.Maui.ApplicationModel;
 
 [assembly: Microsoft.Maui.Controls.Dependency(typeof(IOsToastService))]
+
 namespace Bible.Alarm.Services.iOS
 {
     public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
+
         public override async Task ShowMessage(string message, int seconds)
         {
             if (clearRequest != null)
@@ -20,9 +18,9 @@ namespace Bible.Alarm.Services.iOS
 
             if (!MainThread.IsMainThread)
             {
-               await Task.Delay(0)
-                 .ContinueWith(async (x) =>
-                     await ShowAlert(message, (double)seconds), taskScheduler);
+                await Task.Delay(0)
+                    .ContinueWith(async (x) =>
+                        await ShowAlert(message, (double)seconds), taskScheduler);
             }
             else
             {
@@ -34,10 +32,9 @@ namespace Bible.Alarm.Services.iOS
         {
             clearRequest = new TaskCompletionSource<bool>();
             await @lock.WaitAsync();
-         
+
             try
             {
-            
                 var alert = UIAlertController.Create(null, message, UIAlertControllerStyle.Alert);
 #pragma warning disable CA1422
                 UIApplication.SharedApplication.KeyWindow.RootViewController.PresentViewController(alert, true, null);
@@ -45,7 +42,6 @@ namespace Bible.Alarm.Services.iOS
 
                 await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
                 alert.DismissViewController(true, null);
-               
             }
             finally
             {
@@ -55,6 +51,7 @@ namespace Bible.Alarm.Services.iOS
         }
 
         private static TaskCompletionSource<bool> clearRequest;
+
         public override Task Clear()
         {
             if (clearRequest != null)

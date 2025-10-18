@@ -2,8 +2,6 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
-using System;
-using System.Threading.Tasks;
 using Windows.ApplicationModel.Background;
 
 namespace Bible.Alarm.Services.Windows.Helpers

@@ -1,6 +1,3 @@
-using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Services.Infrastructure;
-using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
@@ -16,12 +13,7 @@ using Bible.Alarm.UI.Views.Music;
 // using Bible.Alarm.UI.Views.Schedule; // Schedule is a type, not a namespace
 using Bible.Alarm.UI.Views.General;
 // using Bible.Alarm.UI.Views.Shared; // Shared is a folder, not a namespace
-using Microsoft.EntityFrameworkCore;
-using System.Net.Http;
-using System.IO;
 using Bible.Alarm.Contracts.Network;
-using Bible.Alarm.Contracts.Platform;
-using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm;
 
@@ -35,19 +27,16 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
 #pragma warning restore CA1416
-            .ConfigureFonts(fonts =>
-            {
-                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-            });
+            .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
 
         // Register services
         RegisterServices(builder.Services);
 
         var app = builder.Build();
-        
+
         // Initialize the global service provider for access from multiple entry points
         ServiceProviderManager.Initialize(app.Services);
-        
+
         return app;
     }
 
@@ -55,13 +44,13 @@ public static class MauiProgram
     {
         // Register core services
         services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
-        
+
         // Register common services
         RegisterCommonServices(services);
-        
+
         // Register ViewModels
         RegisterViewModels(services);
-        
+
         // Register UI components
         RegisterUIComponents(services);
     }
@@ -80,24 +69,24 @@ public static class MauiProgram
         services.AddSingleton<IMediaElementAudioService, MediaElementAudioService>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<SchedulerTask>();
-        
+
         // Register platform-specific services
-        #if ANDROID
+#if ANDROID
         services.AddSingleton<INotificationService, Bible.Alarm.Services.Droid.DroidNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.Droid.DroidToastService>();
-        #elif IOS
+#elif IOS
         services.AddSingleton<INotificationService, Bible.Alarm.Services.iOS.IOsNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.iOS.IOsToastService>();
-        #elif WINDOWS
+#elif WINDOWS
         services.AddSingleton<INotificationService, Bible.Alarm.Services.Windows.UwpNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.Windows.UwpToastService>();
-        #endif
-        
+#endif
+
         // Register TaskScheduler for compatibility
         services.AddSingleton<TaskScheduler>(sp => TaskScheduler.FromCurrentSynchronizationContext());
-        
+
         // Register NavigationService
-        services.AddSingleton<INavigationService>(sp => 
+        services.AddSingleton<INavigationService>(sp =>
         {
             // This will be set up properly in App.xaml.cs
             return new NavigationService(null);

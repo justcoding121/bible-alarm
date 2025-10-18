@@ -1,4 +1,3 @@
-using Bible.Alarm.UI.Views;
 using CommunityToolkit.Maui;
 
 namespace Bible.Alarm;

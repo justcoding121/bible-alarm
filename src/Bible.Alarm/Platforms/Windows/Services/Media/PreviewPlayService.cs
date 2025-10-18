@@ -1,6 +1,4 @@
 ﻿using Bible.Alarm.Services.Contracts;
-using System;
-using System.Threading.Tasks;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 
@@ -10,6 +8,7 @@ namespace Bible.Alarm.Services.Windows
     {
         private MediaPlayer _mediaPlayer;
         private TaskCompletionSource<bool> _tcs;
+
         public PreviewPlayService(MediaPlayer player)
         {
             _mediaPlayer = player;
@@ -25,7 +24,7 @@ namespace Bible.Alarm.Services.Windows
         private void BufferingStartedHandler(MediaPlayer sender, object args)
         {
             if (sender.PlaybackSession.PlaybackState == MediaPlaybackState.Buffering ||
-               sender.PlaybackSession.PlaybackState == MediaPlaybackState.Opening
+                sender.PlaybackSession.PlaybackState == MediaPlaybackState.Opening
                 || sender.PlaybackSession.PlaybackState == MediaPlaybackState.Playing)
             {
                 if (_tcs.Task.Status == TaskStatus.Running
@@ -35,7 +34,6 @@ namespace Bible.Alarm.Services.Windows
                     _tcs.SetResult(true);
                 }
             }
-
         }
 
         public event Action OnStopped;
@@ -62,6 +60,5 @@ namespace Bible.Alarm.Services.Windows
             _mediaPlayer.BufferingStarted -= BufferingStartedHandler;
             _mediaPlayer.Dispose();
         }
-
     }
 }

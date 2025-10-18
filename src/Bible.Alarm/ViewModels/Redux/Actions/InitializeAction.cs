@@ -1,11 +1,9 @@
 ﻿using Bible.Alarm.Common.DataStructures;
 using Redux;
 
-namespace Bible.Alarm.ViewModels.Redux.Actions
+namespace Bible.Alarm.ViewModels.Redux.Actions;
+
+public class InitializeAction : IAction
 {
-    public class InitializeAction : IAction
-    {
-        public ObservableHashSet<ScheduleListItem> ScheduleList =
-            new ObservableHashSet<ScheduleListItem>();
-    }
+    public ObservableHashSet<ScheduleListItem> ScheduleList = new();
 }

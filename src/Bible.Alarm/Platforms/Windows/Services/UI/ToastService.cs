@@ -1,10 +1,6 @@
-﻿using Bible.Alarm.Services;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Services.Windows
 {
@@ -13,6 +9,7 @@ namespace Bible.Alarm.Services.Windows
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
 
         private static TaskCompletionSource<bool> clearRequest;
+
         public override Task Clear()
         {
             if (clearRequest != null)
@@ -33,8 +30,8 @@ namespace Bible.Alarm.Services.Windows
             if (!MainThread.IsMainThread)
             {
                 await Task.Delay(0)
-                   .ContinueWith(async (x) =>
-                       await ShowAlert(message, (double)seconds), taskScheduler);
+                    .ContinueWith(async (x) =>
+                        await ShowAlert(message, (double)seconds), taskScheduler);
             }
             else
             {
@@ -60,13 +57,13 @@ namespace Bible.Alarm.Services.Windows
                     Placement = FlyoutPlacementMode.Bottom
                 };
 
-                Microsoft.UI.Xaml.Controls.Frame currentFrame = Microsoft.UI.Xaml.Window.Current.Content as Microsoft.UI.Xaml.Controls.Frame;
+                Microsoft.UI.Xaml.Controls.Frame currentFrame =
+                    Microsoft.UI.Xaml.Window.Current.Content as Microsoft.UI.Xaml.Controls.Frame;
                 flyout.OverlayInputPassThroughElement = currentFrame;
                 flyout.ShowAt(currentFrame);
 
                 await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
                 flyout.Hide();
-
             }
             finally
             {

@@ -1,32 +1,17 @@
-﻿using Microsoft.Maui.Controls.Compatibility;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui;
+﻿namespace Bible.Alarm.UI.ViewHelpers;
 
-namespace Bible.Alarm.UI.ViewHelpers
+public class AnimateUtils
 {
-    public class AnimateUtils
+    public static void FlickUponTouched(View view, uint duration, string hexColorInitial,
+        string hexColorFinal, int repeatCountMax)
     {
-        public static void FlickUponTouched(View view, uint duration, string hexColorInitial,
-            string hexColorFinal, int repeatCountMax)
+        var repeatCount = 0;
+        view.Animate("changedBG", new Animation((val) =>
         {
-            var repeatCount = 0;
-            view.Animate("changedBG", new Animation((val) =>
-            {
-                if (repeatCount == 0)
-                {
-                    view.BackgroundColor = Color.FromArgb(hexColorInitial);
-                }
-                else
-                {
-                    view.BackgroundColor = Color.FromArgb(hexColorFinal);
-                }
-            }), duration, finished: (val, b) =>
-            {
-                repeatCount++;
-            }, repeat: () =>
-            {
-                return repeatCount < repeatCountMax;
-            });
-        }
+            if (repeatCount == 0)
+                view.BackgroundColor = Color.FromArgb(hexColorInitial);
+            else
+                view.BackgroundColor = Color.FromArgb(hexColorFinal);
+        }), duration, finished: (val, b) => { repeatCount++; }, repeat: () => { return repeatCount < repeatCountMax; });
     }
 }

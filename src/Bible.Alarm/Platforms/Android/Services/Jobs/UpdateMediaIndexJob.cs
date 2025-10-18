@@ -1,67 +1,61 @@
 ﻿using Android.App;
 using Android.App.Job;
-using Android.Content;
-using Bible.Alarm.Services;
-using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
 using Serilog;
-using System;
-using System.Threading.Tasks;
 
-namespace Bible.Alarm.Services.Droid.Tasks
+namespace Bible.Alarm.Services.Droid.Tasks;
+
+[Service(Enabled = true)]
+public class UpdateMediaIndexJob : JobService
 {
-    [Service(Enabled = true)]
-    public class UpdateMediaIndexJob : JobService
+    public const int JobId = 2;
+
+    private static readonly ILogger Logger = Log.ForContext<UpdateMediaIndexJob>();
+
+    public UpdateMediaIndexJob()
     {
-        public const int JobId = 2;
+        LogSetup.Initialize(VersionFinder.Default,
+            new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
+        AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+    }
 
-        private static readonly ILogger Logger = Log.ForContext<UpdateMediaIndexJob>();
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
+    }
 
-        public UpdateMediaIndexJob()
+    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    {
+        Logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
+    }
+
+    public override bool OnStartJob(JobParameters @params)
+    {
+        Task.Run(async () =>
         {
-            LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
-            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
-        }
-
-        private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
-        {
-            Logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
-        }
-
-        private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
-        {
-            Logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
-        }
-
-        public override bool OnStartJob(JobParameters @params)
-        {
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    // Container no longer needed - using ServiceProviderManager
-                    var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
-                    await mediaIndexService.UpdateIndexIfAvailable();
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e, "Error updating media index");
-                }
-                finally
-                {
-                    JobFinished(@params, false);
-                }
-            });
+                // Container no longer needed - using ServiceProviderManager
+                var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                await mediaIndexService.UpdateIndexIfAvailable();
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Error updating media index");
+            }
+            finally
+            {
+                JobFinished(@params, false);
+            }
+        });
 
-            return true;
-        }
+        return true;
+    }
 
-        public override bool OnStopJob(JobParameters @params)
-        {
-            return false;
-        }
+    public override bool OnStopJob(JobParameters @params)
+    {
+        return false;
     }
 }

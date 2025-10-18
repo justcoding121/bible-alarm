@@ -1,31 +1,26 @@
 ﻿using Bible.Alarm.UI.ViewHelpers;
 using Bible.Alarm.ViewModels;
-using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Controls.Compatibility;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui;
 
-namespace Bible.Alarm.UI.Views.Bible
+namespace Bible.Alarm.UI.Views.Bible;
+
+public partial class BibleSelection : ContentPage
 {
-    public partial class BibleSelection : ContentPage
+    public BibleSelectionViewModel ViewModel => BindingContext as BibleSelectionViewModel;
+
+    public BibleSelection()
     {
-        public BibleSelectionViewModel ViewModel => BindingContext as BibleSelectionViewModel;
+        InitializeComponent();
 
-        public BibleSelection()
+        BackButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            InitializeComponent();
-
-            BackButton.GestureRecognizers.Add(new TapGestureRecognizer
-            {
-                Command = new Command(() => AnimateUtils.FlickUponTouched(BackButton, 1500,
+            Command = new Command(() => AnimateUtils.FlickUponTouched(BackButton, 1500,
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
-            });
-        }
+        });
+    }
 
-        protected override bool OnBackButtonPressed()
-        {
-            ViewModel.BackCommand.Execute(null);
-            return true;
-        }
+    protected override bool OnBackButtonPressed()
+    {
+        ViewModel.BackCommand.Execute(null);
+        return true;
     }
 }

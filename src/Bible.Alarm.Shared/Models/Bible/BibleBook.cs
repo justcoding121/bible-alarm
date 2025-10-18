@@ -1,15 +1,14 @@
 using System;
 
-namespace Bible.Alarm.Shared.Models.Bible
-{
-    public class BibleBook : IComparable
-    {
-        public string Name { get; set; }
-        public int Number { get; set; }
+namespace Bible.Alarm.Shared.Models.Bible;
 
-        public int CompareTo(object obj)
-        {
-            return Number.CompareTo((obj as BibleBook).Number);
-        }
+public class BibleBook : IComparable
+{
+    public string Name { get; set; }
+    public int Number { get; set; }
+
+    public int CompareTo(object obj)
+    {
+        return Number.CompareTo((obj as BibleBook).Number);
     }
 }

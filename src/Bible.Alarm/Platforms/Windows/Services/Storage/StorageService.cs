@@ -1,7 +1,4 @@
-﻿using Bible.Alarm.Services;
-using System;
-using System.IO;
-using System.Reflection;
+﻿using System.Reflection;
 using Windows.Storage;
 
 namespace Bible.Alarm.Services.Windows.Storage
@@ -10,12 +7,10 @@ namespace Bible.Alarm.Services.Windows.Storage
     {
         //backed up to cloud
         private static string storageRoot = ApplicationData.Current.LocalFolder.Path;
+
         public override string StorageRoot
         {
-            get
-            {
-                return storageRoot;
-            }
+            get { return storageRoot; }
         }
 
         //never backed up to cloud.

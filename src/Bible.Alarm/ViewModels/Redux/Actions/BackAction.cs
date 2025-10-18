@@ -1,10 +1,8 @@
 ﻿using Redux;
-using System;
 
-namespace Bible.Alarm.ViewModels.Redux.Actions
+namespace Bible.Alarm.ViewModels.Redux.Actions;
+
+public class BackAction(IDisposable currentViewModel) : IAction
 {
-    public class BackAction(IDisposable currentViewModel) : IAction
-    {
-        public IDisposable CurrentViewModel { get; set; } = currentViewModel;
-    }
+    public IDisposable CurrentViewModel { get; set; } = currentViewModel;
 }

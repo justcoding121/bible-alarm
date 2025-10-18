@@ -1,6 +1,5 @@
 ﻿using Bible.Alarm.Contracts.Platform;
 using Foundation;
-using System;
 
 namespace Bible.Alarm.iOS.Services.Platform
 {
@@ -18,6 +17,5 @@ namespace Bible.Alarm.iOS.Services.Platform
         {
             return "iOS " + (NSString)NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"];
         }
-
     }
 }

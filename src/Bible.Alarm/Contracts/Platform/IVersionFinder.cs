@@ -1,8 +1,6 @@
-﻿using Microsoft.Maui.ApplicationModel;
-namespace Bible.Alarm.Contracts.Platform
+﻿namespace Bible.Alarm.Contracts.Platform;
+
+public interface IVersionFinder
 {
-    public interface IVersionFinder
-    {
-        string GetVersionName();
-    }
+    string GetVersionName();
 }

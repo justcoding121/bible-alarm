@@ -1,12 +1,5 @@
-﻿using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Services;
-using Bible.Alarm.Services.Contracts;
-using Microsoft.EntityFrameworkCore;
+﻿using Bible.Alarm.Services.Contracts;
 using Serilog;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using UIKit;
 
 namespace Bible.Alarm.iOS.Services.Handlers
@@ -43,12 +36,12 @@ namespace Bible.Alarm.iOS.Services.Handlers
                         {
                             UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
                         }
-                        firstTime = false;
 
+                        firstTime = false;
                     }, taskScheduler);
                 }
 
-              
+
                 await Task.Run(async () =>
                 {
                     try
@@ -61,7 +54,6 @@ namespace Bible.Alarm.iOS.Services.Handlers
                         throw;
                     }
                 });
-
             }
             catch (Exception e)
             {
@@ -80,19 +72,18 @@ namespace Bible.Alarm.iOS.Services.Handlers
         }
 
         private bool _disposed = false;
+
         private void Dispose(bool disposeMediaManager)
         {
             if (!_disposed)
             {
                 _disposed = true;
-         
+
                 if (disposeMediaManager)
                 {
-                    Task.Delay(0).ContinueWith((x) =>
-                    {
-                        UIApplication.SharedApplication.EndReceivingRemoteControlEvents();
-
-                    }, taskScheduler);
+                    Task.Delay(0)
+                        .ContinueWith((x) => { UIApplication.SharedApplication.EndReceivingRemoteControlEvents(); },
+                            taskScheduler);
                 }
             }
         }

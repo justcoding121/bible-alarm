@@ -12,163 +12,157 @@ using Serilog;
 using Bible.Alarm.Platforms.Android;
 using static Android.App.AlarmManager;
 
-namespace Bible.Alarm.Services.Droid.Tasks
+namespace Bible.Alarm.Services.Droid.Tasks;
+
+[Service(Enabled = true)]
+public class AlarmSetupService : Service, IDisposable
 {
-    [Service(Enabled = true)]
-    public class AlarmSetupService : Service, IDisposable
+    private static readonly ILogger Logger = Log.ForContext<AlarmSetupService>();
+
+
+    public static bool IsRunning = false;
+
+    public AlarmSetupService()
     {
-        private static readonly ILogger Logger = Log.ForContext<AlarmSetupService>();
+        LogSetup.Initialize(VersionFinder.Default,
+            new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
 
+        AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+    }
 
-        public static bool IsRunning = false;
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Logger.Error(e.Exception, "Unobserved task exception.");
+    }
 
-        public AlarmSetupService()
+    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    {
+        Logger.Error("Unhandled exception.", e.SerializeObject());
+    }
+
+    public override IBinder OnBind(Intent intent)
+    {
+        return null;
+    }
+
+    public override void OnCreate()
+    {
+        base.OnCreate();
+        IsRunning = true;
+    }
+
+    [return: GeneratedEnum]
+    public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags,
+        int startId)
+    {
+        try
         {
-            LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
-
-            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+            // _container = BootstrapHelper.InitializeService(this); // No longer needed
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "An error happenned when initializing sevice in AlarmSetupService.");
         }
 
-        private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        try
         {
-            Logger.Error(e.Exception, "Unobserved task exception.");
-        }
+            var extra = intent.GetStringExtra("Action");
 
-        private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
-        {
-            Logger.Error("Unhandled exception.", e.SerializeObject());
-        }
-
-        public override IBinder OnBind(Intent intent)
-        {
-            return null;
-        }
-
-        public override void OnCreate()
-        {
-            base.OnCreate();
-            IsRunning = true;
-        }
-
-        [return: GeneratedEnum]
-        public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags, int startId)
-        {
-
-            try
+            switch (extra)
             {
-                // _container = BootstrapHelper.InitializeService(this); // No longer needed
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "An error happenned when initializing sevice in AlarmSetupService.");
-            }
-
-            try
-            {
-
-                var extra = intent.GetStringExtra("Action");
-
-                switch (extra)
+                case "Add":
                 {
-                    case "Add":
+                    var time = DateTimeOffset.Parse(intent.GetStringExtra("Time"));
+                    var title = intent.GetStringExtra("Title");
+                    var body = intent.GetStringExtra("Body");
+                    ScheduleNotification(ApplicationContext, long.Parse(intent.GetStringExtra("ScheduleId")), time,
+                        title, body);
+                    break;
+                }
+                case "SetupBackgroundTasks":
+                    BootstrapHelper.VerifyBackgroundTasks(ApplicationContext);
+                    Task.Run(async () =>
+                    {
+                        try
                         {
-                            var time = DateTimeOffset.Parse(intent.GetStringExtra("Time"));
-                            var title = intent.GetStringExtra("Title");
-                            var body = intent.GetStringExtra("Body");
-                            ScheduleNotification(ApplicationContext, long.Parse(intent.GetStringExtra("ScheduleId")), time, title, body);
-                            break;
+                            using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
+                            await schedulerTask.Handle();
                         }
-                    case "SetupBackgroundTasks":
-                        BootstrapHelper.VerifyBackgroundTasks(ApplicationContext);
-                        Task.Run(async () =>
+                        catch (Exception e)
                         {
-                            try
-                            {
-                                using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
-                                await schedulerTask.Handle();
-                            }
-                            catch (Exception e)
-                            {
-                                Logger.Error(e, "An error happened in handling scheduler task.");
-                            }
-                        });
-                        break;
-                    default:
-                        throw new NotImplementedException();
-                }
-
-                StopSelf();
-
-                return base.OnStartCommand(intent, flags, startId);
+                            Logger.Error(e, "An error happened in handling scheduler task.");
+                        }
+                    });
+                    break;
+                default:
+                    throw new NotImplementedException();
             }
-            catch (Exception e)
-            {
-                Logger.Error(e, "An error happened in alarm setup task.");
-                throw;
-            }
+
+            StopSelf();
+
+            return base.OnStartCommand(intent, flags, startId);
         }
-
-        public override void OnDestroy()
+        catch (Exception e)
         {
-            IsRunning = false;
+            Logger.Error(e, "An error happened in alarm setup task.");
+            throw;
         }
+    }
 
-        public static void ScheduleNotification(Context context, long scheduleId, DateTimeOffset time,
-            string title, string body)
-        {
-            using var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
-            alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
+    public override void OnDestroy()
+    {
+        IsRunning = false;
+    }
 
-            using var pIntent = PendingIntent.GetBroadcast(
-                     context,
-                     (int)scheduleId,
-                     alarmIntent,
-                     PendingIntentFlags.UpdateCurrent);
-            using var alarmService = (AlarmManager)context.GetSystemService(Context.AlarmService);
+    public static void ScheduleNotification(Context context, long scheduleId, DateTimeOffset time,
+        string title, string body)
+    {
+        using var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
+        alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
 
-            // Figure out the alaram in milliseconds.
-            var milliSecondsRemaining = Java.Lang.JavaSystem.CurrentTimeMillis()
-                + (long)time.Subtract(DateTimeOffset.Now).TotalSeconds * 1000;
+        using var pIntent = PendingIntent.GetBroadcast(
+            context,
+            (int)scheduleId,
+            alarmIntent,
+            PendingIntentFlags.UpdateCurrent);
+        using var alarmService = (AlarmManager)context.GetSystemService(AlarmService);
 
-            if (Build.VERSION.SdkInt < BuildVersionCodes.M)
+        // Figure out the alaram in milliseconds.
+        var milliSecondsRemaining = Java.Lang.JavaSystem.CurrentTimeMillis()
+                                    + (long)time.Subtract(DateTimeOffset.Now).TotalSeconds * 1000;
+
+        if (Build.VERSION.SdkInt < BuildVersionCodes.M)
+            alarmService.SetExact(AlarmType.RtcWakeup, milliSecondsRemaining, pIntent);
+        else
+            using (var mainLauncherIntent = new Intent(context, typeof(SplashActivity)))
             {
-                alarmService.SetExact(AlarmType.RtcWakeup, milliSecondsRemaining, pIntent);
+                mainLauncherIntent.SetFlags(ActivityFlags.ReorderToFront);
+
+                var mainLauncherPendingIntent = PendingIntent.GetActivity(
+                    context,
+                    0,
+                    mainLauncherIntent,
+                    PendingIntentFlags.UpdateCurrent);
+
+                alarmService.SetAlarmClock(new AlarmClockInfo(milliSecondsRemaining, mainLauncherPendingIntent),
+                    pIntent);
             }
-            else
-            {
-                using (var mainLauncherIntent = new Intent(context, typeof(SplashActivity)))
-                {
-                    mainLauncherIntent.SetFlags(ActivityFlags.ReorderToFront);
+    }
 
-                    var mainLauncherPendingIntent = PendingIntent.GetActivity(
-                       context,
-                       0,
-                       mainLauncherIntent,
-                       PendingIntentFlags.UpdateCurrent);
+    private bool _disposed = false;
 
-                    alarmService.SetAlarmClock(new AlarmClockInfo(milliSecondsRemaining, mainLauncherPendingIntent), pIntent);
-                }
-            }
-        }
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed) return;
 
-        private bool _disposed = false;
-        protected override void Dispose(bool disposing)
-        {
-            if (_disposed)
-            {
-                return;
-            }
+        BootstrapHelper.Remove(this);
 
-            BootstrapHelper.Remove(this);
+        AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
 
-            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+        _disposed = true;
 
-            _disposed = true;
-
-            base.Dispose(disposing);
-        }
+        base.Dispose(disposing);
     }
 }

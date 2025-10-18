@@ -1,235 +1,226 @@
-using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Bible.Alarm.Services.Media
+namespace Bible.Alarm.Services.Media;
+
+public class PlaybackService : IPlaybackService
 {
-    public class PlaybackService : IPlaybackService
+    private static readonly ILogger Logger = Log.ForContext<PlaybackService>();
+
+    private readonly IMediaElementAudioService _mediaElementService;
+    private readonly IPlaylistService _playlistService;
+    private readonly IMediaCacheService _cacheService;
+    private readonly IStorageService _storageService;
+    private readonly INetworkStatusService _networkStatusService;
+    private readonly IDownloadService _downloadService;
+
+    private readonly SemaphoreSlim _lock = new(1);
+
+    private bool _isPlaying = false;
+    private long _currentScheduleId;
+    private Dictionary<string, NotificationDetail> _currentlyPlaying;
+    private string _firstChapter;
+    private bool _isPrepared = false;
+    private bool _isWatching = false;
+    private Task _watchTask;
+
+    public PlaybackService(
+        IMediaElementAudioService mediaElementService,
+        IPlaylistService playlistService,
+        IMediaCacheService cacheService,
+        IStorageService storageService,
+        INetworkStatusService networkStatusService,
+        IDownloadService downloadService)
     {
-        private static readonly ILogger Logger = Log.ForContext<PlaybackService>();
+        _mediaElementService = mediaElementService;
+        _playlistService = playlistService;
+        _cacheService = cacheService;
+        _storageService = storageService;
+        _networkStatusService = networkStatusService;
+        _downloadService = downloadService;
 
-        private readonly IMediaElementAudioService _mediaElementService;
-        private readonly IPlaylistService _playlistService;
-        private readonly IMediaCacheService _cacheService;
-        private readonly IStorageService _storageService;
-        private readonly INetworkStatusService _networkStatusService;
-        private readonly IDownloadService _downloadService;
+        // Subscribe to MediaElement events
+        _mediaElementService.MediaEnded += OnMediaEnded;
+        _mediaElementService.MediaFailed += OnMediaFailed;
+    }
 
-        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
+    public bool IsPlaying => _isPlaying;
+    public bool IsPrepared => _isPrepared;
+    public long CurrentlyPlayingScheduleId => _currentScheduleId;
+    public int CurrentTrackIndex { get; set; }
+    public TimeSpan CurrentTrackPosition { get; set; }
 
-        private bool _isPlaying = false;
-        private long _currentScheduleId;
-        private Dictionary<string, NotificationDetail> _currentlyPlaying;
-        private string _firstChapter;
-        private bool _isPrepared = false;
-        private bool _isWatching = false;
-        private Task _watchTask;
-
-        public PlaybackService(
-            IMediaElementAudioService mediaElementService,
-            IPlaylistService playlistService,
-            IMediaCacheService cacheService,
-            IStorageService storageService,
-            INetworkStatusService networkStatusService,
-            IDownloadService downloadService)
+    public async Task PrepareRelevantPlaylist()
+    {
+        try
         {
-            _mediaElementService = mediaElementService;
-            _playlistService = playlistService;
-            _cacheService = cacheService;
-            _storageService = storageService;
-            _networkStatusService = networkStatusService;
-            _downloadService = downloadService;
-
-            // Subscribe to MediaElement events
-            _mediaElementService.MediaEnded += OnMediaEnded;
-            _mediaElementService.MediaFailed += OnMediaFailed;
+            Logger.Information("Preparing relevant playlist...");
+            var lastPlayed = await _playlistService.GetRelavantScheduleToPlay();
+            await Prepare(lastPlayed);
         }
-
-        public bool IsPlaying => _isPlaying;
-        public bool IsPrepared => _isPrepared;
-        public long CurrentlyPlayingScheduleId => _currentScheduleId;
-        public int CurrentTrackIndex { get; set; }
-        public TimeSpan CurrentTrackPosition { get; set; }
-
-        public async Task PrepareRelevantPlaylist()
+        catch (Exception ex)
         {
-            try
-            {
-                Logger.Information("Preparing relevant playlist...");
-                var lastPlayed = await _playlistService.GetRelavantScheduleToPlay();
-                await Prepare(lastPlayed);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error preparing relevant playlist");
-                throw;
-            }
+            Logger.Error(ex, "Error preparing relevant playlist");
+            throw;
         }
+    }
 
-        public async Task PrepareRelavantPlaylist()
+    public async Task PrepareRelavantPlaylist()
+    {
+        await PrepareRelevantPlaylist();
+    }
+
+    public async Task Play()
+    {
+        try
         {
-            await PrepareRelevantPlaylist();
+            if (!IsPrepared) throw new Exception("Cannot play without preparing.");
+
+            await _mediaElementService.Play();
+            _isPlaying = true;
+
+            // Start watching and saving progress
+            await WatchAndSaveProgress();
+
+            Logger.Information("Playback started");
         }
-
-        public async Task Play()
+        catch (Exception ex)
         {
-            try
-            {
-                if (!IsPrepared)
-            {
-                throw new Exception("Cannot play without preparing.");
-            }
-
-                await _mediaElementService.Play();
-                _isPlaying = true;
-                
-                // Start watching and saving progress
-                await WatchAndSaveProgress();
-                
-                Logger.Information("Playback started");
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error during playback");
-                throw;
-            }
+            Logger.Error(ex, "Error during playback");
+            throw;
         }
+    }
 
-        public async Task Pause()
+    public async Task Pause()
+    {
+        try
         {
-            try
+            await _mediaElementService.Pause();
+            _isPlaying = false;
+
+            // Stop watching and saving progress
+            await StopWatching();
+
+            Logger.Information("Playback paused");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error pausing playback");
+            throw;
+        }
+    }
+
+    public async Task PlayPrevious()
+    {
+        try
+        {
+            if (CurrentTrackIndex > 0)
             {
-                await _mediaElementService.Pause();
-                _isPlaying = false;
-                
-                // Stop watching and saving progress
-                await StopWatching();
-                
-                Logger.Information("Playback paused");
+                CurrentTrackIndex--;
+                await LoadAndPlayCurrentTrack();
+                await Play();
+                Logger.Information($"Playing previous track {CurrentTrackIndex + 1}");
             }
-            catch (Exception ex)
+            else
             {
-                Logger.Error(ex, "Error pausing playback");
-                throw;
+                Logger.Information("Already at first track");
             }
         }
-
-        public async Task PlayPrevious()
+        catch (Exception ex)
         {
-            try
+            Logger.Error(ex, "Error playing previous track");
+            throw;
+        }
+    }
+
+    public async Task PlayNext()
+    {
+        try
+        {
+            if (_currentlyPlaying != null && CurrentTrackIndex < _currentlyPlaying.Count - 1)
             {
-                if (CurrentTrackIndex > 0)
+                // Mark current track as finished before moving to next
+                if (CurrentTrackIndex >= 0)
                 {
-                    CurrentTrackIndex--;
-                    await LoadAndPlayCurrentTrack();
-                    await Play();
-                    Logger.Information($"Playing previous track {CurrentTrackIndex + 1}");
+                    var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
+                    var playDetail = currentTrack.Value;
+                    await _playlistService.MarkTrackAsFinished(playDetail);
+                    await _playlistService.SaveLastPlayed(_currentScheduleId);
                 }
-                else
-                {
-                    Logger.Information("Already at first track");
-                }
+
+                CurrentTrackIndex++;
+                await LoadAndPlayCurrentTrack();
+                await Play();
+                Logger.Information($"Playing next track {CurrentTrackIndex + 1}");
             }
-            catch (Exception ex)
+            else
             {
-                Logger.Error(ex, "Error playing previous track");
-                throw;
+                Logger.Information("Already at last track");
             }
         }
-
-        public async Task PlayNext()
+        catch (Exception ex)
         {
-            try
-            {
-                if (_currentlyPlaying != null && CurrentTrackIndex < _currentlyPlaying.Count - 1)
-                {
-                    // Mark current track as finished before moving to next
-                    if (CurrentTrackIndex >= 0)
-                    {
-                        var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
-                        var playDetail = currentTrack.Value;
-                        await _playlistService.MarkTrackAsFinished(playDetail);
-                        await _playlistService.SaveLastPlayed(_currentScheduleId);
-                    }
-
-                    CurrentTrackIndex++;
-                    await LoadAndPlayCurrentTrack();
-                    await Play();
-                    Logger.Information($"Playing next track {CurrentTrackIndex + 1}");
-                }
-                else
-                {
-                    Logger.Information("Already at last track");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error playing next track");
-                throw;
-            }
+            Logger.Error(ex, "Error playing next track");
+            throw;
         }
+    }
 
-        public async Task PrepareAndPlay(long scheduleId, bool isImmediate)
+    public async Task PrepareAndPlay(long scheduleId, bool isImmediate)
+    {
+        try
         {
-            try
-            {
-                await Dismiss();
-                Reset();
-                await PreparePlay(scheduleId, isImmediate, false);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Error preparing and playing schedule {scheduleId}");
-                throw;
-            }
-        }
-
-        public async Task Dismiss()
-        {
-            try
-            {
-                if (_isPlaying)
-                {
-                    await _mediaElementService.Stop();
-                    _isPlaying = false;
-                }
-                await StopWatching();
-                Logger.Information("Playback dismissed");
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error dismissing playback");
-            }
-        }
-
-        private async Task Prepare(long scheduleId)
-        {
+            await Dismiss();
             Reset();
-            await PreparePlay(scheduleId, true, true);
+            await PreparePlay(scheduleId, isImmediate, false);
         }
-
-        private void Reset()
+        catch (Exception ex)
         {
-            _currentScheduleId = -1;
-            _firstChapter = null;
-            _currentlyPlaying = null;
-            CurrentTrackIndex = -1;
-            CurrentTrackPosition = default;
-            _isPrepared = false;
+            Logger.Error(ex, $"Error preparing and playing schedule {scheduleId}");
+            throw;
         }
+    }
 
-        private async Task PreparePlay(long scheduleId, bool isImmediatePlayRequest, bool prepareOnly)
+    public async Task Dismiss()
+    {
+        try
         {
-            try
+            if (_isPlaying)
+            {
+                await _mediaElementService.Stop();
+                _isPlaying = false;
+            }
+
+            await StopWatching();
+            Logger.Information("Playback dismissed");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error dismissing playback");
+        }
+    }
+
+    private async Task Prepare(long scheduleId)
+    {
+        Reset();
+        await PreparePlay(scheduleId, true, true);
+    }
+
+    private void Reset()
+    {
+        _currentScheduleId = -1;
+        _firstChapter = null;
+        _currentlyPlaying = null;
+        CurrentTrackIndex = -1;
+        CurrentTrackPosition = default;
+        _isPrepared = false;
+    }
+
+    private async Task PreparePlay(long scheduleId, bool isImmediatePlayRequest, bool prepareOnly)
+    {
+        try
         {
             Messenger<object>.Publish(MvvmMessages.ClearToasts);
 
@@ -237,8 +228,8 @@ namespace Bible.Alarm.Services.Media
 
             var nextTracks = await _playlistService.NextTracks(scheduleId);
 
-                var downloadedTracks = new Dictionary<int, FileInfo>();
-                var streamingTracks = new Dictionary<int, string>();
+            var downloadedTracks = new Dictionary<int, FileInfo>();
+            var streamingTracks = new Dictionary<int, string>();
             var playDetailMap = new Dictionary<int, NotificationDetail>();
 
             var i = 0;
@@ -247,13 +238,9 @@ namespace Bible.Alarm.Services.Media
                 playDetailMap[i] = item.PlayDetail;
 
                 if (await _cacheService.Exists(item.Url))
-                {
                     downloadedTracks.Add(i, new FileInfo(_cacheService.GetCacheFilePath(item.Url)));
-                }
                 else
-                {
                     streamingTracks.Add(i, item.Url);
-                }
 
                 i++;
             }
@@ -272,83 +259,67 @@ namespace Bible.Alarm.Services.Media
             Messenger<object>.Publish(MvvmMessages.ShowMediaProgessModal);
             Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(preparedTracks, totalTracks));
 
-                // Process downloaded tracks
-                var downloadedMediaItems = new Dictionary<int, string>();
-                foreach (var track in downloadedTracks)
+            // Process downloaded tracks
+            var downloadedMediaItems = new Dictionary<int, string>();
+            foreach (var track in downloadedTracks)
+                try
                 {
-                    try
-                    {
-                        var filePath = track.Value.FullName;
-                        downloadedMediaItems.Add(track.Key, filePath);
-                        Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(++preparedTracks, totalTracks));
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex, $"Error processing downloaded file: {track.Value.FullName}");
-                    }
+                    var filePath = track.Value.FullName;
+                    downloadedMediaItems.Add(track.Key, filePath);
+                    Messenger<object>.Publish(MvvmMessages.MediaProgress,
+                        new Tuple<int, int>(++preparedTracks, totalTracks));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $"Error processing downloaded file: {track.Value.FullName}");
                 }
 
-                // Process streaming tracks
-                var streamableMediaItems = new Dictionary<int, string>();
-                foreach (var track in streamingTracks)
+            // Process streaming tracks
+            var streamableMediaItems = new Dictionary<int, string>();
+            foreach (var track in streamingTracks)
+                try
                 {
-                    try
+                    var playDetail = playDetailMap[track.Key];
+                    var url = track.Value;
+
+                    // Try to get alternative URL if needed
+                    if (playDetail.IsBibleReading)
                     {
-                        var playDetail = playDetailMap[track.Key];
-                        var url = track.Value;
+                        var altUrl = await _cacheService.GetBibleChapterUrl(playDetail.LanguageCode,
+                            playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
+                            playDetail.LookUpPath);
 
-                        // Try to get alternative URL if needed
-                        if (playDetail.IsBibleReading)
-                        {
-                            var altUrl = await _cacheService.GetBibleChapterUrl(playDetail.LanguageCode,
-                                                 playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
-                                                 playDetail.LookUpPath);
-
-                            if (await _downloadService.FileExists(altUrl))
-                            {
-                                url = altUrl;
-                            }
-                        }
-                        else
-                        {
-                            var altUrl = await _cacheService.GetMusicTrackUrl(playDetail.LanguageCode, playDetail.LookUpPath);
-                            if (await _downloadService.FileExists(altUrl))
-                            {
-                                url = altUrl;
-                            }
-                        }
-
-                        streamableMediaItems.Add(track.Key, url);
-                        Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(++preparedTracks, totalTracks));
+                        if (await _downloadService.FileExists(altUrl)) url = altUrl;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Logger.Error(ex, $"Error processing streaming track: {track.Value}");
+                        var altUrl =
+                            await _cacheService.GetMusicTrackUrl(playDetail.LanguageCode, playDetail.LookUpPath);
+                        if (await _downloadService.FileExists(altUrl)) url = altUrl;
                     }
-                }
 
-                // Merge all tracks
-                var mergedMediaItems = new Dictionary<int, string>();
-                foreach (var item in downloadedMediaItems)
+                    streamableMediaItems.Add(track.Key, url);
+                    Messenger<object>.Publish(MvvmMessages.MediaProgress,
+                        new Tuple<int, int>(++preparedTracks, totalTracks));
+                }
+                catch (Exception ex)
                 {
-                    mergedMediaItems.Add(item.Key, item.Value);
-                }
-                foreach (var item in streamableMediaItems)
-                {
-                    mergedMediaItems.Add(item.Key, item.Value);
+                    Logger.Error(ex, $"Error processing streaming track: {track.Value}");
                 }
 
-                Messenger<object>.Publish(MvvmMessages.HideMediaProgressModal);
+            // Merge all tracks
+            var mergedMediaItems = new Dictionary<int, string>();
+            foreach (var item in downloadedMediaItems) mergedMediaItems.Add(item.Key, item.Value);
+            foreach (var item in streamableMediaItems) mergedMediaItems.Add(item.Key, item.Value);
 
-                _currentlyPlaying = new Dictionary<string, NotificationDetail>();
+            Messenger<object>.Publish(MvvmMessages.HideMediaProgressModal);
 
-                i = 0;
-                foreach (var track in mergedMediaItems.OrderBy(x => x.Key))
+            _currentlyPlaying = new Dictionary<string, NotificationDetail>();
+
+            i = 0;
+            foreach (var track in mergedMediaItems.OrderBy(x => x.Key))
             {
-                if (track.Key != i)
-                {
-                    break;
-                }
+                if (track.Key != i) break;
 
                 _currentlyPlaying.Add(track.Value, playDetailMap[track.Key]);
                 i++;
@@ -362,268 +333,250 @@ namespace Bible.Alarm.Services.Media
             else
             {
                 _firstChapter = _currentlyPlaying.FirstOrDefault(x => x.Value.IsBibleReading).Key;
-                    _isPrepared = true;
-                    
-                    // Initialize track index to start from the first track
-                    CurrentTrackIndex = 0;
+                _isPrepared = true;
+
+                // Initialize track index to start from the first track
+                CurrentTrackIndex = 0;
 
                 if (prepareOnly)
                 {
-                        // Just prepare, don't play
-                        await LoadAndPlayCurrentTrack();
+                    // Just prepare, don't play
+                    await LoadAndPlayCurrentTrack();
                 }
                 else
                 {
-                        await LoadAndPlayCurrentTrack();
-                        if (isImmediatePlayRequest)
-                        {
-                            await Play();
-                        }
-                    }
+                    await LoadAndPlayCurrentTrack();
+                    if (isImmediatePlayRequest) await Play();
                 }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Error in PreparePlay for schedule {scheduleId}");
-                throw;
             }
         }
-
-        private async Task HandleInternetDown(bool isImmediate, bool prepareOnly)
+        catch (Exception ex)
         {
-            try
+            Logger.Error(ex, $"Error in PreparePlay for schedule {scheduleId}");
+            throw;
+        }
+    }
+
+    private async Task HandleInternetDown(bool isImmediate, bool prepareOnly)
+    {
+        try
+        {
+            if (!isImmediate)
             {
-                if (!isImmediate)
+                var file = new FileInfo(Path.Combine(_storageService.StorageRoot,
+                    "cool-alarm-tone-notification-sound.mp3"));
+                if (file.Exists)
                 {
-                    var file = new FileInfo(Path.Combine(_storageService.StorageRoot, "cool-alarm-tone-notification-sound.mp3"));
-                    if (file.Exists)
-                    {
-                        await _mediaElementService.SetSource(file.FullName);
-                        if (!prepareOnly)
-                        {
-                            await Play();
-                        }
-                    }
-                }
-                else
-                {
-                    Messenger<object>.Publish(MvvmMessages.ShowToast, "An error happened while downloading files. Your internet may be down.");
+                    await _mediaElementService.SetSource(file.FullName);
+                    if (!prepareOnly) await Play();
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Logger.Error(ex, "Error handling internet down");
+                Messenger<object>.Publish(MvvmMessages.ShowToast,
+                    "An error happened while downloading files. Your internet may be down.");
             }
         }
-
-        private async Task LoadAndPlayCurrentTrack()
+        catch (Exception ex)
         {
-            try
-            {
-                if (_currentlyPlaying == null || !_currentlyPlaying.Any())
-                {
-                    Logger.Warning("No tracks available to play");
-                    return;
-                }
+            Logger.Error(ex, "Error handling internet down");
+        }
+    }
 
+    private async Task LoadAndPlayCurrentTrack()
+    {
+        try
+        {
+            if (_currentlyPlaying == null || !_currentlyPlaying.Any())
+            {
+                Logger.Warning("No tracks available to play");
+                return;
+            }
+
+            var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
+            var trackUrl = currentTrack.Key;
+            var playDetail = currentTrack.Value;
+
+            await _mediaElementService.SetSource(trackUrl);
+            Logger.Information($"Loaded track {CurrentTrackIndex + 1}: {trackUrl}");
+
+            // Handle resume from previous position
+            if (playDetail.FinishedDuration.TotalSeconds > 0
+                && _firstChapter != null
+                && trackUrl == _firstChapter)
+            {
+                await _mediaElementService.SeekTo(playDetail.FinishedDuration);
+                _firstChapter = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Error loading track {CurrentTrackIndex + 1}");
+            throw;
+        }
+    }
+
+    private async void OnMediaEnded(object sender, EventArgs e)
+    {
+        try
+        {
+            Logger.Information("Media ended");
+            _isPlaying = false;
+            await StopWatching();
+
+            // Mark current track as finished
+            if (_currentlyPlaying != null && CurrentTrackIndex >= 0 && CurrentTrackIndex < _currentlyPlaying.Count)
+            {
                 var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
-                var trackUrl = currentTrack.Key;
                 var playDetail = currentTrack.Value;
 
-                await _mediaElementService.SetSource(trackUrl);
-                Logger.Information($"Loaded track {CurrentTrackIndex + 1}: {trackUrl}");
-
-                // Handle resume from previous position
-                if (playDetail.FinishedDuration.TotalSeconds > 0
-                                && _firstChapter != null
-                    && trackUrl == _firstChapter)
-                            {
-                    await _mediaElementService.SeekTo(playDetail.FinishedDuration);
-                                _firstChapter = null;
-                }
+                // Mark track as finished
+                await _playlistService.MarkTrackAsFinished(playDetail);
+                await _playlistService.SaveLastPlayed(_currentScheduleId);
             }
-            catch (Exception ex)
+
+            // Check if there are more tracks to play
+            if (_currentlyPlaying != null && CurrentTrackIndex < _currentlyPlaying.Count - 1)
             {
-                Logger.Error(ex, $"Error loading track {CurrentTrackIndex + 1}");
-                throw;
+                // Move to next track
+                CurrentTrackIndex++;
+                Logger.Information($"Moving to next track: {CurrentTrackIndex + 1}");
+
+                await LoadAndPlayCurrentTrack();
+                await Play();
             }
-        }
-
-        private async void OnMediaEnded(object sender, EventArgs e)
-        {
-            try
+            else
             {
-                Logger.Information("Media ended");
-                _isPlaying = false;
-                await StopWatching();
-
-                // Mark current track as finished
-                if (_currentlyPlaying != null && CurrentTrackIndex >= 0 && CurrentTrackIndex < _currentlyPlaying.Count)
-                {
-                    var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
-                    var playDetail = currentTrack.Value;
-                    
-                    // Mark track as finished
-                    await _playlistService.MarkTrackAsFinished(playDetail);
-                    await _playlistService.SaveLastPlayed(_currentScheduleId);
-                }
-
-                // Check if there are more tracks to play
-                if (_currentlyPlaying != null && CurrentTrackIndex < _currentlyPlaying.Count - 1)
-                {
-                    // Move to next track
-                    CurrentTrackIndex++;
-                    Logger.Information($"Moving to next track: {CurrentTrackIndex + 1}");
-                    
-                    await LoadAndPlayCurrentTrack();
-                            await Play();
-                        }
-                        else
-                        {
-                    // No more tracks - restart the playlist
-                    Logger.Information("Playlist completed, restarting...");
-                    Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
-
-                    var scheduleId = _currentScheduleId;
-                    await Dismiss();
-                    Reset();
-
-                    // Restart the playlist
-                    await PrepareAndPlay(scheduleId, true);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error handling media ended");
-            }
-        }
-
-        private async void OnMediaFailed(object sender, EventArgs e)
-        {
-            try
-            {
-                Logger.Error("Media playback failed");
-                _isPlaying = false;
-                await StopWatching();
+                // No more tracks - restart the playlist
+                Logger.Information("Playlist completed, restarting...");
                 Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error handling media failed");
-            }
-        }
 
-        private async Task StopWatching()
-        {
-            await _lock.WaitAsync();
-            try
-            {
-                if (_isWatching)
-                {
-                    _isWatching = false;
-                    return;
-                }
-            }
-            finally
-            {
-                _lock.Release();
+                var scheduleId = _currentScheduleId;
+                await Dismiss();
+                Reset();
+
+                // Restart the playlist
+                await PrepareAndPlay(scheduleId, true);
             }
         }
-
-        private async Task WatchAndSaveProgress()
+        catch (Exception ex)
         {
-            await _lock.WaitAsync();
-            try
+            Logger.Error(ex, "Error handling media ended");
+        }
+    }
+
+    private async void OnMediaFailed(object sender, EventArgs e)
+    {
+        try
+        {
+            Logger.Error("Media playback failed");
+            _isPlaying = false;
+            await StopWatching();
+            Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error handling media failed");
+        }
+    }
+
+    private async Task StopWatching()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            if (_isWatching)
             {
-                if (_isWatching)
-                {
-                    return;
-                }
+                _isWatching = false;
+                return;
+            }
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
 
-                while (_watchTask != null)
-                {
-                    await Task.Delay(100);
-                }
+    private async Task WatchAndSaveProgress()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            if (_isWatching) return;
 
-                _isWatching = true;
+            while (_watchTask != null) await Task.Delay(100);
 
-                _watchTask = Task.Run(async () =>
+            _isWatching = true;
+
+            _watchTask = Task.Run(async () =>
+            {
+                while (_isWatching)
                 {
-                    while (_isWatching)
+                    var acquired = await _lock.WaitAsync(1);
+
+                    try
                     {
-                        var acquired = await _lock.WaitAsync(1);
-
-                        try
-                        {
-                            if (IsPlaying && _mediaElementService.IsPlaying)
+                        if (IsPlaying && _mediaElementService.IsPlaying)
+                            if (_currentlyPlaying != null && CurrentTrackIndex >= 0 &&
+                                CurrentTrackIndex < _currentlyPlaying.Count)
                             {
-                                if (_currentlyPlaying != null && CurrentTrackIndex >= 0 && CurrentTrackIndex < _currentlyPlaying.Count)
+                                var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
+                                var playDetail = currentTrack.Value;
+
+                                if (playDetail.FinishedDuration.TotalSeconds > 0
+                                    && _firstChapter != null
+                                    && currentTrack.Key == _firstChapter)
                                 {
-                                    var currentTrack = _currentlyPlaying.ElementAt(CurrentTrackIndex);
-                                    var playDetail = currentTrack.Value;
+                                    await _mediaElementService.SeekTo(playDetail.FinishedDuration);
+                                    _firstChapter = null;
+                                }
+                                else if (_mediaElementService.CurrentTrackPosition.TotalSeconds > 0)
+                                {
+                                    if (currentTrack.Key == _firstChapter) _firstChapter = null;
 
-                                    if (playDetail.FinishedDuration.TotalSeconds > 0
-                                        && _firstChapter != null
-                                        && currentTrack.Key == _firstChapter)
-                                    {
-                                        await _mediaElementService.SeekTo(playDetail.FinishedDuration);
-                                        _firstChapter = null;
-                                    }
-                                    else if (_mediaElementService.CurrentTrackPosition.TotalSeconds > 0)
-                                    {
-                                        if (currentTrack.Key == _firstChapter)
-                                            {
-                                                _firstChapter = null;
-                                            }
-
-                                        CurrentTrackPosition = _mediaElementService.CurrentTrackPosition;
-                                        playDetail.FinishedDuration = _mediaElementService.CurrentTrackPosition;
-                                        await _playlistService.MarkTrackAsPlayed(playDetail);
-                                            await _playlistService.SaveLastPlayed(_currentScheduleId);
-                                    }
+                                    CurrentTrackPosition = _mediaElementService.CurrentTrackPosition;
+                                    playDetail.FinishedDuration = _mediaElementService.CurrentTrackPosition;
+                                    await _playlistService.MarkTrackAsPlayed(playDetail);
+                                    await _playlistService.SaveLastPlayed(_currentScheduleId);
                                 }
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, "Error updating finished track duration");
-                        }
-                        finally
-                        {
-                            if (acquired)
-                            {
-                                _lock.Release();
-                            }
-                        }
-
-                        await Task.Delay(1000);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, "Error updating finished track duration");
+                    }
+                    finally
+                    {
+                        if (acquired) _lock.Release();
                     }
 
-                    _watchTask = null;
-                });
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        }
+                    await Task.Delay(1000);
+                }
 
-        public void Dispose()
+                _watchTask = null;
+            });
+        }
+        finally
         {
-            try
-            {
-                _mediaElementService.MediaEnded -= OnMediaEnded;
-                _mediaElementService.MediaFailed -= OnMediaFailed;
-                _playlistService?.Dispose();
-                _cacheService?.Dispose();
-                _storageService?.Dispose();
-                _networkStatusService?.Dispose();
-                _mediaElementService?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error disposing PlaybackService");
-            }
+            _lock.Release();
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            _mediaElementService.MediaEnded -= OnMediaEnded;
+            _mediaElementService.MediaFailed -= OnMediaFailed;
+            _playlistService?.Dispose();
+            _cacheService?.Dispose();
+            _storageService?.Dispose();
+            _networkStatusService?.Dispose();
+            _mediaElementService?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error disposing PlaybackService");
         }
     }
 }

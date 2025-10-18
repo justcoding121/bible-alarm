@@ -1,7 +1,3 @@
-using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.iOS.Services.Handlers;
 using Bible.Alarm.iOS.Services.Platform;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
@@ -9,13 +5,8 @@ using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Foundation;
 using Serilog;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using UIKit;
 using UserNotifications;
-using Microsoft.Maui.Controls;
-using Bible.Alarm;
 
 namespace Bible.Alarm.iOS
 {
@@ -107,7 +98,8 @@ namespace Bible.Alarm.iOS
 #pragma warning disable CA1422
                     if (launchOptions.ContainsKey(UIApplication.LaunchOptionsLocalNotificationKey))
                     {
-                        var localNotification = launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] as UILocalNotification;
+                        var localNotification =
+                            launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] as UILocalNotification;
 #pragma warning restore CA1422
                         if (localNotification != null)
                         {
@@ -128,37 +120,38 @@ namespace Bible.Alarm.iOS
                 UNAuthorizationOptions.Alert
                 | UNAuthorizationOptions.Sound
                 | UNAuthorizationOptions.Badge, (approved, err) =>
-            {
-                if (!approved)
                 {
-                    Task.Run(() =>
+                    if (!approved)
                     {
-                        try
+                        Task.Run(() =>
                         {
-                            using var dbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
-
-                            if (!dbContext.GeneralSettings.Any(x => x.Key == "iOSNotificationDisabledMsgShown"))
+                            try
                             {
-                                dbContext.GeneralSettings.Add(new Alarm.Models.GeneralSettings()
-                                {
-                                    Key = "iOSNotificationDisabledMsgShown",
-                                    Value = "true"
-                                });
-                                dbContext.SaveChanges();
+                                using var dbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
 
-                                var popupService = ServiceProviderManager.GetService<IToastService>();
-                                popupService.ShowMessage("You've disabled notifications. " +
-                                    "We won't be able to alert you on scheduled time. " +
-                                    "You can however open the app anytime and resume listening.", 8);
+                                if (!dbContext.GeneralSettings.Any(x => x.Key == "iOSNotificationDisabledMsgShown"))
+                                {
+                                    dbContext.GeneralSettings.Add(new Alarm.Models.GeneralSettings()
+                                    {
+                                        Key = "iOSNotificationDisabledMsgShown",
+                                        Value = "true"
+                                    });
+                                    dbContext.SaveChanges();
+
+                                    var popupService = ServiceProviderManager.GetService<IToastService>();
+                                    popupService.ShowMessage("You've disabled notifications. " +
+                                                             "We won't be able to alert you on scheduled time. " +
+                                                             "You can however open the app anytime and resume listening.",
+                                        8);
+                                }
                             }
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Error(e, "Error when prompting iOS notification permission on launch.");
-                        }
-                    });
-                }
-            });
+                            catch (Exception e)
+                            {
+                                Logger.Error(e, "Error when prompting iOS notification permission on launch.");
+                            }
+                        });
+                    }
+                });
 
             return base.FinishedLaunching(app, launchOptions);
         }
@@ -215,7 +208,8 @@ namespace Bible.Alarm.iOS
             }
         }
 
-        public async override void PerformFetch(UIApplication application, Action<UIBackgroundFetchResult> completionHandler)
+        public async override void PerformFetch(UIApplication application,
+            Action<UIBackgroundFetchResult> completionHandler)
         {
             bool downloaded = false;
 
@@ -237,6 +231,7 @@ namespace Bible.Alarm.iOS
         }
 
         private bool disposed = false;
+
         protected override void Dispose(bool disposing)
         {
             if (disposed)

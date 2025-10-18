@@ -1,8 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
+
 <resources>
-  <!-- Notificaiton Channel -->
-  <string name="notification_channel">Now Playing</string>
-  <string name="notification_channel_description">New World Translation</string>
-  
-  <string name="media_route_menu_title">Cast</string>
+	<!-- Notificaiton Channel -->
+	<string name="notification_channel">Now Playing</string>
+	<string name="notification_channel_description">New World Translation</string>
+
+	<string name="media_route_menu_title">Cast</string>
 </resources>

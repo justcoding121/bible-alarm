@@ -1,10 +1,6 @@
-using System.Threading.Tasks;
+namespace Bible.Alarm.Services;
 
-namespace Bible.Alarm.Services
+public interface ISchedulerService
 {
-    public interface ISchedulerService
-    {
-        Task ProcessScheduledTasks();
-    }
+    Task ProcessScheduledTasks();
 }
-

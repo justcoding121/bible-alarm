@@ -1,11 +1,7 @@
-﻿using System;
-using Microsoft.Maui.Devices;
+﻿namespace Bible.Alarm.Contracts.Battery;
 
-namespace Bible.Alarm.Contracts.Battery
+public interface IBatteryOptimizationManager : IDisposable
 {
-    public interface IBatteryOptimizationManager : IDisposable
-    {
-        void ShowBatteryOptimizationExclusionSettingsPage();
-        bool CanShowOptimizeActivity();
-    }
+    void ShowBatteryOptimizationExclusionSettingsPage();
+    bool CanShowOptimizeActivity();
 }

@@ -1,8 +1,5 @@
-﻿using System;
+﻿namespace Bible.Alarm.Common.Mvvm;
 
-namespace Bible.Alarm.Common.Mvvm
+public interface IDisposableModal : IDisposable
 {
-    public interface IDisposableModal : IDisposable
-    {
-    }
 }

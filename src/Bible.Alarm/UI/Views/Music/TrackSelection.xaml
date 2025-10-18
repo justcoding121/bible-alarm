@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+
 <ContentPage
     x:Class="Bible.Alarm.UI.Views.Music.TrackSelection"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -16,14 +17,10 @@
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
         <converters:RepeatColorConverter x:Key="repeatColorConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid BackgroundColor="White">
-            <Grid.RowDefinitions>
-                <RowDefinition />
-            </Grid.RowDefinitions>
             <ActivityIndicator
                 Grid.Row="0"
                 HorizontalOptions="Center"

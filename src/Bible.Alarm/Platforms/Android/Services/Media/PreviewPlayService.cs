@@ -1,56 +1,50 @@
 ﻿using Android.Media;
-using Bible.Alarm.Droid;
 using Bible.Alarm.Services.Contracts;
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
-using System;
-using System.Threading.Tasks;
 
 
-namespace Bible.Alarm.Services.Droid
+namespace Bible.Alarm.Services.Droid;
+
+public class PreviewPlayService(MediaPlayer player) : Java.Lang.Object,
+    MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable
 {
-    public class PreviewPlayService(MediaPlayer player) : Java.Lang.Object,
-        MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable
+    private MediaPlayer _player = player;
+
+    public event Action OnStopped;
+
+    public void Stop()
     {
-        private MediaPlayer _player = player;
+        _player.Stop();
+    }
 
-        public event Action OnStopped;
+    public void OnCompletion(MediaPlayer mp)
+    {
+        OnStopped?.Invoke();
+    }
 
-        public void Stop()
-        {
-            _player.Stop();
-        }
+    Task IPreviewPlayService.Play(string url)
+    {
+        var uri = Android.Net.Uri.Parse(url);
+        _player.Reset();
+        _player.SetOnCompletionListener(this);
+        _player.SetDataSource(Android.App.Application.Context, uri);
+        _player.Prepare();
+        _player.Start();
 
-        public void OnCompletion(MediaPlayer mp)
-        {
-            OnStopped?.Invoke();
-        }
+        return Task.CompletedTask;
+    }
 
-        Task IPreviewPlayService.Play(string url)
-        {
-            var uri = Android.Net.Uri.Parse(url);
-            _player.Reset();
-            _player.SetOnCompletionListener(this);
-            _player.SetDataSource(Android.App.Application.Context, uri);
-            _player.Prepare();
-            _player.Start();
+    private bool _disposed = false;
 
-            return Task.CompletedTask;
-        }
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed) return;
 
-        private bool _disposed = false;
-        protected override void Dispose(bool disposing)
-        {
-            if (_disposed)
-            {
-                return;
-            }
+        _player?.Stop();
+        _player?.Dispose();
+        _player = null;
 
-            _player?.Stop();
-            _player?.Dispose();
-            _player = null;
-
-            _disposed = true;
-            base.Dispose(disposing);
-        }
+        _disposed = true;
+        base.Dispose(disposing);
     }
 }

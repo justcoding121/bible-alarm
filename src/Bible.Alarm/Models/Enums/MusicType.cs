@@ -1,8 +1,7 @@
-﻿namespace Bible.Alarm.Models
+﻿namespace Bible.Alarm.Models;
+
+public enum MusicType
 {
-    public enum MusicType
-    {
-        Melodies = 0,
-        Vocals = 1
-    }
+    Melodies = 0,
+    Vocals = 1
 }

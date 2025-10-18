@@ -1,31 +1,21 @@
 ﻿using Bible.Alarm.Contracts.Network;
-using System.Threading.Tasks;
-using Microsoft.Maui.Networking;
 
-namespace Bible.Alarm.Services.Network
+namespace Bible.Alarm.Services.Network;
+
+public class NetworkStatusService(IContainer container) : INetworkStatusService
 {
-    public class NetworkStatusService(IContainer container) : INetworkStatusService
+    public IContainer Container { get; set; } = container;
+
+    public Task<bool> IsInternetAvailable()
     {
-        public IContainer Container { get; set; } = container;
+        var current = Connectivity.NetworkAccess;
 
-        public Task<bool> IsInternetAvailable()
-        {
-            var current = Connectivity.NetworkAccess;
+        if (current == NetworkAccess.Internet) return Task.FromResult(true);
 
-            if (current == NetworkAccess.Internet)
-            {
-                return Task.FromResult(true);
-            }
+        return Task.FromResult(false);
+    }
 
-            return Task.FromResult(false);
-
-        }
-
-        public void Dispose()
-        {
-
-        }
-
-
+    public void Dispose()
+    {
     }
 }

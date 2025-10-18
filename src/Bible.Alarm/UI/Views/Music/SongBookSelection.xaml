@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+
 <ContentPage
     x:Class="Bible.Alarm.UI.Views.Music.SongBookSelection"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -18,9 +19,6 @@
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid BackgroundColor="White">
-            <Grid.RowDefinitions>
-                <RowDefinition />
-            </Grid.RowDefinitions>
             <ActivityIndicator
                 Grid.Row="0"
                 HorizontalOptions="Center"
@@ -95,7 +93,6 @@
                             Orientation="Horizontal"
                             VerticalOptions="Fill">
                             <Label
-                                Grid.Column="0"
                                 Margin="5,0,2,0"
                                 HorizontalOptions="End"
                                 HorizontalTextAlignment="End"

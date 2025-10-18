@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+
 <ContentPage
     x:Class="Bible.Alarm.UI.Home"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -16,12 +17,8 @@
         <converters:DayColorConverter x:Key="dayColorConverter" />
         <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
-        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
     <Grid AutomationId="HomePage" BackgroundColor="White">
-        <Grid.RowDefinitions>
-            <RowDefinition />
-        </Grid.RowDefinitions>
         <ActivityIndicator
             Grid.Row="0"
             HorizontalOptions="Center"
@@ -106,16 +103,16 @@
                                     <ColumnDefinition Width="auto" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto"/>
+                                    <RowDefinition Height="auto" />
                                 </Grid.RowDefinitions>
                                 <StackLayout VerticalOptions="CenterAndExpand"
-                                    Grid.Column="0"
-                                    Margin="{OnIdiom Default={OnPlatform Default='10,3,0,0',
+                                             Grid.Column="0"
+                                             Margin="{OnIdiom Default={OnPlatform Default='10,3,0,0',
                                                                          iOS='10,3,0,0',
                                                                          WinUI='30,3,0,0'},
                                                      Tablet={OnPlatform Default='30,3,0,0'}}"
-                                    Padding="0"
-                                    Orientation="Vertical">
+                                             Padding="0"
+                                             Orientation="Vertical">
                                     <Button
                                         Margin="0"
                                         Padding="0"
@@ -218,7 +215,7 @@
                                         Margin="2,0,0,0"
                                         Text="{Binding SubTitle}"
                                         TextColor="SlateBlue" />
-                                    <StackLayout Orientation="Horizontal" HorizontalOptions="Start" 
+                                    <StackLayout Orientation="Horizontal" HorizontalOptions="Start"
                                                  MinimumHeightRequest="30" VerticalOptions="FillAndExpand">
                                         <Button
                                             CharacterSpacing="0"
@@ -250,7 +247,7 @@
                                             VerticalOptions="FillAndExpand" />
                                     </StackLayout>
                                 </StackLayout>
-                                <StackLayout 
+                                <StackLayout
                                     Grid.Column="2"
                                     Margin="{OnIdiom Default={OnPlatform Default='15,0,30,0',
                                                                          iOS='5,0,10,0',

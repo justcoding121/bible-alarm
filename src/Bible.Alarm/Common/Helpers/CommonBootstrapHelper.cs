@@ -1,42 +1,38 @@
 ﻿using Bible.Alarm.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Bible.Alarm.Common.Helpers
+namespace Bible.Alarm.Common.Helpers;
+
+public static class CommonBootstrapHelper
 {
-    public static class CommonBootstrapHelper
+    private static SemaphoreSlim @lock = new(1);
+
+    public static async Task VerifyServices()
     {
-        private static SemaphoreSlim @lock = new SemaphoreSlim(1);
-        public static async Task VerifyServices()
+        await @lock.WaitAsync();
+
+        try
         {
-            await @lock.WaitAsync();
+            var task1 = VerifyMediaLookUpService();
+            var task2 = InitializeDatabase();
 
-            try
-            {
-                var task1 = VerifyMediaLookUpService();
-                var task2 = InitializeDatabase();
-
-                await Task.WhenAll(task1, task2);
-            }
-            finally
-            {
-                @lock.Release();
-            }
+            await Task.WhenAll(task1, task2);
         }
-
-        private static async Task VerifyMediaLookUpService()
+        finally
         {
-            using var service = ServiceProviderManager.GetService<MediaIndexService>();
-            await service.Verify();
-
+            @lock.Release();
         }
+    }
 
-        private static async Task InitializeDatabase()
-        {
-            using var db = ServiceProviderManager.GetService<ScheduleDbContext>();
-            await db.Database.MigrateAsync();
-        }
+    private static async Task VerifyMediaLookUpService()
+    {
+        using var service = ServiceProviderManager.GetService<MediaIndexService>();
+        await service.Verify();
+    }
 
+    private static async Task InitializeDatabase()
+    {
+        using var db = ServiceProviderManager.GetService<ScheduleDbContext>();
+        await db.Database.MigrateAsync();
     }
 }

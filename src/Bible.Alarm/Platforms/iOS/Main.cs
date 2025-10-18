@@ -1,10 +1,6 @@
-using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.iOS.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
-using Foundation;
 using Serilog;
-using System;
-using System.Threading.Tasks;
 using UIKit;
 
 namespace Bible.Alarm.iOS
@@ -48,6 +44,7 @@ namespace Bible.Alarm.iOS
         }
 
         private static bool disposed = false;
+
         private static void dispose()
         {
             if (disposed)

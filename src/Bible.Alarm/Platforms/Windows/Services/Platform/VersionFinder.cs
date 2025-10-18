@@ -1,5 +1,4 @@
 ﻿using Bible.Alarm.Contracts.Platform;
-using System;
 using Windows.ApplicationModel;
 
 namespace Bible.Alarm.Services.Windows.Platform
@@ -22,6 +21,5 @@ namespace Bible.Alarm.Services.Windows.Platform
 
             return string.Format("{0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision);
         }
-
     }
 }

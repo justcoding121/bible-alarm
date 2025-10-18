@@ -1,14 +1,14 @@
-﻿namespace Mvvmicro
-{
-    using System.ComponentModel;
+﻿namespace Mvvmicro;
 
-    public static class ObserversExtensions
+using System.ComponentModel;
+
+public static class ObserversExtensions
+{
+    public static NotifyPropertyObserver<TObserver, TObservable> CreateObserver<TObservable, TObserver>(
+        this TObservable observable, TObserver observer)
+        where TObservable : INotifyPropertyChanged
+        where TObserver : class
     {
-        public static NotifyPropertyObserver<TObserver, TObservable> CreateObserver<TObservable, TObserver>(this TObservable observable, TObserver observer)
-            where TObservable : INotifyPropertyChanged
-            where TObserver : class
-        {
-            return new NotifyPropertyObserver<TObserver, TObservable>(observable, observer);
-        }
+        return new NotifyPropertyObserver<TObserver, TObservable>(observable, observer);
     }
 }

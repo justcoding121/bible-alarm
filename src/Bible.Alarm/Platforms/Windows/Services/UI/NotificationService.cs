@@ -1,11 +1,6 @@
 ﻿using Bible.Alarm.Services.Contracts;
-using Serilog;
-using System;
-using System.Threading.Tasks;
 using Bible.Alarm.Services.Windows.Handlers;
-using Microsoft.Windows.AppNotifications;
 using Windows.UI.Notifications;
-using System.Linq;
 using Bible.Alarm.Services.Windows.Helpers;
 using Bible.Alarm.Models;
 
@@ -22,15 +17,16 @@ namespace Bible.Alarm.Services.Windows
         public Task ScheduleNotification(AlarmSchedule schedule,
             string title, string body)
         {
-
             var scheduleId = schedule.Id;
             var time = schedule.NextFireDate();
             // Construct the toast content using built-in Windows APIs
-            var toastXml = global::Windows.UI.Notifications.ToastNotificationManager.GetTemplateContent(global::Windows.UI.Notifications.ToastTemplateType.ToastText02);
+            var toastXml =
+                global::Windows.UI.Notifications.ToastNotificationManager.GetTemplateContent(global::Windows.UI
+                    .Notifications.ToastTemplateType.ToastText02);
             var textNodes = toastXml.GetElementsByTagName("text");
             textNodes[0].AppendChild(toastXml.CreateTextNode(title));
             textNodes[1].AppendChild(toastXml.CreateTextNode(body));
-            
+
             var audioElement = toastXml.CreateElement("audio");
             audioElement.SetAttribute("src", "ms-appx:///Resources/cool-alarm-tone-notification-sound.mp3");
             var toastElement = toastXml.SelectSingleNode("/toast");
@@ -45,7 +41,7 @@ namespace Bible.Alarm.Services.Windows
             {
                 Id = scheduleId.ToString()
             };
-           
+
             // Add to the schedule.
             ToastNotificationManager.CreateToastNotifier()
                 .AddToSchedule(toast);
@@ -95,8 +91,6 @@ namespace Bible.Alarm.Services.Windows
 
         public void Dispose()
         {
-
         }
     }
-
 }

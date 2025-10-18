@@ -4,10 +4,7 @@
 // MVID: C5F64108-560B-4DF4-8351-166C386E1779
 // Assembly location: C:\Work\Repositories\Bible-Alarm\src\Bible.Alarm\Bible.Alarm.UWP\bin\x86\Debug\Redux.dll
 
-using System;
+namespace Redux;
 
-namespace Redux
-{
-    public delegate Func<Dispatcher, Dispatcher> Middleware<TState>(
+public delegate Func<Dispatcher, Dispatcher> Middleware<TState>(
     IStore<TState> store);
-}

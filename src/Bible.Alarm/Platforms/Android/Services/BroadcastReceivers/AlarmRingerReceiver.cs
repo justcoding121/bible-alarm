@@ -1,111 +1,98 @@
-﻿using Android.App;
-using Android.Content;
+﻿using Android.Content;
 using Android.OS;
-using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Droid.Services.Handlers;
 using Bible.Alarm.Droid.Services.Platform;
-using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
-using Newtonsoft.Json;
 using Serilog;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Bible.Alarm.Droid.Services.Tasks
+namespace Bible.Alarm.Droid.Services.Tasks;
+
+[BroadcastReceiver(Enabled = true)]
+public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 {
-    [BroadcastReceiver(Enabled = true)]
-    public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
+    private static readonly ILogger Logger = Log.ForContext<AlarmRingerReceiver>();
+
+
+    // private IContainer _container; // No longer needed
+    private Context _context;
+    private Intent _intent;
+    private AndroidAlarmHandler _alarmHandler;
+
+    private static readonly SemaphoreSlim Lock = new(1);
+
+    public AlarmRingerReceiver()
     {
-        private static readonly ILogger Logger = Log.ForContext<AlarmRingerReceiver>();
+        LogSetup.Initialize(VersionFinder.Default,
+            new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, "Android");
 
+        AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+    }
 
-        // private IContainer _container; // No longer needed
-        private Context _context;
-        private Intent _intent;
-        private AndroidAlarmHandler _alarmHandler;
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Logger.Error(e.Exception, "Unobserved task exception.");
+    }
 
-        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
-        public AlarmRingerReceiver()
+    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    {
+        Logger.Error("Unhandled exception.", e.SerializeObject());
+    }
+
+    public override async void OnReceive(Context context, Intent intent)
+    {
+        var pendingIntent = GoAsync();
+
+        await Lock.WaitAsync();
+
+        try
         {
-            LogSetup.Initialize(VersionFinder.Default,
-                new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
+            // _container = BootstrapHelper.InitializeService(context); // No longer needed
 
-            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+            _context = context;
+            _intent = intent;
+
+            var scheduleId = intent.GetStringExtra("ScheduleId");
+            var isImmediate = intent.GetBooleanExtra("IsImmediate", false);
+
+            _alarmHandler = ServiceProviderManager.GetService<AndroidAlarmHandler>();
+            _alarmHandler.Disposed += OnDisposed;
+            await _alarmHandler.Handle(long.Parse(scheduleId), isImmediate);
         }
-
-        private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        catch (Exception e)
         {
-            Logger.Error(e.Exception, "Unobserved task exception.");
+            Logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            Dispose();
         }
-
-        private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+        finally
         {
-              Logger.Error("Unhandled exception.", e.SerializeObject());
+            Lock.Release();
+            pendingIntent.Finish();
         }
+    }
 
-        public override async void OnReceive(Context context, Intent intent)
-        {
-            var pendingIntent = GoAsync();
+    private void OnDisposed(object sender, bool e)
+    {
+        Dispose(true);
+    }
 
-            await Lock.WaitAsync();
+    private bool _disposed = false;
 
-            try
-            {
-                // _container = BootstrapHelper.InitializeService(context); // No longer needed
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed) return;
 
-                _context = context;
-                _intent = intent;
+        if (_alarmHandler != null) _alarmHandler.Disposed -= OnDisposed;
 
-                var scheduleId = intent.GetStringExtra("ScheduleId");
-                var isImmediate = intent.GetBooleanExtra("IsImmediate", false);
+        _context?.StopService(_intent);
+        BootstrapHelper.Remove(_context);
 
-                _alarmHandler = ServiceProviderManager.GetService<AndroidAlarmHandler>();
-                _alarmHandler.Disposed += OnDisposed;
-                await _alarmHandler.Handle(long.Parse(scheduleId), isImmediate);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "An error happened when creating the task to ring the alarm.");
-                Dispose();
-            }
-            finally
-            {
-                Lock.Release();
-                pendingIntent.Finish();
-            }
-        }
+        AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
 
-        private void OnDisposed(object sender, bool e)
-        {
-            Dispose(true);
-        }
+        _disposed = true;
 
-        private bool _disposed = false;
-        protected override void Dispose(bool disposing)
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            if (_alarmHandler != null)
-            {
-                _alarmHandler.Disposed -= OnDisposed;
-            }
-
-            _context?.StopService(_intent);
-            BootstrapHelper.Remove(_context);
-
-            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
-
-            _disposed = true;
-
-            base.Dispose(disposing);
-        }
+        base.Dispose(disposing);
     }
 }
