@@ -1,4 +1,5 @@
 ﻿using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -10,7 +11,7 @@ public class SchedulerTask(
     IAlarmService alarmService,
     INotificationService notificationService,
     IStorageService storageService)
-    : IDisposable
+    : ISchedulerService, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<SchedulerTask>();
 

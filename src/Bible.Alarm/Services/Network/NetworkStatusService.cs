@@ -2,9 +2,8 @@
 
 namespace Bible.Alarm.Services.Network;
 
-public class NetworkStatusService(IContainer container) : INetworkStatusService
+public class NetworkStatusService() : INetworkStatusService
 {
-    public IContainer Container { get; set; } = container;
 
     public Task<bool> IsInternetAvailable()
     {

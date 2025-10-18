@@ -5,7 +5,7 @@ using System.IO.Compression;
 
 namespace Bible.Alarm.Services;
 
-public class MediaIndexService : IDisposable
+public class MediaIndexService : IMediaIndexService, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<MediaIndexService>();
 

@@ -15,6 +15,9 @@ using Bible.Alarm.UI.Views.General;
 // using Bible.Alarm.UI.Views.Shared; // Shared is a folder, not a namespace
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Contracts.Battery;
+using Bible.Alarm.Contracts.Platform;
+using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm;
 
@@ -43,8 +46,14 @@ public static class MauiProgram
 
     private static void RegisterServices(IServiceCollection services)
     {
-        // Register core services
+        // Register platform-specific HttpMessageHandler
+        #if ANDROID
+        services.AddSingleton<HttpMessageHandler, Xamarin.Android.Net.AndroidMessageHandler>();
+        #elif IOS
+        services.AddSingleton<HttpMessageHandler, System.Net.Http.HttpClientHandler>();
+        #elif WINDOWS
         services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
+#endif
 
         // Register common services
         RegisterCommonServices(services);
@@ -70,19 +79,54 @@ public static class MauiProgram
         services.AddSingleton<IMediaElementAudioService, MediaElementAudioService>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<SchedulerTask>();
+        services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerTask>());
+        services.AddSingleton<IMediaIndexService>(sp => sp.GetRequiredService<MediaIndexService>());
+        
+        // Register platform-specific version finder
+        #if ANDROID
+        services.AddSingleton<IVersionFinder, Bible.Alarm.Droid.Services.Platform.VersionFinder>();
+        #elif IOS
+        services.AddSingleton<IVersionFinder, Bible.Alarm.iOS.Services.Platform.VersionFinder>();
+        #elif WINDOWS
+        services.AddSingleton<IVersionFinder, Bible.Alarm.Services.Windows.Platform.UwpVersionFinder>();
+        #endif
 
         // Register platform-specific services
         #if ANDROID
         services.AddSingleton<INotificationService, Bible.Alarm.Services.Droid.DroidNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.Droid.DroidToastService>();
         services.AddSingleton<IAndroidAlarmHandler, Bible.Alarm.Droid.Services.Handlers.AndroidAlarmHandler>();
+        services.AddSingleton<IStorageService, Bible.Alarm.Droid.Services.Storage.AndroidStorageService>();
+        services.AddSingleton<IBatteryOptimizationManager, Bible.Alarm.Droid.Services.Battery.BatteryOptimizationManager>();
+        services.AddSingleton<IPreviewPlayService, Bible.Alarm.Services.Droid.PreviewPlayService>();
         #elif IOS
         services.AddSingleton<INotificationService, Bible.Alarm.Services.iOS.IOsNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.iOS.IOsToastService>();
+        services.AddSingleton<IStorageService, Bible.Alarm.Droid.Services.Storage.IOsStorageService>();
+        services.AddSingleton<IPreviewPlayService, Bible.Alarm.Services.iOS.PreviewPlayService>();
+        services.AddSingleton<Bible.Alarm.iOS.Services.Handlers.IOsAlarmHandler>();
         #elif WINDOWS
         services.AddSingleton<INotificationService, Bible.Alarm.Services.Windows.UwpNotificationService>();
         services.AddSingleton<IToastService, Bible.Alarm.Services.Windows.UwpToastService>();
+        services.AddSingleton<IStorageService, Bible.Alarm.Services.Windows.Storage.UwpStorageService>();
+        services.AddSingleton<IPreviewPlayService, Bible.Alarm.Services.Windows.PreviewPlayService>();
+        services.AddSingleton<Bible.Alarm.Services.Windows.Handlers.UwpAlarmHandler>();
         #endif
+
+        // Register database contexts
+        services.AddDbContext<ScheduleDbContext>((sp, options) =>
+        {
+            var storageService = sp.GetRequiredService<IStorageService>();
+            var databasePath = Path.Combine(storageService.StorageRoot, "bibleAlarm.db");
+            options.UseSqlite($"Filename={databasePath}");
+        });
+
+        services.AddDbContext<MediaDbContext>((sp, options) =>
+        {
+            var storageService = sp.GetRequiredService<IStorageService>();
+            var databasePath = Path.Combine(storageService.StorageRoot, "mediaIndex.db");
+            options.UseSqlite($"Filename={databasePath}");
+        });
 
         // Register TaskScheduler for compatibility
         services.AddSingleton<TaskScheduler>(sp => TaskScheduler.FromCurrentSynchronizationContext());
