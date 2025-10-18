@@ -1,6 +1,7 @@
 ﻿using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Serilog;
@@ -22,7 +23,7 @@ public class MediaCacheService(
     private static readonly ILogger Logger = Log.ForContext<MediaCacheService>();
 
 
-    private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, "MediaCache");
+    private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
 
     private static ConcurrentDictionary<long, SemaphoreSlim> lockStore = new();
 
@@ -31,7 +32,7 @@ public class MediaCacheService(
         var uri = new Uri(url);
 
         var plainTextBytes = Encoding.UTF8.GetBytes(uri.PathAndQuery);
-        return Convert.ToBase64String(plainTextBytes) + ".mp3";
+        return Convert.ToBase64String(plainTextBytes) + AppConstants.Media.MediaFileExtension;
     }
 
     public string GetCacheFilePath(string url)
@@ -157,7 +158,7 @@ public class MediaCacheService(
     private static string[] jwOrgUrls = new string[]
     {
         UrlHelper.JwOrgIndexServiceBaseUrl,
-        "https://apps.jw.org/GETPUBMEDIALINKS"
+        AppConstants.ApiEndpoints.JwOrgAlternativeIndexServiceUrl
     };
 
     public async Task<string> GetBibleChapterUrl(string languageCode, string pubCode, int bookNumber, int chapter,
@@ -194,10 +195,10 @@ public class MediaCacheService(
             var jsonString = Encoding.Default.GetString(@bytes);
             var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
 
-            var lc = languageCode ?? "E";
+            var lc = languageCode ?? AppConstants.Media.DefaultLanguageCode;
 
             //patch for bad data
-            if (lc == "LAH") lc = "LAHU";
+            if (lc == AppConstants.Media.LanguageCodePatchFrom) lc = AppConstants.Media.LanguageCodePatchTo;
 
             return model.files[lc].MP3[0].file.url;
         }

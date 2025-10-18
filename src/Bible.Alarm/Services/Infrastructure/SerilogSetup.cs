@@ -1,4 +1,5 @@
 using Bible.Alarm.Contracts.Platform;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Services.Infrastructure;
@@ -30,12 +31,12 @@ public class SerilogSetup
 
         var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Debug()
-            .Enrich.WithProperty("Application", "Bible-Alarm")
+            .Enrich.WithProperty("Application", AppConstants.AppSettings.ApplicationName)
             .Enrich.WithProperty("Version", versionName)
             .Enrich.WithProperty("Platform", CurrentDevice.RuntimePlatform);
 
 #if DEBUG
-        loggerConfig.Enrich.WithProperty("Environment", "DEBUG");
+        loggerConfig.Enrich.WithProperty("Environment", AppConstants.Logging.DebugEnvironment);
 #endif
 
         // Add custom tags if provided
@@ -45,15 +46,14 @@ public class SerilogSetup
 
         // Configure console sink
         loggerConfig.WriteTo.Console(
-            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
 
         // Configure file sink for persistent logging
         loggerConfig.WriteTo.File(
-            Path.Combine(FileSystem.Current.CacheDirectory, "logs", "bible-alarm-.log"),
+            Path.Combine(FileSystem.Current.CacheDirectory, AppConstants.FilePaths.LogsDirectoryName, AppConstants.FilePaths.LogFileNamePattern),
             rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 7,
-            outputTemplate:
-            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+            retainedFileCountLimit: AppConstants.CacheSettings.LogFileRetentionDays,
+            outputTemplate: AppConstants.Logging.FileOutputTemplate);
 
         Log.Logger = loggerConfig.CreateLogger();
     }

@@ -1,6 +1,7 @@
 ﻿using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -17,7 +18,7 @@ public class PlaylistService(
     public async Task<long> GetRelavantScheduleToPlay()
     {
         var lastSchedule =
-            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == "LastPlayedScheduleId");
+            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId);
 
         AlarmSchedule schedule = null;
 
@@ -39,11 +40,11 @@ public class PlaylistService(
     public async Task SaveLastPlayed(long scheduleId)
     {
         var lastSchedule =
-            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == "LastPlayedScheduleId");
+            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId);
 
         if (lastSchedule == null)
         {
-            lastSchedule = new GeneralSettings { Key = "LastPlayedScheduleId" };
+            lastSchedule = new GeneralSettings { Key = AppConstants.GeneralSettingsKeys.LastPlayedScheduleId };
             scheduleDbContext.GeneralSettings.Add(lastSchedule);
         }
 

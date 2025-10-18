@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Constants;
 using System.Net;
 
 namespace Bible.Alarm.Services;
@@ -9,10 +10,10 @@ namespace Bible.Alarm.Services;
 /// </summary>
 public class DownloadService(HttpMessageHandler handler) : IDownloadService
 {
-    private readonly int _downloadRetryAttempts = 3;
-    private readonly int _fileExistsCheckRetryAttempts = 3;
+    private readonly int _downloadRetryAttempts = AppConstants.CacheSettings.DownloadRetryAttempts;
+    private readonly int _fileExistsCheckRetryAttempts = AppConstants.CacheSettings.FileExistsCheckRetryAttempts;
 
-    private readonly int _timeOutSeconds = 3;
+    private readonly int _timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
 
     /// <summary>
     /// Dowload the file from the Url

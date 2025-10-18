@@ -42,6 +42,16 @@
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<ProjectReference Include="..\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
+	</ItemGroup>
+
+	<!-- Exclude shared project files from compilation to prevent duplication -->
+	<ItemGroup>
+		<Compile Remove="..\Bible.Alarm.Shared\**\*.cs" />
+		<None Include="..\Bible.Alarm.Shared\**\*.cs" />
+	</ItemGroup>
+
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
 		<PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
 	</ItemGroup>

@@ -17,6 +17,7 @@ using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Battery;
 using Bible.Alarm.Contracts.Platform;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm;
@@ -31,7 +32,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
 #pragma warning restore CA1416
-            .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
+            .ConfigureFonts(fonts => { fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName); });
 
         // Register services
         RegisterServices(builder.Services);
@@ -117,15 +118,15 @@ public static class MauiProgram
         services.AddDbContext<ScheduleDbContext>((sp, options) =>
         {
             var storageService = sp.GetRequiredService<IStorageService>();
-            var databasePath = Path.Combine(storageService.StorageRoot, "bibleAlarm.db");
-            options.UseSqlite($"Filename={databasePath}");
+            var databasePath = Path.Combine(storageService.StorageRoot, AppConstants.Database.ScheduleDatabaseFileName);
+            options.UseSqlite(string.Format(AppConstants.Database.ScheduleDatabaseConnectionStringFormat, databasePath));
         });
 
         services.AddDbContext<MediaDbContext>((sp, options) =>
         {
             var storageService = sp.GetRequiredService<IStorageService>();
-            var databasePath = Path.Combine(storageService.StorageRoot, "mediaIndex.db");
-            options.UseSqlite($"Filename={databasePath}");
+            var databasePath = Path.Combine(storageService.StorageRoot, AppConstants.Database.MediaIndexDatabaseFileName);
+            options.UseSqlite(string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, databasePath));
         });
 
         // Register TaskScheduler for compatibility

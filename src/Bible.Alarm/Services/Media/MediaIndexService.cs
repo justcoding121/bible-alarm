@@ -1,5 +1,6 @@
 ﻿using Bible.Alarm.Contracts.Platform;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 using System.IO.Compression;
 
@@ -70,18 +71,18 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                 await _storageService.GetFileCreationDate(Path.Combine(IndexRoot, "mediaIndex.db"), false);
 
             //if downloaded within last 12 hours
-            if (creationDate.UtcDateTime > DateTime.UtcNow.AddHours(-12)) return false;
+            if (creationDate.UtcDateTime > DateTime.UtcNow.AddHours(-AppConstants.CacheSettings.MediaIndexUpdateCheckHours)) return false;
 
             var time = DateTime.UtcNow;
 
             for (var i = 0; time.Day > 0 && i <= 1; i++)
             {
                 var bytes = await _downloadService.DownloadAsync(
-                    $"https://jthomas.info/bible-alarm/media-index/{time.Day - i}-{time.Month}-{time.Year}.zip");
+                    $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{time.Day - i}-{time.Month}-{time.Year}.zip");
 
                 if (bytes != null)
                 {
-                    var indexZipFileName = "index.zip";
+                    var indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
 
                     if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
 
@@ -95,7 +96,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                     if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
                         await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
 
-                    var extractionDir = Path.Combine(IndexRoot, "tmp");
+                    var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
                     await _storageService.CreateDirectory(extractionDir);
 
                     ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);

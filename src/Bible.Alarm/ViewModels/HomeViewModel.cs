@@ -4,6 +4,7 @@ using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Microsoft.EntityFrameworkCore;
@@ -94,17 +95,17 @@ public class HomeViewModel : ViewModel, IDisposable
     private async Task SeedDefaultAlarm()
     {
         if (!await _scheduleDbContext.AlarmSchedules.AnyAsync()
-            && !await _scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == "AlarmSeeded")
+            && !await _scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.AlarmSeeded)
             //for existing apps before version 1.30
             && !await _scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+                x.Key == AppConstants.GeneralSettingsKeys.AndroidBatteryOptimizationExclusionPromptShown))
         {
             var schedule = await AlarmSchedule.GetSampleSchedule(false, _mediaDbContext);
 
             await _scheduleDbContext.AlarmSchedules.AddAsync(schedule);
             await _scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
             {
-                Key = "AlarmSeeded",
+                Key = AppConstants.GeneralSettingsKeys.AlarmSeeded,
                 Value = "True"
             });
 

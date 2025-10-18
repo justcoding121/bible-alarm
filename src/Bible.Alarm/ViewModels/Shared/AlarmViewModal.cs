@@ -2,6 +2,7 @@
 using Bible.Alarm.Models;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 using Mvvmicro;
 using Serilog;
@@ -44,16 +45,16 @@ public class AlarmViewModal : ViewModel, IDisposableModal
             try
             {
                 if (!await scheduleDbContext.GeneralSettings
-                        .AnyAsync(x => x.Key == "ReviewRequested"))
+                        .AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.ReviewRequested))
                 {
                     var dismissCount = await scheduleDbContext.GeneralSettings
-                        .FirstOrDefaultAsync(x => x.Key == "DismissCount");
+                        .FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.DismissCount);
 
                     if (dismissCount != null && int.Parse(dismissCount.Value) >= 6)
                     {
                         await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
                         {
-                            Key = "ReviewRequested",
+                            Key = AppConstants.GeneralSettingsKeys.ReviewRequested,
                             Value = "True"
                         });
 
@@ -66,7 +67,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
                         else
                             await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
                             {
-                                Key = "DismissCount",
+                                Key = AppConstants.GeneralSettingsKeys.DismissCount,
                                 Value = "1"
                             });
                     }
