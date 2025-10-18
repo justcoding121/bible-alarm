@@ -259,7 +259,7 @@ namespace Bible.Alarm.ViewModels
             var chapters = await _mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
             var chapterVMs = new ObservableCollection<BibleChapterListViewItemModel>();
 
-            if (CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
             {
                 Chapters = chapterVMs;
             }
@@ -280,7 +280,7 @@ namespace Bible.Alarm.ViewModels
                 }
             }
 
-            if (CurrentDevice.RuntimePlatform != DevicePlatform.WinUI.ToString())
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
                 Chapters = chapterVMs;
             }

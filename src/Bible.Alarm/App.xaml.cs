@@ -12,6 +12,7 @@ using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui;
+using Microsoft.Maui.Devices;
 
 namespace Bible.Alarm
 {
@@ -60,14 +61,14 @@ namespace Bible.Alarm
                     await navigationPage.Navigation.PushAsync(homePage);
                 };
 
-                if (CurrentDevice.RuntimePlatform != DevicePlatform.Android.ToString())
+                if (DeviceInfo.Platform != DevicePlatform.Android)
                 {
                     homePageSetter().Wait();
                 }
 
                 Task.Delay(100).ContinueWith(async (a) =>
                 {
-                    if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
+                    if (DeviceInfo.Platform == DevicePlatform.Android)
                     {
                         await homePageSetter();
                     }

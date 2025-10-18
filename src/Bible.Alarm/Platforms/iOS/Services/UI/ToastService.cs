@@ -39,7 +39,9 @@ namespace Bible.Alarm.Services.iOS
             {
             
                 var alert = UIAlertController.Create(null, message, UIAlertControllerStyle.Alert);
+#pragma warning disable CA1422
                 UIApplication.SharedApplication.KeyWindow.RootViewController.PresentViewController(alert, true, null);
+#pragma warning restore CA1422
 
                 await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
                 alert.DismissViewController(true, null);

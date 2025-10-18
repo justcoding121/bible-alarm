@@ -43,7 +43,9 @@ namespace Bible.Alarm.Services
 
         public static FileInfo GetFileInfo(Assembly assembly)
         {
+#pragma warning disable IL3000
             return new FileInfo(assembly.Location);
+#pragma warning restore IL3000
         }
     }
 }

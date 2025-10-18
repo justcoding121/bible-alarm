@@ -188,7 +188,7 @@ namespace Bible.Alarm.Services
             {
                 await _storageService.DeleteFile(tmpIndexFilePath);
             }
-            if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString() &&
+            if (DeviceInfo.Platform == DevicePlatform.Android &&
                 await _storageService.FileExists(Path.Combine(IndexRoot, defaultAlarmFile)))
             {
                 await _storageService.DeleteFile(Path.Combine(IndexRoot, defaultAlarmFile));
@@ -203,7 +203,7 @@ namespace Bible.Alarm.Services
 
             ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
 
-            if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
+            if (DeviceInfo.Platform == DevicePlatform.Android)
             {
                 await _storageService.CopyResourceFile(defaultAlarmFile, IndexRoot, defaultAlarmFile);
             }

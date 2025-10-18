@@ -50,7 +50,9 @@ namespace Bible.Alarm.Droid
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Android.Content.PM.Permission[] grantResults)
         {
             // MAUI handles permissions automatically
+#pragma warning disable CA1416
             base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+#pragma warning restore CA1416
         }
 
         protected override void OnResume()

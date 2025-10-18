@@ -296,7 +296,7 @@ namespace Bible.Alarm.ViewModels
 
             var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
 
-            if (CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
             {
                 Tracks = trackVMs;
             }
@@ -320,7 +320,7 @@ namespace Bible.Alarm.ViewModels
                 }
             }
 
-            if (CurrentDevice.RuntimePlatform != DevicePlatform.WinUI.ToString())
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
                 Tracks = trackVMs;
             }

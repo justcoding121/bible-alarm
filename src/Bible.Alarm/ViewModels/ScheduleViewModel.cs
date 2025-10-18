@@ -58,7 +58,7 @@ namespace Bible.Alarm.ViewModels
         {
             _container = container;
 
-            if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
+            if (DeviceInfo.Platform == DevicePlatform.Android)
             {
                 _batteryOptimizationManager = container.Resolve<IBatteryOptimizationManager>();
             }
@@ -143,8 +143,8 @@ namespace Bible.Alarm.ViewModels
                 IsBusy = true;
 
                 if (IsEnabled &&
-                      (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString()
-                        || CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
+                      (DeviceInfo.Platform == DevicePlatform.iOS
+                        || DeviceInfo.Platform == DevicePlatform.WinUI)
                      && !await _notificationService.CanSchedule())
                 {
                     IsEnabled = false;

@@ -151,10 +151,12 @@ namespace Bible.Alarm.Services.Droid.Helpers
             var channelId = DroidNotificationService.ChannelIdAndName;
             var channelName = DroidNotificationService.ChannelIdAndName;
             var channelDescription = DroidNotificationService.ChannelDescription;
+#pragma warning disable CA1416
             var channel = new NotificationChannel(channelId, channelName, NotificationImportance.High)
             {
                 Description = channelDescription
             };
+#pragma warning restore CA1416
 
             var attributes = new AudioAttributes.Builder()
                     .SetUsage(AudioUsageKind.Notification)
@@ -163,6 +165,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
 
             var soundUri = Android.Net.Uri.Parse("android.resource://" + Android.App.Application.Context.PackageName + "/" + Resource.Raw.cool_alarm_tone_notification_sound);
             // Configure the notification channel.
+#pragma warning disable CA1416
             channel.Description = DroidNotificationService.ChannelDescription;
             channel.EnableLights(true);
             channel.EnableVibration(true);
@@ -170,6 +173,7 @@ namespace Bible.Alarm.Services.Droid.Helpers
 
             var notificationManager = (NotificationManager)Android.App.Application.Context.GetSystemService(Context.NotificationService);
             notificationManager.CreateNotificationChannel(channel);
+#pragma warning restore CA1416
         }
     }
 }

@@ -15,7 +15,9 @@ namespace Bible.Alarm.Services.Droid.Helpers
 
             if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             {
+#pragma warning disable CA1416
                 builder.SetRequiresBatteryNotLow(true);
+#pragma warning restore CA1416
             }
 
             builder.SetPeriodic(1000 * 60 * intervalMinutes);

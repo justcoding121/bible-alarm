@@ -44,7 +44,9 @@ namespace Bible.Alarm.Platforms.Android
             {
                 if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
                 {
+#pragma warning disable CA1416, CA1422
                     Window.SetDecorFitsSystemWindows(false);
+#pragma warning restore CA1416, CA1422
                 }
                 else
                 {
@@ -84,7 +86,9 @@ namespace Bible.Alarm.Platforms.Android
                 await Task.Delay(1500);
             }
 
+#pragma warning disable CA1416
             base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+#pragma warning restore CA1416
         }
 
         // Launches the startup task

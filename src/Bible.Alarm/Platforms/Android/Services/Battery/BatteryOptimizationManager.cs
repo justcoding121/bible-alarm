@@ -21,7 +21,9 @@ namespace Bible.Alarm.Droid.Services.Battery
                 {
                     Intent intent = new Intent();
 
+#pragma warning disable CA1416
                     intent.SetAction(Android.Provider.Settings.ActionIgnoreBatteryOptimizationSettings);
+#pragma warning restore CA1416
                     Container.AndroidContext().StartActivity(intent);
                 }
             }

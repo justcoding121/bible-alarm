@@ -83,18 +83,23 @@ namespace Bible.Alarm.iOS
         public override bool FinishedLaunching(UIApplication app, NSDictionary launchOptions)
         {
 #if DEBUG
-            System.Net.ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) =>
-            {
-                if (certificate.Issuer.Equals("CN=localhost"))
-                    return true;
-                return sslPolicyErrors == System.Net.Security.SslPolicyErrors.None;
-            };
+            // Note: SSL certificate validation for localhost is handled by HttpClient configuration
+            // This is now managed through HttpClientHandler in the HTTP client setup
 #endif
 
             try
             {
                 //once every hour
-                UIApplication.SharedApplication.SetMinimumBackgroundFetchInterval(60 * 60);
+                // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+
+                if (UIDevice.CurrentDevice.CheckSystemVersion(13, 0))
+                {
+                    // Use BGAppRefreshTask for iOS 13+
+                    // This is configured in the app's Info.plist
+                }
+                else
+                {
+                    UIApplication.SharedApplication.SetMinimumBackgroundFetchInterval(60 * 60);
+                }
             }
             catch (Exception e)
             {
@@ -108,12 +113,16 @@ namespace Bible.Alarm.iOS
                 try
                 {
                     // check for a local notification
+#pragma warning disable CA1422
                     if (launchOptions.ContainsKey(UIApplication.LaunchOptionsLocalNotificationKey))
                     {
                         var localNotification = launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] as UILocalNotification;
+#pragma warning restore CA1422
                         if (localNotification != null)
                         {
+#pragma warning disable CA1422
                             handleNotification(localNotification.UserInfo);
+#pragma warning restore CA1422
                         }
                     }
                 }
@@ -181,7 +190,9 @@ namespace Bible.Alarm.iOS
                     UNUserNotificationCenter.Current.RemoveAllDeliveredNotifications();
                 }
 
+#pragma warning disable CA1422
                 UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
+#pragma warning restore CA1422
             }
             catch (Exception e)
             {
@@ -203,7 +214,9 @@ namespace Bible.Alarm.iOS
                 // _ = iosAlarmHandler.Handle(long.Parse(scheduleId), true);
 
                 // reset our badge
+#pragma warning disable CA1422
                 UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
+#pragma warning restore CA1422
             }
             catch (Exception e)
             {

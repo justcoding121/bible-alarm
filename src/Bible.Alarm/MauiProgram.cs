@@ -10,9 +10,11 @@ public static class MauiProgram
     public static MauiApp CreateMauiApp(IContainer container = null)
     {
         var builder = MauiApp.CreateBuilder();
+#pragma warning disable CA1416
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
+#pragma warning restore CA1416
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

@@ -180,7 +180,7 @@ namespace Bible.Alarm.ViewModels
                                             .Include(x => x.Music)
                                             .ToListAsync();
 
-                        if (CurrentDevice.RuntimePlatform == DevicePlatform.Android.ToString())
+                        if (DeviceInfo.Platform == DevicePlatform.Android)
                         {
                             //bible gateway is not supported anymore due to copyright issues
                             var toRemove = alarmSchedules.Where(x => BgSourceHelper.PublicationCodeToNameMappings.Any(y => y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
@@ -289,13 +289,13 @@ namespace Bible.Alarm.ViewModels
                                      IsBusy = true;
 
                                      if (y.IsEnabled &&
-                                       (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString()
-                                       || CurrentDevice.RuntimePlatform == DevicePlatform.WinUI.ToString())
+                                       (DeviceInfo.Platform == DevicePlatform.iOS
+                                       || DeviceInfo.Platform == DevicePlatform.WinUI)
                                        && !await _notificationService.CanSchedule())
                                      {
                                          y.IsEnabled = false;
 
-                                         if (CurrentDevice.RuntimePlatform == DevicePlatform.iOS.ToString())
+                                         if (DeviceInfo.Platform == DevicePlatform.iOS)
                                          {
                                              await _popUpService.ShowMessage("Cannot schedule alarm because you've disabled notifications. " +
                                                  "Please enable notification for this app under system settings.", 7);
