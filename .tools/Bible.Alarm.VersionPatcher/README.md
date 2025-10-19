@@ -20,7 +20,7 @@ The application has been refactored to use dependency injection and follows a cl
 │       ├── VersionPatchingService.cs
 │       ├── AndroidVersionPatcher.cs
 │       ├── IOSVersionPatcher.cs
-│       ├── UWPVersionPatcher.cs
+│       ├── WindowsVersionPatcher.cs
 │       ├── VersionService.cs
 │       ├── FileService.cs
 │       └── ServiceCollectionExtensions.cs
@@ -39,7 +39,7 @@ The application has been refactored to use dependency injection and follows a cl
 
 - **AndroidVersionPatcher**: Patches AndroidManifest.xml files
 - **IOSVersionPatcher**: Patches Info.plist files
-- **UWPVersionPatcher**: Patches Package.appxmanifest files
+- **WindowsVersionPatcher**: Patches Package.appxmanifest files
 
 ## Key Features
 
@@ -81,17 +81,17 @@ The application will:
 ## Supported Platforms
 
 ### Android
-- **File**: `src/Bible.Alarm/Bible.Alarm.Droid/Properties/AndroidManifest.xml`
+- **File**: `src/Bible.Alarm/Platforms/Android/Properties/AndroidManifest.xml`
 - **Attributes**: `android:versionCode` and `android:versionName`
 - **Logic**: Increments version code and version name
 
 ### iOS
-- **File**: `src/Bible.Alarm/Bible.Alarm.iOS/Info.plist`
+- **File**: `src/Bible.Alarm/Platforms/iOS/Info.plist`
 - **Key**: `CFBundleVersion`
 - **Logic**: Increments version number
 
-### UWP (Universal Windows Platform)
-- **File**: `src/Bible.Alarm/Bible.Alarm.UWP/Package.appxmanifest`
+### Windows
+- **File**: `src/Bible.Alarm/Platforms/Windows/Package.appxmanifest`
 - **Attribute**: `Version`
 - **Logic**: Increments major.minor version (sets build and revision to 0)
 
@@ -122,7 +122,7 @@ The original monolithic `Program.cs` has been broken down into:
 - **FileService**: Contains file I/O operations
 - **AndroidVersionPatcher**: Contains Android-specific patching logic
 - **IOSVersionPatcher**: Contains iOS-specific patching logic
-- **UWPVersionPatcher**: Contains UWP-specific patching logic
+- **WindowsVersionPatcher**: Contains Windows-specific patching logic
 - **VersionPatchingService**: Orchestrates the entire patching process
 
 ## Error Handling
