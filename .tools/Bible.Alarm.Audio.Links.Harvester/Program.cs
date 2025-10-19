@@ -1,205 +1,43 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Threading.Tasks;
-using Amazon;
-using Amazon.S3;
-using Amazon.S3.Model;
-using Bible.Alarm.Audio.Links.Harvester.Harvesters.Bible;
-using Bible.Alarm.Audio.Links.Harvester.Harvesters.Music;
-using Bible.Alarm.Shared.Models;
-using Bible.Alarm.Shared.Utilities;
-using Newtonsoft.Json;
+using Bible.Alarm.Audio.Links.Harvester.Services.Contracts;
+using Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Bible.Alarm.Audio.Links.Harvester;
 
 public class Program
 {
-    private static readonly Dictionary<string, string> BiblePublicationCodeToNameMappings =
-        JwSourceHelper.PublicationCodeToNameMappings.Select(x => x)
-            .ToDictionary(x => x.Key, x => x.Value);
-
-
     /// <summary>
-    /// Harvest URL links to get the mp3 files liks for Bible & Music 
+    /// Harvest URL links to get the mp3 files links for Bible & Music 
     /// </summary>
     /// <param name="args"></param>
     public static async Task Main(string[] args)
     {
         try
         {
-            var originalIndexFileSize =
-                new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip").Length;
+            // Create and configure the host
+            var host = CreateHostBuilder(args).Build();
 
-            DeleteDirectory(DirectoryHelper.IndexDirectory);
+            // Get the orchestrator service and execute harvesting
+            var orchestrator = host.Services.GetRequiredService<IHarvestingOrchestratorService>();
+            await orchestrator.ExecuteHarvestingAsync();
 
-            var bibleTasks = new List<Task>();
-
-            var languageCodeToNameMappings = new ConcurrentDictionary<string, string>();
-            var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>();
-
-            //////Bible
-            bibleTasks.Add(JwBibleHarvester.Harvest_Bible_Links(JwSourceHelper.PublicationCodeToNameMappings,
-                languageCodeToNameMappings, languageCodeToEditionsMapping));
-            //bibleTasks.Add(BgBibleHarvester.Harvest_Bible_Links(BgSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping));
-
-            var musicTasks = new List<Task>
-            {
-                ////////Music
-                MusicHarverster.Harvest_Vocal_Music_Links(),
-                MusicHarverster.Harvest_Music_Melody_Links()
-            };
-
-            await Task.WhenAll(bibleTasks.Concat(musicTasks).ToArray());
-
-            WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
-
-            var index = new
-            {
-                ReleaseDate = DateTime.Now.Ticks
-            };
-
-            var indexFile = $"{DirectoryHelper.IndexDirectory}/media/index.json";
-            if (File.Exists(indexFile)) File.Delete(indexFile);
-
-            await File.WriteAllTextAsync(indexFile, JsonConvert.SerializeObject(index));
-
-            // await DbSeeder.Seed($"{DirectoryHelper.IndexDirectory}"); // TODO: Implement DbSeeder in shared library
-
-            ZipFiles();
-
-            var newIndexFileSize =
-                new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip").Length;
-
-            Console.WriteLine("Old size:" + originalIndexFileSize / 1024 + "kb");
-            Console.WriteLine("New size:" + newIndexFileSize / 1024 + "kb");
-
-            if (Math.Abs(originalIndexFileSize - newIndexFileSize) > 1024 * 700)
-                throw new ApplicationException("New index file size is strangely smaller than old index file size.");
-
-            await PublishToCloudFront();
+            Console.WriteLine("Harvesting completed successfully!");
         }
-        finally
+        catch (Exception ex)
         {
-            var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
-            if (!File.Exists(zipIndex)) throw new Exception("Harvesting failed to create zip file.");
+            Console.WriteLine($"Harvesting failed: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw;
         }
     }
 
-    private static void WriteBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
-        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
-    {
-        if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
-            Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible");
-
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json",
-            JsonConvert.SerializeObject(
-                languageCodeToEditionsMapping.Select(x =>
-                    new Language
-                    {
-                        Code = x.Key,
-                        Name = languageCodeToNameMappings[x.Key]
-                    }).OrderBy(x => x.Code).ToList()));
-
-        foreach (var languageEditionsMap in languageCodeToEditionsMapping)
-        {
-            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}"))
-                Directory.CreateDirectory(
-                    $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}");
-
-            File.WriteAllText(
-                $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json",
-                JsonConvert.SerializeObject(
-                    languageEditionsMap.Value.Select(x =>
-                        new Publication
-                        {
-                            Code = x,
-                            Name = BiblePublicationCodeToNameMappings[x]
-                        }).OrderBy(x => x.Code)));
-        }
-    }
-
-
-    private static void ZipFiles()
-    {
-        var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
-        if (File.Exists(zipIndex)) File.Delete(zipIndex);
-
-        ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex);
-    }
-
-    /// <summary>
-    /// Depth-first recursive delete, with handling for descendant 
-    /// directories open in Windows Explorer.
-    /// </summary>
-    private static void DeleteDirectory(string path)
-    {
-        if (!Directory.Exists(path)) return;
-
-        foreach (var directory in Directory.GetDirectories(path)) DeleteDirectory(directory);
-
-        var files = Directory.GetFiles(path);
-
-        foreach (var file in files)
-            if (!file.EndsWith("index.zip"))
-                File.Delete(file);
-
-        if (Directory.GetFiles(path).Length > 0
-            || Directory.GetDirectories(path).Length > 0)
-            return;
-
-        try
-        {
-            Directory.Delete(path);
-        }
-        catch (IOException)
-        {
-            Directory.Delete(path);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            Directory.Delete(path);
-        }
-    }
-
-    private static async Task PublishToCloudFront()
-    {
-        var keyPrefix = "bible-alarm/media-index";
-        var bucketName = "jthomas.info";
-        using var s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName("ca-central-1"));
-
-        var listObjectsResponse = await s3Client.ListObjectsAsync(new ListObjectsRequest
-        {
-            Prefix = $"{keyPrefix}/",
-            BucketName = bucketName
-        });
-
-        var utcTime = DateTime.UtcNow;
-        var fileName = $"{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
-        var keyName = $"{keyPrefix}/{fileName}";
-        await s3Client.PutObjectAsync(new PutObjectRequest
-        {
-            BucketName = bucketName,
-            Key = keyName,
-            FilePath = $"{DirectoryHelper.IndexDirectory}/index.zip"
-        });
-
-        if (listObjectsResponse.S3Objects.Count > 0)
-        {
-            var deleteObjectsRequest = new DeleteObjectsRequest
+    private static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureServices((context, services) =>
             {
-                BucketName = bucketName
-            };
-
-            listObjectsResponse.S3Objects.ForEach(x =>
-            {
-                if (x.Key != keyName) deleteObjectsRequest.AddKey(x.Key);
+                services.AddHarvesterServices();
             });
-
-            if (deleteObjectsRequest.Objects.Count > 0) await s3Client.DeleteObjectsAsync(deleteObjectsRequest);
-        }
-    }
 }
