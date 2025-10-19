@@ -7,6 +7,8 @@ public class BibleChapter : IComparable
 {
     public int Number { get; set; }
     public string Url { get; set; }
+    public string Source { get; set; }
+    public string LookUpPath { get; set; }
 
     [JsonIgnore] public string Title => $"Chapter {Number}";
 

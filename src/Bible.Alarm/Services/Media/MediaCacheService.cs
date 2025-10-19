@@ -2,6 +2,7 @@
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Serilog;

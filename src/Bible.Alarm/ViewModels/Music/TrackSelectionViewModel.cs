@@ -1,6 +1,7 @@
 ﻿using Bible.Alarm.Models;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Models.Music;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions.Music;
 using Mvvmicro;
@@ -337,11 +338,11 @@ public class MusicTrackListViewItemModel : ViewModel, IComparable
         set => this.Set(ref _isSelected, value);
     }
 
-    public string LookUpPath => _track.Source.LookUpPath;
+    public string LookUpPath => _track.LookUpPath;
     public int Number => _track.Number;
 
     public string Title => _isMelody ? $"Melody Number(s) {_track.Title}" : _track.Title;
-    public string Url => _track.Source.Url;
+    public string Url => _track.Url;
 
     private bool _play;
 

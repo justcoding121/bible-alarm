@@ -7,6 +7,7 @@ public class MusicTrack : IComparable
     public int Number { get; set; }
     public string Title { get; set; }
     public string Url { get; set; }
+    public string Source { get; set; }
 
     public string LookUpPath { get; set; }
 

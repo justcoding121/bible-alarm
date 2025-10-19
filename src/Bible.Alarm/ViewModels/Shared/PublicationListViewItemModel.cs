@@ -1,4 +1,5 @@
 ﻿using Bible.Alarm.Models;
+using Bible.Alarm.Shared.Models;
 using Mvvmicro;
 
 namespace Bible.Alarm.ViewModels;

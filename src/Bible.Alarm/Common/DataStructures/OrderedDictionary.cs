@@ -70,8 +70,9 @@ public sealed class OrderedDictionary<K, V> : IEnumerable<KeyValuePair<K, V>> wh
             var existing = _binarySearchTree.FindNode(new OrderedKeyValuePair<K, V>(key, default));
             if (existing != null)
             {
-                // Update existing value directly for better performance
-                existing.Value.Value = value;
+                // Remove and re-add to update value
+                _binarySearchTree.Delete(new OrderedKeyValuePair<K, V>(key, existing.Value.Value));
+                _binarySearchTree.Insert(new OrderedKeyValuePair<K, V>(key, value));
             }
             else
             {

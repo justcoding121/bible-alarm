@@ -1,6 +1,7 @@
 ﻿using Bible.Alarm.Models;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Shared.Models.Bible;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 using Mvvmicro;
@@ -294,11 +295,11 @@ public class BibleChapterListViewItemModel : ViewModel, IComparable
 
     public ICommand TogglePlayCommand { get; set; }
 
-    public string LookUpPath => _chapter.Source.LookUpPath;
+    public string LookUpPath => _chapter.LookUpPath;
     public int Number => _chapter.Number;
 
     public string Title => _chapter.Title;
-    public string Url => _chapter.Source.Url;
+    public string Url => _chapter.Url;
 
     private bool _play;
 

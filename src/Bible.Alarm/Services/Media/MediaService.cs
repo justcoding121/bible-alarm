@@ -159,7 +159,7 @@ public class MediaService(
             .Where(x => x.Number == chapterNumber)
             .FirstOrDefaultAsync();
 
-        chapter.Source.Url = url;
+        chapter.Url = url;
 
         await dbContext.SaveChangesAsync();
     }
@@ -177,7 +177,7 @@ public class MediaService(
             .Where(x => x.Number == trackNumber)
             .FirstOrDefaultAsync();
 
-        track.Source.Url = url;
+        track.Url = url;
         await dbContext.SaveChangesAsync();
     }
 
@@ -192,7 +192,7 @@ public class MediaService(
             .Where(x => x.Number == trackNumber)
             .FirstOrDefaultAsync();
 
-        track.Source.Url = url;
+        track.Url = url;
         await dbContext.SaveChangesAsync();
     }
 
