@@ -15,14 +15,8 @@ namespace Bible.Alarm.Audio.Links.Harvester.Tests.Integration;
 
 public class HarvesterIntegrationTests : IDisposable
 {
-    private readonly WireMockServer _wireMockServer;
-    private readonly IFixture _fixture;
-
-    public HarvesterIntegrationTests()
-    {
-        _wireMockServer = WireMockServer.Start();
-        _fixture = new Fixture();
-    }
+    private readonly WireMockServer _wireMockServer = WireMockServer.Start();
+    private readonly IFixture _fixture = new Fixture();
 
     [Fact]
     public async Task BibleHarvesterService_WithMockApi_ShouldProcessResponse()

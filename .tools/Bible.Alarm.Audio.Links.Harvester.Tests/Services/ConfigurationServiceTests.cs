@@ -7,14 +7,8 @@ namespace Bible.Alarm.Audio.Links.Harvester.Tests.Services;
 
 public class ConfigurationServiceTests
 {
-    private readonly ConfigurationService _configurationService;
-    private readonly IFixture _fixture;
-
-    public ConfigurationServiceTests()
-    {
-        _configurationService = new ConfigurationService();
-        _fixture = new Fixture();
-    }
+    private readonly ConfigurationService _configurationService = new();
+    private readonly IFixture _fixture = new Fixture();
 
     [Fact]
     public void IndexDirectory_ShouldReturnValidPath()

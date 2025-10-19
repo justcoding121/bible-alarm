@@ -9,23 +9,15 @@ using Bible.Alarm.Shared.Utilities;
 
 namespace Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
 
-public class CloudPublishingService : ICloudPublishingService
+public class CloudPublishingService(IS3Client s3Client, IConfigurationService configurationService)
+    : ICloudPublishingService
 {
-    private readonly IS3Client _s3Client;
-    private readonly IConfigurationService _configurationService;
-
-    public CloudPublishingService(IS3Client s3Client, IConfigurationService configurationService)
-    {
-        _s3Client = s3Client;
-        _configurationService = configurationService;
-    }
-
     public async Task PublishToCloudFrontAsync()
     {
-        var keyPrefix = _configurationService.GetS3KeyPrefix();
-        var bucketName = _configurationService.GetS3BucketName();
+        var keyPrefix = configurationService.GetS3KeyPrefix();
+        var bucketName = configurationService.GetS3BucketName();
         
-        var listObjectsResponse = await _s3Client.ListObjectsAsync(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.ListObjectsRequest
+        var listObjectsResponse = await s3Client.ListObjectsAsync(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.ListObjectsRequest
         {
             Prefix = $"{keyPrefix}/",
             BucketName = bucketName
@@ -35,7 +27,7 @@ public class CloudPublishingService : ICloudPublishingService
         var fileName = $"{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
         var keyName = $"{keyPrefix}/{fileName}";
         
-        await _s3Client.PutObjectAsync(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.PutObjectRequest
+        await s3Client.PutObjectAsync(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.PutObjectRequest
         {
             BucketName = bucketName,
             Key = keyName,
@@ -55,7 +47,7 @@ public class CloudPublishingService : ICloudPublishingService
             });
 
             if (deleteObjectsRequest.Objects.Count > 0) 
-                await _s3Client.DeleteObjectsAsync(deleteObjectsRequest);
+                await s3Client.DeleteObjectsAsync(deleteObjectsRequest);
         }
     }
 

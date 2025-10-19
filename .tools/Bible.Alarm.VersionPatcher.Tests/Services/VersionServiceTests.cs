@@ -7,14 +7,8 @@ namespace Bible.Alarm.VersionPatcher.Tests.Services;
 
 public class VersionServiceTests
 {
-    private readonly VersionService _versionService;
-    private readonly IFixture _fixture;
-
-    public VersionServiceTests()
-    {
-        _versionService = new VersionService();
-        _fixture = new Fixture();
-    }
+    private readonly VersionService _versionService = new();
+    private readonly IFixture _fixture = new Fixture();
 
     [Theory]
     [InlineData("1.2", "1.3")]

@@ -6,14 +6,8 @@ namespace Bible.Alarm.Audio.Links.Harvester.Tests;
 
 public abstract class TestBase
 {
-    protected readonly IFixture Fixture;
-    protected readonly MockRepository MockRepository;
-
-    protected TestBase()
-    {
-        Fixture = new Fixture();
-        MockRepository = new MockRepository(MockBehavior.Strict);
-    }
+    protected readonly IFixture Fixture = new Fixture();
+    protected readonly MockRepository MockRepository = new(MockBehavior.Strict);
 
     protected T Create<T>() => Fixture.Create<T>();
     protected Mock<T> CreateMock<T>() where T : class => MockRepository.Create<T>();

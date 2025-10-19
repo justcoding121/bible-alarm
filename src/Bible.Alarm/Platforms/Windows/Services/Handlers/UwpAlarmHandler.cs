@@ -3,19 +3,12 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Windows.Handlers
 {
-    public class UwpAlarmHandler : IDisposable
+    public class UwpAlarmHandler(IPlaybackService playbackService) : IDisposable
     {
         private static readonly ILogger Logger = Log.ForContext<UwpAlarmHandler>();
 
 
-        private IPlaybackService _playbackService;
-
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
-
-        public UwpAlarmHandler(IPlaybackService playbackService)
-        {
-            _playbackService = playbackService;
-        }
 
         public async Task Handle(long scheduleId, bool isImmediate)
         {
@@ -23,7 +16,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
             {
                 await @lock.WaitAsync();
 
-                if (_playbackService.IsPrepared)
+                if (playbackService.IsPrepared)
                 {
                     Dispose();
                     return;
@@ -33,7 +26,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
                 {
                     try
                     {
-                        await _playbackService.PrepareAndPlay(scheduleId, isImmediate);
+                        await playbackService.PrepareAndPlay(scheduleId, isImmediate);
                     }
                     catch (Exception e)
                     {

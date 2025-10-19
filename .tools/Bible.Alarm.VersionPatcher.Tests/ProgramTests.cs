@@ -9,12 +9,7 @@ namespace Bible.Alarm.VersionPatcher.Tests;
 
 public class ProgramTests
 {
-    private readonly IFixture _fixture;
-
-    public ProgramTests()
-    {
-        _fixture = new Fixture();
-    }
+    private readonly IFixture _fixture = new Fixture();
 
     [Fact]
     public void Main_WithValidServices_ShouldExecuteSuccessfully()

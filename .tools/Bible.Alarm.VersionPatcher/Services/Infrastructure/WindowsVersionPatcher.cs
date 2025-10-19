@@ -6,32 +6,22 @@ using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
-public class WindowsVersionPatcher : IPlatformVersionPatcher
+public class WindowsVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
+    : IPlatformVersionPatcher
 {
-    private readonly IVersionService _versionService;
-    private readonly IFileService _fileService;
-    private readonly IPathService _pathService;
-
     public string PlatformName => "Windows";
-
-    public WindowsVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
-    {
-        _versionService = versionService;
-        _fileService = fileService;
-        _pathService = pathService;
-    }
 
     public async Task PatchVersionAsync()
     {
-        var manifestFile = _pathService.GetWindowsManifestPath();
+        var manifestFile = pathService.GetWindowsManifestPath();
         
-        if (!_fileService.FileExists(manifestFile))
+        if (!fileService.FileExists(manifestFile))
         {
             Console.WriteLine($"Windows Package.appxmanifest file not found: {manifestFile}");
             return;
         }
 
-        var content = await _fileService.ReadFileAsync(manifestFile);
+        var content = await fileService.ReadFileAsync(manifestFile);
         var doc = new XmlDocument();
         
         try
@@ -69,13 +59,13 @@ public class WindowsVersionPatcher : IPlatformVersionPatcher
         }
 
         var majorMinorVersion = $"{versionParts[0]}.{versionParts[1]}";
-        var newMajorMinorVersion = _versionService.IncrementVersion(majorMinorVersion);
+        var newMajorMinorVersion = versionService.IncrementVersion(majorMinorVersion);
         var newVersionName = $"{newMajorMinorVersion}.0.0";
 
         attrs["Version"].Value = newVersionName;
 
         var updatedContent = doc.OuterXml;
-        await _fileService.WriteFileAsync(manifestFile, updatedContent);
+        await fileService.WriteFileAsync(manifestFile, updatedContent);
 
         Console.WriteLine($"Windows version updated: {versionName} -> {newVersionName}");
     }

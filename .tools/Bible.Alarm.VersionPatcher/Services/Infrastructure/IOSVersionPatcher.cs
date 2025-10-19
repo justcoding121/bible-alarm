@@ -7,32 +7,22 @@ using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
-public class IOSVersionPatcher : IPlatformVersionPatcher
+public class IOSVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
+    : IPlatformVersionPatcher
 {
-    private readonly IVersionService _versionService;
-    private readonly IFileService _fileService;
-    private readonly IPathService _pathService;
-
     public string PlatformName => "iOS";
-
-    public IOSVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
-    {
-        _versionService = versionService;
-        _fileService = fileService;
-        _pathService = pathService;
-    }
 
     public async Task PatchVersionAsync()
     {
-        var manifestFile = _pathService.GetIOSInfoPlistPath();
+        var manifestFile = pathService.GetIOSInfoPlistPath();
         
-        if (!_fileService.FileExists(manifestFile))
+        if (!fileService.FileExists(manifestFile))
         {
             Console.WriteLine($"iOS Info.plist file not found: {manifestFile}");
             return;
         }
 
-        var content = await _fileService.ReadFileAsync(manifestFile);
+        var content = await fileService.ReadFileAsync(manifestFile);
         var lines = content.Split('\n');
         var output = new StringBuilder();
         var versionFound = false;
@@ -52,7 +42,7 @@ public class IOSVersionPatcher : IPlatformVersionPatcher
                     
                     if (!string.IsNullOrEmpty(oldVersion))
                     {
-                        var newVersion = _versionService.IncrementVersion(oldVersion);
+                        var newVersion = versionService.IncrementVersion(oldVersion);
                         var matchRegex = new Regex(@"<string>.*<\/string>");
                         var newLine = matchRegex.Replace(nextLine, $"<string>{newVersion}</string>");
                         output.AppendLine(newLine);
@@ -80,7 +70,7 @@ public class IOSVersionPatcher : IPlatformVersionPatcher
 
         if (versionFound)
         {
-            await _fileService.WriteFileAsync(manifestFile, output.ToString());
+            await fileService.WriteFileAsync(manifestFile, output.ToString());
         }
     }
 

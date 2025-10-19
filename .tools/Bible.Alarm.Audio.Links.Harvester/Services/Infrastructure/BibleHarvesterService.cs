@@ -11,17 +11,9 @@ using Newtonsoft.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
 
-public class BibleHarvesterService : IBibleHarvesterService
+public class BibleHarvesterService(IFileSystemService fileSystemService, IHttpClient httpClient)
+    : IBibleHarvesterService
 {
-    private readonly IFileSystemService _fileSystemService;
-    private readonly IHttpClient _httpClient;
-
-    public BibleHarvesterService(IFileSystemService fileSystemService, IHttpClient httpClient)
-    {
-        _fileSystemService = fileSystemService;
-        _httpClient = httpClient;
-    }
-
     public async Task HarvestBibleLinksAsync(
         Dictionary<string, string> publicationCodeToNameMappings,
         ConcurrentDictionary<string, string> languageCodeToNameMappings,
@@ -32,7 +24,7 @@ public class BibleHarvesterService : IBibleHarvesterService
             var publicationCode = publication.Key;
             var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?booknum=1&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
-            var jsonString = await _httpClient.GetStringAsync(harvestLink);
+            var jsonString = await httpClient.GetStringAsync(harvestLink);
             var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
 
             foreach (var item in model["languages"])
@@ -64,7 +56,7 @@ public class BibleHarvesterService : IBibleHarvesterService
 
         while (bookNumber <= 66)
         {
-            var jsonString = await _httpClient.GetStringAsync(harvestLink);
+            var jsonString = await httpClient.GetStringAsync(harvestLink);
 
             dynamic model = null;
             dynamic files = null;
@@ -128,7 +120,7 @@ public class BibleHarvesterService : IBibleHarvesterService
 
         if (!Directory.Exists(booksDirectory)) Directory.CreateDirectory(booksDirectory);
 
-        await _fileSystemService.WriteFileAsync(booksIndex, JsonConvert.SerializeObject(bookNumberBookMap.Select(x =>
+        await fileSystemService.WriteFileAsync(booksIndex, JsonConvert.SerializeObject(bookNumberBookMap.Select(x =>
             new BibleBook
             {
                 Number = x.Key,

@@ -6,14 +6,9 @@ using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
-public class VersionPatchingService : IVersionPatchingService
+public class VersionPatchingService(IEnumerable<IPlatformVersionPatcher> platformPatchers) : IVersionPatchingService
 {
-    private readonly IEnumerable<IPlatformVersionPatcher> _platformPatchers;
-
-    public VersionPatchingService(IEnumerable<IPlatformVersionPatcher> platformPatchers)
-    {
-        _platformPatchers = platformPatchers ?? throw new ArgumentNullException(nameof(platformPatchers));
-    }
+    private readonly IEnumerable<IPlatformVersionPatcher> _platformPatchers = platformPatchers ?? throw new ArgumentNullException(nameof(platformPatchers));
 
     public async Task PatchAllPlatformsAsync()
     {

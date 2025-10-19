@@ -5,17 +5,10 @@ using Bible.Alarm.Audio.Links.Harvester.Services.Contracts;
 
 namespace Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
 
-public class HttpClient : IHttpClient
+public class HttpClient(System.Net.Http.HttpClient httpClient) : IHttpClient
 {
-    private readonly System.Net.Http.HttpClient _httpClient;
-
-    public HttpClient(System.Net.Http.HttpClient httpClient)
-    {
-        _httpClient = httpClient;
-    }
-
     public async Task<string> GetStringAsync(string requestUri)
     {
-        return await _httpClient.GetStringAsync(requestUri);
+        return await httpClient.GetStringAsync(requestUri);
     }
 }

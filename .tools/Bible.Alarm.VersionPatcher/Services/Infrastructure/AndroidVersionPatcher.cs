@@ -6,32 +6,22 @@ using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
-public class AndroidVersionPatcher : IPlatformVersionPatcher
+public class AndroidVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
+    : IPlatformVersionPatcher
 {
-    private readonly IVersionService _versionService;
-    private readonly IFileService _fileService;
-    private readonly IPathService _pathService;
-
     public string PlatformName => "Android";
-
-    public AndroidVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
-    {
-        _versionService = versionService;
-        _fileService = fileService;
-        _pathService = pathService;
-    }
 
     public async Task PatchVersionAsync()
     {
-        var manifestFile = _pathService.GetAndroidManifestPath();
+        var manifestFile = pathService.GetAndroidManifestPath();
         
-        if (!_fileService.FileExists(manifestFile))
+        if (!fileService.FileExists(manifestFile))
         {
             Console.WriteLine($"Android manifest file not found: {manifestFile}");
             return;
         }
 
-        var content = await _fileService.ReadFileAsync(manifestFile);
+        var content = await fileService.ReadFileAsync(manifestFile);
         var doc = new XmlDocument();
         
         try
@@ -61,14 +51,14 @@ public class AndroidVersionPatcher : IPlatformVersionPatcher
             return;
         }
 
-        var newVersionCode = _versionService.IncrementVersionCode(versionCode);
-        var newVersionName = _versionService.IncrementVersion(versionName);
+        var newVersionCode = versionService.IncrementVersionCode(versionCode);
+        var newVersionName = versionService.IncrementVersion(versionName);
 
         attrs["android:versionCode"].Value = newVersionCode;
         attrs["android:versionName"].Value = newVersionName;
 
         var updatedContent = doc.OuterXml;
-        await _fileService.WriteFileAsync(manifestFile, updatedContent);
+        await fileService.WriteFileAsync(manifestFile, updatedContent);
 
         Console.WriteLine($"Android version updated: {versionName} -> {newVersionName}, {versionCode} -> {newVersionCode}");
     }
