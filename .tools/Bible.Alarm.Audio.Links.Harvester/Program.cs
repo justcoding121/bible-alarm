@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Bible.Alarm.Audio.Links.Harvester.Services.Contracts;
 using Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Bible.Alarm.Audio.Links.Harvester;
 
@@ -17,11 +16,15 @@ public class Program
     {
         try
         {
-            // Create and configure the host
-            var host = CreateHostBuilder(args).Build();
+            // Create service collection and register services
+            var services = new ServiceCollection();
+            services.AddHarvesterServices();
+            
+            // Build service provider
+            using var serviceProvider = services.BuildServiceProvider();
 
             // Get the orchestrator service and execute harvesting
-            var orchestrator = host.Services.GetRequiredService<IHarvestingOrchestratorService>();
+            var orchestrator = serviceProvider.GetRequiredService<IHarvestingOrchestratorService>();
             await orchestrator.ExecuteHarvestingAsync();
 
             Console.WriteLine("Harvesting completed successfully!");
@@ -33,11 +36,4 @@ public class Program
             throw;
         }
     }
-
-    private static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureServices((context, services) =>
-            {
-                services.AddHarvesterServices();
-            });
 }

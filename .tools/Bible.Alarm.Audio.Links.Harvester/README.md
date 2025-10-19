@@ -55,9 +55,10 @@ The application has been refactored to use dependency injection and follows a cl
 ## Key Features
 
 ### Dependency Injection
-- Uses Microsoft.Extensions.DependencyInjection for IoC container
+- Uses Microsoft.Extensions.DependencyInjection for simple IoC container
 - All services are registered as singletons for optimal performance
 - Easy to test and mock individual services
+- Simple ServiceCollection approach (no HostBuilder overhead)
 
 ### Modular Design
 - Each service has a single responsibility
