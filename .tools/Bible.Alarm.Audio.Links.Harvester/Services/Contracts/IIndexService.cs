@@ -12,4 +12,6 @@ public interface IIndexService
     
     Task CreateIndexMetadataAsync();
     Task ZipIndexFilesAsync();
+    Task WriteIndexMetadataAsync();
+    Task ZipIndexFiles();
 }

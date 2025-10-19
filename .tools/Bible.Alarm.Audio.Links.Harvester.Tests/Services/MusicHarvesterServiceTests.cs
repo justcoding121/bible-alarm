@@ -39,7 +39,7 @@ public class MusicHarvesterServiceTests
         _httpClientMock.Setup(x => x.GetStringAsync(It.IsAny<string>()))
             .ReturnsAsync(mockResponse);
 
-        _fileSystemServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _fileSystemServiceMock.Setup(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -47,7 +47,7 @@ public class MusicHarvesterServiceTests
 
         // Assert
         _httpClientMock.Verify(x => x.GetStringAsync(It.IsAny<string>()), Times.AtLeastOnce);
-        _fileSystemServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
+        _fileSystemServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class MusicHarvesterServiceTests
         _httpClientMock.Setup(x => x.GetStringAsync(It.IsAny<string>()))
             .ReturnsAsync(mockResponse);
 
-        _fileSystemServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _fileSystemServiceMock.Setup(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -75,7 +75,7 @@ public class MusicHarvesterServiceTests
 
         // Assert
         _httpClientMock.Verify(x => x.GetStringAsync(It.IsAny<string>()), Times.AtLeastOnce);
-        _fileSystemServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
+        _fileSystemServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]

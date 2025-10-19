@@ -21,6 +21,7 @@ public class ServiceCollectionExtensionsTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddHttpClient(); // Add HttpClient for IHttpClient dependency
 
         // Act
         services.AddHarvesterServices();
@@ -41,6 +42,7 @@ public class ServiceCollectionExtensionsTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddHttpClient(); // Add HttpClient for IHttpClient dependency
 
         // Act
         services.AddHarvesterServices();

@@ -35,7 +35,7 @@ public class ConfigurationServiceTests
 
         // Assert
         result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("bible-alarm");
+        result.Should().Be("jthomas.info");
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class ConfigurationServiceTests
 
         // Assert
         result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("media-index");
+        result.Should().Be("bible-alarm/media-index");
     }
 
     [Fact]
@@ -57,6 +57,6 @@ public class ConfigurationServiceTests
 
         // Assert
         result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("us-east-1");
+        result.Should().Be("ca-central-1");
     }
 }

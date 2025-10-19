@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Xml;
-using Bible.Alarm.Shared.Utilities;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
@@ -11,18 +10,20 @@ public class AndroidVersionPatcher : IPlatformVersionPatcher
 {
     private readonly IVersionService _versionService;
     private readonly IFileService _fileService;
+    private readonly IPathService _pathService;
 
     public string PlatformName => "Android";
 
-    public AndroidVersionPatcher(IVersionService versionService, IFileService fileService)
+    public AndroidVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
     {
         _versionService = versionService;
         _fileService = fileService;
+        _pathService = pathService;
     }
 
     public async Task PatchVersionAsync()
     {
-        var manifestFile = Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.Droid", "Properties", "AndroidManifest.xml");
+        var manifestFile = _pathService.GetAndroidManifestPath();
         
         if (!_fileService.FileExists(manifestFile))
         {
@@ -32,7 +33,16 @@ public class AndroidVersionPatcher : IPlatformVersionPatcher
 
         var content = await _fileService.ReadFileAsync(manifestFile);
         var doc = new XmlDocument();
-        doc.LoadXml(content);
+        
+        try
+        {
+            doc.LoadXml(content);
+        }
+        catch (XmlException)
+        {
+            Console.WriteLine("Invalid XML format in Android manifest");
+            return;
+        }
 
         var manifestNode = doc.SelectSingleNode("/manifest");
         if (manifestNode?.Attributes == null)

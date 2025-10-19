@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Bible.Alarm.Shared.Utilities;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
@@ -12,18 +11,20 @@ public class IOSVersionPatcher : IPlatformVersionPatcher
 {
     private readonly IVersionService _versionService;
     private readonly IFileService _fileService;
+    private readonly IPathService _pathService;
 
     public string PlatformName => "iOS";
 
-    public IOSVersionPatcher(IVersionService versionService, IFileService fileService)
+    public IOSVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
     {
         _versionService = versionService;
         _fileService = fileService;
+        _pathService = pathService;
     }
 
     public async Task PatchVersionAsync()
     {
-        var manifestFile = Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.iOS", "Info.plist");
+        var manifestFile = _pathService.GetIOSInfoPlistPath();
         
         if (!_fileService.FileExists(manifestFile))
         {
@@ -34,6 +35,7 @@ public class IOSVersionPatcher : IPlatformVersionPatcher
         var content = await _fileService.ReadFileAsync(manifestFile);
         var lines = content.Split('\n');
         var output = new StringBuilder();
+        var versionFound = false;
 
         for (int i = 0; i < lines.Length; i++)
         {
@@ -55,6 +57,7 @@ public class IOSVersionPatcher : IPlatformVersionPatcher
                         var newLine = matchRegex.Replace(nextLine, $"<string>{newVersion}</string>");
                         output.AppendLine(newLine);
                         i++; // Skip the next line since we processed it
+                        versionFound = true;
                         
                         Console.WriteLine($"iOS version updated: {oldVersion} -> {newVersion}");
                     }
@@ -75,7 +78,10 @@ public class IOSVersionPatcher : IPlatformVersionPatcher
             }
         }
 
-        await _fileService.WriteFileAsync(manifestFile, output.ToString());
+        if (versionFound)
+        {
+            await _fileService.WriteFileAsync(manifestFile, output.ToString());
+        }
     }
 
     private static string ExtractVersionFromLine(string line)

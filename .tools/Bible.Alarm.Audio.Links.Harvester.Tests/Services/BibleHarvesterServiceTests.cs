@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AutoFixture;
 using Bible.Alarm.Audio.Links.Harvester.Services.Contracts;
 using Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
@@ -60,7 +61,7 @@ public class BibleHarvesterServiceTests
         _httpClientMock.Setup(x => x.GetStringAsync(It.IsAny<string>()))
             .ReturnsAsync(mockResponse);
 
-        _fileSystemServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _fileSystemServiceMock.Setup(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -71,7 +72,7 @@ public class BibleHarvesterServiceTests
 
         // Assert
         _httpClientMock.Verify(x => x.GetStringAsync(It.IsAny<string>()), Times.AtLeastOnce);
-        _fileSystemServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
+        _fileSystemServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -90,7 +91,7 @@ public class BibleHarvesterServiceTests
 
         // Assert
         _httpClientMock.Verify(x => x.GetStringAsync(It.IsAny<string>()), Times.Never);
-        _fileSystemServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _fileSystemServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

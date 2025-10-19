@@ -28,7 +28,7 @@ public class FileSystemServiceTests : IDisposable
         var content = "Test content";
 
         // Act
-        await _fileSystemService.WriteAllTextAsync(filePath, content);
+        await _fileSystemService.WriteFileAsync(filePath, content);
 
         // Assert
         var result = await File.ReadAllTextAsync(filePath);
@@ -44,7 +44,7 @@ public class FileSystemServiceTests : IDisposable
         await File.WriteAllTextAsync(filePath, expectedContent);
 
         // Act
-        var result = await _fileSystemService.ReadAllTextAsync(filePath);
+        var result = await _fileSystemService.ReadFileAsync(filePath);
 
         // Assert
         result.Should().Be(expectedContent);
@@ -100,7 +100,7 @@ public class FileSystemServiceTests : IDisposable
         var directoryPath = Path.Combine(_tempDirectory, "new_directory");
 
         // Act
-        _fileSystemService.EnsureDirectoryExists(directoryPath);
+        _fileSystemService.CreateDirectory(directoryPath);
 
         // Assert
         Directory.Exists(directoryPath).Should().BeTrue();

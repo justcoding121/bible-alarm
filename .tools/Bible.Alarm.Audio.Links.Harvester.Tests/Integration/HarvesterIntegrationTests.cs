@@ -1,5 +1,6 @@
 using AutoFixture;
 using Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
+using Bible.Alarm.Audio.Links.Harvester.Services.Contracts;
 using FluentAssertions;
 using System.Collections.Concurrent;
 using System.Net;
@@ -8,6 +9,7 @@ using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 using WireMock.Server;
 using Xunit;
+using Amazon.S3.Model;
 
 namespace Bible.Alarm.Audio.Links.Harvester.Tests.Integration;
 
@@ -40,6 +42,7 @@ public class HarvesterIntegrationTests : IDisposable
                         {
                             code = "nwt",
                             name = "New World Translation"
+                        }
                     }
                 }
             }
@@ -52,9 +55,10 @@ public class HarvesterIntegrationTests : IDisposable
                 .WithHeader("Content-Type", "application/json")
                 .WithBody(JsonSerializer.Serialize(mockResponse)));
 
-        var httpClient = new HttpClient { BaseAddress = new Uri(_wireMockServer.Urls[0]) };
+        var httpClient = new System.Net.Http.HttpClient { BaseAddress = new Uri(_wireMockServer.Urls[0]) };
         var fileSystemService = new FileSystemService();
-        var service = new BibleHarvesterService(fileSystemService, httpClient);
+        var httpClientWrapper = new Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure.HttpClient(httpClient);
+        var service = new BibleHarvesterService(fileSystemService, httpClientWrapper);
 
         var bibleMappings = new Dictionary<string, string>
         {
@@ -104,9 +108,10 @@ public class HarvesterIntegrationTests : IDisposable
                 .WithHeader("Content-Type", "application/json")
                 .WithBody(JsonSerializer.Serialize(mockResponse)));
 
-        var httpClient = new HttpClient { BaseAddress = new Uri(_wireMockServer.Urls[0]) };
+        var httpClient = new System.Net.Http.HttpClient { BaseAddress = new Uri(_wireMockServer.Urls[0]) };
         var fileSystemService = new FileSystemService();
-        var service = new MusicHarvesterService(fileSystemService, httpClient);
+        var httpClientWrapper = new Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure.HttpClient(httpClient);
+        var service = new MusicHarvesterService(fileSystemService, httpClientWrapper);
 
         // Act
         await service.HarvestVocalMusicLinksAsync();
@@ -168,21 +173,24 @@ public class HarvesterIntegrationTests : IDisposable
                 .WithHeader("Content-Type", "application/json")
                 .WithBody(JsonSerializer.Serialize(mockMusicResponse)));
 
-        var httpClient = new HttpClient { BaseAddress = new Uri(_wireMockServer.Urls[0]) };
+        var httpClient = new System.Net.Http.HttpClient { BaseAddress = new Uri(_wireMockServer.Urls[0]) };
+        var httpClientWrapper = new Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure.HttpClient(httpClient);
         var fileSystemService = new FileSystemService();
         var configurationService = new ConfigurationService();
         var s3Client = new MockS3Client();
         var cloudPublishingService = new CloudPublishingService(s3Client, configurationService);
 
-        var bibleHarvesterService = new BibleHarvesterService(fileSystemService, httpClient);
-        var musicHarvesterService = new MusicHarvesterService(fileSystemService, httpClient);
+        var bibleHarvesterService = new BibleHarvesterService(fileSystemService, httpClientWrapper);
+        var musicHarvesterService = new MusicHarvesterService(fileSystemService, httpClientWrapper);
         var indexService = new IndexService(fileSystemService);
 
         var orchestrator = new HarvestingOrchestratorService(
             bibleHarvesterService,
             musicHarvesterService,
             indexService,
-            cloudPublishingService);
+            cloudPublishingService,
+            fileSystemService,
+            configurationService);
 
         // Act
         await orchestrator.ExecuteHarvestingAsync();
@@ -200,17 +208,17 @@ public class HarvesterIntegrationTests : IDisposable
 // Mock S3 client for integration tests
 public class MockS3Client : IS3Client
 {
-    public Task<ListObjectsResponse> ListObjectsAsync(ListObjectsRequest request)
+    public Task<Bible.Alarm.Audio.Links.Harvester.Services.Contracts.ListObjectsResponse> ListObjectsAsync(Bible.Alarm.Audio.Links.Harvester.Services.Contracts.ListObjectsRequest request)
     {
-        return Task.FromResult(new ListObjectsResponse { S3Objects = new List<S3Object>() });
+        return Task.FromResult(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.ListObjectsResponse { S3Objects = new List<Bible.Alarm.Audio.Links.Harvester.Services.Contracts.S3Object>() });
     }
 
-    public Task PutObjectAsync(PutObjectRequest request)
+    public Task PutObjectAsync(Bible.Alarm.Audio.Links.Harvester.Services.Contracts.PutObjectRequest request)
     {
         return Task.CompletedTask;
     }
 
-    public Task DeleteObjectsAsync(DeleteObjectsRequest request)
+    public Task DeleteObjectsAsync(Bible.Alarm.Audio.Links.Harvester.Services.Contracts.DeleteObjectsRequest request)
     {
         return Task.CompletedTask;
     }

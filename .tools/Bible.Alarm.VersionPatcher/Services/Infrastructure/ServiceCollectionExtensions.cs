@@ -10,6 +10,7 @@ public static class ServiceCollectionExtensions
         // Core services
         services.AddSingleton<IVersionService, VersionService>();
         services.AddSingleton<IFileService, FileService>();
+        services.AddSingleton<IPathService, PathService>();
         
         // Platform-specific patchers
         services.AddSingleton<IPlatformVersionPatcher, AndroidVersionPatcher>();

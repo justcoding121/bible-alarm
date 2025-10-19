@@ -13,6 +13,15 @@ namespace Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
 
 public class MusicHarvesterService : IMusicHarvesterService
 {
+    private readonly IFileSystemService _fileSystemService;
+    private readonly IHttpClient _httpClient;
+
+    public MusicHarvesterService(IFileSystemService fileSystemService, IHttpClient httpClient)
+    {
+        _fileSystemService = fileSystemService;
+        _httpClient = httpClient;
+    }
+
     private static readonly Dictionary<string, string> VocalsPublicationCodeToNameMappings = new(
         new KeyValuePair<string, string>[]
         {
@@ -36,7 +45,7 @@ public class MusicHarvesterService : IMusicHarvesterService
         {
             var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publication.Key}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
-            var jsonString = await DownloadUtility.GetAsync(harvestLink);
+            var jsonString = await _httpClient.GetStringAsync(harvestLink);
             var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
 
             foreach (var item in model["languages"])
@@ -70,7 +79,7 @@ public class MusicHarvesterService : IMusicHarvesterService
             if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languagePublication.Key}"))
                 Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languagePublication.Key}");
 
-            File.WriteAllText(
+            await _fileSystemService.WriteFileAsync(
                 $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languagePublication.Key}/publications.json",
                 JsonConvert.SerializeObject(
                     languagePublication.Value.Select(x => new Publication
@@ -80,7 +89,7 @@ public class MusicHarvesterService : IMusicHarvesterService
                     }).OrderBy(x => x.Code)));
         }
 
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/languages.json",
+        await _fileSystemService.WriteFileAsync($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/languages.json",
             JsonConvert.SerializeObject(languageCodeToPublications.Select(x =>
                 new Language
                 {
@@ -114,7 +123,7 @@ public class MusicHarvesterService : IMusicHarvesterService
             await HarvestMusicLinks(publication.Key, downloadCodes);
         }
 
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json",
+        await _fileSystemService.WriteFileAsync($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json",
             JsonConvert.SerializeObject(
                 MelodyPublicationCodeToNameMappings.Select(x => new Publication
                 {
@@ -138,7 +147,7 @@ public class MusicHarvesterService : IMusicHarvesterService
         {
             var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0{(languageCode == null ? $"&langwritten=E" : $"&langwritten={languageCode}")}&txtCMSLang=E";
 
-            var jsonString = await DownloadUtility.GetAsync(harvestLink);
+            var jsonString = await _httpClient.GetStringAsync(harvestLink);
             var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
 
             var lc = languageCode ?? "E";
@@ -170,7 +179,7 @@ public class MusicHarvesterService : IMusicHarvesterService
         if (musicTracks.Count > 0)
         {
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(file, JsonConvert.SerializeObject(musicTracks.OrderBy(x => x.Number)));
+            await _fileSystemService.WriteFileAsync(file, JsonConvert.SerializeObject(musicTracks.OrderBy(x => x.Number)));
             return true;
         }
 

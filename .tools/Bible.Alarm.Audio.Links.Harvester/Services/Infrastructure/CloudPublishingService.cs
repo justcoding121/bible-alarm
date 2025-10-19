@@ -11,14 +11,21 @@ namespace Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
 
 public class CloudPublishingService : ICloudPublishingService
 {
+    private readonly IS3Client _s3Client;
+    private readonly IConfigurationService _configurationService;
+
+    public CloudPublishingService(IS3Client s3Client, IConfigurationService configurationService)
+    {
+        _s3Client = s3Client;
+        _configurationService = configurationService;
+    }
+
     public async Task PublishToCloudFrontAsync()
     {
-        var keyPrefix = "bible-alarm/media-index";
-        var bucketName = "jthomas.info";
+        var keyPrefix = _configurationService.GetS3KeyPrefix();
+        var bucketName = _configurationService.GetS3BucketName();
         
-        using var s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName("ca-central-1"));
-
-        var listObjectsResponse = await s3Client.ListObjectsAsync(new ListObjectsRequest
+        var listObjectsResponse = await _s3Client.ListObjectsAsync(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.ListObjectsRequest
         {
             Prefix = $"{keyPrefix}/",
             BucketName = bucketName
@@ -28,7 +35,7 @@ public class CloudPublishingService : ICloudPublishingService
         var fileName = $"{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
         var keyName = $"{keyPrefix}/{fileName}";
         
-        await s3Client.PutObjectAsync(new PutObjectRequest
+        await _s3Client.PutObjectAsync(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.PutObjectRequest
         {
             BucketName = bucketName,
             Key = keyName,
@@ -37,18 +44,23 @@ public class CloudPublishingService : ICloudPublishingService
 
         if (listObjectsResponse.S3Objects.Count > 0)
         {
-            var deleteObjectsRequest = new DeleteObjectsRequest
+            var deleteObjectsRequest = new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.DeleteObjectsRequest
             {
                 BucketName = bucketName
             };
 
             listObjectsResponse.S3Objects.ForEach(x =>
             {
-                if (x.Key != keyName) deleteObjectsRequest.AddKey(x.Key);
+                if (x.Key != keyName) deleteObjectsRequest.Objects.Add(new Bible.Alarm.Audio.Links.Harvester.Services.Contracts.DeleteObject { Key = x.Key });
             });
 
             if (deleteObjectsRequest.Objects.Count > 0) 
-                await s3Client.DeleteObjectsAsync(deleteObjectsRequest);
+                await _s3Client.DeleteObjectsAsync(deleteObjectsRequest);
         }
+    }
+
+    public async Task PublishIndexToCloudFrontAsync()
+    {
+        await PublishToCloudFrontAsync();
     }
 }

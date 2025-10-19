@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AutoFixture;
 using Bible.Alarm.Audio.Links.Harvester.Services.Contracts;
 using Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
@@ -13,6 +14,8 @@ public class HarvestingOrchestratorServiceTests
     private readonly Mock<IMusicHarvesterService> _musicHarvesterMock;
     private readonly Mock<IIndexService> _indexServiceMock;
     private readonly Mock<ICloudPublishingService> _cloudPublishingMock;
+    private readonly Mock<IFileSystemService> _fileSystemServiceMock;
+    private readonly Mock<IConfigurationService> _configurationServiceMock;
     private readonly HarvestingOrchestratorService _service;
     private readonly IFixture _fixture;
 
@@ -23,11 +26,15 @@ public class HarvestingOrchestratorServiceTests
         _musicHarvesterMock = new Mock<IMusicHarvesterService>();
         _indexServiceMock = new Mock<IIndexService>();
         _cloudPublishingMock = new Mock<ICloudPublishingService>();
+        _fileSystemServiceMock = new Mock<IFileSystemService>();
+        _configurationServiceMock = new Mock<IConfigurationService>();
         _service = new HarvestingOrchestratorService(
             _bibleHarvesterMock.Object,
             _musicHarvesterMock.Object,
             _indexServiceMock.Object,
-            _cloudPublishingMock.Object);
+            _cloudPublishingMock.Object,
+            _fileSystemServiceMock.Object,
+            _configurationServiceMock.Object);
     }
 
     [Fact]

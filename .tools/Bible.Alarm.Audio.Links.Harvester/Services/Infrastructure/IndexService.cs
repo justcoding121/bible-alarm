@@ -15,9 +15,11 @@ namespace Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
 public class IndexService : IIndexService
 {
     private readonly Dictionary<string, string> _biblePublicationCodeToNameMappings;
+    private readonly IFileSystemService _fileSystemService;
 
-    public IndexService()
+    public IndexService(IFileSystemService fileSystemService)
     {
+        _fileSystemService = fileSystemService;
         _biblePublicationCodeToNameMappings = JwSourceHelper.PublicationCodeToNameMappings
             .ToDictionary(x => x.Key, x => x.Value);
     }
@@ -74,5 +76,15 @@ public class IndexService : IIndexService
         if (File.Exists(zipIndex)) File.Delete(zipIndex);
 
         await Task.Run(() => ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex));
+    }
+
+    public async Task WriteIndexMetadataAsync()
+    {
+        await CreateIndexMetadataAsync();
+    }
+
+    public async Task ZipIndexFiles()
+    {
+        await ZipIndexFilesAsync();
     }
 }

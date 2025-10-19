@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AutoFixture;
 using Bible.Alarm.Audio.Links.Harvester.Services.Contracts;
 using Bible.Alarm.Audio.Links.Harvester.Services.Infrastructure;
@@ -36,28 +37,28 @@ public class IndexServiceTests
             ["S"] = new List<string> { "nwt" }
         };
 
-        _fileSystemServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _fileSystemServiceMock.Setup(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
         await _service.WriteBibleIndexAsync(languageCodeToNameMappings, languageCodeToEditionsMapping);
 
         // Assert
-        _fileSystemServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
+        _fileSystemServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
     public async Task WriteIndexMetadataAsync_ShouldWriteMetadataFile()
     {
         // Arrange
-        _fileSystemServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _fileSystemServiceMock.Setup(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
         await _service.WriteIndexMetadataAsync();
 
         // Assert
-        _fileSystemServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _fileSystemServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -84,13 +85,13 @@ public class IndexServiceTests
         var emptyLanguageMappings = new ConcurrentDictionary<string, string>();
         var emptyEditionMappings = new ConcurrentDictionary<string, List<string>>();
 
-        _fileSystemServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _fileSystemServiceMock.Setup(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
         await _service.WriteBibleIndexAsync(emptyLanguageMappings, emptyEditionMappings);
 
         // Assert
-        _fileSystemServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
+        _fileSystemServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
 }

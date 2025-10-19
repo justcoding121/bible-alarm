@@ -10,6 +10,8 @@ public static class ServiceCollectionExtensions
         // Core services
         services.AddSingleton<IConfigurationService, ConfigurationService>();
         services.AddSingleton<IFileSystemService, FileSystemService>();
+        services.AddSingleton<IS3Client, S3Client>();
+        services.AddSingleton<IHttpClient, HttpClient>();
         
         // Harvester services
         services.AddSingleton<IBibleHarvesterService, BibleHarvesterService>();
