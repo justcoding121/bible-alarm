@@ -27,6 +27,7 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        System.Diagnostics.Debug.WriteLine("CreateMauiApp called!");
         var builder = MauiApp.CreateBuilder();
 
         builder

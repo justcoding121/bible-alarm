@@ -17,6 +17,7 @@ public partial class App
 
     public App(ILogger logger, IServiceScopeFactory scopeFactory)
     {
+        System.Diagnostics.Debug.WriteLine("App constructor called!");
         _logger = logger;
         _scopeFactory = scopeFactory;
         Init();
@@ -38,11 +39,11 @@ public partial class App
             navigationPage.Navigation,
             _scopeFactory);
 
-        // Use the new MAUI approach for setting the main page
-        Windows[0].Page = navigationPage;
+        // Use the MAUI approach for setting the main page
+        MainPage = navigationPage;
 
-        Windows[0].Page.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
-        Windows[0].Page.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
+        navigationPage.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
+        navigationPage.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
 
         if (DeviceInfo.Platform != DevicePlatform.Android) HomePageSetter().Wait();
 
