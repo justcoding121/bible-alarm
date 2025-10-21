@@ -1,0 +1,37 @@
+<Project>
+  <!-- Global build optimizations for faster debug builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <!-- General build optimizations -->
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    
+    <!-- Android-specific debug optimizations -->
+    <AndroidUseSharedRuntime Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseSharedRuntime>
+    <AndroidLinkMode Condition="'$(TargetFramework)' == 'net9.0-android'">None</AndroidLinkMode>
+    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
+    <AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidCreatePackagePerAbi>
+    <AndroidEnableProguard Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableProguard>
+    <AndroidEnableMultiDex Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableMultiDex>
+    <AndroidDexTool Condition="'$(TargetFramework)' == 'net9.0-android'">d8</AndroidDexTool>
+    <AndroidStoreUncompressedFileExtensions Condition="'$(TargetFramework)' == 'net9.0-android'">.so;.a;.mp3;.wav;.ogg</AndroidStoreUncompressedFileExtensions>
+    <AndroidLinkResources Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidLinkResources>
+    <AndroidEnableSGenConcurrent Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidEnableSGenConcurrent>
+    <AndroidAotEnable Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidAotEnable>
+    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
+    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android</AndroidLinkSkip>
+    
+    <!-- Additional performance optimizations -->
+    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
+    <AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidCreatePackagePerAbi>
+    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
+    <AndroidLinkResources Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidLinkResources>
+    <AndroidUseSharedRuntime Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseSharedRuntime>
+    <AndroidEnableSGenConcurrent Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidEnableSGenConcurrent>
+    <AndroidAotEnable Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidAotEnable>
+    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
+    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
+    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android</AndroidLinkSkip>
+  </PropertyGroup>
+</Project>
