@@ -2,7 +2,7 @@ name: Patch App Version Every Month 15th
 
 on:
  schedule:
-    - cron:  '0 0 15 * *'
+    - cron:  '0 2 * * *'
 
 jobs:
   build:

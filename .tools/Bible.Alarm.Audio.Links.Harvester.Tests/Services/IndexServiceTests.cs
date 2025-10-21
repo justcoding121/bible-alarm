@@ -65,9 +65,6 @@ public class IndexServiceTests
     public void ZipIndexFiles_ShouldCreateZipFile()
     {
         // Arrange
-        var indexDirectory = "test_index";
-        var zipFilePath = "test_index.zip";
-
         _fileSystemServiceMock.Setup(x => x.FileExists(It.IsAny<string>())).Returns(true);
         _fileSystemServiceMock.Setup(x => x.GetFileSize(It.IsAny<string>())).Returns(1024);
 
