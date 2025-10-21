@@ -27,44 +27,94 @@ public partial class App
 
     private void Init()
     {
-        InitializeComponent();
-
-        var navigationPage = new NavigationPage();
-        var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
-        
-        // Create and store the navigation service for later use
-        using var scope = _scopeFactory.CreateScope();
-        _navigationService = new NavigationService(
-            scope.ServiceProvider.GetRequiredService<ILogger>(), 
-            navigationPage.Navigation,
-            _scopeFactory);
-
-        // Use the MAUI approach for setting the main page
-        MainPage = navigationPage;
-
-        navigationPage.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
-        navigationPage.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
-
-        if (DeviceInfo.Platform != DevicePlatform.Android) HomePageSetter().Wait();
-
-        Task.Delay(100).ContinueWith(async (a) =>
-            {
-                if (DeviceInfo.Platform == DevicePlatform.Android) await HomePageSetter();
-            }, taskScheduler)
-            .ContinueWith(x =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-
-                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
-            });
-        return;
-
-        async Task HomePageSetter()
+        System.Diagnostics.Debug.WriteLine("Init() called!");
+        try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
-            await navigationPage.Navigation.PushAsync(homePage);
+            InitializeComponent();
+            System.Diagnostics.Debug.WriteLine("InitializeComponent() completed!");
+
+            var navigationPage = new NavigationPage();
+            System.Diagnostics.Debug.WriteLine("NavigationPage created!");
+            
+            // Use the MAUI approach for setting the main page
+            MainPage = navigationPage;
+            System.Diagnostics.Debug.WriteLine("MainPage set!");
+
+            navigationPage.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
+            navigationPage.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
+            System.Diagnostics.Debug.WriteLine("Navigation page properties set!");
+
+            // Try to create a simple home page first
+            var simpleHomePage = new ContentPage
+            {
+                Title = "Bible Alarm",
+                Content = new Label 
+                { 
+                    Text = "Bible Alarm is starting...", 
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                }
+            };
+            
+            navigationPage.Navigation.PushAsync(simpleHomePage);
+            System.Diagnostics.Debug.WriteLine("Simple home page pushed!");
+
+            // Try to initialize services in background
+            Task.Run(async () =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("Starting service initialization...");
+                    var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+                    
+                    // Create and store the navigation service for later use
+                    using var scope = _scopeFactory.CreateScope();
+                    _navigationService = new NavigationService(
+                        scope.ServiceProvider.GetRequiredService<ILogger>(), 
+                        navigationPage.Navigation,
+                        _scopeFactory);
+                    System.Diagnostics.Debug.WriteLine("NavigationService created!");
+
+                    if (DeviceInfo.Platform != DevicePlatform.Android) await HomePageSetter();
+                    else
+                    {
+                        await Task.Delay(100);
+                        await HomePageSetter();
+                    }
+
+                    var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
+                    if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
+                    
+                    System.Diagnostics.Debug.WriteLine("Service initialization completed!");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in service initialization: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                }
+            });
+
+            async Task HomePageSetter()
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("HomePageSetter called!");
+                    using var scope = _scopeFactory.CreateScope();
+                    var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
+                    await navigationPage.Navigation.PushAsync(homePage);
+                    System.Diagnostics.Debug.WriteLine("Home page pushed!");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in HomePageSetter: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in Init(): {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
 
