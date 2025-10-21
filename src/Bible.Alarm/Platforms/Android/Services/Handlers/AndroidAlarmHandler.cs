@@ -8,12 +8,13 @@ using Serilog;
 namespace Bible.Alarm.Droid.Services.Handlers;
 
 public class AndroidAlarmHandler(
+    ILogger logger,
     IPlaybackService playbackService,
     ScheduleDbContext dbContext,
     DroidNotificationService notificationService)
     : IAndroidAlarmHandler, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<AndroidAlarmHandler>();
+    private readonly ILogger _logger = logger;
 
 
     private bool _playbackServiceInitialized = false;
@@ -58,7 +59,7 @@ public class AndroidAlarmHandler(
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened when ringing the alarm.");
+                _logger.Error(e, "An error happened when ringing the alarm.");
                 Dispose();
             }
         });

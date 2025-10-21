@@ -3,6 +3,7 @@ using Android.App.Job;
 using Bible.Alarm.Services.Tasks;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
+using Bible.Alarm.Services.Droid.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Services.Droid.Tasks;
@@ -12,10 +13,15 @@ public class SchedulerJob : JobService
 {
     public const int JobId = 1;
 
-    private static readonly ILogger Logger = Log.ForContext<SchedulerJob>();
+    private readonly ILogger _logger;
 
-    public SchedulerJob()
+    public SchedulerJob() : this(Log.ForContext<SchedulerJob>())
     {
+    }
+
+    public SchedulerJob(ILogger logger)
+    {
+        _logger = logger;
         LogSetup.Initialize(VersionFinder.Default,
             new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
@@ -24,12 +30,12 @@ public class SchedulerJob : JobService
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        Logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
+        _logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
+        _logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
     }
 
     public override bool OnStartJob(JobParameters @params)
@@ -38,13 +44,16 @@ public class SchedulerJob : JobService
         {
             try
             {
+                BootstrapHelper.InitializeService(this);
+                await BootstrapHelper.VerifyServices();
+                
                 // Container no longer needed - using ServiceProviderManager
                 var schedulerService = ServiceProviderManager.GetService<SchedulerTask>();
                 await schedulerService.Handle();
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error processing scheduled tasks");
+                _logger.Error(e, "Error processing scheduled tasks");
             }
             finally
             {

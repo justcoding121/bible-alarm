@@ -6,6 +6,7 @@ using Android.OS;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Droid.Tasks;
+using Bible.Alarm.Services.Infrastructure;
 using Serilog;
 
 namespace Bible.Alarm.Services.Droid.Helpers;
@@ -14,6 +15,9 @@ public class BootstrapHelper
 {
     public static void InitializeService(Context context)
     {
+        // Ensure ServiceProviderManager is initialized for background services
+        EnsureServiceProviderInitialized();
+        
         // MAUI handles platform initialization automatically
         CreateNotificationChannel();
     }
@@ -41,7 +45,20 @@ public class BootstrapHelper
 
     public static async Task VerifyServices()
     {
+        // Ensure ServiceProviderManager is initialized
+        EnsureServiceProviderInitialized();
         await CommonBootstrapHelper.VerifyServices();
+    }
+
+    private static void EnsureServiceProviderInitialized()
+    {
+        if (!ServiceProviderManager.IsInitialized)
+        {
+            // Initialize minimal DI container for Android background services
+            // This should only happen if the main app hasn't started yet
+            throw new InvalidOperationException(
+                "ServiceProviderManager not initialized. Android background services require the main app to initialize first.");
+        }
     }
 
     internal static void Remove(Context context)

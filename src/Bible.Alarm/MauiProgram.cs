@@ -19,6 +19,7 @@ using Bible.Alarm.Contracts.Battery;
 using Bible.Alarm.Contracts.Platform;
 using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace Bible.Alarm;
 
@@ -27,11 +28,10 @@ public static class MauiProgram
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
-#pragma warning disable CA1416
+
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
-#pragma warning restore CA1416
             .ConfigureFonts(fonts => { fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName); });
 
         // Register services
@@ -69,6 +69,9 @@ public static class MauiProgram
 
     private static void RegisterCommonServices(IServiceCollection services)
     {
+        // Register logging
+        services.AddSingleton<ILogger>(sp => Serilog.Log.Logger);
+        
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
         services.AddSingleton<MediaIndexService>();

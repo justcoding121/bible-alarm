@@ -19,13 +19,17 @@ namespace Bible.Alarm.Droid.Services.Tasks;
 })]
 public class RestartReceiver : BroadcastReceiver, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<RestartReceiver>();
-
+    private readonly ILogger _logger;
 
     private Context _context;
 
-    public RestartReceiver()
+    public RestartReceiver() : this(Log.ForContext<RestartReceiver>())
     {
+    }
+
+    public RestartReceiver(ILogger logger)
+    {
+        _logger = logger;
         LogSetup.Initialize(VersionFinder.Default,
             new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
 
@@ -35,12 +39,12 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        Logger.Error(e.Exception, "Unobserved task exception.");
+        _logger.Error(e.Exception, "Unobserved task exception.");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error("Unhandled exception.", e.SerializeObject());
+        _logger.Error("Unhandled exception.", e.SerializeObject());
     }
 
     public override async void OnReceive(Context context, Intent intent)
@@ -61,7 +65,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
             }
             catch (Exception ex)
             {
-                Logger.Warning(ex, $"Failed to process restart task: copy media index. Intent action {intent.Action}");
+                _logger.Warning(ex, $"Failed to process restart task: copy media index. Intent action {intent.Action}");
             }
 
             using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
@@ -71,7 +75,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         }
         catch (Exception e)
         {
-            Logger.Error(e, $"Failed to process restart task. Intent action {intent.Action}");
+            _logger.Error(e, $"Failed to process restart task. Intent action {intent.Action}");
         }
         finally
         {

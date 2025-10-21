@@ -4,18 +4,19 @@ using Bible.Alarm.Models;
 using Bible.Alarm.Services.Contracts;
 using Serilog;
 using UserNotifications;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Services.iOS
 {
-    public class IOsNotificationService() : INotificationService
+    public class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
     {
-        private static readonly ILogger Logger = Log.ForContext<IOsNotificationService>();
-
-        private readonly TaskScheduler _taskScheduler = ServiceProviderManager.GetService<TaskScheduler>();
+        private readonly ILogger _logger = logger;
+        private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
         public async Task ShowNotification(long scheduleId)
         {
-            var iosAlarmHandler = ServiceProviderManager.GetService<IOsAlarmHandler>();
+            using var scope = _scopeFactory.CreateScope();
+            var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IOsAlarmHandler>();
             await iosAlarmHandler.Handle(scheduleId, true);
         }
 
@@ -52,11 +53,11 @@ namespace Bible.Alarm.Services.iOS
                     {
                         if (err != null)
                         {
-                            Logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
+                            _logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
                         }
                     });
                 }
-            }, _taskScheduler);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         public async Task Remove(long scheduleId)
@@ -77,7 +78,7 @@ namespace Bible.Alarm.Services.iOS
                         }
                     }
                 }
-            }, _taskScheduler);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         public async Task<bool> IsScheduled(long scheduleId)
@@ -99,7 +100,7 @@ namespace Bible.Alarm.Services.iOS
                 }
 
                 return false;
-            }, _taskScheduler);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         public async Task<bool> CanSchedule()
@@ -115,7 +116,7 @@ namespace Bible.Alarm.Services.iOS
                 });
 
                 return taskCompletionSource.Task.Result;
-            }, _taskScheduler);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         public void Dispose()

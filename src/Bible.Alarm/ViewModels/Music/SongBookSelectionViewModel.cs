@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -17,16 +18,18 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
 {
     private MediaService _mediaService;
     private INavigationService _navigationService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
     private List<IDisposable> _subscriptions = [];
 
-    public SongBookSelectionViewModel()
+    public SongBookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
     {
-        _mediaService = ServiceProviderManager.GetService<MediaService>();
-        _navigationService = ServiceProviderManager.GetService<INavigationService>();
+        _mediaService = mediaService;
+        _navigationService = navigationService;
+        _scopeFactory = scopeFactory;
 
         //set schedules from initial state.
         //this should fire only once 
@@ -75,7 +78,8 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
                 }
             });
 
-            var viewModel = ServiceProviderManager.GetService<TrackSelectionViewModel>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
             await _navigationService.Navigate(viewModel);
 
             IsBusy = false;

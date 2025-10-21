@@ -6,9 +6,11 @@ namespace Bible.Alarm.UI.Views.Bible;
 public partial class BookSelection : ContentPage
 {
     public BookSelectionViewModel ViewModel => BindingContext as BookSelectionViewModel;
+    private readonly TaskScheduler _taskScheduler;
 
-    public BookSelection()
+    public BookSelection(TaskScheduler taskScheduler)
     {
+        _taskScheduler = taskScheduler;
         InitializeComponent();
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
@@ -26,7 +28,7 @@ public partial class BookSelection : ContentPage
         {
             bookListView.ScrollTo(ViewModel.SelectedBook, ScrollToPosition.Center, true);
             Appearing -= OnAppearing;
-        }, ServiceProviderManager.GetService<TaskScheduler>());
+        }, _taskScheduler);
     }
 
     protected override bool OnBackButtonPressed()

@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.Media;
 
 public class MediaElementAudioService : IMediaElementAudioService
 {
-    private static readonly ILogger Logger = Log.ForContext<MediaElementAudioService>();
+    private readonly ILogger _logger;
 
     private MediaElement _mediaElement;
     private readonly SemaphoreSlim _lock = new(1);
@@ -21,8 +21,9 @@ public class MediaElementAudioService : IMediaElementAudioService
     public bool IsPlaying => _isPlaying;
     public bool IsPrepared => _isPrepared;
 
-    public MediaElementAudioService()
+    public MediaElementAudioService(ILogger logger)
     {
+        _logger = logger;
         // Initialize MediaElement
         _mediaElement = new MediaElement
         {
@@ -49,7 +50,7 @@ public class MediaElementAudioService : IMediaElementAudioService
             {
                 _mediaElement.Play();
                 _isPlaying = true;
-                Logger.Information("Playback started");
+                _logger.Information("Playback started");
             }
         }
         finally
@@ -69,7 +70,7 @@ public class MediaElementAudioService : IMediaElementAudioService
             _isPrepared = false;
             _currentTrackPosition = TimeSpan.Zero;
 
-            Logger.Information("Playback dismissed");
+            _logger.Information("Playback dismissed");
         }
         finally
         {
@@ -86,7 +87,7 @@ public class MediaElementAudioService : IMediaElementAudioService
             {
                 _mediaElement.Source = source;
                 _isPrepared = true;
-                Logger.Information($"Media source set to: {source}");
+                _logger.Information($"Media source set to: {source}");
             }
         }
         finally
@@ -104,7 +105,7 @@ public class MediaElementAudioService : IMediaElementAudioService
             {
                 _mediaElement.Pause();
                 _isPlaying = false;
-                Logger.Information("Playback paused");
+                _logger.Information("Playback paused");
             }
         }
         finally
@@ -123,7 +124,7 @@ public class MediaElementAudioService : IMediaElementAudioService
                 _mediaElement.Stop();
                 _isPlaying = false;
                 _currentTrackPosition = TimeSpan.Zero;
-                Logger.Information("Playback stopped");
+                _logger.Information("Playback stopped");
             }
         }
         finally
@@ -142,7 +143,7 @@ public class MediaElementAudioService : IMediaElementAudioService
                 // MediaElement doesn't support direct position setting
                 // This would need to be implemented differently for seeking
                 _currentTrackPosition = position;
-                Logger.Information($"Seeked to position: {position}");
+                _logger.Information($"Seeked to position: {position}");
             }
         }
         finally
@@ -156,19 +157,19 @@ public class MediaElementAudioService : IMediaElementAudioService
 
     private void OnMediaOpened(object sender, EventArgs e)
     {
-        Logger.Information("Media opened successfully");
+        _logger.Information("Media opened successfully");
     }
 
     private void OnMediaEnded(object sender, EventArgs e)
     {
-        Logger.Information("Media playback ended");
+        _logger.Information("Media playback ended");
         _isPlaying = false;
         MediaEnded?.Invoke(this, e);
     }
 
     private void OnMediaFailed(object sender, EventArgs e)
     {
-        Logger.Error("Media playback failed");
+        _logger.Error("Media playback failed");
         _isPlaying = false;
         MediaFailed?.Invoke(this, e);
     }

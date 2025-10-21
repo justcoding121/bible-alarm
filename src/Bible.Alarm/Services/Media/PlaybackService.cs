@@ -8,7 +8,7 @@ namespace Bible.Alarm.Services.Media;
 
 public class PlaybackService : IPlaybackService
 {
-    private static readonly ILogger Logger = Log.ForContext<PlaybackService>();
+    private readonly ILogger _logger;
 
     private readonly IMediaElementAudioService _mediaElementService;
     private readonly IPlaylistService _playlistService;
@@ -28,6 +28,7 @@ public class PlaybackService : IPlaybackService
     private Task _watchTask;
 
     public PlaybackService(
+        ILogger logger,
         IMediaElementAudioService mediaElementService,
         IPlaylistService playlistService,
         IMediaCacheService cacheService,
@@ -35,6 +36,7 @@ public class PlaybackService : IPlaybackService
         INetworkStatusService networkStatusService,
         IDownloadService downloadService)
     {
+        _logger = logger;
         _mediaElementService = mediaElementService;
         _playlistService = playlistService;
         _cacheService = cacheService;
@@ -57,13 +59,13 @@ public class PlaybackService : IPlaybackService
     {
         try
         {
-            Logger.Information("Preparing relevant playlist...");
+            _logger.Information("Preparing relevant playlist...");
             var lastPlayed = await _playlistService.GetRelavantScheduleToPlay();
             await Prepare(lastPlayed);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error preparing relevant playlist");
+            _logger.Error(ex, "Error preparing relevant playlist");
             throw;
         }
     }
@@ -85,11 +87,11 @@ public class PlaybackService : IPlaybackService
             // Start watching and saving progress
             await WatchAndSaveProgress();
 
-            Logger.Information("Playback started");
+            _logger.Information("Playback started");
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error during playback");
+            _logger.Error(ex, "Error during playback");
             throw;
         }
     }
@@ -104,11 +106,11 @@ public class PlaybackService : IPlaybackService
             // Stop watching and saving progress
             await StopWatching();
 
-            Logger.Information("Playback paused");
+            _logger.Information("Playback paused");
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error pausing playback");
+            _logger.Error(ex, "Error pausing playback");
             throw;
         }
     }
@@ -122,16 +124,16 @@ public class PlaybackService : IPlaybackService
                 CurrentTrackIndex--;
                 await LoadAndPlayCurrentTrack();
                 await Play();
-                Logger.Information($"Playing previous track {CurrentTrackIndex + 1}");
+                _logger.Information($"Playing previous track {CurrentTrackIndex + 1}");
             }
             else
             {
-                Logger.Information("Already at first track");
+                _logger.Information("Already at first track");
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error playing previous track");
+            _logger.Error(ex, "Error playing previous track");
             throw;
         }
     }
@@ -154,16 +156,16 @@ public class PlaybackService : IPlaybackService
                 CurrentTrackIndex++;
                 await LoadAndPlayCurrentTrack();
                 await Play();
-                Logger.Information($"Playing next track {CurrentTrackIndex + 1}");
+                _logger.Information($"Playing next track {CurrentTrackIndex + 1}");
             }
             else
             {
-                Logger.Information("Already at last track");
+                _logger.Information("Already at last track");
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error playing next track");
+            _logger.Error(ex, "Error playing next track");
             throw;
         }
     }
@@ -178,7 +180,7 @@ public class PlaybackService : IPlaybackService
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error preparing and playing schedule {scheduleId}");
+            _logger.Error(ex, $"Error preparing and playing schedule {scheduleId}");
             throw;
         }
     }
@@ -194,11 +196,11 @@ public class PlaybackService : IPlaybackService
             }
 
             await StopWatching();
-            Logger.Information("Playback dismissed");
+            _logger.Information("Playback dismissed");
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error dismissing playback");
+            _logger.Error(ex, "Error dismissing playback");
         }
     }
 
@@ -271,7 +273,7 @@ public class PlaybackService : IPlaybackService
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, $"Error processing downloaded file: {track.Value.FullName}");
+                    _logger.Error(ex, $"Error processing downloaded file: {track.Value.FullName}");
                 }
 
             // Process streaming tracks
@@ -304,7 +306,7 @@ public class PlaybackService : IPlaybackService
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, $"Error processing streaming track: {track.Value}");
+                    _logger.Error(ex, $"Error processing streaming track: {track.Value}");
                 }
 
             // Merge all tracks
@@ -352,7 +354,7 @@ public class PlaybackService : IPlaybackService
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error in PreparePlay for schedule {scheduleId}");
+            _logger.Error(ex, $"Error in PreparePlay for schedule {scheduleId}");
             throw;
         }
     }
@@ -379,7 +381,7 @@ public class PlaybackService : IPlaybackService
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error handling internet down");
+            _logger.Error(ex, "Error handling internet down");
         }
     }
 
@@ -389,7 +391,7 @@ public class PlaybackService : IPlaybackService
         {
             if (_currentlyPlaying == null || !_currentlyPlaying.Any())
             {
-                Logger.Warning("No tracks available to play");
+                _logger.Warning("No tracks available to play");
                 return;
             }
 
@@ -398,7 +400,7 @@ public class PlaybackService : IPlaybackService
             var playDetail = currentTrack.Value;
 
             await _mediaElementService.SetSource(trackUrl);
-            Logger.Information($"Loaded track {CurrentTrackIndex + 1}: {trackUrl}");
+            _logger.Information($"Loaded track {CurrentTrackIndex + 1}: {trackUrl}");
 
             // Handle resume from previous position
             if (playDetail.FinishedDuration.TotalSeconds > 0
@@ -411,7 +413,7 @@ public class PlaybackService : IPlaybackService
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error loading track {CurrentTrackIndex + 1}");
+            _logger.Error(ex, $"Error loading track {CurrentTrackIndex + 1}");
             throw;
         }
     }
@@ -420,7 +422,7 @@ public class PlaybackService : IPlaybackService
     {
         try
         {
-            Logger.Information("Media ended");
+            _logger.Information("Media ended");
             _isPlaying = false;
             await StopWatching();
 
@@ -440,7 +442,7 @@ public class PlaybackService : IPlaybackService
             {
                 // Move to next track
                 CurrentTrackIndex++;
-                Logger.Information($"Moving to next track: {CurrentTrackIndex + 1}");
+                _logger.Information($"Moving to next track: {CurrentTrackIndex + 1}");
 
                 await LoadAndPlayCurrentTrack();
                 await Play();
@@ -448,7 +450,7 @@ public class PlaybackService : IPlaybackService
             else
             {
                 // No more tracks - restart the playlist
-                Logger.Information("Playlist completed, restarting...");
+                _logger.Information("Playlist completed, restarting...");
                 Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
 
                 var scheduleId = _currentScheduleId;
@@ -461,7 +463,7 @@ public class PlaybackService : IPlaybackService
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error handling media ended");
+            _logger.Error(ex, "Error handling media ended");
         }
     }
 
@@ -469,14 +471,14 @@ public class PlaybackService : IPlaybackService
     {
         try
         {
-            Logger.Error("Media playback failed");
+            _logger.Error("Media playback failed");
             _isPlaying = false;
             await StopWatching();
             Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error handling media failed");
+            _logger.Error(ex, "Error handling media failed");
         }
     }
 
@@ -543,7 +545,7 @@ public class PlaybackService : IPlaybackService
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error(ex, "Error updating finished track duration");
+                        _logger.Error(ex, "Error updating finished track duration");
                     }
                     finally
                     {
@@ -576,7 +578,7 @@ public class PlaybackService : IPlaybackService
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error disposing PlaybackService");
+            _logger.Error(ex, "Error disposing PlaybackService");
         }
     }
 }

@@ -6,12 +6,13 @@ using Bible.Alarm.Models;
 
 namespace Bible.Alarm.Services.Windows
 {
-    public class UwpNotificationService() : INotificationService
+    public class UwpNotificationService(UwpAlarmHandler uwpAlarmHandler) : INotificationService
     {
+        private readonly UwpAlarmHandler _uwpAlarmHandler = uwpAlarmHandler;
+
         public async Task ShowNotification(long scheduleId)
         {
-            var uwpAlarmHandler = ServiceProviderManager.GetService<UwpAlarmHandler>();
-            await uwpAlarmHandler.Handle(scheduleId, true);
+            await _uwpAlarmHandler.Handle(scheduleId, true);
         }
 
         public Task ScheduleNotification(AlarmSchedule schedule,

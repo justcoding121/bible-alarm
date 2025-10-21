@@ -12,12 +12,13 @@ using System.Collections.ObjectModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 
 public class ScheduleViewModel : ViewModel, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<ScheduleViewModel>();
+    private readonly ILogger _logger;
 
 
     private ScheduleDbContext _scheduleDbContext;
@@ -41,19 +42,32 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public ICommand NextChapterCommand { get; set; }
 
     private IBatteryOptimizationManager _batteryOptimizationManager;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public ScheduleViewModel()
+    public ScheduleViewModel(
+        ILogger logger,
+        ScheduleDbContext scheduleDbContext,
+        MediaDbContext mediaDbContext,
+        IToastService popUpService,
+        IAlarmService alarmService,
+        INavigationService navigationService,
+        IPlaybackService playbackService,
+        INotificationService notificationService,
+        IServiceScopeFactory scopeFactory,
+        IBatteryOptimizationManager batteryOptimizationManager = null)
     {
+        _logger = logger;
+        _scheduleDbContext = scheduleDbContext;
+        _mediaDbContext = mediaDbContext;
+        _popUpService = popUpService;
+        _alarmService = alarmService;
+        _navigationService = navigationService;
+        _playbackService = playbackService;
+        _notificationService = notificationService;
+        _scopeFactory = scopeFactory;
+        
         if (DeviceInfo.Platform == DevicePlatform.Android)
-            _batteryOptimizationManager = ServiceProviderManager.GetService<IBatteryOptimizationManager>();
-
-        _scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
-        _mediaDbContext = ServiceProviderManager.GetService<MediaDbContext>();
-        _popUpService = ServiceProviderManager.GetService<IToastService>();
-        _alarmService = ServiceProviderManager.GetService<IAlarmService>();
-        _navigationService = ServiceProviderManager.GetService<INavigationService>();
-        _playbackService = ServiceProviderManager.GetService<IPlaybackService>();
-        _notificationService = ServiceProviderManager.GetService<INotificationService>();
+            _batteryOptimizationManager = batteryOptimizationManager;
 
         _subscriptions.Add(_scheduleDbContext);
 
@@ -165,7 +179,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
         {
             IsBusy = true;
 
-            var viewModel = ServiceProviderManager.GetService<MusicSelectionViewModel>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<MusicSelectionViewModel>();
             await _navigationService.Navigate(viewModel);
 
             await Task.Run(async () =>
@@ -190,7 +205,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
         {
             IsBusy = true;
 
-            var viewModel = ServiceProviderManager.GetService<BibleSelectionViewModel>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<BibleSelectionViewModel>();
             await _navigationService.Navigate(viewModel);
 
             await Task.Run(async () =>
@@ -268,7 +284,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         PreviousBookCommand = new Command(async () =>
         {
-            using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
+            using var scope = _scopeFactory.CreateScope();
+            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextBook = await playlistService.GetPreviousBibleBook(BibleReadingSchedule.LanguageCode,
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
 
@@ -281,7 +298,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         NextBookCommand = new Command(async () =>
         {
-            using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
+            using var scope = _scopeFactory.CreateScope();
+            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextBook = await playlistService.GetNextBibleBook(BibleReadingSchedule.LanguageCode,
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
 
@@ -294,7 +312,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         PreviousChapterCommand = new Command(async () =>
         {
-            using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
+            using var scope = _scopeFactory.CreateScope();
+            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var prevChapter = await playlistService.GetPreviousBibleChapter(BibleReadingSchedule.LanguageCode,
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber,
                 BibleReadingSchedule.ChapterNumber);
@@ -308,7 +327,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         NextChapterCommand = new Command(async () =>
         {
-            using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
+            using var scope = _scopeFactory.CreateScope();
+            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextChapter = await playlistService.GetNextBibleChapter(BibleReadingSchedule.LanguageCode,
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber,
                 BibleReadingSchedule.ChapterNumber);
@@ -564,12 +584,13 @@ public class ScheduleViewModel : ViewModel, IDisposable
         {
             try
             {
-                using var mediaCacheService = ServiceProviderManager.GetService<IMediaCacheService>();
+                using var scope = _scopeFactory.CreateScope();
+                using var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
                 await mediaCacheService.SetupAlarmCache(scheduleId);
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened in SetupAlarmCache task.");
+                _logger.Error(e, "An error happened in SetupAlarmCache task.");
             }
         });
     }
@@ -591,9 +612,10 @@ public class ScheduleViewModel : ViewModel, IDisposable
                 if (model.IsEnabled) await _alarmService.Create(model);
             });
 
+            using var scope = _scopeFactory.CreateScope();
             ReduxContainer.Store.Dispatch(new AddScheduleAction
             {
-                ScheduleListItem = new ScheduleListItem(model)
+                ScheduleListItem = new ScheduleListItem(model, scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory)
             });
         }
         else
@@ -682,13 +704,14 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
     private void RefreshChapterName()
     {
-        var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
+        using var scope = _scopeFactory.CreateScope();
+        var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
 
         Task.Run(async () =>
             {
                 try
                 {
-                    using var mediaDbContext = ServiceProviderManager.GetService<MediaDbContext>();
+                    using var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
                     var bookName = await mediaDbContext.BibleBook
                         .Where(x => x.BibleTranslation.Code == BibleReadingSchedule.PublicationCode
@@ -702,7 +725,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "An error happened in refreshChapterName task under schedule view model.");
+                    _logger.Error(e, "An error happened in refreshChapterName task under schedule view model.");
                 }
 
                 return null;
@@ -717,7 +740,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e,
+                        _logger.Error(e,
                             "An error happened in refreshChapterName task continue with under schedule view model.");
                     }
             }, syncContext);

@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -18,13 +19,15 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     private List<IDisposable> _subscriptions = [];
 
-    public MusicSelectionViewModel()
+    public MusicSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
     {
-        _mediaService = ServiceProviderManager.GetService<MediaService>();
-        _navigationService = ServiceProviderManager.GetService<INavigationService>();
+        _mediaService = mediaService;
+        _navigationService = navigationService;
+        _scopeFactory = scopeFactory;
 
         //set schedules from initial state.
         //this should fire only once 
@@ -57,7 +60,8 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
                     }
                 });
 
-                var viewModel = ServiceProviderManager.GetService<SongBookSelectionViewModel>();
+                using var scope = _scopeFactory.CreateScope();
+                var viewModel = scope.ServiceProvider.GetRequiredService<SongBookSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
             }
             else
@@ -71,7 +75,8 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
                         PublicationCode = "iam"
                     }
                 });
-                var viewModel = ServiceProviderManager.GetService<TrackSelectionViewModel>();
+                using var scope = _scopeFactory.CreateScope();
+                var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);
             }
 

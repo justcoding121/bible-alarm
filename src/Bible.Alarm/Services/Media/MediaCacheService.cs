@@ -12,6 +12,7 @@ using System.Text;
 namespace Bible.Alarm.Services;
 
 public class MediaCacheService(
+    ILogger logger,
     IStorageService storageService,
     IDownloadService downloadService,
     IPlaylistService mediaPlayService,
@@ -21,8 +22,7 @@ public class MediaCacheService(
     IPlaybackService playbackService)
     : IMediaCacheService
 {
-    private static readonly ILogger Logger = Log.ForContext<MediaCacheService>();
-
+    private readonly ILogger _logger = logger;
 
     private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
 
@@ -92,7 +92,7 @@ public class MediaCacheService(
                                     await mediaService.UpdateBibleTrackUrl(playDetail.LanguageCode,
                                         playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
                                         url);
-                                    Logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
+                                    _logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
                                 }
                                 else
                                 {
@@ -113,7 +113,7 @@ public class MediaCacheService(
                                         await mediaService.UpdateVocalTrackUrl(playDetail.LanguageCode,
                                             playDetail.PublicationCode, playDetail.TrackNumber, url);
 
-                                    Logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
+                                    _logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
                                 }
                                 else
                                 {
@@ -127,7 +127,7 @@ public class MediaCacheService(
                             if (bytes != null)
                             {
                                 await storageService.SaveFile(_cacheRoot, GetCacheFileName(url), bytes);
-                                Logger.Warning($"Downloaded using updated URL {url} for {playItem.ToString()}");
+                                _logger.Warning($"Downloaded using updated URL {url} for {playItem.ToString()}");
                                 continue;
                             }
 
@@ -139,7 +139,7 @@ public class MediaCacheService(
             // Log all exceptions during media download for debugging purposes
             catch (Exception e)
             {
-                Logger.Error(e, "An exception happened when downloading media files for caching.");
+                _logger.Error(e, "An exception happened when downloading media files for caching.");
             }
             finally
             {
@@ -149,7 +149,7 @@ public class MediaCacheService(
                 }
                 catch (ObjectDisposedException e)
                 {
-                    Logger.Error(e, "MediaCacheService: @lock disposed error.");
+                    _logger.Error(e, "MediaCacheService: @lock disposed error.");
                 }
             }
 
@@ -245,7 +245,7 @@ public class MediaCacheService(
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"Failed to delete file: {x}");
+                _logger.Error(e, $"Failed to delete file: {x}");
             }
         });
     }

@@ -10,24 +10,26 @@ using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.UI;
 
 public class NavigationService : INavigationService
 {
-    private static readonly ILogger Logger = Log.ForContext<NavigationService>();
-
-
+    private readonly ILogger _logger;
     private readonly INavigation _navigater;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public event Action<object> NavigatedBack;
     private bool _disposed = false;
 
     private AsyncQueue<(MvvmMessages, object)> _queue = new();
 
-    public NavigationService(INavigation navigater)
+    public NavigationService(ILogger logger, INavigation navigater, IServiceScopeFactory scopeFactory)
     {
+        _logger = logger;
         _navigater = navigater;
+        _scopeFactory = scopeFactory;
 
         Messenger<object>.Subscribe(MvvmMessages.ShowAlarmModal,
             async @param => { await _queue.EnqueueAsync((MvvmMessages.ShowAlarmModal, @param)); });
@@ -47,10 +49,11 @@ public class NavigationService : INavigationService
         Messenger<object>.Subscribe(MvvmMessages.ClearToasts,
             async @param => { await _queue.EnqueueAsync((MvvmMessages.ClearToasts, @param)); });
 
-        var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
-
         Task.Run(async () =>
         {
+            using var scope = _scopeFactory.CreateScope();
+            var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
+            
             while (!_disposed)
             {
                 var item = await _queue.DequeueAsync();
@@ -62,10 +65,10 @@ public class NavigationService : INavigationService
                     case MvvmMessages.ShowAlarmModal:
                     {
                         // Prevent showing alarm modal when playback is not active
-                        var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
                         if (!playbackService.IsPlaying) break;
 
-                        var vm = ServiceProviderManager.GetService<AlarmViewModal>();
+                        var vm = scope.ServiceProvider.GetRequiredService<AlarmViewModal>();
                         await Task.Delay(0).ContinueWith(async (x) => { await ShowModal("AlarmModal", vm); },
                             syncContext);
                     }
@@ -81,7 +84,7 @@ public class NavigationService : INavigationService
                     {
                         await Task.Delay(0).ContinueWith(async (x) =>
                         {
-                            using var toastService = ServiceProviderManager.GetService<IToastService>();
+                            using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
                             await toastService.ShowMessage(@object as string);
                         }, syncContext);
                     }
@@ -91,14 +94,14 @@ public class NavigationService : INavigationService
                     {
                         await Task.Delay(0).ContinueWith(async (x) =>
                         {
-                            using var toastService = ServiceProviderManager.GetService<IToastService>();
+                            using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
                             await toastService.Clear();
                         }, syncContext);
                     }
                         break;
                     case MvvmMessages.ShowMediaProgessModal:
                     {
-                        var vm = ServiceProviderManager.GetService<MediaProgressViewModal>();
+                        var vm = scope.ServiceProvider.GetRequiredService<MediaProgressViewModal>();
                         await Task.Delay(0).ContinueWith(async (x) => { await ShowModal("MediaProgressModal", vm); },
                             syncContext);
                     }
@@ -112,11 +115,13 @@ public class NavigationService : INavigationService
 
     public async Task ShowModal(string name, object viewModel)
     {
+        using var scope = _scopeFactory.CreateScope();
+        
         switch (name)
         {
             case "LanguageModal":
             {
-                var modal = ServiceProviderManager.GetService<LanguageModal>();
+                var modal = scope.ServiceProvider.GetRequiredService<LanguageModal>();
                 modal.BindingContext = viewModel;
                 await _navigater.PushModalAsync(modal);
                 break;
@@ -126,7 +131,7 @@ public class NavigationService : INavigationService
             {
                 if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal)) return;
 
-                var modal = ServiceProviderManager.GetService<AlarmModal>();
+                var modal = scope.ServiceProvider.GetRequiredService<AlarmModal>();
                 modal.BindingContext = viewModel;
                 await _navigater.PushModalAsync(modal);
                 break;
@@ -134,7 +139,7 @@ public class NavigationService : INavigationService
 
             case "BatteryOptimizationExclusionModal":
             {
-                var modal = ServiceProviderManager.GetService<BatteryOptimizationExclusionModal>();
+                var modal = scope.ServiceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
                 modal.BindingContext = viewModel;
                 await _navigater.PushModalAsync(modal);
                 break;
@@ -142,7 +147,7 @@ public class NavigationService : INavigationService
 
             case "NumberOfChaptersModal":
             {
-                var modal = ServiceProviderManager.GetService<NumberOfChaptersModal>();
+                var modal = scope.ServiceProvider.GetRequiredService<NumberOfChaptersModal>();
                 modal.BindingContext = viewModel;
                 await _navigater.PushModalAsync(modal);
                 break;
@@ -152,7 +157,7 @@ public class NavigationService : INavigationService
             {
                 if (_navigater.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal)) return;
 
-                var modal = ServiceProviderManager.GetService<MediaProgressModal>();
+                var modal = scope.ServiceProvider.GetRequiredService<MediaProgressModal>();
                 modal.BindingContext = viewModel;
                 await _navigater.PushModalAsync(modal);
                 break;
@@ -165,6 +170,8 @@ public class NavigationService : INavigationService
 
     public async Task Navigate(object viewModel)
     {
+        using var scope = _scopeFactory.CreateScope();
+        
         var vmName = viewModel.GetType().Name;
 
         var top = _navigater.NavigationStack.LastOrDefault();
@@ -180,7 +187,7 @@ public class NavigationService : INavigationService
         {
             case "ScheduleViewModel":
             {
-                var view = ServiceProviderManager.GetService<Schedule>();
+                var view = scope.ServiceProvider.GetRequiredService<Schedule>();
                 view.BindingContext = viewModel;
                 await _navigater.PushAsync(view);
                 break;
@@ -188,42 +195,42 @@ public class NavigationService : INavigationService
 
             case "MusicSelectionViewModel":
             {
-                var view = ServiceProviderManager.GetService<MusicSelection>();
+                var view = scope.ServiceProvider.GetRequiredService<MusicSelection>();
                 view.BindingContext = viewModel;
                 await _navigater.PushAsync(view);
                 break;
             }
             case "SongBookSelectionViewModel":
             {
-                var view = ServiceProviderManager.GetService<SongBookSelection>();
+                var view = scope.ServiceProvider.GetRequiredService<SongBookSelection>();
                 view.BindingContext = viewModel;
                 await _navigater.PushAsync(view);
                 break;
             }
             case "TrackSelectionViewModel":
             {
-                var view = ServiceProviderManager.GetService<TrackSelection>();
+                var view = scope.ServiceProvider.GetRequiredService<TrackSelection>();
                 view.BindingContext = viewModel;
                 await _navigater.PushAsync(view);
                 break;
             }
             case "BibleSelectionViewModel":
             {
-                var view = ServiceProviderManager.GetService<BibleSelection>();
+                var view = scope.ServiceProvider.GetRequiredService<BibleSelection>();
                 view.BindingContext = viewModel;
                 await _navigater.PushAsync(view);
                 break;
             }
             case "BookSelectionViewModel":
             {
-                var view = ServiceProviderManager.GetService<BookSelection>();
+                var view = scope.ServiceProvider.GetRequiredService<BookSelection>();
                 view.BindingContext = viewModel;
                 await _navigater.PushAsync(view);
                 break;
             }
             case "ChapterSelectionViewModel":
             {
-                var view = ServiceProviderManager.GetService<ChapterSelection>();
+                var view = scope.ServiceProvider.GetRequiredService<ChapterSelection>();
                 view.BindingContext = viewModel;
                 await _navigater.PushAsync(view);
                 break;
@@ -256,7 +263,7 @@ public class NavigationService : INavigationService
         }
         catch (Exception e)
         {
-            Logger.Error(e, "An error happened when navigating back.");
+            _logger.Error(e, "An error happened when navigating back.");
         }
     }
 
@@ -272,7 +279,7 @@ public class NavigationService : INavigationService
         }
         catch (Exception e)
         {
-            Logger.Error(e, "An error happened when closing Modal.");
+            _logger.Error(e, "An error happened when closing Modal.");
         }
     }
 
@@ -295,7 +302,7 @@ public class NavigationService : INavigationService
         }
         catch (Exception e)
         {
-            Logger.Error(e, "An error happened when navigating to home.");
+            _logger.Error(e, "An error happened when navigating to home.");
         }
     }
 

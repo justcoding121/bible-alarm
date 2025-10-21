@@ -1,5 +1,6 @@
 using Bible.Alarm.iOS.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
+using Bible.Alarm.Services.iOS.Helpers;
 using Serilog;
 using UIKit;
 
@@ -32,8 +33,7 @@ namespace Bible.Alarm.iOS
         {
             try
             {
-                // if you want to use a different Application Delegate class from "AppDelegate"
-                // you can specify it here.
+                BootstrapHelper.Initialize(Logger);
                 UIApplication.Main(args, null, typeof(AppDelegate));
             }
             catch (Exception e)

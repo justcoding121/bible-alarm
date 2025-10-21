@@ -4,9 +4,9 @@
 
 namespace Bible.Alarm.Services.Droid;
 
-public class DroidToastService() : ToastService, IDisposable
+public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {
-    private readonly TaskScheduler _taskScheduler = ServiceProviderManager.GetService<TaskScheduler>();
+    private readonly TaskScheduler _taskScheduler = taskScheduler;
     private static readonly SemaphoreSlim Lock = new(1);
     private static Toast latest;
 

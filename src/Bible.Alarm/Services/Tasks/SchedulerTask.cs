@@ -6,6 +6,7 @@ using Serilog;
 namespace Bible.Alarm.Services.Tasks;
 
 public class SchedulerTask(
+    ILogger logger,
     ScheduleDbContext scheduleDbContext,
     IMediaCacheService mediaCacheService,
     IAlarmService alarmService,
@@ -13,7 +14,7 @@ public class SchedulerTask(
     IStorageService storageService)
     : ISchedulerService, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<SchedulerTask>();
+    private readonly ILogger _logger = logger;
 
     private static SemaphoreSlim @lock = new(1);
 
@@ -34,7 +35,7 @@ public class SchedulerTask(
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "An error happenned inside cleanup task.");
+                    _logger.Error(e, "An error happenned inside cleanup task.");
                 }
 
                 var schedules = await scheduleDbContext.AlarmSchedules.Where(x => x.IsEnabled).ToListAsync();
@@ -51,7 +52,7 @@ public class SchedulerTask(
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"Failed to process scheduler task. Db directory: {storageService.CacheRoot}");
+                _logger.Error(e, $"Failed to process scheduler task. Db directory: {storageService.CacheRoot}");
             }
             finally
             {
@@ -61,7 +62,7 @@ public class SchedulerTask(
                 }
                 catch (ObjectDisposedException e)
                 {
-                    Logger.Error(e, "SchedulerTask: @lock disposed error.");
+                    _logger.Error(e, "SchedulerTask: @lock disposed error.");
                 }
             }
 

@@ -9,12 +9,13 @@ using Serilog;
 namespace Bible.Alarm.Services;
 
 public class PlaylistService(
+    ILogger logger,
     ScheduleDbContext scheduleDbContext,
     MediaDbContext mediaDbContext,
     MediaService mediaService)
     : IPlaylistService
 {
-    private static readonly ILogger Logger = Log.ForContext<PlaylistService>();
+    private readonly ILogger _logger = logger;
 
     public async Task<long> GetRelavantScheduleToPlay()
     {
@@ -142,7 +143,7 @@ public class PlaylistService(
             bibleReadingSchedule.PublicationCode, bookNumber, chapter);
 
         if (chapterDetail == null)
-            Logger.Error(
+            _logger.Error(
                 $"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
 
         var publicationCode = bibleReadingSchedule.PublicationCode;
@@ -188,7 +189,7 @@ public class PlaylistService(
             bibleReadingSchedule.PublicationCode, bookNumber);
 
         if (!chapters.ContainsKey(chapter))
-            Logger.Error(
+            _logger.Error(
                 $"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
 
         var chapterDetail = chapters[chapter];

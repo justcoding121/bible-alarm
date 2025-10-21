@@ -4,7 +4,6 @@ using Android.OS;
 using Android.Runtime;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Droid.Services.Tasks;
-// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
@@ -58,7 +57,7 @@ public class AlarmSetupService : Service, IDisposable
     {
         try
         {
-            // _container = BootstrapHelper.InitializeService(this); // No longer needed
+            BootstrapHelper.InitializeService(this);
         }
         catch (Exception e)
         {

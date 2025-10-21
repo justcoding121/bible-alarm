@@ -48,7 +48,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
         try
         {
-            // _container = BootstrapHelper.InitializeService(context); // No longer needed
+            BootstrapHelper.InitializeService(context); 
 
             _context = context;
             _intent = intent;

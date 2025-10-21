@@ -6,9 +6,11 @@ namespace Bible.Alarm.UI.Views.Bible;
 public partial class ChapterSelection : ContentPage
 {
     public ChapterSelectionViewModel ViewModel => BindingContext as ChapterSelectionViewModel;
+    private readonly TaskScheduler _taskScheduler;
 
-    public ChapterSelection()
+    public ChapterSelection(TaskScheduler taskScheduler)
     {
+        _taskScheduler = taskScheduler;
         InitializeComponent();
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
@@ -26,7 +28,7 @@ public partial class ChapterSelection : ContentPage
         {
             chapterListView.ScrollTo(ViewModel.SelectedChapter, ScrollToPosition.Center, true);
             Appearing -= OnAppearing;
-        }, ServiceProviderManager.GetService<TaskScheduler>());
+        }, _taskScheduler);
     }
 
 

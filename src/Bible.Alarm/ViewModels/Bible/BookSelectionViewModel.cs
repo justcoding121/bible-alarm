@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -19,16 +20,18 @@ public class BookSelectionViewModel : ViewModel, IDisposable
 
     private MediaService _mediaService;
     private INavigationService _navigationService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
     private List<IDisposable> _subscriptions = [];
 
-    public BookSelectionViewModel()
+    public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
     {
-        _mediaService = ServiceProviderManager.GetService<MediaService>();
-        _navigationService = ServiceProviderManager.GetService<INavigationService>();
+        _mediaService = mediaService;
+        _navigationService = navigationService;
+        _scopeFactory = scopeFactory;
 
         BackCommand = new Command(async () =>
         {
@@ -50,7 +53,8 @@ public class BookSelectionViewModel : ViewModel, IDisposable
                 }
             });
 
-            var viewModel = ServiceProviderManager.GetService<ChapterSelectionViewModel>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<ChapterSelectionViewModel>();
             await _navigationService.Navigate(viewModel);
             IsBusy = false;
         });

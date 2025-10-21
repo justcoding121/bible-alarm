@@ -4,17 +4,21 @@ using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.UI;
 using Bible.Alarm.ViewModels;
 using Serilog;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm;
 
 public partial class App
 {
-    private static readonly ILogger Logger = Log.ForContext<App>();
+    private readonly ILogger _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public static bool IsInForeground { get; set; } = false;
 
-    public App()
+    public App(ILogger logger, IServiceScopeFactory scopeFactory)
     {
+        _logger = logger;
+        _scopeFactory = scopeFactory;
         Init();
     }
 
@@ -28,7 +32,11 @@ public partial class App
         var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
         
         // Create and store the navigation service for later use
-        _navigationService = new NavigationService(navigationPage.Navigation);
+        using var scope = _scopeFactory.CreateScope();
+        _navigationService = new NavigationService(
+            scope.ServiceProvider.GetRequiredService<ILogger>(), 
+            navigationPage.Navigation,
+            _scopeFactory);
 
         // Use the new MAUI approach for setting the main page
         Windows[0].Page = navigationPage;
@@ -44,7 +52,8 @@ public partial class App
             }, taskScheduler)
             .ContinueWith(x =>
             {
-                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                using var scope = _scopeFactory.CreateScope();
+                var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
                 if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
             });
@@ -52,7 +61,8 @@ public partial class App
 
         async Task HomePageSetter()
         {
-            var homePage = new Home { BindingContext = ServiceProviderManager.GetService<HomeViewModel>() };
+            using var scope = _scopeFactory.CreateScope();
+            var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
             await navigationPage.Navigation.PushAsync(homePage);
         }
     }
@@ -69,18 +79,19 @@ public partial class App
                 // Handle when your app starts  
                 await _navigationService.NavigateToHome();
 
-                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                using var scope = _scopeFactory.CreateScope();
+                var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
                 if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
 
                 await Task.Delay(1000);
 
-                using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                using var mediaIndexService = scope.ServiceProvider.GetRequiredService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened inside OnStart task.");
+                _logger.Error(e, "An error happened inside OnStart task.");
             }
         });
     }
@@ -101,18 +112,19 @@ public partial class App
         {
             try
             {
-                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                using var scope = _scopeFactory.CreateScope();
+                var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
                 // Handle when your app resumes
                 if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
 
                 await Task.Delay(1000);
 
-                using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                using var mediaIndexService = scope.ServiceProvider.GetRequiredService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened inside OnResume task.");
+                _logger.Error(e, "An error happened inside OnResume task.");
             }
         });
     }

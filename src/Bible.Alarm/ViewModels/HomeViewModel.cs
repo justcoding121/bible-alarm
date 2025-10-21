@@ -16,13 +16,14 @@ using System.ComponentModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 
 public class HomeViewModel : ViewModel, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<HomeViewModel>();
-
+    private readonly ILogger _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     private ScheduleDbContext _scheduleDbContext;
     private MediaDbContext _mediaDbContext;
@@ -38,13 +39,16 @@ public class HomeViewModel : ViewModel, IDisposable
 
 
     public HomeViewModel(
+        ILogger logger,
         ScheduleDbContext scheduleDbContext,
         IToastService popUpService, INavigationService navigationService,
         IMediaCacheService mediaCacheService,
         IAlarmService alarmService,
         INotificationService notificationService,
-        MediaDbContext mediaDbContext)
+        MediaDbContext mediaDbContext,
+        IServiceScopeFactory scopeFactory)
     {
+        _logger = logger;
         _scheduleDbContext = scheduleDbContext;
         _popUpService = popUpService;
         _navigationService = navigationService;
@@ -52,13 +56,15 @@ public class HomeViewModel : ViewModel, IDisposable
         _alarmService = alarmService;
         _notificationService = notificationService;
         _mediaDbContext = mediaDbContext;
+        _scopeFactory = scopeFactory;
 
         _subscriptions.Add(scheduleDbContext);
 
         AddScheduleCommand = new Command(async () =>
         {
             ReduxContainer.Store.Dispatch(new ViewScheduleAction());
-            var viewModel = ServiceProviderManager.GetService<ScheduleViewModel>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             await _navigationService.Navigate(viewModel);
         });
 
@@ -71,7 +77,8 @@ public class HomeViewModel : ViewModel, IDisposable
                 SelectedScheduleListItem = x
             });
 
-            var viewModel = ServiceProviderManager.GetService<ScheduleViewModel>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             await _navigationService.Navigate(viewModel);
         });
 
@@ -194,7 +201,9 @@ public class HomeViewModel : ViewModel, IDisposable
                     }
 
                     var initialSchedules = new ObservableHashSet<ScheduleListItem>();
-                    foreach (var schedule in alarmSchedules) initialSchedules.Add(new ScheduleListItem(schedule));
+                    using var scope = _scopeFactory.CreateScope();
+                    foreach (var schedule in alarmSchedules) 
+                        initialSchedules.Add(new ScheduleListItem(schedule, scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory));
 
                     ReduxContainer.Store.Dispatch(new InitializeAction { ScheduleList = initialSchedules });
 
@@ -209,7 +218,7 @@ public class HomeViewModel : ViewModel, IDisposable
                 }
                 catch (ObjectDisposedException e)
                 {
-                    Logger.Error(e, "HomeViewModel: @lock disposed error.");
+                    _logger.Error(e, "HomeViewModel: @lock disposed error.");
                 }
             }
         }, true);
@@ -303,7 +312,8 @@ public class HomeViewModel : ViewModel, IDisposable
 
                 await Task.Run(async () =>
                 {
-                    using var scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
+                    using var scope = _scopeFactory.CreateScope();
+                    using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                     var existing = await scheduleDbContext.AlarmSchedules.FirstAsync(x => x.Id == y.ScheduleId);
                     existing.IsEnabled = y.IsEnabled;
                     await scheduleDbContext.SaveChangesAsync();
@@ -330,12 +340,13 @@ public class HomeViewModel : ViewModel, IDisposable
         {
             try
             {
-                using var mediaCacheService = ServiceProviderManager.GetService<IMediaCacheService>();
+                using var scope = _scopeFactory.CreateScope();
+                using var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
                 await mediaCacheService.SetupAlarmCache(scheduleId);
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened in SetupAlarmCache task.");
+                _logger.Error(e, "An error happened in SetupAlarmCache task.");
             }
         });
     }
@@ -358,14 +369,16 @@ public class HomeViewModel : ViewModel, IDisposable
 
 public class ScheduleListItem : ViewModel, IComparable, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<ScheduleListItem>();
-
+    private readonly ILogger _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public AlarmSchedule Schedule;
     private IDisposable _subscription;
 
-    public ScheduleListItem(AlarmSchedule schedule)
+    public ScheduleListItem(AlarmSchedule schedule, ILogger logger, IServiceScopeFactory scopeFactory)
     {
+        _logger = logger;
+        _scopeFactory = scopeFactory;
         Schedule = schedule;
         _isEnabled = schedule.IsEnabled;
 
@@ -373,23 +386,24 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
         {
             _ = Task.Run(async () =>
             {
-                using var toastService = ServiceProviderManager.GetService<IToastService>();
+                using var scope = _scopeFactory.CreateScope();
+                using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
 
                 try
                 {
                     if (Schedule.Id > 0)
                     {
-                        var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
                         await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
 
-                        using var notificationService = ServiceProviderManager.GetService<INotificationService>();
+                        using var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
                         await notificationService.ShowNotification(Schedule.Id);
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.Information(e, "An error happenned when playing alarm.");
+                    _logger.Information(e, "An error happenned when playing alarm.");
                     await toastService.ShowMessage("Error. Network may not be available." +
                                                    "Please try again.", 5);
                 }
@@ -410,7 +424,8 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
         {
             if (await CanMove(schedule.Id))
             {
-                using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
+                using var scope = _scopeFactory.CreateScope();
+                using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
                 await playlistService.MoveToPreviousBibleChapter(schedule.Id);
 
                 RefreshChapterName(true);
@@ -421,7 +436,8 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
         {
             if (await CanMove(schedule.Id))
             {
-                using var playlistService = ServiceProviderManager.GetService<IPlaylistService>();
+                using var scope = _scopeFactory.CreateScope();
+                using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
                 await playlistService.MoveToNextBibleChapter(schedule.Id);
 
                 RefreshChapterName(true);
@@ -431,11 +447,12 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
 
     private async Task<bool> CanMove(long scheduleId)
     {
-        var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+        using var scope = _scopeFactory.CreateScope();
+        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
         if (!playbackService.IsPlaying) return true;
 
-        var toastService = ServiceProviderManager.GetService<IToastService>();
+        using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
 
         await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
 
@@ -483,17 +500,18 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
 
     public void RefreshChapterName(bool force = false)
     {
-        var syncContext = ServiceProviderManager.GetService<TaskScheduler>();
+        using var scope = _scopeFactory.CreateScope();
+        var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
 
         _ = Task.Run(async () =>
             {
                 try
                 {
-                    var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                    var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
                     if (Schedule == null || (!force && !playbackService.IsPrepared)) return null;
 
-                    using var scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
+                    using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
                     var schedule = await scheduleDbContext.AlarmSchedules
                         .Include(x => x.BibleReadingSchedule)
@@ -503,7 +521,7 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
 
                     if (schedule != null)
                     {
-                        using var mediaDbContext = ServiceProviderManager.GetService<MediaDbContext>();
+                        using var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
                         var bookName = await mediaDbContext.BibleBook
                             .Where(x => x.BibleTranslation.Code == schedule.BibleReadingSchedule.PublicationCode
@@ -524,7 +542,7 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "An error happened in RefreshChapterName task under list item.");
+                    _logger.Error(e, "An error happened in RefreshChapterName task under list item.");
                 }
 
                 return null;
@@ -541,7 +559,7 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "An error happened in RefreshChapterName continue with task under list item.");
+                    _logger.Error(e, "An error happened in RefreshChapterName continue with task under list item.");
                 }
             }, syncContext);
     }

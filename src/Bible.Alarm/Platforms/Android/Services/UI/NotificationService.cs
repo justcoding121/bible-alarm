@@ -17,13 +17,13 @@ using Android.Graphics;
 
 namespace Bible.Alarm.Services.Droid;
 
-public class DroidNotificationService(IStorageService storageService) : INotificationService
+public class DroidNotificationService(ILogger logger, IStorageService storageService) : INotificationService
 {
     public static readonly string ChannelIdAndName = "alarm_notification";
     public static readonly string ChannelDescription = "alarm_notification are send to this channel";
     public static readonly string ScheduleId = "schedule_id";
 
-    private static readonly ILogger Logger = Log.ForContext<DroidNotificationService>();
+    private readonly ILogger _logger = logger;
 
 
     public async Task ShowNotification(long scheduleId)
@@ -39,7 +39,7 @@ public class DroidNotificationService(IStorageService storageService) : INotific
         }
         catch (System.Exception e)
         {
-            Logger.Error(e, "Error happened when playing alarm manually.");
+            _logger.Error(e, "Error happened when playing alarm manually.");
             await Task.Delay(1500);
             throw;
         }

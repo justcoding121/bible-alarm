@@ -1,4 +1,5 @@
 using Serilog;
+using Bible.Alarm.Services.Windows.Helpers;
 
 namespace Bible.Alarm.WinUI
 {
@@ -25,6 +26,9 @@ namespace Bible.Alarm.WinUI
                 // Initialize Windows-specific services
                 // Dependency injection container is configured in MauiProgram
                 Logger.Information("Windows application initialized successfully.");
+                
+                // Initialize Windows-specific bootstrap helper
+                BootstrapHelper.Initialize(Logger);
             }
             catch (Exception ex)
             {

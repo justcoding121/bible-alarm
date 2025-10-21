@@ -2,6 +2,7 @@
 using Android.App.Job;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
+using Bible.Alarm.Services.Droid.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Services.Droid.Tasks;
@@ -11,10 +12,15 @@ public class UpdateMediaIndexJob : JobService
 {
     public const int JobId = 2;
 
-    private static readonly ILogger Logger = Log.ForContext<UpdateMediaIndexJob>();
+    private readonly ILogger _logger;
 
-    public UpdateMediaIndexJob()
+    public UpdateMediaIndexJob() : this(Log.ForContext<UpdateMediaIndexJob>())
     {
+    }
+
+    public UpdateMediaIndexJob(ILogger logger)
+    {
+        _logger = logger;
         LogSetup.Initialize(VersionFinder.Default,
             new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
@@ -23,12 +29,12 @@ public class UpdateMediaIndexJob : JobService
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        Logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
+        _logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
+        _logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
     }
 
     public override bool OnStartJob(JobParameters @params)
@@ -37,13 +43,15 @@ public class UpdateMediaIndexJob : JobService
         {
             try
             {
-                // Container no longer needed - using ServiceProviderManager
+                BootstrapHelper.InitializeService(this);
+                await BootstrapHelper.VerifyServices();
+
                 var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error updating media index");
+                _logger.Error(e, "Error updating media index");
             }
             finally
             {

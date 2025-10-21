@@ -16,8 +16,7 @@ namespace Bible.Alarm.ViewModels;
 
 public class TrackSelectionViewModel : ViewModel, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<TrackSelectionViewModel>();
-
+    private readonly ILogger _logger;
 
     private MediaService _mediaService;
     private IToastService _toastService;
@@ -31,14 +30,22 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public TrackSelectionViewModel()
+    public TrackSelectionViewModel(
+        ILogger logger,
+        MediaService mediaService,
+        IToastService toastService,
+        IPreviewPlayService playService,
+        INavigationService navigationService,
+        IDownloadService downloadService,
+        IMediaCacheService cacheService)
     {
-        _mediaService = ServiceProviderManager.GetService<MediaService>();
-        _toastService = ServiceProviderManager.GetService<IToastService>();
-        _playService = ServiceProviderManager.GetService<IPreviewPlayService>();
-        _navigationService = ServiceProviderManager.GetService<INavigationService>();
-        _downloadService = ServiceProviderManager.GetService<IDownloadService>();
-        _cacheService = ServiceProviderManager.GetService<IMediaCacheService>();
+        _logger = logger;
+        _mediaService = mediaService;
+        _toastService = toastService;
+        _playService = playService;
+        _navigationService = navigationService;
+        _downloadService = downloadService;
+        _cacheService = cacheService;
 
         _subscriptions.Add(_mediaService);
 
@@ -179,7 +186,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
                     }
                     catch (ObjectDisposedException e)
                     {
-                        Logger.Error(e, "TrackSelectionViewModel 1: @lock disposed error.");
+                        _logger.Error(e, "TrackSelectionViewModel 1: @lock disposed error.");
                     }
                 }
             })
@@ -225,7 +232,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
                     }
                     catch (ObjectDisposedException e)
                     {
-                        Logger.Error(e, "TrackSelectionViewModel 2: @lock disposed error.");
+                        _logger.Error(e, "TrackSelectionViewModel 2: @lock disposed error.");
                     }
                 }
             })

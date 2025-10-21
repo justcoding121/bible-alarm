@@ -5,11 +5,12 @@ using UIKit;
 namespace Bible.Alarm.iOS.Services.Handlers
 {
     public class IOsAlarmHandler(
+        ILogger logger,
         IPlaybackService playbackService,
         TaskScheduler taskScheduler)
         : IDisposable
     {
-        private static readonly ILogger Logger = Log.ForContext<IOsAlarmHandler>();
+        private readonly ILogger _logger = logger;
 
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
@@ -50,14 +51,14 @@ namespace Bible.Alarm.iOS.Services.Handlers
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, "An error happened when ringing the alarm.");
+                        _logger.Error(e, "An error happened when ringing the alarm.");
                         throw;
                     }
                 });
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened when creating the task to ring the alarm.");
+                _logger.Error(e, "An error happened when creating the task to ring the alarm.");
                 Dispose();
             }
             finally

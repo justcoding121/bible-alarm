@@ -1,6 +1,7 @@
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Tasks;
+using Bible.Alarm.Services.Infrastructure;
 using Serilog;
 using Windows.ApplicationModel.Background;
 
@@ -80,6 +81,9 @@ namespace Bible.Alarm.Services.Windows.Helpers
 
         public static void Initialize(ILogger logger)
         {
+            // Ensure ServiceProviderManager is initialized for Windows
+            EnsureServiceProviderInitialized();
+            
             Task.Run(() => SetupBackgroundTask());
 
             Task.Run(async () =>
@@ -99,6 +103,24 @@ namespace Bible.Alarm.Services.Windows.Helpers
                     logger.Fatal(e, "Uwp initialization crashed.");
                 }
             });
+        }
+
+        public static async Task VerifyServices()
+        {
+            // Ensure ServiceProviderManager is initialized
+            EnsureServiceProviderInitialized();
+            await CommonBootstrapHelper.VerifyServices();
+        }
+
+        private static void EnsureServiceProviderInitialized()
+        {
+            if (!ServiceProviderManager.IsInitialized)
+            {
+                // Initialize minimal DI container for Windows background services
+                // This should only happen if the main app hasn't started yet
+                throw new InvalidOperationException(
+                    "ServiceProviderManager not initialized. Windows background services require the main app to initialize first.");
+            }
         }
     }
 }

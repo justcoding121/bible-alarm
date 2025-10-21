@@ -3,9 +3,9 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Windows.Handlers
 {
-    public class UwpAlarmHandler(IPlaybackService playbackService) : IDisposable
+    public class UwpAlarmHandler(ILogger logger, IPlaybackService playbackService) : IDisposable
     {
-        private static readonly ILogger Logger = Log.ForContext<UwpAlarmHandler>();
+        private readonly ILogger _logger = logger;
 
 
         private static SemaphoreSlim @lock = new SemaphoreSlim(1);
@@ -30,14 +30,14 @@ namespace Bible.Alarm.Services.Windows.Handlers
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, "An error happened when ringing the alarm.");
+                        _logger.Error(e, "An error happened when ringing the alarm.");
                         throw;
                     }
                 });
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened when creating the task to ring the alarm.");
+                _logger.Error(e, "An error happened when creating the task to ring the alarm.");
                 Dispose();
             }
             finally

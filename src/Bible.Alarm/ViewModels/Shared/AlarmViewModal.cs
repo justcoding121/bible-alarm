@@ -8,15 +8,15 @@ using Mvvmicro;
 using Serilog;
 using Plugin.StoreReview;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 
 public class AlarmViewModal : ViewModel, IDisposableModal
 {
-    private static readonly ILogger Logger = Log.ForContext<AlarmViewModal>();
-
-
+    private readonly ILogger _logger;
     private readonly IPlaybackService _playbackService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     private bool _isDisposed = false;
 
@@ -30,17 +30,21 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public ICommand ForwardCommand { get; set; }
     public ICommand BackwardCommand { get; set; }
 
-    public AlarmViewModal()
+    public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory)
     {
-        _playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+        _logger = logger;
+        _playbackService = playbackService;
+        _scopeFactory = scopeFactory;
 
         DismissCommand = new Command(async () =>
         {
             await _playbackService.Dismiss();
-            var navigationService = ServiceProviderManager.GetService<INavigationService>();
+            
+            using var scope = _scopeFactory.CreateScope();
+            var navigationService = scope.ServiceProvider.GetRequiredService<INavigationService>();
             await navigationService?.CloseModal();
 
-            using var scheduleDbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
+            using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
             try
             {
@@ -75,7 +79,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
             }
             catch (Exception e)
             {
-                Logger.Error(e, "An error happened when review was requested.");
+                _logger.Error(e, "An error happened when review was requested.");
             }
 
             await scheduleDbContext.SaveChangesAsync();
@@ -83,7 +87,8 @@ public class AlarmViewModal : ViewModel, IDisposableModal
 
         CancelCommand = new Command(async () =>
         {
-            var navigationService = ServiceProviderManager.GetService<INavigationService>();
+            using var scope = _scopeFactory.CreateScope();
+            var navigationService = scope.ServiceProvider.GetRequiredService<INavigationService>();
             await navigationService?.GoBack();
         });
 

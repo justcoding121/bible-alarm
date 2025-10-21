@@ -8,7 +8,7 @@ namespace Bible.Alarm.Services;
 
 public class MediaIndexService : IMediaIndexService, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<MediaIndexService>();
+    private readonly ILogger _logger;
 
     private readonly Lazy<string> _indexRoot;
 
@@ -18,9 +18,10 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
     public string IndexRoot => _indexRoot.Value;
 
-    public MediaIndexService(IStorageService storageService, IVersionFinder versionFinder,
+    public MediaIndexService(ILogger logger, IStorageService storageService, IVersionFinder versionFinder,
         IDownloadService downloadService)
     {
+        _logger = logger;
         _storageService = storageService;
         _versionFinder = versionFinder;
         _downloadService = downloadService;
@@ -51,7 +52,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
             }
             catch (ObjectDisposedException e)
             {
-                Logger.Error(e, "MediaIndexService: @lock disposed error.");
+                _logger.Error(e, "MediaIndexService: @lock disposed error.");
             }
         }
     }
