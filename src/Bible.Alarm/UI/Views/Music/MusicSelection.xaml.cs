@@ -1,5 +1,4 @@
 ﻿using Bible.Alarm.UI.ViewHelpers;
-using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Music;
 
 namespace Bible.Alarm.UI.Views.Music;

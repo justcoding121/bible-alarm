@@ -1,5 +1,4 @@
 ﻿using Windows.UI.Notifications;
-using Bible.Alarm.Models;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
 using Bible.Alarm.Platforms.Windows.Helpers;
 

@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.IO;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Storage
 {

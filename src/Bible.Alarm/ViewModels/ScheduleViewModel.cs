@@ -1,9 +1,7 @@
 ﻿using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Contracts.Battery;
 using Bible.Alarm.Models;
-using Bible.Alarm.Services;
 using Bible.Alarm.ViewModels.Redux;
-using Bible.Alarm.ViewModels.Redux.Actions;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Collections.ObjectModel;
@@ -24,7 +22,6 @@ using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 using Bible.Alarm.ViewModels.Redux.Actions.Music;
 using Bible.Alarm.ViewModels.Redux.Actions.Schedule;
 using Bible.Alarm.ViewModels.Shared;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 

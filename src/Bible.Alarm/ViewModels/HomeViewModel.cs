@@ -1,8 +1,6 @@
 ﻿using Bible.Alarm.Common.DataStructures;
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Models;
-using Bible.Alarm.Services;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Utilities;
 using Bible.Alarm.ViewModels.Redux;
@@ -23,7 +21,6 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.ViewModels.Redux.Actions.Schedule;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels;
 

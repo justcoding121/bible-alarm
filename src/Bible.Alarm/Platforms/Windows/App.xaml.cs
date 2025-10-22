@@ -1,5 +1,3 @@
-using Microsoft.UI.Xaml;
-
 namespace Bible.Alarm.WinUI
 {
     /// <summary>

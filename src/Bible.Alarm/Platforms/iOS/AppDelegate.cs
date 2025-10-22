@@ -1,6 +1,5 @@
 using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
-using Bible.Alarm.Services;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Foundation;

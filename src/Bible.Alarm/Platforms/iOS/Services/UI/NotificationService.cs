@@ -1,7 +1,5 @@
-﻿using Bible.Alarm.Models;
-using Serilog;
+﻿using Serilog;
 using UserNotifications;
-using Microsoft.Extensions.DependencyInjection;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Bible.Alarm.Platforms.iOS.Extensions;
 

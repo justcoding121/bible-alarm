@@ -1,6 +1,4 @@
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 

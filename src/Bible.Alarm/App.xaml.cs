@@ -1,13 +1,14 @@
-﻿using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Common.Mvvm.Messenger;
+﻿using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Platforms.Android.Services.Helpers;
+#if IOS
 using Bible.Alarm.Platforms.iOS.Helpers;
+#endif
+#if WINDOWS
 using Bible.Alarm.Platforms.Windows.Helpers;
-using Bible.Alarm.Services;
+#endif
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.UI;
 using Bible.Alarm.UI.Views;
 using Bible.Alarm.ViewModels;
 

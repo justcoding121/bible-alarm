@@ -1,9 +1,7 @@
-using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Contracts.Storage;
-using Bible.Alarm.Models;
 using Bible.Alarm.Models.Media;
 using Serilog;
 

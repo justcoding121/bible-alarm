@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Bible.Alarm.Shared.Models;
 
 namespace Bible.Alarm.Shared.Models.Bible;
 

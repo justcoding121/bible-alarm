@@ -6,8 +6,6 @@ using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Tasks;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.UI;
-using Bible.Alarm.UI.Views;
 using Bible.Alarm.UI.Views.Bible;
 using Bible.Alarm.UI.Views.Music;
 // using Bible.Alarm.UI.Views.Schedule; // Schedule is a type, not a namespace
@@ -30,14 +28,15 @@ using Bible.Alarm.UI.Views.Shared;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Serilog;
+#if IOS
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Platforms.iOS.Services.Media;
+#endif
+#if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
@@ -45,12 +44,15 @@ using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Battery;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Platforms.Android.Services.Storage;
+#endif
+#if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.UI;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
 using Bible.Alarm.Platforms.Windows.Services.Media;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
 using Bible.Alarm.Platforms.Windows.Helpers;
+#endif
 
 namespace Bible.Alarm;
 
@@ -213,27 +215,17 @@ public static class MauiProgram
     private static void InitializePlatformBootstrap(IServiceProvider services)
     {
         var logger = services.GetRequiredService<Serilog.ILogger>();
-
-#if ANDROID
+        
+        #if ANDROID
         // Android bootstrap initialization
         var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
-        BootstrapHelper.Initialize(logger, context);
-#elif IOS
+        Bible.Alarm.Platforms.Android.Services.Helpers.BootstrapHelper.Initialize(logger, context);
+        #elif IOS
         // iOS bootstrap initialization
-
-<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net9.0-windows10.0.19041.0)', Before:
-        Bible.Alarm.Services.iOS.Helpers.BootstrapHelper.Initialize(logger);
+        Bible.Alarm.Platforms.iOS.Helpers.BootstrapHelper.Initialize(logger);
         #elif WINDOWS
         // Windows bootstrap initialization
-=======
-        BootstrapHelper.Initialize(logger);
-#elif WINDOWS
-        // Windows bootstrap initialization
->>>>>>> After
-        BootstrapHelper.Initialize(logger);
-        #elif WINDOWS
-        // Windows bootstrap initialization
-        BootstrapHelper.Initialize(logger);
+        Bible.Alarm.Platforms.Windows.Helpers.BootstrapHelper.Initialize(logger);
         #endif
     }
 }

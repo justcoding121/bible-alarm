@@ -1,7 +1,5 @@
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Tasks;
-using Bible.Alarm.Services.Infrastructure;
 using Serilog;
 using Windows.ApplicationModel.Background;
 

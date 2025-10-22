@@ -1,4 +1,3 @@
-using Bible.Alarm.Models;
 using Foundation;
 
 namespace Bible.Alarm.Platforms.iOS.Extensions

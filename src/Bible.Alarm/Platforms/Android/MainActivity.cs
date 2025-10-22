@@ -4,10 +4,8 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Views;
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Media;
 using Serilog;
-using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Platforms.Android.Services.Helpers;
 
@@ -44,7 +42,7 @@ public class MainActivity : MauiAppCompatActivity
             if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
             {
 #pragma warning disable CA1416, CA1422
-                Window.SetDecorFitsSystemWindows(false);
+                Window?.SetDecorFitsSystemWindows(false);
 #pragma warning restore CA1416, CA1422
             }
             else
@@ -52,16 +50,21 @@ public class MainActivity : MauiAppCompatActivity
 #pragma warning disable CS0618 // Type or member is obsolete
                 try
                 {
-                    Window.DecorView.SystemUiVisibility =
-                        (StatusBarVisibility)((int)Window.DecorView.SystemUiVisibility ^
-                                              (int)SystemUiFlags.LayoutStable ^ (int)SystemUiFlags.LayoutFullscreen);
+                    if (Window?.DecorView != null)
+                    {
+                        Window.DecorView.SystemUiVisibility =
+                            (StatusBarVisibility)((int)Window.DecorView.SystemUiVisibility ^
+                                                  (int)SystemUiFlags.LayoutStable ^ (int)SystemUiFlags.LayoutFullscreen);
+                    }   
                 }
                 catch
                 {
+                    // ignored
                 }
 #pragma warning restore CS0618 // Type or member is obsolete
             }
 
+            if (Window == null) return;
             Window.AddFlags(WindowManagerFlags.DrawsSystemBarBackgrounds);
             Window.SetFlags(WindowManagerFlags.Fullscreen, WindowManagerFlags.Fullscreen);
         }
@@ -116,20 +119,6 @@ public class MainActivity : MauiAppCompatActivity
                 await Task.Delay(1000);
             }
         });
-    }
-
-    public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
-    {
-        try
-        {
-            Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "An error happened inside OnRequestPermissionsResult.");
-        }
-
-        base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     protected override void OnResume()
