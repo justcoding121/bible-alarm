@@ -67,11 +67,19 @@ public abstract class StorageService : IStorageService
     {
         if (!await DirectoryExists(destinationDirectoryPath)) await CreateDirectoryInternal(destinationDirectoryPath);
 
+        var destinationFilePath = Path.Combine(destinationDirectoryPath, destinationFileName);
+        
+        // Delete the file if it already exists to avoid IOException
+        if (await FileExists(destinationFilePath))
+        {
+            await DeleteFile(destinationFilePath);
+        }
+
         using (var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName))
         {
             var buffer = new byte[1024];
             using (var fileWriter =
-                   new BinaryWriter(File.Create(Path.Combine(destinationDirectoryPath, destinationFileName))))
+                   new BinaryWriter(File.Create(destinationFilePath)))
             {
                 long readCount = 0;
                 while (readCount < sr.Length)

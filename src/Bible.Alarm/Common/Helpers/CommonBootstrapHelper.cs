@@ -33,7 +33,7 @@ public static class CommonBootstrapHelper
 
     private static async Task InitializeDatabase()
     {
-        using var db = ServiceProviderManager.GetService<ScheduleDbContext>();
+        await using var db = ServiceProviderManager.GetService<ScheduleDbContext>();
         await db.Database.MigrateAsync();
     }
 }

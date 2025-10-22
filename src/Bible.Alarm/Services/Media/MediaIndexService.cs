@@ -82,35 +82,34 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                 var bytes = await _downloadService.DownloadAsync(
                     $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{time.Day - i}-{time.Month}-{time.Year}.zip");
 
-                if (bytes != null)
-                {
-                    var indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
+                if (bytes == null) continue;
 
-                    if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
+                const string indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
 
-                    var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
+                if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
 
-                    if (await _storageService.FileExists(tmpIndexZipFilePath))
-                        await _storageService.DeleteFile(tmpIndexZipFilePath);
+                var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
 
-                    await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
-
-                    if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
-                        await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
-
-                    var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
-                    await _storageService.CreateDirectory(extractionDir);
-
-                    ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
-
-                    File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
-                        true);
-
-                    await _storageService.DeleteDirectory(extractionDir);
+                if (await _storageService.FileExists(tmpIndexZipFilePath))
                     await _storageService.DeleteFile(tmpIndexZipFilePath);
 
-                    return true;
-                }
+                await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
+
+                if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+                    await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+
+                var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
+                await _storageService.CreateDirectory(extractionDir);
+
+                ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
+
+                File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
+                    true);
+
+                await _storageService.DeleteDirectory(extractionDir);
+                await _storageService.DeleteFile(tmpIndexZipFilePath);
+
+                return true;
             }
         }
         finally
@@ -129,31 +128,26 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                                  //verify that any previous unzipping process was not incomplete
                                  && !await _storageService.FileExists(tmpIndexFilePath);
 
-        var versionFileExists = false;
         var isOutdatedVersion = false;
 
         //delete the file if it was outdated by an app auto-update.
-        if (mediaIndexDbExists)
-        {
-            var versionFilePath = Path.Combine(IndexRoot, "version.dat");
-            versionFileExists = await _storageService.FileExists(versionFilePath);
+        if (!mediaIndexDbExists) return true;
+        var versionFilePath = Path.Combine(IndexRoot, "version.dat");
+        var versionFileExists = await _storageService.FileExists(versionFilePath);
 
-            if (versionFileExists)
-            {
-                var version = await _storageService.ReadFile(versionFilePath);
-                var currentVersion = _versionFinder.GetVersionName();
+        if (!versionFileExists) return true;
+        var version = await _storageService.ReadFile(versionFilePath);
+        var currentVersion = _versionFinder.GetVersionName();
 
-                if (version != currentVersion) isOutdatedVersion = true;
-            }
-        }
+        if (version != currentVersion) isOutdatedVersion = true;
 
-        return !mediaIndexDbExists || !versionFileExists || isOutdatedVersion;
+        return isOutdatedVersion;
     }
 
     private async Task ClearCopyIndexFromResource()
     {
-        var indexResourceFile = "index.zip";
-        var defaultAlarmFile = "cool-alarm-tone-notification-sound.mp3";
+        const string indexResourceFile = "index.zip";
+        const string defaultAlarmFile = "cool-alarm-tone-notification-sound.mp3";
 
         if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
 
