@@ -16,19 +16,50 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="812"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="23" image="Splash-Icon">
-                                <rect key="frame" x="0.0" y="0.0" width="60" height="60"/>
-                                <rect key="contentStretch" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                            <!-- Main alarm bell icon -->
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="23" image="AlarmBell">
+                                <rect key="frame" x="0.0" y="0.0" width="120" height="120"/>
                                 <constraints>
                                     <constraint id="850" firstAttribute="height" constant="120"/>
                                     <constraint id="851" firstAttribute="width" constant="120"/>
                                 </constraints>
                             </imageView>
+                            
+                            <!-- App name label -->
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Bible Alarm" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="24">
+                                <rect key="frame" x="0.0" y="0.0" width="200" height="30"/>
+                                <fontDescription key="fontDescription" type="boldSystem" pointSize="24"/>
+                                <color key="textColor" red="0.0" green="0.47" blue="0.83" alpha="1" colorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                                <constraints>
+                                    <constraint id="852" firstAttribute="width" constant="200"/>
+                                    <constraint id="853" firstAttribute="height" constant="30"/>
+                                </constraints>
+                            </label>
+                            
+                            <!-- Loading indicator -->
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" animating="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="25">
+                                <rect key="frame" x="0.0" y="0.0" width="20" height="20"/>
+                                <color key="color" red="0.0" green="0.47" blue="0.83" alpha="1" colorSpace="calibratedRGB"/>
+                                <constraints>
+                                    <constraint id="854" firstAttribute="width" constant="20"/>
+                                    <constraint id="855" firstAttribute="height" constant="20"/>
+                                </constraints>
+                            </activityIndicatorView>
                         </subviews>
                         <color key="backgroundColor" colorSpace="calibratedRGB" red="1" green="1" blue="1" alpha="1"/>
                         <constraints>
-                            <constraint firstItem="23" firstAttribute="centerY" secondItem="yd7-JS-zBw" secondAttribute="centerY" priority="1" id="39"/>
+                            <!-- Alarm bell centered -->
+                            <constraint firstItem="23" firstAttribute="centerY" secondItem="yd7-JS-zBw" secondAttribute="centerY" constant="-40" priority="1" id="39"/>
                             <constraint firstItem="23" firstAttribute="centerX" secondItem="yd7-JS-zBw" secondAttribute="centerX" priority="1" id="41"/>
+                            
+                            <!-- App name below bell -->
+                            <constraint firstItem="24" firstAttribute="top" secondItem="23" secondAttribute="bottom" constant="20" priority="1" id="42"/>
+                            <constraint firstItem="24" firstAttribute="centerX" secondItem="yd7-JS-zBw" secondAttribute="centerX" priority="1" id="43"/>
+                            
+                            <!-- Loading indicator below app name -->
+                            <constraint firstItem="25" firstAttribute="top" secondItem="24" secondAttribute="bottom" constant="20" priority="1" id="44"/>
+                            <constraint firstItem="25" firstAttribute="centerX" secondItem="yd7-JS-zBw" secondAttribute="centerX" priority="1" id="45"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -38,6 +69,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="Splash-Icon" width="682.6667" height="682.6667"/>
+        <image name="AlarmBell" width="120" height="120"/>
     </resources>
 </document>

@@ -64,10 +64,6 @@
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#512BD4" />
 	</ItemGroup>
 
-	<!-- Splash Screen (MauiSplashScreen) -->
-	<ItemGroup>
-		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
-	</ItemGroup>
 
 	<!-- XAML Files -->
 	<ItemGroup>

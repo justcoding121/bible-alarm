@@ -28,9 +28,6 @@ public partial class App : Application
     {
         System.Diagnostics.Debug.WriteLine("CreateWindow called!");
         
-        // Initialize platform-specific bootstrap helper after ServiceProviderManager is available
-        InitializePlatformBootstrap();
-        
         // Create a NavigationPage as the root page (proper MAUI pattern)
         var navigationPage = new NavigationPage();
         var window = new Window(navigationPage);
@@ -57,7 +54,7 @@ public partial class App : Application
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in service initialization: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in initialization: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             }
         });
@@ -99,23 +96,6 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error in InitializeHomePage: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-        }
-    }
-
-    private void InitializePlatformBootstrap()
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine("Platform bootstrap already initialized in MauiProgram.cs");
-            
-            // BootstrapHelper is already called in MauiProgram.cs during DI registration
-            // No need to call it again here for foreground scenarios
-            // Background services will call BootstrapHelper.Initialize() independently when needed
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in platform bootstrap: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }

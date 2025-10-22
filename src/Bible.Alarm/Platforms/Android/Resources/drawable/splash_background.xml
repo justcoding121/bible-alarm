@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background color -->
+    <item android:drawable="@color/splash_background" />
+    
+    <!-- App logo centered -->
+    <item android:gravity="center">
+        <bitmap
+            android:src="@drawable/ic_alarm_bell"
+            android:gravity="center" />
+    </item>
+    
+    <!-- Progress indicator at bottom -->
+    <item android:gravity="bottom|center_horizontal" android:bottom="100dp">
+        <shape android:shape="oval">
+            <size android:width="40dp" android:height="40dp" />
+            <solid android:color="@color/splash_progress" />
+        </shape>
+    </item>
+</layer-list>
