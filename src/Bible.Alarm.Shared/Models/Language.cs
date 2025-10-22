@@ -1,7 +1,16 @@
+using System;
+
 namespace Bible.Alarm.Shared.Models;
 
-public class Language
+public class Language : IComparable
 {
-    public string Name { get; set; }
+    public int Id { get; set; }
+
     public string Code { get; set; }
+    public string Name { get; set; }
+
+    public int CompareTo(object obj)
+    {
+        return Name.CompareTo((obj as Language).Name);
+    }
 }

@@ -1,16 +1,24 @@
 using System;
-using Newtonsoft.Json;
+using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.Shared.Models.Bible;
 
 public class BibleChapter : IComparable
 {
-    public int Number { get; set; }
-    public string Url { get; set; }
-    public string Source { get; set; }
-    public string LookUpPath { get; set; }
+    public int Id { get; set; }
 
-    [JsonIgnore] public string Title => $"Chapter {Number}";
+    public int Number { get; set; }
+
+    public string Title => $"Chapter {Number}";
+
+    public AudioSource Source { get; set; }
+
+    public int BibleBookId { get; set; }
+    public BibleBook Book { get; set; }
+    
+    // Backward compatibility properties
+    public string Url { get; set; }
+    public string LookUpPath { get; set; }
 
     public int CompareTo(object obj)
     {

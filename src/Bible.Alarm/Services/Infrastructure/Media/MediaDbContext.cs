@@ -1,6 +1,7 @@
 ﻿using Bible.Alarm.Models.Media.Music;
 using Bible.Alarm.Shared.Models;
 using Bible.Alarm.Shared.Models.Bible;
+using Bible.Alarm.Shared.Models.Media;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Services.Infrastructure.Media;
@@ -17,6 +18,7 @@ public class MediaDbContext : DbContext
     }
 
     public DbSet<Language> Languages { get; set; }
+    public DbSet<AudioSource> AudioSources { get; set; }
 
     public DbSet<BibleTranslation> BibleTranslations { get; set; }
     public DbSet<BibleBook> BibleBook { get; set; }
