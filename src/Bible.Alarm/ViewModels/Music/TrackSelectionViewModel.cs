@@ -347,11 +347,11 @@ public class MusicTrackListViewItemModel : ViewModel, IComparable
         set => this.Set(ref _isSelected, value);
     }
 
-    public string LookUpPath => _track.LookUpPath;
+    public string LookUpPath => _track.Source.LookUpPath;
     public int Number => _track.Number;
 
     public string Title => _isMelody ? $"Melody Number(s) {_track.Title}" : _track.Title;
-    public string Url => _track.Url;
+    public string Url => _track.Source.Url;
 
     private bool _play;
 

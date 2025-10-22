@@ -1,5 +1,5 @@
 ﻿using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Shared.Models;
+using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.ViewModels.Shared;
 

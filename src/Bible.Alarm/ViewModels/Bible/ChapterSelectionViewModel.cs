@@ -303,11 +303,11 @@ public class BibleChapterListViewItemModel : ViewModel, IComparable
 
     public ICommand TogglePlayCommand { get; set; }
 
-    public string LookUpPath => _chapter.LookUpPath;
+    public string LookUpPath => _chapter.Source.LookUpPath;
     public int Number => _chapter.Number;
 
     public string Title => _chapter.Title;
-    public string Url => _chapter.Url;
+    public string Url => _chapter.Source.Url;
 
     private bool _play;
 

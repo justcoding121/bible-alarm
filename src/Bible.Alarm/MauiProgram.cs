@@ -19,6 +19,7 @@ using Bible.Alarm.Contracts.Scheduler;
 using Bible.Alarm.Contracts.Storage;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Services.Infrastructure.Media;
+using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Shared.Constants;

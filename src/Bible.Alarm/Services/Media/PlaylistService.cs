@@ -153,8 +153,8 @@ public class PlaylistService(
 
         var publicationCode = bibleReadingSchedule.PublicationCode;
         var languageCode = bibleReadingSchedule.LanguageCode;
-        var url = chapterDetail.Url;
-        var lookUpPath = chapterDetail.LookUpPath;
+        var url = chapterDetail.Source.Url;
+        var lookUpPath = chapterDetail.Source.LookUpPath;
 
         var notificationDetail = new NotificationDetail
         {
@@ -201,8 +201,8 @@ public class PlaylistService(
 
         var publicationCode = bibleReadingSchedule.PublicationCode;
         var languageCode = bibleReadingSchedule.LanguageCode;
-        var url = chapterDetail.Url;
-        var lookUpPath = chapterDetail.LookUpPath;
+        var url = chapterDetail.Source.Url;
+        var lookUpPath = chapterDetail.Source.LookUpPath;
 
         var markedSeekTrack = false;
 
@@ -240,8 +240,8 @@ public class PlaylistService(
 
             bookNumber = next.Key.Number;
             chapter = next.Value.Number;
-            url = next.Value.Url;
-            lookUpPath = next.Value.LookUpPath;
+            url = next.Value.Source.Url;
+            lookUpPath = next.Value.Source.LookUpPath;
         }
 
         return result;
@@ -364,8 +364,8 @@ public class PlaylistService(
                     ScheduleId = schedule.Id,
                     PublicationCode = melodyMusic.PublicationCode,
                     TrackNumber = melodyTrack.Number,
-                    LookUpPath = melodyTrack.LookUpPath
-                }, melodyTrack.Url);
+                    LookUpPath = melodyTrack.Source.LookUpPath
+                }, melodyTrack.Source.Url);
 
             case MusicType.Vocals:
                 var vocalMusic = schedule.Music;
@@ -379,8 +379,8 @@ public class PlaylistService(
                     PublicationCode = vocalMusic.PublicationCode,
                     LanguageCode = vocalMusic.LanguageCode,
                     TrackNumber = vocalTrack.Number,
-                    LookUpPath = vocalTrack.LookUpPath
-                }, vocalTrack.Url);
+                    LookUpPath = vocalTrack.Source.LookUpPath
+                }, vocalTrack.Source.Url);
 
             default:
                 throw new ApplicationException("Invalid MusicType.");

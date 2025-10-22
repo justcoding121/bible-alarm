@@ -11,7 +11,7 @@
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:fn="clr-namespace:Bible.Alarm.UI.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.UI.ViewHelpers.Behaviours"
-    xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums"
+    xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums;assembly=Bible.Alarm.Shared"
     x:DataType="vm:HomeViewModel"
     Title="Bible Alarm"
     NavigationPage.HasNavigationBar="False">
