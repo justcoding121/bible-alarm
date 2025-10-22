@@ -1,9 +1,9 @@
 ﻿namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
-    using Advanced.Algorithms.DataStructures.Foundation;
     using AudioLinkHarvester.Models;
     using AudioLinkHarvester.Models.Bible;
     using AudioLinkHarvester.Models.Music;
+    using Bible.Alarm.Common.DataStructures;
     using Newtonsoft.Json;
     using System.Collections.Generic;
     using System.IO;
@@ -34,21 +34,21 @@
             return JsonConvert.DeserializeObject<IEnumerable<Publication>>(bibleTranslations).ToDictionary(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
+        public async Task<Bible.Alarm.Common.DataStructures.OrderedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
         {
             var root = indexRoot;
             var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, "books.json");
             var bibleBooks = await File.ReadAllTextAsync(booksIndex);
-            return new OrderedDictionary<int, BibleBook>(JsonConvert.DeserializeObject<IEnumerable<BibleBook>>(bibleBooks)
+            return new Bible.Alarm.Common.DataStructures.OrderedDictionary<int, BibleBook>(JsonConvert.DeserializeObject<IEnumerable<BibleBook>>(bibleBooks)
                                                     .Select(x => new KeyValuePair<int, BibleBook>(x.Number, x)));
         }
 
-        public async Task<OrderedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int bookNumber)
+        public async Task<Bible.Alarm.Common.DataStructures.OrderedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int bookNumber)
         {
             var root = indexRoot;
             var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, bookNumber.ToString(), "chapters.json");
             var bibleChapters = await File.ReadAllTextAsync(booksIndex);
-            return new OrderedDictionary<int, BibleChapter>(JsonConvert.DeserializeObject<IEnumerable<BibleChapter>>(bibleChapters)
+            return new Bible.Alarm.Common.DataStructures.OrderedDictionary<int, BibleChapter>(JsonConvert.DeserializeObject<IEnumerable<BibleChapter>>(bibleChapters)
                                                        .Select(x => new KeyValuePair<int, BibleChapter>(x.Number, x)));
         }
 
@@ -60,12 +60,12 @@
             return JsonConvert.DeserializeObject<IEnumerable<Publication>>(fileContent).ToDictionary(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
+        public async Task<Bible.Alarm.Common.DataStructures.OrderedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
         {
             var root = indexRoot;
             var trackIndex = Path.Combine(root, "Music", "Melodies", publicationCode, "tracks.json");
             var fileContent = await File.ReadAllTextAsync(trackIndex);
-            return new OrderedDictionary<int, MusicTrack>(JsonConvert.DeserializeObject<IEnumerable<MusicTrack>>(fileContent)
+            return new Bible.Alarm.Common.DataStructures.OrderedDictionary<int, MusicTrack>(JsonConvert.DeserializeObject<IEnumerable<MusicTrack>>(fileContent)
                                                     .Select(x => new KeyValuePair<int, MusicTrack>(x.Number, x)));
         }
 
@@ -85,12 +85,12 @@
             return JsonConvert.DeserializeObject<IEnumerable<Publication>>(vocalReleases).ToDictionary(x => x.Code, x => x);
         }
 
-        public async Task<OrderedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode)
+        public async Task<Bible.Alarm.Common.DataStructures.OrderedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode)
         {
             var root = indexRoot;
             var trackIndex = Path.Combine(root, "Music", "Vocals", languageCode, publicationCode, "tracks.json");
             var melodyTracks = await File.ReadAllTextAsync(trackIndex);
-            return new OrderedDictionary<int, MusicTrack>(JsonConvert.DeserializeObject<IEnumerable<MusicTrack>>(melodyTracks)
+            return new Bible.Alarm.Common.DataStructures.OrderedDictionary<int, MusicTrack>(JsonConvert.DeserializeObject<IEnumerable<MusicTrack>>(melodyTracks)
                                                     .Select(x => new KeyValuePair<int, MusicTrack>(x.Number, x)));
         }
 

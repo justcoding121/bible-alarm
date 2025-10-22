@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Bible.Alarm.Models
+namespace Bible.Alarm.Shared.Models.Media.Bible
 {
     public class BibleBook : IComparable
     {

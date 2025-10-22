@@ -1,7 +1,7 @@
 ﻿using AudioLinkHarvester.Models.Bible;
 using AudioLinkHarvester.Utility;
 using AudioLinkHarvestor.Utility;
-using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Constants;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
@@ -25,7 +25,7 @@ namespace AudioLinkHarvester.Bible
             {
                 var publicationCode = publication.Key;
 
-                var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+                var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
                 var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
@@ -60,7 +60,7 @@ namespace AudioLinkHarvester.Bible
 
             var bookNumber = 1;
 
-            var harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
 
             while (bookNumber <= 66)
             {
@@ -79,7 +79,7 @@ namespace AudioLinkHarvester.Bible
                     if (e is JsonReaderException || e is ArgumentException)
                     {
                         bookNumber++;
-                        harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+                        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
 
                         continue;
                     }
@@ -130,7 +130,7 @@ namespace AudioLinkHarvester.Bible
                     bookNumber++;
                 }
 
-                harvestLink = $"{UrlHelper.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+                harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
             }
 
             if (bookNumberBookMap.Count > 0)

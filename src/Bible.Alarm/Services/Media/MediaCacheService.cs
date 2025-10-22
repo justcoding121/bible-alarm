@@ -4,7 +4,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Contracts.Storage;
-using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Utilities;
@@ -167,8 +167,6 @@ public class MediaCacheService(
     {
         try
         {
-            var sourceWebsite = SourceHelper.GetSourceWebsite(pubCode);
-
             byte[] @bytes;
 
             var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";

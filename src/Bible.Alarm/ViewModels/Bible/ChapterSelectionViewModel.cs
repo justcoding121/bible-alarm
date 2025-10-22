@@ -8,7 +8,7 @@ using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.Shared.Models.Bible;
+using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 using Serilog;

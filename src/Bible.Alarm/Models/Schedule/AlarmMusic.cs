@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Models.Enums;
+﻿using Bible.Alarm.Shared.Models.Enums;
 
 namespace Bible.Alarm.Models.Schedule;
 

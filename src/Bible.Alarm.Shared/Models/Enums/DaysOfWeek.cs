@@ -1,4 +1,7 @@
-﻿namespace Bible.Alarm.Shared.Models.Enums;
+﻿using System;
+using System.Collections.Generic;
+
+namespace Bible.Alarm.Shared.Models.Enums;
 
 public enum DaysOfWeek
 {

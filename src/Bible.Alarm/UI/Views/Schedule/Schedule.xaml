@@ -7,7 +7,7 @@
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
              xmlns:converters="clr-namespace:Bible.Alarm.UI.ViewHelpers.Converters"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
-             xmlns:enums="clr-namespace:Bible.Alarm.Models.Enums"
+             xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums"
              xmlns:fn="clr-namespace:Bible.Alarm.UI.Views"
              x:DataType="vm:ScheduleViewModel"
              NavigationPage.HasBackButton="False"

@@ -1,5 +1,5 @@
 ﻿using System.Globalization;
-using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.UI.ViewHelpers.Converters;

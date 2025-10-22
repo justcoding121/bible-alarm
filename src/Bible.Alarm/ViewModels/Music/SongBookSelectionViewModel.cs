@@ -5,7 +5,7 @@ using System.Reactive.Linq;
 using System.Windows.Input;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.UI;
-using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.ViewModels.Redux;

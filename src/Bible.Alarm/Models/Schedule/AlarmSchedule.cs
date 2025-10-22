@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.Quartz;
-using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Media;
 using Microsoft.EntityFrameworkCore;
 

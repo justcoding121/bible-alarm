@@ -2,6 +2,5 @@
 
 public enum SourceWebsite
 {
-    JwOrg = 0,
-    BibleGateway = 1
+    JwOrg = 0
 }

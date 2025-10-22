@@ -6,7 +6,8 @@ using AudioLinkHarvester.Bible;
 using AudioLinkHarvester.Models;
 using AudioLinkHarvestor.Utility;
 using Bible.Alarm.Audio.Links.Harvestor;
-using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Utilities;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
@@ -22,8 +23,7 @@ namespace AudioLinkHarvester
     {
 
         private static readonly Dictionary<string, string> _biblePublicationCodeToNameMappings =
-            JwSourceHelper.PublicationCodeToNameMappings.Select(x => x)
-                    .ToDictionary(x => x.Key, x => x.Value);
+            JwSourceHelper.PublicationCodeToNameMappings;
 
 
         /// <summary>
@@ -35,9 +35,9 @@ namespace AudioLinkHarvester
             try
             {
                 var originalIndexFileSize =
-                    (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
+                    (new FileInfo($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/index.zip")).Length;
 
-                deleteDirectory(DirectoryHelper.IndexDirectory);
+                deleteDirectory(AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory);
 
                 var bibleTasks = new List<Task>();
 
@@ -64,7 +64,7 @@ namespace AudioLinkHarvester
                     ReleaseDate = DateTime.Now.Ticks
                 };
 
-                var indexFile = $"{DirectoryHelper.IndexDirectory}/media/index.json";
+                var indexFile = $"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/media/index.json";
                 if (File.Exists(indexFile))
                 {
                     File.Delete(indexFile);
@@ -72,12 +72,12 @@ namespace AudioLinkHarvester
 
                 await File.WriteAllTextAsync(indexFile, JsonConvert.SerializeObject(index));
 
-                await DbSeeder.Seed($"{DirectoryHelper.IndexDirectory}");
+                await DbSeeder.Seed($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}");
 
                 ZipFiles();
 
                 var newIndexFileSize =
-                    (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
+                    (new FileInfo($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/index.zip")).Length;
 
                 Console.WriteLine("Old size:" + (originalIndexFileSize / 1024) + "kb");
                 Console.WriteLine("New size:" + (newIndexFileSize / 1024) + "kb");
@@ -91,7 +91,7 @@ namespace AudioLinkHarvester
             }
             finally
             {
-                var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
+                var zipIndex = $"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/index.zip";
                 if (!File.Exists(zipIndex))
                 {
                     throw new Exception("Harvesting failed to create zip file.");
@@ -102,12 +102,12 @@ namespace AudioLinkHarvester
         private static void writeBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
                 ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
         {
-            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
+            if (!Directory.Exists($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
             {
-                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible");
+                Directory.CreateDirectory($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/media/Audio/Bible");
             }
 
-            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonConvert.SerializeObject(
+            File.WriteAllText($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonConvert.SerializeObject(
                 languageCodeToEditionsMapping.Select(x =>
                 new Language
                 {
@@ -118,12 +118,12 @@ namespace AudioLinkHarvester
 
             foreach (var languageEditionsMap in languageCodeToEditionsMapping)
             {
-                if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}"))
+                if (!Directory.Exists($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}"))
                 {
-                    Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}");
+                    Directory.CreateDirectory($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}");
                 }
 
-                File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonConvert.SerializeObject(
+                File.WriteAllText($"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonConvert.SerializeObject(
                 languageEditionsMap.Value.Select(x =>
                 new Publication
                 {
@@ -137,13 +137,13 @@ namespace AudioLinkHarvester
 
         private static void ZipFiles()
         {
-            var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
+            var zipIndex = $"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/index.zip";
             if (File.Exists(zipIndex))
             {
                 File.Delete(zipIndex);
             }
 
-            ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex);
+            ZipFile.CreateFromDirectory($"{Path.Combine(AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory, "db")}", zipIndex);
         }
 
         /// <summary>
@@ -211,7 +211,7 @@ namespace AudioLinkHarvester
             {
                 BucketName = bucketName,
                 Key = keyName,
-                FilePath = $"{DirectoryHelper.IndexDirectory}/index.zip",
+                FilePath = $"{AudioLinkHarvestor.Utility.DirectoryHelper.IndexDirectory}/index.zip",
 
             });
 

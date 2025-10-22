@@ -1,5 +1,5 @@
-﻿using Bible.Alarm.Models.Media;
-using Bible.Alarm.Shared.Models.Bible;
+﻿using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.Bible;
 
 namespace Bible.Alarm.Contracts.Media;
 

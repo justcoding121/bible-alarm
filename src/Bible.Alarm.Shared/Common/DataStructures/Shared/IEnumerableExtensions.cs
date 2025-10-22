@@ -1,4 +1,7 @@
-﻿namespace Bible.Alarm.Common.DataStructures.Shared;
+﻿using System;
+using System.Collections.Generic;
+
+namespace Bible.Alarm.Common.DataStructures.Shared;
 
 internal static class IEnumerableExtensions
 {

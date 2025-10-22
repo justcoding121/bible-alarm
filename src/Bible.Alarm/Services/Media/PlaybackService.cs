@@ -2,7 +2,7 @@ using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Contracts.Storage;
-using Bible.Alarm.Models.Media;
+using Bible.Alarm.Shared.Models.Media;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;

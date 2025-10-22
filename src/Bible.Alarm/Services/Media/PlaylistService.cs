@@ -1,13 +1,13 @@
 ﻿using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Models;
-using Bible.Alarm.Models.Enums;
-using Bible.Alarm.Models.Media;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Infrastructure.Media;
+using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Models.Bible;
+using Bible.Alarm.Shared.Models.Media.Bible;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 

@@ -1,4 +1,9 @@
-﻿namespace Bible.Alarm.Common.DataStructures;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Bible.Alarm.Common.DataStructures;
 
 /// <summary>
 ///     A simple asynchronous multi-thread supporting producer/consumer FIFO queue with minimal locking.

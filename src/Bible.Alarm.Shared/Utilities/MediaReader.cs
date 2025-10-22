@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Bible.Alarm.Shared.Models;
-using Bible.Alarm.Shared.Models.Bible;
-using Bible.Alarm.Shared.Models.Music;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.Bible;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Newtonsoft.Json;
 
 namespace Bible.Alarm.Shared.Utilities;

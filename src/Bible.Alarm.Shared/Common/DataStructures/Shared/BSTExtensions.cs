@@ -1,4 +1,8 @@
-﻿namespace Bible.Alarm.Common.DataStructures.Shared;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Bible.Alarm.Common.DataStructures.Shared;
 
 internal static class BstExtensions
 {

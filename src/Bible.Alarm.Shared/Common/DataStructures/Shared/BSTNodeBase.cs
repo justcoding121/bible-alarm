@@ -1,4 +1,6 @@
-﻿namespace Bible.Alarm.Common.DataStructures.Shared;
+﻿using System;
+
+namespace Bible.Alarm.Common.DataStructures.Shared;
 
 internal abstract class BstNodeBase<T> where T : IComparable
 {

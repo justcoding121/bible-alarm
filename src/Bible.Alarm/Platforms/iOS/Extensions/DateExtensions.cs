@@ -1,4 +1,4 @@
-using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Foundation;
 

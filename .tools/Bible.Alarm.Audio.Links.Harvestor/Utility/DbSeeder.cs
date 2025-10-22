@@ -1,8 +1,9 @@
 ﻿using Bible.Alarm.Audio.Links.Harvestor.Utility;
-using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Models;
-using Bible.Alarm.Models.Enums;
-using Bible.Alarm.Services;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.Bible;
+using Bible.Alarm.Shared.Models.Media.Music;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.IO;

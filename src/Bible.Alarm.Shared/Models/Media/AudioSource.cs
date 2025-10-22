@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Models
+﻿namespace Bible.Alarm.Shared.Models.Media
 {
     public class AudioSource
     {
