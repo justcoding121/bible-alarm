@@ -50,6 +50,17 @@ public static class ServiceProviderManager
     }
 
     /// <summary>
+    /// Safely gets a service from the global service provider, returns null if not initialized.
+    /// </summary>
+    /// <typeparam name="T">The type of service to get</typeparam>
+    /// <returns>The service instance or null if not initialized</returns>
+    public static T? GetServiceSafe<T>() where T : class
+    {
+        if (!IsInitialized) return null;
+        return ServiceProvider.GetRequiredService<T>();
+    }
+
+    /// <summary>
     /// Gets a service from the global service provider.
     /// </summary>
     /// <param name="serviceType">The type of service to get</param>

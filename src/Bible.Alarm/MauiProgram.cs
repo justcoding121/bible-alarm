@@ -68,8 +68,6 @@ public static class MauiProgram
             .UseMauiCommunityToolkitMediaElement()
             .ConfigureFonts(fonts => { fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName); });
 
-// Debug logging is handled by Serilog
-
         // Register services
         RegisterServices(builder.Services);
 
@@ -82,6 +80,25 @@ public static class MauiProgram
         InitializePlatformBootstrap(app.Services);
 
         return app;
+    }
+
+    /// <summary>
+    /// Ensures the DI container is initialized for background services.
+    /// This method is safe to call multiple times and will only initialize once.
+    /// </summary>
+    public static void EnsureDiContainerInitialized()
+    {
+        if (!ServiceProviderManager.IsInitialized)
+        {
+            System.Diagnostics.Debug.WriteLine("Initializing DI container for background service...");
+            
+            // Create a minimal MauiApp instance to initialize the DI container
+            CreateMauiApp();
+            
+            // The app instance is not used, but the DI container is now initialized
+            // ServiceProviderManager.Initialize() was called in CreateMauiApp()
+            System.Diagnostics.Debug.WriteLine("DI container initialized for background service.");
+        }
     }
 
     private static void RegisterServices(IServiceCollection services)
@@ -219,13 +236,14 @@ public static class MauiProgram
         #if ANDROID
         // Android bootstrap initialization
         var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
-        Bible.Alarm.Platforms.Android.Services.Helpers.BootstrapHelper.Initialize(logger, context);
+        var application = Platform.CurrentActivity?.Application;
+        Bible.Alarm.Platforms.Android.Services.Helpers.BootstrapHelper.Initialize(logger, context, application);
         #elif IOS
         // iOS bootstrap initialization
-        Bible.Alarm.Platforms.iOS.Helpers.BootstrapHelper.Initialize(logger);
+        Bible.Alarm.Platforms.iOS.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
         #elif WINDOWS
         // Windows bootstrap initialization
-        Bible.Alarm.Platforms.Windows.Helpers.BootstrapHelper.Initialize(logger);
+        Bible.Alarm.Platforms.Windows.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
         #endif
     }
 }

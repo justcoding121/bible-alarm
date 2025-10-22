@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Models.Schedule;
+using Serilog;
 using UserNotifications;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Bible.Alarm.Platforms.iOS.Extensions;

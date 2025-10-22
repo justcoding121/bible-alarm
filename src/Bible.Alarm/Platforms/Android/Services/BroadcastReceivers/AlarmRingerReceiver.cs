@@ -1,8 +1,8 @@
 ﻿using Android.Content;
 using Android.OS;
+using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
 using Serilog;
@@ -47,10 +47,12 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
         try
         {
-            BootstrapHelper.Initialize(Logger, context); 
-
             _context = context;
             _intent = intent;
+
+            // Ensure DI container is initialized for background service
+            // This will also initialize platform-specific bootstrap helpers
+            MauiProgram.EnsureDiContainerInitialized();
 
             var scheduleId = intent.GetStringExtra("ScheduleId");
             var isImmediate = intent.GetBooleanExtra("IsImmediate", false);

@@ -5,7 +5,7 @@ using AndroidProvider = global::Android.Provider;
 using AndroidApplication = global::Android.App.Application;
 using Bible.Alarm.Contracts.Battery;
 
-// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
+
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Battery;

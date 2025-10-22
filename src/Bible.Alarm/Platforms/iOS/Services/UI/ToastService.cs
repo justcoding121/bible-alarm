@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Platforms.iOS.Services.UI;
+﻿using Bible.Alarm.Services.UI;
+using Bible.Alarm.Platforms.iOS.Services.UI;
 using UIKit;
 
 [assembly: Dependency(typeof(IOsToastService))]

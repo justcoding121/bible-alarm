@@ -7,7 +7,6 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Contracts.Media;
 using Serilog;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
 
 namespace Bible.Alarm.Platforms.Android;
 
@@ -25,8 +24,8 @@ public class MainActivity : MauiAppCompatActivity
         // Set up fullscreen and system UI for splash screen experience
         SetupSplashScreen();
 
-        // Initialize platform-specific services
-        BootstrapHelper.Initialize(Logger, this, Application);
+        // BootstrapHelper is already initialized in MauiProgram.cs
+        // No need to call it again here for foreground scenarios
 
         // Handle incoming intents (e.g., from notifications)
         HandleIncomingIntent();

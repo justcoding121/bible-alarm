@@ -1,6 +1,9 @@
-using Bible.Alarm.Platforms.iOS.Helpers;
+using Bible.Alarm.Common;
+using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
+using Bible.Alarm.Services.Infrastructure.Schedule;
+using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Tasks;
 using Foundation;
 using Serilog;
@@ -59,8 +62,8 @@ namespace Bible.Alarm.Platforms.iOS
 
             try
             {
-                // Initialize iOS-specific bootstrap helper after MAUI app is created
-                BootstrapHelper.Initialize(Logger);
+                // BootstrapHelper is already initialized in MauiProgram.cs
+                // No need to call it again here for foreground scenarios
                 
                 //once every hour
                 // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+

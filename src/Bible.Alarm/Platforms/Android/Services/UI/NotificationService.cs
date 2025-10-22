@@ -2,7 +2,6 @@
 using Android.Content;
 using Android.OS;
 using AndroidX.Core.App;
-// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Java.Lang;
 using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
 using Serilog;

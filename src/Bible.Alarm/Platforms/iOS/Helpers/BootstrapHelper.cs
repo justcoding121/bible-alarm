@@ -1,4 +1,7 @@
+using Bible.Alarm;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 
@@ -6,16 +9,38 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 
 public class BootstrapHelper
 {
-    public static void Initialize(ILogger logger)
+    public static void Initialize(ILogger logger, bool isForeground = false)
     {
         // Ensure ServiceProviderManager is initialized for iOS
         EnsureServiceProviderInitialized();
         
+        // Initialize database and services (both foreground and background)
+        // This must complete before any other tasks
+        try
+        {
+            CommonBootstrapHelper.VerifyServices().Wait();
+            logger.Information("iOS database initialization completed successfully.");
+        }
+        catch (Exception e)
+        {
+            logger.Fatal(e, "iOS database initialization crashed.");
+            throw;
+        }
+        
+        // Initialize UI components only for foreground scenarios
+        if (isForeground)
+        {
+            InitializeUi(logger);
+        }
+    }
+
+    private static void InitializeUi(ILogger logger)
+    {
         Task.Run(async () =>
         {
             try
             {
-                await CommonBootstrapHelper.VerifyServices();
+                // UI-specific initialization only
                 Messenger<bool>.Publish(MvvmMessages.Initialized, true);
 
                 await Task.Delay(1000);
@@ -32,26 +57,24 @@ public class BootstrapHelper
             }
             catch (Exception e)
             {
-                logger.Fatal(e, "iOS initialization crashed.");
+                logger.Fatal(e, "iOS UI initialization crashed.");
             }
         });
     }
 
-    public static async Task VerifyServices()
-    {
-        // Ensure ServiceProviderManager is initialized
-        EnsureServiceProviderInitialized();
-        await CommonBootstrapHelper.VerifyServices();
-    }
 
     private static void EnsureServiceProviderInitialized()
     {
         if (!ServiceProviderManager.IsInitialized)
         {
-            // Initialize minimal DI container for iOS background services
-            // This should only happen if the main app hasn't started yet
-            throw new InvalidOperationException(
-                "ServiceProviderManager not initialized. iOS background services require the main app to initialize first.");
+            // Initialize DI container for background services
+            var logger = Log.ForContext<BootstrapHelper>();
+            logger.Information("Initializing DI container for background service...");
+            
+            // Call MauiProgram to ensure DI container is initialized
+            MauiProgram.EnsureDiContainerInitialized();
+            
+            logger.Information("DI container initialized for background service.");
         }
     }
 }

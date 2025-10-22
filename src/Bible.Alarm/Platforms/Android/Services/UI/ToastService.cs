@@ -2,7 +2,6 @@
 using AndroidApplication = global::Android.App.Application;
 using Bible.Alarm.Services.UI;
 
-// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 

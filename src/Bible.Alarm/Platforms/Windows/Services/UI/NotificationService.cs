@@ -1,4 +1,6 @@
-﻿using Windows.UI.Notifications;
+﻿using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Models.Schedule;
+using Windows.UI.Notifications;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
 using Bible.Alarm.Platforms.Windows.Helpers;
 

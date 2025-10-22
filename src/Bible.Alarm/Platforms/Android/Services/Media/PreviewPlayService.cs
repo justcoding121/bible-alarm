@@ -3,7 +3,6 @@ using AndroidApplication = global::Android.App.Application;
 using AndroidNet = global::Android.Net;
 using Bible.Alarm.Contracts.Media;
 
-// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;

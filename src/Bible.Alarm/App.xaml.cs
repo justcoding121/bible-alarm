@@ -1,13 +1,6 @@
 ﻿using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
-#if IOS
-using Bible.Alarm.Platforms.iOS.Helpers;
-#endif
-#if WINDOWS
-using Bible.Alarm.Platforms.Windows.Helpers;
-#endif
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.UI.Views;
 using Bible.Alarm.ViewModels;
@@ -114,30 +107,15 @@ public partial class App : Application
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine("Initializing platform-specific bootstrap...");
+            System.Diagnostics.Debug.WriteLine("Platform bootstrap already initialized in MauiProgram.cs");
             
-            // Initialize platform-specific bootstrap helper after ServiceProviderManager is available
-            #if WINDOWS
-            using var scope = _scopeFactory.CreateScope();
-            var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
-            BootstrapHelper.Initialize(logger);
-            System.Diagnostics.Debug.WriteLine("Windows bootstrap helper initialized!");
-            #elif ANDROID
-            using var scope = _scopeFactory.CreateScope();
-            var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
-            // Android bootstrap is handled in MainActivity, but we also need to call it here for database initialization
-            _ = Task.Run(async () => await BootstrapHelper.VerifyServices());
-            System.Diagnostics.Debug.WriteLine("Android bootstrap helper initialized!");
-            #elif IOS
-            using var scope = _scopeFactory.CreateScope();
-            var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
-            BootstrapHelper.Initialize(logger);
-            System.Diagnostics.Debug.WriteLine("iOS bootstrap helper initialized!");
-            #endif
+            // BootstrapHelper is already called in MauiProgram.cs during DI registration
+            // No need to call it again here for foreground scenarios
+            // Background services will call BootstrapHelper.Initialize() independently when needed
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error initializing platform bootstrap: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Error in platform bootstrap: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }

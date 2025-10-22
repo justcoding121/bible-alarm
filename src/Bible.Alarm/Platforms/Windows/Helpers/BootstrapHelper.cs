@@ -1,4 +1,7 @@
+using Bible.Alarm;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 using Windows.ApplicationModel.Background;
@@ -12,21 +15,41 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
         /// <summary>
         /// Main entry point for Windows platform initialization
         /// </summary>
-        public static void Initialize(ILogger logger)
+        public static void Initialize(ILogger logger, bool isForeground = false)
         {
             // Ensure ServiceProviderManager is initialized for Windows
             EnsureServiceProviderInitialized();
             
+            // Initialize database and services (both foreground and background)
+            // This must complete before any other tasks
+            try
+            {
+                CommonBootstrapHelper.VerifyServices().Wait();
+                logger.Information("Windows database initialization completed successfully.");
+            }
+            catch (Exception e)
+            {
+                logger.Fatal(e, "Windows database initialization crashed.");
+                throw;
+            }
+            
             // Setup background tasks
             Task.Run(() => SetupBackgroundTask());
 
-            // Initialize services
+            // Initialize UI components only for foreground scenarios
+            if (isForeground)
+            {
+                InitializeUi(logger);
+            }
+        }
+
+        private static void InitializeUi(ILogger logger)
+        {
+            // UI-specific initialization only
             Task.Run(async () =>
             {
                 try
                 {
-                    await CommonBootstrapHelper.VerifyServices();
-
                     Messenger<bool>.Publish(MvvmMessages.Initialized, true);
 
                     await Task.Delay(1000);
@@ -35,20 +58,11 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
                 }
                 catch (Exception e)
                 {
-                    logger.Fatal(e, "Windows initialization crashed.");
+                    logger.Fatal(e, "Windows UI initialization crashed.");
                 }
             });
         }
 
-        /// <summary>
-        /// Verify and initialize all services
-        /// </summary>
-        public static async Task VerifyServices()
-        {
-            // Ensure ServiceProviderManager is initialized
-            EnsureServiceProviderInitialized();
-            await CommonBootstrapHelper.VerifyServices();
-        }
 
         private static async Task SetupBackgroundTask()
         {
@@ -123,10 +137,14 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
         {
             if (!ServiceProviderManager.IsInitialized)
             {
-                // Initialize minimal DI container for Windows background services
-                // This should only happen if the main app hasn't started yet
-                throw new InvalidOperationException(
-                    "ServiceProviderManager not initialized. Windows background services require the main app to initialize first.");
+                // Initialize DI container for background services
+                var logger = Log.ForContext<BootstrapHelper>();
+                logger.Information("Initializing DI container for background service...");
+                
+                // Call MauiProgram to ensure DI container is initialized
+                MauiProgram.EnsureDiContainerInitialized();
+                
+                logger.Information("DI container initialized for background service.");
             }
         }
     }

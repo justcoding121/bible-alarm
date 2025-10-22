@@ -6,6 +6,7 @@ using Android.OS;
 using AndroidApplication = global::Android.App.Application;
 using AndroidBuild = global::Android.OS.Build;
 using AndroidNet = global::Android.Net;
+using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm;
@@ -27,6 +28,19 @@ public class BootstrapHelper
         // Ensure ServiceProviderManager is initialized for background services
         EnsureServiceProviderInitialized();
         
+        // Initialize database and services (both foreground and background)
+        // This must complete before any other tasks
+        try
+        {
+            CommonBootstrapHelper.VerifyServices().Wait();
+            logger.Information("Android database initialization completed successfully.");
+        }
+        catch (Exception e)
+        {
+            logger.Fatal(e, "Android database initialization crashed.");
+            throw;
+        }
+        
         // Create notification channel
         CreateNotificationChannel();
         
@@ -43,21 +57,19 @@ public class BootstrapHelper
     /// <summary>
     /// Verify and initialize all services
     /// </summary>
-    public static async Task VerifyServices()
-    {
-        // Ensure ServiceProviderManager is initialized
-        EnsureServiceProviderInitialized();
-        await CommonBootstrapHelper.VerifyServices();
-    }
 
     private static void EnsureServiceProviderInitialized()
     {
         if (!ServiceProviderManager.IsInitialized)
         {
-            // Initialize minimal DI container for Android background services
-            // This should only happen if the main app hasn't started yet
-            throw new InvalidOperationException(
-                "ServiceProviderManager not initialized. Android background services require the main app to initialize first.");
+            // Initialize DI container for background services
+            var logger = Log.ForContext<BootstrapHelper>();
+            logger.Information("Initializing DI container for background service...");
+            
+            // Call MauiProgram to ensure DI container is initialized
+            MauiProgram.EnsureDiContainerInitialized();
+            
+            logger.Information("DI container initialized for background service.");
         }
     }
 
@@ -68,14 +80,12 @@ public class BootstrapHelper
         {
             try
             {
-                await VerifyServices();
-                CreateNotificationChannel();
-
+                // UI-specific initialization only
                 Messenger<bool>.Publish(MvvmMessages.Initialized, true);
             }
             catch (Exception e)
             {
-                logger.Fatal(e, "Android initialization crashed.");
+                logger.Fatal(e, "Android UI initialization crashed.");
                 throw;
             }
         });

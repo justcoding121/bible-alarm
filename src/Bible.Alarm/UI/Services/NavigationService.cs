@@ -113,9 +113,9 @@ public class NavigationService : INavigationService
 
     public async Task ShowModal(string name, object viewModel)
     {
-        if (_navigater == null)
+        if (!CanNavigate())
         {
-            _logger.Warning("Navigation service is not available. Cannot show modal.");
+            _logger.Warning("Navigation service is not available in current context. Cannot show modal.");
             return;
         }
 
@@ -174,9 +174,9 @@ public class NavigationService : INavigationService
 
     public async Task Navigate(object viewModel)
     {
-        if (_navigater == null)
+        if (!CanNavigate())
         {
-            _logger.Warning("Navigation service is not available. Cannot navigate.");
+            _logger.Warning("Navigation service is not available in current context. Cannot navigate.");
             return;
         }
 
@@ -287,9 +287,9 @@ public class NavigationService : INavigationService
     {
         try
         {
-            if (_navigater == null)
+            if (!CanNavigate())
             {
-                _logger.Warning("Navigation service is not available. Cannot close modal.");
+                _logger.Warning("Navigation service is not available in current context. Cannot close modal.");
                 return;
             }
 
@@ -305,13 +305,38 @@ public class NavigationService : INavigationService
         }
     }
 
+    /// <summary>
+    /// Checks if navigation is available in the current context
+    /// </summary>
+    private bool CanNavigate()
+    {
+        return _navigater != null && IsForegroundContext();
+    }
+
+    /// <summary>
+    /// Determines if we're in a foreground context where UI operations are safe
+    /// </summary>
+    private bool IsForegroundContext()
+    {
+        try
+        {
+            // Check if we're on the main thread and have a valid application context
+            return MainThread.IsMainThread && Application.Current != null;
+        }
+        catch
+        {
+            // If we can't determine the context, assume we're in background
+            return false;
+        }
+    }
+
     public async Task NavigateToHome()
     {
         try
         {
-            if (_navigater == null)
+            if (!CanNavigate())
             {
-                _logger.Warning("Navigation service is not available. Cannot navigate to home.");
+                _logger.Warning("Navigation service is not available in current context. Cannot navigate to home.");
                 return;
             }
 

@@ -8,7 +8,6 @@ using Bible.Alarm.Services.Tasks;
 using Serilog;
 using static Android.App.AlarmManager;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidServices;
@@ -55,14 +54,8 @@ public class AlarmSetupService : Service, IDisposable
     public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags,
         int startId)
     {
-        try
-        {
-            BootstrapHelper.Initialize(Logger, this);
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "An error happenned when initializing sevice in AlarmSetupService.");
-        }
+        // DI container initialization is handled by MauiProgram.EnsureDiContainerInitialized()
+        // when services are accessed through ServiceProviderManager
 
         try
         {
@@ -80,7 +73,8 @@ public class AlarmSetupService : Service, IDisposable
                     break;
                 }
                 case "SetupBackgroundTasks":
-                    BootstrapHelper.Initialize(Logger, ApplicationContext);
+                    // DI container initialization is handled by MauiProgram.EnsureDiContainerInitialized()
+                    // when services are accessed through ServiceProviderManager
                     Task.Run(async () =>
                     {
                         try

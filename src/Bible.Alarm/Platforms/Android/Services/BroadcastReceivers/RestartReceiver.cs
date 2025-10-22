@@ -1,13 +1,11 @@
 ﻿using Android.App;
 using Android.Content;
 using Android.OS;
+using Bible.Alarm;
 using Bible.Alarm.Common;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 
 
-
-// using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
@@ -59,17 +57,9 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
         try
         {
-            BootstrapHelper.Initialize(_logger, context);
-
-            try
-            {
-                await BootstrapHelper.VerifyServices();
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning(ex, $"Failed to process restart task: copy media index. Intent action {intent.Action}");
-            }
-
+            // Ensure DI container is initialized for background service
+            // This will also initialize platform-specific bootstrap helpers
+            MauiProgram.EnsureDiContainerInitialized();
             using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
             await schedulerTask.Handle();
 
@@ -92,7 +82,6 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         if (!_disposed)
         {
             _disposed = true;
-            // _container = null; // No longer needed
         }
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
