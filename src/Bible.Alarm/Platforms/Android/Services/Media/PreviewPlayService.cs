@@ -4,7 +4,7 @@ using Bible.Alarm.Contracts.Media;
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
 
-namespace Bible.Alarm.Services.Droid;
+namespace Bible.Alarm.Platforms.Android.Services.Media;
 
 public class PreviewPlayService(MediaPlayer player) : Java.Lang.Object,
     MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable

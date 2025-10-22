@@ -1,9 +1,9 @@
-﻿using Bible.Alarm.Services.Windows.Handlers;
-using Windows.UI.Notifications;
-using Bible.Alarm.Services.Windows.Helpers;
+﻿using Windows.UI.Notifications;
 using Bible.Alarm.Models;
+using Bible.Alarm.Platforms.Windows.Services.Handlers;
+using Bible.Alarm.Platforms.Windows.Helpers;
 
-namespace Bible.Alarm.Services.Windows
+namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
     public class UwpNotificationService(UwpAlarmHandler uwpAlarmHandler) : INotificationService
     {
@@ -21,8 +21,7 @@ namespace Bible.Alarm.Services.Windows
             var time = schedule.NextFireDate();
             // Construct the toast content using built-in Windows APIs
             var toastXml =
-                global::Windows.UI.Notifications.ToastNotificationManager.GetTemplateContent(global::Windows.UI
-                    .Notifications.ToastTemplateType.ToastText02);
+                ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
             var textNodes = toastXml.GetElementsByTagName("text");
             textNodes[0].AppendChild(toastXml.CreateTextNode(title));
             textNodes[1].AppendChild(toastXml.CreateTextNode(body));

@@ -2,7 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 
-namespace Bible.Alarm.Services.Windows
+namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
     public class UwpToastService(TaskScheduler taskScheduler) : ToastService
     {
@@ -31,11 +31,11 @@ namespace Bible.Alarm.Services.Windows
             {
                 await Task.Delay(0)
                     .ContinueWith(async (x) =>
-                        await ShowAlert(message, (double)seconds), taskScheduler);
+                        await ShowAlert(message, seconds), taskScheduler);
             }
             else
             {
-                await ShowAlert(message, (double)seconds);
+                await ShowAlert(message, seconds);
             }
         }
 

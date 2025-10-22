@@ -1,13 +1,13 @@
 ﻿using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common;
-using Bible.Alarm.Droid.Services.Handlers;
-using Bible.Alarm.Droid.Services.Platform;
-using Bible.Alarm.Services.Droid.Helpers;
+using Bible.Alarm.Platforms.Android.Services.Handlers;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
 using Serilog;
 
-namespace Bible.Alarm.Droid.Services.Tasks;
+namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 
 [BroadcastReceiver(Enabled = true)]
 public class AlarmRingerReceiver : BroadcastReceiver, IDisposable

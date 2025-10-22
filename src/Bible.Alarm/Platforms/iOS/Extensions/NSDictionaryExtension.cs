@@ -1,6 +1,7 @@
+using Bible.Alarm.Platforms.iOS.Extensions;
 using Foundation;
 
-namespace Bible.Alarm.iOS.Extensions
+namespace Bible.Alarm.Platforms.iOS.Extensions
 {
     public static class NsDictionaryExtension
     {

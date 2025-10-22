@@ -4,7 +4,7 @@ using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 
-namespace Bible.Alarm.Services.iOS.Helpers;
+namespace Bible.Alarm.Platforms.iOS.Helpers;
 
 public class BootstrapHelper
 {

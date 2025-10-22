@@ -1,7 +1,7 @@
 ﻿using Bible.Alarm.Contracts.Platform;
 using Foundation;
 
-namespace Bible.Alarm.iOS.Services.Platform
+namespace Bible.Alarm.Platforms.iOS.Services.Platform
 {
     public class VersionFinder : IVersionFinder
     {

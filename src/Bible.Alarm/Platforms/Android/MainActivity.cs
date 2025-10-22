@@ -4,14 +4,14 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Views;
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.Droid.Helpers;
-using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Media;
 using Serilog;
 using Bible.Alarm.Droid.Services.Platform;
+using Bible.Alarm.Platforms.Android.Services.AndroidServices;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
 
-namespace Bible.Alarm.Droid;
+namespace Bible.Alarm.Platforms.Android;
 
 [Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity

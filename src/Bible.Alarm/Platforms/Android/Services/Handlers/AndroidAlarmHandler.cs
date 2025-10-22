@@ -1,11 +1,11 @@
 ﻿using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Services;
-using Bible.Alarm.Services.Droid;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-namespace Bible.Alarm.Droid.Services.Handlers;
+namespace Bible.Alarm.Platforms.Android.Services.Handlers;
 
 public class AndroidAlarmHandler(
     ILogger logger,

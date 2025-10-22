@@ -2,7 +2,7 @@
 using Foundation;
 
 
-namespace Bible.Alarm.Services.iOS
+namespace Bible.Alarm.Platforms.iOS.Services.Media
 {
     public class PreviewPlayService(IDownloadService downloadService)
         : IPreviewPlayService, IDisposable
@@ -34,7 +34,7 @@ namespace Bible.Alarm.Services.iOS
                 _player.PrepareToPlay();
             }
 
-            return (_player == null) ? false : true;
+            return _player == null ? false : true;
         }
 
 

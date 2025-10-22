@@ -3,16 +3,15 @@ using Android.Content;
 using Android.OS;
 using Android.Runtime;
 using Bible.Alarm.Common;
-using Bible.Alarm.Droid.Services.Platform;
-using Bible.Alarm.Droid.Services.Tasks;
-using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 using static Android.App.AlarmManager;
-using Bible.Alarm.Droid;
+using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Platforms.Android.Services.Platform;
 
-namespace Bible.Alarm.Services.Droid.Tasks;
+namespace Bible.Alarm.Platforms.Android.Services.AndroidServices;
 
 [Service(Enabled = true)]
 public class AlarmSetupService : Service, IDisposable

@@ -1,9 +1,9 @@
-﻿using Bible.Alarm.Services.iOS;
+﻿using Bible.Alarm.Platforms.iOS.Services.UI;
 using UIKit;
 
-[assembly: Microsoft.Maui.Controls.Dependency(typeof(IOsToastService))]
+[assembly: Dependency(typeof(IOsToastService))]
 
-namespace Bible.Alarm.Services.iOS
+namespace Bible.Alarm.Platforms.iOS.Services.UI
 {
     public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
@@ -20,11 +20,11 @@ namespace Bible.Alarm.Services.iOS
             {
                 await Task.Delay(0)
                     .ContinueWith(async (x) =>
-                        await ShowAlert(message, (double)seconds), taskScheduler);
+                        await ShowAlert(message, seconds), taskScheduler);
             }
             else
             {
-                await ShowAlert(message, (double)seconds);
+                await ShowAlert(message, seconds);
             }
         }
 

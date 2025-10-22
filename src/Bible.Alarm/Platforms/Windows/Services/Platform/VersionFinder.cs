@@ -1,7 +1,7 @@
 ﻿using Bible.Alarm.Contracts.Platform;
 using Windows.ApplicationModel;
 
-namespace Bible.Alarm.Services.Windows.Platform
+namespace Bible.Alarm.Platforms.Windows.Services.Platform
 {
     public class UwpVersionFinder : IVersionFinder
     {

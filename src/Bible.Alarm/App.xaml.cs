@@ -2,6 +2,9 @@
 using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Platforms.iOS.Helpers;
+using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.UI;
@@ -116,18 +119,18 @@ public partial class App : Application
             #if WINDOWS
             using var scope = _scopeFactory.CreateScope();
             var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
-            Bible.Alarm.Services.Windows.Helpers.BootstrapHelper.Initialize(logger);
+            BootstrapHelper.Initialize(logger);
             System.Diagnostics.Debug.WriteLine("Windows bootstrap helper initialized!");
             #elif ANDROID
             using var scope = _scopeFactory.CreateScope();
             var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
             // Android bootstrap is handled in MainActivity, but we also need to call it here for database initialization
-            _ = Task.Run(async () => await Bible.Alarm.Services.Droid.Helpers.BootstrapHelper.VerifyServices());
+            _ = Task.Run(async () => await BootstrapHelper.VerifyServices());
             System.Diagnostics.Debug.WriteLine("Android bootstrap helper initialized!");
             #elif IOS
             using var scope = _scopeFactory.CreateScope();
             var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
-            Bible.Alarm.Services.iOS.Helpers.BootstrapHelper.Initialize(logger);
+            BootstrapHelper.Initialize(logger);
             System.Diagnostics.Debug.WriteLine("iOS bootstrap helper initialized!");
             #endif
         }

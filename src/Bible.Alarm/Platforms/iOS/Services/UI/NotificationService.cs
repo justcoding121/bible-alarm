@@ -1,11 +1,11 @@
-﻿using Bible.Alarm.iOS.Extensions;
-using Bible.Alarm.iOS.Services.Handlers;
-using Bible.Alarm.Models;
+﻿using Bible.Alarm.Models;
 using Serilog;
 using UserNotifications;
 using Microsoft.Extensions.DependencyInjection;
+using Bible.Alarm.Platforms.iOS.Services.Handlers;
+using Bible.Alarm.Platforms.iOS.Extensions;
 
-namespace Bible.Alarm.Services.iOS
+namespace Bible.Alarm.Platforms.iOS.Services.UI
 {
     public class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
     {

@@ -1,4 +1,5 @@
-using Bible.Alarm.iOS.Services.Platform;
+using Bible.Alarm.Platforms.iOS.Helpers;
+using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
@@ -7,7 +8,7 @@ using Serilog;
 using UIKit;
 using UserNotifications;
 
-namespace Bible.Alarm.iOS
+namespace Bible.Alarm.Platforms.iOS
 {
     // The UIApplicationDelegate for the application. This class is responsible for launching the 
     // User Interface of the application, as well as listening (and optionally responding) to 
@@ -41,7 +42,7 @@ namespace Bible.Alarm.iOS
             {
                 // MAUI handles dependency injection through MauiProgram
                 // No need for manual IocSetup - services are registered in MauiProgram
-                return Bible.Alarm.MauiProgram.CreateMauiApp();
+                return MauiProgram.CreateMauiApp();
             }
             catch (Exception e)
             {
@@ -60,7 +61,7 @@ namespace Bible.Alarm.iOS
             try
             {
                 // Initialize iOS-specific bootstrap helper after MAUI app is created
-                Bible.Alarm.Services.iOS.Helpers.BootstrapHelper.Initialize(Logger);
+                BootstrapHelper.Initialize(Logger);
                 
                 //once every hour
                 // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+
@@ -122,7 +123,7 @@ namespace Bible.Alarm.iOS
 
                                 if (!dbContext.GeneralSettings.Any(x => x.Key == "iOSNotificationDisabledMsgShown"))
                                 {
-                                    dbContext.GeneralSettings.Add(new Alarm.Models.GeneralSettings()
+                                    dbContext.GeneralSettings.Add(new Models.GeneralSettings()
                                     {
                                         Key = "iOSNotificationDisabledMsgShown",
                                         Value = "true"

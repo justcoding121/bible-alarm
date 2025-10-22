@@ -1,7 +1,7 @@
 using Bible.Alarm.Models;
 using Foundation;
 
-namespace Bible.Alarm.iOS.Extensions
+namespace Bible.Alarm.Platforms.iOS.Extensions
 {
     public static class DateExtensions
     {

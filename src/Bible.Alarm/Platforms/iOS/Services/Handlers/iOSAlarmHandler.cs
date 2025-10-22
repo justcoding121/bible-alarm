@@ -1,7 +1,7 @@
 ﻿using Serilog;
 using UIKit;
 
-namespace Bible.Alarm.iOS.Services.Handlers
+namespace Bible.Alarm.Platforms.iOS.Services.Handlers
 {
     public class IOsAlarmHandler(
         ILogger logger,

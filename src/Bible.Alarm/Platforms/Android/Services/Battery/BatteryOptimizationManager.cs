@@ -1,9 +1,10 @@
 ﻿using Android.Content;
 using Bible.Alarm.Contracts.Battery;
+
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Serilog;
 
-namespace Bible.Alarm.Droid.Services.Battery;
+namespace Bible.Alarm.Platforms.Android.Services.Battery;
 
 public class BatteryOptimizationManager() : IBatteryOptimizationManager
 {

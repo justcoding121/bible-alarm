@@ -1,7 +1,7 @@
 using ObjCRuntime;
 using UIKit;
 
-namespace Bible.Alarm.iOS
+namespace Bible.Alarm.Platforms.iOS
 {
     public class Program
     {

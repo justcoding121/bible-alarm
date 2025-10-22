@@ -2,7 +2,7 @@
 using System.Reflection;
 using Bible.Alarm.Services.Storage;
 
-namespace Bible.Alarm.Droid.Services.Storage;
+namespace Bible.Alarm.Platforms.Android.Services.Storage;
 
 public class AndroidStorageService : StorageService
 {

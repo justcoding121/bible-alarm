@@ -32,6 +32,25 @@ using Bible.Alarm.ViewModels.Music;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Bible.Alarm.Platforms.iOS.Services.Storage;
+using Bible.Alarm.Platforms.iOS.Services.UI;
+using Bible.Alarm.Platforms.iOS.Helpers;
+using Bible.Alarm.Platforms.iOS.Services.Handlers;
+using Bible.Alarm.Platforms.iOS.Services.Platform;
+using Bible.Alarm.Platforms.iOS.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.UI;
+using Bible.Alarm.Platforms.Android.Services.Handlers;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Platforms.Android.Services.Battery;
+using Bible.Alarm.Platforms.Android.Services.Platform;
+using Bible.Alarm.Platforms.Android.Services.Storage;
+using Bible.Alarm.Platforms.Windows.Services.UI;
+using Bible.Alarm.Platforms.Windows.Services.Handlers;
+using Bible.Alarm.Platforms.Windows.Services.Media;
+using Bible.Alarm.Platforms.Windows.Services.Storage;
+using Bible.Alarm.Platforms.Windows.Services.Platform;
+using Bible.Alarm.Platforms.Windows.Helpers;
 
 namespace Bible.Alarm;
 
@@ -105,33 +124,33 @@ public static class MauiProgram
         
         // Register platform-specific version finder
         #if ANDROID
-        services.AddSingleton<IVersionFinder, Bible.Alarm.Droid.Services.Platform.VersionFinder>();
+        services.AddSingleton<IVersionFinder, VersionFinder>();
         #elif IOS
-        services.AddSingleton<IVersionFinder, Bible.Alarm.iOS.Services.Platform.VersionFinder>();
+        services.AddSingleton<IVersionFinder, VersionFinder>();
         #elif WINDOWS
-        services.AddSingleton<IVersionFinder, Bible.Alarm.Services.Windows.Platform.UwpVersionFinder>();
+        services.AddSingleton<IVersionFinder, UwpVersionFinder>();
         #endif
 
         // Register platform-specific services
         #if ANDROID
-        services.AddSingleton<INotificationService, Bible.Alarm.Services.Droid.DroidNotificationService>();
-        services.AddSingleton<IToastService, Bible.Alarm.Services.Droid.DroidToastService>();
-        services.AddSingleton<IAndroidAlarmHandler, Bible.Alarm.Droid.Services.Handlers.AndroidAlarmHandler>();
-        services.AddSingleton<IStorageService, Bible.Alarm.Droid.Services.Storage.AndroidStorageService>();
-        services.AddSingleton<IBatteryOptimizationManager, Bible.Alarm.Droid.Services.Battery.BatteryOptimizationManager>();
-        services.AddSingleton<IPreviewPlayService, Bible.Alarm.Services.Droid.PreviewPlayService>();
+        services.AddSingleton<INotificationService, DroidNotificationService>();
+        services.AddSingleton<IToastService, DroidToastService>();
+        services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
+        services.AddSingleton<IStorageService, AndroidStorageService>();
+        services.AddSingleton<IBatteryOptimizationManager, BatteryOptimizationManager>();
+        services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
         #elif IOS
-        services.AddSingleton<INotificationService, Bible.Alarm.Services.iOS.IOsNotificationService>();
-        services.AddSingleton<IToastService, Bible.Alarm.Services.iOS.IOsToastService>();
-        services.AddSingleton<IStorageService, Bible.Alarm.Droid.Services.Storage.IOsStorageService>();
-        services.AddSingleton<IPreviewPlayService, Bible.Alarm.Services.iOS.PreviewPlayService>();
-        services.AddSingleton<Bible.Alarm.iOS.Services.Handlers.IOsAlarmHandler>();
+        services.AddSingleton<INotificationService, IOsNotificationService>();
+        services.AddSingleton<IToastService, IOsToastService>();
+        services.AddSingleton<IStorageService, IOsStorageService>();
+        services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
+        services.AddSingleton<IOsAlarmHandler>();
         #elif WINDOWS
-        services.AddSingleton<INotificationService, Bible.Alarm.Services.Windows.UwpNotificationService>();
-        services.AddSingleton<IToastService, Bible.Alarm.Services.Windows.UwpToastService>();
-        services.AddSingleton<IStorageService, Bible.Alarm.Services.Windows.Storage.UwpStorageService>();
-        services.AddSingleton<IPreviewPlayService, Bible.Alarm.Services.Windows.PreviewPlayService>();
-        services.AddSingleton<Bible.Alarm.Services.Windows.Handlers.UwpAlarmHandler>();
+        services.AddSingleton<INotificationService, UwpNotificationService>();
+        services.AddSingleton<IToastService, UwpToastService>();
+        services.AddSingleton<IStorageService, UwpStorageService>();
+        services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
+        services.AddSingleton<UwpAlarmHandler>();
         #endif
 
         // Register database contexts
@@ -194,17 +213,27 @@ public static class MauiProgram
     private static void InitializePlatformBootstrap(IServiceProvider services)
     {
         var logger = services.GetRequiredService<Serilog.ILogger>();
-        
-        #if ANDROID
+
+#if ANDROID
         // Android bootstrap initialization
         var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
-        Bible.Alarm.Services.Droid.Helpers.BootstrapHelper.Initialize(logger, context);
-        #elif IOS
+        BootstrapHelper.Initialize(logger, context);
+#elif IOS
         // iOS bootstrap initialization
+
+<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net9.0-windows10.0.19041.0)', Before:
         Bible.Alarm.Services.iOS.Helpers.BootstrapHelper.Initialize(logger);
         #elif WINDOWS
         // Windows bootstrap initialization
-        Bible.Alarm.Services.Windows.Helpers.BootstrapHelper.Initialize(logger);
+=======
+        BootstrapHelper.Initialize(logger);
+#elif WINDOWS
+        // Windows bootstrap initialization
+>>>>>>> After
+        BootstrapHelper.Initialize(logger);
+        #elif WINDOWS
+        // Windows bootstrap initialization
+        BootstrapHelper.Initialize(logger);
         #endif
     }
 }

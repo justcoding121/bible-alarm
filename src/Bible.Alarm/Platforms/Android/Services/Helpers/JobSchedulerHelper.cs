@@ -2,7 +2,7 @@ using Android.App.Job;
 using Android.Content;
 using Android.OS;
 
-namespace Bible.Alarm.Services.Droid.Helpers;
+namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
 public static class JobSchedulerHelper
 {

@@ -1,6 +1,6 @@
 ﻿using Bible.Alarm.Contracts.Platform;
 
-namespace Bible.Alarm.Droid.Services.Platform;
+namespace Bible.Alarm.Platforms.Android.Services.Platform;
 
 public class VersionFinder : IVersionFinder
 {

@@ -2,12 +2,12 @@
 using Android.App.Job;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Tasks;
-using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
-using Bible.Alarm.Services.Droid.Helpers;
 using Serilog;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Platforms.Android.Services.Platform;
 
-namespace Bible.Alarm.Services.Droid.Tasks;
+namespace Bible.Alarm.Platforms.Android.Services.Jobs;
 
 [Service(Enabled = true)]
 public class SchedulerJob : JobService

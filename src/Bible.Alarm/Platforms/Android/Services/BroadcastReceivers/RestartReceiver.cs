@@ -2,14 +2,17 @@
 using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common;
-using Bible.Alarm.Droid.Services.Platform;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Platforms.Android.Services.Platform;
+
+
+
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
-using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 
-namespace Bible.Alarm.Droid.Services.Tasks;
+namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 
 [BroadcastReceiver(Enabled = true, DirectBootAware = true, Exported = true)]
 [IntentFilter(new[]

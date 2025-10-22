@@ -1,6 +1,6 @@
 ﻿using Serilog;
 
-namespace Bible.Alarm.Services.Windows.Handlers
+namespace Bible.Alarm.Platforms.Windows.Services.Handlers
 {
     public class UwpAlarmHandler(ILogger logger, IPlaybackService playbackService) : IDisposable
     {

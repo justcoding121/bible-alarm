@@ -1,7 +1,7 @@
 ﻿using Bible.Alarm.Services;
 using System.Reflection;
 
-namespace Bible.Alarm.Droid.Services.Storage
+namespace Bible.Alarm.Platforms.iOS.Services.Storage
 {
     public class IOsStorageService : StorageService
     {

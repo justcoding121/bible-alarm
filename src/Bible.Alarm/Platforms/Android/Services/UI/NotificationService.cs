@@ -2,10 +2,7 @@
 using Android.Content;
 using Android.OS;
 using AndroidX.Core.App;
-using Bible.Alarm.Droid;
-using Bible.Alarm.Droid.Services.Tasks;
 using Bible.Alarm.Models;
-using Bible.Alarm.Services.Droid.Tasks;
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Java.Lang;
 using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
@@ -16,8 +13,11 @@ using Android.Graphics;
 using Bible.Alarm.Contracts.Storage;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Platforms.Android.Services.AndroidServices;
+using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
+using Bible.Alarm.Platforms.Android;
 
-namespace Bible.Alarm.Services.Droid;
+namespace Bible.Alarm.Platforms.Android.Services.UI;
 
 public class DroidNotificationService(ILogger logger, IStorageService storageService) : INotificationService
 {

@@ -3,7 +3,7 @@ using Bible.Alarm.Services.UI;
 
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
-namespace Bible.Alarm.Services.Droid;
+namespace Bible.Alarm.Platforms.Android.Services.UI;
 
 public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {

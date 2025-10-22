@@ -5,7 +5,7 @@ using Bible.Alarm.Services.Infrastructure;
 using Serilog;
 using Windows.ApplicationModel.Background;
 
-namespace Bible.Alarm.Services.Windows.Helpers
+namespace Bible.Alarm.Platforms.Windows.Helpers
 {
     public class BootstrapHelper
     {
