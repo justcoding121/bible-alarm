@@ -1,7 +1,11 @@
 ﻿using Bible.Alarm.Common.Mvvm;
+using Bible.Alarm.Common.Mvvm.Messenger;
+using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Services;
-using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Services.Media;
 using Bible.Alarm.UI;
+using Bible.Alarm.UI.Views;
 using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm;

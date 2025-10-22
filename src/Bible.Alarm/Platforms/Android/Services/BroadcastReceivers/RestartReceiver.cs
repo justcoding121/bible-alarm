@@ -1,6 +1,7 @@
 ﻿using Android.App;
 using Android.Content;
 using Android.OS;
+using Bible.Alarm.Common;
 using Bible.Alarm.Droid.Services.Platform;
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Bible.Alarm.Services.Droid.Helpers;
