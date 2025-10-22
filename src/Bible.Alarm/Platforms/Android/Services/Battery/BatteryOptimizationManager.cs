@@ -1,4 +1,8 @@
 ﻿using Android.Content;
+using AndroidBuild = global::Android.OS.Build;
+using AndroidBuildVersionCodes = global::Android.OS.Build.VERSION_CODES;
+using AndroidProvider = global::Android.Provider;
+using AndroidApplication = global::Android.App.Application;
 using Bible.Alarm.Contracts.Battery;
 
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
@@ -14,14 +18,14 @@ public class BatteryOptimizationManager() : IBatteryOptimizationManager
     {
         try
         {
-            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.M)
+            if (AndroidBuild.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.M)
             {
                 var intent = new Intent();
 
 #pragma warning disable CA1416
-                intent.SetAction(Android.Provider.Settings.ActionIgnoreBatteryOptimizationSettings);
+                intent.SetAction(AndroidProvider.Settings.ActionIgnoreBatteryOptimizationSettings);
 #pragma warning restore CA1416
-                Android.App.Application.Context.StartActivity(intent);
+                AndroidApplication.Context.StartActivity(intent);
             }
         }
         catch (Exception e)
@@ -32,7 +36,7 @@ public class BatteryOptimizationManager() : IBatteryOptimizationManager
 
     public bool CanShowOptimizeActivity()
     {
-        return Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.M;
+        return AndroidBuild.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.M;
     }
 
     public void Dispose()

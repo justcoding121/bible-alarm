@@ -1,4 +1,6 @@
-﻿using Bible.Alarm.Contracts.Platform;
+﻿using AndroidApplication = global::Android.App.Application;
+using AndroidBuild = global::Android.OS.Build;
+using Bible.Alarm.Contracts.Platform;
 
 namespace Bible.Alarm.Platforms.Android.Services.Platform;
 
@@ -14,7 +16,7 @@ public class VersionFinder : IVersionFinder
 
     private static string GetVersionNameInternal()
     {
-        return "Android " + Android.App.Application.Context.ApplicationContext.PackageManager
-            .GetPackageInfo(Android.App.Application.Context.ApplicationContext.PackageName, 0).VersionName;
+        return "Android " + AndroidApplication.Context.ApplicationContext.PackageManager
+            .GetPackageInfo(AndroidApplication.Context.ApplicationContext.PackageName, 0).VersionName;
     }
 }

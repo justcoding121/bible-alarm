@@ -431,8 +431,9 @@
                               HorizontalOptions="Fill"
                               VerticalOptions="Fill">
                             <Grid.IsVisible>
-                                <OnPlatform x:TypeArguments="T" Default="false"
-                                            Android="true" />
+                                <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                                    <On Platform="Android" Value="true" />
+                                </OnPlatform>
                             </Grid.IsVisible>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="6*" />

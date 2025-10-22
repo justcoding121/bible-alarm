@@ -3,6 +3,9 @@ using Android.App.Job;
 using Android.Content;
 using Android.Media;
 using Android.OS;
+using AndroidApplication = global::Android.App.Application;
+using AndroidBuild = global::Android.OS.Build;
+using AndroidNet = global::Android.Net;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm;
@@ -19,7 +22,7 @@ public class BootstrapHelper
     /// <summary>
     /// Main entry point for Android platform initialization
     /// </summary>
-    public static void Initialize(ILogger logger, Context context, Android.App.Application application = null)
+    public static void Initialize(ILogger logger, Context context, AndroidApplication application = null)
     {
         // Ensure ServiceProviderManager is initialized for background services
         EnsureServiceProviderInitialized();
@@ -58,7 +61,7 @@ public class BootstrapHelper
         }
     }
 
-    private static void InitializeUi(ILogger logger, Context context, Android.App.Application application)
+    private static void InitializeUi(ILogger logger, Context context, AndroidApplication application)
     {
         // MAUI handles platform initialization automatically
         Task.Run(async () =>
@@ -136,7 +139,7 @@ public class BootstrapHelper
             .SetContentType(AudioContentType.Sonification)
             .Build();
 
-        var soundUri = Android.Net.Uri.Parse("android.resource://" + Android.App.Application.Context.PackageName + "/" +
+        var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName + "/" +
                                              Resource.Raw.cool_alarm_tone_notification_sound);
         // Configure the notification channel.
 #pragma warning disable CA1416
@@ -146,7 +149,7 @@ public class BootstrapHelper
         channel.SetSound(soundUri, attributes);
 
         var notificationManager =
-            (NotificationManager)Android.App.Application.Context.GetSystemService(Context.NotificationService);
+            (NotificationManager)AndroidApplication.Context.GetSystemService(Context.NotificationService);
         notificationManager.CreateNotificationChannel(channel);
 #pragma warning restore CA1416
     }

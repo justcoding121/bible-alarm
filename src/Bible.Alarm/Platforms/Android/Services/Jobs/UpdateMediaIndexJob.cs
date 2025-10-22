@@ -1,5 +1,6 @@
 ﻿using Android.App;
 using Android.App.Job;
+using AndroidBuild = global::Android.OS.Build;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Media;
@@ -24,7 +25,7 @@ public class UpdateMediaIndexJob : JobService
     {
         _logger = logger;
         LogSetup.Initialize(VersionFinder.Default,
-            new string[] { $"AndroidSdk {Android.OS.Build.VERSION.SdkInt}" }, "Android");
+            new string[] { $"AndroidSdk {AndroidBuild.VERSION.SdkInt}" }, "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }

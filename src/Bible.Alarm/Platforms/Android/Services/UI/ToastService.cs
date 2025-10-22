@@ -1,4 +1,5 @@
 ﻿using Android.Widget;
+using AndroidApplication = global::Android.App.Application;
 using Bible.Alarm.Services.UI;
 
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
@@ -33,7 +34,7 @@ public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDis
 
     private void ShowToast(string message, int seconds)
     {
-        var context = Android.App.Application.Context;
+        var context = AndroidApplication.Context;
 
         if (seconds <= 3)
             latest = Toast.MakeText(context, message, ToastLength.Short);

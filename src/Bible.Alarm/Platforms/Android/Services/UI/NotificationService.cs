@@ -9,6 +9,9 @@ using Serilog;
 using Android.Graphics.Drawables;
 using AndroidX.Core.Content;
 using Android.Graphics;
+using AndroidApplication = global::Android.App.Application;
+using AndroidBuild = global::Android.OS.Build;
+using AndroidNet = global::Android.Net;
 using Bible.Alarm.Contracts.Storage;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
@@ -30,7 +33,7 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
     {
         try
         {
-            var context = Android.App.Application.Context;
+            var context = AndroidApplication.Context;
             var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
             alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
             alarmIntent.PutExtra("IsImmediate", true);
@@ -52,17 +55,17 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
         if (IsAndroidService())
         {
-            AlarmSetupService.ScheduleNotification(Android.App.Application.Context, schedule.Id, time, title, body);
+            AlarmSetupService.ScheduleNotification(AndroidApplication.Context, schedule.Id, time, title, body);
         }
         else
         {
-            var intent = new Intent(Android.App.Application.Context, typeof(AlarmSetupService));
+            var intent = new Intent(AndroidApplication.Context, typeof(AlarmSetupService));
             intent.PutExtra("Action", "Add");
             intent.PutExtra("ScheduleId", schedule.Id.ToString());
             intent.PutExtra("Time", time.ToString());
             intent.PutExtra("Title", title);
             intent.PutExtra("Body", body);
-            Android.App.Application.Context.StartService(intent);
+            AndroidApplication.Context.StartService(intent);
         }
 
         return Task.CompletedTask;
@@ -70,27 +73,27 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
     public void ShowLocalNotification(int scheduleId, string title, string body)
     {
-        var notificationManagerCompat = NotificationManagerCompat.From(Android.App.Application.Context);
+        var notificationManagerCompat = NotificationManagerCompat.From(AndroidApplication.Context);
 
         // Pass the current button press count value to the next activity:
         var valuesForActivity = new Bundle();
         valuesForActivity.PutInt(ScheduleId, scheduleId);
 
-        var resultIntent = new Intent(Android.App.Application.Context, typeof(MainActivity));
+        var resultIntent = new Intent(AndroidApplication.Context, typeof(MainActivity));
         resultIntent.PutExtras(valuesForActivity);
 
-        var stackBuilder = TaskStackBuilder.Create(Android.App.Application.Context);
+        var stackBuilder = TaskStackBuilder.Create(AndroidApplication.Context);
         stackBuilder.AddParentStack(Class.FromType(typeof(MainActivity)));
         stackBuilder.AddNextIntent(resultIntent);
 
         // Create the PendingIntent with the back stack:
         var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)PendingIntentFlags.UpdateCurrent);
 
-        var drawable = ContextCompat.GetDrawable(Android.App.Application.Context, Resource.Drawable.ic_launcher_round);
+        var drawable = ContextCompat.GetDrawable(AndroidApplication.Context, Resource.Drawable.ic_launcher_round);
         var bitmap = DrawableToBitmap(drawable);
 
         // Build the notification:
-        var builder = new NotificationCompat.Builder(Android.App.Application.Context, ChannelIdAndName)
+        var builder = new NotificationCompat.Builder(AndroidApplication.Context, ChannelIdAndName)
             .SetAutoCancel(true)
             .SetContentIntent(resultPendingIntent)
             .SetContentTitle(title)
@@ -100,7 +103,7 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
         if (Build.VERSION.SdkInt < BuildVersionCodes.O)
         {
-            var soundUri = Android.Net.Uri.Parse("android.resource://" + Android.App.Application.Context.PackageName +
+            var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName +
                                                  "/" + Resource.Raw.cool_alarm_tone_notification_sound);
 
             builder.SetSound(soundUri);
@@ -133,7 +136,7 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
     public void RemoveLocalNotification(int scheduleId)
     {
-        var notificationManager = NotificationManagerCompat.From(Android.App.Application.Context);
+        var notificationManager = NotificationManagerCompat.From(AndroidApplication.Context);
         notificationManager.Cancel(scheduleId);
     }
 
@@ -143,7 +146,7 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
         if (pIntent != null)
         {
-            var alarmManager = (AlarmManager)Android.App.Application.Context.GetSystemService(Context.AlarmService);
+            var alarmManager = (AlarmManager)AndroidApplication.Context.GetSystemService(Context.AlarmService);
             alarmManager?.Cancel(pIntent);
             pIntent.Cancel();
         }
@@ -159,7 +162,7 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
     private PendingIntent FindIntent(long scheduleId)
     {
-        var context = Android.App.Application.Context;
+        var context = AndroidApplication.Context;
 
         var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
         alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
@@ -180,7 +183,7 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
     private bool IsAndroidService()
     {
-        return Android.App.Application.Context != null;
+        return AndroidApplication.Context != null;
     }
 
     public void Dispose()

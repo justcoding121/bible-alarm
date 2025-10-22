@@ -1,4 +1,6 @@
 ﻿using Android.Media;
+using AndroidApplication = global::Android.App.Application;
+using AndroidNet = global::Android.Net;
 using Bible.Alarm.Contracts.Media;
 
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
@@ -25,10 +27,10 @@ public class PreviewPlayService(MediaPlayer player) : Java.Lang.Object,
 
     Task IPreviewPlayService.Play(string url)
     {
-        var uri = Android.Net.Uri.Parse(url);
+        var uri = AndroidNet.Uri.Parse(url);
         _player.Reset();
         _player.SetOnCompletionListener(this);
-        _player.SetDataSource(Android.App.Application.Context, uri);
+        _player.SetDataSource(AndroidApplication.Context, uri);
         _player.Prepare();
         _player.Start();
 
