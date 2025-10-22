@@ -19,6 +19,7 @@ using Bible.Alarm.Contracts.Battery;
 using Bible.Alarm.Contracts.Platform;
 using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace Bible.Alarm;
@@ -34,6 +35,8 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
             .ConfigureFonts(fonts => { fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName); });
+
+// Debug logging is handled by Serilog
 
         // Register services
         RegisterServices(builder.Services);
@@ -71,7 +74,7 @@ public static class MauiProgram
     private static void RegisterCommonServices(IServiceCollection services)
     {
         // Register logging
-        services.AddSingleton<ILogger>(sp => Serilog.Log.Logger);
+        services.AddSingleton<Serilog.ILogger>(sp => Serilog.Log.Logger);
         
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
@@ -135,6 +138,9 @@ public static class MauiProgram
 
         // Register TaskScheduler for compatibility
         services.AddSingleton<TaskScheduler>(sp => TaskScheduler.FromCurrentSynchronizationContext());
+        
+        // Register NavigationService
+        services.AddSingleton<INavigationService, NavigationService>();
     }
 
     private static void RegisterViewModels(IServiceCollection services)

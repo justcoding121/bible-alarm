@@ -1,41 +1,21 @@
-using Serilog;
-using Bible.Alarm.Services.Windows.Helpers;
+using Microsoft.UI.Xaml;
 
 namespace Bible.Alarm.WinUI
 {
     /// <summary>
     /// Provides application-specific behavior to supplement the default Application class.
     /// </summary>
-    sealed partial class App : Microsoft.UI.Xaml.Application
+    public partial class App : MauiWinUIApplication
     {
-        private static readonly ILogger Logger = Log.ForContext<App>();
-
+        /// <summary>
+        /// Initializes the singleton application object.  This is the first line of authored code
+        /// executed, and as such is the logical equivalent of main() or WinMain().
+        /// </summary>
         public App()
         {
-            InitializeWindowsSpecific();
+            this.InitializeComponent();
         }
 
-        private void InitializeWindowsSpecific()
-        {
-            try
-            {
-                // Windows-specific initialization
-                // Set up window management
-                // MAUI handles application lifecycle events automatically
-
-                // Initialize Windows-specific services
-                // Dependency injection container is configured in MauiProgram
-                Logger.Information("Windows application initialized successfully.");
-                
-                // Initialize Windows-specific bootstrap helper
-                BootstrapHelper.Initialize(Logger);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error initializing Windows-specific components.");
-            }
-        }
-
-        // Application lifecycle is managed by MAUI framework
+        protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
     }
 }

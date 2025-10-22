@@ -20,21 +20,10 @@ namespace Bible.Alarm.iOS
 
         public AppDelegate()
         {
+            // Initialize logging and exception handling
             LogSetup.Initialize(VersionFinder.Default, new string[] { }, "iOS");
-
             AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += unobserverdTaskException;
-
-            try
-            {
-                // MAUI handles dependency injection through MauiProgram
-                // ServiceProviderManager is initialized in MauiProgram
-            }
-            catch (Exception e)
-            {
-                Logger.Fatal(e, "AppDelegate initialization failed.");
-                throw;
-            }
         }
 
         private void unobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
@@ -71,6 +60,9 @@ namespace Bible.Alarm.iOS
 
             try
             {
+                // Initialize iOS-specific bootstrap helper after MAUI app is created
+                Bible.Alarm.Services.iOS.Helpers.BootstrapHelper.Initialize(Logger);
+                
                 //once every hour
                 // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+
                 if (UIDevice.CurrentDevice.CheckSystemVersion(13, 0))

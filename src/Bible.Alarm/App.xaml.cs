@@ -8,112 +8,125 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm;
 
-public partial class App
+public partial class App : Application
 {
-    private readonly ILogger _logger;
+    private readonly Serilog.ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
     public static bool IsInForeground { get; set; } = false;
 
-    public App(ILogger logger, IServiceScopeFactory scopeFactory)
+    public App(Serilog.ILogger logger, IServiceScopeFactory scopeFactory)
     {
         System.Diagnostics.Debug.WriteLine("App constructor called!");
         _logger = logger;
         _scopeFactory = scopeFactory;
-        Init();
+        InitializeComponent();
     }
 
     private INavigationService _navigationService;
 
-    private void Init()
+    protected override Window CreateWindow(IActivationState? activationState)
     {
-        System.Diagnostics.Debug.WriteLine("Init() called!");
+        System.Diagnostics.Debug.WriteLine("CreateWindow called!");
+        
+        // Initialize platform-specific bootstrap helper after ServiceProviderManager is available
+        InitializePlatformBootstrap();
+        
+        // Create a simple window with a basic page for now
+        var window = new Window(new ContentPage
+        {
+            Title = "Bible Alarm",
+            Content = new Label 
+            { 
+                Text = "Bible Alarm is starting...", 
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            }
+        });
+        
+        // Initialize services in background
+        Task.Run(async () =>
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Starting service initialization...");
+                
+                // Create and store the navigation service for later use
+                using var scope = _scopeFactory.CreateScope();
+                _navigationService = new NavigationService(
+                    scope.ServiceProvider.GetRequiredService<ILogger>(), 
+                    null, // Will be set when we have proper navigation
+                    _scopeFactory);
+                System.Diagnostics.Debug.WriteLine("NavigationService created!");
+
+                // Initialize the home page
+                await InitializeHomePage(window);
+                
+                var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
+                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
+                
+                System.Diagnostics.Debug.WriteLine("Service initialization completed!");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in service initialization: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            }
+        });
+        
+        return window;
+    }
+    
+    private async Task InitializeHomePage(Window window)
+    {
         try
         {
-            InitializeComponent();
-            System.Diagnostics.Debug.WriteLine("InitializeComponent() completed!");
-
-            var navigationPage = new NavigationPage();
-            System.Diagnostics.Debug.WriteLine("NavigationPage created!");
+            System.Diagnostics.Debug.WriteLine("InitializeHomePage called!");
+            using var scope = _scopeFactory.CreateScope();
+            var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
             
-            // Use the MAUI approach for setting the main page
-            MainPage = navigationPage;
-            System.Diagnostics.Debug.WriteLine("MainPage set!");
-
-            navigationPage.SetValue(NavigationPage.BarBackgroundColorProperty, Colors.SlateBlue);
-            navigationPage.SetValue(NavigationPage.BarTextColorProperty, Colors.White);
-            System.Diagnostics.Debug.WriteLine("Navigation page properties set!");
-
-            // Try to create a simple home page first
-            var simpleHomePage = new ContentPage
-            {
-                Title = "Bible Alarm",
-                Content = new Label 
-                { 
-                    Text = "Bible Alarm is starting...", 
-                    HorizontalOptions = LayoutOptions.Center,
-                    VerticalOptions = LayoutOptions.Center
-                }
-            };
+            // Set the main page to the home page
+            window.Page = homePage;
+            System.Diagnostics.Debug.WriteLine("Home page set!");
             
-            navigationPage.Navigation.PushAsync(simpleHomePage);
-            System.Diagnostics.Debug.WriteLine("Simple home page pushed!");
-
-            // Try to initialize services in background
-            Task.Run(async () =>
-            {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine("Starting service initialization...");
-                    var taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
-                    
-                    // Create and store the navigation service for later use
-                    using var scope = _scopeFactory.CreateScope();
-                    _navigationService = new NavigationService(
-                        scope.ServiceProvider.GetRequiredService<ILogger>(), 
-                        navigationPage.Navigation,
-                        _scopeFactory);
-                    System.Diagnostics.Debug.WriteLine("NavigationService created!");
-
-                    if (DeviceInfo.Platform != DevicePlatform.Android) await HomePageSetter();
-                    else
-                    {
-                        await Task.Delay(100);
-                        await HomePageSetter();
-                    }
-
-                    var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-                    if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
-                    
-                    System.Diagnostics.Debug.WriteLine("Service initialization completed!");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in service initialization: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                }
-            });
-
-            async Task HomePageSetter()
-            {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine("HomePageSetter called!");
-                    using var scope = _scopeFactory.CreateScope();
-                    var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
-                    await navigationPage.Navigation.PushAsync(homePage);
-                    System.Diagnostics.Debug.WriteLine("Home page pushed!");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in HomePageSetter: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                }
-            }
+            // Add a small delay to ensure proper initialization
+            await Task.Delay(100);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in Init(): {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Error in InitializeHomePage: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    private void InitializePlatformBootstrap()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Initializing platform-specific bootstrap...");
+            
+            // Initialize platform-specific bootstrap helper after ServiceProviderManager is available
+            #if WINDOWS
+            using var scope = _scopeFactory.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
+            Bible.Alarm.Services.Windows.Helpers.BootstrapHelper.Initialize(logger);
+            System.Diagnostics.Debug.WriteLine("Windows bootstrap helper initialized!");
+            #elif ANDROID
+            using var scope = _scopeFactory.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
+            // Android bootstrap is handled in MainActivity, but we also need to call it here for database initialization
+            _ = Task.Run(async () => await Bible.Alarm.Services.Droid.Helpers.BootstrapHelper.VerifyServices());
+            System.Diagnostics.Debug.WriteLine("Android bootstrap helper initialized!");
+            #elif IOS
+            using var scope = _scopeFactory.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<Serilog.ILogger>();
+            Bible.Alarm.Services.iOS.Helpers.BootstrapHelper.Initialize(logger);
+            System.Diagnostics.Debug.WriteLine("iOS bootstrap helper initialized!");
+            #endif
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error initializing platform bootstrap: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
