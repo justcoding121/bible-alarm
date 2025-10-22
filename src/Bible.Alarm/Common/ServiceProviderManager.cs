@@ -6,8 +6,8 @@ namespace Bible.Alarm;
 /// </summary>
 public static class ServiceProviderManager
 {
-    private static IServiceProvider _serviceProvider;
-    private static readonly object _lock = new();
+    private static IServiceProvider serviceProvider;
+    private static readonly object Lock = new();
 
     /// <summary>
     /// Gets the global service provider. Throws if not initialized.
@@ -16,10 +16,10 @@ public static class ServiceProviderManager
     {
         get
         {
-            if (_serviceProvider == null)
+            if (serviceProvider == null)
                 throw new InvalidOperationException(
                     "Service provider has not been initialized. Call Initialize() first.");
-            return _serviceProvider;
+            return serviceProvider;
         }
     }
 
@@ -31,11 +31,11 @@ public static class ServiceProviderManager
     {
         if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
 
-        lock (_lock)
+        lock (Lock)
         {
-            if (_serviceProvider != null)
+            if (ServiceProviderManager.serviceProvider != null)
                 throw new InvalidOperationException("Service provider has already been initialized.");
-            _serviceProvider = serviceProvider;
+            ServiceProviderManager.serviceProvider = serviceProvider;
         }
     }
 
@@ -62,5 +62,5 @@ public static class ServiceProviderManager
     /// <summary>
     /// Checks if the service provider has been initialized.
     /// </summary>
-    public static bool IsInitialized => _serviceProvider != null;
+    public static bool IsInitialized => serviceProvider != null;
 }

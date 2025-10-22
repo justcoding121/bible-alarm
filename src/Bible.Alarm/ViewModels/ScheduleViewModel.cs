@@ -21,16 +21,16 @@ public class ScheduleViewModel : ViewModel, IDisposable
     private readonly ILogger _logger;
 
 
-    private ScheduleDbContext _scheduleDbContext;
-    private MediaDbContext _mediaDbContext;
+    private readonly ScheduleDbContext _scheduleDbContext;
+    private readonly MediaDbContext _mediaDbContext;
 
-    private IAlarmService _alarmService;
-    private IToastService _popUpService;
-    private INavigationService _navigationService;
-    private IPlaybackService _playbackService;
-    private INotificationService _notificationService;
+    private readonly IAlarmService _alarmService;
+    private readonly IToastService _popUpService;
+    private readonly INavigationService _navigationService;
+    private readonly IPlaybackService _playbackService;
+    private readonly INotificationService _notificationService;
 
-    private List<IDisposable> _subscriptions = [];
+    private readonly List<IDisposable> _subscriptions = [];
 
     public Command BatteryOptimizationExcludeCommand { get; private set; }
     public Command BatteryOptimizationDismissCommand { get; private set; }
@@ -41,7 +41,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public ICommand PreviousChapterCommand { get; set; }
     public ICommand NextChapterCommand { get; set; }
 
-    private IBatteryOptimizationManager _batteryOptimizationManager;
+    private readonly IBatteryOptimizationManager _batteryOptimizationManager;
     private readonly IServiceScopeFactory _scopeFactory;
 
     public ScheduleViewModel(

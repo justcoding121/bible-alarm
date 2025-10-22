@@ -7,7 +7,7 @@ namespace Bible.Alarm.Services.iOS
 {
     public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
-        private static SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 
         public override async Task ShowMessage(string message, int seconds)
         {
@@ -31,7 +31,7 @@ namespace Bible.Alarm.Services.iOS
         private async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
-            await @lock.WaitAsync();
+            await Lock.WaitAsync();
 
             try
             {
@@ -45,7 +45,7 @@ namespace Bible.Alarm.Services.iOS
             }
             finally
             {
-                @lock.Release();
+                Lock.Release();
                 clearRequest = null;
             }
         }

@@ -16,14 +16,14 @@ namespace Bible.Alarm.ViewModels;
 
 public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
 {
-    private MediaService _mediaService;
-    private INavigationService _navigationService;
+    private readonly MediaService _mediaService;
+    private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
 
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
 
-    private List<IDisposable> _subscriptions = [];
+    private readonly List<IDisposable> _subscriptions = [];
 
     public ICommand BackCommand { get; set; }
     public ICommand BookSelectionCommand { get; set; }
@@ -234,7 +234,7 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
         Languages = languageVMs;
     }
 
-    private Dictionary<string, PublicationListViewItemModel> _translationVMsMapping = [];
+    private readonly Dictionary<string, PublicationListViewItemModel> _translationVMsMapping = [];
 
     private async Task PopulateTranslations(string languageCode)
     {

@@ -18,14 +18,14 @@ public class BookSelectionViewModel : ViewModel, IDisposable
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
 
-    private MediaService _mediaService;
-    private INavigationService _navigationService;
+    private readonly MediaService _mediaService;
+    private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    private List<IDisposable> _subscriptions = [];
+    private readonly List<IDisposable> _subscriptions = [];
 
     public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
     {
@@ -128,7 +128,7 @@ public class BookSelectionViewModel : ViewModel, IDisposable
         await PopulateBooks(languageCode, publicationCode);
     }
 
-    private Dictionary<int, BibleBookListViewItemModel> _bookVMsMapping = [];
+    private readonly Dictionary<int, BibleBookListViewItemModel> _bookVMsMapping = [];
 
     private async Task PopulateBooks(string languageCode, string publicationCode)
     {

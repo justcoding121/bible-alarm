@@ -8,7 +8,7 @@ public class MediaElementAudioService : IMediaElementAudioService
 {
     private readonly ILogger _logger;
 
-    private MediaElement _mediaElement;
+    private readonly MediaElement _mediaElement;
     private readonly SemaphoreSlim _lock = new(1);
 
     private bool _isPlaying = false;

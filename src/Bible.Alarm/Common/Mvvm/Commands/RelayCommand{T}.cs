@@ -13,7 +13,7 @@ public class RelayCommand<T>(Action<T> execute, Func<T, bool> canExecute = null)
 
     #region Fields
 
-    private Func<T, bool> _canExecute = canExecute ?? ((o) => true);
+    private readonly Func<T, bool> _canExecute = canExecute ?? ((o) => true);
 
     #endregion
 

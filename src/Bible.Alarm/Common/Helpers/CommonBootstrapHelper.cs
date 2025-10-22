@@ -5,11 +5,11 @@ namespace Bible.Alarm.Common.Helpers;
 
 public static class CommonBootstrapHelper
 {
-    private static SemaphoreSlim @lock = new(1);
+    private static readonly SemaphoreSlim Lock = new(1);
 
     public static async Task VerifyServices()
     {
-        await @lock.WaitAsync();
+        await Lock.WaitAsync();
 
         try
         {
@@ -20,7 +20,7 @@ public static class CommonBootstrapHelper
         }
         finally
         {
-            @lock.Release();
+            Lock.Release();
         }
     }
 

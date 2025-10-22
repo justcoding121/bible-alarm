@@ -267,7 +267,7 @@ public static class AppConstants
         /// <summary>
         /// iOS platform identifier
         /// </summary>
-        public const string iOS = "iOS";
+        public const string IOs = "iOS";
         
         /// <summary>
         /// Windows platform identifier

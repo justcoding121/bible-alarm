@@ -16,14 +16,14 @@ namespace Bible.Alarm.ViewModels;
 
 public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
 {
-    private MediaService _mediaService;
-    private INavigationService _navigationService;
+    private readonly MediaService _mediaService;
+    private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
-    private List<IDisposable> _subscriptions = [];
+    private readonly List<IDisposable> _subscriptions = [];
 
     public SongBookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
     {
@@ -245,7 +245,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
         Languages = languageVMs;
     }
 
-    private Dictionary<string, PublicationListViewItemModel> _songBookVMsMapping = [];
+    private readonly Dictionary<string, PublicationListViewItemModel> _songBookVMsMapping = [];
 
     private async Task PopulateSongBooks(string languageCode)
     {

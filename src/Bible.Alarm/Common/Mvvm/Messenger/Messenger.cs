@@ -24,11 +24,11 @@ public static class Messenger<T>
         public T Parameter { get; private set; } = parameter;
     }
 
-    private static ConcurrentDictionary<MvvmMessages, BehaviorSubject<MessageWrapper>> cache = new();
+    private static readonly ConcurrentDictionary<MvvmMessages, BehaviorSubject<MessageWrapper>> Cache = new();
 
     public static void Publish(MvvmMessages stream, T parameter = default)
     {
-        var subject = cache.GetOrAdd(stream, new BehaviorSubject<MessageWrapper>(null));
+        var subject = Cache.GetOrAdd(stream, new BehaviorSubject<MessageWrapper>(null));
         subject.OnNext(new MessageWrapper(parameter));
     }
 
@@ -36,7 +36,7 @@ public static class Messenger<T>
         Func<T, Task> action,
         bool getMostRecentEvent = false)
     {
-        var subject = cache.GetOrAdd(stream, new BehaviorSubject<MessageWrapper>(null));
+        var subject = Cache.GetOrAdd(stream, new BehaviorSubject<MessageWrapper>(null));
 
         if (getMostRecentEvent)
             return subject.Where(x => x != null)

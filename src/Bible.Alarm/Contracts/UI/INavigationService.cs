@@ -8,4 +8,5 @@ public interface INavigationService : IDisposable
     Task CloseModal();
     event Action<object> NavigatedBack;
     Task NavigateToHome();
+    void SetNavigation(Microsoft.Maui.Controls.INavigation navigation);
 }

@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.Windows
 {
     public class UwpToastService(TaskScheduler taskScheduler) : ToastService
     {
-        private static SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 
         private static TaskCompletionSource<bool> clearRequest;
 
@@ -42,7 +42,7 @@ namespace Bible.Alarm.Services.Windows
         private async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
-            await @lock.WaitAsync();
+            await Lock.WaitAsync();
 
             try
             {
@@ -67,7 +67,7 @@ namespace Bible.Alarm.Services.Windows
             }
             finally
             {
-                @lock.Release();
+                Lock.Release();
                 clearRequest = null;
             }
         }

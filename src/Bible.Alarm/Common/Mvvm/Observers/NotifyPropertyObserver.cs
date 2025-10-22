@@ -27,9 +27,9 @@ public class NotifyPropertyObserver<TObserver, TObservable>
 
     private bool _hasBeenActive;
 
-    private TObservable _observable;
+    private readonly TObservable _observable;
 
-    private WeakReference<TObserver> _observer;
+    private readonly WeakReference<TObserver> _observer;
 
     private Dictionary<string, Action> _propertyObservers = [];
 

@@ -7,7 +7,7 @@ namespace Bible.Alarm.Services.Infrastructure;
 public class SerilogSetup
 {
     private static bool initialized = false;
-    private static object @lock = new();
+    private static readonly object Lock = new();
 
     public static void Initialize(IVersionFinder versionFinder,
         string[] tags, string device, bool isLoggingEnabled = true)
@@ -15,7 +15,7 @@ public class SerilogSetup
         CurrentDevice.RuntimePlatform = device;
 
         if (isLoggingEnabled)
-            lock (@lock)
+            lock (Lock)
             {
                 if (!initialized)
                 {

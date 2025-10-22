@@ -70,7 +70,6 @@ public static class MauiProgram
         RegisterUiComponents(services);
     }
 
-
     private static void RegisterCommonServices(IServiceCollection services)
     {
         // Register logging
@@ -139,8 +138,13 @@ public static class MauiProgram
         // Register TaskScheduler for compatibility
         services.AddSingleton<TaskScheduler>(sp => TaskScheduler.FromCurrentSynchronizationContext());
         
-        // Register NavigationService
-        services.AddSingleton<INavigationService, NavigationService>();
+        // Register NavigationService - will be properly initialized in App.xaml.cs
+        services.AddSingleton<INavigationService>(sp => 
+        {
+            var logger = sp.GetRequiredService<Serilog.ILogger>();
+            var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+            return new NavigationService(logger, null, scopeFactory);
+        });
     }
 
     private static void RegisterViewModels(IServiceCollection services)

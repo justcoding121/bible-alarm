@@ -17,13 +17,13 @@ namespace Bible.Alarm.UI;
 public class NavigationService : INavigationService
 {
     private readonly ILogger _logger;
-    private readonly INavigation _navigater;
+    private INavigation _navigater;
     private readonly IServiceScopeFactory _scopeFactory;
 
     public event Action<object> NavigatedBack;
     private bool _disposed = false;
 
-    private AsyncQueue<(MvvmMessages, object)> _queue = new();
+    private readonly AsyncQueue<(MvvmMessages, object)> _queue = new();
 
     public NavigationService(ILogger logger, INavigation navigater, IServiceScopeFactory scopeFactory)
     {
@@ -115,6 +115,12 @@ public class NavigationService : INavigationService
 
     public async Task ShowModal(string name, object viewModel)
     {
+        if (_navigater == null)
+        {
+            _logger.Warning("Navigation service is not available. Cannot show modal.");
+            return;
+        }
+
         using var scope = _scopeFactory.CreateScope();
         
         switch (name)
@@ -170,6 +176,12 @@ public class NavigationService : INavigationService
 
     public async Task Navigate(object viewModel)
     {
+        if (_navigater == null)
+        {
+            _logger.Warning("Navigation service is not available. Cannot navigate.");
+            return;
+        }
+
         using var scope = _scopeFactory.CreateScope();
         
         var vmName = viewModel.GetType().Name;
@@ -244,6 +256,12 @@ public class NavigationService : INavigationService
     {
         try
         {
+            if (_navigater == null)
+            {
+                _logger.Warning("Navigation service is not available. Cannot go back.");
+                return;
+            }
+
             if (_navigater.ModalStack.Count > 0)
             {
                 await CloseModal();
@@ -271,6 +289,12 @@ public class NavigationService : INavigationService
     {
         try
         {
+            if (_navigater == null)
+            {
+                _logger.Warning("Navigation service is not available. Cannot close modal.");
+                return;
+            }
+
             if (_navigater.ModalStack.Count > 0)
             {
                 var modal = await _navigater.PopModalAsync();
@@ -287,6 +311,12 @@ public class NavigationService : INavigationService
     {
         try
         {
+            if (_navigater == null)
+            {
+                _logger.Warning("Navigation service is not available. Cannot navigate to home.");
+                return;
+            }
+
             while (_navigater.ModalStack.Count > 0) await _navigater.PopModalAsync();
 
             while (_navigater.NavigationStack.Count > 1)
@@ -304,6 +334,11 @@ public class NavigationService : INavigationService
         {
             _logger.Error(e, "An error happened when navigating to home.");
         }
+    }
+
+    public void SetNavigation(INavigation navigation)
+    {
+        _navigater = navigation;
     }
 
     public void Dispose()

@@ -3,8 +3,6 @@ using Bible.Alarm.Services;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.UI;
 using Bible.Alarm.ViewModels;
-using Serilog;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm;
 
@@ -32,17 +30,9 @@ public partial class App : Application
         // Initialize platform-specific bootstrap helper after ServiceProviderManager is available
         InitializePlatformBootstrap();
         
-        // Create a simple window with a basic page for now
-        var window = new Window(new ContentPage
-        {
-            Title = "Bible Alarm",
-            Content = new Label 
-            { 
-                Text = "Bible Alarm is starting...", 
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            }
-        });
+        // Create a NavigationPage as the root page (proper MAUI pattern)
+        var navigationPage = new NavigationPage();
+        var window = new Window(navigationPage);
         
         // Initialize services in background
         Task.Run(async () =>
@@ -51,13 +41,10 @@ public partial class App : Application
             {
                 System.Diagnostics.Debug.WriteLine("Starting service initialization...");
                 
-                // Create and store the navigation service for later use
+                // Get navigation service from DI container
                 using var scope = _scopeFactory.CreateScope();
-                _navigationService = new NavigationService(
-                    scope.ServiceProvider.GetRequiredService<ILogger>(), 
-                    null, // Will be set when we have proper navigation
-                    _scopeFactory);
-                System.Diagnostics.Debug.WriteLine("NavigationService created!");
+                _navigationService = scope.ServiceProvider.GetRequiredService<INavigationService>();
+                System.Diagnostics.Debug.WriteLine("NavigationService retrieved from DI!");
 
                 // Initialize the home page
                 await InitializeHomePage(window);
@@ -84,11 +71,22 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine("InitializeHomePage called!");
             using var scope = _scopeFactory.CreateScope();
             var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
-            
-            // Set the main page to the home page
-            window.Page = homePage;
-            System.Diagnostics.Debug.WriteLine("Home page set!");
-            
+
+            // Get the NavigationPage from the window
+            if (window.Page is NavigationPage navigationPage)
+            {
+                // Push the home page to the navigation stack
+                await navigationPage.PushAsync(homePage);
+                System.Diagnostics.Debug.WriteLine("Home page pushed to navigation stack!");
+
+                // Set the navigation instance for the NavigationService
+                if (_navigationService != null)
+                {
+                    _navigationService.SetNavigation(navigationPage.Navigation);
+                    System.Diagnostics.Debug.WriteLine("Navigation instance set!");
+                }
+            }
+
             // Add a small delay to ensure proper initialization
             await Task.Delay(100);
         }

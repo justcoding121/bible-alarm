@@ -12,9 +12,9 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
     private readonly Lazy<string> _indexRoot;
 
-    private IStorageService _storageService;
-    private IVersionFinder _versionFinder;
-    private IDownloadService _downloadService;
+    private readonly IStorageService _storageService;
+    private readonly IVersionFinder _versionFinder;
+    private readonly IDownloadService _downloadService;
 
     public string IndexRoot => _indexRoot.Value;
 

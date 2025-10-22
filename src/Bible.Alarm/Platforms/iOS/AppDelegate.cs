@@ -22,16 +22,16 @@ namespace Bible.Alarm.iOS
         {
             // Initialize logging and exception handling
             LogSetup.Initialize(VersionFinder.Default, new string[] { }, "iOS");
-            AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException += unobserverdTaskException;
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
         }
 
-        private void unobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
             Logger.Error(e.Exception, "Unobserved task exception.");
         }
 
-        private void unhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+        private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
             Logger.Error("Unhandled exception.", e.SerializeObject());
         }
@@ -96,7 +96,7 @@ namespace Bible.Alarm.iOS
                         if (localNotification != null)
                         {
 #pragma warning disable CA1422
-                            handleNotification(localNotification.UserInfo);
+                            HandleNotification(localNotification.UserInfo);
 #pragma warning restore CA1422
                         }
                     }
@@ -160,7 +160,7 @@ namespace Bible.Alarm.iOS
 
                     if (notification != null)
                     {
-                        handleNotification(notification.Request.Content.UserInfo);
+                        HandleNotification(notification.Request.Content.UserInfo);
                     }
 
                     UNUserNotificationCenter.Current.RemoveAllDeliveredNotifications();
@@ -179,7 +179,7 @@ namespace Bible.Alarm.iOS
         }
 
 
-        private void handleNotification(NSDictionary nsUserInfo)
+        private void HandleNotification(NSDictionary nsUserInfo)
         {
             try
             {
@@ -222,19 +222,19 @@ namespace Bible.Alarm.iOS
             completionHandler(downloaded ? UIBackgroundFetchResult.NewData : UIBackgroundFetchResult.NoData);
         }
 
-        private bool disposed = false;
+        private bool _disposed = false;
 
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            AppDomain.CurrentDomain.UnhandledException -= unhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException -= unobserverdTaskException;
+            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
 
-            disposed = true;
+            _disposed = true;
 
             base.Dispose(disposing);
         }

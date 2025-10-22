@@ -18,12 +18,12 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
 {
     private readonly ILogger _logger;
 
-    private MediaService _mediaService;
-    private IToastService _toastService;
-    private IPreviewPlayService _playService;
-    private INavigationService _navigationService;
-    private IMediaCacheService _cacheService;
-    private IDownloadService _downloadService;
+    private readonly MediaService _mediaService;
+    private readonly IToastService _toastService;
+    private readonly IPreviewPlayService _playService;
+    private readonly INavigationService _navigationService;
+    private readonly IMediaCacheService _cacheService;
+    private readonly IDownloadService _downloadService;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
@@ -122,7 +122,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
 
     private MusicTrackListViewItemModel _currentlyPlaying;
 
-    private SemaphoreSlim _lock = new(1);
+    private readonly SemaphoreSlim _lock = new(1);
 
     private async Task Initialize(string languageCode, string publicationCode)
     {

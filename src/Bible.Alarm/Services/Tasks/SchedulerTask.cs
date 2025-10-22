@@ -16,7 +16,7 @@ public class SchedulerTask(
 {
     private readonly ILogger _logger = logger;
 
-    private static SemaphoreSlim @lock = new(1);
+    private static readonly SemaphoreSlim Lock = new(1);
 
     public async Task ProcessScheduledTasks()
     {
@@ -26,7 +26,7 @@ public class SchedulerTask(
     public async Task<bool> Handle()
     {
         var downloaded = false;
-        if (await @lock.WaitAsync(1000))
+        if (await Lock.WaitAsync(1000))
             try
             {
                 try
@@ -58,7 +58,7 @@ public class SchedulerTask(
             {
                 try
                 {
-                    @lock.Release();
+                    Lock.Release();
                 }
                 catch (ObjectDisposedException e)
                 {

@@ -25,17 +25,17 @@ public class HomeViewModel : ViewModel, IDisposable
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    private ScheduleDbContext _scheduleDbContext;
-    private MediaDbContext _mediaDbContext;
+    private readonly ScheduleDbContext _scheduleDbContext;
+    private readonly MediaDbContext _mediaDbContext;
 
-    private IToastService _popUpService;
-    private INavigationService _navigationService;
-    private IMediaCacheService _mediaCacheService;
-    private IAlarmService _alarmService;
+    private readonly IToastService _popUpService;
+    private readonly INavigationService _navigationService;
+    private readonly IMediaCacheService _mediaCacheService;
+    private readonly IAlarmService _alarmService;
 
-    private INotificationService _notificationService;
+    private readonly INotificationService _notificationService;
 
-    private List<IDisposable> _subscriptions = [];
+    private readonly List<IDisposable> _subscriptions = [];
 
 
     public HomeViewModel(
@@ -162,7 +162,7 @@ public class HomeViewModel : ViewModel, IDisposable
     }
 
     private bool _initialized = false;
-    private SemaphoreSlim _lock = new(1);
+    private readonly SemaphoreSlim _lock = new(1);
 
     private void Initialize()
     {
@@ -373,7 +373,7 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
 
     public AlarmSchedule Schedule;
-    private IDisposable _subscription;
+    private readonly IDisposable _subscription;
 
     public ScheduleListItem(AlarmSchedule schedule, ILogger logger, IServiceScopeFactory scopeFactory)
     {

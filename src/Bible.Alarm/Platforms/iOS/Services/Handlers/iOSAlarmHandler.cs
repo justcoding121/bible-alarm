@@ -13,7 +13,7 @@ namespace Bible.Alarm.iOS.Services.Handlers
         private readonly ILogger _logger = logger;
 
 
-        private static SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 
         //Need this to fix issue in XamarinMediaManager (notification stays on screen)
         private static bool firstTime = true;
@@ -22,7 +22,7 @@ namespace Bible.Alarm.iOS.Services.Handlers
         {
             try
             {
-                await @lock.WaitAsync();
+                await Lock.WaitAsync();
 
                 if (playbackService.IsPrepared)
                 {
@@ -63,7 +63,7 @@ namespace Bible.Alarm.iOS.Services.Handlers
             }
             finally
             {
-                @lock.Release();
+                Lock.Release();
             }
         }
 

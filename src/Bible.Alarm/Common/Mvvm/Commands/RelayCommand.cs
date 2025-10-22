@@ -13,7 +13,7 @@ public class RelayCommand(Action execute, Func<bool> canExecute = null) : IRelay
 
     #region Fields
 
-    private Func<bool> _canExecute = canExecute ?? (() => true);
+    private readonly Func<bool> _canExecute = canExecute ?? (() => true);
 
     #endregion
 

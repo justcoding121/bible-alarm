@@ -8,13 +8,13 @@ namespace Bible.Alarm.Services.Windows.Handlers
         private readonly ILogger _logger = logger;
 
 
-        private static SemaphoreSlim @lock = new SemaphoreSlim(1);
+        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 
         public async Task Handle(long scheduleId, bool isImmediate)
         {
             try
             {
-                await @lock.WaitAsync();
+                await Lock.WaitAsync();
 
                 if (playbackService.IsPrepared)
                 {
@@ -42,7 +42,7 @@ namespace Bible.Alarm.Services.Windows.Handlers
             }
             finally
             {
-                @lock.Release();
+                Lock.Release();
             }
         }
 

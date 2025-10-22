@@ -22,6 +22,9 @@
 		<!-- Windows-specific -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
 		<UseWinUI>true</UseWinUI>
+		
+		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
+		<WindowsPackageType>None</WindowsPackageType>
 
 		<!-- Suppress duplicate assembly attribute warnings -->
 		<NoWarn>$(NoWarn);CS0579</NoWarn>

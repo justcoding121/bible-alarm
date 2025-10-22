@@ -1,21 +1,17 @@
 ﻿using System.Reflection;
-using Windows.Storage;
+using System.IO;
 
 namespace Bible.Alarm.Services.Windows.Storage
 {
     public class UwpStorageService : StorageService
     {
-        //backed up to cloud
-        private static string storageRoot = ApplicationData.Current.LocalFolder.Path;
+        // Use standard .NET paths instead of UWP ApplicationData
+        private static readonly string storageRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bible.Alarm", "Data");
 
-        public override string StorageRoot
-        {
-            get { return storageRoot; }
-        }
+        public override string StorageRoot => storageRoot;
 
-        //never backed up to cloud.
-        //never deleted by system.
-        private static string cacheRoot = ApplicationData.Current.LocalCacheFolder.Path;
+        // Use standard .NET cache folder
+        private static readonly string cacheRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bible.Alarm", "Cache");
         public override string CacheRoot => cacheRoot;
         public override Assembly MainAssembly => typeof(UwpStorageService).Assembly;
     }

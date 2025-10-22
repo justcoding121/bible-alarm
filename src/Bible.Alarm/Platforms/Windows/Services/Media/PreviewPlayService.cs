@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.Windows
 {
     public class PreviewPlayService : IPreviewPlayService
     {
-        private MediaPlayer _mediaPlayer;
+        private readonly MediaPlayer _mediaPlayer;
         private TaskCompletionSource<bool> _tcs;
 
         public PreviewPlayService(MediaPlayer player)

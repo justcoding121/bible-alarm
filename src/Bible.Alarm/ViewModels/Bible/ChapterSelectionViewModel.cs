@@ -18,14 +18,14 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
 {
     private readonly ILogger _logger;
 
-    private MediaService _mediaService;
-    private IToastService _toastService;
-    private IPreviewPlayService _playService;
+    private readonly MediaService _mediaService;
+    private readonly IToastService _toastService;
+    private readonly IPreviewPlayService _playService;
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
-    private INavigationService _navigationService;
-    private IMediaCacheService _cacheService;
-    private IDownloadService _downloadService;
+    private readonly INavigationService _navigationService;
+    private readonly IMediaCacheService _cacheService;
+    private readonly IDownloadService _downloadService;
 
     private readonly List<IDisposable> _subscriptions = [];
 
@@ -118,7 +118,7 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     }
 
     private BibleChapterListViewItemModel _currentlyPlaying;
-    private SemaphoreSlim _lock = new(1);
+    private readonly SemaphoreSlim _lock = new(1);
 
     private async Task Initialize(string languageCode, string publicationCode, int bookNumber)
     {

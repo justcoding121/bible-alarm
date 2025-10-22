@@ -26,7 +26,7 @@ public class MediaCacheService(
 
     private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
 
-    private static ConcurrentDictionary<long, SemaphoreSlim> lockStore = new();
+    private static readonly ConcurrentDictionary<long, SemaphoreSlim> LockStore = new();
 
     public string GetCacheFileName(string url)
     {
@@ -51,7 +51,7 @@ public class MediaCacheService(
     {
         var downloaded = false;
 
-        var @lock = lockStore.GetOrAdd(alarmScheduleId, new SemaphoreSlim(1));
+        var @lock = LockStore.GetOrAdd(alarmScheduleId, new SemaphoreSlim(1));
 
         if (await @lock.WaitAsync(500))
             try
@@ -156,7 +156,7 @@ public class MediaCacheService(
         return downloaded;
     }
 
-    private static string[] jwOrgUrls = new string[]
+    private static readonly string[] JwOrgUrls = new string[]
     {
         UrlHelper.JwOrgIndexServiceBaseUrl,
         AppConstants.ApiEndpoints.JwOrgAlternativeIndexServiceUrl
@@ -171,8 +171,8 @@ public class MediaCacheService(
 
             byte[] @bytes;
 
-            var harvestLink1 = $"{jwOrgUrls[0]}{lookUpPath}";
-            var harvestLink2 = $"{jwOrgUrls[1]}{lookUpPath}";
+            var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
+            var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
             @bytes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(@bytes);
             var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
@@ -189,8 +189,8 @@ public class MediaCacheService(
     {
         try
         {
-            var harvestLink1 = $"{jwOrgUrls[0]}{lookUpPath}";
-            var harvestLink2 = $"{jwOrgUrls[1]}{lookUpPath}";
+            var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
+            var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
 
             var @bytes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(@bytes);

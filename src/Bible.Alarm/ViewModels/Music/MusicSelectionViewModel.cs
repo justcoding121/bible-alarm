@@ -21,7 +21,7 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
     private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    private List<IDisposable> _subscriptions = [];
+    private readonly List<IDisposable> _subscriptions = [];
 
     public MusicSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
     {
