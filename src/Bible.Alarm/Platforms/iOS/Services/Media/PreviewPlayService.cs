@@ -5,10 +5,9 @@ using Foundation;
 
 namespace Bible.Alarm.Services.iOS
 {
-    public class PreviewPlayService(IContainer container, IDownloadService downloadService)
+    public class PreviewPlayService(IDownloadService downloadService)
         : IPreviewPlayService, IDisposable
     {
-        private readonly IContainer _container = container;
         private AVAudioPlayer _player;
 
         public event Action OnStopped;

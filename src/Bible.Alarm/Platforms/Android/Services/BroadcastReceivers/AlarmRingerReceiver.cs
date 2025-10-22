@@ -13,8 +13,6 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<AlarmRingerReceiver>();
 
-
-    // private IContainer _container; // No longer needed
     private Context _context;
     private Intent _intent;
     private AndroidAlarmHandler _alarmHandler;

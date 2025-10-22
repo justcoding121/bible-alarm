@@ -4,14 +4,11 @@ using Bible.Alarm.Services.Contracts;
 namespace Bible.Alarm.Services;
 
 public class AlarmService(
-    IContainer container,
     INotificationService notificationService,
     IMediaCacheService mediaCacheService,
     ScheduleDbContext scheduleDbContext)
     : IAlarmService
 {
-    private readonly IContainer _container = container;
-
     public Task Create(AlarmSchedule schedule)
     {
         ScheduleNotification(schedule);

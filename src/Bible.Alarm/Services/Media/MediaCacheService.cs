@@ -18,8 +18,7 @@ public class MediaCacheService(
     IPlaylistService mediaPlayService,
     ScheduleDbContext dbContext,
     MediaService mediaService,
-    INetworkStatusService networkStatusService,
-    IPlaybackService playbackService)
+    INetworkStatusService networkStatusService)
     : IMediaCacheService
 {
     private readonly ILogger _logger = logger;
@@ -62,9 +61,7 @@ public class MediaCacheService(
 
                 foreach (var playItem in playlist)
                 {
-                    //do not download while playing
-                    if (playbackService.IsPrepared) break;
-
+ 
                     if (!await Exists(playItem.Url))
                     {
                         downloaded = true;
@@ -223,10 +220,7 @@ public class MediaCacheService(
             var playlist = await mediaPlayService.NextTracks(schedule.Id);
             var filePaths = playlist.Select(x => GetCacheFilePath(x.Url)).ToList();
 
-            //do not delete anything when alarm is playing!
-            if (schedule.NextFireDate(DateTime.Now.AddMinutes(-5)) <= DateTimeOffset.Now.AddMinutes(5)
-                || playbackService.IsPrepared)
-                return;
+
 
             filePaths.ForEach(x =>
             {
@@ -236,9 +230,7 @@ public class MediaCacheService(
 
         filePathsToDelete.ToList().ForEach(x =>
         {
-            if (playbackService.IsPrepared)
-                return;
-
+  
             try
             {
                 storageService.DeleteFile(x);
