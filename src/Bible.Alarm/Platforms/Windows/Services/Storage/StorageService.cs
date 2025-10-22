@@ -7,7 +7,6 @@ namespace Bible.Alarm.Platforms.Windows.Services.Storage
     {
         // Use standard .NET paths instead of UWP ApplicationData
         private static readonly string storageRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bible.Alarm", "Data");
-
         public override string StorageRoot => storageRoot;
 
         // Use standard .NET cache folder

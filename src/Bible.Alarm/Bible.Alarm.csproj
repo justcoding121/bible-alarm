@@ -64,6 +64,13 @@
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#512BD4" />
 	</ItemGroup>
 
+	<!-- Embedded Resources -->
+	<ItemGroup>
+		<EmbeddedResource Include="..\.tools\_index\index.zip">
+			<Link>Resources\index.zip</Link>
+		</EmbeddedResource>
+	</ItemGroup>
+
 
 	<!-- XAML Files -->
 	<ItemGroup>
