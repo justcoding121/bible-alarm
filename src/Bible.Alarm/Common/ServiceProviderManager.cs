@@ -1,4 +1,4 @@
-namespace Bible.Alarm;
+namespace Bible.Alarm.Common;
 
 /// <summary>
 /// Manages the global service provider for the application.

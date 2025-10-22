@@ -1,5 +1,4 @@
-﻿using Bible.Alarm.Services.Contracts;
-using Serilog;
+﻿using Serilog;
 using UIKit;
 
 namespace Bible.Alarm.iOS.Services.Handlers

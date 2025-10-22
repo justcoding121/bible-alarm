@@ -21,7 +21,7 @@
 
 #endregion
 
-namespace Quartz.Util;
+namespace Bible.Alarm.Common.Quartz;
 
 internal static class SortedSetExtensions
 {

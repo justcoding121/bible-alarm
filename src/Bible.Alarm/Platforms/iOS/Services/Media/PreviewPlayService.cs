@@ -1,5 +1,4 @@
 ﻿using AVFoundation;
-using Bible.Alarm.Services.Contracts;
 using Foundation;
 
 

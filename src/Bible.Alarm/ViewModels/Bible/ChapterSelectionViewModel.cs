@@ -1,18 +1,19 @@
-﻿using Bible.Alarm.Models;
-using Bible.Alarm.Services;
-using Bible.Alarm.Services.Contracts;
-using Bible.Alarm.Shared.Models.Bible;
-using Bible.Alarm.ViewModels.Redux;
-using Bible.Alarm.ViewModels.Redux.Actions.Bible;
-using Mvvmicro;
-using Serilog;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using Bible.Alarm.Common.Mvvm;
+using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media;
+using Bible.Alarm.Shared.Models.Bible;
+using Bible.Alarm.ViewModels.Redux;
+using Bible.Alarm.ViewModels.Redux.Actions.Bible;
+using Serilog;
 
-namespace Bible.Alarm.ViewModels;
+namespace Bible.Alarm.ViewModels.Bible;
 
 public class ChapterSelectionViewModel : ViewModel, IDisposable
 {

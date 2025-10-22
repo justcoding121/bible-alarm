@@ -1,4 +1,6 @@
-﻿namespace Bible.Alarm.Models;
+﻿using Bible.Alarm.Models.Enums;
+
+namespace Bible.Alarm.Models.Media;
 
 public class NotificationDetail
 {

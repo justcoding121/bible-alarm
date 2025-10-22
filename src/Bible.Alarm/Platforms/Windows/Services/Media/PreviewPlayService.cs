@@ -1,5 +1,4 @@
-﻿using Bible.Alarm.Services.Contracts;
-using Windows.Media.Core;
+﻿using Windows.Media.Core;
 using Windows.Media.Playback;
 
 namespace Bible.Alarm.Services.Windows

@@ -1,3 +1,4 @@
+using Bible.Alarm.Common;
 using Bible.Alarm.Contracts.Platform;
 using Bible.Alarm.Shared.Constants;
 using Serilog;

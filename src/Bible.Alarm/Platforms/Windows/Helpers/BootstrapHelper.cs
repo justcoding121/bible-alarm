@@ -11,7 +11,48 @@ namespace Bible.Alarm.Services.Windows.Helpers
     {
         public static bool IsBackgroundTaskEnabled = true;
 
-        public static async Task SetupBackgroundTask()
+        /// <summary>
+        /// Main entry point for Windows platform initialization
+        /// </summary>
+        public static void Initialize(ILogger logger)
+        {
+            // Ensure ServiceProviderManager is initialized for Windows
+            EnsureServiceProviderInitialized();
+            
+            // Setup background tasks
+            Task.Run(() => SetupBackgroundTask());
+
+            // Initialize services
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await CommonBootstrapHelper.VerifyServices();
+
+                    Messenger<bool>.Publish(MvvmMessages.Initialized, true);
+
+                    await Task.Delay(1000);
+
+                    await ServiceProviderManager.GetService<SchedulerTask>().Handle();
+                }
+                catch (Exception e)
+                {
+                    logger.Fatal(e, "Windows initialization crashed.");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verify and initialize all services
+        /// </summary>
+        public static async Task VerifyServices()
+        {
+            // Ensure ServiceProviderManager is initialized
+            EnsureServiceProviderInitialized();
+            await CommonBootstrapHelper.VerifyServices();
+        }
+
+        private static async Task SetupBackgroundTask()
         {
             await BackgroundExecutionManager.RequestAccessAsync();
             var allowed = BackgroundExecutionManager.GetAccessStatus();
@@ -79,38 +120,6 @@ namespace Bible.Alarm.Services.Windows.Helpers
             }
         }
 
-        public static void Initialize(ILogger logger)
-        {
-            // Ensure ServiceProviderManager is initialized for Windows
-            EnsureServiceProviderInitialized();
-            
-            Task.Run(() => SetupBackgroundTask());
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await CommonBootstrapHelper.VerifyServices();
-
-                    Messenger<bool>.Publish(MvvmMessages.Initialized, true);
-
-                    await Task.Delay(1000);
-
-                    await ServiceProviderManager.GetService<SchedulerTask>().Handle();
-                }
-                catch (Exception e)
-                {
-                    logger.Fatal(e, "Uwp initialization crashed.");
-                }
-            });
-        }
-
-        public static async Task VerifyServices()
-        {
-            // Ensure ServiceProviderManager is initialized
-            EnsureServiceProviderInitialized();
-            await CommonBootstrapHelper.VerifyServices();
-        }
 
         private static void EnsureServiceProviderInitialized()
         {

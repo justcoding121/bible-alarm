@@ -1,5 +1,6 @@
 ﻿using Android.App;
 using Android.App.Job;
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.Tasks;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
@@ -44,7 +45,7 @@ public class SchedulerJob : JobService
         {
             try
             {
-                BootstrapHelper.InitializeService(this);
+                BootstrapHelper.Initialize(_logger, this);
                 await BootstrapHelper.VerifyServices();
                 
                 // Container no longer needed - using ServiceProviderManager

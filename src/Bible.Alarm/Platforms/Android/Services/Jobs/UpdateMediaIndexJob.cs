@@ -1,8 +1,10 @@
 ﻿using Android.App;
 using Android.App.Job;
+using Bible.Alarm.Common;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Droid.Helpers;
+using Bible.Alarm.Services.Media;
 using Serilog;
 
 namespace Bible.Alarm.Services.Droid.Tasks;
@@ -43,7 +45,7 @@ public class UpdateMediaIndexJob : JobService
         {
             try
             {
-                BootstrapHelper.InitializeService(this);
+                BootstrapHelper.Initialize(_logger, this);
                 await BootstrapHelper.VerifyServices();
 
                 var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();

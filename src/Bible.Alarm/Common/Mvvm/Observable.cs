@@ -1,7 +1,8 @@
-﻿namespace Mvvmicro;
-
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Bible.Alarm.Common.Mvvm.Assignments;
+
+namespace Bible.Alarm.Common.Mvvm;
 
 public class VmObservable : INotifyPropertyChanged
 {

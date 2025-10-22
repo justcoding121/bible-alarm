@@ -1,9 +1,9 @@
-using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services;
+using Bible.Alarm.Common.Quartz;
+using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Services.Infrastructure.Media;
 using Microsoft.EntityFrameworkCore;
-using Quartz;
 
-namespace Bible.Alarm.Models;
+namespace Bible.Alarm.Models.Schedule;
 
 [Serializable]
 public class AlarmSchedule : IComparable

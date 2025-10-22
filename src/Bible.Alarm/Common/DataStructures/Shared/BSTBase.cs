@@ -1,4 +1,4 @@
-﻿namespace Advanced.Algorithms.DataStructures;
+﻿namespace Bible.Alarm.Common.DataStructures.Shared;
 
 public class BstBase<T> where T : IComparable
 {

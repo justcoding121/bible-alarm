@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Models;
+﻿namespace Bible.Alarm.Models.Media;
 
 public class PlayItem(NotificationDetail detail, string url)
 {

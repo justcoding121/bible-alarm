@@ -1,10 +1,11 @@
-﻿using Bible.Alarm.Contracts.Platform;
-using Bible.Alarm.Services.Contracts;
+﻿using System.IO.Compression;
+using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Contracts.Platform;
+using Bible.Alarm.Contracts.Storage;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
-using System.IO.Compression;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Media;
 
 public class MediaIndexService : IMediaIndexService, IDisposable
 {

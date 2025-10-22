@@ -8,7 +8,7 @@ public sealed class ObservableDictionary<TKey, TValue> : IEnumerable<KeyValuePai
     INotifyCollectionChanged
     where TKey : IComparable
 {
-    private readonly Advanced.Algorithms.DataStructures.Foundation.OrderedDictionary<TKey, TValue> _dictionary = [];
+    private readonly OrderedDictionary<TKey, TValue> _dictionary = [];
 
     public TValue this[TKey key]
     {

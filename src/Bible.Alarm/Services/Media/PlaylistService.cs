@@ -1,12 +1,17 @@
-﻿using Bible.Alarm.Common.Mvvm;
+﻿using Bible.Alarm.Common.Mvvm.Messenger;
+using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Models;
-using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Models.Media;
+using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Infrastructure.Media;
+using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Bible;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Media;
 
 public class PlaylistService(
     ILogger logger,

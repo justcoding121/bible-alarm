@@ -2,7 +2,7 @@
 using Bible.Alarm.Models.Schedule;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Infrastructure.Schedule;
 
 public class ScheduleDbContext : DbContext
 {

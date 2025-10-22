@@ -1,7 +1,7 @@
-﻿using FontNameResources;
-using System.Globalization;
+﻿using System.Globalization;
+using Bible.Alarm.UI.Views;
 
-namespace Bible.Alarm.UI.Views.Converters;
+namespace Bible.Alarm.UI.ViewHelpers.Converters;
 
 public class PlayStatusIconConverter : IValueConverter
 {

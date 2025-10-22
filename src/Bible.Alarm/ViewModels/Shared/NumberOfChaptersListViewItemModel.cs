@@ -1,6 +1,6 @@
-﻿using Mvvmicro;
+﻿using Bible.Alarm.Common.Mvvm;
 
-namespace Bible.Alarm.ViewModels;
+namespace Bible.Alarm.ViewModels.Shared;
 
 public class NumberOfChaptersListViewItemModel(int number) : ViewModel, IComparable
 {

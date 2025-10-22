@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.UI;
+﻿namespace Bible.Alarm.UI.Views;
 
 public partial class Home : ContentPage
 {

@@ -1,6 +1,6 @@
-﻿using Bible.Alarm;
+﻿using Bible.Alarm.Common;
 
-namespace FontNameResources;
+namespace Bible.Alarm.UI.Views;
 
 public partial class FontFileResources : ResourceDictionary
 {
@@ -20,7 +20,7 @@ public partial class FontFileResources : ResourceDictionary
         if (!(Instance[resourceKey] is OnPlatform<string> resource)) return string.Empty;
 
         var retString = resource.Platforms.Where(c => c.Platform.Contains(CurrentDevice.RuntimePlatform))
-            .Select(c => c.Value).FirstOrDefault() as string;
+            .Select<On, object>(c => c.Value).FirstOrDefault() as string;
 
         return retString ?? "NOFONT";
     }

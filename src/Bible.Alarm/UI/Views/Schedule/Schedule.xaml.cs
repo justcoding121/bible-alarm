@@ -1,7 +1,7 @@
 ﻿using Bible.Alarm.UI.ViewHelpers;
 using Bible.Alarm.ViewModels;
 
-namespace Bible.Alarm.UI.Views;
+namespace Bible.Alarm.UI.Views.Schedule;
 
 public partial class Schedule : ContentPage
 {

@@ -1,9 +1,9 @@
-﻿using Bible.Alarm.Models;
+﻿using Bible.Alarm.Models.Media.Music;
 using Bible.Alarm.Shared.Models;
 using Bible.Alarm.Shared.Models.Bible;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Infrastructure.Media;
 
 public class MediaDbContext : DbContext
 {

@@ -1,6 +1,6 @@
-﻿using Bible.Alarm.ViewModels;
+﻿using Bible.Alarm.ViewModels.Shared;
 
-namespace Bible.Alarm.UI.Views;
+namespace Bible.Alarm.UI.Views.General;
 
 public partial class AlarmModal : ContentPage
 {

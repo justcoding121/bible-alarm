@@ -1,5 +1,5 @@
 ﻿using Bible.Alarm.Common.DataStructures;
-using Redux;
+using Bible.Alarm.Common.Redux;
 
 namespace Bible.Alarm.ViewModels.Redux.Actions;
 

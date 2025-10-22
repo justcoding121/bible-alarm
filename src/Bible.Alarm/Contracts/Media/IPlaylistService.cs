@@ -1,7 +1,7 @@
-﻿using Bible.Alarm.Models;
+﻿using Bible.Alarm.Models.Media;
 using Bible.Alarm.Shared.Models.Bible;
 
-namespace Bible.Alarm.Services.Contracts;
+namespace Bible.Alarm.Contracts.Media;
 
 public interface IPlaylistService : IDisposable
 {

@@ -21,7 +21,7 @@
 
 #endregion
 
-namespace Quartz;
+namespace Bible.Alarm.Common.Quartz;
 
 /// <summary>
 /// A time source for Quartz.NET that returns the current time.

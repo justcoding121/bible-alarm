@@ -1,9 +1,7 @@
-﻿namespace Mvvmicro;
-
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Linq.Expressions;
+
+namespace Bible.Alarm.Common.Mvvm.Observers;
 
 /// <summary>
 /// Subscribes to Observable property changes according to a viable application lifecycle.
@@ -52,7 +50,7 @@ public class NotifyPropertyObserver<TObserver, TObservable>
     public bool ShouldTriggerPendingChanges { get; set; } = true;
 
     /// <summary>
-    /// Gets a value indicating whether this <see cref="T:Mvvmicro.NotifyPropertyObserver`2"/> is active.
+    /// Gets a value indicating whether this <see cref="T:Bible.Alarm.Common.Mvvm.Observers.NotifyPropertyObserver`2"/> is active.
     /// </summary>
     /// <value><c>true</c> if is active; otherwise, <c>false</c>.</value>
     public bool IsActive { get; private set; }

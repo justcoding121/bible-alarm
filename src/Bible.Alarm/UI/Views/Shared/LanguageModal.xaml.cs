@@ -1,6 +1,6 @@
 ﻿using Bible.Alarm.Contracts.UI;
 
-namespace Bible.Alarm.UI.Views;
+namespace Bible.Alarm.UI.Views.Shared;
 
 public partial class LanguageModal : ContentPage
 {

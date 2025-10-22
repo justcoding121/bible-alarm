@@ -1,6 +1,7 @@
 ﻿using System.Collections;
+using Bible.Alarm.Common.DataStructures.Shared;
 
-namespace Advanced.Algorithms.DataStructures.Foundation;
+namespace Bible.Alarm.Common.DataStructures;
 
 /// <summary>
 /// A sorted HashSet implementation using balanced binary search tree. IEnumerable will enumerate in sorted order.

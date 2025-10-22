@@ -1,7 +1,8 @@
-﻿using Bible.Alarm.ViewModels.Redux.Actions;
+﻿using Bible.Alarm.Common.Redux;
+using Bible.Alarm.ViewModels.Redux.Actions;
 using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 using Bible.Alarm.ViewModels.Redux.Actions.Music;
-using Redux;
+using Bible.Alarm.ViewModels.Redux.Actions.Schedule;
 
 namespace Bible.Alarm.ViewModels.Redux.Reducers;
 

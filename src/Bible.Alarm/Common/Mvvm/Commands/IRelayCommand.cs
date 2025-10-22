@@ -1,4 +1,4 @@
-﻿namespace Mvvmicro;
+﻿namespace Bible.Alarm.Common.Mvvm.Commands;
 
 public interface IRelayCommand : System.Windows.Input.ICommand
 {

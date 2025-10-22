@@ -8,8 +8,8 @@ using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
-using Bible.Alarm.Platforms.Android;
 using static Android.App.AlarmManager;
+using Bible.Alarm.Droid;
 
 namespace Bible.Alarm.Services.Droid.Tasks;
 
@@ -57,7 +57,7 @@ public class AlarmSetupService : Service, IDisposable
     {
         try
         {
-            BootstrapHelper.InitializeService(this);
+            BootstrapHelper.Initialize(Logger, this);
         }
         catch (Exception e)
         {
@@ -80,7 +80,7 @@ public class AlarmSetupService : Service, IDisposable
                     break;
                 }
                 case "SetupBackgroundTasks":
-                    BootstrapHelper.VerifyBackgroundTasks(ApplicationContext);
+                    BootstrapHelper.Initialize(Logger, ApplicationContext);
                     Task.Run(async () =>
                     {
                         try
@@ -134,7 +134,7 @@ public class AlarmSetupService : Service, IDisposable
         if (Build.VERSION.SdkInt < BuildVersionCodes.M)
             alarmService.SetExact(AlarmType.RtcWakeup, milliSecondsRemaining, pIntent);
         else
-            using (var mainLauncherIntent = new Intent(context, typeof(SplashActivity)))
+            using (var mainLauncherIntent = new Intent(context, typeof(MainActivity)))
             {
                 mainLauncherIntent.SetFlags(ActivityFlags.ReorderToFront);
 
@@ -155,7 +155,6 @@ public class AlarmSetupService : Service, IDisposable
     {
         if (_disposed) return;
 
-        BootstrapHelper.Remove(this);
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;

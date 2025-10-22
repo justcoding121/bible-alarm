@@ -1,4 +1,6 @@
 ﻿using Bible.Alarm.Services;
+using Bible.Alarm.Services.Infrastructure.Schedule;
+using Bible.Alarm.Services.Media;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Common.Helpers;

@@ -1,6 +1,6 @@
-﻿namespace System.Threading.Tasks;
+﻿using System.Runtime.CompilerServices;
 
-using Runtime.CompilerServices;
+namespace Bible.Alarm.Common.Extensions;
 
 public static class TaskExtensions
 {

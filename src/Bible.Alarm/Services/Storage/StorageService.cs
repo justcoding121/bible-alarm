@@ -1,7 +1,7 @@
-﻿using Bible.Alarm.Services.Contracts;
-using System.Reflection;
+﻿using System.Reflection;
+using Bible.Alarm.Contracts.Storage;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Storage;
 
 public abstract class StorageService : IStorageService
 {

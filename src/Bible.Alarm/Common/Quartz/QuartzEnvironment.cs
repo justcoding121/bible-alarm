@@ -21,7 +21,7 @@
 
 #endregion
 
-namespace Quartz.Util;
+namespace Bible.Alarm.Common.Quartz;
 
 /// <summary>
 /// Environment access helpers that fail gracefully if under medium trust.

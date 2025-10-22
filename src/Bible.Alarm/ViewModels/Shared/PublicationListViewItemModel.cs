@@ -1,8 +1,7 @@
-﻿using Bible.Alarm.Models;
+﻿using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Shared.Models;
-using Mvvmicro;
 
-namespace Bible.Alarm.ViewModels;
+namespace Bible.Alarm.ViewModels.Shared;
 
 public class PublicationListViewItemModel(Publication publication) : ViewModel, IComparable
 {

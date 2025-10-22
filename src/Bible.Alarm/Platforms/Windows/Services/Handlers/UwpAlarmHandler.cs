@@ -1,5 +1,4 @@
-﻿using Bible.Alarm.Services.Contracts;
-using Serilog;
+﻿using Serilog;
 
 namespace Bible.Alarm.Services.Windows.Handlers
 {

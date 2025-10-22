@@ -1,5 +1,6 @@
 ﻿using Android.Media;
-using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Contracts.Media;
+
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 
 

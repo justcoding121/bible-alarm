@@ -69,26 +69,31 @@ public partial class App : Application
         try
         {
             System.Diagnostics.Debug.WriteLine("InitializeHomePage called!");
-            using var scope = _scopeFactory.CreateScope();
-            var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
-
-            // Get the NavigationPage from the window
-            if (window.Page is NavigationPage navigationPage)
+            
+            // Ensure we're on the UI thread for navigation operations
+            await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                // Push the home page to the navigation stack
-                await navigationPage.PushAsync(homePage);
-                System.Diagnostics.Debug.WriteLine("Home page pushed to navigation stack!");
+                using var scope = _scopeFactory.CreateScope();
+                var homePage = new Home { BindingContext = scope.ServiceProvider.GetRequiredService<HomeViewModel>() };
 
-                // Set the navigation instance for the NavigationService
-                if (_navigationService != null)
+                // Get the NavigationPage from the window
+                if (window.Page is NavigationPage navigationPage)
                 {
-                    _navigationService.SetNavigation(navigationPage.Navigation);
-                    System.Diagnostics.Debug.WriteLine("Navigation instance set!");
-                }
-            }
+                    // Push the home page to the navigation stack
+                    await navigationPage.PushAsync(homePage);
+                    System.Diagnostics.Debug.WriteLine("Home page pushed to navigation stack!");
 
-            // Add a small delay to ensure proper initialization
-            await Task.Delay(100);
+                    // Set the navigation instance for the NavigationService
+                    if (_navigationService != null)
+                    {
+                        _navigationService.SetNavigation(navigationPage.Navigation);
+                        System.Diagnostics.Debug.WriteLine("Navigation instance set!");
+                    }
+                }
+
+                // Add a small delay to ensure proper initialization
+                await Task.Delay(100);
+            });
         }
         catch (Exception ex)
         {
@@ -148,7 +153,7 @@ public partial class App : Application
 
                 await Task.Delay(1000);
 
-                using var mediaIndexService = scope.ServiceProvider.GetRequiredService<MediaIndexService>();
+                var mediaIndexService = scope.ServiceProvider.GetRequiredService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)
@@ -181,7 +186,7 @@ public partial class App : Application
 
                 await Task.Delay(1000);
 
-                using var mediaIndexService = scope.ServiceProvider.GetRequiredService<MediaIndexService>();
+                var mediaIndexService = scope.ServiceProvider.GetRequiredService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)

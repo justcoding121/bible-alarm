@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.UI.Views.Behaviours;
+﻿namespace Bible.Alarm.UI.ViewHelpers.Behaviours;
 
 /// <summary>
 /// This base behavior class is aware of the binding context of its associated view,

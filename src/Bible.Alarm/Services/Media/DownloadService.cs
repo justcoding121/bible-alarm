@@ -1,9 +1,9 @@
-using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Services.Contracts;
-using Bible.Alarm.Shared.Constants;
 using System.Net;
+using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Shared.Constants;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Media;
 
 /// <summary>
 /// Download service

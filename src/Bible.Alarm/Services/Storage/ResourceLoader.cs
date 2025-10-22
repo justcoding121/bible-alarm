@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Storage;
 
 /// <summary>
 /// Utility class that can be used to find and load embedded resources into memory.

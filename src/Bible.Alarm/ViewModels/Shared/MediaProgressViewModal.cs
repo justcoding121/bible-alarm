@@ -1,5 +1,5 @@
 ﻿using Bible.Alarm.Common.Mvvm;
-using Mvvmicro;
+using Bible.Alarm.Common.Mvvm.Messenger;
 
 namespace Bible.Alarm.ViewModels.Shared;
 

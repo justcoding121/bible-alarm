@@ -1,6 +1,6 @@
-﻿using Bible.Alarm.Models;
+﻿using Bible.Alarm.Models.Schedule;
 
-namespace Bible.Alarm.Services.Contracts;
+namespace Bible.Alarm.Contracts.UI;
 
 public interface INotificationService : IDisposable
 {

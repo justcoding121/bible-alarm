@@ -1,7 +1,7 @@
 ﻿using Bible.Alarm.Shared.Models;
 using Bible.Alarm.Shared.Models.Music;
 
-namespace Bible.Alarm.Models;
+namespace Bible.Alarm.Models.Media.Music;
 
 public class VocalMusic : TranslatedPublication
 {

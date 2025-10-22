@@ -1,7 +1,6 @@
-﻿namespace Mvvmicro;
+﻿using System.ComponentModel;
 
-using System;
-using System.ComponentModel;
+namespace Bible.Alarm.Common.Mvvm.Commands;
 
 /// <summary>
 /// An asynchronous command with a Task based execution.

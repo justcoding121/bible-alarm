@@ -1,15 +1,18 @@
-﻿using Bible.Alarm.Common.Helpers;
+﻿using System.Collections.Concurrent;
+using System.Text;
+using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Network;
-using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Contracts.Storage;
+using Bible.Alarm.Models.Enums;
+using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Serilog;
-using System.Collections.Concurrent;
-using System.Text;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Media;
 
 public class MediaCacheService(
     ILogger logger,
@@ -80,7 +83,7 @@ public class MediaCacheService(
 
                             string url;
 
-                            if (playDetail.PlayType == Models.PlayType.Bible)
+                            if (playDetail.PlayType == PlayType.Bible)
                             {
                                 url = await GetBibleChapterUrl(playDetail.LanguageCode, playDetail.PublicationCode,
                                     playDetail.BookNumber, playDetail.ChapterNumber, playDetail.LookUpPath);

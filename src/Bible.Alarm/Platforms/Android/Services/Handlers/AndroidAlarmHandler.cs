@@ -1,7 +1,7 @@
 ﻿using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Services;
-using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid;
+using Bible.Alarm.Services.Infrastructure.Schedule;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 

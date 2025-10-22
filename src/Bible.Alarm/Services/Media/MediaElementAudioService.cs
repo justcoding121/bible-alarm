@@ -1,5 +1,5 @@
+using Bible.Alarm.Contracts.Media;
 using CommunityToolkit.Maui.Views;
-using Bible.Alarm.Services.Contracts;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;

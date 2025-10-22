@@ -1,6 +1,6 @@
-﻿using Redux;
+﻿using Bible.Alarm.Common.Redux;
 
-namespace Bible.Alarm.ViewModels.Redux.Actions;
+namespace Bible.Alarm.ViewModels.Redux.Actions.Schedule;
 
 public class ViewScheduleAction : IAction
 {

@@ -55,9 +55,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
         try
         {
-            BootstrapHelper.InitializeService(context);
-
-            BootstrapHelper.VerifyBackgroundTasks(context);
+            BootstrapHelper.Initialize(_logger, context);
 
             try
             {
@@ -91,7 +89,6 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         {
             _disposed = true;
             // _container = null; // No longer needed
-            BootstrapHelper.Remove(_context);
         }
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;

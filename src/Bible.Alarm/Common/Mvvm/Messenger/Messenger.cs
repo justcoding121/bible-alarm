@@ -2,7 +2,7 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
-namespace Bible.Alarm.Common.Mvvm;
+namespace Bible.Alarm.Common.Mvvm.Messenger;
 
 public enum MvvmMessages
 {

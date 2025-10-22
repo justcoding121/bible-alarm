@@ -5,7 +5,6 @@ using AndroidX.Core.App;
 using Bible.Alarm.Droid;
 using Bible.Alarm.Droid.Services.Tasks;
 using Bible.Alarm.Models;
-using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Services.Droid.Tasks;
 // using Bible.Alarm.Services.Droid.Extensions; // Removed - no longer needed
 using Java.Lang;
@@ -14,6 +13,9 @@ using Serilog;
 using Android.Graphics.Drawables;
 using AndroidX.Core.Content;
 using Android.Graphics;
+using Bible.Alarm.Contracts.Storage;
+using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.Droid;
 

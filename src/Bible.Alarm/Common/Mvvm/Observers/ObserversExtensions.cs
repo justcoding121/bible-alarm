@@ -1,6 +1,6 @@
-﻿namespace Mvvmicro;
+﻿using System.ComponentModel;
 
-using System.ComponentModel;
+namespace Bible.Alarm.Common.Mvvm.Observers;
 
 public static class ObserversExtensions
 {

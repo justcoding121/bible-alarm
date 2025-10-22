@@ -6,7 +6,7 @@
 
 using System.Reactive.Subjects;
 
-namespace Redux;
+namespace Bible.Alarm.Common.Redux;
 
 public class Store<TState> : IStore<TState>, IObservable<TState>
 {

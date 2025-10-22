@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Bible.Alarm;
+namespace Bible.Alarm.Common.Helpers;
 
 /// <summary>
 /// Provides support for asynchronous lazy initialization. This type is fully threadsafe.

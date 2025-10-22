@@ -1,8 +1,8 @@
-﻿using Bible.Alarm.Models;
+﻿using System.Globalization;
+using Bible.Alarm.Models.Enums;
 using Bible.Alarm.ViewModels;
-using System.Globalization;
 
-namespace Bible.Alarm.UI.Views.Converters;
+namespace Bible.Alarm.UI.ViewHelpers.Converters;
 
 public class DayColorConverter : IValueConverter
 {

@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Models;
+﻿namespace Bible.Alarm.Models.Schedule;
 
 [Serializable]
 public class BibleReadingSchedule

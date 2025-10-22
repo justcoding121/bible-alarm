@@ -1,6 +1,6 @@
 ﻿using Bible.Alarm.Common.DataStructures;
 
-namespace Bible.Alarm;
+namespace Bible.Alarm.Common.Extensions;
 
 public static class ObservableDictionaryExtensions
 {

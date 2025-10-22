@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Contracts.Platform;
+﻿using Bible.Alarm.Common;
+using Bible.Alarm.Contracts.Platform;
 using Serilog;
 
 namespace Bible.Alarm.Services.Infrastructure;

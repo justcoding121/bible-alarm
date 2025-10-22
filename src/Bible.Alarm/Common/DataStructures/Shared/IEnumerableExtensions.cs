@@ -1,4 +1,4 @@
-﻿namespace Advanced.Algorithms.DataStructures;
+﻿namespace Bible.Alarm.Common.DataStructures.Shared;
 
 internal static class IEnumerableExtensions
 {

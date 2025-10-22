@@ -1,18 +1,19 @@
-﻿using Advanced.Algorithms.Distributed;
+﻿using Bible.Alarm.Common.DataStructures;
 using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Services.Contracts;
-using Bible.Alarm.UI.Views;
+using Bible.Alarm.Common.Mvvm.Messenger;
+using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.UI.Views.Bible;
 using Bible.Alarm.UI.Views.General;
 using Bible.Alarm.UI.Views.Music;
-using Bible.Alarm.ViewModels;
+using Bible.Alarm.UI.Views.Schedule;
+using Bible.Alarm.UI.Views.Shared;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace Bible.Alarm.UI;
+namespace Bible.Alarm.UI.Services;
 
 public class NavigationService : INavigationService
 {
@@ -52,7 +53,6 @@ public class NavigationService : INavigationService
         Task.Run(async () =>
         {
             using var scope = _scopeFactory.CreateScope();
-            var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
             
             while (!_disposed)
             {
@@ -69,41 +69,39 @@ public class NavigationService : INavigationService
                         if (!playbackService.IsPlaying) break;
 
                         var vm = scope.ServiceProvider.GetRequiredService<AlarmViewModal>();
-                        await Task.Delay(0).ContinueWith(async (x) => { await ShowModal("AlarmModal", vm); },
-                            syncContext);
+                        await MainThread.InvokeOnMainThreadAsync(async () => { await ShowModal("AlarmModal", vm); });
                     }
                         break;
 
                     case MvvmMessages.HideAlarmModal:
                     case MvvmMessages.HideMediaProgressModal:
                     {
-                        await Task.Delay(0).ContinueWith(async (x) => { await CloseModal(); }, syncContext);
+                        await MainThread.InvokeOnMainThreadAsync(async () => { await CloseModal(); });
                     }
                         break;
                     case MvvmMessages.ShowToast:
                     {
-                        await Task.Delay(0).ContinueWith(async (x) =>
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
                             using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
                             await toastService.ShowMessage(@object as string);
-                        }, syncContext);
+                        });
                     }
                         break;
 
                     case MvvmMessages.ClearToasts:
                     {
-                        await Task.Delay(0).ContinueWith(async (x) =>
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
                             using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
                             await toastService.Clear();
-                        }, syncContext);
+                        });
                     }
                         break;
                     case MvvmMessages.ShowMediaProgessModal:
                     {
                         var vm = scope.ServiceProvider.GetRequiredService<MediaProgressViewModal>();
-                        await Task.Delay(0).ContinueWith(async (x) => { await ShowModal("MediaProgressModal", vm); },
-                            syncContext);
+                        await MainThread.InvokeOnMainThreadAsync(async () => { await ShowModal("MediaProgressModal", vm); });
                     }
                         break;
                 }

@@ -2,12 +2,14 @@ using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
+using Android.Views;
 using Bible.Alarm.Services.Droid.Helpers;
 using Bible.Alarm.Services.Droid.Tasks;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Services.Contracts;
 using Bible.Alarm.Contracts.Media;
 using Serilog;
+using Bible.Alarm.Droid.Services.Platform;
 
 namespace Bible.Alarm.Droid;
 
@@ -22,8 +24,11 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
+        // Set up fullscreen and system UI for splash screen experience
+        SetupSplashScreen();
+
         // Initialize platform-specific services
-        BootstrapHelper.InitializeUi(Logger, this, Application);
+        BootstrapHelper.Initialize(Logger, this, Application);
 
         // Handle incoming intents (e.g., from notifications)
         HandleIncomingIntent();
@@ -32,29 +37,58 @@ public class MainActivity : MauiAppCompatActivity
         SetupBackgroundTasks();
     }
 
+    private void SetupSplashScreen()
+    {
+        try
+        {
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
+            {
+#pragma warning disable CA1416, CA1422
+                Window.SetDecorFitsSystemWindows(false);
+#pragma warning restore CA1416, CA1422
+            }
+            else
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                try
+                {
+                    Window.DecorView.SystemUiVisibility =
+                        (StatusBarVisibility)((int)Window.DecorView.SystemUiVisibility ^
+                                              (int)SystemUiFlags.LayoutStable ^ (int)SystemUiFlags.LayoutFullscreen);
+                }
+                catch
+                {
+                }
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+
+            Window.AddFlags(WindowManagerFlags.DrawsSystemBarBackgrounds);
+            Window.SetFlags(WindowManagerFlags.Fullscreen, WindowManagerFlags.Fullscreen);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Error setting up splash screen");
+        }
+    }
+
     private void HandleIncomingIntent()
     {
-        if (Intent?.Extras != null)
+        if (Intent?.Extras == null) return;
+        var scheduleId = Intent.Extras.GetInt("schedule_id", int.MinValue);
+        if (scheduleId != int.MinValue)
         {
-            var scheduleId = Intent.Extras.GetInt("schedule_id", int.MinValue);
-            if (scheduleId != int.MinValue)
+            Task.Run(async () =>
             {
-                Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        if (_alarmHandler == null)
-                        {
-                            _alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
-                        }
-                        await _alarmHandler.Handle(scheduleId, true);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e, "Error handling incoming alarm intent");
-                    }
-                });
-            }
+                    _alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
+                    await _alarmHandler.Handle(scheduleId, true);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, "Error handling incoming alarm intent");
+                }
+            });
         }
     }
 
@@ -86,10 +120,16 @@ public class MainActivity : MauiAppCompatActivity
 
     public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
     {
-        // MAUI handles permissions automatically
-#pragma warning disable CA1416
+        try
+        {
+            Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "An error happened inside OnRequestPermissionsResult.");
+        }
+
         base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
-#pragma warning restore CA1416
     }
 
     protected override void OnResume()
@@ -102,11 +142,5 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnPause();
         _lastResumeTime = null;
-    }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-        BootstrapHelper.Remove(Application);
     }
 }

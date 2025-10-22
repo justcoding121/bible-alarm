@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage
-    x:Class="Bible.Alarm.UI.Views.NumberOfChaptersModal"
+    x:Class="Bible.Alarm.UI.Views.Schedule.NumberOfChaptersModal"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.Views.Behaviours"
-    xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
     xmlns:d="http://schemas.microsoft.com/dotnet/2021/maui/design"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+    xmlns:converters="clr-namespace:Bible.Alarm.UI.ViewHelpers.Converters"
+    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.ViewHelpers.Behaviours"
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     x:DataType="vm:ScheduleViewModel"
     Padding="0,10,0,10"
     mc:Ignorable="d">
@@ -62,7 +63,7 @@
                         EventName="ItemTapped" />
                 </ListView.Behaviors>
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:NumberOfChaptersListViewItemModel">
+                    <DataTemplate x:DataType="shared:NumberOfChaptersListViewItemModel">
                         <ViewCell>
                             <Grid
                                 BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"

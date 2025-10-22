@@ -1,5 +1,6 @@
 ﻿using Bible.Alarm.UI.ViewHelpers;
 using Bible.Alarm.ViewModels;
+using Bible.Alarm.ViewModels.Bible;
 
 namespace Bible.Alarm.UI.Views.Bible;
 

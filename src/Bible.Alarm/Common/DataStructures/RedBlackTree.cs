@@ -1,6 +1,7 @@
 ﻿using System.Collections;
+using Bible.Alarm.Common.DataStructures.Shared;
 
-namespace Advanced.Algorithms.DataStructures;
+namespace Bible.Alarm.Common.DataStructures;
 
 /// <summary>
 /// A red black tree implementation.

@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage
-    x:Class="Bible.Alarm.UI.Views.LanguageModal"
+    x:Class="Bible.Alarm.UI.Views.Shared.LanguageModal"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.Views.Behaviours"
-    xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
-    x:DataType="vm:BibleSelectionViewModel"
+    xmlns:bible="clr-namespace:Bible.Alarm.ViewModels.Bible"
+    xmlns:converters="clr-namespace:Bible.Alarm.UI.ViewHelpers.Converters"
+    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.ViewHelpers.Behaviours"
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    x:DataType="bible:BibleSelectionViewModel"
     Padding="0,10,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -80,7 +82,7 @@
                         EventName="ItemTapped" />
                 </ListView.Behaviors>
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:LanguageListViewItemModel">
+                    <DataTemplate x:DataType="shared:LanguageListViewItemModel">
                         <ViewCell>
                             <Grid
                                 BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"

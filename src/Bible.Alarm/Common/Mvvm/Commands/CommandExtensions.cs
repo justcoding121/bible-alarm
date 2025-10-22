@@ -1,6 +1,6 @@
-﻿namespace Mvvmicro;
+﻿using System.Windows.Input;
 
-using System.Windows.Input;
+namespace Bible.Alarm.Common.Mvvm.Commands;
 
 public static class CommandExtensions
 {

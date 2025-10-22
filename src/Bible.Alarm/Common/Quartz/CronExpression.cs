@@ -24,13 +24,12 @@
 
 #endregion
 
-using Quartz.Util;
 using System.Globalization;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Quartz;
+namespace Bible.Alarm.Common.Quartz;
 
 /// <summary>
 /// Provides a parser and evaluator for unix-like cron expressions. Cron

@@ -1,9 +1,6 @@
-﻿namespace Mvvmicro.Extensions;
+﻿using System.Text;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+namespace Bible.Alarm.Common.Mvvm.Extensions;
 
 /// <summary>
 /// Extensions for helping with formating of url query strings.

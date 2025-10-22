@@ -1,7 +1,7 @@
-﻿using Bible.Alarm.Models;
-using Bible.Alarm.Services.Contracts;
+﻿using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Models.Schedule;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.UI;
 
 public abstract class ToastService : IToastService
 {

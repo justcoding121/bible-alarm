@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace Advanced.Algorithms.DataStructures;
+namespace Bible.Alarm.Common.DataStructures.Shared;
 
 //  implement IEnumerator.
 internal class BstEnumerator<T> : IEnumerator<T> where T : IComparable

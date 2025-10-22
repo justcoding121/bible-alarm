@@ -1,8 +1,7 @@
-﻿namespace Mvvmicro;
+﻿using System.Linq.Expressions;
+using Bible.Alarm.Common.Mvvm.Commands;
 
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
+namespace Bible.Alarm.Common.Mvvm.Assignments;
 
 /// <summary>
 /// The result of an assignment of an Observable property.

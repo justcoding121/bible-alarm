@@ -1,7 +1,7 @@
-﻿using Bible.Alarm.Models;
-using Redux;
+﻿using Bible.Alarm.Common.Redux;
+using Bible.Alarm.Models.Schedule;
 
-namespace Bible.Alarm.ViewModels.Redux.Actions;
+namespace Bible.Alarm.ViewModels.Redux.Actions.Music;
 
 public class SongBookSelectionAction : IAction
 {

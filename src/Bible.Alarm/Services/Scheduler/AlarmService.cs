@@ -1,7 +1,10 @@
-﻿using Bible.Alarm.Models;
-using Bible.Alarm.Services.Contracts;
+﻿using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Contracts.Scheduler;
+using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Infrastructure.Schedule;
 
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Scheduler;
 
 public class AlarmService(
     INotificationService notificationService,

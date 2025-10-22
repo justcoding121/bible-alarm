@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage x:Class="Bible.Alarm.UI.Views.Schedule"
+<ContentPage x:Class="Bible.Alarm.UI.Views.Schedule.Schedule"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
-             xmlns:fn="clr-namespace:FontNameResources"
              xmlns:models="clr-namespace:Bible.Alarm.Models"
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+             xmlns:converters="clr-namespace:Bible.Alarm.UI.ViewHelpers.Converters"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:enums="clr-namespace:Bible.Alarm.Models.Enums"
+             xmlns:fn="clr-namespace:Bible.Alarm.UI.Views"
              x:DataType="vm:ScheduleViewModel"
              NavigationPage.HasBackButton="False"
              NavigationPage.HasNavigationBar="False">
@@ -25,7 +27,7 @@
                                VerticalOptions="Center"
                                Color="SlateBlue">
                 <ActivityIndicator.Scale>
-                    <OnPlatform x:TypeArguments="x:Double">
+                    <OnPlatform x:TypeArguments="system:Double">
                         <OnPlatform.Platforms>
                             <On Platform="iOS"
                                 Value="4.0" />
@@ -91,13 +93,13 @@
                     <StackLayout HorizontalOptions="Center"
                                  Orientation="Vertical">
                         <StackLayout.Resources>
-                            <models:DaysOfWeek x:Key="Sunday">Sunday</models:DaysOfWeek>
-                            <models:DaysOfWeek x:Key="Monday">Monday</models:DaysOfWeek>
-                            <models:DaysOfWeek x:Key="Tuesday">Tuesday</models:DaysOfWeek>
-                            <models:DaysOfWeek x:Key="Wednesday">Wednesday</models:DaysOfWeek>
-                            <models:DaysOfWeek x:Key="Thursday">Thursday</models:DaysOfWeek>
-                            <models:DaysOfWeek x:Key="Friday">Friday</models:DaysOfWeek>
-                            <models:DaysOfWeek x:Key="Saturday">Saturday</models:DaysOfWeek>
+                            <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
+                            <enums:DaysOfWeek x:Key="Monday">Monday</enums:DaysOfWeek>
+                            <enums:DaysOfWeek x:Key="Tuesday">Tuesday</enums:DaysOfWeek>
+                            <enums:DaysOfWeek x:Key="Wednesday">Wednesday</enums:DaysOfWeek>
+                            <enums:DaysOfWeek x:Key="Thursday">Thursday</enums:DaysOfWeek>
+                            <enums:DaysOfWeek x:Key="Friday">Friday</enums:DaysOfWeek>
+                            <enums:DaysOfWeek x:Key="Saturday">Saturday</enums:DaysOfWeek>
                         </StackLayout.Resources>
                         <Label Margin="0,10,0,3"
                                HorizontalOptions="Fill"
@@ -429,7 +431,7 @@
                               HorizontalOptions="Fill"
                               VerticalOptions="Fill">
                             <Grid.IsVisible>
-                                <OnPlatform Default="false"
+                                <OnPlatform x:TypeArguments="T" Default="false"
                                             Android="true" />
                             </Grid.IsVisible>
                             <Grid.ColumnDefinitions>

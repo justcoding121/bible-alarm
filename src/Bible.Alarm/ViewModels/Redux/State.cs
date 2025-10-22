@@ -1,5 +1,6 @@
 ﻿using Bible.Alarm.Common.DataStructures;
 using Bible.Alarm.Models;
+using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.ViewModels.Redux;
 

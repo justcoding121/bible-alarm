@@ -1,4 +1,4 @@
-﻿using Redux;
+﻿using Bible.Alarm.Common.Redux;
 
 namespace Bible.Alarm.ViewModels.Redux.Actions;
 

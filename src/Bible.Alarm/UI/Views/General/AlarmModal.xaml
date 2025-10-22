@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage
-    x:Class="Bible.Alarm.UI.Views.AlarmModal"
+    x:Class="Bible.Alarm.UI.Views.General.AlarmModal"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
-    xmlns:fn="clr-namespace:FontNameResources"
     xmlns:forms="http://schemas.microsoft.com/dotnet/2021/maui/design"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
-    x:DataType="vm:AlarmViewModal">
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:converters="clr-namespace:Bible.Alarm.UI.ViewHelpers.Converters"
+    xmlns:fn="clr-namespace:Bible.Alarm.UI.Views"
+    x:DataType="shared:AlarmViewModal">
     <ContentPage.Resources>
         <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
     </ContentPage.Resources>

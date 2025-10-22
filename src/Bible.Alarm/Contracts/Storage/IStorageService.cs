@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Services.Contracts;
+﻿namespace Bible.Alarm.Contracts.Storage;
 
 public interface IStorageService : IDisposable
 {

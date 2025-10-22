@@ -1,4 +1,4 @@
-﻿namespace Advanced.Algorithms.Distributed;
+﻿namespace Bible.Alarm.Common.DataStructures;
 
 /// <summary>
 ///     A simple asynchronous multi-thread supporting producer/consumer FIFO queue with minimal locking.

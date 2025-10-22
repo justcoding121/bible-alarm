@@ -1,18 +1,17 @@
-﻿using Bible.Alarm.Contracts.UI;
-using Bible.Alarm.Models;
-using Bible.Alarm.Services;
-using Bible.Alarm.Services.Contracts;
-using Bible.Alarm.ViewModels.Redux;
-using Bible.Alarm.ViewModels.Redux.Actions.Bible;
-using Mvvmicro;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
-using Microsoft.Extensions.DependencyInjection;
+using Bible.Alarm.Common.Mvvm;
+using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media;
+using Bible.Alarm.ViewModels.Redux;
+using Bible.Alarm.ViewModels.Redux.Actions.Bible;
+using Bible.Alarm.ViewModels.Shared;
 
-namespace Bible.Alarm.ViewModels;
+namespace Bible.Alarm.ViewModels.Bible;
 
 public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
 {

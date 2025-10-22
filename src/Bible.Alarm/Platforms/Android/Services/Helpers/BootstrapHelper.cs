@@ -13,36 +13,30 @@ namespace Bible.Alarm.Services.Droid.Helpers;
 
 public class BootstrapHelper
 {
-    public static void InitializeService(Context context)
+    /// <summary>
+    /// Main entry point for Android platform initialization
+    /// </summary>
+    public static void Initialize(ILogger logger, Context context, Android.App.Application application = null)
     {
         // Ensure ServiceProviderManager is initialized for background services
         EnsureServiceProviderInitialized();
         
-        // MAUI handles platform initialization automatically
+        // Create notification channel
         CreateNotificationChannel();
-    }
-
-    public static void InitializeUi(ILogger logger, Context context, Android.App.Application application)
-    {
-        // MAUI handles platform initialization automatically
-
-        Task.Run(async () =>
+        
+        // Initialize background tasks
+        VerifyBackgroundTasks(context);
+        
+        // Initialize UI components if application context is provided
+        if (application != null)
         {
-            try
-            {
-                await VerifyServices();
-                CreateNotificationChannel();
-
-                Messenger<bool>.Publish(MvvmMessages.Initialized, true);
-            }
-            catch (Exception e)
-            {
-                logger.Fatal(e, "Android initialization crashed.");
-                throw;
-            }
-        });
+            InitializeUi(logger, context, application);
+        }
     }
 
+    /// <summary>
+    /// Verify and initialize all services
+    /// </summary>
     public static async Task VerifyServices()
     {
         // Ensure ServiceProviderManager is initialized
@@ -61,12 +55,27 @@ public class BootstrapHelper
         }
     }
 
-    internal static void Remove(Context context)
+    private static void InitializeUi(ILogger logger, Context context, Android.App.Application application)
     {
-        // IocSetup removed - MAUI handles DI automatically
+        // MAUI handles platform initialization automatically
+        Task.Run(async () =>
+        {
+            try
+            {
+                await VerifyServices();
+                CreateNotificationChannel();
+
+                Messenger<bool>.Publish(MvvmMessages.Initialized, true);
+            }
+            catch (Exception e)
+            {
+                logger.Fatal(e, "Android initialization crashed.");
+                throw;
+            }
+        });
     }
 
-    public static void VerifyBackgroundTasks(Context context)
+    private static void VerifyBackgroundTasks(Context context)
     {
         SchedulerSetupTask(context);
         UpdateMediaIndexJobTask(context);

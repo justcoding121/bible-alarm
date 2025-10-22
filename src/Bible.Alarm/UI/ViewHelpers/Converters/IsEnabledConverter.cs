@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace Bible.Alarm.UI.Views.Converters;
+namespace Bible.Alarm.UI.ViewHelpers.Converters;
 
 public class IsEnabledColorConverter : IValueConverter
 {

@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows.Input;
 
-namespace Bible.Alarm.UI.Views.Behaviours;
+namespace Bible.Alarm.UI.ViewHelpers.Behaviours;
 
 /// <summary>
 /// This behavior allow you to bind any event on any View to an <see cref="ICommand"/>.

@@ -1,5 +1,6 @@
 ﻿using Android.Content;
 using Android.OS;
+using Bible.Alarm.Common;
 using Bible.Alarm.Droid.Services.Handlers;
 using Bible.Alarm.Droid.Services.Platform;
 using Bible.Alarm.Services.Droid.Helpers;
@@ -46,7 +47,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
         try
         {
-            BootstrapHelper.InitializeService(context); 
+            BootstrapHelper.Initialize(Logger, context); 
 
             _context = context;
             _intent = intent;
@@ -84,7 +85,6 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         if (_alarmHandler != null) _alarmHandler.Disposed -= OnDisposed;
 
         _context?.StopService(_intent);
-        BootstrapHelper.Remove(_context);
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;

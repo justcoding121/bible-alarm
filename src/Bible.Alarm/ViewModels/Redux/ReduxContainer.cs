@@ -1,5 +1,5 @@
-﻿using Bible.Alarm.ViewModels.Redux.Reducers;
-using Redux;
+﻿using Bible.Alarm.Common.Redux;
+using Bible.Alarm.ViewModels.Redux.Reducers;
 
 namespace Bible.Alarm.ViewModels.Redux;
 

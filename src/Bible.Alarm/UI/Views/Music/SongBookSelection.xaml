@@ -4,12 +4,14 @@
     x:Class="Bible.Alarm.UI.Views.Music.SongBookSelection"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.Views.Behaviours"
-    xmlns:converters="clr-namespace:Bible.Alarm.UI.Views.Converters"
-    xmlns:fn="clr-namespace:FontNameResources"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
-    x:DataType="vm:SongBookSelectionViewModel"
+    xmlns:music="clr-namespace:Bible.Alarm.ViewModels.Music"
+    xmlns:converters="clr-namespace:Bible.Alarm.UI.ViewHelpers.Converters"
+    xmlns:fn="clr-namespace:Bible.Alarm.UI.Views"
+    xmlns:behaviours="clr-namespace:Bible.Alarm.UI.ViewHelpers.Behaviours"
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    x:DataType="music:SongBookSelectionViewModel"
     NavigationPage.HasBackButton="False"
     NavigationPage.HasNavigationBar="False">
     <ContentPage.Resources>
@@ -130,7 +132,7 @@
                             EventName="ItemTapped" />
                     </ListView.Behaviors>
                     <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="vm:PublicationListViewItemModel">
+                        <DataTemplate x:DataType="shared:PublicationListViewItemModel">
                             <ViewCell>
                                 <Grid
                                     Padding="5,0,5,0"

@@ -1,9 +1,6 @@
-﻿namespace Mvvmicro;
+﻿using System.ComponentModel;
 
-using System;
-using System.ComponentModel;
-using System.Threading;
-using System.Threading.Tasks;
+namespace Bible.Alarm.Common.Mvvm.Commands;
 
 /// <summary>
 /// An helper command to create asynchronous implementations of ICommand.

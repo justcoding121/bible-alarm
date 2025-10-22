@@ -46,6 +46,9 @@ public static class MauiProgram
         // Initialize the global service provider for access from multiple entry points
         ServiceProviderManager.Initialize(app.Services);
 
+        // Initialize platform-specific bootstrap helpers
+        InitializePlatformBootstrap(app.Services);
+
         return app;
     }
 
@@ -135,8 +138,8 @@ public static class MauiProgram
             options.UseSqlite(string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, databasePath));
         });
 
-        // Register TaskScheduler for compatibility
-        services.AddSingleton<TaskScheduler>(sp => TaskScheduler.FromCurrentSynchronizationContext());
+        // Register TaskScheduler for compatibility - use default scheduler instead of UI context
+        services.AddSingleton<TaskScheduler>(sp => TaskScheduler.Default);
         
         // Register NavigationService - will be properly initialized in App.xaml.cs
         services.AddSingleton<INavigationService>(sp => 
@@ -175,5 +178,22 @@ public static class MauiProgram
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();
         services.AddTransient<MediaProgressModal>();
+    }
+
+    private static void InitializePlatformBootstrap(IServiceProvider services)
+    {
+        var logger = services.GetRequiredService<Serilog.ILogger>();
+        
+        #if ANDROID
+        // Android bootstrap initialization
+        var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
+        Bible.Alarm.Services.Droid.Helpers.BootstrapHelper.Initialize(logger, context);
+        #elif IOS
+        // iOS bootstrap initialization
+        Bible.Alarm.Services.iOS.Helpers.BootstrapHelper.Initialize(logger);
+        #elif WINDOWS
+        // Windows bootstrap initialization
+        Bible.Alarm.Services.Windows.Helpers.BootstrapHelper.Initialize(logger);
+        #endif
     }
 }

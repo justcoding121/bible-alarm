@@ -1,6 +1,4 @@
-﻿namespace Mvvmicro;
-
-using System;
+﻿namespace Bible.Alarm.Common.Mvvm.Commands;
 
 /// <summary>
 /// An helper command to create implementations of ICommand.

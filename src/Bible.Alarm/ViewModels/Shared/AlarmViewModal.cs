@@ -1,16 +1,15 @@
-﻿using Bible.Alarm.Common.Mvvm;
+﻿using System.Windows.Input;
+using Bible.Alarm.Common.Mvvm;
+using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models;
-using Bible.Alarm.Services;
-using Bible.Alarm.Services.Contracts;
+using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
-using Mvvmicro;
-using Serilog;
 using Plugin.StoreReview;
-using System.Windows.Input;
-using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
-namespace Bible.Alarm.ViewModels;
+namespace Bible.Alarm.ViewModels.Shared;
 
 public class AlarmViewModal : ViewModel, IDisposableModal
 {
