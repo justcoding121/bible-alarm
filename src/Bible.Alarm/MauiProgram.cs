@@ -147,7 +147,7 @@ public static class MauiProgram
         #elif IOS
         services.AddSingleton<IVersionFinder, VersionFinder>();
         #elif WINDOWS
-        services.AddSingleton<IVersionFinder, UwpVersionFinder>();
+        services.AddSingleton<IVersionFinder, WindowsVersionFinder>();
         #endif
 
         // Register platform-specific services
@@ -165,11 +165,11 @@ public static class MauiProgram
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
         services.AddSingleton<IOsAlarmHandler>();
         #elif WINDOWS
-        services.AddSingleton<INotificationService, UwpNotificationService>();
-        services.AddSingleton<IToastService, UwpToastService>();
-        services.AddSingleton<IStorageService, UwpStorageService>();
+        services.AddSingleton<INotificationService, WindowsNotificationService>();
+        services.AddSingleton<IToastService, WindowsToastService>();
+        services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
-        services.AddSingleton<UwpAlarmHandler>();
+        services.AddSingleton<WindowsAlarmHandler>();
         #endif
 
         // Register database contexts

@@ -1,12 +1,12 @@
 ﻿using Bible.Alarm.Contracts.Platform;
-using Windows.ApplicationModel;
+using System.Reflection;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Platform
 {
-    public class UwpVersionFinder : IVersionFinder
+    public class WindowsVersionFinder : IVersionFinder
     {
         private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
-        public static UwpVersionFinder Default => new UwpVersionFinder();
+        public static WindowsVersionFinder Default => new WindowsVersionFinder();
 
         public string GetVersionName()
         {
@@ -15,11 +15,31 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform
 
         private static string VersionName()
         {
-            Package package = Package.Current;
-            PackageId packageId = package.Id;
-            PackageVersion version = packageId.Version;
-
-            return string.Format("{0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision);
+            try
+            {
+                // For WinUI 3 desktop apps, we can get version from the assembly
+                var assembly = Assembly.GetExecutingAssembly();
+                var version = assembly.GetName().Version;
+                
+                if (version != null)
+                {
+                    return $"Windows {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+                }
+                
+                // Fallback to file version if assembly version is not available
+                var fileVersionInfo = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
+                if (!string.IsNullOrEmpty(fileVersionInfo.FileVersion))
+                {
+                    return $"Windows {fileVersionInfo.FileVersion}";
+                }
+                
+                return "Windows 1.0.0.0";
+            }
+            catch
+            {
+                // If all else fails, return a default version
+                return "Windows 1.0.0.0";
+            }
         }
     }
 }

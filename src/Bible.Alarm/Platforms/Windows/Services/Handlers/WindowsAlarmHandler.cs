@@ -3,7 +3,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Handlers
 {
-    public class UwpAlarmHandler(ILogger logger, IPlaybackService playbackService) : IDisposable
+    public class WindowsAlarmHandler(ILogger logger, IPlaybackService playbackService) : IDisposable
     {
         private readonly ILogger _logger = logger;
 

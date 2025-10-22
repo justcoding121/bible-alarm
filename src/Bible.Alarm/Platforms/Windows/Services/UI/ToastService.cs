@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public class UwpToastService(TaskScheduler taskScheduler) : ToastService
+    public class WindowsToastService(TaskScheduler taskScheduler) : ToastService
     {
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 

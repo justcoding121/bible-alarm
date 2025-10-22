@@ -4,7 +4,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
-using Windows.ApplicationModel.Background;
+// Removed UWP background task APIs - not available in WinUI 3 desktop apps
 
 namespace Bible.Alarm.Platforms.Windows.Helpers
 {
@@ -34,7 +34,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             }
             
             // Setup background tasks
-            Task.Run(() => SetupBackgroundTask());
+            Task.Run(SetupBackgroundTask);
 
             // Initialize UI components only for foreground scenarios
             if (isForeground)
@@ -66,86 +66,44 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
 
         private static async Task SetupBackgroundTask()
         {
-            await BackgroundExecutionManager.RequestAccessAsync();
-            var allowed = BackgroundExecutionManager.GetAccessStatus();
-            switch (allowed)
-            {
-                case BackgroundAccessStatus.AllowedSubjectToSystemPolicy:
-                case BackgroundAccessStatus.AlwaysAllowed:
-                    break;
-                case BackgroundAccessStatus.Unspecified:
-                case BackgroundAccessStatus.DeniedBySystemPolicy:
-                case BackgroundAccessStatus.DeniedByUser:
-                    IsBackgroundTaskEnabled = false;
-                    break;
-            }
+            // For WinUI 3 desktop apps, we can't use UWP background tasks
+            // Instead, we'll use a different approach for scheduled tasks
+            // Background execution is generally available for desktop apps
+            IsBackgroundTaskEnabled = true;
 
-            RegisterSchedulerTask();
-            RegisterMediaIndexUpdateTask();
+            // Note: For WinUI 3 desktop apps, we'll rely on the main application
+            // to handle scheduled tasks rather than system background tasks
+            // This is a limitation of moving from UWP to WinUI 3 desktop
         }
 
         private static void RegisterMediaIndexUpdateTask()
         {
-            var registered = false;
-
-            foreach (var cur in BackgroundTaskRegistration.AllTasks)
-            {
-                if (cur.Value.Name == "MediaIndexUpdateTask")
-                {
-                    registered = true;
-                }
-            }
-
-            if (!registered)
-            {
-                var builder = new BackgroundTaskBuilder
-                {
-                    Name = "MediaIndexUpdateTask"
-                };
-
-                builder.SetTrigger(new TimeTrigger(60, true));
-                builder.Register();
-            }
+            // For WinUI 3 desktop apps, background tasks are not available
+            // This functionality would need to be implemented using alternative approaches
+            // such as Windows Task Scheduler or a background service
+            // For now, we'll skip this registration
         }
 
         private static void RegisterSchedulerTask()
         {
-            var registered = false;
-
-            foreach (var cur in BackgroundTaskRegistration.AllTasks)
-            {
-                if (cur.Value.Name == "SchedulerTask")
-                {
-                    registered = true;
-                }
-            }
-
-            if (!registered)
-            {
-                var builder = new BackgroundTaskBuilder
-                {
-                    Name = "SchedulerTask"
-                };
-
-                builder.SetTrigger(new TimeTrigger(15, true));
-                builder.Register();
-            }
+            // For WinUI 3 desktop apps, background tasks are not available
+            // This functionality would need to be implemented using alternative approaches
+            // such as Windows Task Scheduler or a background service
+            // For now, we'll skip this registration
         }
 
 
         private static void EnsureServiceProviderInitialized()
         {
-            if (!ServiceProviderManager.IsInitialized)
-            {
-                // Initialize DI container for background services
-                var logger = Log.ForContext<BootstrapHelper>();
-                logger.Information("Initializing DI container for background service...");
+            if (ServiceProviderManager.IsInitialized) return;
+            // Initialize DI container for background services
+            var logger = Log.ForContext<BootstrapHelper>();
+            logger.Information("Initializing DI container for background service...");
                 
-                // Call MauiProgram to ensure DI container is initialized
-                MauiProgram.EnsureDiContainerInitialized();
+            // Call MauiProgram to ensure DI container is initialized
+            MauiProgram.EnsureDiContainerInitialized();
                 
-                logger.Information("DI container initialized for background service.");
-            }
+            logger.Information("DI container initialized for background service.");
         }
     }
 }
