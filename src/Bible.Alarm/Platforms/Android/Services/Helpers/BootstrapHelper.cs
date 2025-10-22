@@ -76,7 +76,7 @@ public class BootstrapHelper
     private static void InitializeUi(ILogger logger, Context context, AndroidApplication application)
     {
         // MAUI handles platform initialization automatically
-        Task.Run(async () =>
+        Task.Run(() =>
         {
             try
             {

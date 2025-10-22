@@ -119,7 +119,7 @@ public class PlaylistService(
 
             bibleReadingSchedule.BookNumber = next.Key.Number;
             bibleReadingSchedule.ChapterNumber = next.Value.Number;
-            bibleReadingSchedule.FinishedDuration = default;
+            bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
         }
 
         await scheduleDbContext.SaveChangesAsync();
@@ -222,7 +222,7 @@ public class PlaylistService(
             //resume from where it was stopped last time
             if (!markedSeekTrack
                 && !schedule.AlwaysPlayFromStart
-                && !bibleReadingSchedule.FinishedDuration.Equals(default)
+                && !bibleReadingSchedule.FinishedDuration.Equals(TimeSpan.Zero)
                 && bibleReadingSchedule.LanguageCode == notificationDetail.LanguageCode
                 && bibleReadingSchedule.PublicationCode == notificationDetail.PublicationCode
                 && bookNumber == notificationDetail.BookNumber)
@@ -266,7 +266,7 @@ public class PlaylistService(
 
         bibleReadingSchedule.BookNumber = next.Key.Number;
         bibleReadingSchedule.ChapterNumber = next.Value.Number;
-        bibleReadingSchedule.FinishedDuration = default;
+        bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
 
         await scheduleDbContext.SaveChangesAsync();
     }
@@ -290,7 +290,7 @@ public class PlaylistService(
 
         bibleReadingSchedule.BookNumber = previous.Key.Number;
         bibleReadingSchedule.ChapterNumber = previous.Value.Number;
-        bibleReadingSchedule.FinishedDuration = default;
+        bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
 
         await scheduleDbContext.SaveChangesAsync();
     }

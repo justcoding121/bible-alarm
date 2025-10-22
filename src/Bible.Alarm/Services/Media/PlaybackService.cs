@@ -217,7 +217,7 @@ public class PlaybackService : IPlaybackService
         _firstChapter = null;
         _currentlyPlaying = null;
         CurrentTrackIndex = -1;
-        CurrentTrackPosition = default;
+        CurrentTrackPosition = TimeSpan.Zero;
         _isPrepared = false;
     }
 

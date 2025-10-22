@@ -1,5 +1,7 @@
 using System.Xml;
 
+#nullable enable
+
 namespace Bible.Alarm.VersionPatcher.Services.Contracts;
 
 public interface IXmlDocument

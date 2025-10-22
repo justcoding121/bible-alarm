@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace Bible.Alarm.Common;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace Bible.Alarm.Common;
 /// </summary>
 public static class ServiceProviderManager
 {
-    private static IServiceProvider serviceProvider;
+    private static IServiceProvider? serviceProvider;
     private static readonly object Lock = new();
 
     /// <summary>

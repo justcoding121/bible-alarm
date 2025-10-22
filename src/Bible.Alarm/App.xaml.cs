@@ -5,6 +5,8 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.UI.Views;
 using Bible.Alarm.ViewModels;
 
+#nullable enable
+
 namespace Bible.Alarm;
 
 public partial class App : Application
@@ -22,7 +24,7 @@ public partial class App : Application
         InitializeComponent();
     }
 
-    private INavigationService _navigationService;
+    private INavigationService? _navigationService;
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
@@ -110,7 +112,8 @@ public partial class App : Application
             try
             {
                 // Handle when your app starts  
-                await _navigationService.NavigateToHome();
+                if (_navigationService != null)
+                    await _navigationService.NavigateToHome();
 
                 using var scope = _scopeFactory.CreateScope();
                 var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();

@@ -301,7 +301,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
             BibleReadingSchedule.BookNumber = nextBook.Value.Number;
             BibleReadingSchedule.ChapterNumber = 1;
-            BibleReadingSchedule.FinishedDuration = default;
+            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
             _bibleReadingUpdated = true;
             RefreshChapterName();
         });
@@ -315,7 +315,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
             BibleReadingSchedule.BookNumber = nextBook.Value.Number;
             BibleReadingSchedule.ChapterNumber = 1;
-            BibleReadingSchedule.FinishedDuration = default;
+            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
             _bibleReadingUpdated = true;
             RefreshChapterName();
         });
@@ -330,7 +330,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
             BibleReadingSchedule.BookNumber = prevChapter.Key.Number;
             BibleReadingSchedule.ChapterNumber = prevChapter.Value.Number;
-            BibleReadingSchedule.FinishedDuration = default;
+            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
             _bibleReadingUpdated = true;
             RefreshChapterName();
         });
@@ -345,7 +345,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
             BibleReadingSchedule.BookNumber = nextChapter.Key.Number;
             BibleReadingSchedule.ChapterNumber = nextChapter.Value.Number;
-            BibleReadingSchedule.FinishedDuration = default;
+            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
             _bibleReadingUpdated = true;
             RefreshChapterName();
         });
@@ -658,7 +658,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
                     existing.BibleReadingSchedule.LanguageCode = model.BibleReadingSchedule.LanguageCode;
                     existing.BibleReadingSchedule.PublicationCode = model.BibleReadingSchedule.PublicationCode;
 
-                    if (_bibleReadingUpdated) existing.BibleReadingSchedule.FinishedDuration = default;
+                    if (_bibleReadingUpdated) existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                 }
 
                 existing.MusicEnabled = model.MusicEnabled;
