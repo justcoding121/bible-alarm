@@ -22,13 +22,14 @@ public partial class TrackSelection : ContentPage
         Appearing += OnAppearing;
     }
 
-    private void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object sender, EventArgs e)
     {
-        Task.Delay(100).ContinueWith(x =>
+        Appearing -= OnAppearing;
+        
+        if (ViewModel?.SelectedTrack != null && trackListView != null)
         {
-            trackListView.ScrollTo(ViewModel.SelectedTrack, ScrollToPosition.Center, true);
-            Appearing -= OnAppearing;
-        }, _taskScheduler);
+            await ListViewHelper.ScrollToWhenReadyAsync(trackListView, ViewModel.SelectedTrack, ScrollToPosition.Center, true);
+        }
     }
 
     protected override bool OnBackButtonPressed()

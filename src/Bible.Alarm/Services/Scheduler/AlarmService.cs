@@ -7,9 +7,7 @@ using Bible.Alarm.Services.Infrastructure.Schedule;
 namespace Bible.Alarm.Services.Scheduler;
 
 public class AlarmService(
-    INotificationService notificationService,
-    IMediaCacheService mediaCacheService,
-    ScheduleDbContext scheduleDbContext)
+    INotificationService notificationService)
     : IAlarmService
 {
     public Task Create(AlarmSchedule schedule)
@@ -44,8 +42,7 @@ public class AlarmService(
 
     public void Dispose()
     {
-        scheduleDbContext.Dispose();
-        // Note: notificationService and mediaCacheService are singletons
-        // and should not be disposed here as they are managed by the DI container
+        // Note: notificationService is a singleton
+        // and should not be disposed here as it is managed by the DI container
     }
 }

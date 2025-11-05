@@ -1,4 +1,5 @@
 ﻿using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.UI.ViewHelpers;
 
 namespace Bible.Alarm.UI.Views.Shared;
 
@@ -12,13 +13,13 @@ public partial class LanguageModal : ContentPage
         Appearing += OnAppearing;
     }
 
-    private void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object sender, EventArgs e)
     {
-        var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
-        Task.Delay(100).ContinueWith(x =>
+        Appearing -= OnAppearing;
+        
+        if (ViewModel?.SelectedItem != null && LanguageListView != null)
         {
-            LanguageListView.ScrollTo(ViewModel.SelectedItem, ScrollToPosition.Center, true);
-            Appearing -= OnAppearing;
-        }, scheduler);
+            await ListViewHelper.ScrollToWhenReadyAsync(LanguageListView, ViewModel.SelectedItem, ScrollToPosition.Center, true);
+        }
     }
 }

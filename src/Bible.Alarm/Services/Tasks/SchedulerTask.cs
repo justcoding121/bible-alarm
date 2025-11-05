@@ -10,7 +10,7 @@ namespace Bible.Alarm.Services.Tasks;
 
 public class SchedulerTask(
     ILogger logger,
-    ScheduleDbContext scheduleDbContext,
+    IServiceScopeFactory scopeFactory,
     IMediaCacheService mediaCacheService,
     IAlarmService alarmService,
     INotificationService notificationService,
@@ -18,6 +18,7 @@ public class SchedulerTask(
     : ISchedulerService, IDisposable
 {
     private readonly ILogger _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
     private static readonly SemaphoreSlim Lock = new(1);
 
@@ -41,6 +42,8 @@ public class SchedulerTask(
                     _logger.Error(e, "An error happenned inside cleanup task.");
                 }
 
+                using var scope = _scopeFactory.CreateScope();
+                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                 var schedules = await scheduleDbContext.AlarmSchedules.Where(x => x.IsEnabled).ToListAsync();
                 foreach (var schedule in schedules)
                     if (!await notificationService.IsScheduled(schedule.Id))
@@ -74,8 +77,8 @@ public class SchedulerTask(
 
     public void Dispose()
     {
-        scheduleDbContext.Dispose();
-        // Note: mediaCacheService, alarmService, notificationService, and storageService are singletons
+        // Note: DbContext is now created via IServiceScopeFactory and disposed by the scope
+        // mediaCacheService, alarmService, notificationService, and storageService are singletons
         // and should not be disposed here as they are managed by the DI container
     }
 }

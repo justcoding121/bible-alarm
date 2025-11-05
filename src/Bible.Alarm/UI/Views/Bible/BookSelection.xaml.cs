@@ -22,13 +22,17 @@ public partial class BookSelection : ContentPage
         Appearing += OnAppearing;
     }
 
-    private void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object sender, EventArgs e)
     {
-        Task.Delay(100).ContinueWith(x =>
+        Appearing -= OnAppearing;
+        
+        // Wait for the page to be fully loaded before attempting to scroll
+        await Task.Delay(300);
+        
+        if (ViewModel?.SelectedBook != null && bookListView != null)
         {
-            bookListView.ScrollTo(ViewModel.SelectedBook, ScrollToPosition.Center, true);
-            Appearing -= OnAppearing;
-        }, _taskScheduler);
+            await ListViewHelper.ScrollToWhenReadyAsync(bookListView, ViewModel.SelectedBook, ScrollToPosition.Center, true);
+        }
     }
 
     protected override bool OnBackButtonPressed()

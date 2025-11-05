@@ -22,13 +22,14 @@ public partial class ChapterSelection : ContentPage
         Appearing += OnAppearing;
     }
 
-    private void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object sender, EventArgs e)
     {
-        Task.Delay(100).ContinueWith(x =>
+        Appearing -= OnAppearing;
+        
+        if (ViewModel?.SelectedChapter != null && chapterListView != null)
         {
-            chapterListView.ScrollTo(ViewModel.SelectedChapter, ScrollToPosition.Center, true);
-            Appearing -= OnAppearing;
-        }, _taskScheduler);
+            await ListViewHelper.ScrollToWhenReadyAsync(chapterListView, ViewModel.SelectedChapter, ScrollToPosition.Center, true);
+        }
     }
 
 

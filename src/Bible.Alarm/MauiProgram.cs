@@ -175,6 +175,7 @@ public static class MauiProgram
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
+        services.AddSingleton<Windows.Media.Playback.MediaPlayer>(sp => new Windows.Media.Playback.MediaPlayer());
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
         services.AddSingleton<WindowsAlarmHandler>();
         #endif
