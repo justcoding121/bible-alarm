@@ -31,9 +31,6 @@ public class ScheduleViewModel : ViewModel, IDisposable
     private readonly ILogger _logger;
 
 
-    private readonly ScheduleDbContext _scheduleDbContext;
-    private readonly MediaDbContext _mediaDbContext;
-
     private readonly IAlarmService _alarmService;
     private readonly IToastService _popUpService;
     private readonly INavigationService _navigationService;
@@ -56,8 +53,6 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
     public ScheduleViewModel(
         ILogger logger,
-        ScheduleDbContext scheduleDbContext,
-        MediaDbContext mediaDbContext,
         IToastService popUpService,
         IAlarmService alarmService,
         INavigationService navigationService,
@@ -67,8 +62,6 @@ public class ScheduleViewModel : ViewModel, IDisposable
         IBatteryOptimizationManager batteryOptimizationManager = null)
     {
         _logger = logger;
-        _scheduleDbContext = scheduleDbContext;
-        _mediaDbContext = mediaDbContext;
         _popUpService = popUpService;
         _alarmService = alarmService;
         _navigationService = navigationService;
@@ -78,8 +71,6 @@ public class ScheduleViewModel : ViewModel, IDisposable
         
         if (DeviceInfo.Platform == DevicePlatform.Android)
             _batteryOptimizationManager = batteryOptimizationManager;
-
-        _subscriptions.Add(_scheduleDbContext);
 
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
@@ -98,7 +89,11 @@ public class ScheduleViewModel : ViewModel, IDisposable
                 AlarmSchedule modelToSet;
 
                 if (model == null)
-                    modelToSet = await AlarmSchedule.GetSampleSchedule(true, _mediaDbContext);
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                    modelToSet = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                }
                 else
                     modelToSet = model;
 
@@ -197,9 +192,13 @@ public class ScheduleViewModel : ViewModel, IDisposable
             {
                 //get the latest music track
                 if (Music == null || (!IsNewSchedule && !_musicUpdated))
-                    Music = await _scheduleDbContext.AlarmMusic
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                    Music = await scheduleDbContext.AlarmMusic
                         .AsNoTracking()
                         .FirstAsync(x => x.AlarmScheduleId == _scheduleId);
+                }
             });
 
 
@@ -224,7 +223,9 @@ public class ScheduleViewModel : ViewModel, IDisposable
                 //get the latest bible track
                 if (BibleReadingSchedule == null || (!IsNewSchedule && !_bibleReadingUpdated))
                 {
-                    BibleReadingSchedule = await _scheduleDbContext.BibleReadingSchedules
+                    using var scope = _scopeFactory.CreateScope();
+                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                    BibleReadingSchedule = await scheduleDbContext.BibleReadingSchedules
                         .AsNoTracking()
                         .FirstAsync(x => x.AlarmScheduleId == _scheduleId);
 
@@ -361,16 +362,19 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
     private async Task MarkBatteryOptimizationModalAsShown()
     {
-        if (!await _scheduleDbContext.GeneralSettings.AnyAsync(x =>
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
+        if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
                 x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
         {
-            await _scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
+            await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
             {
                 Key = "AndroidBatteryOptimizationExclusionPromptShown",
                 Value = "True"
             });
 
-            await _scheduleDbContext.SaveChangesAsync();
+            await scheduleDbContext.SaveChangesAsync();
         }
     }
 
@@ -378,9 +382,13 @@ public class ScheduleViewModel : ViewModel, IDisposable
     {
         if (_batteryOptimizationManager.CanShowOptimizeActivity()) CanOptimizeBattery = true;
 
-        if (!await _scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
-            await _navigationService.ShowModal("BatteryOptimizationExclusionModal", this);
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
+                    x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+                await _navigationService.ShowModal("BatteryOptimizationExclusionModal", this);
+        }
     }
 
 
@@ -617,8 +625,10 @@ public class ScheduleViewModel : ViewModel, IDisposable
         {
             await Task.Run(async () =>
             {
-                await _scheduleDbContext.AlarmSchedules.AddAsync(model);
-                await _scheduleDbContext.SaveChangesAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                await scheduleDbContext.AlarmSchedules.AddAsync(model);
+                await scheduleDbContext.SaveChangesAsync();
                 if (model.IsEnabled) await _alarmService.Create(model);
             });
 
@@ -632,7 +642,10 @@ public class ScheduleViewModel : ViewModel, IDisposable
         {
             await Task.Run(async () =>
             {
-                var existing = await _scheduleDbContext.AlarmSchedules
+                using var scope = _scopeFactory.CreateScope();
+                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                
+                var existing = await scheduleDbContext.AlarmSchedules
                     .Include(x => x.Music)
                     .Include(x => x.BibleReadingSchedule)
                     .FirstAsync(x => x.Id == model.Id);
@@ -669,7 +682,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
                 existing.Second = model.Second;
                 existing.SnoozeMinutes = model.SnoozeMinutes;
 
-                await _scheduleDbContext.SaveChangesAsync();
+                await scheduleDbContext.SaveChangesAsync();
                 _alarmService.Update(model);
             });
 
@@ -703,9 +716,11 @@ public class ScheduleViewModel : ViewModel, IDisposable
             await Task.Run(async () =>
             {
                 _alarmService.Delete(_scheduleId);
-                var model = await _scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == _scheduleId);
-                _scheduleDbContext.AlarmSchedules.Remove(model);
-                await _scheduleDbContext.SaveChangesAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                var model = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == _scheduleId);
+                scheduleDbContext.AlarmSchedules.Remove(model);
+                await scheduleDbContext.SaveChangesAsync();
             });
 
             ReduxContainer.Store.Dispatch(new RemoveScheduleAction { ScheduleListItem = _scheduleListItem });
@@ -761,10 +776,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
         _subscriptions.ForEach(x => x.Dispose());
         _subscriptions.Clear();
 
-        _scheduleDbContext.Dispose();
-        _mediaDbContext.Dispose();
-        
-        // Note: _popUpService (IToastService), _alarmService (IAlarmService), 
+        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
+        // _popUpService (IToastService), _alarmService (IAlarmService), 
         // _notificationService (INotificationService), and _batteryOptimizationManager 
         // (IBatteryOptimizationManager) are singletons and should not be disposed here 
         // as they are managed by the DI container

@@ -15,22 +15,26 @@ namespace Bible.Alarm.Services.Media;
 
 public class PlaylistService(
     ILogger logger,
-    ScheduleDbContext scheduleDbContext,
-    MediaDbContext mediaDbContext,
+    IServiceScopeFactory scopeFactory,
     MediaService mediaService)
     : IPlaylistService
 {
     private readonly ILogger _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
     public async Task<long> GetRelavantScheduleToPlay()
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        
         var lastSchedule =
             await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId);
 
         AlarmSchedule schedule = null;
 
         if (!string.IsNullOrEmpty(lastSchedule?.Value))
-            await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == long.Parse(lastSchedule.Value));
+            schedule = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == long.Parse(lastSchedule.Value));
 
         if (schedule == null) schedule = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync();
 
@@ -46,6 +50,9 @@ public class PlaylistService(
 
     public async Task SaveLastPlayed(long scheduleId)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var lastSchedule =
             await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId);
 
@@ -61,6 +68,9 @@ public class PlaylistService(
 
     public async Task MarkTrackAsPlayed(NotificationDetail trackDetail)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var trackChanged = false;
 
         var schedule = await scheduleDbContext.AlarmSchedules
@@ -97,6 +107,9 @@ public class PlaylistService(
 
     public async Task MarkTrackAsFinished(NotificationDetail trackDetail)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var schedule = await scheduleDbContext.AlarmSchedules
             .Include(x => x.Music)
             .Include(x => x.BibleReadingSchedule)
@@ -129,6 +142,9 @@ public class PlaylistService(
 
     public async Task<PlayItem> NextTrack(long scheduleId)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var schedule = await scheduleDbContext.AlarmSchedules
             .AsNoTracking()
             .Include(x => x.Music)
@@ -172,6 +188,9 @@ public class PlaylistService(
 
     public async Task<List<PlayItem>> NextTracks(long scheduleId)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var result = new List<PlayItem>();
 
         var schedule = await scheduleDbContext.AlarmSchedules
@@ -249,6 +268,9 @@ public class PlaylistService(
 
     public async Task MoveToNextBibleChapter(long scheduleId)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var schedule = await scheduleDbContext.AlarmSchedules
             .Include(x => x.BibleReadingSchedule)
             .FirstOrDefaultAsync(x => x.Id == scheduleId);
@@ -273,6 +295,9 @@ public class PlaylistService(
 
     public async Task MoveToPreviousBibleChapter(long scheduleId)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var schedule = await scheduleDbContext.AlarmSchedules
             .Include(x => x.BibleReadingSchedule)
             .FirstOrDefaultAsync(x => x.Id == scheduleId);
@@ -389,8 +414,8 @@ public class PlaylistService(
 
     public void Dispose()
     {
-        mediaDbContext.Dispose();
-        scheduleDbContext.Dispose();
-        mediaService.Dispose();
+        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
+        // mediaService (MediaService) is a singleton and should not be disposed here
+        // as it is managed by the DI container
     }
 }

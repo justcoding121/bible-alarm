@@ -31,9 +31,6 @@ public class HomeViewModel : ViewModel, IDisposable
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    private readonly ScheduleDbContext _scheduleDbContext;
-    private readonly MediaDbContext _mediaDbContext;
-
     private readonly IToastService _popUpService;
     private readonly INavigationService _navigationService;
     private readonly IMediaCacheService _mediaCacheService;
@@ -46,25 +43,19 @@ public class HomeViewModel : ViewModel, IDisposable
 
     public HomeViewModel(
         ILogger logger,
-        ScheduleDbContext scheduleDbContext,
         IToastService popUpService, INavigationService navigationService,
         IMediaCacheService mediaCacheService,
         IAlarmService alarmService,
         INotificationService notificationService,
-        MediaDbContext mediaDbContext,
         IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
-        _scheduleDbContext = scheduleDbContext;
         _popUpService = popUpService;
         _navigationService = navigationService;
         _mediaCacheService = mediaCacheService;
         _alarmService = alarmService;
         _notificationService = notificationService;
-        _mediaDbContext = mediaDbContext;
         _scopeFactory = scopeFactory;
-
-        _subscriptions.Add(scheduleDbContext);
 
         AddScheduleCommand = new Command(async () =>
         {
@@ -108,22 +99,26 @@ public class HomeViewModel : ViewModel, IDisposable
 
     private async Task SeedDefaultAlarm()
     {
-        if (!await _scheduleDbContext.AlarmSchedules.AnyAsync()
-            && !await _scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.AlarmSeeded)
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        
+        if (!await scheduleDbContext.AlarmSchedules.AnyAsync()
+            && !await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.AlarmSeeded)
             //for existing apps before version 1.30
-            && !await _scheduleDbContext.GeneralSettings.AnyAsync(x =>
+            && !await scheduleDbContext.GeneralSettings.AnyAsync(x =>
                 x.Key == AppConstants.GeneralSettingsKeys.AndroidBatteryOptimizationExclusionPromptShown))
         {
-            var schedule = await AlarmSchedule.GetSampleSchedule(false, _mediaDbContext);
+            var schedule = await AlarmSchedule.GetSampleSchedule(false, mediaDbContext);
 
-            await _scheduleDbContext.AlarmSchedules.AddAsync(schedule);
-            await _scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
+            await scheduleDbContext.AlarmSchedules.AddAsync(schedule);
+            await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
             {
                 Key = AppConstants.GeneralSettingsKeys.AlarmSeeded,
                 Value = "True"
             });
 
-            await _scheduleDbContext.SaveChangesAsync();
+            await scheduleDbContext.SaveChangesAsync();
         }
     }
 
@@ -182,7 +177,10 @@ public class HomeViewModel : ViewModel, IDisposable
                 {
                     await SeedDefaultAlarm();
 
-                    var alarmSchedules = await _scheduleDbContext.AlarmSchedules
+                    using var scope = _scopeFactory.CreateScope();
+                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                    
+                    var alarmSchedules = await scheduleDbContext.AlarmSchedules
                         .Include(x => x.BibleReadingSchedule)
                         .Include(x => x.Music)
                         .ToListAsync();
@@ -202,19 +200,23 @@ public class HomeViewModel : ViewModel, IDisposable
                                 item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                             }
 
-                            await _scheduleDbContext.SaveChangesAsync();
+                            await scheduleDbContext.SaveChangesAsync();
                         }
                     }
 
                     var initialSchedules = new ObservableHashSet<ScheduleListItem>();
-                    using var scope = _scopeFactory.CreateScope();
-                    foreach (var schedule in alarmSchedules) 
-                        initialSchedules.Add(new ScheduleListItem(schedule, scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory));
+                    foreach (var schedule in alarmSchedules)
+                        initialSchedules.Add(new ScheduleListItem(schedule,
+                            scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory));
 
                     ReduxContainer.Store.Dispatch(new InitializeAction { ScheduleList = initialSchedules });
 
                     _initialized = true;
                 }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "An error happened in HomeViewModel Initialize.");
             }
             finally
             {
@@ -362,12 +364,10 @@ public class HomeViewModel : ViewModel, IDisposable
     {
         _subscriptions.ForEach(x => x.Dispose());
 
-        _scheduleDbContext.Dispose();
-        _mediaDbContext.Dispose();
-
         _lock.Dispose();
         
-        // Note: _popUpService (IToastService), _mediaCacheService (IMediaCacheService), 
+        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
+        // _popUpService (IToastService), _mediaCacheService (IMediaCacheService), 
         // _alarmService (IAlarmService), and _notificationService (INotificationService) 
         // are singletons and should not be disposed here as they are managed by the DI container
     }

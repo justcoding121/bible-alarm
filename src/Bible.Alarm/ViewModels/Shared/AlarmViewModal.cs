@@ -43,7 +43,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
             var navigationService = scope.ServiceProvider.GetRequiredService<INavigationService>();
             await navigationService?.CloseModal();
 
-            using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
             try
             {

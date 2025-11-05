@@ -9,11 +9,12 @@ namespace Bible.Alarm.Platforms.Android.Services.Handlers;
 public class AndroidAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
-    ScheduleDbContext dbContext,
+    IServiceScopeFactory scopeFactory,
     DroidNotificationService notificationService)
     : IAndroidAlarmHandler, IDisposable
 {
     private readonly ILogger _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
 
     private bool _playbackServiceInitialized = false;
@@ -22,6 +23,9 @@ public class AndroidAlarmHandler(
 
     public async Task Handle(long scheduleId, bool isImmediate)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var schedule = await dbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleId);
 
         if (schedule == null)
@@ -76,8 +80,8 @@ public class AndroidAlarmHandler(
 
         // PlayerNotificationManager removed - using MediaElement instead
 
-        dbContext.Dispose();
-        // Note: notificationService (INotificationService) is a singleton
+        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
+        // notificationService (INotificationService) is a singleton
         // and should not be disposed here as it is managed by the DI container
 
         if (_playbackServiceInitialized)

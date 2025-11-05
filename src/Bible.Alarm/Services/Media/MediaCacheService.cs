@@ -19,12 +19,13 @@ public class MediaCacheService(
     IStorageService storageService,
     IDownloadService downloadService,
     IPlaylistService mediaPlayService,
-    ScheduleDbContext dbContext,
+    IServiceScopeFactory scopeFactory,
     MediaService mediaService,
     INetworkStatusService networkStatusService)
     : IMediaCacheService
 {
     private readonly ILogger _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
     private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
 
@@ -209,6 +210,9 @@ public class MediaCacheService(
 
     public async Task CleanUp()
     {
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
         var schedules = await dbContext
             .AlarmSchedules
             .AsNoTracking()
@@ -245,8 +249,8 @@ public class MediaCacheService(
 
     public void Dispose()
     {
-        dbContext.Dispose();
-        // Note: storageService, downloadService, mediaPlayService, networkStatusService, 
+        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
+        // storageService, downloadService, mediaPlayService, networkStatusService, 
         // and mediaService are singletons and should not be disposed here
         // as they are managed by the DI container
     }
