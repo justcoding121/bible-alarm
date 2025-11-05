@@ -1,25 +1,86 @@
-﻿using Bible.Alarm.Common;
+﻿#nullable enable
+using Bible.Alarm.Common;
+using Microsoft.Maui.Devices;
 
 namespace Bible.Alarm.UI.Views;
 
 public partial class FontFileResources : ResourceDictionary
 {
-    private static readonly FontFileResources Instance = [];
+    private static FontFileResources? _instance;
+    private static readonly object _lock = new object();
 
     public FontFileResources()
     {
         InitializeComponent();
     }
 
-    public static string FontAwesomeSolid => Instance.GetStringResourceForPlatform("FontAwesomeSolidId");
+    private static FontFileResources Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                lock (_lock)
+                {
+                    if (_instance == null)
+                    {
+                        _instance = new FontFileResources();
+                    }
+                }
+            }
+            return _instance;
+        }
+    }
 
-    private string GetStringResourceForPlatform(string resourceKey)
+    public static string FontAwesomeSolid
+    {
+        get
+        {
+            // Use MAUI's DeviceInfo for platform detection
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            {
+                return "FontAwesomeSolid";
+            }
+            else if (DeviceInfo.Platform == DevicePlatform.iOS)
+            {
+                return "Font Awesome 5 Free";
+            }
+            else if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                return "Font Awesome 5 Free-Solid-900.otf#Font Awesome 5 Free Solid";
+            }
+            
+            // Fallback: try to get from ResourceDictionary
+            return Instance.GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
+        }
+    }
+
+    private string? GetStringResourceForPlatform(string resourceKey)
     {
         if (!Instance.ContainsKey(resourceKey)) return null;
         var label = new Label();
         if (!(Instance[resourceKey] is OnPlatform<string> resource)) return string.Empty;
 
-        var retString = resource.Platforms.Where(c => c.Platform.Contains(CurrentDevice.RuntimePlatform))
+        // Try to match using DeviceInfo first
+        string platformName;
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            platformName = "WinUI";
+        }
+        else if (DeviceInfo.Platform == DevicePlatform.iOS)
+        {
+            platformName = "iOS";
+        }
+        else if (DeviceInfo.Platform == DevicePlatform.Android)
+        {
+            platformName = "Android";
+        }
+        else
+        {
+            platformName = CurrentDevice.RuntimePlatform ?? "";
+        }
+
+        var retString = resource.Platforms.Where(c => c.Platform.Contains(platformName))
             .Select<On, object>(c => c.Value).FirstOrDefault() as string;
 
         return retString ?? "NOFONT";

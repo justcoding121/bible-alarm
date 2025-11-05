@@ -67,7 +67,13 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
-            .ConfigureFonts(fonts => { fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName); });
+            .ConfigureFonts(fonts => 
+            { 
+                fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);
+#if WINDOWS
+                fonts.AddFont("Platforms/Windows/Assets/Fonts/Font Awesome 5 Free-Solid-900.otf", "FontAwesomeSolid");
+#endif
+            });
 
         // Register services
         RegisterServices(builder.Services);
