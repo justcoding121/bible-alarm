@@ -47,6 +47,15 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
             try
             {
+                // Get the current window - handle null case
+                var currentWindow = Microsoft.UI.Xaml.Window.Current;
+                
+                if (currentWindow == null)
+                {
+                    // If we don't have a window, just return (can't show toast without a window)
+                    return;
+                }
+
                 var flyout = new Flyout
                 {
                     Content = new TextBlock()
@@ -58,10 +67,30 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                     Placement = FlyoutPlacementMode.Bottom
                 };
 
-                Microsoft.UI.Xaml.Controls.Frame currentFrame =
-                    Microsoft.UI.Xaml.Window.Current.Content as Microsoft.UI.Xaml.Controls.Frame;
-                flyout.OverlayInputPassThroughElement = currentFrame;
-                flyout.ShowAt(currentFrame);
+                // Try to get a FrameworkElement to attach the flyout to
+                FrameworkElement targetElement = null;
+                
+                var currentFrame = currentWindow.Content as Microsoft.UI.Xaml.Controls.Frame;
+                if (currentFrame != null)
+                {
+                    targetElement = currentFrame;
+                }
+                else
+                {
+                    // If Content is not a Frame, try to get it as FrameworkElement
+                    targetElement = currentWindow.Content as FrameworkElement;
+                }
+
+                if (targetElement != null)
+                {
+                    flyout.OverlayInputPassThroughElement = targetElement;
+                    flyout.ShowAt(targetElement);
+                }
+                else
+                {
+                    // If we can't find a suitable element, just return (can't show toast without a target)
+                    return;
+                }
 
                 await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
                 flyout.Hide();
