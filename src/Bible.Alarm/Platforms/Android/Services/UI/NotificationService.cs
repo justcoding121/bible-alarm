@@ -187,6 +187,7 @@ public class DroidNotificationService(ILogger logger, IStorageService storageSer
 
     public void Dispose()
     {
-        storageService.Dispose();
+        // Note: storageService (IStorageService) is a singleton
+        // and should not be disposed here as it is managed by the DI container
     }
 }

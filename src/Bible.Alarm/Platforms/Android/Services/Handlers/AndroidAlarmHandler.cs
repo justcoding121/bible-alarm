@@ -77,7 +77,8 @@ public class AndroidAlarmHandler(
         // PlayerNotificationManager removed - using MediaElement instead
 
         dbContext.Dispose();
-        notificationService.Dispose();
+        // Note: notificationService (INotificationService) is a singleton
+        // and should not be disposed here as it is managed by the DI container
 
         if (_playbackServiceInitialized)
         {

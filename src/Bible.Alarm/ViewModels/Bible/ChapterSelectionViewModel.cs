@@ -274,12 +274,12 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     {
         _subscriptions.ForEach(x => x.Dispose());
 
-        _mediaService.Dispose();
-        _toastService.Dispose();
-        _playService.Dispose();
-        _downloadService.Dispose();
-        _cacheService.Dispose();
         _lock.Dispose();
+        
+        // Note: _mediaService (MediaService), _toastService (IToastService), 
+        // _playService (IPreviewPlayService), _downloadService (IDownloadService), 
+        // and _cacheService (IMediaCacheService) are singletons and should not be 
+        // disposed here as they are managed by the DI container
     }
 }
 

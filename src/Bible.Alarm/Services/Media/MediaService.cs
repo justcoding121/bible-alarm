@@ -199,6 +199,7 @@ public class MediaService(
     public void Dispose()
     {
         dbContext.Dispose();
-        mediaLookUpService.Dispose();
+        // Note: mediaLookUpService (MediaIndexService) is a singleton
+        // and should not be disposed here as it is managed by the DI container
     }
 }

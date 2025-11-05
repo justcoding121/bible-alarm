@@ -160,7 +160,9 @@ public class BookSelectionViewModel : ViewModel, IDisposable
         _navigationService.NavigatedBack -= OnNavigated;
 
         _subscriptions.ForEach(x => x.Dispose());
-        _mediaService.Dispose();
+        
+        // Note: _mediaService (MediaService) is a singleton and should not be 
+        // disposed here as it is managed by the DI container
     }
 }
 

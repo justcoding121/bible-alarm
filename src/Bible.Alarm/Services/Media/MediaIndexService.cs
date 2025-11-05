@@ -174,7 +174,8 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
     public void Dispose()
     {
-        _storageService.Dispose();
         _lock.Dispose();
+        // Note: _storageService (IStorageService) is a singleton
+        // and should not be disposed here as it is managed by the DI container
     }
 }

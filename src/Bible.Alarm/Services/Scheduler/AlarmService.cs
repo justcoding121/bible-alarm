@@ -45,7 +45,7 @@ public class AlarmService(
     public void Dispose()
     {
         scheduleDbContext.Dispose();
-        notificationService.Dispose();
-        mediaCacheService.Dispose();
+        // Note: notificationService and mediaCacheService are singletons
+        // and should not be disposed here as they are managed by the DI container
     }
 }

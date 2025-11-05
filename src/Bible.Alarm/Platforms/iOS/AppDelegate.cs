@@ -212,8 +212,9 @@ namespace Bible.Alarm.Platforms.iOS
                 using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
                 downloaded = await schedulerTask.Handle();
 
-                using var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                 downloaded = downloaded || await mediaIndexService.UpdateIndexIfAvailable();
+                // Note: mediaIndexService is a singleton and should not be disposed
             }
             catch (Exception e)
             {

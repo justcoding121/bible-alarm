@@ -75,9 +75,7 @@ public class SchedulerTask(
     public void Dispose()
     {
         scheduleDbContext.Dispose();
-        mediaCacheService.Dispose();
-        alarmService.Dispose();
-        notificationService.Dispose();
-        storageService.Dispose();
+        // Note: mediaCacheService, alarmService, notificationService, and storageService are singletons
+        // and should not be disposed here as they are managed by the DI container
     }
 }

@@ -245,11 +245,9 @@ public class MediaCacheService(
 
     public void Dispose()
     {
-        storageService.Dispose();
-        downloadService.Dispose();
-        mediaPlayService.Dispose();
         dbContext.Dispose();
-        networkStatusService.Dispose();
-        mediaService.Dispose();
+        // Note: storageService, downloadService, mediaPlayService, networkStatusService, 
+        // and mediaService are singletons and should not be disposed here
+        // as they are managed by the DI container
     }
 }

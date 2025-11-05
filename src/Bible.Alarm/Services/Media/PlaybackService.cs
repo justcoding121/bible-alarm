@@ -571,11 +571,9 @@ public class PlaybackService : IPlaybackService
         {
             _mediaElementService.MediaEnded -= OnMediaEnded;
             _mediaElementService.MediaFailed -= OnMediaFailed;
-            _playlistService?.Dispose();
-            _cacheService?.Dispose();
-            _storageService?.Dispose();
-            _networkStatusService?.Dispose();
-            _mediaElementService?.Dispose();
+            // Note: _playlistService, _cacheService, _storageService, _networkStatusService, 
+            // and _mediaElementService are singletons and should not be disposed here
+            // as they are managed by the DI container
         }
         catch (Exception ex)
         {

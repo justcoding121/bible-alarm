@@ -363,13 +363,13 @@ public class HomeViewModel : ViewModel, IDisposable
         _subscriptions.ForEach(x => x.Dispose());
 
         _scheduleDbContext.Dispose();
-        _popUpService.Dispose();
-        _mediaCacheService.Dispose();
-        _alarmService.Dispose();
-        _notificationService.Dispose();
         _mediaDbContext.Dispose();
 
         _lock.Dispose();
+        
+        // Note: _popUpService (IToastService), _mediaCacheService (IMediaCacheService), 
+        // _alarmService (IAlarmService), and _notificationService (INotificationService) 
+        // are singletons and should not be disposed here as they are managed by the DI container
     }
 }
 

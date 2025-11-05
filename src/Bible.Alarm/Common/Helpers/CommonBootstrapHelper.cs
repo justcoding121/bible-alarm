@@ -27,7 +27,7 @@ public static class CommonBootstrapHelper
 
     private static async Task VerifyMediaLookUpService()
     {
-        using var service = ServiceProviderManager.GetService<MediaIndexService>();
+        var service = ServiceProviderManager.GetService<MediaIndexService>();
         await service.Verify();
     }
 

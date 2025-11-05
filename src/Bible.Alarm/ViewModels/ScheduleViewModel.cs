@@ -762,10 +762,11 @@ public class ScheduleViewModel : ViewModel, IDisposable
         _subscriptions.Clear();
 
         _scheduleDbContext.Dispose();
-        _popUpService.Dispose();
-        _alarmService.Dispose();
-        _notificationService.Dispose();
         _mediaDbContext.Dispose();
-        _batteryOptimizationManager?.Dispose();
+        
+        // Note: _popUpService (IToastService), _alarmService (IAlarmService), 
+        // _notificationService (INotificationService), and _batteryOptimizationManager 
+        // (IBatteryOptimizationManager) are singletons and should not be disposed here 
+        // as they are managed by the DI container
     }
 }
