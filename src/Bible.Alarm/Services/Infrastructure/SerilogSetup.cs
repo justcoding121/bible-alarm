@@ -45,6 +45,12 @@ public class SerilogSetup
             foreach (var tag in tags)
                 loggerConfig.Enrich.WithProperty("Tag", tag);
 
+        // Configure debug sink for Visual Studio debug window
+#if DEBUG
+        loggerConfig.WriteTo.Debug(
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
+#endif
+
         // Configure console sink
         loggerConfig.WriteTo.Console(
             outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);

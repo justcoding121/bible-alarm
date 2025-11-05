@@ -44,6 +44,12 @@ public class LogSetup
             foreach (var tag in tags)
                 loggerConfig.Enrich.WithProperty("Tag", tag);
 
+        // Configure debug sink for Visual Studio debug window
+#if DEBUG
+        loggerConfig.WriteTo.Debug(
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+#endif
+
         // Configure console sink
         loggerConfig.WriteTo.Console(
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");

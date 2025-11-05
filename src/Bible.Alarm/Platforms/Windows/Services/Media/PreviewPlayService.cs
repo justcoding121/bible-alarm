@@ -12,6 +12,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media
         public PreviewPlayService(MediaPlayer player)
         {
             _mediaPlayer = player;
+            
+            // Configure audio category for proper playback
+            _mediaPlayer.AudioCategory = MediaPlayerAudioCategory.Media;
+            
             _mediaPlayer.MediaEnded += MediaEndHandler;
             _mediaPlayer.CurrentStateChanged += BufferingStartedHandler;
         }
