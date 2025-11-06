@@ -8,7 +8,7 @@ using AndroidNet = global::Android.Net;
 using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.UI.Messenger;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.Jobs;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Serilog;

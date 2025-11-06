@@ -1,5 +1,5 @@
 using Bible.Alarm.Common;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Infrastructure.Schedule;

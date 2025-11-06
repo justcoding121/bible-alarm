@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.UI;

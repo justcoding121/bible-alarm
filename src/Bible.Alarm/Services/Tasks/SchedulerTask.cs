@@ -1,7 +1,7 @@
-﻿using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.Contracts.Scheduler;
-using Bible.Alarm.Contracts.Storage;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Microsoft.EntityFrameworkCore;
 using Serilog;

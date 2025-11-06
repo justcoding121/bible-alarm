@@ -6,25 +6,24 @@ using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Tasks;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.UI.Views.Bible;
-using Bible.Alarm.UI.Views.Music;
-// using Bible.Alarm.UI.Views.Schedule; // Schedule is a type, not a namespace
-using Bible.Alarm.UI.Views.General;
-// using Bible.Alarm.UI.Views.Shared; // Shared is a folder, not a namespace
-using Bible.Alarm.Contracts.Network;
-using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.Contracts.Battery;
-using Bible.Alarm.Contracts.Platform;
-using Bible.Alarm.Contracts.Scheduler;
-using Bible.Alarm.Contracts.Storage;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Views.Bible;
+using Bible.Alarm.Views.Music;
+// using Bible.Alarm.Views.Schedule; // Schedule is a type, not a namespace
+using Bible.Alarm.Views.General;
+// using Bible.Alarm.Views.Shared; // Shared is a folder, not a namespace
+using Bible.Alarm.Common.Interfaces.Network;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.Battery;
+using Bible.Alarm.Common.Interfaces.Platform;
+using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.UI.Services;
-using Bible.Alarm.UI.Views.Schedule;
-using Bible.Alarm.UI.Views.Shared;
+using Bible.Alarm.Views.Schedule;
+using Bible.Alarm.Views.Shared;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
 using Microsoft.EntityFrameworkCore;

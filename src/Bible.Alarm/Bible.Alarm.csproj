@@ -77,7 +77,7 @@
 	<!-- XAML Files -->
 	<ItemGroup>
 		<MauiXaml Include="App.xaml" />
-		<MauiXaml Include="UI\Views\**\*.xaml" />
+		<MauiXaml Include="Views\**\*.xaml" />
 	</ItemGroup>
 	
 	<!-- Exclude Windows-specific XAML files from MAUI build -->

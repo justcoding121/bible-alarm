@@ -1,6 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.UI.Messenger;
+using Bible.Alarm.Common.Messenger;
 
 namespace Bible.Alarm.ViewModels.Shared;
 

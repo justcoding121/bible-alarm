@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Contracts.Platform;
+using Bible.Alarm.Common.Interfaces.Platform;
 using System.Reflection;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Platform

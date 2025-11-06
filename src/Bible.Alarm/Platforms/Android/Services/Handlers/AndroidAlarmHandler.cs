@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Microsoft.EntityFrameworkCore;

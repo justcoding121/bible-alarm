@@ -1,8 +1,8 @@
-﻿using Android.Content;
+using Android.Content;
 using AndroidBuild = global::Android.OS.Build;
 using AndroidProvider = global::Android.Provider;
 using AndroidApplication = global::Android.App.Application;
-using Bible.Alarm.Contracts.Battery;
+using Bible.Alarm.Common.Interfaces.Battery;
 
 
 using Serilog;

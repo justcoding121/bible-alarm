@@ -1,23 +1,23 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common.DataStructures;
-using Bible.Alarm.UI.Messenger;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Utilities;
 using Bible.Alarm.Shared.Services.Infrastructure.Media;
-using Bible.Alarm.ViewModels.Redux;
-using Bible.Alarm.ViewModels.Redux.Actions;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.Contracts.Scheduler;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Infrastructure.Schedule;
-using Bible.Alarm.ViewModels.Redux.Actions.Schedule;
+using Bible.Alarm.Stores.Actions.Schedule;
 
 namespace Bible.Alarm.ViewModels;
 

@@ -36,7 +36,7 @@ public class MediaService(
                 .ToDictionaryAsync(x => x.Code, x => x));
     }
 
-    public async Task<Common.DataStructures.OrderedDictionary<int, BibleBook>> GetBibleBooks(
+    public async Task<SortedDictionary<int, BibleBook>> GetBibleBooks(
         string languageCode, string versionCode)
     {
         await mediaLookUpService.Verify();
@@ -47,8 +47,7 @@ public class MediaService(
                 .SelectMany(x => x.Books)
                 .OrderBy(x => x.Number)
                 .ToListAsync();
-            return new Common.DataStructures.OrderedDictionary<int, BibleBook>(books.Select(x =>
-                new KeyValuePair<int, BibleBook>(x.Number, x)));
+            return new SortedDictionary<int, BibleBook>(books.ToDictionary(x => x.Number, x => x));
         });
     }
 
@@ -63,7 +62,7 @@ public class MediaService(
                 .FirstOrDefaultAsync());
     }
 
-    public async Task<Common.DataStructures.OrderedDictionary<int, BibleChapter>>
+    public async Task<SortedDictionary<int, BibleChapter>>
         GetBibleChapters(string languageCode, string versionCode, int bookNumber)
     {
         await mediaLookUpService.Verify();
@@ -78,8 +77,7 @@ public class MediaService(
                 .Include(x => x.Source)
                 .OrderBy(x => x.Number)
                 .ToListAsync();
-            return new Common.DataStructures.OrderedDictionary<int, BibleChapter>(
-                chapters.Select(x => new KeyValuePair<int, BibleChapter>(x.Number, x)));
+            return new SortedDictionary<int, BibleChapter>(chapters.ToDictionary(x => x.Number, x => x));
         });
     }
 
@@ -106,7 +104,7 @@ public class MediaService(
             await dbContext.MelodyMusic.ToDictionaryAsync(x => x.Code, x => x));
     }
 
-    public async Task<Common.DataStructures.OrderedDictionary<int, MusicTrack>>
+    public async Task<SortedDictionary<int, MusicTrack>>
         GetMelodyMusicTracks(string publicationCode)
     {
         await mediaLookUpService.Verify();
@@ -118,8 +116,7 @@ public class MediaService(
                 .Include(x => x.Source)
                 .OrderBy(x => x.Number)
                 .ToListAsync();
-            return new Common.DataStructures.OrderedDictionary<int, MusicTrack>(tracks.Select(x =>
-                new KeyValuePair<int, MusicTrack>(x.Number, x)));
+            return new SortedDictionary<int, MusicTrack>(tracks.ToDictionary(x => x.Number, x => x));
         });
     }
 
@@ -141,7 +138,7 @@ public class MediaService(
                 .ToDictionaryAsync(x => x.Code, x => x));
     }
 
-    public async Task<Common.DataStructures.OrderedDictionary<int, MusicTrack>>
+    public async Task<SortedDictionary<int, MusicTrack>>
         GetVocalMusicTracks(string languageCode, string publicationCode)
     {
         await mediaLookUpService.Verify();
@@ -154,8 +151,7 @@ public class MediaService(
                 .Include(x => x.Source)
                 .OrderBy(x => x.Number)
                 .ToListAsync();
-            return new Common.DataStructures.OrderedDictionary<int, MusicTrack>(tracks.Select(x =>
-                new KeyValuePair<int, MusicTrack>(x.Number, x)));
+            return new SortedDictionary<int, MusicTrack>(tracks.ToDictionary(x => x.Number, x => x));
         });
     }
 

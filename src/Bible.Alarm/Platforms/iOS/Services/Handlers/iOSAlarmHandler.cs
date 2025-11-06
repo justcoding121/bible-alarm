@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Common.Interfaces.Media;
 using Serilog;
 using UIKit;
 

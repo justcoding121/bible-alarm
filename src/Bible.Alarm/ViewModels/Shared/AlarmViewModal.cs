@@ -1,7 +1,7 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Shared.Constants;

@@ -1,5 +1,5 @@
-﻿using Bible.Alarm.Contracts.Scheduler;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.Scheduler;

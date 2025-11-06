@@ -1,11 +1,11 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.ViewModels.Redux;
-using Bible.Alarm.ViewModels.Redux.Actions.Bible;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.ViewModels.Shared;
 
 namespace Bible.Alarm.ViewModels.Bible;

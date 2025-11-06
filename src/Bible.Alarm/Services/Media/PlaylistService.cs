@@ -1,6 +1,7 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.UI.Messenger;
-using Bible.Alarm.Contracts.Media;
+using System.Linq;
+using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -326,7 +327,7 @@ public class PlaylistService(
     {
         var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber);
         var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
-        var nextChapter = chapters.NextHigher(chapter);
+        var nextChapter = chapters.SkipWhile(kvp => kvp.Key <= chapter).FirstOrDefault();
 
         if (!nextChapter.Equals(default(KeyValuePair<int, BibleChapter>)))
             return new KeyValuePair<BibleBook, BibleChapter>(currentBook, nextChapter.Value);
@@ -334,7 +335,7 @@ public class PlaylistService(
         var nextBook = await GetNextBibleBook(languageCode, publicationCode, bookNumber);
 
         chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, nextBook.Key);
-        return new KeyValuePair<BibleBook, BibleChapter>(nextBook.Value, chapters[1]);
+        return new KeyValuePair<BibleBook, BibleChapter>(nextBook.Value, chapters.ElementAt(1).Value);
     }
 
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetPreviousBibleChapter(string languageCode,
@@ -342,7 +343,7 @@ public class PlaylistService(
     {
         var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber);
         var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
-        var previousChapter = chapters.NextLower(chapter);
+        var previousChapter = chapters.Reverse().SkipWhile(kvp => kvp.Key >= chapter).FirstOrDefault();
 
         if (!previousChapter.Equals(default(KeyValuePair<int, BibleChapter>)))
             return new KeyValuePair<BibleBook, BibleChapter>(currentBook, previousChapter.Value);
@@ -350,29 +351,31 @@ public class PlaylistService(
         var previousBook = await GetPreviousBibleBook(languageCode, publicationCode, bookNumber);
 
         chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, previousBook.Key);
-        return new KeyValuePair<BibleBook, BibleChapter>(previousBook.Value, chapters[chapters.Count]);
+        return new KeyValuePair<BibleBook, BibleChapter>(previousBook.Value, chapters.ElementAt(chapters.Count - 1).Value);
     }
 
     public async Task<KeyValuePair<int, BibleBook>> GetPreviousBibleBook(string languageCode, string publicationCode,
         int bookNumber)
     {
         var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
-        var previousBook = books.NextLower(bookNumber);
+        var previousBook = books.Reverse().SkipWhile(kvp => kvp.Key >= bookNumber).FirstOrDefault();
 
         if (!previousBook.Equals(default(KeyValuePair<int, BibleBook>))) return previousBook;
 
-        return books.Max();
+        var maxKey = books.Keys.Max();
+        return new KeyValuePair<int, BibleBook>(maxKey, books[maxKey]);
     }
 
     public async Task<KeyValuePair<int, BibleBook>> GetNextBibleBook(string languageCode, string publicationCode,
         int bookNumber)
     {
         var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
-        var previousBook = books.NextHigher(bookNumber);
+        var previousBook = books.SkipWhile(kvp => kvp.Key <= bookNumber).FirstOrDefault();
 
         if (!previousBook.Equals(default(KeyValuePair<int, BibleBook>))) return previousBook;
 
-        return books.Min();
+        var minKey = books.Keys.Min();
+        return new KeyValuePair<int, BibleBook>(minKey, books[minKey]);
     }
 
     private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)

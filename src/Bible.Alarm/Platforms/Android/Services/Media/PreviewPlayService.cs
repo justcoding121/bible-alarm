@@ -1,7 +1,7 @@
-﻿using Android.Media;
+using Android.Media;
 using AndroidApplication = global::Android.App.Application;
 using AndroidNet = global::Android.Net;
-using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Common.Interfaces.Media;
 
 
 

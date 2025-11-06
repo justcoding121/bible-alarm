@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 // Removed UWP toast notification APIs - using WinUI 3 alternatives
 using Bible.Alarm.Platforms.Windows.Services.Handlers;

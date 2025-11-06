@@ -1,4 +1,4 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content;
 using Android.OS;
 using AndroidX.Core.App;
@@ -10,8 +10,8 @@ using AndroidX.Core.Content;
 using Android.Graphics;
 using AndroidApplication = global::Android.App.Application;
 using AndroidNet = global::Android.Net;
-using Bible.Alarm.Contracts.Storage;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;

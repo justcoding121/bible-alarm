@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ResourceDictionary
+    x:Class="Bible.Alarm.Views.FontFileResources"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <OnPlatform x:Key="FontAwesomeSolidId" x:TypeArguments="system:String">
+        <On Platform="iOS" Value="Font Awesome 5 Free" />
+        <On Platform="Android" Value="Font Awesome 5 Free-Solid-900.otf#Font Awesome 5 Free Solid" />
+        <On Platform="WinUI" Value="FontAwesomeSolid" />
+    </OnPlatform>
+    <Style x:Key="FontAwesomeSolid" TargetType="Label">
+        <Setter Property="FontFamily" Value="{StaticResource FontAwesomeSolidId}" />
+    </Style>
+</ResourceDictionary>

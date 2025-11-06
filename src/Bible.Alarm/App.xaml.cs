@@ -1,9 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.UI.Messenger;
-using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.Contracts.UI;
+using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.UI.Views;
+using Bible.Alarm.Views;
 using Bible.Alarm.ViewModels;
 
 #nullable enable

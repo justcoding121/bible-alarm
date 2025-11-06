@@ -4,7 +4,7 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Views;
 using Bible.Alarm.Common;
-using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Common.Interfaces.Media;
 using Serilog;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 

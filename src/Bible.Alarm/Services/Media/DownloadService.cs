@@ -1,5 +1,5 @@
 using System.Net;
-using Bible.Alarm.Contracts.Media;
+using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Shared.Constants;
 using Polly;
 using Polly.Retry;

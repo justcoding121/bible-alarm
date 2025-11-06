@@ -1,8 +1,8 @@
 using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.UI.Messenger;
-using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.Contracts.Network;
-using Bible.Alarm.Contracts.Storage;
+using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.Network;
+using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
 

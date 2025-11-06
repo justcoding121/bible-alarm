@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.UI.Messenger;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 

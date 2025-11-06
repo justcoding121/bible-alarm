@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Contracts.Platform;
+using Bible.Alarm.Common.Interfaces.Platform;
 using Foundation;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Platform

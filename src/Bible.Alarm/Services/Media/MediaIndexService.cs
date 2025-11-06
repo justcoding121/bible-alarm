@@ -1,7 +1,7 @@
-﻿using System.IO.Compression;
-using Bible.Alarm.Contracts.Media;
-using Bible.Alarm.Contracts.Platform;
-using Bible.Alarm.Contracts.Storage;
+using System.IO.Compression;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.Platform;
+using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
 

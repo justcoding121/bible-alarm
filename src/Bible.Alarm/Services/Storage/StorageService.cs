@@ -1,5 +1,5 @@
-﻿using System.Reflection;
-using Bible.Alarm.Contracts.Storage;
+using System.Reflection;
+using Bible.Alarm.Common.Interfaces.Storage;
 
 namespace Bible.Alarm.Services.Storage;
 
