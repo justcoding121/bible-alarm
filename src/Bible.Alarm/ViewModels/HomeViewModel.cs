@@ -33,6 +33,8 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
 
     private readonly List<IDisposable> _subscriptions = [];
     private readonly Dictionary<ScheduleListItem, PropertyChangedEventHandler> _isEnabledHandlers = [];
+    // Map AlarmSchedule IDs to ScheduleListItem ViewModels for UI binding
+    private readonly Dictionary<long, ScheduleListItem> _scheduleViewModels = [];
 
 
     public HomeViewModel(
@@ -64,7 +66,7 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
 
             ReduxContainer.Store.Dispatch(new ViewScheduleAction
             {
-                SelectedScheduleListItem = x
+                SelectedSchedule = x.Schedule
             });
 
             using var scope = _scopeFactory.CreateScope();
@@ -75,11 +77,11 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
 
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
-        ObservableHashSet<ScheduleListItem> lastSchedules = null;
+        ObservableHashSet<AlarmSchedule> lastSchedules = null;
         var subscription = ReduxContainer.Store.Subscribe(state =>
         {
             if (state.Schedules == null || state.Schedules == lastSchedules) return;
-            Schedules = state.Schedules;
+            UpdateScheduleViewModels(state.Schedules);
             lastSchedules = state.Schedules;
             ListenIsEnabledChanges();
             IsBusy = false;
@@ -132,10 +134,9 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
                     }
                 }
 
-                var initialSchedules = new ObservableHashSet<ScheduleListItem>();
+                var initialSchedules = new ObservableHashSet<AlarmSchedule>();
                 foreach (var schedule in alarmSchedules)
-                    initialSchedules.Add(new ScheduleListItem(schedule,
-                        scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory));
+                    initialSchedules.Add(schedule);
 
                 ReduxContainer.Store.Dispatch(new InitializeAction { ScheduleList = initialSchedules });
 
@@ -190,6 +191,50 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
     {
         get => _schedules;
         set => SetProperty(ref _schedules, value);
+    }
+
+    private void UpdateScheduleViewModels(ObservableHashSet<AlarmSchedule> schedules)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger>();
+        
+        var newViewModels = new ObservableHashSet<ScheduleListItem>();
+        var currentViewModelIds = new HashSet<long>();
+
+        // Create or update ViewModels for each schedule
+        foreach (var schedule in schedules)
+        {
+            currentViewModelIds.Add(schedule.Id);
+            
+            if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
+            {
+                // Update existing ViewModel's Schedule property
+                existingViewModel.Schedule = schedule;
+                existingViewModel.IsEnabled = schedule.IsEnabled;
+                newViewModels.Add(existingViewModel);
+            }
+            else
+            {
+                // Create new ViewModel
+                var viewModel = new ScheduleListItem(schedule, logger, _scopeFactory);
+                _scheduleViewModels[schedule.Id] = viewModel;
+                newViewModels.Add(viewModel);
+            }
+        }
+
+        // Dispose and remove ViewModels for schedules that no longer exist
+        var toRemove = _scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
+        foreach (var id in toRemove)
+        {
+            if (_scheduleViewModels.TryGetValue(id, out var viewModel))
+            {
+                UnsubscribeFromIsEnabledChanges(viewModel);
+                viewModel.Dispose();
+                _scheduleViewModels.Remove(id);
+            }
+        }
+
+        Schedules = newViewModels;
     }
 
     private bool _isBusy = true;

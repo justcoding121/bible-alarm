@@ -20,21 +20,21 @@ public static partial class RootReducer
         if (action is AddScheduleAction)
         {
             var @params = action as AddScheduleAction;
-            var schedules = previousState.Schedules ?? new ObservableHashSet<ScheduleListItem>();
-            var newSchedules = new ObservableHashSet<ScheduleListItem>();
+            var schedules = previousState.Schedules ?? new ObservableHashSet<AlarmSchedule>();
+            var newSchedules = new ObservableHashSet<AlarmSchedule>();
             // Copy existing items
             if (schedules != null)
             {
-                foreach (var item in schedules)
+                foreach (var schedule in schedules)
                 {
-                    newSchedules.Add(item);
+                    newSchedules.Add(schedule);
                 }
             }
-            newSchedules.Add(@params.ScheduleListItem);
+            newSchedules.Add(@params.Schedule);
             return new ApplicationState
             {
                 Schedules = newSchedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
                 CurrentMusic = previousState.CurrentMusic,
                 TentativeMusic = previousState.TentativeMusic,
                 CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
@@ -44,23 +44,22 @@ public static partial class RootReducer
 
         if (action is RemoveScheduleAction)
         {
-            var item = (action as RemoveScheduleAction).ScheduleListItem;
+            var scheduleToRemove = (action as RemoveScheduleAction).Schedule;
             if (previousState.Schedules != null)
             {
-                var newSchedules = new ObservableHashSet<ScheduleListItem>();
-                // Copy existing items except the one being removed
+                var newSchedules = new ObservableHashSet<AlarmSchedule>();
+                // Copy existing items except the one being removed (compare by ID)
                 foreach (var schedule in previousState.Schedules)
                 {
-                    if (schedule != item)
+                    if (schedule.Id != scheduleToRemove.Id)
                     {
                         newSchedules.Add(schedule);
                     }
                 }
-                item.Dispose();
                 return new ApplicationState
                 {
                     Schedules = newSchedules,
-                    CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                    CurrentSchedule = previousState.CurrentSchedule?.Id == scheduleToRemove.Id ? null : previousState.CurrentSchedule,
                     CurrentMusic = previousState.CurrentMusic,
                     TentativeMusic = previousState.TentativeMusic,
                     CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
@@ -70,7 +69,36 @@ public static partial class RootReducer
             return previousState;
         }
 
-        if (action is UpdateScheduleAction) return previousState;
+        if (action is UpdateScheduleAction)
+        {
+            var updatedSchedule = (action as UpdateScheduleAction).Schedule;
+            if (previousState.Schedules != null)
+            {
+                var newSchedules = new ObservableHashSet<AlarmSchedule>();
+                // Update the schedule in the collection
+                foreach (var schedule in previousState.Schedules)
+                {
+                    if (schedule.Id == updatedSchedule.Id)
+                    {
+                        newSchedules.Add(updatedSchedule);
+                    }
+                    else
+                    {
+                        newSchedules.Add(schedule);
+                    }
+                }
+                return new ApplicationState
+                {
+                    Schedules = newSchedules,
+                    CurrentSchedule = previousState.CurrentSchedule?.Id == updatedSchedule.Id ? updatedSchedule : previousState.CurrentSchedule,
+                    CurrentMusic = previousState.CurrentMusic,
+                    TentativeMusic = previousState.TentativeMusic,
+                    CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                    TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
+                };
+            }
+            return previousState;
+        }
 
         if (action is ViewScheduleAction)
         {
@@ -78,7 +106,11 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = @params.SelectedScheduleListItem
+                CurrentSchedule = @params.SelectedSchedule,
+                CurrentMusic = previousState.CurrentMusic,
+                TentativeMusic = previousState.TentativeMusic,
+                CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
             };
         }
 
@@ -94,8 +126,11 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
-                CurrentMusic = @params.CurrentMusic
+                CurrentSchedule = previousState.CurrentSchedule,
+                CurrentMusic = @params.CurrentMusic,
+                TentativeMusic = previousState.TentativeMusic,
+                CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
             };
         }
 
@@ -105,9 +140,11 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
                 CurrentMusic = previousState.CurrentMusic,
-                TentativeMusic = @params.TentativeMusic
+                TentativeMusic = @params.TentativeMusic,
+                CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
             };
         }
 
@@ -117,9 +154,11 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
                 CurrentMusic = previousState.CurrentMusic,
-                TentativeMusic = @params.TentativeMusic
+                TentativeMusic = @params.TentativeMusic,
+                CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
             };
         }
 
@@ -129,9 +168,11 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
                 CurrentMusic = @params.CurrentMusic,
-                TentativeMusic = previousState.TentativeMusic
+                TentativeMusic = previousState.TentativeMusic,
+                CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
             };
         }
 
@@ -141,7 +182,9 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
+                CurrentMusic = previousState.CurrentMusic,
+                TentativeMusic = previousState.TentativeMusic,
                 CurrentBibleReadingSchedule = @params.CurrentBibleReadingSchedule,
                 TentativeBibleReadingSchedule = @params.TentativeBibleReadingSchedule
             };
@@ -153,7 +196,9 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
+                CurrentMusic = previousState.CurrentMusic,
+                TentativeMusic = previousState.TentativeMusic,
                 CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
                 TentativeBibleReadingSchedule = @params.TentativeBibleReadingSchedule
             };
@@ -165,7 +210,9 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
+                CurrentMusic = previousState.CurrentMusic,
+                TentativeMusic = previousState.TentativeMusic,
                 CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
                 TentativeBibleReadingSchedule = @params.TentativeBibleReadingSchedule
             };
@@ -177,7 +224,9 @@ public static partial class RootReducer
             return new ApplicationState
             {
                 Schedules = previousState.Schedules,
-                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentSchedule = previousState.CurrentSchedule,
+                CurrentMusic = previousState.CurrentMusic,
+                TentativeMusic = previousState.TentativeMusic,
                 CurrentBibleReadingSchedule = @params.CurrentBibleReadingSchedule,
                 TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
             };

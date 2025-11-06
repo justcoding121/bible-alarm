@@ -5,9 +5,9 @@ namespace Bible.Alarm.ViewModels.Redux;
 
 public class ApplicationState
 {
-    public ObservableHashSet<ScheduleListItem> Schedules { get; set; }
+    public ObservableHashSet<AlarmSchedule> Schedules { get; set; }
 
-    public ScheduleListItem CurrentScheduleListItem { get; set; }
+    public AlarmSchedule CurrentSchedule { get; set; }
 
     public AlarmMusic CurrentMusic { get; set; }
     public AlarmMusic TentativeMusic { get; set; }

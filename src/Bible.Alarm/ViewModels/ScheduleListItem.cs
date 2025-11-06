@@ -141,6 +141,12 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
 
     public void RefreshChapterName(bool force = false)
     {
+        if (_scopeFactory == null || _logger == null)
+        {
+            // Dependencies not available - skip refresh
+            return;
+        }
+
         using var scope = _scopeFactory.CreateScope();
         var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
 

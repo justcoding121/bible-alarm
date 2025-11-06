@@ -71,32 +71,18 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
-        ScheduleListItem lastScheduleListItem = null;
+        AlarmSchedule lastSchedule = null;
         bool modelInitialized = false;
         IDisposable subscription = null;
         subscription = ReduxContainer.Store.Subscribe(async state =>
         {
-            if (state.CurrentScheduleListItem != null && state.CurrentScheduleListItem != lastScheduleListItem)
+            if (state.CurrentSchedule != null && state.CurrentSchedule != lastSchedule)
             {
-                _scheduleListItem = state.CurrentScheduleListItem;
-                lastScheduleListItem = _scheduleListItem;
+                _currentSchedule = state.CurrentSchedule;
+                lastSchedule = _currentSchedule;
 
-                var model = _scheduleListItem?.Schedule;
-
-                IsNewSchedule = model == null ? true : false;
-
-                AlarmSchedule modelToSet;
-
-                if (model == null)
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    modelToSet = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
-                }
-                else
-                    modelToSet = model;
-
-                SetModel(modelToSet);
+                IsNewSchedule = false;
+                SetModel(_currentSchedule);
                 modelInitialized = true;
 
                 IsBusy = false;
@@ -105,9 +91,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 _subscriptions.Remove(subscription);
                 subscription?.Dispose();
             }
-            else if (!modelInitialized && state.CurrentScheduleListItem == null)
+            else if (!modelInitialized && state.CurrentSchedule == null)
             {
-                // Initialize with sample schedule if state doesn't have CurrentScheduleListItem
+                // Initialize with sample schedule if state doesn't have CurrentSchedule
                 using var scope = _scopeFactory.CreateScope();
                 var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
                 var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
@@ -422,7 +408,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     }
 
 
-    private ScheduleListItem _scheduleListItem;
+    private AlarmSchedule _currentSchedule;
 
     public ICommand CancelCommand { get; set; }
 
@@ -665,7 +651,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             using var scope = _scopeFactory.CreateScope();
             ReduxContainer.Store.Dispatch(new AddScheduleAction
             {
-                ScheduleListItem = new ScheduleListItem(model, scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory)
+                Schedule = model
             });
         }
         else
@@ -716,11 +702,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 _alarmService.Update(model);
             });
 
-            _scheduleListItem.Schedule = model;
-            _scheduleListItem.RaisePropertiesChangedEvent();
-            _scheduleListItem.RefreshChapterName(true);
+            // Update the current schedule reference
+            _currentSchedule = model;
 
-            ReduxContainer.Store.Dispatch(new UpdateScheduleAction { ScheduleListItem = _scheduleListItem });
+            ReduxContainer.Store.Dispatch(new UpdateScheduleAction { Schedule = model });
         }
 
         SetupMediaCache(model.Id);
@@ -753,7 +738,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 await scheduleDbContext.SaveChangesAsync();
             });
 
-            ReduxContainer.Store.Dispatch(new RemoveScheduleAction { ScheduleListItem = _scheduleListItem });
+            ReduxContainer.Store.Dispatch(new RemoveScheduleAction { Schedule = _currentSchedule });
         }
     }
 
