@@ -20,7 +20,7 @@
     <AndroidEnableSGenConcurrent Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidEnableSGenConcurrent>
     <AndroidAotEnable Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidAotEnable>
     <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
-    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android</AndroidLinkSkip>
+    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android;Quartz</AndroidLinkSkip>
     
     <!-- Additional performance optimizations -->
     <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
@@ -32,6 +32,6 @@
     <AndroidAotEnable Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidAotEnable>
     <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
     <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
-    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android</AndroidLinkSkip>
+    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android;Quartz</AndroidLinkSkip>
   </PropertyGroup>
 </Project>
