@@ -1,5 +1,5 @@
 ﻿using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models;
@@ -11,7 +11,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class AlarmViewModal : ViewModel, IDisposableModal
+public class AlarmViewModal : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
     private readonly IPlaybackService _playbackService;
@@ -191,7 +191,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public string Title
     {
         get => _title;
-        set => this.Set(ref _title, value);
+        set => SetProperty(ref _title, value);
     }
 
     private string _subTitle;
@@ -199,7 +199,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public string SubTitle
     {
         get => _subTitle;
-        set => this.Set(ref _subTitle, value);
+        set => SetProperty(ref _subTitle, value);
     }
 
     private string _description;
@@ -207,7 +207,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public string Description
     {
         get => _description;
-        set => this.Set(ref _description, value);
+        set => SetProperty(ref _description, value);
     }
 
     private bool _playVisible;
@@ -215,7 +215,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public bool PlayVisible
     {
         get => _playVisible;
-        set => this.Set(ref _playVisible, value);
+        set => SetProperty(ref _playVisible, value);
     }
 
     private bool _pauseVisible;
@@ -223,7 +223,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public bool PauseVisible
     {
         get => _pauseVisible;
-        set => this.Set(ref _pauseVisible, value);
+        set => SetProperty(ref _pauseVisible, value);
     }
 
     private string _currentTime;
@@ -231,7 +231,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public string CurrentTime
     {
         get => _currentTime;
-        set => this.Set(ref _currentTime, value);
+        set => SetProperty(ref _currentTime, value);
     }
 
     private string _endTime;
@@ -239,7 +239,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public string EndTime
     {
         get => _endTime;
-        set => this.Set(ref _endTime, value);
+        set => SetProperty(ref _endTime, value);
     }
 
     private double _progress;
@@ -247,7 +247,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public double Progress
     {
         get => _progress;
-        set => this.Set(ref _progress, value);
+        set => SetProperty(ref _progress, value);
     }
 
     private bool _nextEnabled;
@@ -255,7 +255,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public bool NextEnabled
     {
         get => _nextEnabled;
-        set => this.Set(ref _nextEnabled, value);
+        set => SetProperty(ref _nextEnabled, value);
     }
 
     private bool _previousEnabled;
@@ -263,7 +263,7 @@ public class AlarmViewModal : ViewModel, IDisposableModal
     public bool PreviousEnabled
     {
         get => _previousEnabled;
-        set => this.Set(ref _previousEnabled, value);
+        set => SetProperty(ref _previousEnabled, value);
     }
 
     public void Dispose()

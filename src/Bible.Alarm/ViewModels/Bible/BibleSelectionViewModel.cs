@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
@@ -10,7 +10,7 @@ using Bible.Alarm.ViewModels.Shared;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
+public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
@@ -149,7 +149,7 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public ObservableCollection<PublicationListViewItemModel> Translations
     {
         get => _translations;
-        set => this.Set(ref _translations, value);
+        set => SetProperty(ref _translations, value);
     }
 
     private ObservableCollection<LanguageListViewItemModel> _languages;
@@ -157,7 +157,7 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public ObservableCollection<LanguageListViewItemModel> Languages
     {
         get => _languages;
-        set => this.Set(ref _languages, value);
+        set => SetProperty(ref _languages, value);
     }
 
     public PublicationListViewItemModel SelectedTranslation { get; set; }
@@ -167,7 +167,7 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public LanguageListViewItemModel CurrentLanguage
     {
         get => _currentLanguage;
-        set => this.Set(ref _currentLanguage, value);
+        set => SetProperty(ref _currentLanguage, value);
     }
 
     private bool _isBusy;
@@ -175,13 +175,17 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     public string PublicationCode
     {
         get => _tentative.PublicationCode;
-        set => this.Set(_tentative.PublicationCode, value);
+        set
+        {
+            _tentative.PublicationCode = value;
+            OnPropertyChanged();
+        }
     }
 
     private string _languageSearchTerm;
@@ -189,7 +193,7 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public string LanguageSearchTerm
     {
         get => _languageSearchTerm;
-        set => this.Set(ref _languageSearchTerm, value);
+        set => SetProperty(ref _languageSearchTerm, value);
     }
 
     public object SelectedItem => CurrentLanguage;

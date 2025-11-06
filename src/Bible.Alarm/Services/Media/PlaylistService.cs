@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Common.Mvvm.Messenger;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Models.Enums;
@@ -102,7 +103,7 @@ public class PlaylistService(
 
         await scheduleDbContext.SaveChangesAsync();
 
-        if (trackChanged) Messenger<object>.Publish(MvvmMessages.TrackChanged, schedule.Id);
+        if (trackChanged) WeakReferenceMessenger.Default.Send(new TrackChangedMessage((int)schedule.Id));
     }
 
     public async Task MarkTrackAsFinished(NotificationDetail trackDetail)
@@ -137,7 +138,7 @@ public class PlaylistService(
 
         await scheduleDbContext.SaveChangesAsync();
 
-        Messenger<object>.Publish(MvvmMessages.TrackChanged, schedule.Id);
+        WeakReferenceMessenger.Default.Send(new TrackChangedMessage((int)schedule.Id));
     }
 
     public async Task<PlayItem> NextTrack(long scheduleId)

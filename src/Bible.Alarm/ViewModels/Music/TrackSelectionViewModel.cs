@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Shared.Models.Enums;
@@ -14,7 +14,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class TrackSelectionViewModel : ViewModel, IDisposable
+public class TrackSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
 
@@ -118,7 +118,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     public ObservableCollection<MusicTrackListViewItemModel> Tracks { get; set; } = [];
@@ -350,7 +350,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
     }
 }
 
-public class MusicTrackListViewItemModel : ViewModel, IComparable
+public class MusicTrackListViewItemModel : ObservableObject, IComparable
 {
     private readonly MusicTrack _track;
     private readonly bool _isMelody;
@@ -369,7 +369,7 @@ public class MusicTrackListViewItemModel : ViewModel, IComparable
     public bool IsSelected
     {
         get => _isSelected;
-        set => this.Set(ref _isSelected, value);
+        set => SetProperty(ref _isSelected, value);
     }
 
     public string LookUpPath => _track.Source.LookUpPath;
@@ -383,7 +383,7 @@ public class MusicTrackListViewItemModel : ViewModel, IComparable
     public bool Play
     {
         get => _play;
-        set => this.Set(ref _play, value);
+        set => SetProperty(ref _play, value);
     }
 
     private bool _repeat;
@@ -391,7 +391,7 @@ public class MusicTrackListViewItemModel : ViewModel, IComparable
     public bool Repeat
     {
         get => _repeat;
-        set => this.Set(ref _repeat, value);
+        set => SetProperty(ref _repeat, value);
     }
 
     private bool _isBusy;
@@ -399,7 +399,7 @@ public class MusicTrackListViewItemModel : ViewModel, IComparable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     public ICommand TogglePlayCommand { get; set; }

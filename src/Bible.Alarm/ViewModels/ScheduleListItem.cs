@@ -1,6 +1,7 @@
-﻿using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Common.Mvvm.Messenger;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging;
+using System.Windows.Input;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
@@ -12,7 +13,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels;
 
-public class ScheduleListItem : ViewModel, IComparable, IDisposable
+public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRecipient<TrackChangedMessage>
 {
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -58,13 +59,7 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
 
         RefreshChapterName(true);
 
-        _subscription = Messenger<object>.Subscribe(MvvmMessages.TrackChanged,
-            (x) =>
-            {
-                if ((int)x == Schedule.Id) RefreshChapterName();
-
-                return Task.CompletedTask;
-            });
+        WeakReferenceMessenger.Default.Register<TrackChangedMessage>(this);
 
         PreviousCommand = new Command(async () =>
         {
@@ -113,7 +108,7 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
     public bool IsEnabled
     {
         get => _isEnabled;
-        set => this.Set(ref _isEnabled, value);
+        set => SetProperty(ref _isEnabled, value);
     }
 
     public DaysOfWeek DaysOfWeek => Schedule.DaysOfWeek;
@@ -135,10 +130,14 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
 
     public void RaisePropertiesChangedEvent()
     {
-        RaiseProperties(GetType()
+        var properties = GetType()
             .GetProperties()
             .Where(x => x.Name != "IsEnabled")
-            .Select(x => x.Name).ToArray());
+            .Select(x => x.Name);
+        foreach (var property in properties)
+        {
+            OnPropertyChanged(property);
+        }
     }
 
     public void RefreshChapterName(bool force = false)
@@ -198,7 +197,7 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
                     if (!x.IsCompleted || x.Result == null) return;
 
                     SubTitle = $"{x.Result.Item1} {x.Result.Item2}";
-                    RaiseProperty("SubTitle");
+                    OnPropertyChanged(nameof(SubTitle));
                 }
                 catch (Exception e)
                 {
@@ -212,8 +211,16 @@ public class ScheduleListItem : ViewModel, IComparable, IDisposable
         return ScheduleId.CompareTo(((ScheduleListItem)obj).ScheduleId);
     }
 
+    public void Receive(TrackChangedMessage message)
+    {
+        if (message.Value == Schedule.Id)
+        {
+            RefreshChapterName();
+        }
+    }
+
     public void Dispose()
     {
-        _subscription?.Dispose();
+        WeakReferenceMessenger.Default.Unregister<TrackChangedMessage>(this);
     }
 }

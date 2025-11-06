@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
@@ -10,7 +10,7 @@ using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class BookSelectionViewModel : ViewModel, IDisposable
+public class BookSelectionViewModel : ObservableObject, IDisposable
 {
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
@@ -116,7 +116,7 @@ public class BookSelectionViewModel : ViewModel, IDisposable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     private ObservableCollection<BibleBookListViewItemModel> _books;
@@ -124,7 +124,7 @@ public class BookSelectionViewModel : ViewModel, IDisposable
     public ObservableCollection<BibleBookListViewItemModel> Books
     {
         get => _books;
-        set => this.Set(ref _books, value);
+        set => SetProperty(ref _books, value);
     }
 
     private async Task Initialize(string languageCode, string publicationCode)
@@ -171,14 +171,14 @@ public class BookSelectionViewModel : ViewModel, IDisposable
     }
 }
 
-public class BibleBookListViewItemModel(BibleBook book) : ViewModel, IComparable
+public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, IComparable
 {
     private bool _isSelected;
 
     public bool IsSelected
     {
         get => _isSelected;
-        set => this.Set(ref _isSelected, value);
+        set => SetProperty(ref _isSelected, value);
     }
 
     public string Name => book.Name;

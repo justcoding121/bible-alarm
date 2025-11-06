@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Common.Extensions;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Contracts.Battery;
 using Bible.Alarm.Models;
 using Bible.Alarm.ViewModels.Redux;
@@ -6,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Scheduler;
 using Bible.Alarm.Contracts.UI;
@@ -23,7 +23,7 @@ using Bible.Alarm.ViewModels.Shared;
 
 namespace Bible.Alarm.ViewModels;
 
-public class ScheduleViewModel : ViewModel, IDisposable
+public class ScheduleViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
 
@@ -387,7 +387,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public bool CanOptimizeBattery
     {
         get => _canOptimizeBattery;
-        set => this.Set(ref _canOptimizeBattery, value);
+        set => SetProperty(ref _canOptimizeBattery, value);
     }
 
     private async Task MarkBatteryOptimizationModalAsShown()
@@ -447,7 +447,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public ObservableCollection<NumberOfChaptersListViewItemModel> NumberOfChaptersList
     {
         get => _numberOfChaptersList;
-        set => this.Set(ref _numberOfChaptersList, value);
+        set => SetProperty(ref _numberOfChaptersList, value);
     }
 
     private NumberOfChaptersListViewItemModel _currentNumberOfChapters;
@@ -455,7 +455,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public NumberOfChaptersListViewItemModel CurrentNumberOfChapters
     {
         get => _currentNumberOfChapters;
-        set => this.Set(ref _currentNumberOfChapters, value);
+        set => SetProperty(ref _currentNumberOfChapters, value);
     }
 
     private void PopulateNumberOfChaptersListView(AlarmSchedule model)
@@ -519,7 +519,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     private string _name;
@@ -527,7 +527,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public string Name
     {
         get => _name;
-        set => this.Set(ref _name, value);
+        set => SetProperty(ref _name, value);
     }
 
     private bool _isEnabled;
@@ -535,7 +535,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public bool IsEnabled
     {
         get => _isEnabled;
-        set => this.Set(ref _isEnabled, value);
+        set => SetProperty(ref _isEnabled, value);
     }
 
     private DaysOfWeek _daysOfWeek;
@@ -543,7 +543,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public DaysOfWeek DaysOfWeek
     {
         get => _daysOfWeek;
-        set => this.Set(ref _daysOfWeek, value);
+        set => SetProperty(ref _daysOfWeek, value);
     }
 
     private TimeSpan _time;
@@ -551,7 +551,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public TimeSpan Time
     {
         get => _time;
-        set => this.Set(ref _time, value);
+        set => SetProperty(ref _time, value);
     }
 
     public string Hour => (Time.Hours % 12).ToString("D2");
@@ -565,7 +565,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public bool MusicEnabled
     {
         get => _musicEnabled;
-        set => this.Set(ref _musicEnabled, value);
+        set => SetProperty(ref _musicEnabled, value);
     }
 
     private bool _notificationEnabled;
@@ -577,7 +577,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
         {
             if (!value) _ = ShowBatteryOptimizationExclusionPage();
 
-            this.Set(ref _notificationEnabled, value);
+            SetProperty(ref _notificationEnabled, value);
         }
     }
 
@@ -586,7 +586,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public bool AlwaysPlayFromStart
     {
         get => _alwaysPlayFromStart;
-        set => this.Set(ref _alwaysPlayFromStart, value);
+        set => SetProperty(ref _alwaysPlayFromStart, value);
     }
 
     private bool _musicUpdated;
@@ -610,7 +610,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
     public string BibleReadingTitleText
     {
         get => _bibleReadingTitleText;
-        set => this.Set(ref _bibleReadingTitleText, value);
+        set => SetProperty(ref _bibleReadingTitleText, value);
     }
 
     public bool IsNewSchedule { get; private set; }
@@ -623,7 +623,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
         else
             DaysOfWeek = DaysOfWeek | day;
 
-        RaiseProperty("DaysOfWeek");
+        OnPropertyChanged(nameof(DaysOfWeek));
     }
 
     private void SetupMediaCache(long scheduleId)
@@ -793,7 +793,6 @@ public class ScheduleViewModel : ViewModel, IDisposable
                     try
                     {
                         BibleReadingTitleText = $"{x.Result} {BibleReadingSchedule.ChapterNumber}";
-                        RaiseProperty("SubTitle");
                     }
                     catch (Exception e)
                     {

@@ -82,6 +82,9 @@ public static class MauiProgram
         // Initialize the global service provider for access from multiple entry points
         ServiceProviderManager.Initialize(app.Services);
 
+        // Create HomeViewModel early to ensure it subscribes before Init message is published
+        _ = app.Services.GetRequiredService<HomeViewModel>();
+
         // Initialize platform-specific bootstrap helpers
         InitializePlatformBootstrap(app.Services);
 

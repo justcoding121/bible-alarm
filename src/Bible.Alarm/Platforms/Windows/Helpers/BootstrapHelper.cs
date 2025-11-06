@@ -1,6 +1,7 @@
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Mvvm.Messenger;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 // Removed UWP background task APIs - not available in WinUI 3 desktop apps
@@ -49,7 +50,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             {
                 try
                 {
-                    Messenger<bool>.Publish(MvvmMessages.Initialized, true);
+                    WeakReferenceMessenger.Default.Send(new InitializedMessage(true));
 
                     await Task.Delay(1000);
 

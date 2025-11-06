@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
@@ -13,7 +13,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class ChapterSelectionViewModel : ViewModel, IDisposable
+public class ChapterSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
 
@@ -109,7 +109,7 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     private ObservableCollection<BibleChapterListViewItemModel> _chapters;
@@ -117,7 +117,7 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     public ObservableCollection<BibleChapterListViewItemModel> Chapters
     {
         get => _chapters;
-        set => this.Set(ref _chapters, value);
+        set => SetProperty(ref _chapters, value);
     }
 
     private BibleChapterListViewItemModel _currentlyPlaying;
@@ -312,7 +312,7 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     }
 }
 
-public class BibleChapterListViewItemModel : ViewModel, IComparable
+public class BibleChapterListViewItemModel : ObservableObject, IComparable
 {
     private readonly BibleChapter _chapter;
 
@@ -327,7 +327,7 @@ public class BibleChapterListViewItemModel : ViewModel, IComparable
     public bool IsSelected
     {
         get => _isSelected;
-        set => this.Set(ref _isSelected, value);
+        set => SetProperty(ref _isSelected, value);
     }
 
     public ICommand TogglePlayCommand { get; set; }
@@ -343,7 +343,7 @@ public class BibleChapterListViewItemModel : ViewModel, IComparable
     public bool Play
     {
         get => _play;
-        set => this.Set(ref _play, value);
+        set => SetProperty(ref _play, value);
     }
 
     private bool _isBusy;
@@ -351,7 +351,7 @@ public class BibleChapterListViewItemModel : ViewModel, IComparable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     public int CompareTo(object obj)

@@ -1,5 +1,7 @@
-﻿using Bible.Alarm.Common.DataStructures;
-using Bible.Alarm.Common.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.Common.DataStructures;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Utilities;
@@ -10,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Scheduler;
 using Bible.Alarm.Contracts.UI;
@@ -20,7 +21,7 @@ using Bible.Alarm.ViewModels.Redux.Actions.Schedule;
 
 namespace Bible.Alarm.ViewModels;
 
-public class HomeViewModel : ViewModel, IDisposable
+public class HomeViewModel : ObservableObject, IDisposable, IRecipient<InitializedMessage>
 {
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -85,7 +86,77 @@ public class HomeViewModel : ViewModel, IDisposable
         });
         _subscriptions.Add(subscription);
 
-        Initialize();
+        // Subscribe to Initialized message using WeakReferenceMessenger
+        WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
+    }
+
+    public void Receive(InitializedMessage message)
+    {
+        _ = HandleInitialized();
+    }
+
+    private async Task HandleInitialized()
+    {
+        await _lock.WaitAsync();
+
+        try
+        {
+            if (!_initialized)
+            {
+                await SeedDefaultAlarm();
+
+                using var scope = _scopeFactory.CreateScope();
+                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+
+                var alarmSchedules = await scheduleDbContext.AlarmSchedules
+                    .Include(x => x.BibleReadingSchedule)
+                    .Include(x => x.Music)
+                    .ToListAsync();
+
+                if (DeviceInfo.Platform == DevicePlatform.Android)
+                {
+                    //bible gateway is not supported anymore due to copyright issues
+                    var toRemove = alarmSchedules.Where(x =>
+                        BgSourceHelper.PublicationCodeToNameMappings.Any(y =>
+                            y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
+
+                    if (toRemove.Count != 0)
+                    {
+                        foreach (var item in toRemove)
+                        {
+                            item.BibleReadingSchedule.PublicationCode = "bi12";
+                            item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                        }
+
+                        await scheduleDbContext.SaveChangesAsync();
+                    }
+                }
+
+                var initialSchedules = new ObservableHashSet<ScheduleListItem>();
+                foreach (var schedule in alarmSchedules)
+                    initialSchedules.Add(new ScheduleListItem(schedule,
+                        scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory));
+
+                ReduxContainer.Store.Dispatch(new InitializeAction { ScheduleList = initialSchedules });
+
+                _initialized = true;
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.Error(e, "An error happened in HomeViewModel Initialize.");
+        }
+        finally
+        {
+            try
+            {
+                _lock.Release();
+            }
+            catch (ObjectDisposedException e)
+            {
+                _logger.Error(e, "HomeViewModel: @lock disposed error.");
+            }
+        }
     }
 
     private async Task SeedDefaultAlarm()
@@ -118,7 +189,7 @@ public class HomeViewModel : ViewModel, IDisposable
     public ObservableHashSet<ScheduleListItem> Schedules
     {
         get => _schedules;
-        set => this.Set(ref _schedules, value);
+        set => SetProperty(ref _schedules, value);
     }
 
     private bool _isBusy = true;
@@ -128,7 +199,7 @@ public class HomeViewModel : ViewModel, IDisposable
         get => _isBusy;
         set
         {
-            this.Set(ref _isBusy, value);
+            SetProperty(ref _isBusy, value);
             Loaded = !_isBusy;
         }
     }
@@ -139,7 +210,7 @@ public class HomeViewModel : ViewModel, IDisposable
     public bool Loaded
     {
         get => _loaded;
-        set => this.Set(ref _loaded, value);
+        set => SetProperty(ref _loaded, value);
     }
 
     public ICommand AddScheduleCommand { get; set; }
@@ -150,78 +221,11 @@ public class HomeViewModel : ViewModel, IDisposable
     public ScheduleViewModel SelectedSchedule
     {
         get => _selectedSchedule;
-        set => this.Set(ref _selectedSchedule, value);
+        set => SetProperty(ref _selectedSchedule, value);
     }
 
     private bool _initialized = false;
     private readonly SemaphoreSlim _lock = new(1);
-
-    private void Initialize()
-    {
-        Messenger<bool>.Subscribe(MvvmMessages.Initialized, async vm =>
-        {
-            await _lock.WaitAsync();
-
-            try
-            {
-                if (!_initialized)
-                {
-                    await SeedDefaultAlarm();
-
-                    using var scope = _scopeFactory.CreateScope();
-                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-                    var alarmSchedules = await scheduleDbContext.AlarmSchedules
-                        .Include(x => x.BibleReadingSchedule)
-                        .Include(x => x.Music)
-                        .ToListAsync();
-
-                    if (DeviceInfo.Platform == DevicePlatform.Android)
-                    {
-                        //bible gateway is not supported anymore due to copyright issues
-                        var toRemove = alarmSchedules.Where(x =>
-                            BgSourceHelper.PublicationCodeToNameMappings.Any(y =>
-                                y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
-
-                        if (toRemove.Count != 0)
-                        {
-                            foreach (var item in toRemove)
-                            {
-                                item.BibleReadingSchedule.PublicationCode = "bi12";
-                                item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-                            }
-
-                            await scheduleDbContext.SaveChangesAsync();
-                        }
-                    }
-
-                    var initialSchedules = new ObservableHashSet<ScheduleListItem>();
-                    foreach (var schedule in alarmSchedules)
-                        initialSchedules.Add(new ScheduleListItem(schedule,
-                            scope.ServiceProvider.GetRequiredService<ILogger>(), _scopeFactory));
-
-                    ReduxContainer.Store.Dispatch(new InitializeAction { ScheduleList = initialSchedules });
-
-                    _initialized = true;
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "An error happened in HomeViewModel Initialize.");
-            }
-            finally
-            {
-                try
-                {
-                    _lock.Release();
-                }
-                catch (ObjectDisposedException e)
-                {
-                    _logger.Error(e, "HomeViewModel: @lock disposed error.");
-                }
-            }
-        }, true);
-    }
 
     private void ListenIsEnabledChanges()
     {
@@ -343,6 +347,9 @@ public class HomeViewModel : ViewModel, IDisposable
 
     public void Dispose()
     {
+        // Unsubscribe from WeakReferenceMessenger
+        WeakReferenceMessenger.Default.Unregister<InitializedMessage>(this);
+
         // Unsubscribe from all schedule IsEnabled changes
         if (Schedules != null)
         {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
@@ -11,7 +11,7 @@ using Bible.Alarm.ViewModels.Shared;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
+public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
@@ -155,7 +155,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     private ObservableCollection<PublicationListViewItemModel> _songBooks;
@@ -163,7 +163,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public ObservableCollection<PublicationListViewItemModel> SongBooks
     {
         get => _songBooks;
-        set => this.Set(ref _songBooks, value);
+        set => SetProperty(ref _songBooks, value);
     }
 
     private ObservableCollection<LanguageListViewItemModel> _languages;
@@ -171,7 +171,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public ObservableCollection<LanguageListViewItemModel> Languages
     {
         get => _languages;
-        set => this.Set(ref _languages, value);
+        set => SetProperty(ref _languages, value);
     }
 
     private LanguageListViewItemModel _currentLanguage;
@@ -179,7 +179,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public LanguageListViewItemModel CurrentLanguage
     {
         get => _currentLanguage;
-        set => this.Set(ref _currentLanguage, value);
+        set => SetProperty(ref _currentLanguage, value);
     }
 
     private string _languageSearchTerm;
@@ -187,7 +187,7 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
     public string LanguageSearchTerm
     {
         get => _languageSearchTerm;
-        set => this.Set(ref _languageSearchTerm, value);
+        set => SetProperty(ref _languageSearchTerm, value);
     }
 
     public PublicationListViewItemModel SelectedSongBook { get; set; }

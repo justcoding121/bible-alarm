@@ -1,4 +1,5 @@
-using Bible.Alarm.Common.Mvvm.Messenger;
+using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Contracts.Storage;
@@ -225,7 +226,7 @@ public class PlaybackService : IPlaybackService
     {
         try
         {
-            Messenger<object>.Publish(MvvmMessages.ClearToasts);
+            WeakReferenceMessenger.Default.Send(new ClearToastsMessage(null));
 
             _currentScheduleId = scheduleId;
 
@@ -259,8 +260,8 @@ public class PlaybackService : IPlaybackService
             var preparedTracks = 0;
             var totalTracks = nextTracks.Count;
 
-            Messenger<object>.Publish(MvvmMessages.ShowMediaProgessModal);
-            Messenger<object>.Publish(MvvmMessages.MediaProgress, new Tuple<int, int>(preparedTracks, totalTracks));
+            WeakReferenceMessenger.Default.Send(new ShowMediaProgressModalMessage(null));
+            WeakReferenceMessenger.Default.Send(new MediaProgressMessage(new Tuple<int, int>(preparedTracks, totalTracks)));
 
             // Process downloaded tracks
             var downloadedMediaItems = new Dictionary<int, string>();
@@ -269,8 +270,8 @@ public class PlaybackService : IPlaybackService
                 {
                     var filePath = track.Value.FullName;
                     downloadedMediaItems.Add(track.Key, filePath);
-                    Messenger<object>.Publish(MvvmMessages.MediaProgress,
-                        new Tuple<int, int>(++preparedTracks, totalTracks));
+                    WeakReferenceMessenger.Default.Send(new MediaProgressMessage(
+                        new Tuple<int, int>(++preparedTracks, totalTracks)));
                 }
                 catch (Exception ex)
                 {
@@ -302,8 +303,8 @@ public class PlaybackService : IPlaybackService
                     }
 
                     streamableMediaItems.Add(track.Key, url);
-                    Messenger<object>.Publish(MvvmMessages.MediaProgress,
-                        new Tuple<int, int>(++preparedTracks, totalTracks));
+                    WeakReferenceMessenger.Default.Send(new MediaProgressMessage(
+                        new Tuple<int, int>(++preparedTracks, totalTracks)));
                 }
                 catch (Exception ex)
                 {
@@ -315,7 +316,7 @@ public class PlaybackService : IPlaybackService
             foreach (var item in downloadedMediaItems) mergedMediaItems.Add(item.Key, item.Value);
             foreach (var item in streamableMediaItems) mergedMediaItems.Add(item.Key, item.Value);
 
-            Messenger<object>.Publish(MvvmMessages.HideMediaProgressModal);
+            WeakReferenceMessenger.Default.Send(new HideMediaProgressModalMessage(null));
 
             _currentlyPlaying = [];
 
@@ -376,8 +377,8 @@ public class PlaybackService : IPlaybackService
             }
             else
             {
-                Messenger<object>.Publish(MvvmMessages.ShowToast,
-                    "An error happened while downloading files. Your internet may be down.");
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage(
+                    "An error happened while downloading files. Your internet may be down."));
             }
         }
         catch (Exception ex)
@@ -452,7 +453,7 @@ public class PlaybackService : IPlaybackService
             {
                 // No more tracks - restart the playlist
                 _logger.Information("Playlist completed, restarting...");
-                Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
+                WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage(null));
 
                 var scheduleId = _currentScheduleId;
                 await Dismiss();
@@ -475,7 +476,7 @@ public class PlaybackService : IPlaybackService
             _logger.Error("Media playback failed");
             _isPlaying = false;
             await StopWatching();
-            Messenger<object>.Publish(MvvmMessages.HideAlarmModal);
+            WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage(null));
         }
         catch (Exception ex)
         {

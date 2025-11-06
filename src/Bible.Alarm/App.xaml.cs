@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Common.Mvvm.Messenger;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Services.Media;
@@ -50,7 +51,7 @@ public partial class App : Application
                 await InitializeHomePage(window);
                 
                 var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
+                if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
                 
                 System.Diagnostics.Debug.WriteLine("Service initialization completed!");
             }
@@ -118,7 +119,7 @@ public partial class App : Application
                 using var scope = _scopeFactory.CreateScope();
                 var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
-                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
+                if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
 
                 await Task.Delay(1000);
 
@@ -151,7 +152,7 @@ public partial class App : Application
                 using var scope = _scopeFactory.CreateScope();
                 var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
                 // Handle when your app resumes
-                if (playbackService.IsPrepared) Messenger<object>.Publish(MvvmMessages.ShowAlarmModal);
+                if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
 
                 await Task.Delay(1000);
 

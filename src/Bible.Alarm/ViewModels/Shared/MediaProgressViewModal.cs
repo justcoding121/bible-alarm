@@ -1,26 +1,33 @@
-﻿using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Common.Mvvm.Messenger;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.UI.Messenger;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class MediaProgressViewModal : ViewModel
+public class MediaProgressViewModal : ObservableObject, IDisposable, IRecipient<MediaProgressMessage>
 {
+    private readonly TaskScheduler _taskScheduler;
+
     public MediaProgressViewModal(TaskScheduler taskScheduler)
     {
-        var syncContext = taskScheduler;
+        _taskScheduler = taskScheduler;
+        WeakReferenceMessenger.Default.Register<MediaProgressMessage>(this);
+    }
 
-        Messenger<object>.Subscribe(MvvmMessages.MediaProgress, async vm =>
+    public void Receive(MediaProgressMessage message)
+    {
+        Task.Delay(0).ContinueWith((x) =>
         {
-            await Task.Delay(0).ContinueWith((x) =>
+            var kv = message.Value as Tuple<int, int>;
+            if (kv != null)
             {
-                var kv = vm as Tuple<int, int>;
                 _loadedTracks = kv.Item1;
                 _totalTracks = kv.Item2;
                 Progress = (double)kv.Item1 / (double)kv.Item2;
-                Raise("ProgressText");
-                Raise("Progress");
-            }, syncContext);
-        });
+                OnPropertyChanged(nameof(ProgressText));
+                OnPropertyChanged(nameof(Progress));
+            }
+        }, _taskScheduler);
     }
 
     private int _loadedTracks;
@@ -31,5 +38,6 @@ public class MediaProgressViewModal : ViewModel
 
     public void Dispose()
     {
+        WeakReferenceMessenger.Default.Unregister<MediaProgressMessage>(this);
     }
 }

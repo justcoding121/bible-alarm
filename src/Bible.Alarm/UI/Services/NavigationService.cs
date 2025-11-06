@@ -1,6 +1,6 @@
-﻿using Bible.Alarm.Common.DataStructures;
-using Bible.Alarm.Common.Mvvm;
-using Bible.Alarm.Common.Mvvm.Messenger;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.Common.DataStructures;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.UI.Views.Bible;
@@ -15,7 +15,13 @@ using Serilog;
 
 namespace Bible.Alarm.UI.Services;
 
-public class NavigationService : INavigationService
+public class NavigationService : INavigationService, 
+    IRecipient<ShowAlarmModalMessage>,
+    IRecipient<HideAlarmModalMessage>,
+    IRecipient<ShowMediaProgressModalMessage>,
+    IRecipient<HideMediaProgressModalMessage>,
+    IRecipient<ShowToastMessage>,
+    IRecipient<ClearToastsMessage>
 {
     private readonly ILogger _logger;
     private INavigation _navigater;
@@ -32,23 +38,13 @@ public class NavigationService : INavigationService
         _navigater = navigater;
         _scopeFactory = scopeFactory;
 
-        Messenger<object>.Subscribe(MvvmMessages.ShowAlarmModal,
-            async @param => { await _queue.EnqueueAsync((MvvmMessages.ShowAlarmModal, @param)); });
-
-        Messenger<object>.Subscribe(MvvmMessages.HideAlarmModal,
-            async @param => { await _queue.EnqueueAsync((MvvmMessages.HideAlarmModal, @param)); });
-
-        Messenger<object>.Subscribe(MvvmMessages.ShowMediaProgessModal,
-            async @param => { await _queue.EnqueueAsync((MvvmMessages.ShowMediaProgessModal, @param)); });
-
-        Messenger<object>.Subscribe(MvvmMessages.HideMediaProgressModal,
-            async @param => { await _queue.EnqueueAsync((MvvmMessages.HideMediaProgressModal, @param)); });
-
-        Messenger<object>.Subscribe(MvvmMessages.ShowToast,
-            async @param => { await _queue.EnqueueAsync((MvvmMessages.ShowToast, @param)); });
-
-        Messenger<object>.Subscribe(MvvmMessages.ClearToasts,
-            async @param => { await _queue.EnqueueAsync((MvvmMessages.ClearToasts, @param)); });
+        // Register for all messages
+        WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
+        WeakReferenceMessenger.Default.Register<HideAlarmModalMessage>(this);
+        WeakReferenceMessenger.Default.Register<ShowMediaProgressModalMessage>(this);
+        WeakReferenceMessenger.Default.Register<HideMediaProgressModalMessage>(this);
+        WeakReferenceMessenger.Default.Register<ShowToastMessage>(this);
+        WeakReferenceMessenger.Default.Register<ClearToastsMessage>(this);
 
         Task.Run(async () =>
         {
@@ -109,6 +105,36 @@ public class NavigationService : INavigationService
                 await Task.Delay(1000);
             }
         });
+    }
+
+    public void Receive(ShowAlarmModalMessage message)
+    {
+        _ = _queue.EnqueueAsync((MvvmMessages.ShowAlarmModal, message.Value));
+    }
+
+    public void Receive(HideAlarmModalMessage message)
+    {
+        _ = _queue.EnqueueAsync((MvvmMessages.HideAlarmModal, message.Value));
+    }
+
+    public void Receive(ShowMediaProgressModalMessage message)
+    {
+        _ = _queue.EnqueueAsync((MvvmMessages.ShowMediaProgessModal, message.Value));
+    }
+
+    public void Receive(HideMediaProgressModalMessage message)
+    {
+        _ = _queue.EnqueueAsync((MvvmMessages.HideMediaProgressModal, message.Value));
+    }
+
+    public void Receive(ShowToastMessage message)
+    {
+        _ = _queue.EnqueueAsync((MvvmMessages.ShowToast, message.Value));
+    }
+
+    public void Receive(ClearToastsMessage message)
+    {
+        _ = _queue.EnqueueAsync((MvvmMessages.ClearToasts, message.Value));
     }
 
     public async Task ShowModal(string name, object viewModel)
@@ -296,7 +322,7 @@ public class NavigationService : INavigationService
             if (_navigater.ModalStack.Count > 0)
             {
                 var modal = await _navigater.PopModalAsync();
-                if (modal.BindingContext is IDisposableModal) (modal.BindingContext as IDisposableModal).Dispose();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
         }
         catch (Exception e)
@@ -367,5 +393,6 @@ public class NavigationService : INavigationService
     public void Dispose()
     {
         _disposed = true;
+        WeakReferenceMessenger.Default.UnregisterAll(this);
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
@@ -10,7 +10,7 @@ using Bible.Alarm.ViewModels.Redux.Actions.Music;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class MusicSelectionViewModel : ViewModel, IDisposable
+public class MusicSelectionViewModel : ObservableObject, IDisposable
 {
     private AlarmMusic _current;
 
@@ -109,7 +109,7 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
     public bool IsBusy
     {
         get => _isBusy;
-        set => this.Set(ref _isBusy, value);
+        set => SetProperty(ref _isBusy, value);
     }
 
     public ICommand BackCommand { get; set; }
@@ -135,7 +135,7 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
     public MusicTypeListItemViewModel SelectedMusicType
     {
         get => _selectedMusicType;
-        set => this.Set(ref _selectedMusicType, value);
+        set => SetProperty(ref _selectedMusicType, value);
     }
 
     public void Dispose()
@@ -148,7 +148,7 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
     }
 }
 
-public class MusicTypeListItemViewModel : ViewModel, IComparable
+public class MusicTypeListItemViewModel : ObservableObject, IComparable
 {
     public MusicType MusicType { get; set; }
     public string Name { get; set; }
@@ -158,7 +158,7 @@ public class MusicTypeListItemViewModel : ViewModel, IComparable
     public bool IsSelected
     {
         get => _isSelected;
-        set => this.Set(ref _isSelected, value);
+        set => SetProperty(ref _isSelected, value);
     }
 
     public int CompareTo(object obj)

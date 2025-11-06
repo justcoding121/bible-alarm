@@ -1,6 +1,7 @@
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Mvvm.Messenger;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Services.Tasks;
 using Serilog;
 
@@ -40,7 +41,7 @@ public class BootstrapHelper
             try
             {
                 // UI-specific initialization only
-                Messenger<bool>.Publish(MvvmMessages.Initialized, true);
+                WeakReferenceMessenger.Default.Send(new InitializedMessage(true));
 
                 await Task.Delay(1000);
 

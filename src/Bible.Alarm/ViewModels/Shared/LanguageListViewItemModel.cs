@@ -1,9 +1,9 @@
-﻿using Bible.Alarm.Common.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class LanguageListViewItemModel(Language language) : ViewModel, IComparable
+public class LanguageListViewItemModel(Language language) : ObservableObject, IComparable
 {
     public string Name { get; set; } = language.Name;
     public string Code { get; set; } = language.Code;
@@ -13,7 +13,7 @@ public class LanguageListViewItemModel(Language language) : ViewModel, IComparab
     public bool IsSelected
     {
         get => _isSelected;
-        set => this.Set(ref _isSelected, value);
+        set => SetProperty(ref _isSelected, value);
     }
 
     public int CompareTo(object obj)

@@ -1,16 +1,16 @@
-﻿using Bible.Alarm.Common.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class PublicationListViewItemModel(Publication publication) : ViewModel, IComparable
+public class PublicationListViewItemModel(Publication publication) : ObservableObject, IComparable
 {
     private bool _isSelected;
 
     public bool IsSelected
     {
         get => _isSelected;
-        set => this.Set(ref _isSelected, value);
+        set => SetProperty(ref _isSelected, value);
     }
 
     public string Name => publication.Name;

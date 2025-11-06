@@ -1,8 +1,8 @@
-﻿using Bible.Alarm.Common.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class NumberOfChaptersListViewItemModel(int number) : ViewModel, IComparable
+public class NumberOfChaptersListViewItemModel(int number) : ObservableObject, IComparable
 {
     public string Text => $"{Value} {(Value == 1 ? "chapter" : "chapters")}";
     public int Value { get; set; } = number;
@@ -12,7 +12,7 @@ public class NumberOfChaptersListViewItemModel(int number) : ViewModel, ICompara
     public bool IsSelected
     {
         get => _isSelected;
-        set => this.Set(ref _isSelected, value);
+        set => SetProperty(ref _isSelected, value);
     }
 
     public int CompareTo(object obj)

@@ -5,9 +5,10 @@ using Android.Media;
 using Android.OS;
 using AndroidApplication = global::Android.App.Application;
 using AndroidNet = global::Android.Net;
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Mvvm.Messenger;
+using Bible.Alarm.UI.Messenger;
 using Bible.Alarm.Platforms.Android.Services.Jobs;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Serilog;
@@ -77,7 +78,7 @@ public class BootstrapHelper
             try
             {
                 // UI-specific initialization only
-                Messenger<bool>.Publish(MvvmMessages.Initialized, true);
+                WeakReferenceMessenger.Default.Send(new InitializedMessage(true));
             }
             catch (Exception e)
             {
