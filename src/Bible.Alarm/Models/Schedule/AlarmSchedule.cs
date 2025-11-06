@@ -1,4 +1,4 @@
-using Bible.Alarm.Common.Quartz;
+using Quartz;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Microsoft.EntityFrameworkCore;
@@ -73,7 +73,7 @@ public class AlarmSchedule : IComparable
     {
         var days = string.Join(",", DaysOfWeek.ToList().OrderBy(x => x));
         var expression = new CronExpression($"{Second} {Minute} {Hour} ? * {days}");
-        return expression.CronExpressionString;
+        return expression.ToString();
     }
 
     private void ValidateTime()
