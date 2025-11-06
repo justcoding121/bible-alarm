@@ -3,6 +3,7 @@ using Android.Content;
 using Android.OS;
 using Android.Runtime;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Infrastructure;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Tasks;
 using Serilog;

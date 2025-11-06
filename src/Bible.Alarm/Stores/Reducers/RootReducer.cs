@@ -1,6 +1,6 @@
-﻿using Bible.Alarm.Common.DataStructures;
-using Bible.Alarm.Common.Redux;
+﻿using Bible.Alarm.Common.Redux;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Bible;

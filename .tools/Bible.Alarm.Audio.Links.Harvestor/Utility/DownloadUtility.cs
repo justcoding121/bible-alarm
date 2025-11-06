@@ -1,7 +1,7 @@
 ﻿using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace AudioLinkHarvester.Utility
+namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
     internal class DownloadUtility
     {

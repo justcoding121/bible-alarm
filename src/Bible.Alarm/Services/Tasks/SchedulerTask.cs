@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Infrastructure.Schedule;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.Storage;

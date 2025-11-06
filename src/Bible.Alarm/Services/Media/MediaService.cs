@@ -1,5 +1,5 @@
-﻿using Bible.Alarm.Shared.Models.Media.Music;
-using Bible.Alarm.Shared.Services.Infrastructure.Media;
+﻿using Bible.Alarm.Shared.Infrastructure;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Microsoft.EntityFrameworkCore;

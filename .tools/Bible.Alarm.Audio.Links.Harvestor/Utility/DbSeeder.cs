@@ -1,14 +1,13 @@
-﻿using Bible.Alarm.Audio.Links.Harvestor.Utility;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+using Bible.Alarm.Shared.Infrastructure;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
-using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace Bible.Alarm.Audio.Links.Harvestor
+namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
     public class DbSeeder
     {

@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.Common.DataStructures;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.General;
 using Bible.Alarm.Views.Music;

@@ -3,7 +3,7 @@ using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Shared.Services.Infrastructure.Media
+namespace Bible.Alarm.Shared.Infrastructure
 {
     public class MediaDbContext : DbContext
     {

@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Services.Infrastructure.Schedule;
+﻿using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Services.Media;
 using Microsoft.EntityFrameworkCore;
 

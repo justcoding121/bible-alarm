@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using Bible.Alarm.Common.Infrastructure.Schedule;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;

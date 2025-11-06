@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 
-namespace Bible.Alarm.Common.DataStructures;
+namespace Bible.Alarm.Shared.DataStructures;
 
 public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
     ICollection<T>,

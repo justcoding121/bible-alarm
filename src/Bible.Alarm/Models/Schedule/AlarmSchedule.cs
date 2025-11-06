@@ -1,6 +1,6 @@
+using Bible.Alarm.Shared.Infrastructure;
 using Quartz;
 using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Models.Schedule;

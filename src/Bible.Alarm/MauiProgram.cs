@@ -1,4 +1,5 @@
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Infrastructure.Schedule;
 using CommunityToolkit.Maui;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Media;
@@ -18,10 +19,10 @@ using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Infrastructure;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using Bible.Alarm.ViewModels.Bible;

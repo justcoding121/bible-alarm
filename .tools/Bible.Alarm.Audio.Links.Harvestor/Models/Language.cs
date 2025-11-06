@@ -1,4 +1,4 @@
-﻿namespace AudioLinkHarvester.Models
+﻿namespace Bible.Alarm.Audio.Links.Harvestor.Models
 {
     public class Language
     {

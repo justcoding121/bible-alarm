@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace AudioLinkHarvestor.Utility
+namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
     public static class DirectoryHelper
     {

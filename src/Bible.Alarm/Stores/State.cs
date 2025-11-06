@@ -1,5 +1,5 @@
-﻿using Bible.Alarm.Common.DataStructures;
-using Bible.Alarm.Models.Schedule;
+﻿using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Shared.DataStructures;
 
 namespace Bible.Alarm.Stores;
 

@@ -1,8 +1,9 @@
-﻿namespace Bible.Alarm.Audio.Links.Harvestor.Utility
+﻿using Bible.Alarm.Audio.Links.Harvestor.Models;
+using Bible.Alarm.Audio.Links.Harvestor.Models.Bible;
+using Bible.Alarm.Audio.Links.Harvestor.Models.Music;
+
+namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
-    using AudioLinkHarvester.Models;
-    using AudioLinkHarvester.Models.Bible;
-    using AudioLinkHarvester.Models.Music;
     using Newtonsoft.Json;
     using System.Collections.Generic;
     using System.IO;

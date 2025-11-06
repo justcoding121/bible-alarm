@@ -1,16 +1,15 @@
-﻿using AudioLinkHarvester.Models.Bible;
-using AudioLinkHarvester.Utility;
-using AudioLinkHarvestor.Utility;
-using Bible.Alarm.Shared.Constants;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Audio.Links.Harvestor.Models.Bible;
+using Bible.Alarm.Audio.Links.Harvestor.Utility;
+using Bible.Alarm.Shared.Constants;
+using Newtonsoft.Json;
 
-namespace AudioLinkHarvester.Bible
+namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
 {
     internal class JwBibleHarvester
     {

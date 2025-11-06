@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bible.Alarm.Common.DataStructures;
+namespace Bible.Alarm.Shared.DataStructures;
 
 /// <summary>
 ///     A simple asynchronous multi-thread supporting producer/consumer FIFO queue with minimal locking.

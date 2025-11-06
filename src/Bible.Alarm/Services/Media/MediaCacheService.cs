@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using Bible.Alarm.Common.Infrastructure.Schedule;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Network;
 using Bible.Alarm.Common.Interfaces.Storage;
