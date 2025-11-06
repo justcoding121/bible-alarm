@@ -1,8 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Shared.Models.Enums;
@@ -33,33 +32,39 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        var subscription1 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => new { state.CurrentMusic, state.TentativeMusic })
-            .Where(x => x.CurrentMusic != null && x.TentativeMusic != null)
-            .DistinctUntilChanged()
-            .Take(1)
-            .Subscribe(async x =>
+        IDisposable subscription1 = null;
+        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentMusic != null && state.TentativeMusic != null)
             {
-                _current = x.CurrentMusic;
-                _tentative = x.TentativeMusic;
-
-                await Initialize();
-
-                IsBusy = false;
-            });
+                _current = state.CurrentMusic;
+                _tentative = state.TentativeMusic;
+                Task.Run(async () =>
+                {
+                    await Initialize();
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                });
+                _subscriptions.Remove(subscription1);
+                subscription1?.Dispose();
+            }
+        });
 
         _subscriptions.Add(subscription1);
 
-        var subscription2 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => new { state.CurrentMusic, state.TentativeMusic })
-            .Where(x => x.CurrentMusic != null && x.TentativeMusic != null)
-            .DistinctUntilChanged()
-            .Skip(1)
-            .Subscribe(x =>
+        // Subscribe to subsequent music changes (skip first one)
+        AlarmMusic? lastCurrent = null;
+        AlarmMusic? lastTentative = null;
+        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentMusic != null && state.TentativeMusic != null
+                && (state.CurrentMusic != lastCurrent || state.TentativeMusic != lastTentative))
             {
-                _current = x.CurrentMusic;
-                _tentative = x.TentativeMusic;
-            });
+                _current = state.CurrentMusic;
+                _tentative = state.TentativeMusic;
+                lastCurrent = _current;
+                lastTentative = _tentative;
+            }
+        });
 
         _subscriptions.Add(subscription2);
 
@@ -209,16 +214,14 @@ public class SongBookSelectionViewModel : ViewModel, IListViewModel, IDisposable
         await PopulateLanguages();
         await PopulateSongBooks(languageCode);
 
-        var subscription1 = Observable.FromEvent<PropertyChangedEventHandler, KeyValuePair<string, object>>(
-                onNextHandler => (object sender, PropertyChangedEventArgs e)
-                    => onNextHandler(new KeyValuePair<string, object>(e.PropertyName, sender)),
-                handler => PropertyChanged += handler,
-                handler => PropertyChanged -= handler)
-            .Where(x => x.Key == "LanguageSearchTerm")
-            .Do(async x => await PopulateLanguages(LanguageSearchTerm))
-            .Subscribe();
-
-        _subscriptions.Add(subscription1);
+        // Subscribe to LanguageSearchTerm property changes
+        PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName == "LanguageSearchTerm")
+            {
+                _ = PopulateLanguages(LanguageSearchTerm);
+            }
+        };
     }
 
     private async Task PopulateLanguages(string searchTerm = null)

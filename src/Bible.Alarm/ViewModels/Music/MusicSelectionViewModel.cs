@@ -1,6 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.UI;
@@ -29,17 +27,18 @@ public class MusicSelectionViewModel : ViewModel, IDisposable
         _scopeFactory = scopeFactory;
 
         //set schedules from initial state.
-        //this should fire only once 
-        var subscription1 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => state.CurrentMusic)
-            .Where(x => x != null)
-            .DistinctUntilChanged()
-            .Subscribe(x =>
+        var subscription1 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentMusic != null)
             {
-                _current = x;
-                SetSelectedMusicType();
-                IsBusy = false;
-            });
+                _current = state.CurrentMusic;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    SetSelectedMusicType();
+                    IsBusy = false;
+                });
+            }
+        });
 
         _subscriptions.Add(subscription1);
 

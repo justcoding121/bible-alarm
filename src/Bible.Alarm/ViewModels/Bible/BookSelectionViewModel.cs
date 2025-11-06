@@ -1,7 +1,6 @@
 ﻿using System.Collections.ObjectModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
@@ -60,27 +59,34 @@ public class BookSelectionViewModel : ViewModel, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        var subscription1 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => new { state.CurrentBibleReadingSchedule, state.TentativeBibleReadingSchedule })
-            .Where(x => x.CurrentBibleReadingSchedule != null && x.TentativeBibleReadingSchedule != null)
-            .DistinctUntilChanged()
-            .Take(1)
-            .Subscribe(async x =>
+        IDisposable subscription1 = null;
+        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
             {
-                IsBusy = true;
-                _current = x.CurrentBibleReadingSchedule;
-                _tentative = x.TentativeBibleReadingSchedule;
-                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
-                IsBusy = false;
-            });
+                _current = state.CurrentBibleReadingSchedule;
+                _tentative = state.TentativeBibleReadingSchedule;
+                Task.Run(async () =>
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                    await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                });
+                _subscriptions.Remove(subscription1);
+                subscription1?.Dispose();
+            }
+        });
 
-        //set schedules from initial state.
-        //this should fire only once 
-        var subscription2 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => state.CurrentBibleReadingSchedule)
-            .Where(x => x != null)
-            .DistinctUntilChanged()
-            .Subscribe(x => { _current = x; });
+        // Subscribe to current schedule changes (but skip first one)
+        BibleReadingSchedule? lastCurrent = null;
+        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastCurrent)
+            {
+                _current = state.CurrentBibleReadingSchedule;
+                lastCurrent = _current;
+            }
+        });
 
         _subscriptions.Add(subscription1);
         _subscriptions.Add(subscription2);

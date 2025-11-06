@@ -1,8 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;
@@ -39,33 +38,39 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        var subscription1 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => new { state.CurrentBibleReadingSchedule, state.TentativeBibleReadingSchedule })
-            .Where(x => x.CurrentBibleReadingSchedule != null && x.TentativeBibleReadingSchedule != null)
-            .DistinctUntilChanged()
-            .Take(1)
-            .Subscribe(async x =>
+        IDisposable subscription1 = null;
+        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
             {
-                _current = x.CurrentBibleReadingSchedule;
-                _tentative = x.TentativeBibleReadingSchedule;
-
-                await Initialize(_tentative.LanguageCode);
-
-                IsBusy = false;
-            });
+                _current = state.CurrentBibleReadingSchedule;
+                _tentative = state.TentativeBibleReadingSchedule;
+                Task.Run(async () =>
+                {
+                    await Initialize(_tentative.LanguageCode);
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                });
+                _subscriptions.Remove(subscription1);
+                subscription1?.Dispose();
+            }
+        });
 
         _subscriptions.Add(subscription1);
 
-        var subscription2 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => new { state.CurrentBibleReadingSchedule, state.TentativeBibleReadingSchedule })
-            .Where(x => x.CurrentBibleReadingSchedule != null && x.TentativeBibleReadingSchedule != null)
-            .DistinctUntilChanged()
-            .Skip(1)
-            .Subscribe(x =>
+        // Subscribe to subsequent schedule changes (skip first one)
+        BibleReadingSchedule? lastCurrent = null;
+        BibleReadingSchedule? lastTentative = null;
+        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null
+                && (state.CurrentBibleReadingSchedule != lastCurrent || state.TentativeBibleReadingSchedule != lastTentative))
             {
-                _current = x.CurrentBibleReadingSchedule;
-                _tentative = x.TentativeBibleReadingSchedule;
-            });
+                _current = state.CurrentBibleReadingSchedule;
+                _tentative = state.TentativeBibleReadingSchedule;
+                lastCurrent = _current;
+                lastTentative = _tentative;
+            }
+        });
 
         _subscriptions.Add(subscription2);
 
@@ -196,16 +201,14 @@ public class BibleSelectionViewModel : ViewModel, IListViewModel, IDisposable
         await PopulateLanguages();
         await PopulateTranslations(languageCode);
 
-        var subscription = Observable.FromEvent<PropertyChangedEventHandler, KeyValuePair<string, object>>(
-                onNextHandler => (object sender, PropertyChangedEventArgs e)
-                    => onNextHandler(new KeyValuePair<string, object>(e.PropertyName, sender)),
-                handler => PropertyChanged += handler,
-                handler => PropertyChanged -= handler)
-            .Where(x => x.Key == "LanguageSearchTerm")
-            .Do(async x => await PopulateLanguages(LanguageSearchTerm))
-            .Subscribe();
-
-        _subscriptions.Add(subscription);
+        // Subscribe to LanguageSearchTerm property changes
+        PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName == "LanguageSearchTerm")
+            {
+                _ = PopulateLanguages(LanguageSearchTerm);
+            }
+        };
     }
 
 

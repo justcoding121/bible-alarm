@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Common.Redux;
+﻿using Bible.Alarm.Common.DataStructures;
+using Bible.Alarm.Common.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Bible.Alarm.ViewModels.Redux.Actions.Bible;
 using Bible.Alarm.ViewModels.Redux.Actions.Music;
@@ -19,15 +20,53 @@ public static partial class RootReducer
         if (action is AddScheduleAction)
         {
             var @params = action as AddScheduleAction;
-            previousState.Schedules.Add(@params.ScheduleListItem);
-            return previousState;
+            var schedules = previousState.Schedules ?? new ObservableHashSet<ScheduleListItem>();
+            var newSchedules = new ObservableHashSet<ScheduleListItem>();
+            // Copy existing items
+            if (schedules != null)
+            {
+                foreach (var item in schedules)
+                {
+                    newSchedules.Add(item);
+                }
+            }
+            newSchedules.Add(@params.ScheduleListItem);
+            return new ApplicationState
+            {
+                Schedules = newSchedules,
+                CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                CurrentMusic = previousState.CurrentMusic,
+                TentativeMusic = previousState.TentativeMusic,
+                CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
+            };
         }
 
         if (action is RemoveScheduleAction)
         {
             var item = (action as RemoveScheduleAction).ScheduleListItem;
-            previousState.Schedules.Remove(item);
-            item.Dispose();
+            if (previousState.Schedules != null)
+            {
+                var newSchedules = new ObservableHashSet<ScheduleListItem>();
+                // Copy existing items except the one being removed
+                foreach (var schedule in previousState.Schedules)
+                {
+                    if (schedule != item)
+                    {
+                        newSchedules.Add(schedule);
+                    }
+                }
+                item.Dispose();
+                return new ApplicationState
+                {
+                    Schedules = newSchedules,
+                    CurrentScheduleListItem = previousState.CurrentScheduleListItem,
+                    CurrentMusic = previousState.CurrentMusic,
+                    TentativeMusic = previousState.TentativeMusic,
+                    CurrentBibleReadingSchedule = previousState.CurrentBibleReadingSchedule,
+                    TentativeBibleReadingSchedule = previousState.TentativeBibleReadingSchedule
+                };
+            }
             return previousState;
         }
 

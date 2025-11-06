@@ -5,8 +5,6 @@ using Bible.Alarm.ViewModels.Redux;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Collections.ObjectModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Media;
@@ -74,15 +72,17 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
-        var subscription = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => state.CurrentScheduleListItem)
-            .DistinctUntilChanged()
-            .Take(1)
-            .Subscribe(async x =>
+        ScheduleListItem? lastScheduleListItem = null;
+        bool modelInitialized = false;
+        IDisposable subscription = null;
+        subscription = ReduxContainer.Store.Subscribe(async state =>
+        {
+            if (state.CurrentScheduleListItem != null && state.CurrentScheduleListItem != lastScheduleListItem)
             {
-                _scheduleListItem = x;
+                _scheduleListItem = state.CurrentScheduleListItem;
+                lastScheduleListItem = _scheduleListItem;
 
-                var model = x?.Schedule;
+                var model = _scheduleListItem?.Schedule;
 
                 IsNewSchedule = model == null ? true : false;
 
@@ -98,33 +98,56 @@ public class ScheduleViewModel : ViewModel, IDisposable
                     modelToSet = model;
 
                 SetModel(modelToSet);
+                modelInitialized = true;
 
                 IsBusy = false;
-            });
+                
+                // Unsubscribe after first call
+                _subscriptions.Remove(subscription);
+                subscription?.Dispose();
+            }
+            else if (!modelInitialized && state.CurrentScheduleListItem == null)
+            {
+                // Initialize with sample schedule if state doesn't have CurrentScheduleListItem
+                using var scope = _scopeFactory.CreateScope();
+                var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                SetModel(sampleSchedule);
+                modelInitialized = true;
+                IsNewSchedule = true;
+                
+                // Unsubscribe after initialization
+                _subscriptions.Remove(subscription);
+                subscription?.Dispose();
+            }
+        });
 
         _subscriptions.Add(subscription);
 
-        var subscription2 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => state.CurrentMusic)
-            .Where(x => x != null && x != Music)
-            .Subscribe(x =>
+        AlarmMusic? lastMusic = null;
+        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentMusic != null && state.CurrentMusic != lastMusic && state.CurrentMusic != Music)
             {
-                Music = x;
+                Music = state.CurrentMusic;
+                lastMusic = state.CurrentMusic;
                 _musicUpdated = true;
-            });
+            }
+        });
 
         _subscriptions.Add(subscription2);
 
-        var subscription3 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => state.CurrentBibleReadingSchedule)
-            .Where(x => x != null && x != BibleReadingSchedule)
-            .DistinctUntilChanged()
-            .Subscribe(x =>
+        BibleReadingSchedule? lastBibleReading = null;
+        var subscription3 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastBibleReading && state.CurrentBibleReadingSchedule != BibleReadingSchedule)
             {
-                BibleReadingSchedule = x;
+                BibleReadingSchedule = state.CurrentBibleReadingSchedule;
+                lastBibleReading = state.CurrentBibleReadingSchedule;
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
-            });
+            }
+        });
 
         _subscriptions.Add(subscription3);
 
@@ -238,8 +261,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
                 CurrentBibleReadingSchedule = BibleReadingSchedule,
                 TentativeBibleReadingSchedule = new BibleReadingSchedule
                 {
-                    PublicationCode = BibleReadingSchedule.PublicationCode,
-                    LanguageCode = BibleReadingSchedule.LanguageCode
+                    PublicationCode = BibleReadingSchedule?.PublicationCode ?? "",
+                    LanguageCode = BibleReadingSchedule?.LanguageCode ?? ""
                 }
             });
 
@@ -295,6 +318,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         PreviousBookCommand = new Command(async () =>
         {
+            if (BibleReadingSchedule == null) return;
+            
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextBook = await playlistService.GetPreviousBibleBook(BibleReadingSchedule.LanguageCode,
@@ -309,6 +334,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         NextBookCommand = new Command(async () =>
         {
+            if (BibleReadingSchedule == null) return;
+            
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextBook = await playlistService.GetNextBibleBook(BibleReadingSchedule.LanguageCode,
@@ -323,6 +350,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         PreviousChapterCommand = new Command(async () =>
         {
+            if (BibleReadingSchedule == null) return;
+            
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var prevChapter = await playlistService.GetPreviousBibleChapter(BibleReadingSchedule.LanguageCode,
@@ -338,6 +367,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
         NextChapterCommand = new Command(async () =>
         {
+            if (BibleReadingSchedule == null) return;
+            
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextChapter = await playlistService.GetNextBibleChapter(BibleReadingSchedule.LanguageCode,
@@ -729,6 +760,8 @@ public class ScheduleViewModel : ViewModel, IDisposable
 
     private void RefreshChapterName()
     {
+        if (BibleReadingSchedule == null) return;
+        
         using var scope = _scopeFactory.CreateScope();
         var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
 
@@ -757,7 +790,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
             })
             .ContinueWith((x) =>
             {
-                if (x.IsCompleted)
+                if (x.IsCompleted && BibleReadingSchedule != null)
                     try
                     {
                         BibleReadingTitleText = $"{x.Result} {BibleReadingSchedule.ChapterNumber}";

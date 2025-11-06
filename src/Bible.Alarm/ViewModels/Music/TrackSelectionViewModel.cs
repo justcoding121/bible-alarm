@@ -1,8 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
@@ -31,6 +30,7 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
     private AlarmMusic _tentative;
 
     private readonly List<IDisposable> _subscriptions = [];
+    private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
 
     public TrackSelectionViewModel(
         ILogger logger,
@@ -90,19 +90,23 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        var subscription1 = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => new { state.CurrentMusic, state.TentativeMusic })
-            .Where(x => x.CurrentMusic != null && x.TentativeMusic != null)
-            .DistinctUntilChanged()
-            .Take(1)
-            .Subscribe(async x =>
+        IDisposable subscription1 = null;
+        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentMusic != null && state.TentativeMusic != null)
             {
-                IsBusy = true;
-                _current = x.CurrentMusic;
-                _tentative = x.TentativeMusic;
-                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
-                IsBusy = false;
-            });
+                _current = state.CurrentMusic;
+                _tentative = state.TentativeMusic;
+                Task.Run(async () =>
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                    await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                });
+                _subscriptions.Remove(subscription1);
+                subscription1?.Dispose();
+            }
+        });
 
         _subscriptions.Add(subscription1);
     }
@@ -130,151 +134,165 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
     {
         await PopulateTracks(languageCode, publicationCode);
 
-        var subscription1 = Tracks.Select(added =>
-            {
-                return Observable
-                    .FromEvent<PropertyChangedEventHandler, KeyValuePair<string, MusicTrackListViewItemModel>>(
-                        onNextHandler => (object sender, PropertyChangedEventArgs e)
-                            => onNextHandler(new KeyValuePair<string, MusicTrackListViewItemModel>(e.PropertyName,
-                                (MusicTrackListViewItemModel)sender)),
-                        handler => added.PropertyChanged += handler,
-                        handler => added.PropertyChanged -= handler)
-                    .Where(kv => kv.Key == "Play")
-                    .Select(y => y.Value)
-                    .Where(y => y.Play);
-            }).Merge()
-            .Do(async y =>
-            {
-                await _lock.WaitAsync();
+        // Subscribe to PropertyChanged events for Play/Stop/Repeat
+        foreach (var track in Tracks)
+        {
+            SubscribeToTrackEvents(track);
+        }
 
-                try
+        // Subscribe to collection changes to handle new items
+        Tracks.CollectionChanged += (sender, e) =>
+        {
+            if (e.NewItems != null)
+            {
+                foreach (MusicTrackListViewItemModel item in e.NewItems)
                 {
-                    if (_currentlyPlaying != null && _currentlyPlaying != y)
-                    {
-                        _currentlyPlaying.Play = false;
-                        _currentlyPlaying.IsBusy = false;
-                    }
-
-                    _currentlyPlaying = y;
-
-                    _currentlyPlaying.IsBusy = true;
-                    try
-                    {
-                        var url = y.Url;
-
-                        await Task.Run(async () =>
-                        {
-                            if (!await _downloadService.FileExists(url))
-                                url = await _cacheService.GetMusicTrackUrl(
-                                    _tentative.LanguageCode,
-                                    y.LookUpPath);
-
-                            await _playService.Play(url);
-                        });
-                    }
-                    catch
-                    {
-                        _currentlyPlaying.Play = false;
-                        await _toastService.ShowMessage("Failed to download the file.");
-                    }
-
-                    _currentlyPlaying.IsBusy = false;
+                    SubscribeToTrackEvents(item);
                 }
-                finally
+            }
+            if (e.OldItems != null)
+            {
+                foreach (MusicTrackListViewItemModel item in e.OldItems)
                 {
-                    try
+                    UnsubscribeFromTrackEvents(item);
+                }
+            }
+        };
+
+        // Subscribe to play service stopped event
+        _playService.OnStopped += OnPlayServiceStopped;
+    }
+
+    private void SubscribeToTrackEvents(MusicTrackListViewItemModel track)
+    {
+        PropertyChangedEventHandler handler = (sender, e) =>
+        {
+            if (sender is MusicTrackListViewItemModel item)
+            {
+                if (e.PropertyName == "Play")
+                {
+                    if (item.Play)
                     {
-                        _lock.Release();
+                        _ = HandlePlayTrack(item);
                     }
-                    catch (ObjectDisposedException e)
+                    else
                     {
-                        _logger.Error(e, "TrackSelectionViewModel 1: @lock disposed error.");
+                        _playService.Stop();
                     }
                 }
-            })
-            .Subscribe();
-
-        var subscription2 = Tracks.Select(added =>
-            {
-                return Observable
-                    .FromEvent<PropertyChangedEventHandler, KeyValuePair<string, MusicTrackListViewItemModel>>(
-                        onNextHandler => (object sender, PropertyChangedEventArgs e)
-                            => onNextHandler(new KeyValuePair<string, MusicTrackListViewItemModel>(e.PropertyName,
-                                (MusicTrackListViewItemModel)sender)),
-                        handler => added.PropertyChanged += handler,
-                        handler => added.PropertyChanged -= handler)
-                    .Where(kv => kv.Key == "Play")
-                    .Select(y => y.Value)
-                    .Where(y => !y.Play);
-            })
-            .Merge()
-            .Do(y => { _playService.Stop(); })
-            .Subscribe();
-
-        var subscription3 = Observable.FromEvent(ev => _playService.OnStopped += ev,
-                ev => _playService.OnStopped -= ev)
-            .Do(async y =>
-            {
-                await _lock.WaitAsync();
-
-                try
+                else if (e.PropertyName == "Repeat")
                 {
-                    if (_currentlyPlaying != null)
-                    {
-                        _currentlyPlaying.Play = false;
-                        _currentlyPlaying.IsBusy = false;
-                        _currentlyPlaying = null;
-                    }
+                    HandleRepeatChanged(item);
                 }
-                finally
-                {
-                    try
-                    {
-                        _lock.Release();
-                    }
-                    catch (ObjectDisposedException e)
-                    {
-                        _logger.Error(e, "TrackSelectionViewModel 2: @lock disposed error.");
-                    }
-                }
-            })
-            .Subscribe();
+            }
+        };
 
-        var subscription4 = Tracks.Select(added =>
-            {
-                return Observable
-                    .FromEvent<PropertyChangedEventHandler, KeyValuePair<string, MusicTrackListViewItemModel>>(
-                        onNextHandler => (object sender, PropertyChangedEventArgs e)
-                            => onNextHandler(new KeyValuePair<string, MusicTrackListViewItemModel>(e.PropertyName,
-                                (MusicTrackListViewItemModel)sender)),
-                        handler => added.PropertyChanged += handler,
-                        handler => added.PropertyChanged -= handler)
-                    .Where(kv => kv.Key == "Repeat")
-                    .Select(y => y.Value);
-            })
-            .Merge()
-            .Do(x =>
-            {
-                _tentative.Repeat = x.Repeat;
-                _tentative.TrackNumber = x.Number;
+        track.PropertyChanged += handler;
+        _propertyChangedHandlers[track] = handler;
+    }
 
-                ReduxContainer.Store.Dispatch(new TrackSelectedAction
+    private void UnsubscribeFromTrackEvents(MusicTrackListViewItemModel track)
+    {
+        if (_propertyChangedHandlers.TryGetValue(track, out var handler))
+        {
+            track.PropertyChanged -= handler;
+            _propertyChangedHandlers.Remove(track);
+        }
+    }
+
+    private async Task HandlePlayTrack(MusicTrackListViewItemModel track)
+    {
+        await _lock.WaitAsync();
+
+        try
+        {
+            if (_currentlyPlaying != null && _currentlyPlaying != track)
+            {
+                _currentlyPlaying.Play = false;
+                _currentlyPlaying.IsBusy = false;
+            }
+
+            _currentlyPlaying = track;
+            _currentlyPlaying.IsBusy = true;
+            try
+            {
+                var url = track.Url;
+
+                await Task.Run(async () =>
                 {
-                    CurrentMusic = new AlarmMusic
-                    {
-                        MusicType = _tentative.MusicType,
-                        LanguageCode = _tentative.LanguageCode,
-                        PublicationCode = _tentative.PublicationCode,
-                        TrackNumber = _tentative.TrackNumber,
-                        Repeat = _tentative.Repeat
-                    }
+                    if (!await _downloadService.FileExists(url))
+                        url = await _cacheService.GetMusicTrackUrl(
+                            _tentative.LanguageCode,
+                            track.LookUpPath);
+
+                    await _playService.Play(url);
                 });
+            }
+            catch
+            {
+                _currentlyPlaying.Play = false;
+                await _toastService.ShowMessage("Failed to download the file.");
+            }
 
-                if (x.Repeat) _toastService.ShowMessage("Alarm will always repeat this track.");
-            })
-            .Subscribe();
+            _currentlyPlaying.IsBusy = false;
+        }
+        finally
+        {
+            try
+            {
+                _lock.Release();
+            }
+            catch (ObjectDisposedException e)
+            {
+                _logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
+            }
+        }
+    }
 
-        _subscriptions.AddRange(new[] { subscription1, subscription2, subscription3, subscription4 });
+    private void HandleRepeatChanged(MusicTrackListViewItemModel track)
+    {
+        _tentative.Repeat = track.Repeat;
+        _tentative.TrackNumber = track.Number;
+
+        ReduxContainer.Store.Dispatch(new TrackSelectedAction
+        {
+            CurrentMusic = new AlarmMusic
+            {
+                MusicType = _tentative.MusicType,
+                LanguageCode = _tentative.LanguageCode,
+                PublicationCode = _tentative.PublicationCode,
+                TrackNumber = _tentative.TrackNumber,
+                Repeat = _tentative.Repeat
+            }
+        });
+
+        if (track.Repeat) _toastService.ShowMessage("Alarm will always repeat this track.");
+    }
+
+    private async void OnPlayServiceStopped()
+    {
+        await _lock.WaitAsync();
+
+        try
+        {
+            if (_currentlyPlaying != null)
+            {
+                _currentlyPlaying.Play = false;
+                _currentlyPlaying.IsBusy = false;
+                _currentlyPlaying = null;
+            }
+        }
+        finally
+        {
+            try
+            {
+                _lock.Release();
+            }
+            catch (ObjectDisposedException e)
+            {
+                _logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
+            }
+        }
     }
 
     private async Task PopulateTracks(string languageCode, string publicationCode)
@@ -314,7 +332,15 @@ public class TrackSelectionViewModel : ViewModel, IDisposable
 
     public void Dispose()
     {
+        _playService.OnStopped -= OnPlayServiceStopped;
+        
+        foreach (var track in Tracks)
+        {
+            UnsubscribeFromTrackEvents(track);
+        }
+        
         _subscriptions.ForEach(x => x.Dispose());
+        _propertyChangedHandlers.Clear();
 
         _lock.Dispose();
         

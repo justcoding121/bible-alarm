@@ -1,8 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.UI;
@@ -29,6 +28,7 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     private readonly IDownloadService _downloadService;
 
     private readonly List<IDisposable> _subscriptions = [];
+    private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
 
     public ChapterSelectionViewModel(
         ILogger logger,
@@ -80,19 +80,22 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        var subscription = ReduxContainer.Store.ObserveOn(Scheduler.CurrentThread)
-            .Select(state => new { state.CurrentBibleReadingSchedule, state.TentativeBibleReadingSchedule })
-            .Where(x => x.CurrentBibleReadingSchedule != null && x.TentativeBibleReadingSchedule != null)
-            .DistinctUntilChanged()
-            .Take(1)
-            .Subscribe(async x =>
+        IDisposable subscription = null;
+        subscription = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
             {
-                _current = x.CurrentBibleReadingSchedule;
-                _tentative = x.TentativeBibleReadingSchedule;
-                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
-                IsBusy = false;
-            });
-
+                _current = state.CurrentBibleReadingSchedule;
+                _tentative = state.TentativeBibleReadingSchedule;
+                Task.Run(async () =>
+                {
+                    await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                });
+                _subscriptions.Remove(subscription);
+                subscription?.Dispose();
+            }
+        });
 
         _subscriptions.Add(subscription);
     }
@@ -125,123 +128,142 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
     {
         await PopulateChapters(languageCode, publicationCode, bookNumber);
 
+        // Subscribe to PropertyChanged events for Play/Stop
+        foreach (var chapter in Chapters)
+        {
+            SubscribeToChapterEvents(chapter);
+        }
 
-        var subscription1 = Chapters.Select(added =>
+        // Subscribe to collection changes to handle new items
+        Chapters.CollectionChanged += (sender, e) =>
+        {
+            if (e.NewItems != null)
             {
-                return Observable
-                    .FromEvent<PropertyChangedEventHandler, KeyValuePair<string, BibleChapterListViewItemModel>>(
-                        onNextHandler => (object sender, PropertyChangedEventArgs e)
-                            => onNextHandler(new KeyValuePair<string, BibleChapterListViewItemModel>(e.PropertyName,
-                                (BibleChapterListViewItemModel)sender)),
-                        handler => added.PropertyChanged += handler,
-                        handler => added.PropertyChanged -= handler)
-                    .Where(kv => kv.Key == "Play")
-                    .Select(y => y.Value)
-                    .Where(y => y.Play);
-            })
-            .Merge()
-            .Do(async y =>
+                foreach (BibleChapterListViewItemModel item in e.NewItems)
+                {
+                    SubscribeToChapterEvents(item);
+                }
+            }
+            if (e.OldItems != null)
             {
-                await _lock.WaitAsync();
-
-                try
+                foreach (BibleChapterListViewItemModel item in e.OldItems)
                 {
-                    if (_currentlyPlaying != null && _currentlyPlaying != y)
-                    {
-                        _currentlyPlaying.Play = false;
-                        _currentlyPlaying.IsBusy = false;
-                    }
-
-                    _currentlyPlaying = y;
-
-                    _currentlyPlaying.IsBusy = true;
-
-                    try
-                    {
-                        var url = y.Url;
-
-                        await Task.Run(async () =>
-                        {
-                            if (!await _downloadService.FileExists(url))
-                                url = await _cacheService.GetBibleChapterUrl(
-                                    _tentative.LanguageCode,
-                                    _tentative.PublicationCode,
-                                    _tentative.BookNumber,
-                                    y.Number,
-                                    y.LookUpPath);
-
-                            await _playService.Play(url);
-                        });
-                    }
-                    catch
-                    {
-                        _currentlyPlaying.Play = false;
-                        await _toastService.ShowMessage("Failed to download the file.");
-                    }
-
-                    _currentlyPlaying.IsBusy = false;
+                    UnsubscribeFromChapterEvents(item);
                 }
-                finally
-                {
-                    try
-                    {
-                        _lock.Release();
-                    }
-                    catch (ObjectDisposedException e)
-                    {
-                        _logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
-                    }
-                }
-            })
-            .Subscribe();
+            }
+        };
 
-        var subscription2 = Chapters.Select(added =>
+        // Subscribe to play service stopped event
+        _playService.OnStopped += OnPlayServiceStopped;
+    }
+
+    private void SubscribeToChapterEvents(BibleChapterListViewItemModel chapter)
+    {
+        PropertyChangedEventHandler handler = (sender, e) =>
+        {
+            if (e.PropertyName == "Play" && sender is BibleChapterListViewItemModel item)
             {
-                return Observable
-                    .FromEvent<PropertyChangedEventHandler, KeyValuePair<string, BibleChapterListViewItemModel>>(
-                        onNextHandler => (object sender, PropertyChangedEventArgs e)
-                            => onNextHandler(new KeyValuePair<string, BibleChapterListViewItemModel>(e.PropertyName,
-                                (BibleChapterListViewItemModel)sender)),
-                        handler => added.PropertyChanged += handler,
-                        handler => added.PropertyChanged -= handler)
-                    .Where(kv => kv.Key == "Play")
-                    .Select(y => y.Value)
-                    .Where(y => !y.Play);
-            })
-            .Merge()
-            .Do(y => { _playService.Stop(); })
-            .Subscribe();
+                if (item.Play)
+                {
+                    _ = HandlePlayChapter(item);
+                }
+                else
+                {
+                    _playService.Stop();
+                }
+            }
+        };
 
-        var subscription3 = Observable.FromEvent(ev => _playService.OnStopped += ev,
-                ev => _playService.OnStopped -= ev)
-            .Do(async y =>
+        chapter.PropertyChanged += handler;
+        _propertyChangedHandlers[chapter] = handler;
+    }
+
+    private void UnsubscribeFromChapterEvents(BibleChapterListViewItemModel chapter)
+    {
+        if (_propertyChangedHandlers.TryGetValue(chapter, out var handler))
+        {
+            chapter.PropertyChanged -= handler;
+            _propertyChangedHandlers.Remove(chapter);
+        }
+    }
+
+    private async Task HandlePlayChapter(BibleChapterListViewItemModel chapter)
+    {
+        await _lock.WaitAsync();
+
+        try
+        {
+            if (_currentlyPlaying != null && _currentlyPlaying != chapter)
             {
-                await _lock.WaitAsync();
+                _currentlyPlaying.Play = false;
+                _currentlyPlaying.IsBusy = false;
+            }
 
-                try
-                {
-                    if (_currentlyPlaying != null)
-                    {
-                        _currentlyPlaying.Play = false;
-                        _currentlyPlaying.IsBusy = false;
-                        _currentlyPlaying = null;
-                    }
-                }
-                finally
-                {
-                    try
-                    {
-                        _lock.Release();
-                    }
-                    catch (ObjectDisposedException e)
-                    {
-                        _logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
-                    }
-                }
-            })
-            .Subscribe();
+            _currentlyPlaying = chapter;
+            _currentlyPlaying.IsBusy = true;
 
-        _subscriptions.AddRange(new[] { subscription1, subscription2, subscription3 });
+            try
+            {
+                var url = chapter.Url;
+
+                await Task.Run(async () =>
+                {
+                    if (!await _downloadService.FileExists(url))
+                        url = await _cacheService.GetBibleChapterUrl(
+                            _tentative.LanguageCode,
+                            _tentative.PublicationCode,
+                            _tentative.BookNumber,
+                            chapter.Number,
+                            chapter.LookUpPath);
+
+                    await _playService.Play(url);
+                });
+            }
+            catch
+            {
+                _currentlyPlaying.Play = false;
+                await _toastService.ShowMessage("Failed to download the file.");
+            }
+
+            _currentlyPlaying.IsBusy = false;
+        }
+        finally
+        {
+            try
+            {
+                _lock.Release();
+            }
+            catch (ObjectDisposedException e)
+            {
+                _logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
+            }
+        }
+    }
+
+    private async void OnPlayServiceStopped()
+    {
+        await _lock.WaitAsync();
+
+        try
+        {
+            if (_currentlyPlaying != null)
+            {
+                _currentlyPlaying.Play = false;
+                _currentlyPlaying.IsBusy = false;
+                _currentlyPlaying = null;
+            }
+        }
+        finally
+        {
+            try
+            {
+                _lock.Release();
+            }
+            catch (ObjectDisposedException e)
+            {
+                _logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
+            }
+        }
     }
 
     private async Task PopulateChapters(string languageCode, string publicationCode, int bookNumber)
@@ -272,7 +294,15 @@ public class ChapterSelectionViewModel : ViewModel, IDisposable
 
     public void Dispose()
     {
+        _playService.OnStopped -= OnPlayServiceStopped;
+        
+        foreach (var chapter in Chapters)
+        {
+            UnsubscribeFromChapterEvents(chapter);
+        }
+        
         _subscriptions.ForEach(x => x.Dispose());
+        _propertyChangedHandlers.Clear();
 
         _lock.Dispose();
         

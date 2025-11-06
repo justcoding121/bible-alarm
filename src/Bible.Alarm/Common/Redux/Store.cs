@@ -1,20 +1,16 @@
-﻿// Decompiled with JetBrains decompiler
-// Type: Redux.Store`1
-// Assembly: Redux, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null
-// MVID: C5F64108-560B-4DF4-8351-166C386E1779
-// Assembly location: C:\Work\Repositories\Bible-Alarm\src\Bible.Alarm\Bible.Alarm.UWP\bin\x86\Debug\Redux.dll
-
-using System.Reactive.Subjects;
+﻿using Bible.Alarm.Common.Extensions;
 
 namespace Bible.Alarm.Common.Redux;
 
-public class Store<TState> : IStore<TState>, IObservable<TState>
+public class Store<TState> : IStore<TState>
 {
     private readonly object _syncRoot = new();
-    private readonly ReplaySubject<TState> _stateSubject = new(1);
     private readonly Dispatcher _dispatcher;
     private readonly Reducer<TState> _reducer;
     private TState _lastState;
+    private readonly List<Action<TState>> _subscribers = new();
+
+    public event EventHandler<TState> StateChanged;
 
     public Store(
         Reducer<TState> reducer,
@@ -24,7 +20,9 @@ public class Store<TState> : IStore<TState>, IObservable<TState>
         _reducer = reducer;
         _dispatcher = ApplyMiddlewares(middlewares);
         _lastState = initialState;
-        _stateSubject.OnNext(_lastState);
+        
+        // Notify initial state
+        NotifyStateChanged(_lastState);
     }
 
     public IAction Dispatch(IAction action)
@@ -34,12 +32,52 @@ public class Store<TState> : IStore<TState>, IObservable<TState>
 
     public TState GetState()
     {
-        return _lastState;
+        lock (_syncRoot)
+        {
+            return _lastState;
+        }
     }
 
-    public IDisposable Subscribe(IObserver<TState> observer)
+    public IDisposable Subscribe(Action<TState> onNext)
     {
-        return _stateSubject.Subscribe(observer);
+        lock (_syncRoot)
+        {
+            _subscribers.Add(onNext);
+            // Immediately call with current state
+            onNext(_lastState);
+        }
+
+        return new Subscription(() =>
+        {
+            lock (_syncRoot)
+            {
+                _subscribers.Remove(onNext);
+            }
+        });
+    }
+
+    private void NotifyStateChanged(TState newState)
+    {
+        StateChanged?.Invoke(this, newState);
+        
+        // Notify all subscribers
+        Action<TState>[] subscribersCopy;
+        lock (_syncRoot)
+        {
+            subscribersCopy = _subscribers.ToArray();
+        }
+        
+        foreach (var subscriber in subscribersCopy)
+        {
+            try
+            {
+                subscriber(newState);
+            }
+            catch
+            {
+                // Ignore errors from subscribers
+            }
+        }
     }
 
     private Dispatcher ApplyMiddlewares(params Middleware<TState>[] middlewares)
@@ -52,12 +90,36 @@ public class Store<TState> : IStore<TState>, IObservable<TState>
 
     private IAction InnerDispatch(IAction action)
     {
+        TState newState;
         lock (_syncRoot)
         {
-            _lastState = _reducer(_lastState, action);
+            // Deep clone the state before passing to reducer to ensure immutability
+            var clonedState = _lastState.DeepClone();
+            newState = _reducer(clonedState, action);
+            _lastState = newState;
         }
 
-        _stateSubject.OnNext(_lastState);
+        NotifyStateChanged(newState);
         return action;
+    }
+
+    private class Subscription : IDisposable
+    {
+        private readonly Action _unsubscribe;
+        private bool _disposed;
+
+        public Subscription(Action unsubscribe)
+        {
+            _unsubscribe = unsubscribe;
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _unsubscribe();
+                _disposed = true;
+            }
+        }
     }
 }

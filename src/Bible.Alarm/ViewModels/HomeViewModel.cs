@@ -11,9 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Scheduler;
@@ -39,6 +38,7 @@ public class HomeViewModel : ViewModel, IDisposable
     private readonly INotificationService _notificationService;
 
     private readonly List<IDisposable> _subscriptions = [];
+    private readonly Dictionary<ScheduleListItem, PropertyChangedEventHandler> _isEnabledHandlers = [];
 
 
     public HomeViewModel(
@@ -82,16 +82,17 @@ public class HomeViewModel : ViewModel, IDisposable
 
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
-        var subscription = ReduxContainer.Store
-            .Select(state => state.Schedules)
-            .Where(x => x != null)
-            .DistinctUntilChanged()
-            .Subscribe(x =>
+        ObservableHashSet<ScheduleListItem> lastSchedules = null;
+        var subscription = ReduxContainer.Store.Subscribe(state =>
+        {
+            if (state.Schedules != null && state.Schedules != lastSchedules)
             {
-                Schedules = x;
+                Schedules = state.Schedules;
+                lastSchedules = state.Schedules;
                 ListenIsEnabledChanges();
                 IsBusy = false;
-            });
+            }
+        });
         _subscriptions.Add(subscription);
 
         Initialize();
@@ -234,112 +235,103 @@ public class HomeViewModel : ViewModel, IDisposable
 
     private void ListenIsEnabledChanges()
     {
-        var scheduleListChangedObservable = Observable.FromEventPattern(
-            (EventHandler<NotifyCollectionChangedEventArgs> ev)
-                => new NotifyCollectionChangedEventHandler(ev),
-            ev => Schedules.CollectionChanged += ev,
-            ev => Schedules.CollectionChanged -= ev);
-
-        //for schedules currently shown on screen.
-        var isEnabledObservable = Schedules.Select(item =>
+        // Subscribe to existing schedules
+        if (Schedules != null)
         {
-            var removedObservable = scheduleListChangedObservable.Any(z =>
+            foreach (var item in Schedules)
             {
-                var oldItem = z.EventArgs.OldItems?.Cast<ScheduleListItem>();
-                return oldItem != null && oldItem.Any(removed => item == removed);
-            });
+                SubscribeToIsEnabledChanges(item);
+            }
+        }
 
-            //observe until the schedule is removed from the list.
-            return Observable.FromEvent<PropertyChangedEventHandler, KeyValuePair<string, ScheduleListItem>>(
-                    onNextHandler => (object sender, PropertyChangedEventArgs e)
-                        => onNextHandler(
-                            new KeyValuePair<string, ScheduleListItem>(e.PropertyName, (ScheduleListItem)sender)),
-                    handler => item.PropertyChanged += handler,
-                    handler => item.PropertyChanged -= handler)
-                .TakeUntil(removedObservable)
-                .Where(kv => kv.Key == "IsEnabled")
-                .Select(y => y.Value);
-        }).Merge();
-
-        //observe for all future schedules. 
-        var isEnableObservableForNewSchedules = scheduleListChangedObservable
-            .SelectMany(x =>
+        // Subscribe to collection changes
+        if (Schedules != null)
+        {
+            Schedules.CollectionChanged += (sender, e) =>
             {
-                var newItems = x.EventArgs.NewItems?.Cast<ScheduleListItem>();
-                if (newItems == null) return Enumerable.Empty<IObservable<ScheduleListItem>>();
-
-                //observe until the schedule is removed from the list.
-                return newItems.Select(added =>
+                if (e.NewItems != null)
                 {
-                    var removedObservable = scheduleListChangedObservable.Any(z =>
+                    foreach (ScheduleListItem item in e.NewItems)
                     {
-                        var oldItem = z.EventArgs.OldItems?.Cast<ScheduleListItem>();
-                        return oldItem != null && oldItem.Any(removed => added == removed);
-                    });
-
-                    return Observable.FromEvent<PropertyChangedEventHandler, KeyValuePair<string, ScheduleListItem>>(
-                            onNextHandler => (object sender, PropertyChangedEventArgs e)
-                                => onNextHandler(
-                                    new KeyValuePair<string, ScheduleListItem>(e.PropertyName,
-                                        (ScheduleListItem)sender)),
-                            handler => added.PropertyChanged += handler,
-                            handler => added.PropertyChanged -= handler)
-                        .TakeUntil(removedObservable)
-                        .Where(kv => kv.Key == "IsEnabled")
-                        .Select(y => y.Value);
-                });
-            })
-            .Merge();
-
-        //now the actual job (show the scheduled notification).
-        var subscription = Observable.Merge(isEnabledObservable, isEnableObservableForNewSchedules)
-            .ObserveOn(Scheduler.CurrentThread)
-            .Do(async y =>
-            {
-                IsBusy = true;
-
-                if (y.IsEnabled &&
-                    (DeviceInfo.Platform == DevicePlatform.iOS
-                     || DeviceInfo.Platform == DevicePlatform.WinUI)
-                    && !await _notificationService.CanSchedule())
-                {
-                    y.IsEnabled = false;
-
-                    if (DeviceInfo.Platform == DevicePlatform.iOS)
-                        await _popUpService.ShowMessage(
-                            "Cannot schedule alarm because you've disabled notifications. " +
-                            "Please enable notification for this app under system settings.", 7);
-                    else
-                        await _popUpService.ShowMessage(
-                            "Cannot schedule alarm because you've denied backgroud apps permission. " +
-                            "Please grant background apps permission for this app under system settings.", 7);
-
-                    IsBusy = false;
-                    return;
+                        SubscribeToIsEnabledChanges(item);
+                    }
                 }
-
-                await Task.Run(async () =>
+                if (e.OldItems != null)
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                    var existing = await scheduleDbContext.AlarmSchedules.FirstAsync(x => x.Id == y.ScheduleId);
-                    existing.IsEnabled = y.IsEnabled;
-                    await scheduleDbContext.SaveChangesAsync();
+                    foreach (ScheduleListItem item in e.OldItems)
+                    {
+                        UnsubscribeFromIsEnabledChanges(item);
+                    }
+                }
+            };
+        }
+    }
 
-                    _alarmService.Update(existing);
-                });
+    private void SubscribeToIsEnabledChanges(ScheduleListItem item)
+    {
+        PropertyChangedEventHandler handler = async (sender, e) =>
+        {
+            if (e.PropertyName == "IsEnabled" && sender is ScheduleListItem scheduleItem)
+            {
+                await HandleIsEnabledChanged(scheduleItem);
+            }
+        };
 
-                if (y.IsEnabled) await _popUpService.ShowScheduledNotification(y.Schedule);
+        item.PropertyChanged += handler;
+        _isEnabledHandlers[item] = handler;
+    }
 
-                SetupMediaCache(y.Schedule.Id);
+    private void UnsubscribeFromIsEnabledChanges(ScheduleListItem item)
+    {
+        if (_isEnabledHandlers.TryGetValue(item, out var handler))
+        {
+            item.PropertyChanged -= handler;
+            _isEnabledHandlers.Remove(item);
+        }
+    }
 
-                y.RaisePropertiesChangedEvent();
+    private async Task HandleIsEnabledChanged(ScheduleListItem scheduleItem)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
 
-                IsBusy = false;
-            })
-            .Subscribe();
+        if (scheduleItem.IsEnabled &&
+            (DeviceInfo.Platform == DevicePlatform.iOS
+             || DeviceInfo.Platform == DevicePlatform.WinUI)
+            && !await _notificationService.CanSchedule())
+        {
+            scheduleItem.IsEnabled = false;
 
-        _subscriptions.Add(subscription);
+            if (DeviceInfo.Platform == DevicePlatform.iOS)
+                await _popUpService.ShowMessage(
+                    "Cannot schedule alarm because you've disabled notifications. " +
+                    "Please enable notification for this app under system settings.", 7);
+            else
+                await _popUpService.ShowMessage(
+                    "Cannot schedule alarm because you've denied backgroud apps permission. " +
+                    "Please grant background apps permission for this app under system settings.", 7);
+
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            return;
+        }
+
+        await Task.Run(async () =>
+        {
+            using var scope = _scopeFactory.CreateScope();
+            using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            var existing = await scheduleDbContext.AlarmSchedules.FirstAsync(x => x.Id == scheduleItem.ScheduleId);
+            existing.IsEnabled = scheduleItem.IsEnabled;
+            await scheduleDbContext.SaveChangesAsync();
+
+            _alarmService.Update(existing);
+        });
+
+        if (scheduleItem.IsEnabled) await _popUpService.ShowScheduledNotification(scheduleItem.Schedule);
+
+        SetupMediaCache(scheduleItem.Schedule.Id);
+
+        scheduleItem.RaisePropertiesChangedEvent();
+
+        await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
     }
 
     private void SetupMediaCache(long scheduleId)
@@ -362,7 +354,17 @@ public class HomeViewModel : ViewModel, IDisposable
 
     public void Dispose()
     {
+        // Unsubscribe from all schedule IsEnabled changes
+        if (Schedules != null)
+        {
+            foreach (var item in Schedules)
+            {
+                UnsubscribeFromIsEnabledChanges(item);
+            }
+        }
+        
         _subscriptions.ForEach(x => x.Dispose());
+        _isEnabledHandlers.Clear();
 
         _lock.Dispose();
         
