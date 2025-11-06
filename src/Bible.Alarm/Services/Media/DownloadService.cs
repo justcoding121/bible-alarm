@@ -1,7 +1,8 @@
 using System.Net;
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Shared.Constants;
+using Polly;
+using Polly.Retry;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -10,10 +11,29 @@ namespace Bible.Alarm.Services.Media;
 /// </summary>
 public class DownloadService(HttpMessageHandler handler) : IDownloadService
 {
-    private readonly int _downloadRetryAttempts = AppConstants.CacheSettings.DownloadRetryAttempts;
-    private readonly int _fileExistsCheckRetryAttempts = AppConstants.CacheSettings.FileExistsCheckRetryAttempts;
-
     private readonly int _timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
+
+    // Polly retry policy with exponential backoff (starts at 1 second, doubles each retry)
+    private readonly AsyncRetryPolicy _downloadRetryPolicy = Policy
+        .Handle<Exception>()
+        .WaitAndRetryAsync(
+            retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,
+            sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
+            onRetry: (exception, timeSpan, retryCount, context) =>
+            {
+                // Optional: Add logging here if needed
+            });
+
+    // Polly retry policy for file existence checks
+    private readonly AsyncRetryPolicy _fileExistsRetryPolicy = Policy
+        .Handle<Exception>()
+        .WaitAndRetryAsync(
+            retryCount: AppConstants.CacheSettings.FileExistsCheckRetryAttempts,
+            sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
+            onRetry: (exception, timeSpan, retryCount, context) =>
+            {
+                // Optional: Add logging here if needed
+            });
 
     /// <summary>
     /// Dowload the file from the Url
@@ -22,7 +42,7 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
     /// <returns></returns>
     public async Task<byte[]> DownloadAsync(string url, string alternativeUrl = null)
     {
-        return await RetryHelper.Retry(async () =>
+        return await _downloadRetryPolicy.ExecuteAsync(async () =>
         {
             try
             {
@@ -36,7 +56,7 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
                 using var client = new HttpClient(handler, false);
                 return await client.GetByteArrayAsync(alternativeUrl);
             }
-        }, _downloadRetryAttempts);
+        });
     }
 
 
@@ -47,7 +67,7 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
 
     public async Task<bool> FileExists(string url)
     {
-        return await RetryHelper.Retry(async () =>
+        return await _fileExistsRetryPolicy.ExecuteAsync(async () =>
         {
             using var client = new HttpClient(handler, false)
             {
@@ -79,6 +99,6 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
             {
                 return await getRequest();
             }
-        }, _fileExistsCheckRetryAttempts);
+        });
     }
 }
