@@ -71,7 +71,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
-        ScheduleListItem? lastScheduleListItem = null;
+        ScheduleListItem lastScheduleListItem = null;
         bool modelInitialized = false;
         IDisposable subscription = null;
         subscription = ReduxContainer.Store.Subscribe(async state =>
@@ -123,7 +123,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         _subscriptions.Add(subscription);
 
-        AlarmMusic? lastMusic = null;
+        AlarmMusic lastMusic = null;
         var subscription2 = ReduxContainer.Store.Subscribe(state =>
         {
             if (state.CurrentMusic != null && state.CurrentMusic != lastMusic && state.CurrentMusic != Music)
@@ -136,7 +136,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         _subscriptions.Add(subscription2);
 
-        BibleReadingSchedule? lastBibleReading = null;
+        BibleReadingSchedule lastBibleReading = null;
         var subscription3 = ReduxContainer.Store.Subscribe(state =>
         {
             if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastBibleReading && state.CurrentBibleReadingSchedule != BibleReadingSchedule)

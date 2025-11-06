@@ -77,7 +77,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         });
 
         // Subscribe to current schedule changes (but skip first one)
-        BibleReadingSchedule? lastCurrent = null;
+        BibleReadingSchedule lastCurrent = null;
         var subscription2 = ReduxContainer.Store.Subscribe(state =>
         {
             if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastCurrent)

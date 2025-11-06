@@ -56,8 +56,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         _subscriptions.Add(subscription1);
 
         // Subscribe to subsequent schedule changes (skip first one)
-        BibleReadingSchedule? lastCurrent = null;
-        BibleReadingSchedule? lastTentative = null;
+        BibleReadingSchedule lastCurrent = null;
+        BibleReadingSchedule lastTentative = null;
         var subscription2 = ReduxContainer.Store.Subscribe(state =>
         {
             if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null

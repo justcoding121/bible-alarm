@@ -50,8 +50,8 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         _subscriptions.Add(subscription1);
 
         // Subscribe to subsequent music changes (skip first one)
-        AlarmMusic? lastCurrent = null;
-        AlarmMusic? lastTentative = null;
+        AlarmMusic lastCurrent = null;
+        AlarmMusic lastTentative = null;
         var subscription2 = ReduxContainer.Store.Subscribe(state =>
         {
             if (state.CurrentMusic != null && state.TentativeMusic != null

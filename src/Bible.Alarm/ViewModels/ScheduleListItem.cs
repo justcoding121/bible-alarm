@@ -19,7 +19,6 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
     private readonly IServiceScopeFactory _scopeFactory;
 
     public AlarmSchedule Schedule;
-    private readonly IDisposable _subscription;
 
     public ScheduleListItem(AlarmSchedule schedule, ILogger logger, IServiceScopeFactory scopeFactory)
     {
