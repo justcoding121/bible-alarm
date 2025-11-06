@@ -1,8 +1,6 @@
 using AutoFixture;
 using Bible.Alarm.VersionPatcher.Services.Infrastructure;
 using FluentAssertions;
-using System.IO;
-using Xunit;
 
 namespace Bible.Alarm.VersionPatcher.Tests.Services;
 

@@ -4,22 +4,17 @@ using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Utilities;
 using Bible.Alarm.Shared.Services.Infrastructure.Media;
-using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.ViewModels.Redux;
 using Bible.Alarm.ViewModels.Redux.Actions;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows.Input;
-using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Scheduler;
 using Bible.Alarm.Contracts.UI;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.ViewModels.Redux.Actions.Schedule;
 
@@ -31,8 +26,6 @@ public class HomeViewModel : ViewModel, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
 
     private readonly IToastService _popUpService;
-    private readonly INavigationService _navigationService;
-    private readonly IMediaCacheService _mediaCacheService;
     private readonly IAlarmService _alarmService;
 
     private readonly INotificationService _notificationService;
@@ -51,8 +44,7 @@ public class HomeViewModel : ViewModel, IDisposable
     {
         _logger = logger;
         _popUpService = popUpService;
-        _navigationService = navigationService;
-        _mediaCacheService = mediaCacheService;
+        var navigationService1 = navigationService;
         _alarmService = alarmService;
         _notificationService = notificationService;
         _scopeFactory = scopeFactory;
@@ -62,7 +54,7 @@ public class HomeViewModel : ViewModel, IDisposable
             ReduxContainer.Store.Dispatch(new ViewScheduleAction());
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
-            await _navigationService.Navigate(viewModel);
+            await navigationService1.Navigate(viewModel);
         });
 
         ViewScheduleCommand = new Command<ScheduleListItem>(async x =>
@@ -76,7 +68,7 @@ public class HomeViewModel : ViewModel, IDisposable
 
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
-            await _navigationService.Navigate(viewModel);
+            await navigationService1.Navigate(viewModel);
         });
 
 
@@ -85,13 +77,11 @@ public class HomeViewModel : ViewModel, IDisposable
         ObservableHashSet<ScheduleListItem> lastSchedules = null;
         var subscription = ReduxContainer.Store.Subscribe(state =>
         {
-            if (state.Schedules != null && state.Schedules != lastSchedules)
-            {
-                Schedules = state.Schedules;
-                lastSchedules = state.Schedules;
-                ListenIsEnabledChanges();
-                IsBusy = false;
-            }
+            if (state.Schedules == null || state.Schedules == lastSchedules) return;
+            Schedules = state.Schedules;
+            lastSchedules = state.Schedules;
+            ListenIsEnabledChanges();
+            IsBusy = false;
         });
         _subscriptions.Add(subscription);
 
@@ -103,7 +93,7 @@ public class HomeViewModel : ViewModel, IDisposable
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        
+
         if (!await scheduleDbContext.AlarmSchedules.AnyAsync()
             && !await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.AlarmSeeded)
             //for existing apps before version 1.30
@@ -180,7 +170,7 @@ public class HomeViewModel : ViewModel, IDisposable
 
                     using var scope = _scopeFactory.CreateScope();
                     var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                    
+
                     var alarmSchedules = await scheduleDbContext.AlarmSchedules
                         .Include(x => x.BibleReadingSchedule)
                         .Include(x => x.Music)
@@ -193,7 +183,7 @@ public class HomeViewModel : ViewModel, IDisposable
                             BgSourceHelper.PublicationCodeToNameMappings.Any(y =>
                                 y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
 
-                        if (toRemove.Any())
+                        if (toRemove.Count != 0)
                         {
                             foreach (var item in toRemove)
                             {
@@ -256,12 +246,12 @@ public class HomeViewModel : ViewModel, IDisposable
                         SubscribeToIsEnabledChanges(item);
                     }
                 }
-                if (e.OldItems != null)
+
+                if (e.OldItems == null) return;
+
+                foreach (ScheduleListItem item in e.OldItems)
                 {
-                    foreach (ScheduleListItem item in e.OldItems)
-                    {
-                        UnsubscribeFromIsEnabledChanges(item);
-                    }
+                    UnsubscribeFromIsEnabledChanges(item);
                 }
             };
         }
@@ -283,11 +273,10 @@ public class HomeViewModel : ViewModel, IDisposable
 
     private void UnsubscribeFromIsEnabledChanges(ScheduleListItem item)
     {
-        if (_isEnabledHandlers.TryGetValue(item, out var handler))
-        {
-            item.PropertyChanged -= handler;
-            _isEnabledHandlers.Remove(item);
-        }
+        if (!_isEnabledHandlers.TryGetValue(item, out var handler)) return;
+
+        item.PropertyChanged -= handler;
+        _isEnabledHandlers.Remove(item);
     }
 
     private async Task HandleIsEnabledChanged(ScheduleListItem scheduleItem)
@@ -317,7 +306,7 @@ public class HomeViewModel : ViewModel, IDisposable
         await Task.Run(async () =>
         {
             using var scope = _scopeFactory.CreateScope();
-            using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
             var existing = await scheduleDbContext.AlarmSchedules.FirstAsync(x => x.Id == scheduleItem.ScheduleId);
             existing.IsEnabled = scheduleItem.IsEnabled;
             await scheduleDbContext.SaveChangesAsync();
@@ -362,223 +351,15 @@ public class HomeViewModel : ViewModel, IDisposable
                 UnsubscribeFromIsEnabledChanges(item);
             }
         }
-        
+
         _subscriptions.ForEach(x => x.Dispose());
         _isEnabledHandlers.Clear();
 
         _lock.Dispose();
-        
+
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
         // _popUpService (IToastService), _mediaCacheService (IMediaCacheService), 
         // _alarmService (IAlarmService), and _notificationService (INotificationService) 
         // are singletons and should not be disposed here as they are managed by the DI container
-    }
-}
-
-public class ScheduleListItem : ViewModel, IComparable, IDisposable
-{
-    private readonly ILogger _logger;
-    private readonly IServiceScopeFactory _scopeFactory;
-
-    public AlarmSchedule Schedule;
-    private readonly IDisposable _subscription;
-
-    public ScheduleListItem(AlarmSchedule schedule, ILogger logger, IServiceScopeFactory scopeFactory)
-    {
-        _logger = logger;
-        _scopeFactory = scopeFactory;
-        Schedule = schedule;
-        _isEnabled = schedule.IsEnabled;
-
-        PlayCommand = new Command(() =>
-        {
-            _ = Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
-
-                try
-                {
-                    if (Schedule.Id > 0)
-                    {
-                        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-
-                        await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
-
-                        using var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-                        await notificationService.ShowNotification(Schedule.Id);
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.Information(e, "An error happenned when playing alarm.");
-                    await toastService.ShowMessage("Error. Network may not be available." +
-                                                   "Please try again.", 5);
-                }
-            });
-        });
-
-        RefreshChapterName(true);
-
-        _subscription = Messenger<object>.Subscribe(MvvmMessages.TrackChanged,
-            (x) =>
-            {
-                if ((int)x == Schedule.Id) RefreshChapterName();
-
-                return Task.CompletedTask;
-            });
-
-        PreviousCommand = new Command(async () =>
-        {
-            if (await CanMove(schedule.Id))
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-                await playlistService.MoveToPreviousBibleChapter(schedule.Id);
-
-                RefreshChapterName(true);
-            }
-        });
-
-        NextCommand = new Command(async () =>
-        {
-            if (await CanMove(schedule.Id))
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-                await playlistService.MoveToNextBibleChapter(schedule.Id);
-
-                RefreshChapterName(true);
-            }
-        });
-    }
-
-    private async Task<bool> CanMove(long scheduleId)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-
-        if (!playbackService.IsPlaying) return true;
-
-        using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
-
-        await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
-
-        return false;
-    }
-
-    public long ScheduleId => Schedule.Id;
-
-    public string Name => Schedule.Name;
-
-    public string SubTitle { get; private set; }
-
-    private bool _isEnabled;
-
-    public bool IsEnabled
-    {
-        get => _isEnabled;
-        set => this.Set(ref _isEnabled, value);
-    }
-
-    public DaysOfWeek DaysOfWeek => Schedule.DaysOfWeek;
-
-    public string TimeText => Schedule.TimeText;
-
-    public string Hour => Schedule.MeridienHour.ToString("D2");
-
-    public string Minute => Schedule.Minute.ToString("D2");
-
-    public Meridien Meridien => Schedule.Meridien;
-
-    public ScheduleListItem This => this;
-
-    public ICommand PlayCommand { get; private set; }
-
-    public ICommand PreviousCommand { get; set; }
-    public ICommand NextCommand { get; set; }
-
-    public void RaisePropertiesChangedEvent()
-    {
-        RaiseProperties(GetType()
-            .GetProperties()
-            .Where(x => x.Name != "IsEnabled")
-            .Select(x => x.Name).ToArray());
-    }
-
-    public void RefreshChapterName(bool force = false)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
-
-        _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-
-                    if (Schedule == null || (!force && !playbackService.IsPrepared)) return null;
-
-                    using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-                    var schedule = await scheduleDbContext.AlarmSchedules
-                        .Include(x => x.BibleReadingSchedule)
-                        .AsNoTracking()
-                        .Where(x => x.Id == Schedule.Id)
-                        .FirstOrDefaultAsync();
-
-                    if (schedule != null)
-                    {
-                        using var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-                        var bookName = await mediaDbContext.BibleBook
-                            .Where(x => x.BibleTranslation.Code == schedule.BibleReadingSchedule.PublicationCode
-                                        && x.BibleTranslation.Language.Code ==
-                                        schedule.BibleReadingSchedule.LanguageCode
-                                        && x.Number == schedule.BibleReadingSchedule.BookNumber)
-                            .Select(x => x.Name)
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync();
-
-                        if (bookName != null)
-                        {
-                            Schedule.BibleReadingSchedule.BookNumber = schedule.BibleReadingSchedule.BookNumber;
-                            Schedule.BibleReadingSchedule.ChapterNumber = schedule.BibleReadingSchedule.ChapterNumber;
-                            return new Tuple<string, int>(bookName, schedule.BibleReadingSchedule.ChapterNumber);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.Error(e, "An error happened in RefreshChapterName task under list item.");
-                }
-
-                return null;
-            })
-            .ContinueWith((x) =>
-            {
-                try
-                {
-                    if (x.IsCompleted && x.Result != null)
-                    {
-                        SubTitle = $"{x.Result.Item1} {x.Result.Item2}";
-                        RaiseProperty("SubTitle");
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.Error(e, "An error happened in RefreshChapterName continue with task under list item.");
-                }
-            }, syncContext);
-    }
-
-    public int CompareTo(object obj)
-    {
-        return ScheduleId.CompareTo((obj as ScheduleListItem).ScheduleId);
-    }
-
-    public void Dispose()
-    {
-        _subscription?.Dispose();
     }
 }

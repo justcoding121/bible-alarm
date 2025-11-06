@@ -1,5 +1,4 @@
 using AutoFixture;
-using FluentAssertions;
 using Moq;
 
 namespace Bible.Alarm.VersionPatcher.Tests;

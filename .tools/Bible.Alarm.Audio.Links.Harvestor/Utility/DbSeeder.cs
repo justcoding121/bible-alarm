@@ -2,7 +2,6 @@
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -25,7 +24,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             var dbConfig = new DbContextOptionsBuilder<MediaDbContext>()
                .UseSqlite($"Data Source={Path.Combine(zipDir, "mediaIndex.db")}").Options;
 
-            using (var db = new MediaDbContext(dbConfig))
+            await using (var db = new MediaDbContext(dbConfig))
             {
                 db.Database.Migrate();
 

@@ -17,7 +17,7 @@ internal class Program
             services.AddVersionPatchingServices();
             
             // Build service provider
-            using var serviceProvider = services.BuildServiceProvider();
+            await using var serviceProvider = services.BuildServiceProvider();
 
             // Get the version patching service and execute patching
             var versionPatchingService = serviceProvider.GetRequiredService<IVersionPatchingService>();

@@ -13,7 +13,6 @@ using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Infrastructure.Media;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Infrastructure.Media;
 using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
@@ -769,7 +768,7 @@ public class ScheduleViewModel : ViewModel, IDisposable
             {
                 try
                 {
-                    using var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                    await using var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
                     var bookName = await mediaDbContext.BibleBook
                         .Where(x => x.BibleTranslation.Code == BibleReadingSchedule.PublicationCode

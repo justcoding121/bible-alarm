@@ -3,7 +3,6 @@ using Bible.Alarm.VersionPatcher.Services.Contracts;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Xunit;
 
 namespace Bible.Alarm.VersionPatcher.Tests;
 

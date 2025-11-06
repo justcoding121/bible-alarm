@@ -1,5 +1,4 @@
 using Bible.Alarm.VersionPatcher.Services.Contracts;
-using System.IO;
 
 namespace Bible.Alarm.VersionPatcher.Tests.Services;
 

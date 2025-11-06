@@ -75,11 +75,11 @@ public abstract class StorageService : IStorageService
             await DeleteFile(destinationFilePath);
         }
 
-        using (var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName))
+        await using (var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName))
         {
             var buffer = new byte[1024];
-            using (var fileWriter =
-                   new BinaryWriter(File.Create(destinationFilePath)))
+            await using (var fileWriter =
+                         new BinaryWriter(File.Create(destinationFilePath)))
             {
                 long readCount = 0;
                 while (readCount < sr.Length)
