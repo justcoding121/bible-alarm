@@ -1,8 +1,8 @@
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Infrastructure;
+using Bible.Alarm.Common.Infrastructure.Schedule;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
-using Bible.Alarm.Services.Infrastructure;
-using Bible.Alarm.Services.Infrastructure.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Tasks;
 using Foundation;
