@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Text;
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Contracts.Media;
 using Bible.Alarm.Contracts.Network;
 using Bible.Alarm.Contracts.Storage;

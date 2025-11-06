@@ -3,7 +3,6 @@
     using AudioLinkHarvester.Models;
     using AudioLinkHarvester.Models.Bible;
     using AudioLinkHarvester.Models.Music;
-    using Bible.Alarm.Common.DataStructures;
     using Newtonsoft.Json;
     using System.Collections.Generic;
     using System.IO;

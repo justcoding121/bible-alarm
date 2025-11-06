@@ -1,7 +1,6 @@
 ﻿using Android.App;
 using Android.Content;
 using Android.OS;
-using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 

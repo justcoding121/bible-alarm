@@ -9,7 +9,6 @@ using Android.Graphics.Drawables;
 using AndroidX.Core.Content;
 using Android.Graphics;
 using AndroidApplication = global::Android.App.Application;
-using AndroidBuild = global::Android.OS.Build;
 using AndroidNet = global::Android.Net;
 using Bible.Alarm.Contracts.Storage;
 using Bible.Alarm.Contracts.UI;

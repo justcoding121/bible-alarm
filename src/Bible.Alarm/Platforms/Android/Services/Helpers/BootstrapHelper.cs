@@ -4,16 +4,12 @@ using Android.Content;
 using Android.Media;
 using Android.OS;
 using AndroidApplication = global::Android.App.Application;
-using AndroidBuild = global::Android.OS.Build;
 using AndroidNet = global::Android.Net;
-using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Common.Mvvm.Messenger;
 using Bible.Alarm.Platforms.Android.Services.Jobs;
 using Bible.Alarm.Platforms.Android.Services.UI;
-using Bible.Alarm.Services.Infrastructure;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;

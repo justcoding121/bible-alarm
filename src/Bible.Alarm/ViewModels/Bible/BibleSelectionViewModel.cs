@@ -1,7 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows.Input;
-using Microsoft.Maui.ApplicationModel;
 using Bible.Alarm.Common.Mvvm;
 using Bible.Alarm.Contracts.UI;
 using Bible.Alarm.Models.Schedule;

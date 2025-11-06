@@ -1,6 +1,5 @@
 ﻿using Android.Content;
 using AndroidBuild = global::Android.OS.Build;
-using AndroidBuildVersionCodes = global::Android.OS.Build.VERSION_CODES;
 using AndroidProvider = global::Android.Provider;
 using AndroidApplication = global::Android.App.Application;
 using Bible.Alarm.Contracts.Battery;

@@ -1,7 +1,6 @@
 ﻿using Android.App;
 using Android.App.Job;
 using AndroidBuild = global::Android.OS.Build;
-using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Media;
