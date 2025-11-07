@@ -10,7 +10,6 @@ using AndroidX.Core.Content;
 using Android.Graphics;
 using AndroidApplication = global::Android.App.Application;
 using AndroidNet = global::Android.Net;
-using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
@@ -18,7 +17,7 @@ using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
-public class DroidNotificationService(ILogger logger, IStorageService _) : INotificationService
+public class DroidNotificationService(ILogger logger) : INotificationService
 {
     public static readonly string ChannelIdAndName = "alarm_notification";
     public static readonly string ChannelDescription = "alarm_notification are send to this channel";
@@ -186,7 +185,6 @@ public class DroidNotificationService(ILogger logger, IStorageService _) : INoti
 
     public void Dispose()
     {
-        // Note: IStorageService parameter is intentionally unused but required for DI
-        // It is a singleton and should not be disposed here as it is managed by the DI container
+        // Nothing to dispose - logger is managed by DI container
     }
 }
