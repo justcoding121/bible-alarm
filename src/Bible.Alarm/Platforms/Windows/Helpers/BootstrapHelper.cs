@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Services.Tasks;
+using Bible.Alarm.Services.Scheduler;
 using Serilog;
 // Removed UWP background task APIs - not available in WinUI 3 desktop apps
 
@@ -54,7 +54,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
 
                     await Task.Delay(1000);
 
-                    await ServiceProviderManager.GetService<SchedulerTask>().Handle();
+                    await ServiceProviderManager.GetService<SchedulerService>().Handle();
                 }
                 catch (Exception e)
                 {
@@ -85,7 +85,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             // For now, we'll skip this registration
         }
 
-        private static void RegisterSchedulerTask()
+        private static void RegisterSchedulerService()
         {
             // For WinUI 3 desktop apps, background tasks are not available
             // This functionality would need to be implemented using alternative approaches

@@ -1,10 +1,10 @@
 using System.Windows.Input;
-using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Database;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models;
-using Bible.Alarm.Services.Infrastructure.Schedule;
+using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 using Plugin.StoreReview;

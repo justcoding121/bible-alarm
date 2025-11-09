@@ -3,8 +3,7 @@ using Android.App.Job;
 using AndroidBuild = global::Android.OS.Build;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Infrastructure;
-using Bible.Alarm.Services.Tasks;
-using Bible.Alarm.Services.Infrastructure;
+using Bible.Alarm.Services.Scheduler;
 using Serilog;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 
@@ -50,7 +49,7 @@ public class SchedulerJob : JobService
                 // This will also initialize platform-specific bootstrap helpers
                 MauiProgram.EnsureDiContainerInitialized();
 
-                var schedulerService = ServiceProviderManager.GetService<SchedulerTask>();
+                var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
                 await schedulerService.Handle();
             }
             catch (Exception e)

@@ -1,15 +1,15 @@
-using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Services.Infrastructure.Schedule;
+using Bible.Alarm.Database.Migrations;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-namespace Bible.Alarm.Services.Tasks;
+namespace Bible.Alarm.Services.Scheduler;
 
-public class SchedulerTask(
+public class SchedulerService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IMediaCacheService mediaCacheService,
@@ -69,7 +69,7 @@ public class SchedulerTask(
                 }
                 catch (ObjectDisposedException e)
                 {
-                    _logger.Error(e, "SchedulerTask: @lock disposed error.");
+                    _logger.Error(e, "SchedulerService: @lock disposed error.");
                 }
             }
 
@@ -83,3 +83,4 @@ public class SchedulerTask(
         // and should not be disposed here as they are managed by the DI container
     }
 }
+

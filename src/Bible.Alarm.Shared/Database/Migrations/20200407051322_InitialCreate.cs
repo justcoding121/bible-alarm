@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Bible.Alarm.Services.Infrastructure.Media.Migrations
+namespace Bible.Alarm.Shared.Database.Migrations
 {
     public partial class InitialCreate : Migration
     {

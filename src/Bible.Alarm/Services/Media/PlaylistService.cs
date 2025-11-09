@@ -1,5 +1,5 @@
 using System.Linq;
-using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Database;
 using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Common.Interfaces.Media;
@@ -7,9 +7,9 @@ using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Infrastructure.Schedule;
+using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Infrastructure;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Microsoft.EntityFrameworkCore;
 using Serilog;

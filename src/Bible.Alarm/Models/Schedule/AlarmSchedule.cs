@@ -1,4 +1,4 @@
-using Bible.Alarm.Shared.Infrastructure;
+using Bible.Alarm.Shared.Database;
 using Quartz;
 using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;

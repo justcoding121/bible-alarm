@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 
-namespace Bible.Alarm.Services.Infrastructure.Schedule.Migrations
+namespace Bible.Alarm.Database.Migrations
 {
     public partial class AddAlarmNotificationsTable : Migration
     {

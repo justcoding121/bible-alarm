@@ -4,8 +4,7 @@ using Android.OS;
 using Android.Runtime;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Infrastructure;
-using Bible.Alarm.Services.Infrastructure;
-using Bible.Alarm.Services.Tasks;
+using Bible.Alarm.Services.Scheduler;
 using Serilog;
 using static Android.App.AlarmManager;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
@@ -80,8 +79,8 @@ public class AlarmSetupService : Service, IDisposable
                     {
                         try
                         {
-                            using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
-                            await schedulerTask.Handle();
+                            using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
+                            await schedulerService.Handle();
                         }
                         catch (Exception e)
                         {

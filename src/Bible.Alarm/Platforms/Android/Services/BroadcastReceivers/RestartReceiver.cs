@@ -6,8 +6,7 @@ using Bible.Alarm.Common.Infrastructure;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 
 
-using Bible.Alarm.Services.Infrastructure;
-using Bible.Alarm.Services.Tasks;
+using Bible.Alarm.Services.Scheduler;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
@@ -60,8 +59,8 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
             // Ensure DI container is initialized for background service
             // This will also initialize platform-specific bootstrap helpers
             MauiProgram.EnsureDiContainerInitialized();
-            using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
-            await schedulerTask.Handle();
+            using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
+            await schedulerService.Handle();
 
             context.StopService(intent);
         }

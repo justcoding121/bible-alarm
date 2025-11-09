@@ -3,7 +3,6 @@ using Android.App.Job;
 using AndroidBuild = global::Android.OS.Build;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Infrastructure;
-using Bible.Alarm.Services.Infrastructure;
 using Bible.Alarm.Services.Media;
 using Serilog;
 using Bible.Alarm.Platforms.Android.Services.Platform;

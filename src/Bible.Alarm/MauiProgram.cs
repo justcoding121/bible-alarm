@@ -1,10 +1,10 @@
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Database;
 using CommunityToolkit.Maui;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Network;
-using Bible.Alarm.Services.Tasks;
+using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views.Bible;
@@ -19,10 +19,9 @@ using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Services.Infrastructure.Schedule;
-using Bible.Alarm.Services.Scheduler;
+using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Infrastructure;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using Bible.Alarm.ViewModels.Bible;
@@ -146,8 +145,8 @@ public static class MauiProgram
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
         services.AddSingleton<IMediaElementAudioService, MediaElementAudioService>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
-        services.AddSingleton<SchedulerTask>();
-        services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerTask>());
+        services.AddSingleton<SchedulerService>();
+        services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());
         services.AddSingleton<IMediaIndexService>(sp => sp.GetRequiredService<MediaIndexService>());
         
         // Register platform-specific version finder

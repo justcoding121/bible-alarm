@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Services.Tasks;
+using Bible.Alarm.Services.Scheduler;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;
@@ -47,8 +47,8 @@ public class BootstrapHelper
 
                 try
                 {
-                    using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
-                    var downloaded = await schedulerTask.Handle();
+                    using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
+                    var downloaded = await schedulerService.Handle();
                 }
                 catch (Exception e)
                 {

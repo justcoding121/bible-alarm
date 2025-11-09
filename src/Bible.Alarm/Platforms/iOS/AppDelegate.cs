@@ -1,10 +1,10 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Infrastructure;
-using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.Services.Tasks;
+using Bible.Alarm.Services.Scheduler;
 using Foundation;
 using Serilog;
 using UIKit;
@@ -209,8 +209,8 @@ namespace Bible.Alarm.Platforms.iOS
 
             try
             {
-                using var schedulerTask = ServiceProviderManager.GetService<SchedulerTask>();
-                downloaded = await schedulerTask.Handle();
+                using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
+                downloaded = await schedulerService.Handle();
 
                 var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                 downloaded = downloaded || await mediaIndexService.UpdateIndexIfAvailable();

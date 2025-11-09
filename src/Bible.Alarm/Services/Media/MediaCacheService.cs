@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
 using System.Text;
-using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Network;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Services.Infrastructure.Schedule;
+using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;

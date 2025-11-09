@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Bible.Alarm.Services.Infrastructure.Schedule.Migrations
+namespace Bible.Alarm.Database.Migrations
 {
     public partial class Add_Number_Of_Chapters_To_Read_Column : Migration
     {

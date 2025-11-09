@@ -1,7 +1,7 @@
-using Bible.Alarm.Common.Infrastructure.Schedule;
+using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.UI;
-using Bible.Alarm.Services.Infrastructure.Schedule;
+using Bible.Alarm.Database.Migrations;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
