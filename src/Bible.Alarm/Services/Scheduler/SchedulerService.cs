@@ -1,6 +1,7 @@
 using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database.Migrations;

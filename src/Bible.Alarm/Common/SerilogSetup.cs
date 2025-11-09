@@ -2,7 +2,7 @@ using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
 
-namespace Bible.Alarm.Common.Infrastructure;
+namespace Bible.Alarm.Common;
 
 public class SerilogSetup
 {

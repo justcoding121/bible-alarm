@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Bible.Alarm.Shared.Utilities;
+namespace Bible.Alarm.Shared.Helpers;
 
 public static class DirectoryHelper
 {

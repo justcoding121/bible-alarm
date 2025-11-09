@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Bible.Alarm.Shared.Utilities;
+namespace Bible.Alarm.Shared.Helpers;
 
 public class DownloadUtility
 {

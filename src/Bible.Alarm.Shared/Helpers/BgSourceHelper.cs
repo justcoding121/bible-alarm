@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Bible.Alarm.Shared.Utilities;
+namespace Bible.Alarm.Shared.Helpers;
 
 public static class BgSourceHelper
 {

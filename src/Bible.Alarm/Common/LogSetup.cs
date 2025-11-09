@@ -1,7 +1,7 @@
 using Bible.Alarm.Common.Interfaces.Platform;
 using Serilog;
 
-namespace Bible.Alarm.Common.Infrastructure;
+namespace Bible.Alarm.Common;
 
 public class LogSetup
 {

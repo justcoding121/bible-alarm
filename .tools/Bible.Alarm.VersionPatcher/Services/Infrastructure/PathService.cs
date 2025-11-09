@@ -1,5 +1,5 @@
 using System.IO;
-using Bible.Alarm.Shared.Utilities;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;

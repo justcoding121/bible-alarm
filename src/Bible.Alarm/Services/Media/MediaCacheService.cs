@@ -7,7 +7,7 @@ using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Utilities;
+using Bible.Alarm.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Serilog;

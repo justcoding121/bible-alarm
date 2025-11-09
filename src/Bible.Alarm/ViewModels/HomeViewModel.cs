@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Utilities;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Microsoft.EntityFrameworkCore;

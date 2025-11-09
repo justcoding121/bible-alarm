@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bible.Alarm.Shared.Utilities;
+namespace Bible.Alarm.Shared.Helpers;
 
 public static class JwSourceHelper
 {

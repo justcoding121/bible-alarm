@@ -7,7 +7,7 @@ using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Newtonsoft.Json;
 
-namespace Bible.Alarm.Shared.Utilities;
+namespace Bible.Alarm.Shared.Helpers;
 
 public class MediaReader(string indexRoot)
 {

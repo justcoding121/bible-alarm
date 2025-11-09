@@ -1,6 +1,6 @@
 using Bible.Alarm.Shared.Constants;
 
-namespace Bible.Alarm.Shared.Utilities;
+namespace Bible.Alarm.Shared.Helpers;
 
 public class UrlHelper
 {

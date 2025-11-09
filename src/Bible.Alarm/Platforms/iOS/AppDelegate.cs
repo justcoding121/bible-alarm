@@ -1,5 +1,4 @@
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Infrastructure;
 using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.iOS.Services.Platform;

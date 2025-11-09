@@ -12,7 +12,7 @@ using Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible;
 using Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music;
 using Bible.Alarm.Audio.Links.Harvestor.Models;
 using Bible.Alarm.Audio.Links.Harvestor.Utility;
-using Bible.Alarm.Shared.Utilities;
+using Bible.Alarm.Shared.Helpers;
 using Newtonsoft.Json;
 using DirectoryHelper = Bible.Alarm.Audio.Links.Harvestor.Utility.DirectoryHelper;
 

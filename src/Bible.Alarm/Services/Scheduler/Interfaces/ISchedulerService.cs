@@ -1,4 +1,4 @@
-namespace Bible.Alarm.Services;
+namespace Bible.Alarm.Services.Scheduler.Interfaces;
 
 public interface ISchedulerService
 {
