@@ -1,10 +1,15 @@
-﻿using Bible.Alarm.Common.Redux;
+﻿using Fluxor;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.DataStructures;
 
 namespace Bible.Alarm.Stores.Actions;
 
-public class InitializeAction : IAction
+public class InitializeAction
 {
-    public ObservableHashSet<AlarmSchedule> ScheduleList = [];
+    public ObservableHashSet<AlarmSchedule> ScheduleList { get; }
+
+    public InitializeAction(ObservableHashSet<AlarmSchedule> scheduleList)
+    {
+        ScheduleList = scheduleList ?? new ObservableHashSet<AlarmSchedule>();
+    }
 }

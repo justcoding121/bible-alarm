@@ -1,8 +1,10 @@
-﻿using Bible.Alarm.Models.Schedule;
+﻿using Fluxor;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.DataStructures;
 
 namespace Bible.Alarm.Stores;
 
+[FeatureState]
 public class ApplicationState
 {
     public ObservableHashSet<AlarmSchedule> Schedules { get; set; }
@@ -14,4 +16,25 @@ public class ApplicationState
 
     public BibleReadingSchedule CurrentBibleReadingSchedule { get; set; }
     public BibleReadingSchedule TentativeBibleReadingSchedule { get; set; }
+
+    public ApplicationState()
+    {
+        Schedules = new ObservableHashSet<AlarmSchedule>();
+    }
+
+    public ApplicationState(
+        ObservableHashSet<AlarmSchedule> schedules,
+        AlarmSchedule currentSchedule,
+        AlarmMusic currentMusic,
+        AlarmMusic tentativeMusic,
+        BibleReadingSchedule currentBibleReadingSchedule,
+        BibleReadingSchedule tentativeBibleReadingSchedule)
+    {
+        Schedules = schedules ?? new ObservableHashSet<AlarmSchedule>();
+        CurrentSchedule = currentSchedule;
+        CurrentMusic = currentMusic;
+        TentativeMusic = tentativeMusic;
+        CurrentBibleReadingSchedule = currentBibleReadingSchedule;
+        TentativeBibleReadingSchedule = tentativeBibleReadingSchedule;
+    }
 }

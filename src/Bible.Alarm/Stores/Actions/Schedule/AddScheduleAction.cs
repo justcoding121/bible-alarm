@@ -1,9 +1,14 @@
-﻿using Bible.Alarm.Common.Redux;
+﻿using Fluxor;
 using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Stores.Actions.Schedule;
 
-public class AddScheduleAction : IAction
+public class AddScheduleAction
 {
-    public AlarmSchedule Schedule { get; set; }
+    public AlarmSchedule Schedule { get; }
+
+    public AddScheduleAction(AlarmSchedule schedule)
+    {
+        Schedule = schedule;
+    }
 }

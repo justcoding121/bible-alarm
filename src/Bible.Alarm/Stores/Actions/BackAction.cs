@@ -1,8 +1,13 @@
-﻿using Bible.Alarm.Common.Redux;
+﻿using Fluxor;
 
 namespace Bible.Alarm.Stores.Actions;
 
-public class BackAction(IDisposable currentViewModel) : IAction
+public class BackAction
 {
-    public IDisposable CurrentViewModel { get; set; } = currentViewModel;
+    public IDisposable CurrentViewModel { get; }
+
+    public BackAction(IDisposable currentViewModel)
+    {
+        CurrentViewModel = currentViewModel;
+    }
 }

@@ -7,6 +7,7 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.ViewModels.Shared;
+using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
@@ -15,6 +16,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
@@ -28,17 +31,20 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     public ICommand SelectLanguageCommand { get; set; }
     public ICommand SelectSongBookCommand { get; set; }
 
-    public BibleSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
+    public BibleSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
         _navigationService = navigationService;
         _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
+        _state = state;
 
         //set schedules from initial state.
         //this should fire only once 
-        IDisposable subscription1 = null;
-        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler1 = null;
+        subscriptionHandler1 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
             {
                 _current = state.CurrentBibleReadingSchedule;
@@ -48,18 +54,17 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
                     await Initialize(_tentative.LanguageCode);
                     await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 });
-                _subscriptions.Remove(subscription1);
-                subscription1?.Dispose();
+                _state.StateChanged -= subscriptionHandler1;
             }
-        });
-
-        _subscriptions.Add(subscription1);
+        };
+        _state.StateChanged += subscriptionHandler1;
 
         // Subscribe to subsequent schedule changes (skip first one)
         BibleReadingSchedule lastCurrent = null;
         BibleReadingSchedule lastTentative = null;
-        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler2 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null
                 && (state.CurrentBibleReadingSchedule != lastCurrent || state.TentativeBibleReadingSchedule != lastTentative))
             {
@@ -68,21 +73,17 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
                 lastCurrent = _current;
                 lastTentative = _tentative;
             }
-        });
-
-        _subscriptions.Add(subscription2);
+        };
+        _state.StateChanged += subscriptionHandler2;
 
         BookSelectionCommand = new Command<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
-            ReduxContainer.Store.Dispatch(new BookSelectionAction
+            _dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
             {
-                TentativeBibleReadingSchedule = new BibleReadingSchedule
-                {
-                    PublicationCode = x.Code,
-                    LanguageCode = CurrentLanguage.Code
-                }
-            });
+                PublicationCode = x.Code,
+                LanguageCode = CurrentLanguage.Code
+            }));
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<BookSelectionViewModel>();
             await _navigationService.Navigate(viewModel);

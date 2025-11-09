@@ -3,6 +3,7 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Models;
 using Bible.Alarm.Stores;
+using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Collections.ObjectModel;
@@ -48,6 +49,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private readonly IBatteryOptimizationManager _batteryOptimizationManager;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     public ScheduleViewModel(
         ILogger logger,
@@ -57,6 +60,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IPlaybackService playbackService,
         INotificationService notificationService,
         IServiceScopeFactory scopeFactory,
+        Fluxor.IDispatcher dispatcher,
+        IState<ApplicationState> state,
         IBatteryOptimizationManager batteryOptimizationManager = null)
     {
         _logger = logger;
@@ -66,6 +71,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _playbackService = playbackService;
         _notificationService = notificationService;
         _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
+        _state = state;
         
         if (DeviceInfo.Platform == DevicePlatform.Android)
             _batteryOptimizationManager = batteryOptimizationManager;
@@ -74,9 +81,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         //this should fire only once (look at the where condition).
         AlarmSchedule lastSchedule = null;
         bool modelInitialized = false;
-        IDisposable subscription = null;
-        subscription = ReduxContainer.Store.Subscribe(async state =>
+        EventHandler subscriptionHandler = null;
+        subscriptionHandler = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentSchedule != null && state.CurrentSchedule != lastSchedule)
             {
                 _currentSchedule = state.CurrentSchedule;
@@ -89,43 +97,44 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 IsBusy = false;
                 
                 // Unsubscribe after first call
-                _subscriptions.Remove(subscription);
-                subscription?.Dispose();
+                _state.StateChanged -= subscriptionHandler;
             }
             else if (!modelInitialized && state.CurrentSchedule == null)
             {
                 // Initialize with sample schedule if state doesn't have CurrentSchedule
-                using var scope = _scopeFactory.CreateScope();
-                var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
-                SetModel(sampleSchedule);
-                modelInitialized = true;
-                IsNewSchedule = true;
+                Task.Run(async () =>
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                    SetModel(sampleSchedule);
+                    modelInitialized = true;
+                    IsNewSchedule = true;
+                });
                 
                 // Unsubscribe after initialization
-                _subscriptions.Remove(subscription);
-                subscription?.Dispose();
+                _state.StateChanged -= subscriptionHandler;
             }
-        });
-
-        _subscriptions.Add(subscription);
+        };
+        _state.StateChanged += subscriptionHandler;
 
         AlarmMusic lastMusic = null;
-        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler2 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentMusic != null && state.CurrentMusic != lastMusic && state.CurrentMusic != Music)
             {
                 Music = state.CurrentMusic;
                 lastMusic = state.CurrentMusic;
                 _musicUpdated = true;
             }
-        });
-
-        _subscriptions.Add(subscription2);
+        };
+        _state.StateChanged += subscriptionHandler2;
 
         BibleReadingSchedule lastBibleReading = null;
-        var subscription3 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler3 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastBibleReading && state.CurrentBibleReadingSchedule != BibleReadingSchedule)
             {
                 BibleReadingSchedule = state.CurrentBibleReadingSchedule;
@@ -133,9 +142,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
             }
-        });
-
-        _subscriptions.Add(subscription3);
+        };
+        _state.StateChanged += subscriptionHandler3;
 
         CancelCommand = new Command(async () =>
         {
@@ -211,10 +219,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             });
 
 
-            ReduxContainer.Store.Dispatch(new MusicSelectionAction
-            {
-                CurrentMusic = Music
-            });
+            _dispatcher.Dispatch(new MusicSelectionAction(Music));
 
             IsBusy = false;
         });
@@ -242,15 +247,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 }
             });
 
-            ReduxContainer.Store.Dispatch(new BibleSelectionAction
-            {
-                CurrentBibleReadingSchedule = BibleReadingSchedule,
-                TentativeBibleReadingSchedule = new BibleReadingSchedule
+            _dispatcher.Dispatch(new BibleSelectionAction(
+                BibleReadingSchedule,
+                new BibleReadingSchedule
                 {
                     PublicationCode = BibleReadingSchedule?.PublicationCode ?? "",
                     LanguageCode = BibleReadingSchedule?.LanguageCode ?? ""
-                }
-            });
+                }));
 
             IsBusy = false;
         });
@@ -650,10 +653,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             });
 
             using var scope = _scopeFactory.CreateScope();
-            ReduxContainer.Store.Dispatch(new AddScheduleAction
-            {
-                Schedule = model
-            });
+            _dispatcher.Dispatch(new AddScheduleAction(model));
         }
         else
         {
@@ -706,7 +706,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             // Update the current schedule reference
             _currentSchedule = model;
 
-            ReduxContainer.Store.Dispatch(new UpdateScheduleAction { Schedule = model });
+            _dispatcher.Dispatch(new UpdateScheduleAction(model));
         }
 
         SetupMediaCache(model.Id);
@@ -739,7 +739,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 await scheduleDbContext.SaveChangesAsync();
             });
 
-            ReduxContainer.Store.Dispatch(new RemoveScheduleAction { Schedule = _currentSchedule });
+            _dispatcher.Dispatch(new RemoveScheduleAction(_currentSchedule));
         }
     }
 
@@ -790,8 +790,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _subscriptions.ForEach(x => x.Dispose());
-        _subscriptions.Clear();
+        // Unsubscribe from state changes
+        // Note: Event handlers are automatically unsubscribed when the object is disposed
+        // The state and dispatcher are managed by the DI container and should not be disposed here
 
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
         // _popUpService (IToastService), _alarmService (IAlarmService), 

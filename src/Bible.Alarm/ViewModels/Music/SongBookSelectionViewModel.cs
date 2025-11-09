@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.ViewModels.Shared;
+using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Music;
 
@@ -16,23 +17,28 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public SongBookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
+    public SongBookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
         _navigationService = navigationService;
         _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
+        _state = state;
 
         //set schedules from initial state.
         //this should fire only once 
-        IDisposable subscription1 = null;
-        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler1 = null;
+        subscriptionHandler1 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentMusic != null && state.TentativeMusic != null)
             {
                 _current = state.CurrentMusic;
@@ -42,18 +48,17 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
                     await Initialize();
                     await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 });
-                _subscriptions.Remove(subscription1);
-                subscription1?.Dispose();
+                _state.StateChanged -= subscriptionHandler1;
             }
-        });
-
-        _subscriptions.Add(subscription1);
+        };
+        _state.StateChanged += subscriptionHandler1;
 
         // Subscribe to subsequent music changes (skip first one)
         AlarmMusic lastCurrent = null;
         AlarmMusic lastTentative = null;
-        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler2 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentMusic != null && state.TentativeMusic != null
                 && (state.CurrentMusic != lastCurrent || state.TentativeMusic != lastTentative))
             {
@@ -62,24 +67,20 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
                 lastCurrent = _current;
                 lastTentative = _tentative;
             }
-        });
-
-        _subscriptions.Add(subscription2);
+        };
+        _state.StateChanged += subscriptionHandler2;
 
         TrackSelectionCommand = new Command<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
 
-            ReduxContainer.Store.Dispatch(new TrackSelectionAction
+            _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
-                TentativeMusic = new AlarmMusic
-                {
-                    Repeat = _current.Repeat,
-                    MusicType = MusicType.Vocals,
-                    LanguageCode = CurrentLanguage.Code,
-                    PublicationCode = x.Code
-                }
-            });
+                Repeat = _current.Repeat,
+                MusicType = MusicType.Vocals,
+                LanguageCode = CurrentLanguage.Code,
+                PublicationCode = x.Code
+            }));
 
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();

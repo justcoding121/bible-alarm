@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
@@ -38,13 +39,19 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
     private readonly Dictionary<long, ScheduleListItem> _scheduleViewModels = [];
 
 
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
+
     public HomeViewModel(
         ILogger logger,
-        IToastService popUpService, INavigationService navigationService,
+        IToastService popUpService, 
+        INavigationService navigationService,
         IMediaCacheService mediaCacheService,
         IAlarmService alarmService,
         INotificationService notificationService,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        Fluxor.IDispatcher dispatcher,
+        IState<ApplicationState> state)
     {
         _logger = logger;
         _popUpService = popUpService;
@@ -52,10 +59,12 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
         _alarmService = alarmService;
         _notificationService = notificationService;
         _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
+        _state = state;
 
         AddScheduleCommand = new Command(async () =>
         {
-            ReduxContainer.Store.Dispatch(new ViewScheduleAction());
+            _dispatcher.Dispatch(new ViewScheduleAction(null));
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             await navigationService1.Navigate(viewModel);
@@ -65,10 +74,7 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
         {
             x.Schedule.IsEnabled = x.IsEnabled;
 
-            ReduxContainer.Store.Dispatch(new ViewScheduleAction
-            {
-                SelectedSchedule = x.Schedule
-            });
+            _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
 
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
@@ -79,15 +85,24 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
         ObservableHashSet<AlarmSchedule> lastSchedules = null;
-        var subscription = ReduxContainer.Store.Subscribe(state =>
+        _state.StateChanged += (sender, e) =>
         {
+            var state = _state.Value;
             if (state.Schedules == null || state.Schedules == lastSchedules) return;
             UpdateScheduleViewModels(state.Schedules);
             lastSchedules = state.Schedules;
             ListenIsEnabledChanges();
             IsBusy = false;
-        });
-        _subscriptions.Add(subscription);
+        };
+        
+        // Trigger initial update if state already has schedules
+        if (_state.Value.Schedules != null)
+        {
+            UpdateScheduleViewModels(_state.Value.Schedules);
+            lastSchedules = _state.Value.Schedules;
+            ListenIsEnabledChanges();
+            IsBusy = false;
+        }
 
         // Subscribe to Initialized message using WeakReferenceMessenger
         WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
@@ -139,7 +154,7 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
                 foreach (var schedule in alarmSchedules)
                     initialSchedules.Add(schedule);
 
-                ReduxContainer.Store.Dispatch(new InitializeAction { ScheduleList = initialSchedules });
+                _dispatcher.Dispatch(new InitializeAction(initialSchedules));
 
                 _initialized = true;
             }

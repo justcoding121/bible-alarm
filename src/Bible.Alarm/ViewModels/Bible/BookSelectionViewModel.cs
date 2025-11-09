@@ -7,6 +7,7 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
+using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
@@ -18,17 +19,21 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
+    public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
         _navigationService = navigationService;
         _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
+        _state = state;
 
         BackCommand = new Command(async () =>
         {
@@ -40,15 +45,12 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         ChapterSelectionCommand = new Command<BibleBookListViewItemModel>(async x =>
         {
             IsBusy = true;
-            ReduxContainer.Store.Dispatch(new ChapterSelectionAction
+            _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
-                TentativeBibleReadingSchedule = new BibleReadingSchedule
-                {
-                    LanguageCode = _tentative.LanguageCode,
-                    PublicationCode = _tentative.PublicationCode,
-                    BookNumber = x.Number
-                }
-            });
+                LanguageCode = _tentative.LanguageCode,
+                PublicationCode = _tentative.PublicationCode,
+                BookNumber = x.Number
+            }));
 
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ChapterSelectionViewModel>();
@@ -58,9 +60,10 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        IDisposable subscription1 = null;
-        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler1 = null;
+        subscriptionHandler1 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
             {
                 _current = state.CurrentBibleReadingSchedule;
@@ -71,24 +74,23 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
                     await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                     await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 });
-                _subscriptions.Remove(subscription1);
-                subscription1?.Dispose();
+                _state.StateChanged -= subscriptionHandler1;
             }
-        });
+        };
+        _state.StateChanged += subscriptionHandler1;
 
         // Subscribe to current schedule changes (but skip first one)
         BibleReadingSchedule lastCurrent = null;
-        var subscription2 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler2 = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastCurrent)
             {
                 _current = state.CurrentBibleReadingSchedule;
                 lastCurrent = _current;
             }
-        });
-
-        _subscriptions.Add(subscription1);
-        _subscriptions.Add(subscription2);
+        };
+        _state.StateChanged += subscriptionHandler2;
 
         _navigationService.NavigatedBack += OnNavigated;
     }

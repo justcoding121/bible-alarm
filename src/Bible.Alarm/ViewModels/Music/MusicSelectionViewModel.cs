@@ -7,6 +7,7 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Music;
 
@@ -17,18 +18,23 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly INavigationService _navigationService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public MusicSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory)
+    public MusicSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
         _navigationService = navigationService;
         _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
+        _state = state;
 
         //set schedules from initial state.
-        var subscription1 = ReduxContainer.Store.Subscribe(state =>
+        _state.StateChanged += (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentMusic != null)
             {
                 _current = state.CurrentMusic;
@@ -38,9 +44,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                     IsBusy = false;
                 });
             }
-        });
-
-        _subscriptions.Add(subscription1);
+        };
 
 
         SongBookSelectionCommand = new Command<MusicTypeListItemViewModel>(async x =>
@@ -49,14 +53,11 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
             if (x.MusicType == MusicType.Vocals)
             {
-                ReduxContainer.Store.Dispatch(new SongBookSelectionAction
+                _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
-                    TentativeMusic = new AlarmMusic
-                    {
-                        MusicType = MusicType.Vocals,
-                        LanguageCode = _current.LanguageCode
-                    }
-                });
+                    MusicType = MusicType.Vocals,
+                    LanguageCode = _current.LanguageCode
+                }));
 
                 using var scope = _scopeFactory.CreateScope();
                 var viewModel = scope.ServiceProvider.GetRequiredService<SongBookSelectionViewModel>();
@@ -64,15 +65,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             }
             else
             {
-                ReduxContainer.Store.Dispatch(new TrackSelectionAction
+                _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
-                    TentativeMusic = new AlarmMusic
-                    {
-                        Repeat = _current.Repeat,
-                        MusicType = MusicType.Melodies,
-                        PublicationCode = "iam"
-                    }
-                });
+                    Repeat = _current.Repeat,
+                    MusicType = MusicType.Melodies,
+                    PublicationCode = "iam"
+                }));
                 using var scope = _scopeFactory.CreateScope();
                 var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
                 await _navigationService.Navigate(viewModel);

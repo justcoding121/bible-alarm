@@ -1,6 +1,8 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Database;
+using Bible.Alarm.Stores;
 using CommunityToolkit.Maui;
+using Fluxor;
 using Bible.Alarm.Services;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -80,6 +82,10 @@ public static class MauiProgram
 
         var app = builder.Build();
 
+        // Initialize Fluxor store
+        var store = app.Services.GetRequiredService<Fluxor.IStore>();
+        ReduxContainer.Store = store;
+
         // Initialize the global service provider for access from multiple entry points
         ServiceProviderManager.Initialize(app.Services);
 
@@ -134,6 +140,9 @@ public static class MauiProgram
 
     private static void RegisterCommonServices(IServiceCollection services)
     {
+        // Register Fluxor
+        services.AddFluxor(options => options.ScanAssemblies(typeof(MauiProgram).Assembly));
+        
         // Register logging
         services.AddSingleton<Serilog.ILogger>(sp => Serilog.Log.Logger);
         
@@ -206,7 +215,8 @@ public static class MauiProgram
         {
             var logger = sp.GetRequiredService<Serilog.ILogger>();
             var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
-            return new NavigationService(logger, null, scopeFactory);
+            var dispatcher = sp.GetRequiredService<Fluxor.IDispatcher>();
+            return new NavigationService(logger, null, scopeFactory, dispatcher);
         });
     }
 

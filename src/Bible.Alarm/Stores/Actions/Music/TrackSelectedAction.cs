@@ -1,9 +1,14 @@
-﻿using Bible.Alarm.Common.Redux;
+﻿using Fluxor;
 using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Stores.Actions.Music;
 
-public class TrackSelectedAction : IAction
+public class TrackSelectedAction
 {
-    public AlarmMusic CurrentMusic { get; set; }
+    public AlarmMusic CurrentMusic { get; }
+
+    public TrackSelectedAction(AlarmMusic currentMusic)
+    {
+        CurrentMusic = currentMusic;
+    }
 }

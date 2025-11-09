@@ -11,6 +11,7 @@ using Bible.Alarm.Views.Shared;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.ViewModels.Shared;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.Services;
@@ -26,17 +27,19 @@ public class NavigationService : INavigationService,
     private readonly ILogger _logger;
     private INavigation _navigater;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Fluxor.IDispatcher _dispatcher;
 
     public event Action<object> NavigatedBack;
     private bool _disposed = false;
 
     private readonly AsyncQueue<(MvvmMessages, object)> _queue = new();
 
-    public NavigationService(ILogger logger, INavigation navigater, IServiceScopeFactory scopeFactory)
+    public NavigationService(ILogger logger, INavigation navigater, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher)
     {
         _logger = logger;
         _navigater = navigater;
         _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
 
         // Register for all messages
         WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
@@ -295,7 +298,7 @@ public class NavigationService : INavigationService,
             if (_navigater.NavigationStack.Count > 1)
             {
                 var top = _navigater.NavigationStack.Last();
-                ReduxContainer.Store.Dispatch(new BackAction(top.BindingContext as IDisposable));
+                _dispatcher.Dispatch(new BackAction(top.BindingContext as IDisposable));
                 await _navigater.PopAsync();
             }
 
@@ -371,7 +374,7 @@ public class NavigationService : INavigationService,
             while (_navigater.NavigationStack.Count > 1)
             {
                 var top = _navigater.NavigationStack.Last();
-                ReduxContainer.Store.Dispatch(new BackAction(top.BindingContext as IDisposable));
+                _dispatcher.Dispatch(new BackAction(top.BindingContext as IDisposable));
                 await _navigater.PopAsync();
             }
 

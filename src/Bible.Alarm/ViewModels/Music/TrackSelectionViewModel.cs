@@ -10,6 +10,7 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Music;
@@ -24,6 +25,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly INavigationService _navigationService;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
@@ -38,7 +41,9 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         IPreviewPlayService playService,
         INavigationService navigationService,
         IDownloadService downloadService,
-        IMediaCacheService cacheService)
+        IMediaCacheService cacheService,
+        Fluxor.IDispatcher dispatcher,
+        IState<ApplicationState> state)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -47,6 +52,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _navigationService = navigationService;
         _downloadService = downloadService;
         _cacheService = cacheService;
+        _dispatcher = dispatcher;
+        _state = state;
 
         _subscriptions.Add(_mediaService);
 
@@ -72,26 +79,24 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             _tentative.TrackNumber = x.Number;
             _tentative.Repeat = x.Repeat;
 
-            ReduxContainer.Store.Dispatch(new TrackSelectedAction
+            _dispatcher.Dispatch(new TrackSelectedAction(new AlarmMusic
             {
-                CurrentMusic = new AlarmMusic
-                {
-                    MusicType = _tentative.MusicType,
-                    LanguageCode = _tentative.LanguageCode,
-                    PublicationCode = _tentative.PublicationCode,
-                    TrackNumber = _tentative.TrackNumber,
-                    Repeat = _tentative.Repeat
-                }
-            });
+                MusicType = _tentative.MusicType,
+                LanguageCode = _tentative.LanguageCode,
+                PublicationCode = _tentative.PublicationCode,
+                TrackNumber = _tentative.TrackNumber,
+                Repeat = _tentative.Repeat
+            }));
 
             IsBusy = false;
         });
 
         //set schedules from initial state.
         //this should fire only once 
-        IDisposable subscription1 = null;
-        subscription1 = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler = null;
+        subscriptionHandler = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentMusic != null && state.TentativeMusic != null)
             {
                 _current = state.CurrentMusic;
@@ -102,12 +107,10 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                     await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                     await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 });
-                _subscriptions.Remove(subscription1);
-                subscription1?.Dispose();
+                _state.StateChanged -= subscriptionHandler;
             }
-        });
-
-        _subscriptions.Add(subscription1);
+        };
+        _state.StateChanged += subscriptionHandler;
     }
 
     public ICommand BackCommand { get; set; }
@@ -253,17 +256,14 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _tentative.Repeat = track.Repeat;
         _tentative.TrackNumber = track.Number;
 
-        ReduxContainer.Store.Dispatch(new TrackSelectedAction
+        _dispatcher.Dispatch(new TrackSelectedAction(new AlarmMusic
         {
-            CurrentMusic = new AlarmMusic
-            {
-                MusicType = _tentative.MusicType,
-                LanguageCode = _tentative.LanguageCode,
-                PublicationCode = _tentative.PublicationCode,
-                TrackNumber = _tentative.TrackNumber,
-                Repeat = _tentative.Repeat
-            }
-        });
+            MusicType = _tentative.MusicType,
+            LanguageCode = _tentative.LanguageCode,
+            PublicationCode = _tentative.PublicationCode,
+            TrackNumber = _tentative.TrackNumber,
+            Repeat = _tentative.Repeat
+        }));
 
         if (track.Repeat) _toastService.ShowMessage("Alarm will always repeat this track.");
     }

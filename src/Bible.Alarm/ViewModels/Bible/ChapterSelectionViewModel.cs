@@ -9,6 +9,7 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Bible;
@@ -25,6 +26,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly INavigationService _navigationService;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
+    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     private readonly List<IDisposable> _subscriptions = [];
     private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
@@ -36,7 +39,9 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         IPreviewPlayService playService,
         INavigationService navigationService,
         IDownloadService downloadService,
-        IMediaCacheService cacheService)
+        IMediaCacheService cacheService,
+        Fluxor.IDispatcher dispatcher,
+        IState<ApplicationState> state)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -45,6 +50,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _navigationService = navigationService;
         _downloadService = downloadService;
         _cacheService = cacheService;
+        _dispatcher = dispatcher;
+        _state = state;
 
         BackCommand = new Command(async () =>
         {
@@ -64,24 +71,22 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             _tentative.ChapterNumber = x.Number;
 
-            ReduxContainer.Store.Dispatch(new ChapterSelectedAction
+            _dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
             {
-                CurrentBibleReadingSchedule = new BibleReadingSchedule
-                {
-                    LanguageCode = _tentative.LanguageCode,
-                    PublicationCode = _tentative.PublicationCode,
-                    BookNumber = _tentative.BookNumber,
-                    ChapterNumber = x.Number
-                }
-            });
+                LanguageCode = _tentative.LanguageCode,
+                PublicationCode = _tentative.PublicationCode,
+                BookNumber = _tentative.BookNumber,
+                ChapterNumber = x.Number
+            }));
             IsBusy = false;
         });
 
         //set schedules from initial state.
         //this should fire only once 
-        IDisposable subscription = null;
-        subscription = ReduxContainer.Store.Subscribe(state =>
+        EventHandler subscriptionHandler = null;
+        subscriptionHandler = (sender, e) =>
         {
+            var state = _state.Value;
             if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
             {
                 _current = state.CurrentBibleReadingSchedule;
@@ -91,12 +96,10 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
                     await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
                     await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 });
-                _subscriptions.Remove(subscription);
-                subscription?.Dispose();
+                _state.StateChanged -= subscriptionHandler;
             }
-        });
-
-        _subscriptions.Add(subscription);
+        };
+        _state.StateChanged += subscriptionHandler;
     }
 
     public ICommand BackCommand { get; set; }

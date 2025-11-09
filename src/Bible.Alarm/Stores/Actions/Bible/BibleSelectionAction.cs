@@ -1,10 +1,16 @@
-﻿using Bible.Alarm.Common.Redux;
+﻿using Fluxor;
 using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Stores.Actions.Bible;
 
-public class BibleSelectionAction : IAction
+public class BibleSelectionAction
 {
-    public BibleReadingSchedule CurrentBibleReadingSchedule { get; set; }
-    public BibleReadingSchedule TentativeBibleReadingSchedule { get; set; }
+    public BibleReadingSchedule CurrentBibleReadingSchedule { get; }
+    public BibleReadingSchedule TentativeBibleReadingSchedule { get; }
+
+    public BibleSelectionAction(BibleReadingSchedule currentBibleReadingSchedule, BibleReadingSchedule tentativeBibleReadingSchedule)
+    {
+        CurrentBibleReadingSchedule = currentBibleReadingSchedule;
+        TentativeBibleReadingSchedule = tentativeBibleReadingSchedule;
+    }
 }
