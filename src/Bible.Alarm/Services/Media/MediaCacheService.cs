@@ -27,7 +27,9 @@ public class MediaCacheService(
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-    private readonly string _cacheRoot = Path.Combine(storageService.CacheRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
+    // Use StorageRoot instead of CacheRoot to ensure media cache is in a permanent location
+    // that the OS won't delete. We manage the cache ourselves.
+    private readonly string _cacheRoot = Path.Combine(storageService.StorageRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
 
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> LockStore = new();
 
