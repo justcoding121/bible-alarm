@@ -1,6 +1,7 @@
 ﻿using Android.App;
 using Android.App.Job;
 using AndroidBuild = global::Android.OS.Build;
+using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media;
 using Serilog;
@@ -44,9 +45,10 @@ public class UpdateMediaIndexJob : JobService
         {
             try
             {
-                // Ensure DI container is initialized for background service
-                // This will also initialize platform-specific bootstrap helpers
-                MauiProgram.EnsureDiContainerInitialized();
+                // Initialize DI container for background service
+                MauiAppHolder.CreateAndStore();
+                // Run bootstrapper after CreateAndStore for background launch
+                MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 
                 var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();

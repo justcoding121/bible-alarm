@@ -5,10 +5,8 @@ using Android.Media;
 using Android.OS;
 using AndroidApplication = global::Android.App.Application;
 using AndroidNet = global::Android.Net;
-using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.Jobs;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Serilog;
@@ -22,9 +20,6 @@ public class BootstrapHelper
     /// </summary>
     public static void Initialize(ILogger logger, Context context, AndroidApplication application = null)
     {
-        // Ensure ServiceProviderManager is initialized for background services
-        EnsureServiceProviderInitialized();
-        
         // Initialize database and services (both foreground and background)
         // This must complete before any other tasks
         try
@@ -43,49 +38,6 @@ public class BootstrapHelper
         
         // Initialize background tasks
         VerifyBackgroundTasks(context);
-        
-        // Initialize UI components if application context is provided
-        if (application != null)
-        {
-            InitializeUi(logger, context, application);
-        }
-    }
-
-    /// <summary>
-    /// Verify and initialize all services
-    /// </summary>
-
-    private static void EnsureServiceProviderInitialized()
-    {
-        if (!ServiceProviderManager.IsInitialized)
-        {
-            // Initialize DI container for background services
-            var logger = Log.ForContext<BootstrapHelper>();
-            logger.Information("Initializing DI container for background service...");
-            
-            // Call MauiProgram to ensure DI container is initialized
-            MauiProgram.EnsureDiContainerInitialized();
-            
-            logger.Information("DI container initialized for background service.");
-        }
-    }
-
-    private static void InitializeUi(ILogger logger, Context context, AndroidApplication application)
-    {
-        // MAUI handles platform initialization automatically
-        Task.Run(() =>
-        {
-            try
-            {
-                // UI-specific initialization only
-                WeakReferenceMessenger.Default.Send(new InitializedMessage(true));
-            }
-            catch (Exception e)
-            {
-                logger.Fatal(e, "Android UI initialization crashed.");
-                throw;
-            }
-        });
     }
 
     private static void VerifyBackgroundTasks(Context context)

@@ -71,8 +71,8 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
-            .ConfigureFonts(fonts => 
-            { 
+            .ConfigureFonts(fonts =>
+            {
                 fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);
 #if WINDOWS
                 fonts.AddFont("Platforms/Windows/Assets/Fonts/Font Awesome 5 Free-Solid-900.otf", "FontAwesomeSolid");
@@ -85,38 +85,20 @@ public static class MauiProgram
         var app = builder.Build();
 
         // Initialize Fluxor store
-        var store = app.Services.GetRequiredService<Fluxor.IStore>();
+        var store = app.Services.GetRequiredService<IStore>();
         ReduxContainer.Store = store;
 
-        // Create HomeViewModel early to ensure it subscribes before Init message is published
-        _ = app.Services.GetRequiredService<HomeViewModel>();
-
-        // Initialize platform-specific bootstrap helpers
-        InitializePlatformBootstrap(app.Services);
-
         return app;
-    }
-
-    /// <summary>
-    /// Ensures the DI container is initialized for background services.
-    /// This method is safe to call multiple times and will only initialize once.
-    /// Now uses MauiAppHolder for thread-safe, single-instance creation.
-    /// </summary>
-    public static void EnsureDiContainerInitialized()
-    {
-        // MauiAppHolder.CreateAndStore() ensures exactly one MauiApp instance
-        // regardless of which entry point calls it first
-        _ = MauiAppHolder.CreateAndStore();
     }
 
     private static void RegisterServices(IServiceCollection services)
     {
         // Register platform-specific HttpMessageHandler
-        #if ANDROID
+#if ANDROID
         services.AddSingleton<HttpMessageHandler, Xamarin.Android.Net.AndroidMessageHandler>();
-        #elif IOS
+#elif IOS
         services.AddSingleton<HttpMessageHandler, System.Net.Http.HttpClientHandler>();
-        #elif WINDOWS
+#elif WINDOWS
         services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
 #endif
 
@@ -134,10 +116,10 @@ public static class MauiProgram
     {
         // Register Fluxor
         services.AddFluxor(options => options.ScanAssemblies(typeof(MauiProgram).Assembly));
-        
+
         // Register logging
         services.AddSingleton<Serilog.ILogger>(sp => Serilog.Log.Logger);
-        
+
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
         services.AddSingleton<MediaIndexService>();
@@ -151,38 +133,38 @@ public static class MauiProgram
         services.AddSingleton<SchedulerService>();
         services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());
         services.AddSingleton<IMediaIndexService>(sp => sp.GetRequiredService<MediaIndexService>());
-        
+
         // Register platform-specific version finder
-        #if ANDROID
+#if ANDROID
         services.AddSingleton<IVersionFinder, VersionFinder>();
-        #elif IOS
+#elif IOS
         services.AddSingleton<IVersionFinder, VersionFinder>();
-        #elif WINDOWS
+#elif WINDOWS
         services.AddSingleton<IVersionFinder, WindowsVersionFinder>();
-        #endif
+#endif
 
         // Register platform-specific services
-        #if ANDROID
+#if ANDROID
         services.AddSingleton<INotificationService, DroidNotificationService>();
         services.AddSingleton<IToastService, DroidToastService>();
         services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, BatteryOptimizationManager>();
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
-        #elif IOS
+#elif IOS
         services.AddSingleton<INotificationService, IOsNotificationService>();
         services.AddSingleton<IToastService, IOsToastService>();
         services.AddSingleton<IStorageService, IOsStorageService>();
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
         services.AddSingleton<IOsAlarmHandler>();
-        #elif WINDOWS
+#elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton<Windows.Media.Playback.MediaPlayer>(sp => new Windows.Media.Playback.MediaPlayer());
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
         services.AddSingleton<WindowsAlarmHandler>();
-        #endif
+#endif
 
         // Register database contexts
         services.AddDbContext<ScheduleDbContext>((sp, options) =>
@@ -215,12 +197,12 @@ public static class MauiProgram
         services.AddTransient<ChapterSelectionViewModel>();
         services.AddTransient<AlarmViewModal>();
         services.AddSingleton<MediaProgressViewModal>();
-        
+
         // Register ScheduleListItem as transient for list items
         services.AddTransient<ScheduleListItem>();
-        
+
         // Register factory for ScheduleListItem (takes AlarmSchedule and returns ScheduleListItem with DI)
-        services.AddTransient<Func<AlarmSchedule, ScheduleListItem>>(serviceProvider => 
+        services.AddTransient<Func<AlarmSchedule, ScheduleListItem>>(serviceProvider =>
             schedule =>
             {
                 var vm = serviceProvider.GetRequiredService<ScheduleListItem>();
@@ -246,21 +228,49 @@ public static class MauiProgram
         services.AddTransient<MediaProgressModal>();
     }
 
-    private static void InitializePlatformBootstrap(IServiceProvider services)
+    /// <summary>
+    /// Initializes platform-specific bootstrap.
+    /// This should be called after MauiApp is created to ensure databases and services are initialized.
+    /// </summary>
+    /// <param name="services">The service provider</param>
+    /// <param name="isForeground">If true, runs bootstrap on a background Task. If false, runs synchronously.</param>
+    public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false)
     {
-        var logger = services.GetRequiredService<Serilog.ILogger>();
-        
-        #if ANDROID
-        // Android bootstrap initialization
-        var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
-        var application = Platform.CurrentActivity?.Application;
-        Bible.Alarm.Platforms.Android.Services.Helpers.BootstrapHelper.Initialize(logger, context, application);
-        #elif IOS
-        // iOS bootstrap initialization
-        Bible.Alarm.Platforms.iOS.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
-        #elif WINDOWS
-        // Windows bootstrap initialization
-        Bible.Alarm.Platforms.Windows.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
-        #endif
+        if (isForeground)
+        {
+            // Run bootstrap as a background job for foreground launches to avoid blocking UI
+            Task.Run(() => RunBootstrap(services));
+        }
+        else
+        {
+            // Run bootstrap synchronously for background services/jobs
+            RunBootstrap(services);
+        }
+    }
+
+    private static void RunBootstrap(IServiceProvider services)
+    {
+        try
+        {
+            var logger = services.GetRequiredService<Serilog.ILogger>();
+
+#if ANDROID
+            // Android bootstrap initialization
+            var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
+            var application = Platform.CurrentActivity?.Application;
+            Bible.Alarm.Platforms.Android.Services.Helpers.BootstrapHelper.Initialize(logger, context, application);
+#elif IOS
+            // iOS bootstrap initialization
+            Bible.Alarm.Platforms.iOS.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
+#elif WINDOWS
+            // Windows bootstrap initialization
+            Bible.Alarm.Platforms.Windows.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
+#endif
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw - bootstrap should not prevent app from running
+            System.Diagnostics.Debug.WriteLine($"Error in InitializePlatformBootstrap: {ex.Message}");
+        }
     }
 }

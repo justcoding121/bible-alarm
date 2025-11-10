@@ -1,5 +1,7 @@
 #nullable enable
 
+using Bible.Alarm;
+
 namespace Bible.Alarm.Common;
 
 /// <summary>
@@ -34,9 +36,11 @@ public static class MauiAppHolder
     /// <summary>
     /// Creates and stores the MauiApp instance exactly once.
     /// Thread-safe and can be called from any entry point (MainApplication, AppDelegate, background service, etc.)
+    /// Bootstrap should be called explicitly after CreateAndStore for both foreground and background launches.
     /// </summary>
+    /// <param name="isForeground">Indicates if this is a foreground launch (used for tracking, bootstrap must be called separately).</param>
     /// <returns>The MauiApp instance (existing if already created, or newly created)</returns>
-    public static MauiApp CreateAndStore()
+    public static MauiApp CreateAndStore(bool isForeground = false)
     {
         lock (Lock)
         {

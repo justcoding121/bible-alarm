@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
+using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.Media;
 using Serilog;
@@ -86,6 +87,8 @@ public class MainActivity : MauiAppCompatActivity
                     // Ensure MauiApp is created exactly once (thread-safe)
                     // This handles incoming intents (e.g., from notifications)
                     MauiAppHolder.CreateAndStore();
+                    // Run bootstrapper after CreateAndStore for background launch
+                    MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                     
                     _alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
                     await _alarmHandler.Handle(scheduleId, true);

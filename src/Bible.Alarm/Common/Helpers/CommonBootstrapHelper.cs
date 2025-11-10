@@ -1,7 +1,10 @@
 ﻿using Bible.Alarm.Database;
 using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Services.Media;
+using Bible.Alarm.Common.Messenger;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Common.Helpers;
 
@@ -19,6 +22,13 @@ public static class CommonBootstrapHelper
             var task2 = InitializeDatabase();
 
             await Task.WhenAll(task1, task2);
+            
+            // Send InitializedMessage right after common bootstrap is complete
+            // This ensures databases are initialized before the message is sent
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                WeakReferenceMessenger.Default.Send(new InitializedMessage(true));
+            });
         }
         finally
         {

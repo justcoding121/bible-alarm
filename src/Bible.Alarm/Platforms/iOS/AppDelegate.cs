@@ -1,3 +1,4 @@
+using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.UI;
@@ -42,7 +43,8 @@ namespace Bible.Alarm.Platforms.iOS
             try
             {
                 // Ensure MauiApp is created exactly once (thread-safe)
-                return MauiAppHolder.CreateAndStore();
+                // Foreground launch - bootstrap will run on background Task
+                return MauiAppHolder.CreateAndStore(isForeground: true);
             }
             catch (Exception e)
             {
@@ -122,6 +124,8 @@ namespace Bible.Alarm.Platforms.iOS
                             {
                                 // Ensure MauiApp is created (may already be created from FinishedLaunching)
                                 MauiAppHolder.CreateAndStore();
+                                // Run bootstrapper after CreateAndStore for background launch
+                                MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                                 
                                 using var dbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
 
@@ -214,6 +218,8 @@ namespace Bible.Alarm.Platforms.iOS
                 // Ensure MauiApp is created exactly once (thread-safe)
                 // This is the iOS background fetch entry point
                 MauiAppHolder.CreateAndStore();
+                // Run bootstrapper after CreateAndStore for background launch
+                MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
 
                 using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
                 downloaded = await schedulerService.Handle();

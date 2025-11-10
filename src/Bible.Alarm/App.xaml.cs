@@ -57,6 +57,10 @@ public partial class App : Application,
         // Hide the nav bar on HomePage only
         NavigationPage.SetHasNavigationBar(homePage, false);
 
+        // Run bootstrapper after navigation page setup for foreground launch
+        // This ensures UI is ready before bootstrap initializes
+        MauiProgram.InitializePlatformBootstrap(_serviceProvider, isForeground: true);
+
 #if IOS
         // Note: Large titles in MAUI are typically configured via platform-specific code
         // or using Shell if needed. For now, we'll skip this configuration.

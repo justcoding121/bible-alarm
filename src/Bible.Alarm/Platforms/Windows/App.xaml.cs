@@ -26,7 +26,7 @@ namespace Bible.Alarm.WinUI
             this.InitializeComponent();
         }
 
-        protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore();
+        protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore(isForeground: true);
 
         /// <summary>
         /// Handles app activation (e.g., from toast notifications, protocol handlers, etc.)
@@ -37,7 +37,8 @@ namespace Bible.Alarm.WinUI
             base.OnLaunched(args);
 
             // Ensure MauiApp is created
-            MauiAppHolder.CreateAndStore();
+            // Foreground launch - bootstrap will run on background Task
+            MauiAppHolder.CreateAndStore(isForeground: true);
 
             // Handle activation arguments (e.g., from toast notifications)
             if (!string.IsNullOrEmpty(args.Arguments))

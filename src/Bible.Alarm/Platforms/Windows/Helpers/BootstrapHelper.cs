@@ -1,8 +1,5 @@
-using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Services.Scheduler;
 using Serilog;
 // Removed UWP background task APIs - not available in WinUI 3 desktop apps
 
@@ -17,9 +14,6 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
         /// </summary>
         public static void Initialize(ILogger logger, bool isForeground = false)
         {
-            // Ensure ServiceProviderManager is initialized for Windows
-            EnsureServiceProviderInitialized();
-            
             // Initialize database and services (both foreground and background)
             // This must complete before any other tasks
             try
@@ -35,34 +29,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             
             // Setup background tasks
             Task.Run(SetupBackgroundTask);
-
-            // Initialize UI components only for foreground scenarios
-            if (isForeground)
-            {
-                InitializeUi(logger);
-            }
         }
-
-        private static void InitializeUi(ILogger logger)
-        {
-            // UI-specific initialization only
-            Task.Run(async () =>
-            {
-                try
-                {
-                    WeakReferenceMessenger.Default.Send(new InitializedMessage(true));
-
-                    await Task.Delay(1000);
-
-                    await ServiceProviderManager.GetService<SchedulerService>().Handle();
-                }
-                catch (Exception e)
-                {
-                    logger.Fatal(e, "Windows UI initialization crashed.");
-                }
-            });
-        }
-
 
         private static Task SetupBackgroundTask()
         {
@@ -91,20 +58,6 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             // This functionality would need to be implemented using alternative approaches
             // such as Windows Task Scheduler or a background service
             // For now, we'll skip this registration
-        }
-
-
-        private static void EnsureServiceProviderInitialized()
-        {
-            if (ServiceProviderManager.IsInitialized) return;
-            // Initialize DI container for background services
-            var logger = Log.ForContext<BootstrapHelper>();
-            logger.Information("Initializing DI container for background service...");
-                
-            // Call MauiProgram to ensure DI container is initialized
-            MauiProgram.EnsureDiContainerInitialized();
-                
-            logger.Information("DI container initialized for background service.");
         }
     }
 }

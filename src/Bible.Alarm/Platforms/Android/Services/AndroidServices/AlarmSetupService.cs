@@ -2,6 +2,7 @@
 using Android.Content;
 using Android.OS;
 using Android.Runtime;
+using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Scheduler;
 using Serilog;
@@ -56,6 +57,8 @@ public class AlarmSetupService : Service, IDisposable
         // Ensure MauiApp is created exactly once (thread-safe)
         // This is a background service entry point
         MauiAppHolder.CreateAndStore();
+        // Run bootstrapper after CreateAndStore for background launch
+        MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
 
         try
         {
