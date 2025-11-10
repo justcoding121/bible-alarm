@@ -1,9 +1,12 @@
-﻿namespace Bible.Alarm.Views;
+﻿using Bible.Alarm.ViewModels;
+
+namespace Bible.Alarm.Views;
 
 public partial class Home : ContentPage
 {
-    public Home()
+    public Home(HomeViewModel vm)
     {
         InitializeComponent();
+        BindingContext = vm;
     }
 }

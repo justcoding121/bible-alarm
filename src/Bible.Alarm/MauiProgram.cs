@@ -209,20 +209,11 @@ public static class MauiProgram
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context
         services.AddSingleton<TaskScheduler>(sp => TaskScheduler.Default);
-        
-        // Register NavigationService - will be properly initialized in App.xaml.cs
-        services.AddSingleton<INavigationService>(sp => 
-        {
-            var logger = sp.GetRequiredService<Serilog.ILogger>();
-            var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
-            var dispatcher = sp.GetRequiredService<Fluxor.IDispatcher>();
-            return new NavigationService(logger, null, scopeFactory, dispatcher);
-        });
     }
 
     private static void RegisterViewModels(IServiceCollection services)
     {
-        services.AddSingleton<HomeViewModel>();
+        services.AddTransient<HomeViewModel>();
         services.AddTransient<ScheduleViewModel>();
         services.AddTransient<MusicSelectionViewModel>();
         services.AddTransient<SongBookSelectionViewModel>();
@@ -236,6 +227,7 @@ public static class MauiProgram
 
     private static void RegisterUiComponents(IServiceCollection services)
     {
+        services.AddTransient<Home>();
         services.AddTransient<Schedule>();
         services.AddTransient<MusicSelection>();
         services.AddTransient<SongBookSelection>();

@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Views.Music;
 using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Music;
@@ -16,18 +16,18 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     private AlarmMusic _current;
 
     private readonly MediaService _mediaService;
-    private readonly INavigationService _navigationService;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigation _navigation;
+    private readonly IServiceProvider _serviceProvider;
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public MusicSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
+    public MusicSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
-        _navigationService = navigationService;
-        _scopeFactory = scopeFactory;
+        _navigation = navigation;
+        _serviceProvider = serviceProvider;
         _dispatcher = dispatcher;
         _state = state;
 
@@ -59,9 +59,10 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                     LanguageCode = _current.LanguageCode
                 }));
 
-                using var scope = _scopeFactory.CreateScope();
-                var viewModel = scope.ServiceProvider.GetRequiredService<SongBookSelectionViewModel>();
-                await _navigationService.Navigate(viewModel);
+                var viewModel = _serviceProvider.GetRequiredService<SongBookSelectionViewModel>();
+                var page = _serviceProvider.GetRequiredService<SongBookSelection>();
+                page.BindingContext = viewModel;
+                await _navigation.PushAsync(page);
             }
             else
             {
@@ -71,9 +72,10 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
                 }));
-                using var scope = _scopeFactory.CreateScope();
-                var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
-                await _navigationService.Navigate(viewModel);
+                var viewModel = _serviceProvider.GetRequiredService<TrackSelectionViewModel>();
+                var page = _serviceProvider.GetRequiredService<TrackSelection>();
+                page.BindingContext = viewModel;
+                await _navigation.PushAsync(page);
             }
 
             IsBusy = false;
@@ -82,16 +84,9 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.GoBack();
+            await _navigation.PopAsync();
             IsBusy = false;
         });
-
-        _navigationService.NavigatedBack += OnNavigated;
-    }
-
-    private void OnNavigated(object viewModal)
-    {
-        if (viewModal.GetType() == GetType()) SetSelectedMusicType();
     }
 
     private void SetSelectedMusicType()
@@ -138,7 +133,6 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _navigationService.NavigatedBack -= OnNavigated;
         _subscriptions.ForEach(x => x.Dispose());
 
         // Note: _mediaService (MediaService) is a singleton and should not be 

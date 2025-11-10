@@ -1,13 +1,14 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.Views.Music;
+using Bible.Alarm.Views.Shared;
 using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Music;
@@ -15,8 +16,8 @@ namespace Bible.Alarm.ViewModels.Music;
 public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly MediaService _mediaService;
-    private readonly INavigationService _navigationService;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigation _navigation;
+    private readonly IServiceProvider _serviceProvider;
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
@@ -25,11 +26,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public SongBookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
+    public SongBookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
-        _navigationService = navigationService;
-        _scopeFactory = scopeFactory;
+        _navigation = navigation;
+        _serviceProvider = serviceProvider;
         _dispatcher = dispatcher;
         _state = state;
 
@@ -82,9 +83,10 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
                 PublicationCode = x.Code
             }));
 
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
-            await _navigationService.Navigate(viewModel);
+            var viewModel = _serviceProvider.GetRequiredService<TrackSelectionViewModel>();
+            var page = _serviceProvider.GetRequiredService<TrackSelection>();
+            page.BindingContext = viewModel;
+            await _navigation.PushAsync(page);
 
             IsBusy = false;
         });
@@ -92,18 +94,27 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         OpenModalCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.ShowModal("LanguageModal", this);
+            var modal = _serviceProvider.GetRequiredService<LanguageModal>();
+            modal.BindingContext = this;
+            await _navigation.PushModalAsync(modal);
             IsBusy = false;
         });
 
         BackCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.GoBack();
+            await _navigation.PopAsync();
             IsBusy = false;
         });
 
-        CloseModalCommand = new Command(async () => { await _navigationService.CloseModal(); });
+        CloseModalCommand = new Command(async () =>
+        {
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
+        });
 
         SelectLanguageCommand = new Command<LanguageListViewItemModel>(async x =>
         {
@@ -113,17 +124,14 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            await _navigationService.CloseModal();
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
             await PopulateSongBooks(x.Code);
             IsBusy = false;
         });
-
-        _navigationService.NavigatedBack += OnNavigated;
-    }
-
-    private void OnNavigated(object viewModal)
-    {
-        if (viewModal.GetType() == GetType()) SetSelectedSongBook();
     }
 
     private void SetSelectedSongBook()
@@ -279,7 +287,6 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     public void Dispose()
     {
-        _navigationService.NavigatedBack -= OnNavigated;
         _subscriptions.ForEach(x => x.Dispose());
 
         // Note: _mediaService (MediaService) is a singleton and should not be 

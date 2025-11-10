@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
@@ -22,7 +21,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IPreviewPlayService _playService;
-    private readonly INavigationService _navigationService;
+    private readonly INavigation _navigation;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly Fluxor.IDispatcher _dispatcher;
@@ -39,7 +38,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         MediaService mediaService,
         IToastService toastService,
         IPreviewPlayService playService,
-        INavigationService navigationService,
+        INavigation navigation,
         IDownloadService downloadService,
         IMediaCacheService cacheService,
         Fluxor.IDispatcher dispatcher,
@@ -49,7 +48,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        _navigationService = navigationService;
+        _navigation = navigation;
         _downloadService = downloadService;
         _cacheService = cacheService;
         _dispatcher = dispatcher;
@@ -60,7 +59,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.GoBack();
+            await _navigation.PopAsync();
             IsBusy = false;
         });
 

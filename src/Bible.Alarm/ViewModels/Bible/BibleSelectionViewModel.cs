@@ -1,12 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.Views.Bible;
+using Bible.Alarm.Views.Shared;
 using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Bible;
@@ -14,8 +15,8 @@ namespace Bible.Alarm.ViewModels.Bible;
 public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly MediaService _mediaService;
-    private readonly INavigationService _navigationService;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigation _navigation;
+    private readonly IServiceProvider _serviceProvider;
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
@@ -31,11 +32,11 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     public ICommand SelectLanguageCommand { get; set; }
     public ICommand SelectSongBookCommand { get; set; }
 
-    public BibleSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
+    public BibleSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
-        _navigationService = navigationService;
-        _scopeFactory = scopeFactory;
+        _navigation = navigation;
+        _serviceProvider = serviceProvider;
         _dispatcher = dispatcher;
         _state = state;
 
@@ -84,9 +85,10 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
                 PublicationCode = x.Code,
                 LanguageCode = CurrentLanguage.Code
             }));
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<BookSelectionViewModel>();
-            await _navigationService.Navigate(viewModel);
+            var viewModel = _serviceProvider.GetRequiredService<BookSelectionViewModel>();
+            var page = _serviceProvider.GetRequiredService<BookSelection>();
+            page.BindingContext = viewModel;
+            await _navigation.PushAsync(page);
 
             IsBusy = false;
         });
@@ -94,21 +96,27 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         OpenModalCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.ShowModal("LanguageModal", this);
+            var modal = _serviceProvider.GetRequiredService<LanguageModal>();
+            modal.BindingContext = this;
+            await _navigation.PushModalAsync(modal);
             IsBusy = false;
         });
 
         BackCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.GoBack();
+            await _navigation.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.CloseModal();
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
             IsBusy = false;
         });
 
@@ -120,18 +128,15 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            await _navigationService.CloseModal();
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
             await PopulateTranslations(x.Code);
 
             IsBusy = false;
         });
-
-        _navigationService.NavigatedBack += OnNavigated;
-    }
-
-    private void OnNavigated(object viewModal)
-    {
-        if (viewModal.GetType() == GetType()) SetSelectedTranslation();
     }
 
     private void SetSelectedTranslation()
@@ -268,8 +273,6 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
     public void Dispose()
     {
-        _navigationService.NavigatedBack -= OnNavigated;
-
         _subscriptions.ForEach(x => x.Dispose());
         
         // Note: _mediaService (MediaService) is a singleton and should not be 

@@ -11,7 +11,6 @@ using System.Windows.Input;
 using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Database.Migrations;
@@ -22,6 +21,9 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.Views.Music;
+using Bible.Alarm.Views.Bible;
+using Bible.Alarm.Views.Shared;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -32,7 +34,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private readonly IAlarmService _alarmService;
     private readonly IToastService _popUpService;
-    private readonly INavigationService _navigationService;
+    private readonly INavigation _navigation;
     private readonly IPlaybackService _playbackService;
     private readonly INotificationService _notificationService;
 
@@ -48,6 +50,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public ICommand NextChapterCommand { get; set; }
 
     private readonly IBatteryOptimizationManager _batteryOptimizationManager;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
@@ -56,9 +59,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         ILogger logger,
         IToastService popUpService,
         IAlarmService alarmService,
-        INavigationService navigationService,
+        INavigation navigation,
         IPlaybackService playbackService,
         INotificationService notificationService,
+        IServiceProvider serviceProvider,
         IServiceScopeFactory scopeFactory,
         Fluxor.IDispatcher dispatcher,
         IState<ApplicationState> state,
@@ -67,9 +71,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _logger = logger;
         _popUpService = popUpService;
         _alarmService = alarmService;
-        _navigationService = navigationService;
+        _navigation = navigation;
         _playbackService = playbackService;
         _notificationService = notificationService;
+        _serviceProvider = serviceProvider;
         _scopeFactory = scopeFactory;
         _dispatcher = dispatcher;
         _state = state;
@@ -149,7 +154,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             IsBusy = true;
 
-            await _navigationService.GoBack();
+            await _navigation.PopAsync();
 
             IsBusy = false;
         });
@@ -171,7 +176,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             var saved = await SaveAsync();
 
-            if (saved) await _navigationService.GoBack();
+            if (saved) await _navigation.PopAsync();
 
             if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
 
@@ -188,7 +193,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             await DeleteAsync();
 
-            await _navigationService.GoBack();
+            await _navigation.PopAsync();
 
             IsBusy = false;
         });
@@ -201,9 +206,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             IsBusy = true;
 
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<MusicSelectionViewModel>();
-            await _navigationService.Navigate(viewModel);
+            var viewModel = _serviceProvider.GetRequiredService<MusicSelectionViewModel>();
+            var page = _serviceProvider.GetRequiredService<MusicSelection>();
+            page.BindingContext = viewModel;
+            await _navigation.PushAsync(page);
 
             await Task.Run(async () =>
             {
@@ -228,9 +234,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             IsBusy = true;
 
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<BibleSelectionViewModel>();
-            await _navigationService.Navigate(viewModel);
+            var viewModel = _serviceProvider.GetRequiredService<BibleSelectionViewModel>();
+            var page = _serviceProvider.GetRequiredService<BibleSelection>();
+            page.BindingContext = viewModel;
+            await _navigation.PushAsync(page);
 
             await Task.Run(async () =>
             {
@@ -262,7 +269,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         OpenModalCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.ShowModal("NumberOfChaptersModal", this);
+            var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
+            modal.BindingContext = this;
+            await _navigation.PushModalAsync(modal);
             IsBusy = false;
         });
 
@@ -270,7 +279,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         CloseModalCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.CloseModal();
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
             IsBusy = false;
         });
 
@@ -282,7 +295,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             CurrentNumberOfChapters = x;
             CurrentNumberOfChapters.IsSelected = true;
 
-            await _navigationService.CloseModal();
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
 
             IsBusy = false;
         });
@@ -293,7 +310,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             await MarkBatteryOptimizationModalAsShown();
 
-            await _navigationService.CloseModal();
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
 
             _batteryOptimizationManager.ShowBatteryOptimizationExclusionSettingsPage();
         });
@@ -302,7 +323,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             await MarkBatteryOptimizationModalAsShown();
 
-            await _navigationService.CloseModal();
+            if (_navigation.ModalStack.Count > 0)
+            {
+                var modal = await _navigation.PopModalAsync();
+                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            }
         });
 
         PreviousBookCommand = new Command(async () =>
@@ -407,7 +432,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
             if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
                     x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
-                await _navigationService.ShowModal("BatteryOptimizationExclusionModal", this);
+            {
+                var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
+                modal.BindingContext = this;
+                await _navigation.PushModalAsync(modal);
+            }
         }
     }
 

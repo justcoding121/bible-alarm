@@ -2,7 +2,6 @@ using System.Windows.Input;
 using Bible.Alarm.Database;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models;
 using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Constants;
@@ -40,10 +39,10 @@ public class AlarmViewModal : ObservableObject, IDisposable
         {
             await _playbackService.Dismiss();
             
-            using var scope = _scopeFactory.CreateScope();
-            var navigationService = scope.ServiceProvider.GetRequiredService<INavigationService>();
-            await navigationService?.CloseModal();
+            // Modal will be closed by App.xaml.cs when HideAlarmModalMessage is sent
+            // via WeakReferenceMessenger when playback is dismissed
 
+            using var scope = _scopeFactory.CreateScope();
             var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
             try
@@ -87,9 +86,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
 
         CancelCommand = new Command(async () =>
         {
-            using var scope = _scopeFactory.CreateScope();
-            var navigationService = scope.ServiceProvider.GetRequiredService<INavigationService>();
-            await navigationService?.GoBack();
+            // This command doesn't need navigation - the modal will be closed when playback is dismissed
         });
 
         PlayCommand = new Command(async () =>

@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
+using Bible.Alarm.Views.Bible;
 using Fluxor;
 
 namespace Bible.Alarm.ViewModels.Bible;
@@ -17,8 +17,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private BibleReadingSchedule _tentative;
 
     private readonly MediaService _mediaService;
-    private readonly INavigationService _navigationService;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigation _navigation;
+    private readonly IServiceProvider _serviceProvider;
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
@@ -27,18 +27,18 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService, IServiceScopeFactory scopeFactory, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
+    public BookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
-        _navigationService = navigationService;
-        _scopeFactory = scopeFactory;
+        _navigation = navigation;
+        _serviceProvider = serviceProvider;
         _dispatcher = dispatcher;
         _state = state;
 
         BackCommand = new Command(async () =>
         {
             IsBusy = true;
-            await _navigationService.GoBack();
+            await _navigation.PopAsync();
             IsBusy = false;
         });
 
@@ -52,9 +52,10 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
                 BookNumber = x.Number
             }));
 
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<ChapterSelectionViewModel>();
-            await _navigationService.Navigate(viewModel);
+            var viewModel = _serviceProvider.GetRequiredService<ChapterSelectionViewModel>();
+            var page = _serviceProvider.GetRequiredService<ChapterSelection>();
+            page.BindingContext = viewModel;
+            await _navigation.PushAsync(page);
             IsBusy = false;
         });
 
@@ -92,12 +93,6 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         };
         _state.StateChanged += subscriptionHandler2;
 
-        _navigationService.NavigatedBack += OnNavigated;
-    }
-
-    private void OnNavigated(object viewModal)
-    {
-        if (viewModal.GetType() == GetType()) SetSelectedBook();
     }
 
     private void SetSelectedBook()
@@ -164,8 +159,6 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _navigationService.NavigatedBack -= OnNavigated;
-
         _subscriptions.ForEach(x => x.Dispose());
         
         // Note: _mediaService (MediaService) is a singleton and should not be 

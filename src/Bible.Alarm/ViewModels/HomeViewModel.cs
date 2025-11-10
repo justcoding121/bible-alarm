@@ -14,12 +14,12 @@ using System.Windows.Input;
 using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Views.Schedule;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -42,10 +42,12 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
+    private readonly INavigation _navigation;
+
     public HomeViewModel(
         ILogger logger,
         IToastService popUpService, 
-        INavigationService navigationService,
+        INavigation navigation,
         IMediaCacheService mediaCacheService,
         IAlarmService alarmService,
         INotificationService notificationService,
@@ -55,7 +57,7 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
     {
         _logger = logger;
         _popUpService = popUpService;
-        var navigationService1 = navigationService;
+        _navigation = navigation;
         _alarmService = alarmService;
         _notificationService = notificationService;
         _scopeFactory = scopeFactory;
@@ -67,7 +69,9 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
             _dispatcher.Dispatch(new ViewScheduleAction(null));
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
-            await navigationService1.Navigate(viewModel);
+            var page = scope.ServiceProvider.GetRequiredService<Schedule>();
+            page.BindingContext = viewModel;
+            await _navigation.PushAsync(page);
         });
 
         ViewScheduleCommand = new Command<ScheduleListItem>(async x =>
@@ -78,7 +82,9 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
 
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
-            await navigationService1.Navigate(viewModel);
+            var page = scope.ServiceProvider.GetRequiredService<Schedule>();
+            page.BindingContext = viewModel;
+            await _navigation.PushAsync(page);
         });
 
 
