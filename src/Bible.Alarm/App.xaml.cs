@@ -7,8 +7,6 @@ using Bible.Alarm.Views;
 using Bible.Alarm.Views.General;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views.Shared;
-
 #nullable enable
 
 namespace Bible.Alarm;
@@ -19,13 +17,14 @@ public partial class App : Application,
     IRecipient<ShowMediaProgressModalMessage>,
     IRecipient<HideMediaProgressModalMessage>,
     IRecipient<ShowToastMessage>,
-    IRecipient<ClearToastsMessage>
+    IRecipient<ClearToastsMessage>,
+    IRecipient<InitializedMessage>
 {
     private readonly Serilog.ILogger _logger;
     private readonly IServiceProvider _serviceProvider;
 
     public static bool IsInForeground { get; set; } = false;
-    private INavigation? _navigation;
+    private INavigation? Navigation => _serviceProvider.GetService<INavigation>();
 
     public App(Serilog.ILogger logger, IServiceProvider serviceProvider)
     {
@@ -33,6 +32,10 @@ public partial class App : Application,
         _logger = logger;
         _serviceProvider = serviceProvider;
         InitializeComponent();
+
+        // Register for InitializedMessage before bootstrap is called
+        // This will handle showing HomePage after bootstrap completes
+        WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
 
         // Register for modal messages
         WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
@@ -46,52 +49,17 @@ public partial class App : Application,
     protected override Window CreateWindow(IActivationState? activationState)
     {
         System.Diagnostics.Debug.WriteLine("CreateWindow called!");
-        
-        var homePage = _serviceProvider.GetRequiredService<Home>();
-        var navigationPage = new NavigationPage(homePage)
+
+        var loadingPage = _serviceProvider.GetRequiredService<LoadingPage>();
+        var navigationPage = new NavigationPage(loadingPage)
         {
             BarBackgroundColor = Colors.Transparent,
             BarTextColor = Colors.White
         };
 
-        // Hide the nav bar on HomePage only
-        NavigationPage.SetHasNavigationBar(homePage, false);
+        NavigationPage.SetHasNavigationBar(loadingPage, false);
 
-        // Run bootstrapper after navigation page setup for foreground launch
-        // This ensures UI is ready before bootstrap initializes
-        MauiProgram.InitializePlatformBootstrap(_serviceProvider, isForeground: true);
-
-#if IOS
-        // Note: Large titles in MAUI are typically configured via platform-specific code
-        // or using Shell if needed. For now, we'll skip this configuration.
-#endif
-
-        _navigation = navigationPage.Navigation;
-        
-        var window = new Window(navigationPage);
-        
-        // Initialize services in background
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine("Starting service initialization...");
-                
-                var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-                if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
-                
-                await Task.Delay(100); // Small delay to ensure initialization
-                
-                System.Diagnostics.Debug.WriteLine("Service initialization completed!");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in initialization: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-            }
-        });
-        
-        return window;
+        return new Window(navigationPage);
     }
 
     protected override void OnStart()
@@ -99,22 +67,13 @@ public partial class App : Application,
         IsInForeground = true;
 
         base.OnStart();
+
+        MauiProgram.InitializePlatformBootstrap(_serviceProvider, isForeground: true);
+
         Task.Run(async () =>
         {
             try
             {
-                // Navigate to home
-                if (_navigation != null)
-                {
-                    await MainThread.InvokeOnMainThreadAsync(async () =>
-                    {
-                        while (_navigation.ModalStack.Count > 0)
-                            await _navigation.PopModalAsync();
-
-                        while (_navigation.NavigationStack.Count > 1)
-                            await _navigation.PopAsync();
-                    });
-                }
 
                 var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
 
@@ -149,8 +108,9 @@ public partial class App : Application,
             try
             {
                 var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-                // Handle when your app resumes
-                if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
+
+                if (playbackService.IsPrepared) 
+                    WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
 
                 await Task.Delay(1000);
 
@@ -169,18 +129,18 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (_navigation == null) return;
+            if (Navigation == null) return;
 
-            // Prevent showing alarm modal when playback is not active
             var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-            if (!playbackService.IsPlaying) return;
+            if (!playbackService.IsPlaying)
+                return;
 
-            if (_navigation.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal)) return;
+            if (Navigation.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal)) return;
 
             var vm = _serviceProvider.GetRequiredService<AlarmViewModal>();
             var modal = _serviceProvider.GetRequiredService<AlarmModal>();
             modal.BindingContext = vm;
-            await _navigation.PushModalAsync(modal);
+            await Navigation.PushModalAsync(modal);
         });
     }
 
@@ -188,10 +148,10 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (_navigation == null) return;
-            if (_navigation.ModalStack.Count > 0)
+            if (Navigation == null) return;
+            if (Navigation.ModalStack.Count > 0)
             {
-                var modal = await _navigation.PopModalAsync();
+                var modal = await Navigation.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
         });
@@ -201,14 +161,14 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (_navigation == null) return;
+            if (Navigation == null) return;
 
-            if (_navigation.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal)) return;
+            if (Navigation.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal)) return;
 
             var vm = _serviceProvider.GetRequiredService<MediaProgressViewModal>();
             var modal = _serviceProvider.GetRequiredService<MediaProgressModal>();
             modal.BindingContext = vm;
-            await _navigation.PushModalAsync(modal);
+            await Navigation.PushModalAsync(modal);
         });
     }
 
@@ -216,10 +176,10 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (_navigation == null) return;
-            if (_navigation.ModalStack.Count > 0)
+            if (Navigation == null) return;
+            if (Navigation.ModalStack.Count > 0)
             {
-                var modal = await _navigation.PopModalAsync();
+                var modal = await Navigation.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
         });
@@ -240,6 +200,60 @@ public partial class App : Application,
         {
             using var toastService = _serviceProvider.GetRequiredService<IToastService>();
             await toastService.Clear();
+        });
+    }
+
+    public void Receive(InitializedMessage message)
+    {
+        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            if (Navigation == null) return;
+
+            try
+            {
+                var homePage = _serviceProvider.GetRequiredService<Home>();
+
+                NavigationPage.SetHasNavigationBar(homePage, false);
+
+                await Navigation.PushAsync(homePage); 
+                
+                // PopAsync removes the TOP page (HomePage), so we need to manipulate the stack differently
+                var pagesToRemove = Navigation.NavigationStack.Where(p => p != homePage).ToList();
+                foreach (var page in pagesToRemove)
+                {
+                    Navigation.RemovePage(page);
+                }
+
+                if (homePage.BindingContext is HomeViewModel homeViewModel)
+                {
+                    await homeViewModel.InitializeAsync();
+                }
+
+      
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        System.Diagnostics.Debug.WriteLine("Starting service initialization...");
+                        
+                        var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
+                        if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
+                        
+                        await Task.Delay(100); 
+                        
+                        System.Diagnostics.Debug.WriteLine("Service initialization completed!");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error in initialization: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "An error happened while showing HomePage after initialization.");
+            }
         });
     }
 }

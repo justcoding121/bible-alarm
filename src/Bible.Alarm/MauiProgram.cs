@@ -183,6 +183,33 @@ public static class MauiProgram
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context
         services.AddSingleton<TaskScheduler>(sp => TaskScheduler.Default);
+
+#if WINDOWS
+        // CRITICAL FIX FOR WINDOWS — INavigation is NOT auto-registered on Windows
+        // This is a known MAUI bug that affects Windows but not Android/iOS
+        // Android/iOS auto-register INavigation, but Windows does not
+        services.AddSingleton<Microsoft.Maui.Controls.INavigation>(sp =>
+        {
+            var app = Application.Current;
+            if (app?.MainPage is NavigationPage navPage)
+            {
+                return navPage.Navigation;
+            }
+            
+            // Fallback — try to get from Window's Page (set in CreateWindow)
+            if (app?.Windows.Count > 0)
+            {
+                var window = app.Windows[0];
+                if (window.Page is NavigationPage windowNavPage)
+                {
+                    return windowNavPage.Navigation;
+                }
+            }
+            
+            // During startup, this might not be ready yet
+            throw new InvalidOperationException("INavigation is not available. NavigationPage must be set before resolving INavigation.");
+        });
+#endif
     }
 
     private static void RegisterViewModels(IServiceCollection services)
@@ -226,6 +253,7 @@ public static class MauiProgram
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();
         services.AddTransient<MediaProgressModal>();
+        services.AddTransient<LoadingPage>();
     }
 
     /// <summary>

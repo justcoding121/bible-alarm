@@ -24,7 +24,7 @@ using Bible.Alarm.Views.Schedule;
 
 namespace Bible.Alarm.ViewModels;
 
-public class HomeViewModel : ObservableObject, IDisposable, IRecipient<InitializedMessage>
+public class HomeViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -114,13 +114,15 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
             IsBusy = false;
         }
 
-        // Subscribe to Initialized message using WeakReferenceMessenger
-        WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
     }
 
-    public void Receive(InitializedMessage message)
+    /// <summary>
+    /// Initializes the HomeViewModel after bootstrap is complete.
+    /// This should be called from App.xaml.cs after InitializedMessage is received.
+    /// </summary>
+    public async Task InitializeAsync()
     {
-        _ = HandleInitialized();
+        await HandleInitialized();
     }
 
     private async Task HandleInitialized()
@@ -415,9 +417,6 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
 
     public void Dispose()
     {
-        // Unsubscribe from WeakReferenceMessenger
-        WeakReferenceMessenger.Default.Unregister<InitializedMessage>(this);
-
         // Unsubscribe from all schedule IsEnabled changes
         if (Schedules != null)
         {

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage
+    x:Class="Bible.Alarm.Views.General.LoadingPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    BackgroundColor="White"
+    Title="Bible Alarm">
+    <ContentPage.Content>
+        <Grid>
+            <StackLayout
+                HorizontalOptions="Center"
+                Orientation="Vertical"
+                VerticalOptions="Center">
+                <ActivityIndicator
+                    IsRunning="True"
+                    Color="SlateBlue"
+                    WidthRequest="100"
+                    HeightRequest="100">
+                    <ActivityIndicator.Scale>
+                        <OnPlatform x:TypeArguments="x:Double">
+                            <OnPlatform.Platforms>
+                                <On Platform="iOS" Value="2.0" />
+                                <On Platform="Android" Value="1.5" />
+                                <On Platform="Win" Value="1.5" />
+                            </OnPlatform.Platforms>
+                        </OnPlatform>
+                    </ActivityIndicator.Scale>
+                </ActivityIndicator>
+                <Label
+                    Text="Loading..."
+                    FontSize="Large"
+                    HorizontalOptions="Center"
+                    Margin="0,20,0,0"
+                    TextColor="SlateBlue" />
+            </StackLayout>
+        </Grid>
+    </ContentPage.Content>
+</ContentPage>
+
