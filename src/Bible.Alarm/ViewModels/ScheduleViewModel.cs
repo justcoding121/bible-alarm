@@ -11,6 +11,7 @@ using System.Windows.Input;
 using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Database.Migrations;
@@ -23,6 +24,8 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Bible;
+using Bible.Alarm.Views.General;
+using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 
 namespace Bible.Alarm.ViewModels;

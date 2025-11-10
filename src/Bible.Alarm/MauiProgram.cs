@@ -11,6 +11,7 @@ using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.Music;
 // using Bible.Alarm.Views.Schedule; // Schedule is a type, not a namespace

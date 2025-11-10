@@ -14,6 +14,7 @@ using System.Windows.Input;
 using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.DataStructures;

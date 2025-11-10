@@ -2,7 +2,9 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.Media;
 using Bible.Alarm.Views;
+using Bible.Alarm.Views.General;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views.Shared;
@@ -50,20 +52,22 @@ public partial class App : Application,
         {
             BarBackgroundColor = Colors.Transparent,
             BarTextColor = Colors.White
-#if IOS
-            , PrefersLargeTitles = true
-#endif
         };
 
         // Hide the nav bar on HomePage only
         NavigationPage.SetHasNavigationBar(homePage, false);
+
+#if IOS
+        // Note: Large titles in MAUI are typically configured via platform-specific code
+        // or using Shell if needed. For now, we'll skip this configuration.
+#endif
 
         _navigation = navigationPage.Navigation;
         
         var window = new Window(navigationPage);
         
         // Initialize services in background
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             try
             {
@@ -71,6 +75,8 @@ public partial class App : Application,
                 
                 var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
                 if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
+                
+                await Task.Delay(100); // Small delay to ensure initialization
                 
                 System.Diagnostics.Debug.WriteLine("Service initialization completed!");
             }

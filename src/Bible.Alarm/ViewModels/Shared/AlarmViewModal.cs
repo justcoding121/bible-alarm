@@ -84,7 +84,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             await scheduleDbContext.SaveChangesAsync();
         });
 
-        CancelCommand = new Command(async () =>
+        CancelCommand = new Command(() =>
         {
             // This command doesn't need navigation - the modal will be closed when playback is dismissed
         });
