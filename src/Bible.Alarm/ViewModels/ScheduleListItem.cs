@@ -19,12 +19,20 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    public AlarmSchedule Schedule;
+    public AlarmSchedule Schedule { get; private set; }
 
-    public ScheduleListItem(AlarmSchedule schedule, ILogger logger, IServiceScopeFactory scopeFactory)
+    // Constructor for DI - Initialize() must be called after construction
+    public ScheduleListItem(ILogger logger, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
+        
+        // Commands will be initialized in Initialize() method
+    }
+
+    // Initialize method to set the schedule data
+    public void Initialize(AlarmSchedule schedule)
+    {
         Schedule = schedule;
         _isEnabled = schedule.IsEnabled;
 
@@ -66,7 +74,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
             if (!await CanMove()) return;
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            await playlistService.MoveToPreviousBibleChapter(schedule.Id);
+            await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
 
             RefreshChapterName(true);
         });
@@ -77,7 +85,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
 
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            await playlistService.MoveToNextBibleChapter(schedule.Id);
+            await playlistService.MoveToNextBibleChapter(Schedule.Id);
 
             RefreshChapterName(true);
         });

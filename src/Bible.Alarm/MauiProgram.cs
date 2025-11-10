@@ -31,6 +31,7 @@ using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.Models.Schedule;
 using Microsoft.EntityFrameworkCore;
 #if IOS
 using Bible.Alarm.Platforms.iOS.Services.Storage;
@@ -224,6 +225,18 @@ public static class MauiProgram
         services.AddTransient<ChapterSelectionViewModel>();
         services.AddTransient<AlarmViewModal>();
         services.AddSingleton<MediaProgressViewModal>();
+        
+        // Register ScheduleListItem as transient for list items
+        services.AddTransient<ScheduleListItem>();
+        
+        // Register factory for ScheduleListItem (takes AlarmSchedule and returns ScheduleListItem with DI)
+        services.AddTransient<Func<AlarmSchedule, ScheduleListItem>>(serviceProvider => 
+            schedule =>
+            {
+                var vm = serviceProvider.GetRequiredService<ScheduleListItem>();
+                vm.Initialize(schedule);
+                return vm;
+            });
     }
 
     private static void RegisterUiComponents(IServiceCollection services)

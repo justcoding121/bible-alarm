@@ -39,6 +39,7 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
     // Map AlarmSchedule IDs to ScheduleListItem ViewModels for UI binding
     private readonly Dictionary<long, ScheduleListItem> _scheduleViewModels = [];
 
+    private readonly Func<AlarmSchedule, ScheduleListItem> _scheduleListItemFactory;
 
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
@@ -53,6 +54,7 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
         IAlarmService alarmService,
         INotificationService notificationService,
         IServiceScopeFactory scopeFactory,
+        Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
         Fluxor.IDispatcher dispatcher,
         IState<ApplicationState> state)
     {
@@ -62,6 +64,7 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
         _alarmService = alarmService;
         _notificationService = notificationService;
         _scopeFactory = scopeFactory;
+        _scheduleListItemFactory = scheduleListItemFactory;
         _dispatcher = dispatcher;
         _state = state;
 
@@ -218,9 +221,6 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
 
     private void UpdateScheduleViewModels(ObservableHashSet<AlarmSchedule> schedules)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger>();
-        
         var newViewModels = new ObservableHashSet<ScheduleListItem>();
         var currentViewModelIds = new HashSet<long>();
 
@@ -232,14 +232,14 @@ public class HomeViewModel : ObservableObject, IDisposable, IRecipient<Initializ
             if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
             {
                 // Update existing ViewModel's Schedule property
-                existingViewModel.Schedule = schedule;
+                existingViewModel.Initialize(schedule);
                 existingViewModel.IsEnabled = schedule.IsEnabled;
                 newViewModels.Add(existingViewModel);
             }
             else
             {
-                // Create new ViewModel
-                var viewModel = new ScheduleListItem(schedule, logger, _scopeFactory);
+                // Create new ViewModel using factory with full DI
+                var viewModel = _scheduleListItemFactory(schedule);
                 _scheduleViewModels[schedule.Id] = viewModel;
                 newViewModels.Add(viewModel);
             }
