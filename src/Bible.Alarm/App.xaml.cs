@@ -7,7 +7,6 @@ using Bible.Alarm.Views;
 using Bible.Alarm.Views.General;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
-#nullable enable
 
 namespace Bible.Alarm;
 

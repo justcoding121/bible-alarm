@@ -6,17 +6,26 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     BackgroundColor="White"
     Title="Bible Alarm">
+    <ContentPage.Resources>
+        <Style x:Key="DotStyle" TargetType="Label">
+            <Setter Property="FontSize" Value="48" />
+            <Setter Property="TextColor" Value="SlateBlue" />
+            <Setter Property="HorizontalOptions" Value="Center" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+    </ContentPage.Resources>
     <ContentPage.Content>
         <Grid>
             <StackLayout
                 HorizontalOptions="Center"
                 Orientation="Vertical"
-                VerticalOptions="Center">
+                VerticalOptions="Center"
+                Spacing="20">
                 <ActivityIndicator
                     IsRunning="True"
                     Color="SlateBlue"
-                    WidthRequest="100"
-                    HeightRequest="100">
+                    WidthRequest="80"
+                    HeightRequest="80">
                     <ActivityIndicator.Scale>
                         <OnPlatform x:TypeArguments="x:Double">
                             <OnPlatform.Platforms>
@@ -27,12 +36,27 @@
                         </OnPlatform>
                     </ActivityIndicator.Scale>
                 </ActivityIndicator>
-                <Label
-                    Text="Loading..."
-                    FontSize="Large"
+                
+                <!-- Animated loading dots -->
+                <HorizontalStackLayout
                     HorizontalOptions="Center"
-                    Margin="0,20,0,0"
-                    TextColor="SlateBlue" />
+                    Spacing="8">
+                    <Label
+                        x:Name="Dot1"
+                        Text="●"
+                        Style="{StaticResource DotStyle}"
+                        Opacity="0.3" />
+                    <Label
+                        x:Name="Dot2"
+                        Text="●"
+                        Style="{StaticResource DotStyle}"
+                        Opacity="0.3" />
+                    <Label
+                        x:Name="Dot3"
+                        Text="●"
+                        Style="{StaticResource DotStyle}"
+                        Opacity="0.3" />
+                </HorizontalStackLayout>
             </StackLayout>
         </Grid>
     </ContentPage.Content>
