@@ -53,8 +53,9 @@ public class AlarmSetupService : Service, IDisposable
     public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags,
         int startId)
     {
-        // DI container initialization is handled by MauiProgram.EnsureDiContainerInitialized()
-        // when services are accessed through ServiceProviderManager
+        // Ensure MauiApp is created exactly once (thread-safe)
+        // This is a background service entry point
+        MauiAppHolder.CreateAndStore();
 
         try
         {
@@ -72,8 +73,6 @@ public class AlarmSetupService : Service, IDisposable
                     break;
                 }
                 case "SetupBackgroundTasks":
-                    // DI container initialization is handled by MauiProgram.EnsureDiContainerInitialized()
-                    // when services are accessed through ServiceProviderManager
                     Task.Run(async () =>
                     {
                         try

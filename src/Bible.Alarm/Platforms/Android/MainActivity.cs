@@ -83,6 +83,10 @@ public class MainActivity : MauiAppCompatActivity
             {
                 try
                 {
+                    // Ensure MauiApp is created exactly once (thread-safe)
+                    // This handles incoming intents (e.g., from notifications)
+                    MauiAppHolder.CreateAndStore();
+                    
                     _alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
                     await _alarmHandler.Handle(scheduleId, true);
                 }

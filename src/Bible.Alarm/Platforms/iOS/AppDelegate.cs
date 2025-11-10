@@ -41,9 +41,8 @@ namespace Bible.Alarm.Platforms.iOS
         {
             try
             {
-                // MAUI handles dependency injection through MauiProgram
-                // No need for manual IocSetup - services are registered in MauiProgram
-                return MauiProgram.CreateMauiApp();
+                // Ensure MauiApp is created exactly once (thread-safe)
+                return MauiAppHolder.CreateAndStore();
             }
             catch (Exception e)
             {
@@ -54,6 +53,7 @@ namespace Bible.Alarm.Platforms.iOS
 
         public override bool FinishedLaunching(UIApplication app, NSDictionary launchOptions)
         {
+
 #if DEBUG
             // Note: SSL certificate validation for localhost is handled by HttpClient configuration
             // This is now managed through HttpClientHandler in the HTTP client setup
@@ -120,6 +120,9 @@ namespace Bible.Alarm.Platforms.iOS
                         {
                             try
                             {
+                                // Ensure MauiApp is created (may already be created from FinishedLaunching)
+                                MauiAppHolder.CreateAndStore();
+                                
                                 using var dbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
 
                                 if (!dbContext.GeneralSettings.Any(x => x.Key == "iOSNotificationDisabledMsgShown"))
@@ -208,6 +211,10 @@ namespace Bible.Alarm.Platforms.iOS
 
             try
             {
+                // Ensure MauiApp is created exactly once (thread-safe)
+                // This is the iOS background fetch entry point
+                MauiAppHolder.CreateAndStore();
+
                 using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
                 downloaded = await schedulerService.Handle();
 

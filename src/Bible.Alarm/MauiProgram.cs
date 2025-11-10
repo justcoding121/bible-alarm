@@ -88,9 +88,6 @@ public static class MauiProgram
         var store = app.Services.GetRequiredService<Fluxor.IStore>();
         ReduxContainer.Store = store;
 
-        // Initialize the global service provider for access from multiple entry points
-        ServiceProviderManager.Initialize(app.Services);
-
         // Create HomeViewModel early to ensure it subscribes before Init message is published
         _ = app.Services.GetRequiredService<HomeViewModel>();
 
@@ -103,20 +100,13 @@ public static class MauiProgram
     /// <summary>
     /// Ensures the DI container is initialized for background services.
     /// This method is safe to call multiple times and will only initialize once.
+    /// Now uses MauiAppHolder for thread-safe, single-instance creation.
     /// </summary>
     public static void EnsureDiContainerInitialized()
     {
-        if (!ServiceProviderManager.IsInitialized)
-        {
-            System.Diagnostics.Debug.WriteLine("Initializing DI container for background service...");
-            
-            // Create a minimal MauiApp instance to initialize the DI container
-            CreateMauiApp();
-            
-            // The app instance is not used, but the DI container is now initialized
-            // ServiceProviderManager.Initialize() was called in CreateMauiApp()
-            System.Diagnostics.Debug.WriteLine("DI container initialized for background service.");
-        }
+        // MauiAppHolder.CreateAndStore() ensures exactly one MauiApp instance
+        // regardless of which entry point calls it first
+        _ = MauiAppHolder.CreateAndStore();
     }
 
     private static void RegisterServices(IServiceCollection services)
