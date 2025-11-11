@@ -1,4 +1,5 @@
 #if WINDOWS
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 #endif
 using System.Runtime.InteropServices;

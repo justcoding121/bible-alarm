@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 

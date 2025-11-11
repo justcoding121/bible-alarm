@@ -304,7 +304,6 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             UnsubscribeFromChapterEvents(chapter);
         }
         
-        _subscriptions.ForEach(x => x.Dispose());
         _propertyChangedHandlers.Clear();
 
         _lock.Dispose();

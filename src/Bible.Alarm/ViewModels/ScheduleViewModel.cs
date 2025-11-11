@@ -38,8 +38,8 @@ public class ScheduleViewModel : ObservableObject
     private readonly IToastService _popUpService;
     private readonly INavigation _navigation;
 
-    public Command BatteryOptimizationExcludeCommand { get; private set; }
-    public Command BatteryOptimizationDismissCommand { get; private set; }
+    public ICommand BatteryOptimizationExcludeCommand { get; private set; }
+    public ICommand BatteryOptimizationDismissCommand { get; private set; }
 
     public ICommand PreviousBookCommand { get; set; }
     public ICommand NextBookCommand { get; set; }

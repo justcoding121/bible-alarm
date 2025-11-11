@@ -20,6 +20,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
+    private EventHandler? _onBibleReadingChanged;
+    private EventHandler? _onBibleReadingInitialized;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
@@ -58,8 +60,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        EventHandler onBibleReadingInitialized = null;
-        onBibleReadingInitialized = (sender, e) =>
+        _onBibleReadingInitialized = (sender, e) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null ||
@@ -72,9 +73,13 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= onBibleReadingInitialized;
+            if (_onBibleReadingInitialized != null)
+            {
+                _state.StateChanged -= _onBibleReadingInitialized;
+                _onBibleReadingInitialized = null;
+            }
         };
-        _state.StateChanged += onBibleReadingInitialized;
+        _state.StateChanged += _onBibleReadingInitialized;
 
         // Subscribe to current schedule changes (but skip first one)
         BibleReadingSchedule lastCurrent = null;
@@ -88,8 +93,23 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             lastCurrent = _current;
         }
 
-        _state.StateChanged += OnBibleReadingChanged;
+        _onBibleReadingChanged = OnBibleReadingChanged;
+        _state.StateChanged += _onBibleReadingChanged;
 
+    }
+
+    public void Dispose()
+    {
+        if (_onBibleReadingChanged != null)
+        {
+            _state.StateChanged -= _onBibleReadingChanged;
+            _onBibleReadingChanged = null;
+        }
+        if (_onBibleReadingInitialized != null)
+        {
+            _state.StateChanged -= _onBibleReadingInitialized;
+            _onBibleReadingInitialized = null;
+        }
     }
 
     private void SetSelectedBook()

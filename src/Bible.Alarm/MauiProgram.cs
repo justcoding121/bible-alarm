@@ -47,6 +47,7 @@ using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Battery;
+using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Platforms.Android.Services.Storage;
 #endif
@@ -57,6 +58,7 @@ using Bible.Alarm.Platforms.Windows.Services.Media;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
 using Bible.Alarm.Platforms.Windows.Helpers;
+using Windows.Media.Playback;
 #endif
 
 namespace Bible.Alarm;
@@ -95,7 +97,7 @@ public static class MauiProgram
     {
         // Register platform-specific HttpMessageHandler
 #if ANDROID
-        services.AddSingleton<HttpMessageHandler, AndroidMessageHandler>();
+        services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
 #elif IOS
         services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
 #elif WINDOWS
@@ -284,9 +286,12 @@ public static class MauiProgram
 
 #if ANDROID
             // Android bootstrap initialization
-            var context = Platform.CurrentActivity?.ApplicationContext ?? Application.Context;
+            var context = Platform.CurrentActivity?.ApplicationContext;
             var application = Platform.CurrentActivity?.Application;
-            BootstrapHelper.Initialize(logger, context, application);
+            if (context != null && application != null)
+            {
+                BootstrapHelper.Initialize(logger, context, application);
+            }
 #elif IOS
             // iOS bootstrap initialization
             BootstrapHelper.Initialize(logger, isForeground: true);

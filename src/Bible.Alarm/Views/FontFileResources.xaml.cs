@@ -52,17 +52,7 @@ public partial class FontFileResources : ResourceDictionary
             }
             
             // Fallback: try to get from ResourceDictionary
-
-            <<<<<<<
-
-            Unmerged change from project 'Bible.Alarm (net9.0-android)',
-            return Instance.GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
-        }
-=======
             return GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
-        }
->>>>>>> After
-            return FontFileResources.GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
         }
     }
 
