@@ -19,45 +19,40 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private BibleReadingSchedule _tentative;
 
     private readonly MediaService _mediaService;
-    private readonly INavigation _navigation;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    private readonly List<IDisposable> _subscriptions = [];
-
     public BookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
-        _navigation = navigation;
-        _serviceProvider = serviceProvider;
-        _dispatcher = dispatcher;
+        var navigation1 = navigation;
+        var serviceProvider1 = serviceProvider;
+        var dispatcher1 = dispatcher;
         _state = state;
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigation.PopAsync();
+            await navigation1.PopAsync();
             IsBusy = false;
         });
 
         ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
         {
             IsBusy = true;
-            _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
+            dispatcher1.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
                 BookNumber = x.Number
             }));
 
-            var viewModel = _serviceProvider.GetRequiredService<ChapterSelectionViewModel>();
-            var page = _serviceProvider.GetRequiredService<ChapterSelection>();
+            var viewModel = serviceProvider1.GetRequiredService<ChapterSelectionViewModel>();
+            var page = serviceProvider1.GetRequiredService<ChapterSelection>();
             page.BindingContext = viewModel;
-            await _navigation.PushAsync(page);
+            await navigation1.PushAsync(page);
             IsBusy = false;
         });
 
@@ -66,46 +61,45 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         EventHandler subscriptionHandler1 = null;
         subscriptionHandler1 = (sender, e) =>
         {
-            var state = _state.Value;
-            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null ||
+                stateValue.TentativeBibleReadingSchedule == null) return;
+            _current = stateValue.CurrentBibleReadingSchedule;
+            _tentative = stateValue.TentativeBibleReadingSchedule;
+            Task.Run(async () =>
             {
-                _current = state.CurrentBibleReadingSchedule;
-                _tentative = state.TentativeBibleReadingSchedule;
-                Task.Run(async () =>
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                    await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                });
-                _state.StateChanged -= subscriptionHandler1;
-            }
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+            _state.StateChanged -= subscriptionHandler1;
         };
         _state.StateChanged += subscriptionHandler1;
 
         // Subscribe to current schedule changes (but skip first one)
         BibleReadingSchedule lastCurrent = null;
-        EventHandler subscriptionHandler2 = (sender, e) =>
+
+        void SubscriptionHandler2(object sender, EventArgs e)
         {
-            var state = _state.Value;
-            if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastCurrent)
-            {
-                _current = state.CurrentBibleReadingSchedule;
-                lastCurrent = _current;
-            }
-        };
-        _state.StateChanged += subscriptionHandler2;
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null ||
+                stateValue.CurrentBibleReadingSchedule == lastCurrent) return;
+            _current = stateValue.CurrentBibleReadingSchedule;
+            lastCurrent = _current;
+        }
+
+        _state.StateChanged += SubscriptionHandler2;
 
     }
 
     private void SetSelectedBook()
     {
-        if (_current.LanguageCode == _tentative.LanguageCode && _current.PublicationCode == _tentative.PublicationCode)
-        {
-            if (SelectedBook != null) SelectedBook.IsSelected = false;
+        if (_current.LanguageCode != _tentative.LanguageCode ||
+            _current.PublicationCode != _tentative.PublicationCode) return;
+        if (SelectedBook != null) SelectedBook.IsSelected = false;
 
-            SelectedBook = _bookVMsMapping[_current.BookNumber];
-            SelectedBook.IsSelected = true;
-        }
+        SelectedBook = _bookVMsMapping[_current.BookNumber];
+        SelectedBook.IsSelected = true;
     }
 
     public BibleBookListViewItemModel SelectedBook { get; set; }
@@ -147,24 +141,14 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             bookVMs.Add(bookVm);
             _bookVMsMapping.Add(bookVm.Number, bookVm);
 
-            if (_current.LanguageCode == _tentative.LanguageCode
-                && _current.PublicationCode == _tentative.PublicationCode
-                && _current.BookNumber == book.Number)
-            {
-                bookVm.IsSelected = true;
-                SelectedBook = bookVm;
-            }
+            if (_current.LanguageCode != _tentative.LanguageCode
+                || _current.PublicationCode != _tentative.PublicationCode
+                || _current.BookNumber != book.Number) continue;
+            bookVm.IsSelected = true;
+            SelectedBook = bookVm;
         }
 
         Books = bookVMs;
-    }
-
-    public void Dispose()
-    {
-        _subscriptions.ForEach(x => x.Dispose());
-        
-        // Note: _mediaService (MediaService) is a singleton and should not be 
-        // disposed here as it is managed by the DI container
     }
 }
 
@@ -183,6 +167,6 @@ public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, ICom
 
     public int CompareTo(object obj)
     {
-        return Number.CompareTo((obj as BibleBookListViewItemModel).Number);
+        return Number.CompareTo((((BibleBookListViewItemModel)obj)).Number);
     }
 }

@@ -13,39 +13,30 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class MusicSelectionViewModel : ObservableObject, IDisposable
+public class MusicSelectionViewModel : ObservableObject
 {
     private AlarmMusic _current;
 
-    private readonly MediaService _mediaService;
-    private readonly INavigation _navigation;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
-
-    private readonly List<IDisposable> _subscriptions = [];
 
     public MusicSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
     {
-        _mediaService = mediaService;
-        _navigation = navigation;
-        _serviceProvider = serviceProvider;
-        _dispatcher = dispatcher;
+        var navigation1 = navigation;
+        var serviceProvider1 = serviceProvider;
+        var dispatcher1 = dispatcher;
         _state = state;
 
         //set schedules from initial state.
         _state.StateChanged += (sender, e) =>
         {
-            var state = _state.Value;
-            if (state.CurrentMusic != null)
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null) return;
+            _current = stateValue.CurrentMusic;
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                _current = state.CurrentMusic;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    SetSelectedMusicType();
-                    IsBusy = false;
-                });
-            }
+                SetSelectedMusicType();
+                IsBusy = false;
+            });
         };
 
 
@@ -55,29 +46,29 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
             if (x.MusicType == MusicType.Vocals)
             {
-                _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
+                dispatcher1.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
                     MusicType = MusicType.Vocals,
                     LanguageCode = _current.LanguageCode
                 }));
 
-                var viewModel = _serviceProvider.GetRequiredService<SongBookSelectionViewModel>();
-                var page = _serviceProvider.GetRequiredService<SongBookSelection>();
+                var viewModel = serviceProvider1.GetRequiredService<SongBookSelectionViewModel>();
+                var page = serviceProvider1.GetRequiredService<SongBookSelection>();
                 page.BindingContext = viewModel;
-                await _navigation.PushAsync(page);
+                await navigation1.PushAsync(page);
             }
             else
             {
-                _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+                dispatcher1.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
                     Repeat = _current.Repeat,
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
                 }));
-                var viewModel = _serviceProvider.GetRequiredService<TrackSelectionViewModel>();
-                var page = _serviceProvider.GetRequiredService<TrackSelection>();
+                var viewModel = serviceProvider1.GetRequiredService<TrackSelectionViewModel>();
+                var page = serviceProvider1.GetRequiredService<TrackSelection>();
                 page.BindingContext = viewModel;
-                await _navigation.PushAsync(page);
+                await navigation1.PushAsync(page);
             }
 
             IsBusy = false;
@@ -86,7 +77,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigation.PopAsync();
+            await navigation1.PopAsync();
             IsBusy = false;
         });
     }
@@ -113,12 +104,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     public ObservableCollection<MusicTypeListItemViewModel> MusicTypes { get; set; }
         = new(
         [
-            new()
+            new MusicTypeListItemViewModel
             {
                 MusicType = MusicType.Melodies,
                 Name = "Orchestral Melodies"
             },
-            new()
+            new MusicTypeListItemViewModel
             {
                 MusicType = MusicType.Vocals,
                 Name = "Vocals"
@@ -131,14 +122,6 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     {
         get => _selectedMusicType;
         set => SetProperty(ref _selectedMusicType, value);
-    }
-
-    public void Dispose()
-    {
-        _subscriptions.ForEach(x => x.Dispose());
-
-        // Note: _mediaService (MediaService) is a singleton and should not be 
-        // disposed here as it is managed by the DI container
     }
 }
 
@@ -157,6 +140,6 @@ public class MusicTypeListItemViewModel : ObservableObject, IComparable
 
     public int CompareTo(object obj)
     {
-        return Name.CompareTo((obj as MusicTypeListItemViewModel).Name);
+        return string.Compare(Name, (obj as MusicTypeListItemViewModel).Name, StringComparison.Ordinal);
     }
 }

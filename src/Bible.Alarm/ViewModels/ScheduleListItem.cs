@@ -36,33 +36,30 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
         Schedule = schedule;
         _isEnabled = schedule.IsEnabled;
 
-        PlayCommand = new Command(() =>
+        PlayCommand = new AsyncRelayCommand(async () =>
         {
-            _ = Task.Run(async () =>
+            using var scope = _scopeFactory.CreateScope();
+            using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
+
+            try
             {
-                using var scope = _scopeFactory.CreateScope();
-                using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
-
-                try
+                if (Schedule.Id > 0)
                 {
-                    if (Schedule.Id > 0)
-                    {
-                        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-                        await playbackService.PrepareAndPlay(Schedule.Id, true);
+                    var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
+                    await playbackService.PrepareAndPlay(Schedule.Id, true);
 
-                        await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
+                    await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
 
-                        using var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-                        await notificationService.ShowNotification(Schedule.Id);
-                    }
+                    using var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                    await notificationService.ShowNotification(Schedule.Id);
                 }
-                catch (Exception e)
-                {
-                    _logger.Information(e, "An error happened when playing alarm.");
-                    await toastService.ShowMessage("Error. Network may not be available." +
-                                                   "Please try again.", 5);
-                }
-            });
+            }
+            catch (Exception e)
+            {
+                _logger.Information(e, "An error happened when playing alarm.");
+                await toastService.ShowMessage("Error. Network may not be available." +
+                                               "Please try again.", 5);
+            }
         });
 
         RefreshChapterName(true);

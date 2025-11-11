@@ -15,7 +15,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public class BibleSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
@@ -43,37 +43,24 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         EventHandler subscriptionHandler1 = null;
         subscriptionHandler1 = (sender, e) =>
         {
-            var state = _state.Value;
-            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
+            _current = stateValue.CurrentBibleReadingSchedule;
+            _tentative = stateValue.TentativeBibleReadingSchedule;
+            Task.Run(async () =>
             {
-                _current = state.CurrentBibleReadingSchedule;
-                _tentative = state.TentativeBibleReadingSchedule;
-                Task.Run(async () =>
-                {
-                    await Initialize(_tentative.LanguageCode);
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                });
-                _state.StateChanged -= subscriptionHandler1;
-            }
+                await Initialize(_tentative.LanguageCode);
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+            _state.StateChanged -= subscriptionHandler1;
         };
         _state.StateChanged += subscriptionHandler1;
 
         // Subscribe to subsequent schedule changes (skip first one)
         BibleReadingSchedule lastCurrent = null;
         BibleReadingSchedule lastTentative = null;
-        EventHandler subscriptionHandler2 = (sender, e) =>
-        {
-            var state = _state.Value;
-            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null
-                && (state.CurrentBibleReadingSchedule != lastCurrent || state.TentativeBibleReadingSchedule != lastTentative))
-            {
-                _current = state.CurrentBibleReadingSchedule;
-                _tentative = state.TentativeBibleReadingSchedule;
-                lastCurrent = _current;
-                lastTentative = _tentative;
-            }
-        };
-        _state.StateChanged += subscriptionHandler2;
+
+        _state.StateChanged += SubscriptionHandler2;
 
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
@@ -135,17 +122,26 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
             IsBusy = false;
         });
+        return;
+
+        void SubscriptionHandler2(object sender, EventArgs e)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null || (stateValue.CurrentBibleReadingSchedule == lastCurrent && stateValue.TentativeBibleReadingSchedule == lastTentative)) return;
+            _current = stateValue.CurrentBibleReadingSchedule;
+            _tentative = stateValue.TentativeBibleReadingSchedule;
+            lastCurrent = _current;
+            lastTentative = _tentative;
+        }
     }
 
     private void SetSelectedTranslation()
     {
-        if (_current.LanguageCode == _tentative.LanguageCode)
-        {
-            if (SelectedTranslation != null) SelectedTranslation.IsSelected = false;
+        if (_current.LanguageCode != _tentative.LanguageCode) return;
+        if (SelectedTranslation != null) SelectedTranslation.IsSelected = false;
 
-            SelectedTranslation = _translationVMsMapping[_current.PublicationCode];
-            SelectedTranslation.IsSelected = true;
-        }
+        SelectedTranslation = _translationVMsMapping[_current.PublicationCode];
+        SelectedTranslation.IsSelected = true;
     }
 
     private ObservableCollection<PublicationListViewItemModel> _translations;
@@ -217,7 +213,6 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         };
     }
 
-
     private async Task PopulateLanguages(string searchTerm = null)
     {
         var languages = await _mediaService.GetBibleLanguages();
@@ -232,11 +227,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
             languageVMs.Add(languageVm);
 
-            if (languageVm.Code == _tentative.LanguageCode)
-            {
-                languageVm.IsSelected = true;
-                CurrentLanguage = languageVm;
-            }
+            if (languageVm.Code != _tentative.LanguageCode) continue;
+            languageVm.IsSelected = true;
+            CurrentLanguage = languageVm;
         }
 
         Languages = languageVMs;
@@ -258,22 +251,12 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             translationVMs.Add(translationVm);
             _translationVMsMapping.Add(translationVm.Code, translationVm);
 
-            if (_current.LanguageCode == languageCode
-                && _current.PublicationCode == translation.Code)
-            {
-                translationVm.IsSelected = true;
-                SelectedTranslation = translationVm;
-            }
+            if (_current.LanguageCode != languageCode
+                || _current.PublicationCode != translation.Code) continue;
+            translationVm.IsSelected = true;
+            SelectedTranslation = translationVm;
         }
 
         Translations = translationVMs;
-    }
-
-    public void Dispose()
-    {
-        _subscriptions.ForEach(x => x.Dispose());
-        
-        // Note: _mediaService (MediaService) is a singleton and should not be 
-        // disposed here as it is managed by the DI container
     }
 }

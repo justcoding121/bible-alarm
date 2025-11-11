@@ -25,13 +25,10 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IPreviewPlayService _playService;
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
-    private readonly INavigation _navigation;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
-    private readonly List<IDisposable> _subscriptions = [];
     private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
 
     public ChapterSelectionViewModel(
@@ -49,20 +46,20 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        _navigation = navigation;
+        var navigation1 = navigation;
         _downloadService = downloadService;
         _cacheService = cacheService;
-        _dispatcher = dispatcher;
+        var dispatcher1 = dispatcher;
         _state = state;
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigation.PopAsync();
+            await navigation1.PopAsync();
             IsBusy = false;
         });
 
-        SetChapterCommand = new Command<BibleChapterListViewItemModel>(x =>
+        SetChapterCommand = new RelayCommand<BibleChapterListViewItemModel>(x =>
         {
             IsBusy = true;
 
@@ -73,7 +70,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             _tentative.ChapterNumber = x.Number;
 
-            _dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
+            dispatcher1.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
@@ -88,18 +85,17 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         EventHandler subscriptionHandler = null;
         subscriptionHandler = (sender, e) =>
         {
-            var state = _state.Value;
-            if (state.CurrentBibleReadingSchedule != null && state.TentativeBibleReadingSchedule != null)
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null ||
+                stateValue.TentativeBibleReadingSchedule == null) return;
+            _current = stateValue.CurrentBibleReadingSchedule;
+            _tentative = stateValue.TentativeBibleReadingSchedule;
+            Task.Run(async () =>
             {
-                _current = state.CurrentBibleReadingSchedule;
-                _tentative = state.TentativeBibleReadingSchedule;
-                Task.Run(async () =>
-                {
-                    await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                });
-                _state.StateChanged -= subscriptionHandler;
-            }
+                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+            _state.StateChanged -= subscriptionHandler;
         };
         _state.StateChanged += subscriptionHandler;
     }
@@ -148,7 +144,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
                     SubscribeToChapterEvents(item);
                 }
             }
-            if (e.OldItems != null)
+
+            if (e.OldItems == null) return;
             {
                 foreach (BibleChapterListViewItemModel item in e.OldItems)
                 {
@@ -165,16 +162,14 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     {
         PropertyChangedEventHandler handler = (sender, e) =>
         {
-            if (e.PropertyName == "Play" && sender is BibleChapterListViewItemModel item)
+            if (e.PropertyName != "Play" || sender is not BibleChapterListViewItemModel item) return;
+            if (item.Play)
             {
-                if (item.Play)
-                {
-                    _ = HandlePlayChapter(item);
-                }
-                else
-                {
-                    _playService.Stop();
-                }
+                _ = HandlePlayChapter(item);
+            }
+            else
+            {
+                _playService.Stop();
             }
         };
 
@@ -184,11 +179,9 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     private void UnsubscribeFromChapterEvents(BibleChapterListViewItemModel chapter)
     {
-        if (_propertyChangedHandlers.TryGetValue(chapter, out var handler))
-        {
-            chapter.PropertyChanged -= handler;
-            _propertyChangedHandlers.Remove(chapter);
-        }
+        if (!_propertyChangedHandlers.TryGetValue(chapter, out var handler)) return;
+        chapter.PropertyChanged -= handler;
+        _propertyChangedHandlers.Remove(chapter);
     }
 
     private async Task HandlePlayChapter(BibleChapterListViewItemModel chapter)
@@ -246,27 +239,33 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     private async void OnPlayServiceStopped()
     {
-        await _lock.WaitAsync();
-
         try
         {
-            if (_currentlyPlaying != null)
+            await _lock.WaitAsync();
+
+            try
             {
+                if (_currentlyPlaying == null) return;
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
             }
+            finally
+            {
+                try
+                {
+                    _lock.Release();
+                }
+                catch (ObjectDisposedException e)
+                {
+                    _logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
+                }
+            }
         }
-        finally
+        catch (Exception e)
         {
-            try
-            {
-                _lock.Release();
-            }
-            catch (ObjectDisposedException e)
-            {
-                _logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
-            }
+            //log error
+            _logger.Error(e, "ChapterSelectionViewModel: OnPlayServiceStopped error.");
         }
     }
 
@@ -324,7 +323,7 @@ public class BibleChapterListViewItemModel : ObservableObject, IComparable
     public BibleChapterListViewItemModel(BibleChapter chapter)
     {
         _chapter = chapter;
-        TogglePlayCommand = new Command(() => Play = !Play);
+        TogglePlayCommand = new RelayCommand(() => Play = !Play);
     }
 
     private bool _isSelected;

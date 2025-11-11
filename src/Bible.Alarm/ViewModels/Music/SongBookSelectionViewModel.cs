@@ -16,25 +16,20 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
-    private readonly INavigation _navigation;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
-    private readonly List<IDisposable> _subscriptions = [];
-
     public SongBookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
-        _navigation = navigation;
-        _serviceProvider = serviceProvider;
-        _dispatcher = dispatcher;
+        var navigation1 = navigation;
+        var serviceProvider1 = serviceProvider;
+        var dispatcher1 = dispatcher;
         _state = state;
 
         //set schedules from initial state.
@@ -42,43 +37,41 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         EventHandler subscriptionHandler1 = null;
         subscriptionHandler1 = (sender, e) =>
         {
-            var state = _state.Value;
-            if (state.CurrentMusic != null && state.TentativeMusic != null)
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
+            _current = stateValue.CurrentMusic;
+            _tentative = stateValue.TentativeMusic;
+            Task.Run(async () =>
             {
-                _current = state.CurrentMusic;
-                _tentative = state.TentativeMusic;
-                Task.Run(async () =>
-                {
-                    await Initialize();
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                });
-                _state.StateChanged -= subscriptionHandler1;
-            }
+                await Initialize();
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+            _state.StateChanged -= subscriptionHandler1;
         };
         _state.StateChanged += subscriptionHandler1;
 
         // Subscribe to subsequent music changes (skip first one)
         AlarmMusic lastCurrent = null;
         AlarmMusic lastTentative = null;
-        EventHandler subscriptionHandler2 = (sender, e) =>
+
+        void SubscriptionHandler2(object sender, EventArgs e)
         {
-            var state = _state.Value;
-            if (state.CurrentMusic != null && state.TentativeMusic != null
-                && (state.CurrentMusic != lastCurrent || state.TentativeMusic != lastTentative))
-            {
-                _current = state.CurrentMusic;
-                _tentative = state.TentativeMusic;
-                lastCurrent = _current;
-                lastTentative = _tentative;
-            }
-        };
-        _state.StateChanged += subscriptionHandler2;
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null ||
+                (stateValue.CurrentMusic == lastCurrent && stateValue.TentativeMusic == lastTentative)) return;
+            _current = stateValue.CurrentMusic;
+            _tentative = stateValue.TentativeMusic;
+            lastCurrent = _current;
+            lastTentative = _tentative;
+        }
+
+        _state.StateChanged += SubscriptionHandler2;
 
         TrackSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
 
-            _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+            dispatcher1.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
                 Repeat = _current.Repeat,
                 MusicType = MusicType.Vocals,
@@ -86,10 +79,10 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
                 PublicationCode = x.Code
             }));
 
-            var viewModel = _serviceProvider.GetRequiredService<TrackSelectionViewModel>();
-            var page = _serviceProvider.GetRequiredService<TrackSelection>();
+            var viewModel = serviceProvider1.GetRequiredService<TrackSelectionViewModel>();
+            var page = serviceProvider1.GetRequiredService<TrackSelection>();
             page.BindingContext = viewModel;
-            await _navigation.PushAsync(page);
+            await navigation1.PushAsync(page);
 
             IsBusy = false;
         });
@@ -97,24 +90,24 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            var modal = _serviceProvider.GetRequiredService<LanguageModal>();
+            var modal = serviceProvider1.GetRequiredService<LanguageModal>();
             modal.BindingContext = this;
-            await _navigation.PushModalAsync(modal);
+            await navigation1.PushModalAsync(modal);
             IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigation.PopAsync();
+            await navigation1.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            if (_navigation.ModalStack.Count > 0)
+            if (navigation1.ModalStack.Count > 0)
             {
-                var modal = await _navigation.PopModalAsync();
+                var modal = await navigation1.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
         });
@@ -127,9 +120,9 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            if (_navigation.ModalStack.Count > 0)
+            if (navigation1.ModalStack.Count > 0)
             {
-                var modal = await _navigation.PopModalAsync();
+                var modal = await navigation1.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
             await PopulateSongBooks(x.Code);
@@ -145,14 +138,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             SelectedSongBook = null;
         }
 
-        if (_current.LanguageCode == _tentative.LanguageCode)
-        {
-            SelectedSongBook = _songBookVMsMapping.ContainsKey(_current.PublicationCode)
-                ? _songBookVMsMapping[_current.PublicationCode]
-                : null;
+        if (_current.LanguageCode != _tentative.LanguageCode) return;
+        SelectedSongBook = _songBookVMsMapping.TryGetValue(_current.PublicationCode, out var value)
+            ? value
+            : null;
 
-            if (SelectedSongBook != null) SelectedSongBook.IsSelected = true;
-        }
+        if (SelectedSongBook != null) SelectedSongBook.IsSelected = true;
     }
 
     public ICommand BackCommand { get; set; }
@@ -213,10 +204,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         if (languageCode == null)
         {
             var languages = await _mediaService.GetVocalMusicLanguages();
-            if (languages.ContainsKey("E"))
-                languageCode = "E";
-            else
-                languageCode = languages.First().Key;
+            languageCode = languages.ContainsKey("E") ? "E" : languages.First().Key;
         }
 
         _tentative.LanguageCode = languageCode;
@@ -248,11 +236,9 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
             languageVMs.Add(languageVm);
 
-            if (languageVm.Code == _tentative.LanguageCode)
-            {
-                languageVm.IsSelected = true;
-                CurrentLanguage = languageVm;
-            }
+            if (languageVm.Code != _tentative.LanguageCode) continue;
+            languageVm.IsSelected = true;
+            CurrentLanguage = languageVm;
         }
 
         Languages = languageVMs;
@@ -276,23 +262,13 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             songBookVMs.Add(songBookListViewItemModel);
             _songBookVMsMapping.Add(songBookListViewItemModel.Code, songBookListViewItemModel);
 
-            if (_current.MusicType == MusicType.Vocals
-                && _current.LanguageCode == languageCode
-                && _current.PublicationCode == release.Code)
-            {
-                SelectedSongBook = songBookListViewItemModel;
-                SelectedSongBook.IsSelected = true;
-            }
+            if (_current.MusicType != MusicType.Vocals
+                || _current.LanguageCode != languageCode
+                || _current.PublicationCode != release.Code) continue;
+            SelectedSongBook = songBookListViewItemModel;
+            SelectedSongBook.IsSelected = true;
         }
 
         SongBooks = songBookVMs;
-    }
-
-    public void Dispose()
-    {
-        _subscriptions.ForEach(x => x.Dispose());
-
-        // Note: _mediaService (MediaService) is a singleton and should not be 
-        // disposed here as it is managed by the DI container
     }
 }

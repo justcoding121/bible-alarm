@@ -196,9 +196,9 @@ public class ScheduleViewModel : ObservableObject
             IsBusy = false;
         });
 
-        ToggleDayCommand = new Command<DaysOfWeek>(x => { Toggle(x); });
+        ToggleDayCommand = new RelayCommand<DaysOfWeek>(x => { Toggle(x); });
 
-        ToggleAlwaysPlayFromStartCommand = new Command(x => AlwaysPlayFromStart = !AlwaysPlayFromStart);
+        ToggleAlwaysPlayFromStartCommand = new RelayCommand(() => AlwaysPlayFromStart = !AlwaysPlayFromStart);
 
         SelectMusicCommand = new AsyncRelayCommand(async () =>
         {
@@ -302,7 +302,7 @@ public class ScheduleViewModel : ObservableObject
             IsBusy = false;
         });
 
-        NotificationEnabledCommand = new Command(() => { NotificationEnabled = !NotificationEnabled; });
+        NotificationEnabledCommand = new RelayCommand(() => { NotificationEnabled = !NotificationEnabled; });
 
         BatteryOptimizationExcludeCommand = new AsyncRelayCommand(async () =>
         {

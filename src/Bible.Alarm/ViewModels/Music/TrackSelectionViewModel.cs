@@ -24,7 +24,6 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IPreviewPlayService _playService;
-    private readonly INavigation _navigation;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly IDispatcher _dispatcher;
@@ -51,7 +50,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        _navigation = navigation;
+        var navigation1 = navigation;
         _downloadService = downloadService;
         _cacheService = cacheService;
         _dispatcher = dispatcher;
@@ -62,11 +61,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigation.PopAsync();
+            await navigation1.PopAsync();
             IsBusy = false;
         });
 
-        SetTrackCommand = new Command<MusicTrackListViewItemModel>(x =>
+        SetTrackCommand = new RelayCommand<MusicTrackListViewItemModel>(x =>
         {
             IsBusy = true;
             if (SelectedTrack != null)
@@ -93,24 +92,20 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        //set schedules from initial state.
-        //this should fire only once 
         EventHandler subscriptionHandler = null;
         subscriptionHandler = (sender, e) =>
         {
-            var state = _state.Value;
-            if (state.CurrentMusic != null && state.TentativeMusic != null)
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
+            _current = stateValue.CurrentMusic;
+            _tentative = stateValue.TentativeMusic;
+            Task.Run(async () =>
             {
-                _current = state.CurrentMusic;
-                _tentative = state.TentativeMusic;
-                Task.Run(async () =>
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                    await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                });
-                _state.StateChanged -= subscriptionHandler;
-            }
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+            _state.StateChanged -= subscriptionHandler;
         };
         _state.StateChanged += subscriptionHandler;
     }
@@ -154,7 +149,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                     SubscribeToTrackEvents(item);
                 }
             }
-            if (e.OldItems != null)
+
+            if (e.OldItems == null) return;
             {
                 foreach (MusicTrackListViewItemModel item in e.OldItems)
                 {
@@ -171,23 +167,18 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     {
         PropertyChangedEventHandler handler = (sender, e) =>
         {
-            if (sender is MusicTrackListViewItemModel item)
+            if (sender is not MusicTrackListViewItemModel item) return;
+            switch (e.PropertyName)
             {
-                if (e.PropertyName == "Play")
-                {
-                    if (item.Play)
-                    {
-                        _ = HandlePlayTrack(item);
-                    }
-                    else
-                    {
-                        _playService.Stop();
-                    }
-                }
-                else if (e.PropertyName == "Repeat")
-                {
+                case "Play" when item.Play:
+                    _ = HandlePlayTrack(item);
+                    break;
+                case "Play":
+                    _playService.Stop();
+                    break;
+                case "Repeat":
                     HandleRepeatChanged(item);
-                }
+                    break;
             }
         };
 
@@ -197,11 +188,9 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private void UnsubscribeFromTrackEvents(MusicTrackListViewItemModel track)
     {
-        if (_propertyChangedHandlers.TryGetValue(track, out var handler))
-        {
-            track.PropertyChanged -= handler;
-            _propertyChangedHandlers.Remove(track);
-        }
+        if (!_propertyChangedHandlers.TryGetValue(track, out var handler)) return;
+        track.PropertyChanged -= handler;
+        _propertyChangedHandlers.Remove(track);
     }
 
     private async Task HandlePlayTrack(MusicTrackListViewItemModel track)
@@ -272,27 +261,32 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private async void OnPlayServiceStopped()
     {
-        await _lock.WaitAsync();
-
         try
         {
-            if (_currentlyPlaying != null)
+            await _lock.WaitAsync();
+
+            try
             {
+                if (_currentlyPlaying == null) return;
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
             }
+            finally
+            {
+                try
+                {
+                    _lock.Release();
+                }
+                catch (ObjectDisposedException e)
+                {
+                    _logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
+                }
+            }
         }
-        finally
+        catch (Exception e)
         {
-            try
-            {
-                _lock.Release();
-            }
-            catch (ObjectDisposedException e)
-            {
-                _logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
-            }
+            _logger.Error(e, "Error in OnPlayServiceStopped.");
         }
     }
 
@@ -315,17 +309,14 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
             trackVMs.Add(musicTrackListViewItemViewModel);
 
-            if (_current.MusicType == _tentative.MusicType
-                && _current.TrackNumber == track.Number
-                && (_current.MusicType == MusicType.Melodies ||
-                    (_current.LanguageCode == _tentative.LanguageCode
-                     && _current.PublicationCode == _tentative.PublicationCode))
-               )
-            {
-                SelectedTrack = musicTrackListViewItemViewModel;
-                SelectedTrack.IsSelected = true;
-                SelectedTrack.Repeat = _current.Repeat;
-            }
+            if (_current.MusicType != _tentative.MusicType
+                || _current.TrackNumber != track.Number
+                || (_current.MusicType != MusicType.Melodies &&
+                    (_current.LanguageCode != _tentative.LanguageCode
+                     || _current.PublicationCode != _tentative.PublicationCode))) continue;
+            SelectedTrack = musicTrackListViewItemViewModel;
+            SelectedTrack.IsSelected = true;
+            SelectedTrack.Repeat = _current.Repeat;
         }
 
         if (DeviceInfo.Platform != DevicePlatform.WinUI) Tracks = trackVMs;
@@ -344,11 +335,6 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _propertyChangedHandlers.Clear();
 
         _lock.Dispose();
-        
-        // Note: _mediaService (MediaService), _toastService (IToastService), 
-        // _playService (IPreviewPlayService), _downloadService (IDownloadService), 
-        // and _cacheService (IMediaCacheService) are singletons and should not be 
-        // disposed here as they are managed by the DI container
     }
 }
 
@@ -362,8 +348,8 @@ public class MusicTrackListViewItemModel : ObservableObject, IComparable
         _track = track;
         _isMelody = isMelody;
 
-        TogglePlayCommand = new Command(() => Play = !Play);
-        ToggleRepeatCommand = new Command(() => Repeat = !Repeat);
+        TogglePlayCommand = new RelayCommand(() => Play = !Play);
+        ToggleRepeatCommand = new RelayCommand(() => Repeat = !Repeat);
     }
 
     private bool _isSelected;
@@ -409,6 +395,6 @@ public class MusicTrackListViewItemModel : ObservableObject, IComparable
 
     public int CompareTo(object obj)
     {
-        return Number.CompareTo((obj as MusicTrackListViewItemModel).Number);
+        return Number.CompareTo(((MusicTrackListViewItemModel)obj).Number);
     }
 }
