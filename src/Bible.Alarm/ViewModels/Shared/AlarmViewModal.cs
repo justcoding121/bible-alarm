@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using Bible.Alarm.Database;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Models;
 using Bible.Alarm.Database.Migrations;
@@ -13,11 +14,9 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 public class AlarmViewModal : ObservableObject, IDisposable
 {
-    private readonly ILogger _logger;
     private readonly IPlaybackService _playbackService;
-    private readonly IServiceScopeFactory _scopeFactory;
 
-    private bool _isDisposed = false;
+    private bool _isDisposed;
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
@@ -31,18 +30,15 @@ public class AlarmViewModal : ObservableObject, IDisposable
 
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory)
     {
-        _logger = logger;
+        var logger1 = logger;
         _playbackService = playbackService;
-        _scopeFactory = scopeFactory;
+        var scopeFactory1 = scopeFactory;
 
-        DismissCommand = new Command(async () =>
+        DismissCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Dismiss();
             
-            // Modal will be closed by App.xaml.cs when HideAlarmModalMessage is sent
-            // via WeakReferenceMessenger when playback is dismissed
-
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory1.CreateScope();
             var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
             try
@@ -78,7 +74,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             }
             catch (Exception e)
             {
-                _logger.Error(e, "An error happened when review was requested.");
+                logger1.Error(e, "An error happened when review was requested.");
             }
 
             await scheduleDbContext.SaveChangesAsync();
@@ -89,38 +85,38 @@ public class AlarmViewModal : ObservableObject, IDisposable
             // This command doesn't need navigation - the modal will be closed when playback is dismissed
         });
 
-        PlayCommand = new Command(async () =>
+        PlayCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Play();
             Refresh();
         });
 
-        PauseCommand = new Command(async () =>
+        PauseCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Pause();
             Refresh();
         });
 
-        PreviousCommand = new Command(async () =>
+        PreviousCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.PlayPrevious();
             Refresh();
         });
 
-        NextCommand = new Command(async () =>
+        NextCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.PlayNext();
             Refresh();
         });
 
-        ForwardCommand = new Command(async () =>
+        ForwardCommand = new AsyncRelayCommand(async () =>
         {
             // MediaElement doesn't have StepForward - using seek instead
             await _playbackService.Play();
             Refresh();
         });
 
-        BackwardCommand = new Command(async () =>
+        BackwardCommand = new AsyncRelayCommand(async () =>
         {
             // MediaElement doesn't have StepBackward - using pause instead
             await _playbackService.Pause();
@@ -179,8 +175,10 @@ public class AlarmViewModal : ObservableObject, IDisposable
             NextEnabled = false;
             PreviousEnabled = false;
         }
-        catch
+        catch(Exception e) 
         {
+            // Log and ignore refresh errors
+            Log.Error(e, "Error refreshing AlarmViewModal.");
         }
     }
 

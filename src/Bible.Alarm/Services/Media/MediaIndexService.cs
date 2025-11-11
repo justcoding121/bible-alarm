@@ -32,7 +32,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
     }
 
     private readonly SemaphoreSlim _lock = new(1);
-    private static bool verified = false;
+    private static bool verified;
 
     public async Task Verify()
     {

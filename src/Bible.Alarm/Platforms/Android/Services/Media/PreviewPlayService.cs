@@ -1,13 +1,13 @@
 using Android.Media;
-using AndroidApplication = global::Android.App.Application;
-using AndroidNet = global::Android.Net;
 using Bible.Alarm.Common.Interfaces.Media;
-
+using AndroidApplication = Android.App.Application;
+using AndroidNet = Android.Net;
+using Object = Java.Lang.Object;
 
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
-public class PreviewPlayService(MediaPlayer player) : Java.Lang.Object,
+public class PreviewPlayService(MediaPlayer player) : Object,
     MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable
 {
     private MediaPlayer _player = player;
@@ -36,7 +36,7 @@ public class PreviewPlayService(MediaPlayer player) : Java.Lang.Object,
         return Task.CompletedTask;
     }
 
-    private bool _disposed = false;
+    private bool _disposed;
 
     protected override void Dispose(bool disposing)
     {

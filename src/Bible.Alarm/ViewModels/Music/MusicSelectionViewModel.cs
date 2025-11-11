@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
@@ -47,7 +48,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         };
 
 
-        SongBookSelectionCommand = new Command<MusicTypeListItemViewModel>(async x =>
+        SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
             IsBusy = true;
 
@@ -81,7 +82,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        BackCommand = new Command(async () =>
+        BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             await _navigation.PopAsync();

@@ -1,5 +1,6 @@
-using Bible.Alarm.Common.Interfaces.Platform;
+using System.Diagnostics;
 using System.Reflection;
+using Bible.Alarm.Common.Interfaces.Platform;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Platform
 {
@@ -27,7 +28,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform
                 }
                 
                 // Fallback to file version if assembly version is not available
-                var fileVersionInfo = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
+                var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
                 if (!string.IsNullOrEmpty(fileVersionInfo.FileVersion))
                 {
                     return $"Windows {fileVersionInfo.FileVersion}";

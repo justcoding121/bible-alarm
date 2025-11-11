@@ -1,5 +1,5 @@
-﻿using Bible.Alarm.Services.UI;
-using Bible.Alarm.Platforms.iOS.Services.UI;
+﻿using Bible.Alarm.Platforms.iOS.Services.UI;
+using Bible.Alarm.Services.UI;
 using UIKit;
 
 [assembly: Dependency(typeof(IOsToastService))]
@@ -20,7 +20,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             if (!MainThread.IsMainThread)
             {
                 await Task.Delay(0)
-                    .ContinueWith(async (x) =>
+                    .ContinueWith(async x =>
                         await ShowAlert(message, seconds), taskScheduler);
             }
             else
@@ -29,7 +29,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             }
         }
 
-        private async Task ShowAlert(string message, double seconds)
+        private static async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
             await Lock.WaitAsync();

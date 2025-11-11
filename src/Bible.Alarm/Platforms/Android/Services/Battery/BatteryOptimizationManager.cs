@@ -1,15 +1,14 @@
 using Android.Content;
-using AndroidBuild = global::Android.OS.Build;
-using AndroidProvider = global::Android.Provider;
-using AndroidApplication = global::Android.App.Application;
+using Android.OS;
 using Bible.Alarm.Common.Interfaces.Battery;
-
-
 using Serilog;
+using AndroidBuild = Android.OS.Build;
+using AndroidProvider = Android.Provider;
+using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Battery;
 
-public class BatteryOptimizationManager() : IBatteryOptimizationManager
+public class BatteryOptimizationManager : IBatteryOptimizationManager
 {
     private static readonly ILogger Logger = Log.ForContext<BatteryOptimizationManager>();
 
@@ -17,7 +16,7 @@ public class BatteryOptimizationManager() : IBatteryOptimizationManager
     {
         try
         {
-            if (AndroidBuild.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.M)
+            if (AndroidBuild.VERSION.SdkInt >= BuildVersionCodes.M)
             {
                 var intent = new Intent();
 
@@ -35,7 +34,7 @@ public class BatteryOptimizationManager() : IBatteryOptimizationManager
 
     public bool CanShowOptimizeActivity()
     {
-        return AndroidBuild.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.M;
+        return Build.VERSION.SdkInt >= BuildVersionCodes.M;
     }
 
     public void Dispose()

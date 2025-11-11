@@ -7,7 +7,7 @@ namespace Bible.Alarm.Platforms.iOS.Extensions
     {
         public static NSDateComponents ToNsDateComponents(this DateTime date, nint dayOfWeek)
         {
-            return new NSDateComponents()
+            return new NSDateComponents
             {
                 Hour = date.Hour,
                 Minute = date.Minute,

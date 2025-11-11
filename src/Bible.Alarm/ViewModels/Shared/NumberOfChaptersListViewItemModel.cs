@@ -17,6 +17,6 @@ public class NumberOfChaptersListViewItemModel(int number) : ObservableObject, I
 
     public int CompareTo(object obj)
     {
-        return Value.CompareTo((obj as NumberOfChaptersListViewItemModel).Value);
+        return Value.CompareTo(((NumberOfChaptersListViewItemModel)obj).Value);
     }
 }

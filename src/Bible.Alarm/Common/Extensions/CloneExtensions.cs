@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Windows.Input;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Bible.Alarm.Common.Extensions;
 

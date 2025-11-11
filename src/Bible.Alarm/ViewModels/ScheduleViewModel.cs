@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Models;
@@ -13,8 +14,7 @@ using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Database.Migrations;
+using Bible.Alarm.Models.Schedule;using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
@@ -26,22 +26,17 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.General;
 using Bible.Alarm.Views.Schedule;
-using Bible.Alarm.Views.Shared;
+
 
 namespace Bible.Alarm.ViewModels;
 
-public class ScheduleViewModel : ObservableObject, IDisposable
+public class ScheduleViewModel : ObservableObject
 {
     private readonly ILogger _logger;
-
 
     private readonly IAlarmService _alarmService;
     private readonly IToastService _popUpService;
     private readonly INavigation _navigation;
-    private readonly IPlaybackService _playbackService;
-    private readonly INotificationService _notificationService;
-
-    private readonly List<IDisposable> _subscriptions = [];
 
     public Command BatteryOptimizationExcludeCommand { get; private set; }
     public Command BatteryOptimizationDismissCommand { get; private set; }
@@ -75,8 +70,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _popUpService = popUpService;
         _alarmService = alarmService;
         _navigation = navigation;
-        _playbackService = playbackService;
-        _notificationService = notificationService;
+        var playbackService1 = playbackService;
+        var notificationService1 = notificationService;
         _serviceProvider = serviceProvider;
         _scopeFactory = scopeFactory;
         _dispatcher = dispatcher;
@@ -153,7 +148,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         };
         _state.StateChanged += subscriptionHandler3;
 
-        CancelCommand = new Command(async () =>
+        CancelCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
 
@@ -162,20 +157,20 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        SaveCommand = new Command(async () =>
+        SaveCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
 
             if (IsEnabled &&
                 (DeviceInfo.Platform == DevicePlatform.iOS
                  || DeviceInfo.Platform == DevicePlatform.WinUI)
-                && !await _notificationService.CanSchedule())
+                && !await notificationService1.CanSchedule())
                 IsEnabled = false;
 
             if (!IsNewSchedule)
-                if (_playbackService.IsPrepared
-                    && _scheduleId == _playbackService.CurrentlyPlayingScheduleId)
-                    await _playbackService.Dismiss();
+                if (playbackService1.IsPrepared
+                    && _scheduleId == playbackService1.CurrentlyPlayingScheduleId)
+                    await playbackService1.Dismiss();
 
             var saved = await SaveAsync();
 
@@ -186,13 +181,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        DeleteCommand = new Command(async () =>
+        DeleteCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
 
-            if (_playbackService.IsPrepared
-                && _scheduleId == _playbackService.CurrentlyPlayingScheduleId)
-                await _playbackService.Dismiss();
+            if (playbackService1.IsPrepared
+                && _scheduleId == playbackService1.CurrentlyPlayingScheduleId)
+                await playbackService1.Dismiss();
 
             await DeleteAsync();
 
@@ -205,7 +200,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         ToggleAlwaysPlayFromStartCommand = new Command(x => AlwaysPlayFromStart = !AlwaysPlayFromStart);
 
-        SelectMusicCommand = new Command(async () =>
+        SelectMusicCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
 
@@ -233,7 +228,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        SelectBibleCommand = new Command(async () =>
+        SelectBibleCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
 
@@ -269,7 +264,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         });
 
 
-        OpenModalCommand = new Command(async () =>
+        OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
@@ -279,7 +274,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         });
 
 
-        CloseModalCommand = new Command(async () =>
+        CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             if (_navigation.ModalStack.Count > 0)
@@ -290,7 +285,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        SelectNumberOfChaptersCommand = new Command<NumberOfChaptersListViewItemModel>(async x =>
+        SelectNumberOfChaptersCommand = new AsyncRelayCommand<NumberOfChaptersListViewItemModel>(async x =>
         {
             IsBusy = true;
             if (CurrentNumberOfChapters != null) CurrentNumberOfChapters.IsSelected = false;
@@ -309,7 +304,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         NotificationEnabledCommand = new Command(() => { NotificationEnabled = !NotificationEnabled; });
 
-        BatteryOptimizationExcludeCommand = new Command(async () =>
+        BatteryOptimizationExcludeCommand = new AsyncRelayCommand(async () =>
         {
             await MarkBatteryOptimizationModalAsShown();
 
@@ -322,7 +317,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             _batteryOptimizationManager.ShowBatteryOptimizationExclusionSettingsPage();
         });
 
-        BatteryOptimizationDismissCommand = new Command(async () =>
+        BatteryOptimizationDismissCommand = new AsyncRelayCommand(async () =>
         {
             await MarkBatteryOptimizationModalAsShown();
 
@@ -333,7 +328,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             }
         });
 
-        PreviousBookCommand = new Command(async () =>
+        PreviousBookCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
@@ -349,7 +344,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             RefreshChapterName();
         });
 
-        NextBookCommand = new Command(async () =>
+        NextBookCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
@@ -365,7 +360,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             RefreshChapterName();
         });
 
-        PreviousChapterCommand = new Command(async () =>
+        PreviousChapterCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
@@ -382,7 +377,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             RefreshChapterName();
         });
 
-        NextChapterCommand = new Command(async () =>
+        NextChapterCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
@@ -430,16 +425,14 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     {
         if (_batteryOptimizationManager.CanShowOptimizeActivity()) CanOptimizeBattery = true;
 
-        using (var scope = _scopeFactory.CreateScope())
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
+                x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
         {
-            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-            if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                    x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
-            {
-                var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
-                modal.BindingContext = this;
-                await _navigation.PushModalAsync(modal);
-            }
+            var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
+            modal.BindingContext = this;
+            await _navigation.PushModalAsync(modal);
         }
     }
 
@@ -643,7 +636,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         if ((DaysOfWeek & day) == day)
             DaysOfWeek &= ~day;
         else
-            DaysOfWeek = DaysOfWeek | day;
+            DaysOfWeek |= day;
 
         OnPropertyChanged(nameof(DaysOfWeek));
     }
@@ -807,29 +800,17 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             })
             .ContinueWith((x) =>
             {
-                if (x.IsCompleted && BibleReadingSchedule != null)
-                    try
-                    {
-                        BibleReadingTitleText = $"{x.Result} {BibleReadingSchedule.ChapterNumber}";
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.Error(e,
-                            "An error happened in refreshChapterName task continue with under schedule view model.");
-                    }
+                if (!x.IsCompleted || BibleReadingSchedule == null) return;
+                try
+                {
+                    BibleReadingTitleText = $"{x.Result} {BibleReadingSchedule.ChapterNumber}";
+                }
+                catch (Exception e)
+                {
+                    _logger.Error(e,
+                        "An error happened in refreshChapterName task continue with under schedule view model.");
+                }
             }, syncContext);
     }
 
-    public void Dispose()
-    {
-        // Unsubscribe from state changes
-        // Note: Event handlers are automatically unsubscribed when the object is disposed
-        // The state and dispatcher are managed by the DI container and should not be disposed here
-
-        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
-        // _popUpService (IToastService), _alarmService (IAlarmService), 
-        // _notificationService (INotificationService), and _batteryOptimizationManager 
-        // (IBatteryOptimizationManager) are singletons and should not be disposed here 
-        // as they are managed by the DI container
-    }
 }

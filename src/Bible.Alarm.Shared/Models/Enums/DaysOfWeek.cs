@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Bible.Alarm.Shared.Models.Enums;
 
+[Flags]
 public enum DaysOfWeek
 {
     Sunday = 1,

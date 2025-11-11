@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Windows.Input;
 using Bible.Alarm.Database;
@@ -69,7 +70,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
 
         WeakReferenceMessenger.Default.Register<TrackChangedMessage>(this);
 
-        PreviousCommand = new Command(async () =>
+        PreviousCommand = new AsyncRelayCommand(async () =>
         {
             if (!await CanMove()) return;
             using var scope = _scopeFactory.CreateScope();
@@ -79,7 +80,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
             RefreshChapterName(true);
         });
 
-        NextCommand = new Command(async () =>
+        NextCommand = new AsyncRelayCommand(async () =>
         {
             if (!await CanMove()) return;
 

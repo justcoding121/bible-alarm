@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
@@ -78,7 +79,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         };
         _state.StateChanged += subscriptionHandler2;
 
-        BookSelectionCommand = new Command<PublicationListViewItemModel>(async x =>
+        BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
             _dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
@@ -94,7 +95,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             IsBusy = false;
         });
 
-        OpenModalCommand = new Command(async () =>
+        OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             var modal = _serviceProvider.GetRequiredService<LanguageModal>();
@@ -103,14 +104,14 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             IsBusy = false;
         });
 
-        BackCommand = new Command(async () =>
+        BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             await _navigation.PopAsync();
             IsBusy = false;
         });
 
-        CloseModalCommand = new Command(async () =>
+        CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             if (_navigation.ModalStack.Count > 0)
@@ -121,7 +122,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             IsBusy = false;
         });
 
-        SelectLanguageCommand = new Command<LanguageListViewItemModel>(async x =>
+        SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
         {
             IsBusy = true;
             if (CurrentLanguage != null) CurrentLanguage.IsSelected = false;

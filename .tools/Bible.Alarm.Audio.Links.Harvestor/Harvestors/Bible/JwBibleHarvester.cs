@@ -75,7 +75,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                 }
                 catch (Exception e)
                 {
-                    if (e is JsonReaderException || e is ArgumentException)
+                    if (e is JsonReaderException or ArgumentException)
                     {
                         bookNumber++;
                         harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";

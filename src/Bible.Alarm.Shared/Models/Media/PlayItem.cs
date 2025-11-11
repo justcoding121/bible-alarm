@@ -16,7 +16,7 @@
         {
             return PlayDetail.LanguageCode + " " + PlayDetail.PublicationCode + " "
                 + (PlayDetail.IsAlarmMusic ? PlayDetail.TrackNumber.ToString()
-                : PlayDetail.BookNumber.ToString() + " " + PlayDetail.ChapterNumber.ToString());
+                : PlayDetail.BookNumber + " " + PlayDetail.ChapterNumber);
         }
     }
 }

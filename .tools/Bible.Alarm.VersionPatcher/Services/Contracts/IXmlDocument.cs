@@ -1,6 +1,6 @@
-using System.Xml;
-
 #nullable enable
+
+using System.Xml;
 
 namespace Bible.Alarm.VersionPatcher.Services.Contracts;
 

@@ -197,7 +197,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             var bucketName = "jthomas.info";
             using var s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName("ca-central-1"));
 
-            var listObjectsResponse = await s3Client.ListObjectsAsync(new ListObjectsRequest()
+            var listObjectsResponse = await s3Client.ListObjectsAsync(new ListObjectsRequest
             {
                 Prefix = $"{keyPrefix}/",
                 BucketName = bucketName
@@ -206,7 +206,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             var utcTime = DateTime.UtcNow;
             var fileName = $"{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
             var keyName = $"{keyPrefix}/{fileName}";
-            await s3Client.PutObjectAsync(new PutObjectRequest()
+            await s3Client.PutObjectAsync(new PutObjectRequest
             {
                 BucketName = bucketName,
                 Key = keyName,
@@ -216,7 +216,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
             if (listObjectsResponse.S3Objects.Count > 0)
             {
-                var deleteObjectsRequest = new DeleteObjectsRequest()
+                var deleteObjectsRequest = new DeleteObjectsRequest
                 {
                     BucketName = bucketName
                 };

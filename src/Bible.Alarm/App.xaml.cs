@@ -22,21 +22,18 @@ public partial class App : Application,
     private readonly Serilog.ILogger _logger;
     private readonly IServiceProvider _serviceProvider;
 
-    public static bool IsInForeground { get; set; } = false;
-    private INavigation? Navigation => _serviceProvider.GetService<INavigation>();
+    public static bool IsInForeground { get; set; } 
+    private INavigation Navigation => _serviceProvider.GetService<INavigation>();
 
     public App(Serilog.ILogger logger, IServiceProvider serviceProvider)
     {
-        System.Diagnostics.Debug.WriteLine("App constructor called!");
         _logger = logger;
         _serviceProvider = serviceProvider;
         InitializeComponent();
 
-        // Register for InitializedMessage before bootstrap is called
-        // This will handle showing HomePage after bootstrap completes
         WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
 
-        // Register for modal messages
+
         WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<HideAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<ShowMediaProgressModalMessage>(this);
@@ -47,8 +44,6 @@ public partial class App : Application,
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        System.Diagnostics.Debug.WriteLine("CreateWindow called!");
-
         var loadingPage = _serviceProvider.GetRequiredService<LoadingPage>();
         var navigationPage = new NavigationPage(loadingPage)
         {
@@ -123,7 +118,6 @@ public partial class App : Application,
         });
     }
 
-    // Modal message handlers
     public void Receive(ShowAlarmModalMessage message)
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
@@ -216,7 +210,6 @@ public partial class App : Application,
 
                 await Navigation.PushAsync(homePage); 
                 
-                // PopAsync removes the TOP page (HomePage), so we need to manipulate the stack differently
                 var pagesToRemove = Navigation.NavigationStack.Where(p => p != homePage).ToList();
                 foreach (var page in pagesToRemove)
                 {

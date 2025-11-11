@@ -1,7 +1,3 @@
-#nullable enable
-
-using Bible.Alarm;
-
 namespace Bible.Alarm.Common;
 
 /// <summary>
@@ -11,54 +7,37 @@ namespace Bible.Alarm.Common;
 /// </summary>
 public static class MauiAppHolder
 {
-    private static readonly object Lock = new();
-    private static MauiApp? _app;
+    private static readonly Lock Lock = new();
+    private static MauiApp app;
 
-    /// <summary>
-    /// Gets the MauiApp instance. Throws if not created yet.
-    /// </summary>
     public static MauiApp App
     {
         get
         {
-            if (_app == null)
+            if (app == null)
                 throw new InvalidOperationException(
                     "MauiApp has not been created. Call CreateAndStore() first from an entry point.");
-            return _app;
+            return app;
         }
     }
 
-    /// <summary>
-    /// Gets the IServiceProvider from the MauiApp. Throws if not created yet.
-    /// </summary>
+
     public static IServiceProvider Services => App.Services;
 
-    /// <summary>
-    /// Creates and stores the MauiApp instance exactly once.
-    /// Thread-safe and can be called from any entry point (MainApplication, AppDelegate, background service, etc.)
-    /// Bootstrap should be called explicitly after CreateAndStore for both foreground and background launches.
-    /// </summary>
-    /// <param name="isForeground">Indicates if this is a foreground launch (used for tracking, bootstrap must be called separately).</param>
-    /// <returns>The MauiApp instance (existing if already created, or newly created)</returns>
     public static MauiApp CreateAndStore(bool isForeground = false)
     {
         lock (Lock)
         {
-            if (_app != null)
+            if (app != null)
             {
-                // Already created → return existing
-                return _app;
+                return app;
             }
 
-            // Create new MauiApp instance
-            _app = MauiProgram.CreateMauiApp();
-            return _app;
+            app = MauiProgram.CreateMauiApp();
+            return app;
         }
     }
 
-    /// <summary>
-    /// Checks if the MauiApp has been created.
-    /// </summary>
-    public static bool IsInitialized => _app != null;
+    public static bool IsInitialized => app != null;
 }
 

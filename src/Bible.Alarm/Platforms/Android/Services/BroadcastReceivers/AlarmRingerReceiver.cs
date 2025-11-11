@@ -1,6 +1,5 @@
 ﻿using Android.Content;
 using Android.OS;
-using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
@@ -22,7 +21,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
     public AlarmRingerReceiver()
     {
         LogSetup.Initialize(VersionFinder.Default,
-            new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, "Android");
+            new[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, "Android");
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
@@ -78,7 +77,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         Dispose(true);
     }
 
-    private bool _disposed = false;
+    private bool _disposed;
 
     protected override void Dispose(bool disposing)
     {

@@ -1,5 +1,5 @@
-﻿using Bible.Alarm.Services.Storage;
-using System.Reflection;
+﻿using System.Reflection;
+using Bible.Alarm.Services.Storage;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Storage
 {

@@ -187,7 +187,7 @@ namespace Bible.Alarm.Platforms.iOS
         }
 
 
-        private void HandleNotification(NSDictionary nsUserInfo)
+        private static void HandleNotification(NSDictionary nsUserInfo)
         {
             try
             {

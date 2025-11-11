@@ -102,7 +102,7 @@ public class AndroidVersionPatcherTests
     {
         // Arrange
         var filePath = _testPathService.GetAndroidManifestPath();
-        var manifestXml = $@"<?xml version=""1.0"" encoding=""utf-8""?><root></root>"; // Missing manifest node
+        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?><root></root>"; // Missing manifest node
         _fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
         _fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(manifestXml);
 
@@ -120,7 +120,7 @@ public class AndroidVersionPatcherTests
     {
         // Arrange
         var filePath = _testPathService.GetAndroidManifestPath();
-        var manifestXml = $@"<?xml version=""1.0"" encoding=""utf-8""?><manifest></manifest>"; // Missing version attributes
+        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?><manifest></manifest>"; // Missing version attributes
         _fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
         _fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(manifestXml);
 

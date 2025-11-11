@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Bible.Alarm.Common.Messenger;
@@ -34,7 +35,6 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private readonly INotificationService _notificationService;
 
-    private readonly List<IDisposable> _subscriptions = [];
     private readonly Dictionary<ScheduleListItem, PropertyChangedEventHandler> _isEnabledHandlers = [];
     // Map AlarmSchedule IDs to ScheduleListItem ViewModels for UI binding
     private readonly Dictionary<long, ScheduleListItem> _scheduleViewModels = [];
@@ -43,8 +43,6 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private readonly Fluxor.IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
-
-    private readonly INavigation _navigation;
 
     public HomeViewModel(
         ILogger logger,
@@ -60,7 +58,7 @@ public class HomeViewModel : ObservableObject, IDisposable
     {
         _logger = logger;
         _popUpService = popUpService;
-        _navigation = navigation;
+        var navigation1 = navigation;
         _alarmService = alarmService;
         _notificationService = notificationService;
         _scopeFactory = scopeFactory;
@@ -68,17 +66,17 @@ public class HomeViewModel : ObservableObject, IDisposable
         _dispatcher = dispatcher;
         _state = state;
 
-        AddScheduleCommand = new Command(async () =>
+        AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
             _dispatcher.Dispatch(new ViewScheduleAction(null));
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             var page = scope.ServiceProvider.GetRequiredService<Schedule>();
             page.BindingContext = viewModel;
-            await _navigation.PushAsync(page);
+            await navigation1.PushAsync(page);
         });
 
-        ViewScheduleCommand = new Command<ScheduleListItem>(async x =>
+        ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
         {
             x.Schedule.IsEnabled = x.IsEnabled;
 
@@ -88,31 +86,31 @@ public class HomeViewModel : ObservableObject, IDisposable
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             var page = scope.ServiceProvider.GetRequiredService<Schedule>();
             page.BindingContext = viewModel;
-            await _navigation.PushAsync(page);
+            await navigation1.PushAsync(page);
         });
 
 
         //set schedules from initial state.
         //this should fire only once (look at the where condition).
         ObservableHashSet<AlarmSchedule> lastSchedules = null;
+
         _state.StateChanged += (sender, e) =>
         {
-            var state = _state.Value;
-            if (state.Schedules == null || state.Schedules == lastSchedules) return;
-            UpdateScheduleViewModels(state.Schedules);
-            lastSchedules = state.Schedules;
+            var stateValue = _state.Value;
+            if (stateValue.Schedules == null || stateValue.Schedules == lastSchedules) return;
+            UpdateScheduleViewModels(stateValue.Schedules);
+            lastSchedules = stateValue.Schedules;
             ListenIsEnabledChanges();
             IsBusy = false;
         };
         
         // Trigger initial update if state already has schedules
-        if (_state.Value.Schedules != null)
-        {
-            UpdateScheduleViewModels(_state.Value.Schedules);
-            lastSchedules = _state.Value.Schedules;
-            ListenIsEnabledChanges();
-            IsBusy = false;
-        }
+        if (_state.Value.Schedules == null) return;
+
+        UpdateScheduleViewModels(_state.Value.Schedules);
+        lastSchedules = _state.Value.Schedules;
+        ListenIsEnabledChanges();
+        IsBusy = false;
 
     }
 
@@ -251,12 +249,10 @@ public class HomeViewModel : ObservableObject, IDisposable
         var toRemove = _scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
         foreach (var id in toRemove)
         {
-            if (_scheduleViewModels.TryGetValue(id, out var viewModel))
-            {
-                UnsubscribeFromIsEnabledChanges(viewModel);
-                viewModel.Dispose();
-                _scheduleViewModels.Remove(id);
-            }
+            if (!_scheduleViewModels.TryGetValue(id, out var viewModel)) continue;
+            UnsubscribeFromIsEnabledChanges(viewModel);
+            viewModel.Dispose();
+            _scheduleViewModels.Remove(id);
         }
 
         Schedules = newViewModels;
@@ -370,7 +366,7 @@ public class HomeViewModel : ObservableObject, IDisposable
                     "Please enable notification for this app under system settings.", 7);
             else
                 await _popUpService.ShowMessage(
-                    "Cannot schedule alarm because you've denied backgroud apps permission. " +
+                    "Cannot schedule alarm because you've denied background apps permission. " +
                     "Please grant background apps permission for this app under system settings.", 7);
 
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
@@ -414,7 +410,6 @@ public class HomeViewModel : ObservableObject, IDisposable
         });
     }
 
-
     public void Dispose()
     {
         // Unsubscribe from all schedule IsEnabled changes
@@ -426,14 +421,8 @@ public class HomeViewModel : ObservableObject, IDisposable
             }
         }
 
-        _subscriptions.ForEach(x => x.Dispose());
         _isEnabledHandlers.Clear();
 
         _lock.Dispose();
-
-        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
-        // _popUpService (IToastService), _mediaCacheService (IMediaCacheService), 
-        // _alarmService (IAlarmService), and _notificationService (INotificationService) 
-        // are singletons and should not be disposed here as they are managed by the DI container
     }
 }

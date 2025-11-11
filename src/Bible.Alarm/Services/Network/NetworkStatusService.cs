@@ -2,7 +2,7 @@ using Bible.Alarm.Common.Interfaces.Network;
 
 namespace Bible.Alarm.Services.Network;
 
-public class NetworkStatusService() : INetworkStatusService
+public class NetworkStatusService : INetworkStatusService
 {
 
     public Task<bool> IsInternetAvailable()

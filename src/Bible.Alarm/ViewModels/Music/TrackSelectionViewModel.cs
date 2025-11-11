@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
@@ -57,7 +58,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
         _subscriptions.Add(_mediaService);
 
-        BackCommand = new Command(async () =>
+        BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             await _navigation.PopAsync();

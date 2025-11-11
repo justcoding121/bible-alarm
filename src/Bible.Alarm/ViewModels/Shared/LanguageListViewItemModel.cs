@@ -18,6 +18,6 @@ public class LanguageListViewItemModel(Language language) : ObservableObject, IC
 
     public int CompareTo(object obj)
     {
-        return Name.CompareTo((obj as LanguageListViewItemModel).Name);
+        return string.Compare(Name, (obj as LanguageListViewItemModel)?.Name, StringComparison.Ordinal);
     }
 }

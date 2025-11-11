@@ -1,5 +1,5 @@
-using AndroidApplication = global::Android.App.Application;
 using Bible.Alarm.Common.Interfaces.Platform;
+using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Platform;
 

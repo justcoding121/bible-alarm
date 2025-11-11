@@ -31,7 +31,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
                 }
                 else
                 {
-                    await Task.Delay(0).ContinueWith((x) =>
+                    await Task.Delay(0).ContinueWith(x =>
                     {
                         if (!firstTime)
                         {
@@ -72,7 +72,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
             Dispose(false);
         }
 
-        private bool _disposed = false;
+        private bool _disposed;
 
         private void Dispose(bool disposeMediaManager)
         {
@@ -83,7 +83,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
                 if (disposeMediaManager)
                 {
                     Task.Delay(0)
-                        .ContinueWith((x) => { UIApplication.SharedApplication.EndReceivingRemoteControlEvents(); },
+                        .ContinueWith(x => { UIApplication.SharedApplication.EndReceivingRemoteControlEvents(); },
                             taskScheduler);
                 }
             }

@@ -27,7 +27,7 @@ public class AlarmSchedule : IComparable
 
     public DaysOfWeek DaysOfWeek { get; set; }
 
-    public string TimeText => $"{MeridienHour.ToString("D2")}:{Minute.ToString("D2")}";
+    public string TimeText => $"{MeridienHour:D2}:{Minute:D2}";
 
     public string CronExpression => GetCronExpression();
 
@@ -55,7 +55,7 @@ public class AlarmSchedule : IComparable
 
         var expression = new CronExpression(CronExpression);
 
-        ValidateNextFire(expression);
+        AlarmSchedule.ValidateNextFire(expression);
         return expression.GetNextValidTimeAfter(DateTimeOffset.Now).Value;
     }
 
@@ -65,7 +65,7 @@ public class AlarmSchedule : IComparable
 
         var expression = new CronExpression(CronExpression);
 
-        ValidateNextFire(expression);
+        AlarmSchedule.ValidateNextFire(expression);
         return expression.GetNextValidTimeAfter(after).Value;
     }
 
@@ -78,14 +78,14 @@ public class AlarmSchedule : IComparable
 
     private void ValidateTime()
     {
-        if (Minute < 0 || Minute >= 60) throw new Exception("Invalid minute.");
+        if (Minute is < 0 or >= 60) throw new Exception("Invalid minute.");
 
-        if (Hour < 0 || Hour >= 24) throw new Exception("Invalid hour.");
+        if (Hour is < 0 or >= 24) throw new Exception("Invalid hour.");
 
         if (DaysOfWeek == 0) throw new Exception("DaysOfWeek is empty.");
     }
 
-    private void ValidateNextFire(CronExpression expression)
+    private static void ValidateNextFire(CronExpression expression)
     {
         var nextFire = expression.GetNextValidTimeAfter(DateTimeOffset.Now);
 
@@ -94,7 +94,7 @@ public class AlarmSchedule : IComparable
 
     public int CompareTo(object obj)
     {
-        return Id.CompareTo((obj as AlarmSchedule).Id);
+        return Id.CompareTo(((AlarmSchedule)obj).Id);
     }
 
     public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, MediaDbContext mediaDbContext)

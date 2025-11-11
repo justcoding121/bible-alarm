@@ -1,7 +1,6 @@
 ﻿using Android.App;
 using Android.Content;
 using Android.OS;
-using Bible.Alarm;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Services.Scheduler;
@@ -30,7 +29,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
     {
         _logger = logger;
         LogSetup.Initialize(VersionFinder.Default,
-            new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
+            new[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
@@ -74,7 +73,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         }
     }
 
-    private bool _disposed = false;
+    private bool _disposed;
 
     public new void Dispose()
     {

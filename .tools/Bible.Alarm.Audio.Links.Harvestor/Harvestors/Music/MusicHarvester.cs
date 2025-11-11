@@ -107,7 +107,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                     for (int i = 1; i <= 9; i++)
                     {
                         //we don't have these discs
-                        if (i == 7 || i == 8)
+                        if (i is 7 or 8)
                             continue;
 
                         downloadCodes.Add($"{publication.Key}-{i}");

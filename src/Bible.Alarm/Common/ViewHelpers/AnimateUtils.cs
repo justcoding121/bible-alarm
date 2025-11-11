@@ -6,7 +6,7 @@ public class AnimateUtils
         string hexColorFinal, int repeatCountMax)
     {
         var repeatCount = 0;
-        view.Animate("changedBG", new Animation((val) =>
+        view.Animate("changedBG", new Animation(val =>
         {
             if (repeatCount == 0)
                 view.BackgroundColor = Color.FromArgb(hexColorInitial);

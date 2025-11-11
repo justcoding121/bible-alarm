@@ -1,4 +1,3 @@
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Serilog;
 
@@ -8,9 +7,6 @@ public class BootstrapHelper
 {
     public static void Initialize(ILogger logger, bool isForeground = false)
     {
-        // Initialize database and services (both foreground and background)
-        // This must complete before any other tasks
-        // Note: DI container initialization is handled by MauiAppHolder.CreateAndStore() at entry points
         try
         {
             CommonBootstrapHelper.VerifyServices().Wait();

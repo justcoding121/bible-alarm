@@ -1,9 +1,9 @@
-using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Network;
 using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Shared.Models.Media;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -21,12 +21,12 @@ public class PlaybackService : IPlaybackService
 
     private readonly SemaphoreSlim _lock = new(1);
 
-    private bool _isPlaying = false;
+    private bool _isPlaying;
     private long _currentScheduleId;
     private Dictionary<string, NotificationDetail> _currentlyPlaying;
     private string _firstChapter;
-    private bool _isPrepared = false;
-    private bool _isWatching = false;
+    private bool _isPrepared;
+    private bool _isWatching;
     private Task _watchTask;
 
     public PlaybackService(
@@ -332,7 +332,6 @@ public class PlaybackService : IPlaybackService
             if (!_currentlyPlaying.Any())
             {
                 await HandleInternetDown(isImmediatePlayRequest, prepareOnly);
-                return;
             }
             else
             {
@@ -492,7 +491,6 @@ public class PlaybackService : IPlaybackService
             if (_isWatching)
             {
                 _isWatching = false;
-                return;
             }
         }
         finally

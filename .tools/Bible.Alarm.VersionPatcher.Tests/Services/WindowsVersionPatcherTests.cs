@@ -95,7 +95,7 @@ public class WindowsVersionPatcherTests
     {
         // Arrange
         var filePath = _testPathService.GetWindowsManifestPath();
-        var manifestXml = $@"<?xml version=""1.0"" encoding=""utf-8""?><Package></Package>"; // Missing Identity node
+        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?><Package></Package>"; // Missing Identity node
         _fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
         _fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(manifestXml);
 
@@ -112,7 +112,7 @@ public class WindowsVersionPatcherTests
     {
         // Arrange
         var filePath = _testPathService.GetWindowsManifestPath();
-        var manifestXml = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <Package xmlns=""http://schemas.microsoft.com/appx/manifest/foundation/windows10"">
     <Identity Name=""TestApp"" Publisher=""CN=TestPublisher"" />
 </Package>"; // Missing Version attribute
@@ -132,7 +132,7 @@ public class WindowsVersionPatcherTests
     {
         // Arrange
         var filePath = _testPathService.GetWindowsManifestPath();
-        var manifestXml = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <Package xmlns=""http://schemas.microsoft.com/appx/manifest/foundation/windows10"">
     <Identity Name=""TestApp"" Publisher=""CN=TestPublisher"" Version=""1"" />
 </Package>"; // Invalid version format (missing minor)

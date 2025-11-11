@@ -16,7 +16,7 @@ public sealed class AsyncQueue<T> : IDisposable
     //consumer task queue and lock.
     private readonly Queue<TaskCompletionSource<T>> _consumerQueue = new();
     private readonly SemaphoreSlim _consumerQueueLock = new(1);
-    private bool _disposed = false;
+    private bool _disposed;
 
     public int Count => _queue.Count;
 

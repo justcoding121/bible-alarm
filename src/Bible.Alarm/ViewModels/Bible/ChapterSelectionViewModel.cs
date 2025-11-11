@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
@@ -9,8 +8,11 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
@@ -26,7 +28,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly INavigation _navigation;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
-    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private readonly List<IDisposable> _subscriptions = [];
@@ -40,7 +42,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         INavigation navigation,
         IDownloadService downloadService,
         IMediaCacheService cacheService,
-        Fluxor.IDispatcher dispatcher,
+        IDispatcher dispatcher,
         IState<ApplicationState> state)
     {
         _logger = logger;
@@ -53,7 +55,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _dispatcher = dispatcher;
         _state = state;
 
-        BackCommand = new Command(async () =>
+        BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             await _navigation.PopAsync();

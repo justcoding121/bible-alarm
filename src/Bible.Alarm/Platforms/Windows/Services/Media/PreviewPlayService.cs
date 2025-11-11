@@ -27,13 +27,9 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media
 
         private void BufferingStartedHandler(MediaPlayer sender, object args)
         {
-            if (sender.PlaybackSession.PlaybackState == MediaPlaybackState.Buffering ||
-                sender.PlaybackSession.PlaybackState == MediaPlaybackState.Opening
-                || sender.PlaybackSession.PlaybackState == MediaPlaybackState.Playing)
+            if (sender.PlaybackSession.PlaybackState is MediaPlaybackState.Buffering or MediaPlaybackState.Opening or MediaPlaybackState.Playing)
             {
-                if (_tcs.Task.Status == TaskStatus.Running
-                    || _tcs.Task.Status == TaskStatus.WaitingForActivation
-                    || _tcs.Task.Status == TaskStatus.Created)
+                if (_tcs.Task.Status is TaskStatus.Running or TaskStatus.WaitingForActivation or TaskStatus.Created)
                 {
                     _tcs.SetResult(true);
                 }

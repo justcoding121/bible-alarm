@@ -1,7 +1,6 @@
-using Bible.Alarm.Common.Interfaces.Media;
 using AVFoundation;
+using Bible.Alarm.Common.Interfaces.Media;
 using Foundation;
-
 
 namespace Bible.Alarm.Platforms.iOS.Services.Media
 {

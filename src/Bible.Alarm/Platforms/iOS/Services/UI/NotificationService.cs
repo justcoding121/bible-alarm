@@ -1,9 +1,9 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Platforms.iOS.Extensions;
+using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Serilog;
 using UserNotifications;
-using Bible.Alarm.Platforms.iOS.Services.Handlers;
-using Bible.Alarm.Platforms.iOS.Extensions;
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI
 {
@@ -26,7 +26,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             var time = schedule.NextFireDate();
             var daysOfWeek = schedule.DaysOfWeek;
 
-            await Task.Delay(0).ContinueWith((x) =>
+            await Task.Delay(0).ContinueWith(x =>
             {
                 var @params = new Dictionary<string, string>
                 {
@@ -48,7 +48,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                     var requestId = $"{scheduleId}_{day}";
                     var request = UNNotificationRequest.FromIdentifier(requestId, content, trigger);
 
-                    UNUserNotificationCenter.Current.AddNotificationRequest(request, (err) =>
+                    UNUserNotificationCenter.Current.AddNotificationRequest(request, err =>
                     {
                         if (err != null)
                         {
@@ -61,7 +61,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
         public async Task Remove(long scheduleId)
         {
-            await Task.Delay(0).ContinueWith((x) =>
+            await Task.Delay(0).ContinueWith(x =>
             {
                 var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
 
@@ -82,7 +82,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
         public async Task<bool> IsScheduled(long scheduleId)
         {
-            return await Task.Delay(0).ContinueWith((x) =>
+            return await Task.Delay(0).ContinueWith(x =>
             {
                 var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
 
@@ -104,11 +104,11 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
         public async Task<bool> CanSchedule()
         {
-            return await Task.Delay(0).ContinueWith((x) =>
+            return await Task.Delay(0).ContinueWith(x =>
             {
                 var taskCompletionSource = new TaskCompletionSource<bool>();
 
-                UNUserNotificationCenter.Current.GetNotificationSettings((settings) =>
+                UNUserNotificationCenter.Current.GetNotificationSettings(settings =>
                 {
                     var result = settings.AlertSetting == UNNotificationSetting.Enabled;
                     taskCompletionSource.SetResult(result);

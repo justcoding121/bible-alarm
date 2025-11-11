@@ -2,6 +2,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Frame = Microsoft.UI.Xaml.Controls.Frame;
+using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
@@ -31,7 +33,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             if (!MainThread.IsMainThread)
             {
                 await Task.Delay(0)
-                    .ContinueWith(async (x) =>
+                    .ContinueWith(async x =>
                         await ShowAlert(message, seconds), taskScheduler);
             }
             else
@@ -40,7 +42,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             }
         }
 
-        private async Task ShowAlert(string message, double seconds)
+        private static async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
             await Lock.WaitAsync();
@@ -48,7 +50,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 // Get the current window - handle null case
-                var currentWindow = Microsoft.UI.Xaml.Window.Current;
+                var currentWindow = Window.Current;
                 
                 if (currentWindow == null)
                 {
@@ -58,7 +60,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
                 var flyout = new Flyout
                 {
-                    Content = new TextBlock()
+                    Content = new TextBlock
                     {
                         Text = message,
                         TextWrapping = TextWrapping.Wrap
@@ -70,7 +72,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 // Try to get a FrameworkElement to attach the flyout to
                 FrameworkElement targetElement = null;
                 
-                var currentFrame = currentWindow.Content as Microsoft.UI.Xaml.Controls.Frame;
+                var currentFrame = currentWindow.Content as Frame;
                 if (currentFrame != null)
                 {
                     targetElement = currentFrame;

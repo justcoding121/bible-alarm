@@ -50,14 +50,14 @@ public abstract class StorageService : IStorageService
 
     public async Task SaveFile(string directoryPath, string name, string contents)
     {
-        if (!await DirectoryExists(directoryPath)) await CreateDirectoryInternal(directoryPath);
+        if (!await DirectoryExists(directoryPath)) await StorageService.CreateDirectoryInternal(directoryPath);
 
         File.WriteAllText(Path.Combine(directoryPath, name), contents);
     }
 
     public async Task SaveFile(string directoryPath, string name, byte[] contents)
     {
-        if (!await DirectoryExists(directoryPath)) await CreateDirectoryInternal(directoryPath);
+        if (!await DirectoryExists(directoryPath)) await StorageService.CreateDirectoryInternal(directoryPath);
 
         File.WriteAllBytes(Path.Combine(directoryPath, name), contents);
     }
@@ -65,7 +65,7 @@ public abstract class StorageService : IStorageService
     public async Task CopyResourceFile(string resourceFileName,
         string destinationDirectoryPath, string destinationFileName)
     {
-        if (!await DirectoryExists(destinationDirectoryPath)) await CreateDirectoryInternal(destinationDirectoryPath);
+        if (!await DirectoryExists(destinationDirectoryPath)) await StorageService.CreateDirectoryInternal(destinationDirectoryPath);
 
         var destinationFilePath = Path.Combine(destinationDirectoryPath, destinationFileName);
         
@@ -75,24 +75,20 @@ public abstract class StorageService : IStorageService
             await DeleteFile(destinationFilePath);
         }
 
-        await using (var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName))
+        await using var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName);
+        var buffer = new byte[1024];
+        await using var fileWriter =
+            new BinaryWriter(File.Create(destinationFilePath));
+        long readCount = 0;
+        while (readCount < sr.Length)
         {
-            var buffer = new byte[1024];
-            await using (var fileWriter =
-                         new BinaryWriter(File.Create(destinationFilePath)))
-            {
-                long readCount = 0;
-                while (readCount < sr.Length)
-                {
-                    var read = await sr.ReadAsync(buffer, 0, buffer.Length);
-                    readCount += read;
-                    fileWriter.Write(buffer, 0, read);
-                }
-            }
+            var read = await sr.ReadAsync(buffer, 0, buffer.Length);
+            readCount += read;
+            fileWriter.Write(buffer, 0, read);
         }
     }
 
-    private Task CreateDirectoryInternal(string path)
+    private static Task CreateDirectoryInternal(string path)
     {
         Directory.CreateDirectory(path);
         return Task.FromResult(false);

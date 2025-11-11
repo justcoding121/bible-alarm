@@ -1,8 +1,7 @@
 #if WINDOWS
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using WinUIListView = Microsoft.UI.Xaml.Controls.ListView;
 #endif
+using System.Runtime.InteropServices;
 using MauiListView = Microsoft.Maui.Controls.ListView;
 
 namespace Bible.Alarm.Common.ViewHelpers;
@@ -52,7 +51,7 @@ public static class ListViewHelper
                         {
                             listView.ScrollTo(item, position, animated);
                         }
-                        catch (System.Runtime.InteropServices.COMException)
+                        catch (COMException)
                         {
                             // Visual tree/ScrollViewer not ready yet, ignore the error
                         }
@@ -92,7 +91,7 @@ public static class ListViewHelper
 
 #if WINDOWS
                 // Check if the native control is loaded
-                if (listView.Handler.PlatformView is Microsoft.UI.Xaml.FrameworkElement frameworkElement)
+                if (listView.Handler.PlatformView is FrameworkElement frameworkElement)
                 {
                     // Check if IsLoaded property is true (safer than accessing visual tree)
                     if (frameworkElement.IsLoaded)
@@ -118,7 +117,6 @@ public static class ListViewHelper
                             catch
                             {
                                 // Items not ready yet, continue waiting
-                                continue;
                             }
                         }
                         else
@@ -156,7 +154,7 @@ public static class ListViewHelper
     {
         try
         {
-            if (listView.Handler?.PlatformView is Microsoft.UI.Xaml.FrameworkElement frameworkElement)
+            if (listView.Handler?.PlatformView is FrameworkElement frameworkElement)
             {
                 if (!frameworkElement.IsLoaded)
                     return false;

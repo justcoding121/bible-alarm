@@ -50,11 +50,19 @@ public partial class FontFileResources : ResourceDictionary
             }
             
             // Fallback: try to get from ResourceDictionary
+
+<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net9.0-android)', Before:
             return Instance.GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
+        }
+=======
+            return GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
+        }
+>>>>>>> After
+            return FontFileResources.GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
         }
     }
 
-    private string? GetStringResourceForPlatform(string resourceKey)
+    private static string? GetStringResourceForPlatform(string resourceKey)
     {
         if (!Instance.ContainsKey(resourceKey)) return null;
         var label = new Label();

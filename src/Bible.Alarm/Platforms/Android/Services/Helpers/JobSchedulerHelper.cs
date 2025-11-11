@@ -1,6 +1,7 @@
 using Android.App.Job;
 using Android.Content;
 using Android.OS;
+using Java.Lang;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
@@ -9,7 +10,7 @@ public static class JobSchedulerHelper
     public static JobInfo.Builder CreateJobBuilderUsingJobId<T>(this Context context, int jobId, int intervalMinutes)
         where T : JobService
     {
-        var javaClass = Java.Lang.Class.FromType(typeof(T));
+        var javaClass = Class.FromType(typeof(T));
         var componentName = new ComponentName(context, javaClass);
         var builder = new JobInfo.Builder(jobId, componentName);
         builder.SetRequiredNetworkType(NetworkType.Any);

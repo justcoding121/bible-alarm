@@ -1,19 +1,21 @@
+using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
+using Android.Graphics;
+using Android.Graphics.Drawables;
 using Android.OS;
 using AndroidX.Core.App;
-using Java.Lang;
-using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
-using Serilog;
-using Android.Graphics.Drawables;
 using AndroidX.Core.Content;
-using Android.Graphics;
-using AndroidApplication = global::Android.App.Application;
-using AndroidNet = global::Android.Net;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
+using Java.Lang;
+using Serilog;
+using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
+using AndroidApplication = Android.App.Application;
+using AndroidNet = Android.Net;
+using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
@@ -37,7 +39,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
 
             context.SendBroadcast(alarmIntent);
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             _logger.Error(e, "Error happened when playing alarm manually.");
             await Task.Delay(1500);
@@ -68,7 +70,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
         return Task.CompletedTask;
     }
 
-    public void ShowLocalNotification(int scheduleId, string title, string body)
+    public static void ShowLocalNotification(int scheduleId, string title, string body)
     {
         var notificationManagerCompat = NotificationManagerCompat.From(AndroidApplication.Context);
 
@@ -86,7 +88,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
         // Create the PendingIntent with the back stack:
         var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)PendingIntentFlags.UpdateCurrent);
 
-        var drawable = ContextCompat.GetDrawable(AndroidApplication.Context, Resource.Drawable.ic_launcher_round);
+        var drawable = ContextCompat.GetDrawable(AndroidApplication.Context, ResourceConstant.Drawable.ic_launcher_round);
         var bitmap = DrawableToBitmap(drawable);
 
         // Build the notification:
@@ -94,14 +96,14 @@ public class DroidNotificationService(ILogger logger) : INotificationService
             .SetAutoCancel(true)
             .SetContentIntent(resultPendingIntent)
             .SetContentTitle(title)
-            .SetSmallIcon(Resource.Drawable.exo_icon_circular_play)
+            .SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play)
             .SetLargeIcon(bitmap)
             .SetContentText(body);
 
         if (Build.VERSION.SdkInt < BuildVersionCodes.O)
         {
             var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName +
-                                                 "/" + Resource.Raw.cool_alarm_tone_notification_sound);
+                                                "/" + ResourceConstant.Raw.cool_alarm_tone_notification_sound);
 
             builder.SetSound(soundUri);
             builder.SetDefaults(0);
@@ -131,7 +133,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
         return bitmap;
     }
 
-    public void RemoveLocalNotification(int scheduleId)
+    public static void RemoveLocalNotification(int scheduleId)
     {
         var notificationManager = NotificationManagerCompat.From(AndroidApplication.Context);
         notificationManager.Cancel(scheduleId);
@@ -157,7 +159,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
         return Task.FromResult(pIntent != null);
     }
 
-    private PendingIntent FindIntent(long scheduleId)
+    private static PendingIntent FindIntent(long scheduleId)
     {
         var context = AndroidApplication.Context;
 
@@ -178,7 +180,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
         return Task.FromResult(true);
     }
 
-    private bool IsAndroidService()
+    private static bool IsAndroidService()
     {
         return AndroidApplication.Context != null;
     }

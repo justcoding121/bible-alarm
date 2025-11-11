@@ -1,15 +1,15 @@
+using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.App.Job;
 using Android.Content;
 using Android.Media;
 using Android.OS;
-using AndroidApplication = global::Android.App.Application;
-using AndroidNet = global::Android.Net;
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Jobs;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Serilog;
+using AndroidApplication = Android.App.Application;
+using AndroidNet = Android.Net;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
@@ -20,8 +20,7 @@ public class BootstrapHelper
     /// </summary>
     public static void Initialize(ILogger logger, Context context, AndroidApplication application = null)
     {
-        // Initialize database and services (both foreground and background)
-        // This must complete before any other tasks
+
         try
         {
             CommonBootstrapHelper.VerifyServices().Wait();
@@ -48,31 +47,30 @@ public class BootstrapHelper
 
     private static bool SchedulerSetupTask(Context context)
     {
-        // Sample usage - creates a JobBuilder for a SchedulerJob and sets the Job ID to 1.
         using var jobBuilder = context.CreateJobBuilderUsingJobId<SchedulerJob>(SchedulerJob.JobId, 30);
-        var jobInfo = jobBuilder.Build(); // creates a JobInfo object.
+        var jobInfo = jobBuilder.Build();
 
         var jobScheduler = (JobScheduler)context.GetSystemService(Context.JobSchedulerService);
+        if (jobScheduler == null) return false;
+        if (jobInfo == null) return false;
         var scheduleResult = jobScheduler.Schedule(jobInfo);
 
-        if (JobScheduler.ResultSuccess == scheduleResult) return true;
-
-        return false;
+        return JobScheduler.ResultSuccess == scheduleResult;
     }
 
 
     private static bool UpdateMediaIndexJobTask(Context context)
     {
-        // Sample usage - creates a JobBuilder for a SchedulerJob and sets the Job ID to 2.
         using var jobBuilder = context.CreateJobBuilderUsingJobId<UpdateMediaIndexJob>(UpdateMediaIndexJob.JobId, 60);
-        var jobInfo = jobBuilder.Build(); // creates a JobInfo object.
+        var jobInfo = jobBuilder.Build(); 
 
         var jobScheduler = (JobScheduler)context.GetSystemService(Context.JobSchedulerService);
+        if (jobScheduler == null) return false;
+        if (jobInfo == null) return false;
         var scheduleResult = jobScheduler.Schedule(jobInfo);
 
-        if (JobScheduler.ResultSuccess == scheduleResult) return true;
+        return JobScheduler.ResultSuccess == scheduleResult;
 
-        return false;
     }
 
     private static void CreateNotificationChannel()
@@ -86,22 +84,20 @@ public class BootstrapHelper
         var channelId = DroidNotificationService.ChannelIdAndName;
         var channelName = DroidNotificationService.ChannelIdAndName;
         var channelDescription = DroidNotificationService.ChannelDescription;
-#pragma warning disable CA1416
+
         var channel = new NotificationChannel(channelId, channelName, NotificationImportance.High)
         {
             Description = channelDescription
         };
-#pragma warning restore CA1416
 
         var attributes = new AudioAttributes.Builder()
             .SetUsage(AudioUsageKind.Notification)
-            .SetContentType(AudioContentType.Sonification)
-            .Build();
+            ?.SetContentType(AudioContentType.Sonification)
+            ?.Build();
 
         var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName + "/" +
-                                             Resource.Raw.cool_alarm_tone_notification_sound);
-        // Configure the notification channel.
-#pragma warning disable CA1416
+                                            ResourceConstant.Raw.cool_alarm_tone_notification_sound);
+
         channel.Description = DroidNotificationService.ChannelDescription;
         channel.EnableLights(true);
         channel.EnableVibration(true);
@@ -109,7 +105,6 @@ public class BootstrapHelper
 
         var notificationManager =
             (NotificationManager)AndroidApplication.Context.GetSystemService(Context.NotificationService);
-        notificationManager.CreateNotificationChannel(channel);
-#pragma warning restore CA1416
+        notificationManager?.CreateNotificationChannel(channel);
     }
 }

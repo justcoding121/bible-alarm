@@ -1,13 +1,15 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Views.Bible;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
@@ -19,7 +21,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly INavigation _navigation;
     private readonly IServiceProvider _serviceProvider;
-    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     public ICommand BackCommand { get; set; }
@@ -27,7 +29,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public BookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
+    public BookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
         _navigation = navigation;
@@ -35,14 +37,14 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         _dispatcher = dispatcher;
         _state = state;
 
-        BackCommand = new Command(async () =>
+        BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             await _navigation.PopAsync();
             IsBusy = false;
         });
 
-        ChapterSelectionCommand = new Command<BibleBookListViewItemModel>(async x =>
+        ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
         {
             IsBusy = true;
             _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule

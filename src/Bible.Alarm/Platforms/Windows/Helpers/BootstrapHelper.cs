@@ -1,7 +1,5 @@
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Serilog;
-// Removed UWP background task APIs - not available in WinUI 3 desktop apps
 
 namespace Bible.Alarm.Platforms.Windows.Helpers
 {
@@ -14,8 +12,6 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
         /// </summary>
         public static void Initialize(ILogger logger, bool isForeground = false)
         {
-            // Initialize database and services (both foreground and background)
-            // This must complete before any other tasks
             try
             {
                 CommonBootstrapHelper.VerifyServices().Wait();
@@ -27,7 +23,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
                 throw;
             }
             
-            // Setup background tasks
+
             Task.Run(SetupBackgroundTask);
         }
 

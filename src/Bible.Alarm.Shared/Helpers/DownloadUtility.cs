@@ -7,10 +7,8 @@ public class DownloadUtility
 {
     public static async Task<string> GetAsync(string harvestLink)
     {
-        using (var client = new HttpClient())
-        {
-            var response = await client.GetAsync(harvestLink);
-            return await response.Content.ReadAsStringAsync();
-        }
+        using var client = new HttpClient();
+        var response = await client.GetAsync(harvestLink);
+        return await response.Content.ReadAsStringAsync();
     }
 }

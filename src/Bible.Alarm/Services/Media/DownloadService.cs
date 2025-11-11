@@ -89,8 +89,7 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
                 var result = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
                 var statusCode = result.StatusCode;
 
-                if (statusCode == HttpStatusCode.Accepted
-                    || statusCode == HttpStatusCode.OK)
+                if (statusCode is HttpStatusCode.Accepted or HttpStatusCode.OK)
                     return true;
 
                 return await getRequest();

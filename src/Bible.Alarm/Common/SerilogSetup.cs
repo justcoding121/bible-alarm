@@ -6,7 +6,7 @@ namespace Bible.Alarm.Common;
 
 public class SerilogSetup
 {
-    private static bool initialized = false;
+    private static bool initialized;
     private static readonly object Lock = new();
 
     public static void Initialize(IVersionFinder versionFinder,

@@ -11,13 +11,13 @@ public class MediaElementAudioService : IMediaElementAudioService
     private readonly MediaElement _mediaElement;
     private readonly SemaphoreSlim _lock = new(1);
 
-    private bool _isPlaying = false;
-    private bool _isPrepared = false;
+    private bool _isPlaying;
+    private bool _isPrepared;
     private TimeSpan _currentTrackPosition = TimeSpan.Zero;
 
     public TimeSpan CurrentTrackPosition => _currentTrackPosition;
-    public int CurrentTrackIndex => 0; // MediaElement doesn't have built-in playlist support
-    public long CurrentlyPlayingScheduleId => 0; // Not managed by this service
+    public static int CurrentTrackIndex => 0; // MediaElement doesn't have built-in playlist support
+    public static long CurrentlyPlayingScheduleId => 0; // Not managed by this service
     public bool IsPlaying => _isPlaying;
     public bool IsPrepared => _isPrepared;
 

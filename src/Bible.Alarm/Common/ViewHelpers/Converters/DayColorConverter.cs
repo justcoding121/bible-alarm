@@ -19,12 +19,11 @@ public class DayColorConverter : IValueConverter
         {
             var schedule = value as ScheduleListItem;
 
-            var isEnabled = ((DaysOfWeek)schedule.DaysOfWeek & (DaysOfWeek)parameter) == (DaysOfWeek)parameter;
+            var isEnabled = (schedule.DaysOfWeek & (DaysOfWeek)parameter) == (DaysOfWeek)parameter;
 
             if (schedule.IsEnabled)
                 return isEnabled ? Colors.SlateBlue : Colors.LightGray;
-            else
-                return isEnabled ? Colors.LightGray : Colors.WhiteSmoke;
+            return isEnabled ? Colors.LightGray : Colors.WhiteSmoke;
         }
     }
 

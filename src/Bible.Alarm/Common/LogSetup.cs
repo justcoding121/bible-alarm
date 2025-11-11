@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Serilog;
 
@@ -5,7 +6,7 @@ namespace Bible.Alarm.Common;
 
 public class LogSetup
 {
-    private static bool initialized = false;
+    private static bool initialized;
     private static readonly object Lock = new();
 
     public static void Initialize(IVersionFinder versionFinder,
@@ -83,7 +84,7 @@ public static class JsonConvertExtension
     {
         try
         {
-            return System.Text.Json.JsonSerializer.Serialize(@object);
+            return JsonSerializer.Serialize(@object);
         }
         catch
         {

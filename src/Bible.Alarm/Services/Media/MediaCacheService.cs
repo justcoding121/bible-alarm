@@ -1,13 +1,12 @@
 using System.Collections.Concurrent;
 using System.Text;
-using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Network;
 using Bible.Alarm.Common.Interfaces.Storage;
-using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Database.Migrations;
+using Bible.Alarm.Database;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Serilog;
@@ -95,7 +94,7 @@ public class MediaCacheService(
                                     await mediaService.UpdateBibleTrackUrl(playDetail.LanguageCode,
                                         playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
                                         url);
-                                    _logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
+                                    _logger.Warning($"Updated URL to {url} for {playItem}");
                                 }
                                 else
                                 {
@@ -116,7 +115,7 @@ public class MediaCacheService(
                                         await mediaService.UpdateVocalTrackUrl(playDetail.LanguageCode,
                                             playDetail.PublicationCode, playDetail.TrackNumber, url);
 
-                                    _logger.Warning($"Updated URL to {url} for {playItem.ToString()}");
+                                    _logger.Warning($"Updated URL to {url} for {playItem}");
                                 }
                                 else
                                 {
@@ -130,7 +129,7 @@ public class MediaCacheService(
                             if (bytes != null)
                             {
                                 await storageService.SaveFile(_cacheRoot, GetCacheFileName(url), bytes);
-                                _logger.Warning($"Downloaded using updated URL {url} for {playItem.ToString()}");
+                                _logger.Warning($"Downloaded using updated URL {url} for {playItem}");
                                 continue;
                             }
 
@@ -159,7 +158,7 @@ public class MediaCacheService(
         return downloaded;
     }
 
-    private static readonly string[] JwOrgUrls = new string[]
+    private static readonly string[] JwOrgUrls = new[]
     {
         UrlHelper.JwOrgIndexServiceBaseUrl,
         AppConstants.ApiEndpoints.JwOrgAlternativeIndexServiceUrl
@@ -170,12 +169,12 @@ public class MediaCacheService(
     {
         try
         {
-            byte[] @bytes;
+            byte[] tes;
 
             var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
             var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
-            @bytes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
-            var jsonString = Encoding.Default.GetString(@bytes);
+            tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
+            var jsonString = Encoding.Default.GetString(tes);
             var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
 
             return model["files"][languageCode]["MP3"][0]["file"]["url"];
@@ -193,8 +192,8 @@ public class MediaCacheService(
             var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
             var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
 
-            var @bytes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
-            var jsonString = Encoding.Default.GetString(@bytes);
+            var tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
+            var jsonString = Encoding.Default.GetString(tes);
             var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
 
             var lc = languageCode ?? AppConstants.Media.DefaultLanguageCode;

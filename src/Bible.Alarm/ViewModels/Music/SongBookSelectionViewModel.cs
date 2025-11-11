@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
@@ -72,7 +73,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         };
         _state.StateChanged += subscriptionHandler2;
 
-        TrackSelectionCommand = new Command<PublicationListViewItemModel>(async x =>
+        TrackSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
 
@@ -92,7 +93,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             IsBusy = false;
         });
 
-        OpenModalCommand = new Command(async () =>
+        OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             var modal = _serviceProvider.GetRequiredService<LanguageModal>();
@@ -101,14 +102,14 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             IsBusy = false;
         });
 
-        BackCommand = new Command(async () =>
+        BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
             await _navigation.PopAsync();
             IsBusy = false;
         });
 
-        CloseModalCommand = new Command(async () =>
+        CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             if (_navigation.ModalStack.Count > 0)
             {
@@ -117,7 +118,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             }
         });
 
-        SelectLanguageCommand = new Command<LanguageListViewItemModel>(async x =>
+        SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
         {
             IsBusy = true;
             if (CurrentLanguage != null) CurrentLanguage.IsSelected = false;

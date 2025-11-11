@@ -1,10 +1,8 @@
-﻿using Bible.Alarm.Database;
-using Bible.Alarm.Database.Migrations;
+﻿using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Database;
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.Common.Messenger;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Common.Helpers;
 

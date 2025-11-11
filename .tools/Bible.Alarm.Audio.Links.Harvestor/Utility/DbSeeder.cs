@@ -23,25 +23,23 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var dbConfig = new DbContextOptionsBuilder<MediaDbContext>()
                .UseSqlite($"Data Source={Path.Combine(zipDir, "mediaIndex.db")}").Options;
 
-            await using (var db = new MediaDbContext(dbConfig))
+            await using var db = new MediaDbContext(dbConfig);
+            db.Database.Migrate();
+
+            var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
+            if (displayLanguage == null)
             {
-                db.Database.Migrate();
-
-                var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-                if (displayLanguage == null)
+                displayLanguage = new Language()
                 {
-                    displayLanguage = new Language()
-                    {
-                        Code = "E",
-                        Name = "English"
-                    };
-                }
-
-                var mediaDir = Path.Combine(indexDir, "media");
-                await seedBibleTranslations(mediaDir, db, displayLanguage);
-                await seedMelodies(mediaDir, db, displayLanguage);
-                await seedVocals(mediaDir, db, displayLanguage);
+                    Code = "E",
+                    Name = "English"
+                };
             }
+
+            var mediaDir = Path.Combine(indexDir, "media");
+            await seedBibleTranslations(mediaDir, db, displayLanguage);
+            await seedMelodies(mediaDir, db, displayLanguage);
+            await seedVocals(mediaDir, db, displayLanguage);
         }
 
         private async static Task seedBibleTranslations(string indexDir, MediaDbContext db, Language displayLanguage)

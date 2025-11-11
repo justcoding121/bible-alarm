@@ -1,16 +1,14 @@
-using System.Linq;
-using Bible.Alarm.Database;
-using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Database;
 using Bible.Alarm.Models;
-using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Database.Migrations;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -105,7 +103,7 @@ public class PlaylistService(
 
         await scheduleDbContext.SaveChangesAsync();
 
-        if (trackChanged) WeakReferenceMessenger.Default.Send(new TrackChangedMessage((int)schedule.Id));
+        if (trackChanged) WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
     }
 
     public async Task MarkTrackAsFinished(NotificationDetail trackDetail)
@@ -140,7 +138,7 @@ public class PlaylistService(
 
         await scheduleDbContext.SaveChangesAsync();
 
-        WeakReferenceMessenger.Default.Send(new TrackChangedMessage((int)schedule.Id));
+        WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
     }
 
     public async Task<PlayItem> NextTrack(long scheduleId)

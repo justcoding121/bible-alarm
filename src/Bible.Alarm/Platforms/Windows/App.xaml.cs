@@ -1,12 +1,11 @@
 #nullable enable
 
+using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
-using Bible.Alarm.Services.Media;
-using Bible.Alarm.Services.Scheduler;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
-using System.Linq;
+using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
 
 namespace Bible.Alarm.WinUI
 {
@@ -23,7 +22,7 @@ namespace Bible.Alarm.WinUI
         /// </summary>
         public App()
         {
-            this.InitializeComponent();
+            InitializeComponent();
         }
 
         protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore(isForeground: true);
@@ -32,7 +31,7 @@ namespace Bible.Alarm.WinUI
         /// Handles app activation (e.g., from toast notifications, protocol handlers, etc.)
         /// This replaces the UWP OnActivated method for WinUI 3.
         /// </summary>
-        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
             base.OnLaunched(args);
 
@@ -63,7 +62,7 @@ namespace Bible.Alarm.WinUI
                 // Handle different activation kinds
                 if (e.Kind == ExtendedActivationKind.Protocol)
                 {
-                    var protocolArgs = e.Data as Windows.ApplicationModel.Activation.ProtocolActivatedEventArgs;
+                    var protocolArgs = e.Data as ProtocolActivatedEventArgs;
                     if (protocolArgs?.Uri != null)
                     {
                         HandleActivation(protocolArgs.Uri.Query);
@@ -71,7 +70,7 @@ namespace Bible.Alarm.WinUI
                 }
                 else if (e.Kind == ExtendedActivationKind.ToastNotification)
                 {
-                    var toastArgs = e.Data as Windows.ApplicationModel.Activation.ToastNotificationActivatedEventArgs;
+                    var toastArgs = e.Data as ToastNotificationActivatedEventArgs;
                     if (toastArgs?.Argument != null)
                     {
                         HandleActivation(toastArgs.Argument);
@@ -87,7 +86,7 @@ namespace Bible.Alarm.WinUI
         /// <summary>
         /// Handles activation arguments (e.g., schedule ID from toast notification)
         /// </summary>
-        private void HandleActivation(string arguments)
+        private static void HandleActivation(string arguments)
         {
             try
             {

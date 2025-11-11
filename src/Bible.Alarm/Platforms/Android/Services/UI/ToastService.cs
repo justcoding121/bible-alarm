@@ -1,6 +1,6 @@
 ﻿using Android.Widget;
-using AndroidApplication = global::Android.App.Application;
 using Bible.Alarm.Services.UI;
+using AndroidApplication = Android.App.Application;
 
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
@@ -20,7 +20,7 @@ public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDis
             //if current is not UI thread, run on UI thread
             if (!MainThread.IsMainThread)
                 await Task.Delay(0)
-                    .ContinueWith((x) =>
+                    .ContinueWith(x =>
                         ShowToast(message, seconds), _taskScheduler);
             else
                 ShowToast(message, seconds);
@@ -31,7 +31,7 @@ public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDis
         }
     }
 
-    private void ShowToast(string message, int seconds)
+    private static void ShowToast(string message, int seconds)
     {
         var context = AndroidApplication.Context;
 
@@ -52,7 +52,7 @@ public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDis
         {
             if (!MainThread.IsMainThread)
                 await Task.Delay(0)
-                    .ContinueWith((x) =>
+                    .ContinueWith(x =>
                         latest?.Cancel(), _taskScheduler);
             else
                 latest?.Cancel();

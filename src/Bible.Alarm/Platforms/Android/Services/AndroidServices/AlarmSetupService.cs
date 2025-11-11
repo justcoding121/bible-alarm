@@ -129,19 +129,19 @@ public class AlarmSetupService : Service, IDisposable
         if (Build.VERSION.SdkInt < BuildVersionCodes.M)
             alarmService.SetExact(AlarmType.RtcWakeup, milliSecondsRemaining, pIntent);
         else
-            using (var mainLauncherIntent = new Intent(context, typeof(MainActivity)))
-            {
-                mainLauncherIntent.SetFlags(ActivityFlags.ReorderToFront);
+        {
+            using var mainLauncherIntent = new Intent(context, typeof(MainActivity));
+            mainLauncherIntent.SetFlags(ActivityFlags.ReorderToFront);
 
-                var mainLauncherPendingIntent = PendingIntent.GetActivity(
-                    context,
-                    0,
-                    mainLauncherIntent,
-                    PendingIntentFlags.UpdateCurrent);
+            var mainLauncherPendingIntent = PendingIntent.GetActivity(
+                context,
+                0,
+                mainLauncherIntent,
+                PendingIntentFlags.UpdateCurrent);
 
-                alarmService.SetAlarmClock(new AlarmClockInfo(milliSecondsRemaining, mainLauncherPendingIntent),
-                    pIntent);
-            }
+            alarmService.SetAlarmClock(new AlarmClockInfo(milliSecondsRemaining, mainLauncherPendingIntent),
+                pIntent);
+        }
     }
 
     private bool _disposed = false;
