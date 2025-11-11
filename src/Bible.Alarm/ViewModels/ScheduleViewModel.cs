@@ -84,8 +84,8 @@ public class ScheduleViewModel : ObservableObject
         //this should fire only once (look at the where condition).
         AlarmSchedule lastSchedule = null;
         bool modelInitialized = false;
-        EventHandler subscriptionHandler = null;
-        subscriptionHandler = (sender, e) =>
+        EventHandler onScheduleInitialized = null;
+        onScheduleInitialized = (sender, e) =>
         {
             var state = _state.Value;
             if (state.CurrentSchedule != null && state.CurrentSchedule != lastSchedule)
@@ -100,7 +100,7 @@ public class ScheduleViewModel : ObservableObject
                 IsBusy = false;
                 
                 // Unsubscribe after first call
-                _state.StateChanged -= subscriptionHandler;
+                _state.StateChanged -= onScheduleInitialized;
             }
             else if (!modelInitialized && state.CurrentSchedule == null)
             {
@@ -116,13 +116,13 @@ public class ScheduleViewModel : ObservableObject
                 });
                 
                 // Unsubscribe after initialization
-                _state.StateChanged -= subscriptionHandler;
+                _state.StateChanged -= onScheduleInitialized;
             }
         };
-        _state.StateChanged += subscriptionHandler;
+        _state.StateChanged += onScheduleInitialized;
 
         AlarmMusic lastMusic = null;
-        EventHandler subscriptionHandler2 = (sender, e) =>
+        EventHandler onMusicChanged = (sender, e) =>
         {
             var state = _state.Value;
             if (state.CurrentMusic != null && state.CurrentMusic != lastMusic && state.CurrentMusic != Music)
@@ -132,10 +132,10 @@ public class ScheduleViewModel : ObservableObject
                 _musicUpdated = true;
             }
         };
-        _state.StateChanged += subscriptionHandler2;
+        _state.StateChanged += onMusicChanged;
 
         BibleReadingSchedule lastBibleReading = null;
-        EventHandler subscriptionHandler3 = (sender, e) =>
+        EventHandler onBibleReadingChanged = (sender, e) =>
         {
             var state = _state.Value;
             if (state.CurrentBibleReadingSchedule != null && state.CurrentBibleReadingSchedule != lastBibleReading && state.CurrentBibleReadingSchedule != BibleReadingSchedule)
@@ -146,7 +146,7 @@ public class ScheduleViewModel : ObservableObject
                 RefreshChapterName();
             }
         };
-        _state.StateChanged += subscriptionHandler3;
+        _state.StateChanged += onBibleReadingChanged;
 
         CancelCommand = new AsyncRelayCommand(async () =>
         {

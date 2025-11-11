@@ -92,8 +92,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        EventHandler subscriptionHandler = null;
-        subscriptionHandler = (sender, e) =>
+        EventHandler onMusicInitialized = null;
+        onMusicInitialized = (sender, e) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
@@ -105,9 +105,9 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= subscriptionHandler;
+            _state.StateChanged -= onMusicInitialized;
         };
-        _state.StateChanged += subscriptionHandler;
+        _state.StateChanged += onMusicInitialized;
     }
 
     public ICommand BackCommand { get; set; }

@@ -82,8 +82,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        EventHandler subscriptionHandler = null;
-        subscriptionHandler = (sender, e) =>
+        EventHandler onBibleReadingInitialized = null;
+        onBibleReadingInitialized = (sender, e) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null ||
@@ -95,9 +95,9 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= subscriptionHandler;
+            _state.StateChanged -= onBibleReadingInitialized;
         };
-        _state.StateChanged += subscriptionHandler;
+        _state.StateChanged += onBibleReadingInitialized;
     }
 
     public ICommand BackCommand { get; set; }

@@ -34,8 +34,8 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 
         //set schedules from initial state.
         //this should fire only once 
-        EventHandler subscriptionHandler1 = null;
-        subscriptionHandler1 = (sender, e) =>
+        EventHandler onMusicInitialized = null;
+        onMusicInitialized = (sender, e) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
@@ -46,15 +46,15 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
                 await Initialize();
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= subscriptionHandler1;
+            _state.StateChanged -= onMusicInitialized;
         };
-        _state.StateChanged += subscriptionHandler1;
+        _state.StateChanged += onMusicInitialized;
 
         // Subscribe to subsequent music changes (skip first one)
         AlarmMusic lastCurrent = null;
         AlarmMusic lastTentative = null;
 
-        void SubscriptionHandler2(object sender, EventArgs e)
+        void OnMusicChanged(object sender, EventArgs e)
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null ||
@@ -65,7 +65,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
             lastTentative = _tentative;
         }
 
-        _state.StateChanged += SubscriptionHandler2;
+        _state.StateChanged += OnMusicChanged;
 
         TrackSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {

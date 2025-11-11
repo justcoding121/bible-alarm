@@ -58,8 +58,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
         //set schedules from initial state.
         //this should fire only once 
-        EventHandler subscriptionHandler1 = null;
-        subscriptionHandler1 = (sender, e) =>
+        EventHandler onBibleReadingInitialized = null;
+        onBibleReadingInitialized = (sender, e) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null ||
@@ -72,14 +72,14 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= subscriptionHandler1;
+            _state.StateChanged -= onBibleReadingInitialized;
         };
-        _state.StateChanged += subscriptionHandler1;
+        _state.StateChanged += onBibleReadingInitialized;
 
         // Subscribe to current schedule changes (but skip first one)
         BibleReadingSchedule lastCurrent = null;
 
-        void SubscriptionHandler2(object sender, EventArgs e)
+        void OnBibleReadingChanged(object sender, EventArgs e)
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null ||
@@ -88,7 +88,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             lastCurrent = _current;
         }
 
-        _state.StateChanged += SubscriptionHandler2;
+        _state.StateChanged += OnBibleReadingChanged;
 
     }
 

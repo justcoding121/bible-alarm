@@ -40,8 +40,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
 
         //set schedules from initial state.
         //this should fire only once 
-        EventHandler subscriptionHandler1 = null;
-        subscriptionHandler1 = (sender, e) =>
+        EventHandler onBibleReadingInitialized = null;
+        onBibleReadingInitialized = (sender, e) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
@@ -52,15 +52,15 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
                 await Initialize(_tentative.LanguageCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= subscriptionHandler1;
+            _state.StateChanged -= onBibleReadingInitialized;
         };
-        _state.StateChanged += subscriptionHandler1;
+        _state.StateChanged += onBibleReadingInitialized;
 
         // Subscribe to subsequent schedule changes (skip first one)
         BibleReadingSchedule lastCurrent = null;
         BibleReadingSchedule lastTentative = null;
 
-        _state.StateChanged += SubscriptionHandler2;
+        _state.StateChanged += OnBibleReadingChanged;
 
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
@@ -122,9 +122,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
 
             IsBusy = false;
         });
-        return;
 
-        void SubscriptionHandler2(object sender, EventArgs e)
+        void OnBibleReadingChanged(object sender, EventArgs e)
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null || (stateValue.CurrentBibleReadingSchedule == lastCurrent && stateValue.TentativeBibleReadingSchedule == lastTentative)) return;
