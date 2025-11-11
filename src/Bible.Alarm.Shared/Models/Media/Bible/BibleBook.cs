@@ -7,11 +7,11 @@ namespace Bible.Alarm.Shared.Models.Media.Bible
     {
         public int Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public int Number { get; set; }
 
         public int BibleTranslationId { get; set; }
-        public BibleTranslation BibleTranslation { get; set; }
+        public BibleTranslation? BibleTranslation { get; set; }
 
         public List<BibleChapter> Chapters { get; set; } = new List<BibleChapter>();
 

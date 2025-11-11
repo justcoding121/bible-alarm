@@ -614,7 +614,7 @@ public class ScheduleViewModel : ObservableObject
 
     private bool _musicUpdated;
 
-    public AlarmMusic Music
+    public AlarmMusic? Music
     {
         get => Model.Music;
         set => Model.Music = value;
@@ -622,7 +622,7 @@ public class ScheduleViewModel : ObservableObject
 
     private bool _bibleReadingUpdated;
 
-    public BibleReadingSchedule BibleReadingSchedule
+    public BibleReadingSchedule? BibleReadingSchedule
     {
         get => Model.BibleReadingSchedule;
         set => Model.BibleReadingSchedule = value;

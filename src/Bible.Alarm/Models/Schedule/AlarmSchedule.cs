@@ -10,7 +10,7 @@ public class AlarmSchedule : IComparable
 {
     public int Id { get; set; }
 
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public bool IsEnabled { get; set; }
 
     //24 hour based
@@ -33,9 +33,9 @@ public class AlarmSchedule : IComparable
 
     public bool NotificationEnabled { get; set; }
     public bool MusicEnabled { get; set; }
-    public virtual AlarmMusic Music { get; set; }
+    public virtual AlarmMusic? Music { get; set; }
 
-    public virtual BibleReadingSchedule BibleReadingSchedule { get; set; }
+    public virtual BibleReadingSchedule? BibleReadingSchedule { get; set; }
 
     public int SnoozeMinutes { get; set; } = 5;
 
@@ -92,9 +92,10 @@ public class AlarmSchedule : IComparable
         if (nextFire == null) throw new Exception("Invalid alarm time.");
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
-        return Id.CompareTo(((AlarmSchedule)obj).Id);
+        if (obj is not AlarmSchedule other) return 1;
+        return Id.CompareTo(other.Id);
     }
 
     public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, MediaDbContext mediaDbContext)
@@ -130,10 +131,19 @@ public class AlarmSchedule : IComparable
                         == sample.BibleReadingSchedule.LanguageCode)
             .FirstOrDefaultAsync();
 
+        if (bible == null)
+            throw new InvalidOperationException("Bible translation not found for sample schedule");
+        
         var rnd = new Random();
         var book = bible.Books[rnd.Next() % bible.Books.Count];
+        if (sample.BibleReadingSchedule == null)
+            throw new InvalidOperationException("BibleReadingSchedule is null in sample schedule");
+        
         sample.BibleReadingSchedule.BookNumber = book.Number;
 
+        if (sample.Music == null)
+            throw new InvalidOperationException("Music is null in sample schedule");
+        
         var music = await mediaDbContext
             .MelodyMusic
             .Include(x => x.Tracks)
@@ -141,6 +151,8 @@ public class AlarmSchedule : IComparable
                         == sample.Music.PublicationCode)
             .FirstOrDefaultAsync();
 
+        if (music == null)
+            throw new InvalidOperationException("Melody music not found for sample schedule");
 
         var track = music.Tracks[rnd.Next() % music.Tracks.Count];
         sample.Music.TrackNumber = track.Number;

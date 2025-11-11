@@ -135,6 +135,9 @@ public class PlaylistService(
             var next = await GetNextBibleChapter(trackDetail.LanguageCode, trackDetail.PublicationCode,
                 trackDetail.BookNumber, trackDetail.ChapterNumber);
 
+            if (next.Key == null || next.Value == null)
+                throw new InvalidOperationException($"Next chapter Key or Value is null");
+            
             bibleReadingSchedule.BookNumber = next.Key.Number;
             bibleReadingSchedule.ChapterNumber = next.Value.Number;
             bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
@@ -227,6 +230,8 @@ public class PlaylistService(
         }
 
         var chapterDetail = chapters[chapter];
+        if (chapterDetail.Source == null)
+            throw new InvalidOperationException($"Chapter {chapter} Source is null in book {bookNumber}");
 
         var publicationCode = bibleReadingSchedule.PublicationCode;
         var languageCode = bibleReadingSchedule.LanguageCode;
@@ -267,6 +272,11 @@ public class PlaylistService(
                 bibleReadingSchedule.PublicationCode,
                 bookNumber, chapter);
 
+            if (next.Key == null || next.Value == null)
+                throw new InvalidOperationException($"Next chapter Key or Value is null");
+            if (next.Value.Source == null)
+                throw new InvalidOperationException($"Next chapter Source is null");
+            
             bookNumber = next.Key.Number;
             chapter = next.Value.Number;
             url = next.Value.Source.Url;
@@ -323,8 +333,11 @@ public class PlaylistService(
 
         var previous = await GetPreviousBibleChapter(languageCode, publicationCode, bookNumber, chapter);
 
-        bibleReadingSchedule.BookNumber = previous.Key.Number;
-        bibleReadingSchedule.ChapterNumber = previous.Value.Number;
+            if (previous.Key == null || previous.Value == null)
+                throw new InvalidOperationException($"Previous chapter Key or Value is null");
+            
+            bibleReadingSchedule.BookNumber = previous.Key.Number;
+            bibleReadingSchedule.ChapterNumber = previous.Value.Number;
         bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
 
         await scheduleDbContext.SaveChangesAsync();
@@ -432,6 +445,9 @@ public class PlaylistService(
                     throw new InvalidOperationException($"Invalid track index {melodyTrackIndex} for {melodyTracks.Count} tracks");
                 
                 var melodyTrack = melodyTracks[melodyTrackIndex];
+                if (melodyTrack.Source == null)
+                    throw new InvalidOperationException($"Melody track {melodyTrackIndex} Source is null");
+                
                 return new PlayItem(new NotificationDetail
                 {
                     ScheduleId = schedule.Id,
@@ -452,6 +468,9 @@ public class PlaylistService(
                     throw new InvalidOperationException($"Invalid track index {vocalTrackIndex} for {vocalTracks.Count} tracks");
                 
                 var vocalTrack = vocalTracks[vocalTrackIndex];
+                if (vocalTrack.Source == null)
+                    throw new InvalidOperationException($"Vocal track {vocalTrackIndex} Source is null");
+                
                 return new PlayItem(new NotificationDetail
                 {
                     ScheduleId = schedule.Id,

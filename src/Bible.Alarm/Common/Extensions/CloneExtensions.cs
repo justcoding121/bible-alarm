@@ -9,6 +9,9 @@ public static class CloneExtensions
 {
     public static T DeepClone<T>(this T obj)
     {
+        if (obj == null)
+            throw new ArgumentNullException(nameof(obj));
+        
         var settings = new JsonSerializerSettings
         {
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
@@ -16,7 +19,11 @@ public static class CloneExtensions
             ContractResolver = new IgnoreNonSerializableContractResolver()
         };
         var json = JsonConvert.SerializeObject(obj, settings);
-        return JsonConvert.DeserializeObject<T>(json, settings);
+        var result = JsonConvert.DeserializeObject<T>(json, settings);
+        if (result == null)
+            throw new InvalidOperationException("Deserialization returned null");
+        
+        return result;
     }
 
     private class IgnoreNonSerializableContractResolver : DefaultContractResolver
