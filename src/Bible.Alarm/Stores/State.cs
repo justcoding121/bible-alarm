@@ -1,6 +1,6 @@
-﻿using Fluxor;
-using Bible.Alarm.Models.Schedule;
+﻿using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.DataStructures;
+using Fluxor;
 
 namespace Bible.Alarm.Stores;
 

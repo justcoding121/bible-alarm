@@ -1,14 +1,15 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Views.Music;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
@@ -19,12 +20,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly INavigation _navigation;
     private readonly IServiceProvider _serviceProvider;
-    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public MusicSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
+    public MusicSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
         _navigation = navigation;

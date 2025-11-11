@@ -1,32 +1,32 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Interfaces.Battery;
-using Bible.Alarm.Models;
-using Bible.Alarm.Stores;
-using Fluxor;
-using Microsoft.EntityFrameworkCore;
-using Serilog;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Database;
+using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Models.Schedule;using Bible.Alarm.Database.Migrations;
+using Bible.Alarm.Database;
+using Bible.Alarm.Models;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
-using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.General;
+using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
-
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -50,7 +50,7 @@ public class ScheduleViewModel : ObservableObject
     private readonly IBatteryOptimizationManager _batteryOptimizationManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     public ScheduleViewModel(
@@ -62,7 +62,7 @@ public class ScheduleViewModel : ObservableObject
         INotificationService notificationService,
         IServiceProvider serviceProvider,
         IServiceScopeFactory scopeFactory,
-        Fluxor.IDispatcher dispatcher,
+        IDispatcher dispatcher,
         IState<ApplicationState> state,
         IBatteryOptimizationManager batteryOptimizationManager = null)
     {
@@ -395,7 +395,7 @@ public class ScheduleViewModel : ObservableObject
         });
     }
 
-    private bool _canOptimizeBattery = false;
+    private bool _canOptimizeBattery;
 
     public bool CanOptimizeBattery
     {
@@ -798,7 +798,7 @@ public class ScheduleViewModel : ObservableObject
 
                 return null;
             })
-            .ContinueWith((x) =>
+            .ContinueWith(x =>
             {
                 if (!x.IsCompleted || BibleReadingSchedule == null) return;
                 try

@@ -1,6 +1,6 @@
+using Bible.Alarm.Common.Messenger;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.Common.Messenger;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
@@ -11,22 +11,19 @@ public class MediaProgressViewModal : ObservableObject, IDisposable, IRecipient<
     public MediaProgressViewModal(TaskScheduler taskScheduler)
     {
         _taskScheduler = taskScheduler;
-        WeakReferenceMessenger.Default.Register<MediaProgressMessage>(this);
+        WeakReferenceMessenger.Default.Register(this);
     }
 
     public void Receive(MediaProgressMessage message)
     {
-        Task.Delay(0).ContinueWith((x) =>
+        Task.Delay(0).ContinueWith(x =>
         {
-            var kv = message.Value as Tuple<int, int>;
-            if (kv != null)
-            {
-                _loadedTracks = kv.Item1;
-                _totalTracks = kv.Item2;
-                Progress = (double)kv.Item1 / (double)kv.Item2;
-                OnPropertyChanged(nameof(ProgressText));
-                OnPropertyChanged(nameof(Progress));
-            }
+            if (message.Value is not Tuple<int, int> kv) return;
+            _loadedTracks = kv.Item1;
+            _totalTracks = kv.Item2;
+            Progress = kv.Item1 / (double)kv.Item2;
+            OnPropertyChanged(nameof(ProgressText));
+            OnPropertyChanged(nameof(Progress));
         }, _taskScheduler);
     }
 

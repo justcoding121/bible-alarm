@@ -29,7 +29,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
             if (displayLanguage == null)
             {
-                displayLanguage = new Language()
+                displayLanguage = new Language
                 {
                     Code = "E",
                     Name = "English"
@@ -56,7 +56,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                                                                         && x.Name == language.Value.Name);
                 if (newLanguage == null)
                 {
-                    newLanguage = new Language()
+                    newLanguage = new Language
                     {
                         Code = language.Value.Code,
                         Name = language.Value.Name
@@ -67,7 +67,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 
                 foreach (var translation in translations)
                 {
-                    var bibleTranslation = new BibleTranslation()
+                    var bibleTranslation = new BibleTranslation
                     {
                         Name = translation.Value.Name,
                         Code = translation.Value.Code,
@@ -79,7 +79,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 
                     foreach (var book in books)
                     {
-                        var newBook = new BibleBook()
+                        var newBook = new BibleBook
                         {
                             Name = book.Value.Name,
                             Number = book.Value.Number
@@ -98,10 +98,10 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                                              $"&txtCMSLang=E&booknum={newBook.Number}&track={chapter.Value.Number}";
 
 
-                            var newChapter = new BibleChapter()
+                            var newChapter = new BibleChapter
                             {
                                 Number = chapter.Value.Number,
-                                Source = new AudioSource()
+                                Source = new AudioSource
                                 {
                                     Url = chapter.Value.Url,
                                     LookUpPath = lookUpPath
@@ -128,7 +128,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             {
                 Console.WriteLine($"Seeding melody code {melodyMusicRelease.Key} music to database.");
 
-                var newMelodyMusic = new MelodyMusic()
+                var newMelodyMusic = new MelodyMusic
                 {
                     Code = melodyMusicRelease.Value.Code,
                     Name = melodyMusicRelease.Value.Name,
@@ -139,11 +139,11 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 
                 foreach (var track in tracks)
                 {
-                    var newTrack = new MusicTrack()
+                    var newTrack = new MusicTrack
                     {
                         Number = track.Value.Number,
                         Title = track.Value.Title,
-                        Source = new AudioSource()
+                        Source = new AudioSource
                         {
                             Url = track.Value.Url,
                             LookUpPath = track.Value.LookUpPath
@@ -174,7 +174,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                                                                         && x.Name == language.Value.Name);
                 if (newLanguage == null)
                 {
-                    newLanguage = new Language()
+                    newLanguage = new Language
                     {
                         Code = language.Value.Code,
                         Name = language.Value.Name
@@ -185,7 +185,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 
                 foreach (var vocalMusicRelease in vocalMusicReleases)
                 {
-                    var newVocalMusic = new VocalMusic()
+                    var newVocalMusic = new VocalMusic
                     {
                         Code = vocalMusicRelease.Value.Code,
                         Name = vocalMusicRelease.Value.Name,
@@ -197,11 +197,11 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 
                     foreach (var track in tracks)
                     {
-                        var newTrack = new MusicTrack()
+                        var newTrack = new MusicTrack
                         {
                             Number = track.Value.Number,
                             Title = track.Value.Title,
-                            Source = new AudioSource()
+                            Source = new AudioSource
                             {
                                 Url = track.Value.Url,
                                 LookUpPath = track.Value.LookUpPath

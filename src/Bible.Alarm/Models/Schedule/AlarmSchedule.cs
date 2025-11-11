@@ -1,7 +1,7 @@
 using Bible.Alarm.Shared.Database;
-using Quartz;
 using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using Quartz;
 
 namespace Bible.Alarm.Models.Schedule;
 
@@ -55,7 +55,7 @@ public class AlarmSchedule : IComparable
 
         var expression = new CronExpression(CronExpression);
 
-        AlarmSchedule.ValidateNextFire(expression);
+        ValidateNextFire(expression);
         return expression.GetNextValidTimeAfter(DateTimeOffset.Now).Value;
     }
 
@@ -65,7 +65,7 @@ public class AlarmSchedule : IComparable
 
         var expression = new CronExpression(CronExpression);
 
-        AlarmSchedule.ValidateNextFire(expression);
+        ValidateNextFire(expression);
         return expression.GetNextValidTimeAfter(after).Value;
     }
 

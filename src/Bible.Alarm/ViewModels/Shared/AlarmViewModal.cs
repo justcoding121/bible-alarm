@@ -1,11 +1,10 @@
 using System.Windows.Input;
+using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Database;
+using Bible.Alarm.Models;
+using Bible.Alarm.Shared.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Models;
-using Bible.Alarm.Database.Migrations;
-using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 using Plugin.StoreReview;
 using Serilog;

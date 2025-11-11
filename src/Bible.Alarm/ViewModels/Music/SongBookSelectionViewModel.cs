@@ -1,17 +1,18 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Shared;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
@@ -20,7 +21,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private readonly MediaService _mediaService;
     private readonly INavigation _navigation;
     private readonly IServiceProvider _serviceProvider;
-    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
@@ -28,7 +29,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private readonly List<IDisposable> _subscriptions = [];
 
-    public SongBookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, Fluxor.IDispatcher dispatcher, IState<ApplicationState> state)
+    public SongBookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
     {
         _mediaService = mediaService;
         _navigation = navigation;

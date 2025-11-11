@@ -1,6 +1,6 @@
-using Bible.Alarm.Common.Interfaces.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
+using Bible.Alarm.Common.Interfaces.Media;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Media
 {

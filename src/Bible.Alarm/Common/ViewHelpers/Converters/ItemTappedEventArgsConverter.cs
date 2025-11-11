@@ -6,8 +6,7 @@ public class ItemTappedEventArgsConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        var eventArgs = value as ItemTappedEventArgs;
-        if (eventArgs == null)
+        if (value is not ItemTappedEventArgs eventArgs)
             throw new ArgumentException("Expected TappedEventArgs as value", "value");
 
         return eventArgs.Item;

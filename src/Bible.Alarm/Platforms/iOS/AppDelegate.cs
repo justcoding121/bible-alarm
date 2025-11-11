@@ -1,7 +1,7 @@
-using Bible.Alarm;
 using Bible.Alarm.Common;
-using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Database;
+using Bible.Alarm.Models;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Scheduler;
@@ -93,10 +93,8 @@ namespace Bible.Alarm.Platforms.iOS
 #pragma warning disable CA1422
                     if (launchOptions.ContainsKey(UIApplication.LaunchOptionsLocalNotificationKey))
                     {
-                        var localNotification =
-                            launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] as UILocalNotification;
 #pragma warning restore CA1422
-                        if (localNotification != null)
+                        if (launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] is UILocalNotification localNotification)
                         {
 #pragma warning disable CA1422
                             HandleNotification(localNotification.UserInfo);
@@ -131,7 +129,7 @@ namespace Bible.Alarm.Platforms.iOS
 
                                 if (!dbContext.GeneralSettings.Any(x => x.Key == "iOSNotificationDisabledMsgShown"))
                                 {
-                                    dbContext.GeneralSettings.Add(new Models.GeneralSettings()
+                                    dbContext.GeneralSettings.Add(new GeneralSettings
                                     {
                                         Key = "iOSNotificationDisabledMsgShown",
                                         Value = "true"
@@ -237,7 +235,7 @@ namespace Bible.Alarm.Platforms.iOS
             completionHandler(downloaded ? UIBackgroundFetchResult.NewData : UIBackgroundFetchResult.NoData);
         }
 
-        private bool _disposed = false;
+        private bool _disposed;
 
         protected override void Dispose(bool disposing)
         {

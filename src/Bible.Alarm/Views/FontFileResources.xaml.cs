@@ -40,18 +40,22 @@ public partial class FontFileResources : ResourceDictionary
             {
                 return "FontAwesomeSolid";
             }
-            else if (DeviceInfo.Platform == DevicePlatform.iOS)
+
+            if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
                 return "Font Awesome 5 Free";
             }
-            else if (DeviceInfo.Platform == DevicePlatform.Android)
+
+            if (DeviceInfo.Platform == DevicePlatform.Android)
             {
                 return "Font Awesome 5 Free-Solid-900.otf#Font Awesome 5 Free Solid";
             }
             
             // Fallback: try to get from ResourceDictionary
 
-<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net9.0-android)', Before:
+            <<<<<<<
+
+            Unmerged change from project 'Bible.Alarm (net9.0-android)',
             return Instance.GetStringResourceForPlatform("FontAwesomeSolidId") ?? "FontAwesomeSolid";
         }
 =======

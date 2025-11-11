@@ -1,5 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Bible.Alarm.Shared.Models.Media;
+﻿using Bible.Alarm.Shared.Models.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 

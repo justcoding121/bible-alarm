@@ -13,7 +13,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 {
     internal class MusicHarverster
     {
-        private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new Dictionary<string, string>(new KeyValuePair<string, string>[]{
+        private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new Dictionary<string, string>(new[]{
             new KeyValuePair<string, string>("osg","Original Songs"),
             new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
             new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
@@ -40,7 +40,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 
                     try
                     {
-                        await MusicHarverster.harvestMusicLinks(publication.Key, new List<string>(new[] { publication.Key }), languageCode);
+                        await harvestMusicLinks(publication.Key, new List<string>(new[] { publication.Key }), languageCode);
                         languageCodeToNames[languageCode] = language;
 
                         if (languageCodeToPublications.ContainsKey(languageCode))
@@ -89,7 +89,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 
         }
 
-        private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new Dictionary<string, string>(new KeyValuePair<string, string>[]{
+        private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new Dictionary<string, string>(new[]{
             new KeyValuePair<string, string>("iam","Sing Praises to Jehovah (1984)")
         });
 
@@ -142,7 +142,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 
             foreach (var publicationDownloadCode in publicationDownloadCodes)
             {
-                var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0{(languageCode == null ? $"&langwritten=E" : $"&langwritten={languageCode}")}&txtCMSLang=E";
+                var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0{(languageCode == null ? "&langwritten=E" : $"&langwritten={languageCode}")}&txtCMSLang=E";
 
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
 
@@ -161,13 +161,13 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                         continue;
 
                     double duration = (double)musicFile["duration"];
-                    musicTracks.Add(new MusicTrack()
+                    musicTracks.Add(new MusicTrack
                     {
                         Number = trackNumber,
                         Title = musicFile["title"].Value,
                         Url = url,
                         LookUpPath = $"?output=json&pub={publicationDownloadCode}&fileformat=MP3" +
-                                    $"{(languageCode == null ? $"&langwritten=E" : $"&langwritten={languageCode}")}" +
+                                    $"{(languageCode == null ? "&langwritten=E" : $"&langwritten={languageCode}")}" +
                                     $"&txtCMSLang=E&track={track}"
                     });
 

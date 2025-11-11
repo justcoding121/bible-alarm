@@ -1,38 +1,37 @@
-using Bible.Alarm.Common;
+// using Bible.Alarm.Views.Schedule; // Schedule is a type, not a namespace
+// using Bible.Alarm.Views.Shared; // Shared is a folder, not a namespace
+
+using System.Diagnostics;
+using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.Network;
+using Bible.Alarm.Common.Interfaces.Platform;
+using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
-using Bible.Alarm.Stores;
-using CommunityToolkit.Maui;
-using Fluxor;
-using Bible.Alarm.Services;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels;
+using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
-using Bible.Alarm.Views.Music;
-// using Bible.Alarm.Views.Schedule; // Schedule is a type, not a namespace
 using Bible.Alarm.Views.General;
-// using Bible.Alarm.Views.Shared; // Shared is a folder, not a namespace
-using Bible.Alarm.Common.Interfaces.Network;
-using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.Battery;
-using Bible.Alarm.Common.Interfaces.Platform;
-using Bible.Alarm.Common.Interfaces.Scheduler;
-using Bible.Alarm.Common.Interfaces.Storage;
-using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Database.Migrations;
-using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
-using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Music;
-using Bible.Alarm.Models.Schedule;
+using CommunityToolkit.Maui;
+using Fluxor;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 #if IOS
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
@@ -41,6 +40,7 @@ using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Platforms.iOS.Services.Media;
 #endif
+
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.UI;
@@ -65,7 +65,7 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
-        System.Diagnostics.Debug.WriteLine("CreateMauiApp called!");
+        Debug.WriteLine("CreateMauiApp called!");
         var builder = MauiApp.CreateBuilder();
 
         builder
@@ -95,9 +95,9 @@ public static class MauiProgram
     {
         // Register platform-specific HttpMessageHandler
 #if ANDROID
-        services.AddSingleton<HttpMessageHandler, Xamarin.Android.Net.AndroidMessageHandler>();
+        services.AddSingleton<HttpMessageHandler, AndroidMessageHandler>();
 #elif IOS
-        services.AddSingleton<HttpMessageHandler, System.Net.Http.HttpClientHandler>();
+        services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
 #elif WINDOWS
         services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
 #endif
@@ -118,7 +118,7 @@ public static class MauiProgram
         services.AddFluxor(options => options.ScanAssemblies(typeof(MauiProgram).Assembly));
 
         // Register logging
-        services.AddSingleton<Serilog.ILogger>(sp => Serilog.Log.Logger);
+        services.AddSingleton(sp => Log.Logger);
 
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
@@ -161,7 +161,7 @@ public static class MauiProgram
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
-        services.AddSingleton<Windows.Media.Playback.MediaPlayer>(sp => new Windows.Media.Playback.MediaPlayer());
+        services.AddSingleton(sp => new MediaPlayer());
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
         services.AddSingleton<WindowsAlarmHandler>();
 #endif
@@ -182,13 +182,13 @@ public static class MauiProgram
         });
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context
-        services.AddSingleton<TaskScheduler>(sp => TaskScheduler.Default);
+        services.AddSingleton(sp => TaskScheduler.Default);
 
 #if WINDOWS
         // CRITICAL FIX FOR WINDOWS — INavigation is NOT auto-registered on Windows
         // This is a known MAUI bug that affects Windows but not Android/iOS
         // Android/iOS auto-register INavigation, but Windows does not
-        services.AddSingleton<Microsoft.Maui.Controls.INavigation>(sp =>
+        services.AddSingleton(sp =>
         {
             var app = Application.Current;
             if (app?.MainPage is NavigationPage navPage)
@@ -280,25 +280,25 @@ public static class MauiProgram
     {
         try
         {
-            var logger = services.GetRequiredService<Serilog.ILogger>();
+            var logger = services.GetRequiredService<ILogger>();
 
 #if ANDROID
             // Android bootstrap initialization
-            var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
+            var context = Platform.CurrentActivity?.ApplicationContext ?? Application.Context;
             var application = Platform.CurrentActivity?.Application;
-            Bible.Alarm.Platforms.Android.Services.Helpers.BootstrapHelper.Initialize(logger, context, application);
+            BootstrapHelper.Initialize(logger, context, application);
 #elif IOS
             // iOS bootstrap initialization
-            Bible.Alarm.Platforms.iOS.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
+            BootstrapHelper.Initialize(logger, isForeground: true);
 #elif WINDOWS
             // Windows bootstrap initialization
-            Bible.Alarm.Platforms.Windows.Helpers.BootstrapHelper.Initialize(logger, isForeground: true);
+            BootstrapHelper.Initialize(logger, isForeground: true);
 #endif
         }
         catch (Exception ex)
         {
             // Log error but don't throw - bootstrap should not prevent app from running
-            System.Diagnostics.Debug.WriteLine($"Error in InitializePlatformBootstrap: {ex.Message}");
+            Debug.WriteLine($"Error in InitializePlatformBootstrap: {ex.Message}");
         }
     }
 }

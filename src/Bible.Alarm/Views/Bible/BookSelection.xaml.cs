@@ -31,7 +31,7 @@ public partial class BookSelection : ContentPage
         
         if (ViewModel?.SelectedBook != null && bookListView != null)
         {
-            await ListViewHelper.ScrollToWhenReadyAsync(bookListView, ViewModel.SelectedBook, ScrollToPosition.Center, true);
+            await ListViewHelper.ScrollToWhenReadyAsync(bookListView, ViewModel.SelectedBook);
         }
     }
 

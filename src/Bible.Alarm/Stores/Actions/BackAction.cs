@@ -1,6 +1,4 @@
-﻿using Fluxor;
-
-namespace Bible.Alarm.Stores.Actions;
+﻿namespace Bible.Alarm.Stores.Actions;
 
 public class BackAction
 {

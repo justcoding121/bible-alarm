@@ -1,27 +1,25 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using Fluxor;
-using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Models;
-using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions;
-using Microsoft.EntityFrameworkCore;
-using Serilog;
 using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.Database;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Database;
+using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Database.Migrations;
-using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Views.Schedule;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -41,7 +39,7 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private readonly Func<AlarmSchedule, ScheduleListItem> _scheduleListItemFactory;
 
-    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     public HomeViewModel(
@@ -53,7 +51,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         INotificationService notificationService,
         IServiceScopeFactory scopeFactory,
         Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
-        Fluxor.IDispatcher dispatcher,
+        IDispatcher dispatcher,
         IState<ApplicationState> state)
     {
         _logger = logger;
@@ -271,7 +269,7 @@ public class HomeViewModel : ObservableObject, IDisposable
     }
 
 
-    private bool _loaded = false;
+    private bool _loaded;
 
     public bool Loaded
     {
@@ -290,7 +288,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _selectedSchedule, value);
     }
 
-    private bool _initialized = false;
+    private bool _initialized;
     private readonly SemaphoreSlim _lock = new(1);
 
     private void ListenIsEnabledChanges()

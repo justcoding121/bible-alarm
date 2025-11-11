@@ -50,14 +50,14 @@ public abstract class StorageService : IStorageService
 
     public async Task SaveFile(string directoryPath, string name, string contents)
     {
-        if (!await DirectoryExists(directoryPath)) await StorageService.CreateDirectoryInternal(directoryPath);
+        if (!await DirectoryExists(directoryPath)) await CreateDirectoryInternal(directoryPath);
 
         File.WriteAllText(Path.Combine(directoryPath, name), contents);
     }
 
     public async Task SaveFile(string directoryPath, string name, byte[] contents)
     {
-        if (!await DirectoryExists(directoryPath)) await StorageService.CreateDirectoryInternal(directoryPath);
+        if (!await DirectoryExists(directoryPath)) await CreateDirectoryInternal(directoryPath);
 
         File.WriteAllBytes(Path.Combine(directoryPath, name), contents);
     }
@@ -65,7 +65,7 @@ public abstract class StorageService : IStorageService
     public async Task CopyResourceFile(string resourceFileName,
         string destinationDirectoryPath, string destinationFileName)
     {
-        if (!await DirectoryExists(destinationDirectoryPath)) await StorageService.CreateDirectoryInternal(destinationDirectoryPath);
+        if (!await DirectoryExists(destinationDirectoryPath)) await CreateDirectoryInternal(destinationDirectoryPath);
 
         var destinationFilePath = Path.Combine(destinationDirectoryPath, destinationFileName);
         

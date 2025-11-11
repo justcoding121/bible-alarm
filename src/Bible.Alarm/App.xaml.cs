@@ -1,12 +1,14 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.Common.Messenger;
+﻿using System.Diagnostics;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.Views;
-using Bible.Alarm.Views.General;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.Views;
+using Bible.Alarm.Views.General;
+using CommunityToolkit.Mvvm.Messaging;
+using Serilog;
 
 namespace Bible.Alarm;
 
@@ -19,13 +21,13 @@ public partial class App : Application,
     IRecipient<ClearToastsMessage>,
     IRecipient<InitializedMessage>
 {
-    private readonly Serilog.ILogger _logger;
+    private readonly ILogger _logger;
     private readonly IServiceProvider _serviceProvider;
 
     public static bool IsInForeground { get; set; } 
     private INavigation Navigation => _serviceProvider.GetService<INavigation>();
 
-    public App(Serilog.ILogger logger, IServiceProvider serviceProvider)
+    public App(ILogger logger, IServiceProvider serviceProvider)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -226,19 +228,19 @@ public partial class App : Application,
                 {
                     try
                     {
-                        System.Diagnostics.Debug.WriteLine("Starting service initialization...");
+                        Debug.WriteLine("Starting service initialization...");
                         
                         var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
                         if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
                         
                         await Task.Delay(100); 
                         
-                        System.Diagnostics.Debug.WriteLine("Service initialization completed!");
+                        Debug.WriteLine("Service initialization completed!");
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error in initialization: {ex.Message}");
-                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                        Debug.WriteLine($"Error in initialization: {ex.Message}");
+                        Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                     }
                 });
             }

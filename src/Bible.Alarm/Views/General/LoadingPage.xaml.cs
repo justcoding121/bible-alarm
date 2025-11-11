@@ -1,20 +1,20 @@
 using System.Timers;
-using Microsoft.Maui.ApplicationModel;
+using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class LoadingPage : ContentPage
 {
-    private readonly System.Timers.Timer _animationTimer;
-    private int _currentDot = 0;
+    private readonly Timer _animationTimer;
+    private int _currentDot;
 
     public LoadingPage()
     {
         InitializeComponent();
         
         // Start animated dots
-        _animationTimer = new System.Timers.Timer(500); // Change dot every 500ms
+        _animationTimer = new Timer(500); // Change dot every 500ms
         _animationTimer.Elapsed += OnTimerElapsed;
         _animationTimer.AutoReset = true;
         _animationTimer.Start();

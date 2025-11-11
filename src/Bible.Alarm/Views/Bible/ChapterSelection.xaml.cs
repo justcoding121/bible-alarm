@@ -28,7 +28,7 @@ public partial class ChapterSelection : ContentPage
         
         if (ViewModel?.SelectedChapter != null && chapterListView != null)
         {
-            await ListViewHelper.ScrollToWhenReadyAsync(chapterListView, ViewModel.SelectedChapter, ScrollToPosition.Center, true);
+            await ListViewHelper.ScrollToWhenReadyAsync(chapterListView, ViewModel.SelectedChapter);
         }
     }
 

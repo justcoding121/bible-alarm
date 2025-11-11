@@ -1,11 +1,10 @@
-using Fluxor;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.DataStructures;
-using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Fluxor;
 
 namespace Bible.Alarm.Stores.Reducers;
 

@@ -2,13 +2,14 @@
 using Android.Content;
 using Android.OS;
 using Android.Runtime;
-using Bible.Alarm;
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.Scheduler;
-using Serilog;
-using static Android.App.AlarmManager;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
+using Bible.Alarm.Services.Scheduler;
+using Java.Lang;
+using Serilog;
+using static Android.App.AlarmManager;
+using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidServices;
 
@@ -18,12 +19,12 @@ public class AlarmSetupService : Service, IDisposable
     private static readonly ILogger Logger = Log.ForContext<AlarmSetupService>();
 
 
-    public static bool IsRunning = false;
+    public static bool IsRunning;
 
     public AlarmSetupService()
     {
         LogSetup.Initialize(VersionFinder.Default,
-            new string[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
+            new[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
@@ -123,7 +124,7 @@ public class AlarmSetupService : Service, IDisposable
         using var alarmService = (AlarmManager)context.GetSystemService(AlarmService);
 
         // Figure out the alaram in milliseconds.
-        var milliSecondsRemaining = Java.Lang.JavaSystem.CurrentTimeMillis()
+        var milliSecondsRemaining = JavaSystem.CurrentTimeMillis()
                                     + (long)time.Subtract(DateTimeOffset.Now).TotalSeconds * 1000;
 
         if (Build.VERSION.SdkInt < BuildVersionCodes.M)
@@ -144,7 +145,7 @@ public class AlarmSetupService : Service, IDisposable
         }
     }
 
-    private bool _disposed = false;
+    private bool _disposed;
 
     protected override void Dispose(bool disposing)
     {

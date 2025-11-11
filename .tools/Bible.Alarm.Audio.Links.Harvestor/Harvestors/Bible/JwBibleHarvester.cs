@@ -99,7 +99,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                     {
                         var name = harvestLink.Contains("booknum=") ? model["pubName"].Value : bookFile["title"].Value.ToString().Split('-')[0].Trim();
                         name = name == "Psalm 1" ? "Psalms" : name;
-                        bookNumberBookMap[bookNumber] = new BibleBook()
+                        bookNumberBookMap[bookNumber] = new BibleBook
                         {
                             Number = (int)bookFile["booknum"].Value,
                             Name = name
@@ -116,7 +116,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                     if (!bookNumberChapterMap[bookNumber].ContainsKey(trackNumber))
                     {
                         bookNumberChapterMap[bookNumber].Add(trackNumber,
-                        new BibleChapter()
+                        new BibleChapter
                         {
                             Number = trackNumber,
                             Url = bookFile["file"]["url"].Value,
@@ -140,7 +140,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                 }
 
                 File.WriteAllText(booksIndex, JsonConvert.SerializeObject(bookNumberBookMap.Select(x =>
-                new BibleBook()
+                new BibleBook
                 {
                     Number = x.Key,
                     Name = x.Value.Name

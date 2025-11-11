@@ -1,18 +1,19 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
@@ -26,7 +27,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly INavigation _navigation;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
-    private readonly Fluxor.IDispatcher _dispatcher;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
@@ -43,7 +44,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         INavigation navigation,
         IDownloadService downloadService,
         IMediaCacheService cacheService,
-        Fluxor.IDispatcher dispatcher,
+        IDispatcher dispatcher,
         IState<ApplicationState> state)
     {
         _logger = logger;

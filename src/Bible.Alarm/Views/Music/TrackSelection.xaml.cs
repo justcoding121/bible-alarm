@@ -28,7 +28,7 @@ public partial class TrackSelection : ContentPage
         
         if (ViewModel?.SelectedTrack != null && trackListView != null)
         {
-            await ListViewHelper.ScrollToWhenReadyAsync(trackListView, ViewModel.SelectedTrack, ScrollToPosition.Center, true);
+            await ListViewHelper.ScrollToWhenReadyAsync(trackListView, ViewModel.SelectedTrack);
         }
     }
 

@@ -19,7 +19,7 @@ public partial class LanguageModal : ContentPage
         
         if (ViewModel?.SelectedItem != null && LanguageListView != null)
         {
-            await ListViewHelper.ScrollToWhenReadyAsync(LanguageListView, ViewModel.SelectedItem, ScrollToPosition.Center, true);
+            await ListViewHelper.ScrollToWhenReadyAsync(LanguageListView, ViewModel.SelectedItem);
         }
     }
 }
