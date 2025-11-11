@@ -98,7 +98,9 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             _current.PublicationCode != _tentative.PublicationCode) return;
         if (SelectedBook != null) SelectedBook.IsSelected = false;
 
-        SelectedBook = _bookVMsMapping[_current.BookNumber];
+        if (!_bookVMsMapping.TryGetValue(_current.BookNumber, out var book)) return;
+        
+        SelectedBook = book;
         SelectedBook.IsSelected = true;
     }
 
@@ -165,8 +167,9 @@ public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, ICom
     public string Name => book.Name;
     public int Number => book.Number;
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
-        return Number.CompareTo((((BibleBookListViewItemModel)obj)).Number);
+        if (obj is not BibleBookListViewItemModel other) return 1;
+        return Number.CompareTo(other.Number);
     }
 }

@@ -337,6 +337,8 @@ public class ScheduleViewModel : ObservableObject
             var nextBook = await playlistService.GetPreviousBibleBook(BibleReadingSchedule.LanguageCode,
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
 
+            if (nextBook.Value == null) return;
+            
             BibleReadingSchedule.BookNumber = nextBook.Value.Number;
             BibleReadingSchedule.ChapterNumber = 1;
             BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
@@ -353,6 +355,8 @@ public class ScheduleViewModel : ObservableObject
             var nextBook = await playlistService.GetNextBibleBook(BibleReadingSchedule.LanguageCode,
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
 
+            if (nextBook.Value == null) return;
+            
             BibleReadingSchedule.BookNumber = nextBook.Value.Number;
             BibleReadingSchedule.ChapterNumber = 1;
             BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
@@ -370,6 +374,8 @@ public class ScheduleViewModel : ObservableObject
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber,
                 BibleReadingSchedule.ChapterNumber);
 
+            if (prevChapter.Key == null || prevChapter.Value == null) return;
+            
             BibleReadingSchedule.BookNumber = prevChapter.Key.Number;
             BibleReadingSchedule.ChapterNumber = prevChapter.Value.Number;
             BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
@@ -387,6 +393,8 @@ public class ScheduleViewModel : ObservableObject
                 BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber,
                 BibleReadingSchedule.ChapterNumber);
 
+            if (nextChapter.Key == null || nextChapter.Value == null) return;
+            
             BibleReadingSchedule.BookNumber = nextChapter.Key.Number;
             BibleReadingSchedule.ChapterNumber = nextChapter.Value.Number;
             BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
@@ -697,7 +705,7 @@ public class ScheduleViewModel : ObservableObject
                 existing.DaysOfWeek = model.DaysOfWeek;
                 existing.IsEnabled = model.IsEnabled;
 
-                if (model.Music != null && _musicUpdated)
+                if (model.Music != null && existing.Music != null && _musicUpdated)
                 {
                     existing.Music.Repeat = model.Music.Repeat;
                     existing.Music.LanguageCode = model.Music.LanguageCode;
@@ -706,7 +714,7 @@ public class ScheduleViewModel : ObservableObject
                     existing.Music.TrackNumber = model.Music.TrackNumber;
                 }
 
-                if (model.BibleReadingSchedule != null)
+                if (model.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
                 {
                     existing.BibleReadingSchedule.BookNumber = model.BibleReadingSchedule.BookNumber;
                     existing.BibleReadingSchedule.ChapterNumber = model.BibleReadingSchedule.ChapterNumber;

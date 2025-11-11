@@ -86,7 +86,10 @@ public class MusicSelectionViewModel : ObservableObject
     {
         if (SelectedMusicType != null) SelectedMusicType.IsSelected = false;
 
-        SelectedMusicType = MusicTypes.First(y => y.MusicType == _current.MusicType);
+        var musicType = MusicTypes.FirstOrDefault(y => y.MusicType == _current.MusicType);
+        if (musicType == null) return;
+        
+        SelectedMusicType = musicType;
         SelectedMusicType.IsSelected = true;
     }
 
@@ -138,8 +141,9 @@ public class MusicTypeListItemViewModel : ObservableObject, IComparable
         set => SetProperty(ref _isSelected, value);
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
-        return string.Compare(Name, (obj as MusicTypeListItemViewModel).Name, StringComparison.Ordinal);
+        if (obj is not MusicTypeListItemViewModel other) return 1;
+        return string.Compare(Name, other.Name, StringComparison.Ordinal);
     }
 }

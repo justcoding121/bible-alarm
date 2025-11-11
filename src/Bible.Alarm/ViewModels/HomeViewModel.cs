@@ -143,6 +143,7 @@ public class HomeViewModel : ObservableObject, IDisposable
                 {
                     //bible gateway is not supported anymore due to copyright issues
                     var toRemove = alarmSchedules.Where(x =>
+                        x.BibleReadingSchedule != null &&
                         BgSourceHelper.PublicationCodeToNameMappings.Any(y =>
                             y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
 
@@ -150,6 +151,7 @@ public class HomeViewModel : ObservableObject, IDisposable
                     {
                         foreach (var item in toRemove)
                         {
+                            if (item.BibleReadingSchedule == null) continue;
                             item.BibleReadingSchedule.PublicationCode = "bi12";
                             item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                         }

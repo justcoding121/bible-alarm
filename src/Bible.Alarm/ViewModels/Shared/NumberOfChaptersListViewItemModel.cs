@@ -15,8 +15,9 @@ public class NumberOfChaptersListViewItemModel(int number) : ObservableObject, I
         set => SetProperty(ref _isSelected, value);
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
-        return Value.CompareTo(((NumberOfChaptersListViewItemModel)obj).Value);
+        if (obj is not NumberOfChaptersListViewItemModel other) return 1;
+        return Value.CompareTo(other.Value);
     }
 }

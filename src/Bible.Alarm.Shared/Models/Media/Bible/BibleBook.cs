@@ -15,9 +15,10 @@ namespace Bible.Alarm.Shared.Models.Media.Bible
 
         public List<BibleChapter> Chapters { get; set; } = new List<BibleChapter>();
 
-        public int CompareTo(object obj)
+        public int CompareTo(object? obj)
         {
-            return Number.CompareTo((obj as BibleBook).Number);
+            if (obj is not BibleBook other) return 1;
+            return Number.CompareTo(other.Number);
         }
     }
 }

@@ -139,7 +139,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         if (_current.LanguageCode != _tentative.LanguageCode) return;
         if (SelectedTranslation != null) SelectedTranslation.IsSelected = false;
 
-        SelectedTranslation = _translationVMsMapping[_current.PublicationCode];
+        if (!_translationVMsMapping.TryGetValue(_current.PublicationCode, out var translation)) return;
+        
+        SelectedTranslation = translation;
         SelectedTranslation.IsSelected = true;
     }
 

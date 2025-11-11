@@ -31,7 +31,11 @@ public static class ResourceLoader
             throw new Exception(string.Format("Multiple resources ending with {0} found: {1}{2}", resourceFileName,
                 Environment.NewLine, string.Join(Environment.NewLine, resourcePaths)));
 
-        return assembly.GetManifestResourceStream(resourcePaths.Single());
+        var stream = assembly.GetManifestResourceStream(resourcePaths.Single());
+        if (stream == null)
+            throw new Exception(string.Format("Resource stream for {0} is null.", resourceFileName));
+        
+        return stream;
     }
 
     public static FileInfo GetFileInfo(Assembly assembly)

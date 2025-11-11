@@ -204,7 +204,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         if (languageCode == null)
         {
             var languages = await _mediaService.GetVocalMusicLanguages();
-            languageCode = languages.ContainsKey("E") ? "E" : languages.First().Key;
+            languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key ?? "E";
         }
 
         _tentative.LanguageCode = languageCode;

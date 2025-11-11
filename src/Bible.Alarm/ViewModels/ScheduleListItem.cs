@@ -19,7 +19,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    public AlarmSchedule Schedule { get; private set; }
+    public AlarmSchedule? Schedule { get; private set; }
 
     // Constructor for DI - Initialize() must be called after construction
     public ScheduleListItem(ILogger logger, IServiceScopeFactory scopeFactory)
@@ -38,6 +38,8 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
 
         PlayCommand = new AsyncRelayCommand(async () =>
         {
+            if (Schedule == null) return;
+            
             using var scope = _scopeFactory.CreateScope();
             using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
 
@@ -68,7 +70,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
-            if (!await CanMove()) return;
+            if (Schedule == null || !await CanMove()) return;
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
@@ -78,7 +80,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
 
         NextCommand = new AsyncRelayCommand(async () =>
         {
-            if (!await CanMove()) return;
+            if (Schedule == null || !await CanMove()) return;
 
             using var scope = _scopeFactory.CreateScope();
             using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
@@ -102,11 +104,11 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
         return false;
     }
 
-    public long ScheduleId => Schedule.Id;
+    public long ScheduleId => Schedule?.Id ?? 0;
 
-    public string Name => Schedule.Name;
+    public string Name => Schedule?.Name ?? string.Empty;
 
-    public string SubTitle { get; private set; }
+    public string SubTitle { get; private set; } = string.Empty;
 
     private bool _isEnabled;
 
@@ -116,15 +118,15 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
         set => SetProperty(ref _isEnabled, value);
     }
 
-    public DaysOfWeek DaysOfWeek => Schedule.DaysOfWeek;
+    public DaysOfWeek DaysOfWeek => Schedule?.DaysOfWeek ?? 0;
 
-    public string TimeText => Schedule.TimeText;
+    public string TimeText => Schedule?.TimeText ?? string.Empty;
 
-    public string Hour => Schedule.MeridienHour.ToString("D2");
+    public string Hour => Schedule?.MeridienHour.ToString("D2") ?? "00";
 
-    public string Minute => Schedule.Minute.ToString("D2");
+    public string Minute => Schedule?.Minute.ToString("D2") ?? "00";
 
-    public Meridien Meridien => Schedule.Meridien;
+    public Meridien Meridien => Schedule?.Meridien ?? Meridien.Am;
 
     public ScheduleListItem This => this;
 
@@ -173,7 +175,7 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
                         .Where(x => x.Id == Schedule.Id)
                         .FirstOrDefaultAsync();
 
-                    if (schedule != null)
+                    if (schedule?.BibleReadingSchedule != null && Schedule?.BibleReadingSchedule != null)
                     {
                         await using var mediaDbContext = serviceScope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
@@ -217,14 +219,15 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
             }, syncContext);
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
-        return ScheduleId.CompareTo(((ScheduleListItem)obj).ScheduleId);
+        if (obj is not ScheduleListItem other) return 1;
+        return ScheduleId.CompareTo(other.ScheduleId);
     }
 
     public void Receive(TrackChangedMessage message)
     {
-        if (message.Value == Schedule.Id)
+        if (Schedule != null && message.Value == Schedule.Id)
         {
             RefreshChapterName();
         }

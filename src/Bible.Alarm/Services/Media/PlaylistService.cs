@@ -81,7 +81,7 @@ public class PlaylistService(
 
         if (trackDetail.PlayType == PlayType.Music)
         {
-            if (!schedule.Music.Repeat)
+            if (schedule.Music != null && !schedule.Music.Repeat)
             {
                 schedule.Music.TrackNumber = trackDetail.TrackNumber;
                 var next = await NextMusicUrlToPlay(schedule, true);
@@ -91,6 +91,8 @@ public class PlaylistService(
         else
         {
             var bibleReadingSchedule = schedule.BibleReadingSchedule;
+            if (bibleReadingSchedule == null)
+                throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
             if (bibleReadingSchedule.BookNumber != trackDetail.BookNumber
                 || bibleReadingSchedule.ChapterNumber != trackDetail.ChapterNumber)
@@ -118,7 +120,7 @@ public class PlaylistService(
 
         if (trackDetail.PlayType == PlayType.Music)
         {
-            if (!schedule.Music.Repeat)
+            if (schedule.Music != null && !schedule.Music.Repeat)
             {
                 var next = await NextMusicUrlToPlay(schedule, true);
                 schedule.Music.TrackNumber = next.PlayDetail.TrackNumber;
@@ -127,6 +129,8 @@ public class PlaylistService(
         else
         {
             var bibleReadingSchedule = schedule.BibleReadingSchedule;
+            if (bibleReadingSchedule == null)
+                throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
             var next = await GetNextBibleChapter(trackDetail.LanguageCode, trackDetail.PublicationCode,
                 trackDetail.BookNumber, trackDetail.ChapterNumber);
@@ -207,6 +211,8 @@ public class PlaylistService(
         if (schedule.MusicEnabled) result.Add(await NextMusicUrlToPlay(schedule));
 
         var bibleReadingSchedule = schedule.BibleReadingSchedule;
+        if (bibleReadingSchedule == null)
+            throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
 
         var bookNumber = bibleReadingSchedule.BookNumber;
         var chapter = bibleReadingSchedule.ChapterNumber;
@@ -214,8 +220,11 @@ public class PlaylistService(
             bibleReadingSchedule.PublicationCode, bookNumber);
 
         if (!chapters.ContainsKey(chapter))
+        {
             _logger.Error(
                 $"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
+            throw new InvalidOperationException($"Chapter {chapter} not found in book {bookNumber}");
+        }
 
         var chapterDetail = chapters[chapter];
 
@@ -325,6 +334,9 @@ public class PlaylistService(
         string publicationCode, int bookNumber, int chapter)
     {
         var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber);
+        if (currentBook == null)
+            throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
+        
         var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
         var nextChapter = chapters.SkipWhile(kvp => kvp.Key <= chapter).FirstOrDefault();
 
@@ -332,8 +344,13 @@ public class PlaylistService(
             return new KeyValuePair<BibleBook, BibleChapter>(currentBook, nextChapter.Value);
 
         var nextBook = await GetNextBibleBook(languageCode, publicationCode, bookNumber);
+        if (nextBook.Value == null)
+            throw new InvalidOperationException($"Next bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
 
         chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, nextBook.Key);
+        if (chapters.Count < 2)
+            throw new InvalidOperationException($"Not enough chapters in next book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={nextBook.Key}");
+        
         return new KeyValuePair<BibleBook, BibleChapter>(nextBook.Value, chapters.ElementAt(1).Value);
     }
 
@@ -341,6 +358,9 @@ public class PlaylistService(
         string publicationCode, int bookNumber, int chapter)
     {
         var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber);
+        if (currentBook == null)
+            throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
+        
         var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
         var previousChapter = chapters.Reverse().SkipWhile(kvp => kvp.Key >= chapter).FirstOrDefault();
 
@@ -348,8 +368,13 @@ public class PlaylistService(
             return new KeyValuePair<BibleBook, BibleChapter>(currentBook, previousChapter.Value);
 
         var previousBook = await GetPreviousBibleBook(languageCode, publicationCode, bookNumber);
+        if (previousBook.Value == null)
+            throw new InvalidOperationException($"Previous bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
 
         chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, previousBook.Key);
+        if (chapters.Count == 0)
+            throw new InvalidOperationException($"No chapters in previous book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={previousBook.Key}");
+        
         return new KeyValuePair<BibleBook, BibleChapter>(previousBook.Value, chapters.ElementAt(chapters.Count - 1).Value);
     }
 
@@ -357,36 +382,56 @@ public class PlaylistService(
         int bookNumber)
     {
         var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
+        if (books.Count == 0)
+            throw new InvalidOperationException($"No bible books found: languageCode={languageCode}, publicationCode={publicationCode}");
+        
         var previousBook = books.Reverse().SkipWhile(kvp => kvp.Key >= bookNumber).FirstOrDefault();
 
         if (!previousBook.Equals(default(KeyValuePair<int, BibleBook>))) return previousBook;
 
         var maxKey = books.Keys.Max();
-        return new KeyValuePair<int, BibleBook>(maxKey, books[maxKey]);
+        if (!books.TryGetValue(maxKey, out var maxBook))
+            throw new InvalidOperationException($"Bible book with key {maxKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
+        
+        return new KeyValuePair<int, BibleBook>(maxKey, maxBook);
     }
 
     public async Task<KeyValuePair<int, BibleBook>> GetNextBibleBook(string languageCode, string publicationCode,
         int bookNumber)
     {
         var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
+        if (books.Count == 0)
+            throw new InvalidOperationException($"No bible books found: languageCode={languageCode}, publicationCode={publicationCode}");
+        
         var previousBook = books.SkipWhile(kvp => kvp.Key <= bookNumber).FirstOrDefault();
 
         if (!previousBook.Equals(default(KeyValuePair<int, BibleBook>))) return previousBook;
 
         var minKey = books.Keys.Min();
-        return new KeyValuePair<int, BibleBook>(minKey, books[minKey]);
+        if (!books.TryGetValue(minKey, out var minBook))
+            throw new InvalidOperationException($"Bible book with key {minKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
+        
+        return new KeyValuePair<int, BibleBook>(minKey, minBook);
     }
 
     private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
     {
+        if (schedule.Music == null)
+            throw new InvalidOperationException($"Music is null for schedule {schedule.Id}");
+        
         switch (schedule.Music.MusicType)
         {
             case MusicType.Melodies:
                 var melodyMusic = schedule.Music;
                 var melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
+                if (melodyTracks.Count == 0)
+                    throw new InvalidOperationException($"No melody tracks found for publication {melodyMusic.PublicationCode}");
 
-                var melodyTrack =
-                    melodyTracks[next ? melodyMusic.TrackNumber % melodyTracks.Count + 1 : melodyMusic.TrackNumber];
+                var melodyTrackIndex = next ? melodyMusic.TrackNumber % melodyTracks.Count + 1 : melodyMusic.TrackNumber;
+                if (melodyTrackIndex < 1 || melodyTrackIndex > melodyTracks.Count)
+                    throw new InvalidOperationException($"Invalid track index {melodyTrackIndex} for {melodyTracks.Count} tracks");
+                
+                var melodyTrack = melodyTracks[melodyTrackIndex];
                 return new PlayItem(new NotificationDetail
                 {
                     ScheduleId = schedule.Id,
@@ -399,8 +444,14 @@ public class PlaylistService(
                 var vocalMusic = schedule.Music;
                 var vocalTracks =
                     await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
-                var vocalTrack =
-                    vocalTracks[next ? vocalMusic.TrackNumber % vocalTracks.Count + 1 : vocalMusic.TrackNumber];
+                if (vocalTracks.Count == 0)
+                    throw new InvalidOperationException($"No vocal tracks found for language {vocalMusic.LanguageCode}, publication {vocalMusic.PublicationCode}");
+                
+                var vocalTrackIndex = next ? vocalMusic.TrackNumber % vocalTracks.Count + 1 : vocalMusic.TrackNumber;
+                if (vocalTrackIndex < 1 || vocalTrackIndex > vocalTracks.Count)
+                    throw new InvalidOperationException($"Invalid track index {vocalTrackIndex} for {vocalTracks.Count} tracks");
+                
+                var vocalTrack = vocalTracks[vocalTrackIndex];
                 return new PlayItem(new NotificationDetail
                 {
                     ScheduleId = schedule.Id,

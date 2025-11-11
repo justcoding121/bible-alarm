@@ -297,7 +297,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         var tracks = isVocal
             ? await _mediaService.GetVocalMusicTracks(languageCode, publicationCode)
             : await _mediaService.GetMelodyMusicTracks(
-                (await _mediaService.GetMelodyMusicReleases()).First().Value.Code);
+                (await _mediaService.GetMelodyMusicReleases()).FirstOrDefault().Value?.Code ?? "iam");
 
         var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
 
