@@ -156,7 +156,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 return;
             }
 
-            foreach (string directory in Directory.GetDirectories(path))
+            foreach (var directory in Directory.GetDirectories(path))
             {
                 deleteDirectory(directory);
             }

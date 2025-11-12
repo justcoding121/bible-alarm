@@ -12,7 +12,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
         private readonly ILogger _logger = logger;
         private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-        public async Task ShowNotification(long scheduleId)
+        public async Task ShowNotification(int scheduleId)
         {
             using var scope = _scopeFactory.CreateScope();
             var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IOsAlarmHandler>();
@@ -59,7 +59,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        public async Task Remove(long scheduleId)
+        public async Task Remove(int scheduleId)
         {
             await Task.Delay(0).ContinueWith(x =>
             {
@@ -80,7 +80,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        public async Task<bool> IsScheduled(long scheduleId)
+        public async Task<bool> IsScheduled(int scheduleId)
         {
             return await Task.Delay(0).ContinueWith(x =>
             {

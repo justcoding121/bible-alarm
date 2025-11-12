@@ -18,7 +18,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
         //Need this to fix issue in XamarinMediaManager (notification stays on screen)
         private static bool firstTime = true;
 
-        public async Task Handle(long scheduleId, bool isImmediate)
+        public async Task Handle(int scheduleId, bool isImmediate)
         {
             try
             {

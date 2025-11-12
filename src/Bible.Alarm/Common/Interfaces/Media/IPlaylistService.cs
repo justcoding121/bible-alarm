@@ -7,14 +7,14 @@ public interface IPlaylistService : IDisposable
 {
     Task MarkTrackAsPlayed(NotificationDetail trackDetail);
     Task MarkTrackAsFinished(NotificationDetail trackDetail);
-    Task<PlayItem> NextTrack(long scheduleId);
-    Task<List<PlayItem>> NextTracks(long scheduleId);
+    Task<PlayItem> NextTrack(int scheduleId);
+    Task<List<PlayItem>> NextTracks(int scheduleId);
     Task SaveLastPlayed(long currentScheduleId);
 
     Task<long> GetRelavantScheduleToPlay();
 
-    Task MoveToNextBibleChapter(long scheduleId);
-    Task MoveToPreviousBibleChapter(long scheduleId);
+    Task MoveToNextBibleChapter(int scheduleId);
+    Task MoveToPreviousBibleChapter(int scheduleId);
 
     Task<KeyValuePair<BibleBook, BibleChapter>> GetNextBibleChapter(string languageCode, string publicationCode,
         int bookNumber, int chapter);

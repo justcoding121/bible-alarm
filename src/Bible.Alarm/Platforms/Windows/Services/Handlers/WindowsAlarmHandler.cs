@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
 
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 
-        public async Task Handle(long scheduleId, bool isImmediate)
+        public async Task Handle(int scheduleId, bool isImmediate)
         {
             try
             {

@@ -14,7 +14,7 @@ public class ScheduleSelectionService(
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-    public async Task<AlarmMusic> LoadMusicForSelectionAsync(long scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic)
+    public async Task<AlarmMusic> LoadMusicForSelectionAsync(int scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic)
     {
         try
         {
@@ -37,7 +37,7 @@ public class ScheduleSelectionService(
         }
     }
 
-    public async Task<BibleReadingSchedule> LoadBibleReadingForSelectionAsync(long scheduleId, bool isNewSchedule, bool bibleReadingUpdated, BibleReadingSchedule currentBibleReading)
+    public async Task<BibleReadingSchedule> LoadBibleReadingForSelectionAsync(int scheduleId, bool isNewSchedule, bool bibleReadingUpdated, BibleReadingSchedule currentBibleReading)
     {
         try
         {

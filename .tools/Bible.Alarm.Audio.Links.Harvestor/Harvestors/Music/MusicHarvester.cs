@@ -104,7 +104,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                 //multiple discs for 1984 melodies
                 if (publication.Key == "iam")
                 {
-                    for (int i = 1; i <= 9; i++)
+                    for (var i = 1; i <= 9; i++)
                     {
                         //we don't have these discs
                         if (i is 7 or 8)
@@ -137,7 +137,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                                              $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languageCode}/{publicationCode}";
             var file = $"{dir}/tracks.json";
 
-            int trackNumber = 1;
+            var trackNumber = 1;
             var musicTracks = new List<MusicTrack>();
 
             foreach (var publicationDownloadCode in publicationDownloadCodes)
@@ -154,13 +154,13 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                 foreach (var musicFile in musicFiles)
                 {
                     string url = musicFile["file"]["url"].Value;
-                    int track = (int)musicFile["track"].Value;
+                    var track = (int)musicFile["track"].Value;
 
                     if (track == 0
                         || url.EndsWith(".zip"))
                         continue;
 
-                    double duration = (double)musicFile["duration"];
+                    var duration = (double)musicFile["duration"];
                     musicTracks.Add(new MusicTrack
                     {
                         Number = trackNumber,

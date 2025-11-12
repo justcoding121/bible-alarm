@@ -72,7 +72,7 @@ public class AlarmSetupService : Service, IDisposable
                     var time = DateTimeOffset.Parse(intent.GetStringExtra("Time"));
                     var title = intent.GetStringExtra("Title");
                     var body = intent.GetStringExtra("Body");
-                    ScheduleNotification(ApplicationContext, long.Parse(intent.GetStringExtra("ScheduleId")), time,
+                    ScheduleNotification(ApplicationContext, int.Parse(intent.GetStringExtra("ScheduleId")), time,
                         title, body);
                     break;
                 }
@@ -110,7 +110,7 @@ public class AlarmSetupService : Service, IDisposable
         IsRunning = false;
     }
 
-    public static void ScheduleNotification(Context context, long scheduleId, DateTimeOffset time,
+    public static void ScheduleNotification(Context context, int scheduleId, DateTimeOffset time,
         string title, string body)
     {
         using var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));

@@ -25,7 +25,7 @@ public class ScheduleStateService(
     private readonly IToastService _toastService = toastService;
     private readonly IDispatcher _dispatcher = dispatcher;
 
-    public async Task<bool> UpdateScheduleEnabledStateAsync(long scheduleId, bool isEnabled)
+    public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {
         // Check notification permissions if enabling
         if (isEnabled &&

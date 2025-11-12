@@ -172,7 +172,7 @@ public class PlaybackService : IPlaybackService
         }
     }
 
-    public async Task PrepareAndPlay(long scheduleId, bool isImmediate)
+    public async Task PrepareAndPlay(int scheduleId, bool isImmediate)
     {
         try
         {
@@ -206,7 +206,7 @@ public class PlaybackService : IPlaybackService
         }
     }
 
-    private async Task Prepare(long scheduleId)
+    private async Task Prepare(int scheduleId)
     {
         Reset();
         await PreparePlay(scheduleId, true, true);
@@ -222,7 +222,7 @@ public class PlaybackService : IPlaybackService
         _isPrepared = false;
     }
 
-    private async Task PreparePlay(long scheduleId, bool isImmediatePlayRequest, bool prepareOnly)
+    private async Task PreparePlay(int scheduleId, bool isImmediatePlayRequest, bool prepareOnly)
     {
         try
         {

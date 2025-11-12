@@ -36,7 +36,7 @@ public static class ListViewHelper
             if (listView.ItemsSource != null)
             {
                 // Additional verification on Windows before attempting scroll
-                bool canScroll = true;
+                var canScroll = true;
 #if WINDOWS
                 if (DeviceInfo.Platform == DevicePlatform.WinUI)
                 {
@@ -74,9 +74,9 @@ public static class ListViewHelper
     {
         const int maxAttempts = 50; // Maximum number of attempts (5 seconds total)
         const int delayMs = 100; // Delay between attempts
-        bool isReady = false;
+        var isReady = false;
 
-        for (int i = 0; i < maxAttempts; i++)
+        for (var i = 0; i < maxAttempts; i++)
         {
             await Task.Delay(delayMs);
             

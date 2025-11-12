@@ -14,6 +14,6 @@ public interface IPlaybackService
     Task PlayPrevious();
     Task PlayNext();
 
-    Task PrepareAndPlay(long scheduleId, bool isImmediate);
+    Task PrepareAndPlay(int scheduleId, bool isImmediate);
     Task Dismiss();
 }

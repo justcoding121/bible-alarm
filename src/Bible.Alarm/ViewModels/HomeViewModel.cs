@@ -60,13 +60,17 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             x.Schedule.IsEnabled = x.IsEnabled;
 
-            _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
-
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             var page = scope.ServiceProvider.GetRequiredService<Schedule>();
             page.BindingContext = viewModel;
             await navigation.PushAsync(page);
+
+            // Small delay to ensure ViewModel is fully initialized and subscribed
+            await Task.Delay(10);
+
+            // Dispatch after navigation so the ViewModel is already subscribed to state changes
+            _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
         });
 
         _state.StateChanged += OnStateChanged;

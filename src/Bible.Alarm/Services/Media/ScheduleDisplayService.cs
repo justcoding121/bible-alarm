@@ -16,16 +16,16 @@ public class ScheduleDisplayService(
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-    public async Task<string> GetChapterDisplayNameAsync(long scheduleId, bool force = false)
+    public async Task<string> GetChapterDisplayNameAsync(int scheduleId, bool force = false)
     {
         return await GetChapterDisplayNameForBibleReadingAsync(scheduleId, null, force);
     }
 
-    public async Task<string> GetChapterDisplayNameForBibleReadingAsync(long scheduleId, BibleReadingSchedule bibleReadingSchedule, bool force = false)
+    public async Task<string> GetChapterDisplayNameForBibleReadingAsync(int scheduleId, BibleReadingSchedule bibleReadingSchedule, bool force = false)
     {
         try
         {
-            BibleReadingSchedule scheduleToUse = bibleReadingSchedule;
+            var scheduleToUse = bibleReadingSchedule;
 
             // If bibleReadingSchedule is not provided, load it from database
             if (scheduleToUse == null)

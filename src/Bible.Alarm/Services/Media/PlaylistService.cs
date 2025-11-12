@@ -148,7 +148,7 @@ public class PlaylistService(
         WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
     }
 
-    public async Task<PlayItem> NextTrack(long scheduleId)
+    public async Task<PlayItem> NextTrack(int scheduleId)
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -194,7 +194,7 @@ public class PlaylistService(
         return new PlayItem(notificationDetail, url);
     }
 
-    public async Task<List<PlayItem>> NextTracks(long scheduleId)
+    public async Task<List<PlayItem>> NextTracks(int scheduleId)
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -286,7 +286,7 @@ public class PlaylistService(
         return result;
     }
 
-    public async Task MoveToNextBibleChapter(long scheduleId)
+    public async Task MoveToNextBibleChapter(int scheduleId)
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -313,7 +313,7 @@ public class PlaylistService(
         await scheduleDbContext.SaveChangesAsync();
     }
 
-    public async Task MoveToPreviousBibleChapter(long scheduleId)
+    public async Task MoveToPreviousBibleChapter(int scheduleId)
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();

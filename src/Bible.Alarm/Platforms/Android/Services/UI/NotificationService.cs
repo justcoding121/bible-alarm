@@ -28,7 +28,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
     private readonly ILogger _logger = logger;
 
 
-    public async Task ShowNotification(long scheduleId)
+    public async Task ShowNotification(int scheduleId)
     {
         try
         {
@@ -139,7 +139,7 @@ public class DroidNotificationService(ILogger logger) : INotificationService
         notificationManager.Cancel(scheduleId);
     }
 
-    public Task Remove(long scheduleId)
+    public Task Remove(int scheduleId)
     {
         var pIntent = FindIntent(scheduleId);
 
@@ -153,13 +153,13 @@ public class DroidNotificationService(ILogger logger) : INotificationService
         return Task.CompletedTask;
     }
 
-    public Task<bool> IsScheduled(long scheduleId)
+    public Task<bool> IsScheduled(int scheduleId)
     {
         var pIntent = FindIntent(scheduleId);
         return Task.FromResult(pIntent != null);
     }
 
-    private static PendingIntent FindIntent(long scheduleId)
+    private static PendingIntent FindIntent(int scheduleId)
     {
         var context = AndroidApplication.Context;
 

@@ -12,7 +12,7 @@ public class SchedulePlaybackService(
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-    public async Task PlayScheduleAsync(long scheduleId)
+    public async Task PlayScheduleAsync(int scheduleId)
     {
         if (scheduleId <= 0) return;
 

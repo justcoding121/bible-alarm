@@ -120,7 +120,7 @@ public class SchedulePersistenceService(
         }
     }
 
-    public async Task DeleteScheduleAsync(long scheduleId)
+    public async Task DeleteScheduleAsync(int scheduleId)
     {
         try
         {

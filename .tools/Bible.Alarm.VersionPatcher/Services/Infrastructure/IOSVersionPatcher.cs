@@ -26,7 +26,7 @@ public class IOSVersionPatcher(IVersionService versionService, IFileService file
         var output = new StringBuilder();
         var versionFound = false;
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             

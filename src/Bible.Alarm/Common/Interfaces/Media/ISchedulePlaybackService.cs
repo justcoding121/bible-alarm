@@ -2,7 +2,7 @@ namespace Bible.Alarm.Common.Interfaces.Media;
 
 public interface ISchedulePlaybackService
 {
-    Task PlayScheduleAsync(long scheduleId);
+    Task PlayScheduleAsync(int scheduleId);
     Task<bool> CanMoveChapterAsync();
 }
 

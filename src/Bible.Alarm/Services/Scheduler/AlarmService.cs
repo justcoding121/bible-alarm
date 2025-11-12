@@ -21,7 +21,7 @@ public class AlarmService(
         if (schedule.IsEnabled) ScheduleNotification(schedule);
     }
 
-    public void Delete(long scheduleId)
+    public void Delete(int scheduleId)
     {
         RemoveNotification(scheduleId);
     }
@@ -33,7 +33,7 @@ public class AlarmService(
             "Press to start listening now.");
     }
 
-    private void RemoveNotification(long scheduleId)
+    private void RemoveNotification(int scheduleId)
     {
         notificationService.Remove(scheduleId);
     }

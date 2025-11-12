@@ -4,7 +4,7 @@ namespace Bible.Alarm.Common.Interfaces.Scheduler;
 
 public interface IScheduleSelectionService
 {
-    Task<AlarmMusic> LoadMusicForSelectionAsync(long scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic);
-    Task<BibleReadingSchedule> LoadBibleReadingForSelectionAsync(long scheduleId, bool isNewSchedule, bool bibleReadingUpdated, BibleReadingSchedule currentBibleReading);
+    Task<AlarmMusic> LoadMusicForSelectionAsync(int scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic);
+    Task<BibleReadingSchedule> LoadBibleReadingForSelectionAsync(int scheduleId, bool isNewSchedule, bool bibleReadingUpdated, BibleReadingSchedule currentBibleReading);
 }
 

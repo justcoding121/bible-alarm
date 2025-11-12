@@ -11,7 +11,7 @@ public class MediaCacheSetupService(
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-    public async Task SetupAlarmCacheAsync(long scheduleId)
+    public async Task SetupAlarmCacheAsync(int scheduleId)
     {
         try
         {

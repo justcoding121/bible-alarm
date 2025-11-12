@@ -6,5 +6,5 @@ public interface IAlarmService : IDisposable
 {
     Task Create(AlarmSchedule schedule);
     void Update(AlarmSchedule schedule);
-    void Delete(long scheduleId);
+    void Delete(int scheduleId);
 }

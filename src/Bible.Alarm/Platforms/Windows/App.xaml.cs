@@ -92,10 +92,10 @@ namespace Bible.Alarm.WinUI
             {
                 // Parse schedule ID from arguments
                 // Format could be: "scheduleId=123" or just "123"
-                long scheduleId = 0;
-                if (long.TryParse(arguments.Trim(), out scheduleId) ||
+                int scheduleId = 0;
+                if (int.TryParse(arguments.Trim(), out scheduleId) ||
                     (arguments.Contains("scheduleId=") &&
-                     long.TryParse(arguments.Split('=').LastOrDefault(), out scheduleId)))
+                     int.TryParse(arguments.Split('=').LastOrDefault(), out scheduleId)))
                 {
                     Task.Run(async () =>
                     {

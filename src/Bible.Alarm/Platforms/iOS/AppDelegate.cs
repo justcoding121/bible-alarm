@@ -209,7 +209,7 @@ namespace Bible.Alarm.Platforms.iOS
         public async override void PerformFetch(UIApplication application,
             Action<UIBackgroundFetchResult> completionHandler)
         {
-            bool downloaded = false;
+            var downloaded = false;
 
             try
             {

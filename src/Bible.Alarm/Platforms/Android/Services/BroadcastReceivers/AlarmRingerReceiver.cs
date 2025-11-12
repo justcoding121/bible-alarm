@@ -58,7 +58,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
             _alarmHandler = ServiceProviderManager.GetService<AndroidAlarmHandler>();
             _alarmHandler.Disposed += OnDisposed;
-            await _alarmHandler.Handle(long.Parse(scheduleId), isImmediate);
+            await _alarmHandler.Handle(int.Parse(scheduleId), isImmediate);
         }
         catch (Exception e)
         {

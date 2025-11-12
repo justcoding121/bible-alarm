@@ -2,5 +2,5 @@
 
 public interface IAndroidAlarmHandler
 {
-    Task Handle(long scheduleId, bool isImmediate);
+    Task Handle(int scheduleId, bool isImmediate);
 }

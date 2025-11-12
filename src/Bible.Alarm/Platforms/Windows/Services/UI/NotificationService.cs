@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
     {
         private readonly WindowsAlarmHandler _windowsAlarmHandler = windowsAlarmHandler;
 
-        public async Task ShowNotification(long scheduleId)
+        public async Task ShowNotification(int scheduleId)
         {
             await _windowsAlarmHandler.Handle(scheduleId, true);
         }
@@ -26,7 +26,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             return Task.CompletedTask;
         }
 
-        public Task Remove(long scheduleId)
+        public Task Remove(int scheduleId)
         {
             // For WinUI 3 desktop apps, we can't use UWP toast notifications
             // This functionality would need to be implemented using alternative approaches
@@ -35,7 +35,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             return Task.CompletedTask;
         }
 
-        public Task<bool> IsScheduled(long scheduleId)
+        public Task<bool> IsScheduled(int scheduleId)
         {
             // For WinUI 3 desktop apps, we can't use UWP toast notifications
             // This functionality would need to be implemented using alternative approaches

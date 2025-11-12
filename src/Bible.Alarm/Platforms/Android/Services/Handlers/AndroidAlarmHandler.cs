@@ -21,7 +21,7 @@ public class AndroidAlarmHandler(
 
     public event EventHandler<bool> Disposed;
 
-    public async Task Handle(long scheduleId, bool isImmediate)
+    public async Task Handle(int scheduleId, bool isImmediate)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();

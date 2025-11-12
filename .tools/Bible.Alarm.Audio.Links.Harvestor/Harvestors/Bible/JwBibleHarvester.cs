@@ -106,8 +106,8 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                         };
                     }
 
-                    int trackNumber = (int)bookFile["track"].Value;
-                    double duration = (double)bookFile["duration"].Value;
+                    var trackNumber = (int)bookFile["track"].Value;
+                    var duration = (double)bookFile["duration"].Value;
                     if (!bookNumberChapterMap.ContainsKey(bookNumber))
                     {
                         bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
