@@ -225,7 +225,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
 
         foreach (var language in languages.Select(x => x.Value)
                      .Where(x => searchTerm == null
-                                 || x.Name.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0)
+                                 || x.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                      .OrderBy(x => x.Name))
         {
             var languageVm = new LanguageListViewItemModel(language);

@@ -37,16 +37,14 @@ public class ScheduleListItem(
             _isInitializing = false;
         }
 
-        // Raise property changed for all computed properties to refresh UI
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(TimeText));
         OnPropertyChanged(nameof(Hour));
         OnPropertyChanged(nameof(Minute));
-        OnPropertyChanged(nameof(Meridien));
+        OnPropertyChanged(nameof(Meridian));
         OnPropertyChanged(nameof(DaysOfWeek));
         OnPropertyChanged(nameof(IsEnabled));
 
-        // Register for messages only once
         if (!_isRegistered)
         {
             WeakReferenceMessenger.Default.Register(this);
@@ -82,7 +80,6 @@ public class ScheduleListItem(
         });
     }
 
-
     public int ScheduleId => Schedule?.Id ?? 0;
 
     public string Name => Schedule?.Name ?? string.Empty;
@@ -98,7 +95,6 @@ public class ScheduleListItem(
         {
             if (SetProperty(ref _isEnabled, value) && !_isInitializing && Schedule != null)
             {
-                // Handle IsEnabled change asynchronously
                 _ = HandleIsEnabledChanged(value);
             }
         }
@@ -110,7 +106,6 @@ public class ScheduleListItem(
         {
             var success = await scheduleStateService.UpdateScheduleEnabledStateAsync(ScheduleId, newValue);
             
-            // If the state change was rejected (e.g., due to permissions), revert the UI
             if (!success)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -121,7 +116,6 @@ public class ScheduleListItem(
             }
             else
             {
-                // Refresh properties to reflect any changes
                 RaisePropertiesChangedEvent();
             }
         }
@@ -129,7 +123,6 @@ public class ScheduleListItem(
         {
             logger.Error(ex, "An error occurred while handling IsEnabled change for schedule {ScheduleId}", ScheduleId);
             
-            // Revert on error
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 _isEnabled = !newValue;
@@ -142,11 +135,11 @@ public class ScheduleListItem(
 
     public string TimeText => Schedule?.TimeText ?? string.Empty;
 
-    public string Hour => Schedule?.MeridienHour.ToString("D2") ?? "00";
+    public string Hour => Schedule?.MeridianHour.ToString("D2") ?? "00";
 
     public string Minute => Schedule?.Minute.ToString("D2") ?? "00";
 
-    public Meridien Meridien => Schedule?.Meridien ?? Meridien.Am;
+    public Meridian Meridian => Schedule?.Meridian ?? Meridian.Am;
 
     public ScheduleListItem This => this;
 
@@ -194,8 +187,7 @@ public class ScheduleListItem(
 
     public int CompareTo(object obj)
     {
-        if (obj is not ScheduleListItem other) return 1;
-        return ScheduleId.CompareTo(other.ScheduleId);
+        return obj is not ScheduleListItem other ? 1 : ScheduleId.CompareTo(other.ScheduleId);
     }
 
     public void Receive(TrackChangedMessage message)
@@ -208,10 +200,8 @@ public class ScheduleListItem(
 
     public void Dispose()
     {
-        if (_isRegistered)
-        {
-            WeakReferenceMessenger.Default.Unregister<TrackChangedMessage>(this);
-            _isRegistered = false;
-        }
+        if (!_isRegistered) return;
+        WeakReferenceMessenger.Default.Unregister<TrackChangedMessage>(this);
+        _isRegistered = false;
     }
 }

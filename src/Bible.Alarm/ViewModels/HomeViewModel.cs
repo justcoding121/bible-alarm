@@ -62,7 +62,6 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             x.Schedule.IsEnabled = x.IsEnabled;
 
-            // Then create scoped VM and navigate
             using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             var page = scope.ServiceProvider.GetRequiredService<Schedule>();
@@ -140,28 +139,23 @@ public class HomeViewModel : ObservableObject, IDisposable
         var newViewModels = new ObservableHashSet<ScheduleListItem>();
         var currentViewModelIds = new HashSet<int>();
 
-        // Create or update ViewModels for each schedule
         foreach (var schedule in schedules)
         {
             currentViewModelIds.Add(schedule.Id);
             
             if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
             {
-                // Update existing ViewModel's Schedule property
-                // Initialize sets IsEnabled internally without triggering the handler
                 existingViewModel.Initialize(schedule);
                 newViewModels.Add(existingViewModel);
             }
             else
             {
-                // Create new ViewModel using factory with full DI
                 var viewModel = _scheduleListItemFactory(schedule);
                 _scheduleViewModels[schedule.Id] = viewModel;
                 newViewModels.Add(viewModel);
             }
         }
 
-        // Dispose and remove ViewModels for schedules that no longer exist
         var toRemove = _scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
         foreach (var id in toRemove)
         {
@@ -213,10 +207,9 @@ public class HomeViewModel : ObservableObject, IDisposable
         var stateValue = _state.Value;
         if (stateValue.Schedules == null) return;
         
-        // Ensure UI updates happen on the main thread
         _ = MainThread.InvokeOnMainThreadAsync(() =>
         {
-            // Always update to match the store - keep it simple
+
             UpdateScheduleViewModels(stateValue.Schedules);
             IsBusy = false;
         });
@@ -224,10 +217,8 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        // Unsubscribe from state changes
         _state.StateChanged -= OnStateChanged;
         
-        // Dispose all schedule view models
         if (Schedules != null)
         {
             foreach (var item in Schedules)

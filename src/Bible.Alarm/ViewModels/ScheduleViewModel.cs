@@ -532,7 +532,7 @@ public class ScheduleViewModel : ObservableObject
 
     public string Minute => Time.Minutes.ToString("D2");
 
-    public Meridien Meridien => Time.Hours < 12 ? Meridien.Am : Meridien.Pm;
+    public Meridian Meridian => Time.Hours < 12 ? Meridian.Am : Meridian.Pm;
 
     private bool _musicEnabled;
 

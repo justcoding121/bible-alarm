@@ -16,18 +16,18 @@ public class AlarmSchedule : IComparable
     //24 hour based
     public int Hour { get; set; }
 
-    public int MeridienHour => Meridien == Meridien.Am ? Hour == 0
+    public int MeridianHour => Meridian == Meridian.Am ? Hour == 0
             ? 12
             : Hour :
         Hour == 12 ? 12 : Hour % 12;
 
     public int Minute { get; set; }
-    public Meridien Meridien => Hour < 12 ? Meridien.Am : Meridien.Pm;
+    public Meridian Meridian => Hour < 12 ? Meridian.Am : Meridian.Pm;
     public int Second { get; set; }
 
     public DaysOfWeek DaysOfWeek { get; set; }
 
-    public string TimeText => $"{MeridienHour:D2}:{Minute:D2}";
+    public string TimeText => $"{MeridianHour:D2}:{Minute:D2}";
 
     public string CronExpression => GetCronExpression();
 

@@ -17,7 +17,6 @@ public class NumberOfChaptersListViewItemModel(int number) : ObservableObject, I
 
     public int CompareTo(object obj)
     {
-        if (obj is not NumberOfChaptersListViewItemModel other) return 1;
-        return Value.CompareTo(other.Value);
+        return obj is not NumberOfChaptersListViewItemModel other ? 1 : Value.CompareTo(other.Value);
     }
 }

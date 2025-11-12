@@ -216,7 +216,6 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         await PopulateLanguages();
         await PopulateSongBooks(languageCode);
 
-        // Subscribe to LanguageSearchTerm property changes
         PropertyChanged += (sender, e) =>
         {
             if (e.PropertyName == "LanguageSearchTerm")
@@ -233,7 +232,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 
         foreach (var language in languages.Select(x => x.Value)
                      .Where(x => searchTerm == null
-                                 || x.Name.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0)
+                                 || x.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                      .OrderBy(x => x.Name))
         {
             var languageVm = new LanguageListViewItemModel(language);

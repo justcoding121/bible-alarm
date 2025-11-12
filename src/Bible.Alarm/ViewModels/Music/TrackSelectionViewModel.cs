@@ -398,6 +398,6 @@ public class MusicTrackListViewItemModel : ObservableObject, IComparable
 
     public int CompareTo(object obj)
     {
-        return Number.CompareTo(((MusicTrackListViewItemModel)obj).Number);
+        return Number.CompareTo((obj as MusicTrackListViewItemModel)?.Number);
     }
 }

@@ -150,7 +150,7 @@
                                             Margin="0"
                                             Padding="0"
                                             FontSize="Small"
-                                            Text="{Binding Meridien}"
+                                            Text="{Binding Meridian}"
                                             VerticalOptions="CenterAndExpand"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
                                             VerticalTextAlignment="Center" />

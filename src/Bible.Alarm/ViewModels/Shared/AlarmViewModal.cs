@@ -29,15 +29,13 @@ public class AlarmViewModal : ObservableObject, IDisposable
 
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory)
     {
-        var logger1 = logger;
         _playbackService = playbackService;
-        var scopeFactory1 = scopeFactory;
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Dismiss();
             
-            using var scope = scopeFactory1.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
             try
@@ -73,7 +71,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             }
             catch (Exception e)
             {
-                logger1.Error(e, "An error happened when review was requested.");
+                logger.Error(e, "An error happened when review was requested.");
             }
 
             await scheduleDbContext.SaveChangesAsync();
@@ -110,14 +108,12 @@ public class AlarmViewModal : ObservableObject, IDisposable
 
         ForwardCommand = new AsyncRelayCommand(async () =>
         {
-            // MediaElement doesn't have StepForward - using seek instead
             await _playbackService.Play();
             Refresh();
         });
 
         BackwardCommand = new AsyncRelayCommand(async () =>
         {
-            // MediaElement doesn't have StepBackward - using pause instead
             await _playbackService.Pause();
             Refresh();
         });
@@ -149,7 +145,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
     {
         try
         {
-            // Simplified refresh for MediaElement
+    
             if (_playbackService.IsPlaying)
             {
                 PlayVisible = false;
