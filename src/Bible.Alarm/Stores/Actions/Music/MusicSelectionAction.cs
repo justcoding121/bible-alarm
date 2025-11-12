@@ -2,12 +2,7 @@
 
 namespace Bible.Alarm.Stores.Actions.Music;
 
-public class MusicSelectionAction
+public class MusicSelectionAction(AlarmMusic currentMusic)
 {
-    public AlarmMusic CurrentMusic { get; }
-
-    public MusicSelectionAction(AlarmMusic currentMusic)
-    {
-        CurrentMusic = currentMusic;
-    }
+    public AlarmMusic CurrentMusic { get; } = currentMusic;
 }

@@ -44,7 +44,7 @@ public partial class App : Application,
         WeakReferenceMessenger.Default.Register<ClearToastsMessage>(this);
     }
 
-    protected override Window CreateWindow(IActivationState? activationState)
+    protected override Window CreateWindow(IActivationState activationState)
     {
         var loadingPage = _serviceProvider.GetRequiredService<LoadingPage>();
         var navigationPage = new NavigationPage(loadingPage)

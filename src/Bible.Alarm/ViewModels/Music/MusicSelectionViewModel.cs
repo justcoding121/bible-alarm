@@ -141,7 +141,7 @@ public class MusicTypeListItemViewModel : ObservableObject, IComparable
         set => SetProperty(ref _isSelected, value);
     }
 
-    public int CompareTo(object? obj)
+    public int CompareTo(object obj)
     {
         if (obj is not MusicTypeListItemViewModel other) return 1;
         return string.Compare(Name, other.Name, StringComparison.Ordinal);

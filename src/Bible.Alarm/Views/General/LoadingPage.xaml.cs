@@ -23,7 +23,7 @@ public partial class LoadingPage : ContentPage
         UpdateDots();
     }
 
-    private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    private void OnTimerElapsed(object sender, ElapsedEventArgs e)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {

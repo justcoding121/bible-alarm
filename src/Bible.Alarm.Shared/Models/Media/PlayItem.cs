@@ -1,16 +1,10 @@
 ﻿namespace Bible.Alarm.Shared.Models.Media
 {
-    public class PlayItem
+    public class PlayItem(NotificationDetail detail, string url)
     {
-        public NotificationDetail PlayDetail { get; set; }
+        public NotificationDetail PlayDetail { get; set; } = detail;
 
-        public string Url { get; set; }
-
-        public PlayItem(NotificationDetail detail, string url)
-        {
-            PlayDetail = detail;
-            Url = url;
-        }
+        public string Url { get; set; } = url;
 
         public override string ToString()
         {

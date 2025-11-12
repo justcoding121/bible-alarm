@@ -1,11 +1,6 @@
 ﻿namespace Bible.Alarm.Stores.Actions;
 
-public class BackAction
+public class BackAction(IDisposable currentViewModel)
 {
-    public IDisposable CurrentViewModel { get; }
-
-    public BackAction(IDisposable currentViewModel)
-    {
-        CurrentViewModel = currentViewModel;
-    }
+    public IDisposable CurrentViewModel { get; } = currentViewModel;
 }

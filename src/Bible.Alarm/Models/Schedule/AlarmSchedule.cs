@@ -33,9 +33,9 @@ public class AlarmSchedule : IComparable
 
     public bool NotificationEnabled { get; set; }
     public bool MusicEnabled { get; set; }
-    public virtual AlarmMusic? Music { get; set; }
+    public virtual AlarmMusic Music { get; set; }
 
-    public virtual BibleReadingSchedule? BibleReadingSchedule { get; set; }
+    public virtual BibleReadingSchedule BibleReadingSchedule { get; set; }
 
     public int SnoozeMinutes { get; set; } = 5;
 
@@ -92,7 +92,7 @@ public class AlarmSchedule : IComparable
         if (nextFire == null) throw new Exception("Invalid alarm time.");
     }
 
-    public int CompareTo(object? obj)
+    public int CompareTo(object obj)
     {
         if (obj is not AlarmSchedule other) return 1;
         return Id.CompareTo(other.Id);

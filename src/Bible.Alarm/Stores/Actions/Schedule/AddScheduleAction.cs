@@ -2,12 +2,7 @@
 
 namespace Bible.Alarm.Stores.Actions.Schedule;
 
-public class AddScheduleAction
+public class AddScheduleAction(AlarmSchedule schedule)
 {
-    public AlarmSchedule Schedule { get; }
-
-    public AddScheduleAction(AlarmSchedule schedule)
-    {
-        Schedule = schedule;
-    }
+    public AlarmSchedule Schedule { get; } = schedule;
 }

@@ -37,7 +37,7 @@ public static class ApplicationReducer
         
         return new ApplicationState(
             schedules: newSchedules,
-            currentSchedule: state.CurrentSchedule,
+            currentSchedule: action.Schedule, // Set CurrentSchedule to the newly added schedule
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,

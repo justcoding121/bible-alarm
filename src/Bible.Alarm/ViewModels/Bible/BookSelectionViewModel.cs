@@ -20,8 +20,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
-    private EventHandler? _onBibleReadingChanged;
-    private EventHandler? _onBibleReadingInitialized;
+    private EventHandler _onBibleReadingChanged;
+    private EventHandler _onBibleReadingInitialized;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
@@ -187,7 +187,7 @@ public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, ICom
     public string Name => book.Name;
     public int Number => book.Number;
 
-    public int CompareTo(object? obj)
+    public int CompareTo(object obj)
     {
         if (obj is not BibleBookListViewItemModel other) return 1;
         return Number.CompareTo(other.Number);

@@ -9,14 +9,8 @@ using Newtonsoft.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
-    public class MediaReader
+    public class MediaReader(string indexRoot)
     {
-        private readonly string indexRoot;
-        public MediaReader(string indexRoot)
-        {
-            this.indexRoot = indexRoot;
-        }
-
         public async Task<Dictionary<string, Language>> GetBibleLanguages()
         {
             var root = indexRoot;

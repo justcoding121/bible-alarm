@@ -2,12 +2,7 @@
 
 namespace Bible.Alarm.Stores.Actions.Bible;
 
-public class ChapterSelectedAction
+public class ChapterSelectedAction(BibleReadingSchedule currentBibleReadingSchedule)
 {
-    public BibleReadingSchedule CurrentBibleReadingSchedule { get; }
-
-    public ChapterSelectedAction(BibleReadingSchedule currentBibleReadingSchedule)
-    {
-        CurrentBibleReadingSchedule = currentBibleReadingSchedule;
-    }
+    public BibleReadingSchedule CurrentBibleReadingSchedule { get; } = currentBibleReadingSchedule;
 }

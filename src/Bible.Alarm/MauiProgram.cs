@@ -10,6 +10,7 @@ using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Database;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network;
@@ -88,6 +89,8 @@ public static class MauiProgram
 
         // Initialize Fluxor store
         var store = app.Services.GetRequiredService<IStore>();
+        // Store initialization happens automatically, but we ensure it's ready
+        store.InitializeAsync().GetAwaiter().GetResult();
         ReduxContainer.Store = store;
 
         return app;
@@ -129,12 +132,16 @@ public static class MauiProgram
         services.AddSingleton<IMediaCacheService, MediaCacheService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();
         services.AddSingleton<IAlarmService, AlarmService>();
+        services.AddSingleton<IScheduleStateService, ScheduleStateService>();
+        services.AddSingleton<ISchedulePlaybackService, SchedulePlaybackService>();
+        services.AddSingleton<IScheduleDisplayService, ScheduleDisplayService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
         services.AddSingleton<IMediaElementAudioService, MediaElementAudioService>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<SchedulerService>();
         services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());
         services.AddSingleton<IMediaIndexService>(sp => sp.GetRequiredService<MediaIndexService>());
+        services.AddSingleton<IDatabaseSeedService, DatabaseSeedService>();
 
         // Register platform-specific version finder
 #if ANDROID

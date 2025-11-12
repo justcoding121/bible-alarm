@@ -80,31 +80,37 @@ public class ScheduleViewModel : ObservableObject
         if (DeviceInfo.Platform == DevicePlatform.Android)
             _batteryOptimizationManager = batteryOptimizationManager;
 
-        //set schedules from initial state.
-        //this should fire only once (look at the where condition).
-        AlarmSchedule lastSchedule = null;
+        // Subscribe to state changes to update when CurrentSchedule changes
+        long lastScheduleId = -1;
         bool modelInitialized = false;
-        EventHandler onScheduleInitialized = null;
-        onScheduleInitialized = (sender, e) =>
+        EventHandler onCurrentScheduleChanged = null;
+        onCurrentScheduleChanged = (sender, e) =>
         {
             var state = _state.Value;
-            if (state.CurrentSchedule != null && state.CurrentSchedule != lastSchedule)
+            
+            // Handle when CurrentSchedule is set (new or existing schedule)
+            if (state.CurrentSchedule != null)
             {
-                _currentSchedule = state.CurrentSchedule;
-                lastSchedule = _currentSchedule;
-
-                IsNewSchedule = false;
-                SetModel(_currentSchedule);
-                modelInitialized = true;
-
-                IsBusy = false;
+                var currentScheduleId = state.CurrentSchedule.Id;
                 
-                // Unsubscribe after first call
-                _state.StateChanged -= onScheduleInitialized;
+                // Update if this is a different schedule (by ID) or if not yet initialized
+                if (currentScheduleId != lastScheduleId || !modelInitialized)
+                {
+                    _currentSchedule = state.CurrentSchedule;
+                    lastScheduleId = currentScheduleId;
+
+                    // Determine if this is a new schedule (Id <= 0) or existing
+                    IsNewSchedule = _currentSchedule.Id <= 0;
+                    SetModel(_currentSchedule);
+                    modelInitialized = true;
+
+                    IsBusy = false;
+                }
             }
+            // Handle when CurrentSchedule is null (creating a new schedule)
             else if (!modelInitialized && state.CurrentSchedule == null)
             {
-                // Initialize with sample schedule if state doesn't have CurrentSchedule
+                // Initialize with sample schedule for new schedule creation
                 Task.Run(async () =>
                 {
                     using var scope = _scopeFactory.CreateScope();
@@ -114,12 +120,12 @@ public class ScheduleViewModel : ObservableObject
                     modelInitialized = true;
                     IsNewSchedule = true;
                 });
-                
-                // Unsubscribe after initialization
-                _state.StateChanged -= onScheduleInitialized;
             }
         };
-        _state.StateChanged += onScheduleInitialized;
+        _state.StateChanged += onCurrentScheduleChanged;
+        
+        // Trigger initial update based on current state
+        onCurrentScheduleChanged(null, EventArgs.Empty);
 
         AlarmMusic lastMusic = null;
         EventHandler onMusicChanged = (sender, e) =>
@@ -204,8 +210,9 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            var viewModel = _serviceProvider.GetRequiredService<MusicSelectionViewModel>();
-            var page = _serviceProvider.GetRequiredService<MusicSelection>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<MusicSelectionViewModel>();
+            var page = scope.ServiceProvider.GetRequiredService<MusicSelection>();
             page.BindingContext = viewModel;
             await _navigation.PushAsync(page);
 
@@ -232,8 +239,9 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            var viewModel = _serviceProvider.GetRequiredService<BibleSelectionViewModel>();
-            var page = _serviceProvider.GetRequiredService<BibleSelection>();
+            using var scope = _scopeFactory.CreateScope();
+            var viewModel = scope.ServiceProvider.GetRequiredService<BibleSelectionViewModel>();
+            var page = scope.ServiceProvider.GetRequiredService<BibleSelection>();
             page.BindingContext = viewModel;
             await _navigation.PushAsync(page);
 
@@ -267,7 +275,8 @@ public class ScheduleViewModel : ObservableObject
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
+            using var scope = _scopeFactory.CreateScope();
+            var modal = scope.ServiceProvider.GetRequiredService<NumberOfChaptersModal>();
             modal.BindingContext = this;
             await _navigation.PushModalAsync(modal);
             IsBusy = false;
@@ -438,7 +447,7 @@ public class ScheduleViewModel : ObservableObject
         if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
                 x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
         {
-            var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
+            var modal = scope.ServiceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
             modal.BindingContext = this;
             await _navigation.PushModalAsync(modal);
         }
@@ -614,7 +623,7 @@ public class ScheduleViewModel : ObservableObject
 
     private bool _musicUpdated;
 
-    public AlarmMusic? Music
+    public AlarmMusic Music
     {
         get => Model.Music;
         set => Model.Music = value;
@@ -622,7 +631,7 @@ public class ScheduleViewModel : ObservableObject
 
     private bool _bibleReadingUpdated;
 
-    public BibleReadingSchedule? BibleReadingSchedule
+    public BibleReadingSchedule BibleReadingSchedule
     {
         get => Model.BibleReadingSchedule;
         set => Model.BibleReadingSchedule = value;

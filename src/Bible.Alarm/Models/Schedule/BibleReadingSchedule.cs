@@ -12,6 +12,6 @@ public class BibleReadingSchedule
     public int ChapterNumber { get; set; }
     public TimeSpan FinishedDuration { get; set; }
 
-    public virtual AlarmSchedule? AlarmSchedule { get; set; }
+    public virtual AlarmSchedule AlarmSchedule { get; set; }
     public int AlarmScheduleId { get; set; }
 }

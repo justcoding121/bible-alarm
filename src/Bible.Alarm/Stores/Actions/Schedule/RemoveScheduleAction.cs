@@ -2,12 +2,7 @@
 
 namespace Bible.Alarm.Stores.Actions.Schedule;
 
-public class RemoveScheduleAction
+public class RemoveScheduleAction(AlarmSchedule schedule)
 {
-    public AlarmSchedule Schedule { get; }
-
-    public RemoveScheduleAction(AlarmSchedule schedule)
-    {
-        Schedule = schedule;
-    }
+    public AlarmSchedule Schedule { get; } = schedule;
 }

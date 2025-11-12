@@ -10,12 +10,12 @@ namespace Bible.Alarm.Shared.Models.Media.Bible
 
         public string Title => $"Chapter {Number}";
 
-        public AudioSource? Source { get; set; }
+        public AudioSource Source { get; set; }
 
         public int BibleBookId { get; set; }
-        public BibleBook? Book { get; set; }
+        public BibleBook Book { get; set; }
 
-        public int CompareTo(object? obj)
+        public int CompareTo(object obj)
         {
             if (obj is not BibleChapter other) return 1;
             return Number.CompareTo(other.Number);

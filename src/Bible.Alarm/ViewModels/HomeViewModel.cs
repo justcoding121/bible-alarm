@@ -1,15 +1,11 @@
 using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
-using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Services.Database;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.DataStructures;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -28,13 +24,8 @@ public class HomeViewModel : ObservableObject, IDisposable
     private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    private readonly IToastService _popUpService;
-    private readonly IAlarmService _alarmService;
+    private readonly IDatabaseSeedService _databaseSeedService;
 
-    private readonly INotificationService _notificationService;
-
-    private readonly Dictionary<ScheduleListItem, PropertyChangedEventHandler> _isEnabledHandlers = [];
-    // Map AlarmSchedule IDs to ScheduleListItem ViewModels for UI binding
     private readonly Dictionary<long, ScheduleListItem> _scheduleViewModels = [];
 
     private readonly Func<AlarmSchedule, ScheduleListItem> _scheduleListItemFactory;
@@ -46,23 +37,18 @@ public class HomeViewModel : ObservableObject, IDisposable
         ILogger logger,
         IToastService popUpService, 
         INavigation navigation,
-        IMediaCacheService mediaCacheService,
-        IAlarmService alarmService,
-        INotificationService notificationService,
         IServiceScopeFactory scopeFactory,
         Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
         IDispatcher dispatcher,
-        IState<ApplicationState> state)
+        IState<ApplicationState> state,
+        IDatabaseSeedService databaseSeedService)
     {
         _logger = logger;
-        _popUpService = popUpService;
-        var navigation1 = navigation;
-        _alarmService = alarmService;
-        _notificationService = notificationService;
         _scopeFactory = scopeFactory;
         _scheduleListItemFactory = scheduleListItemFactory;
         _dispatcher = dispatcher;
         _state = state;
+        _databaseSeedService = databaseSeedService;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
@@ -71,7 +57,7 @@ public class HomeViewModel : ObservableObject, IDisposable
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             var page = scope.ServiceProvider.GetRequiredService<Schedule>();
             page.BindingContext = viewModel;
-            await navigation1.PushAsync(page);
+            await navigation.PushAsync(page);
         });
 
         ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
@@ -84,38 +70,14 @@ public class HomeViewModel : ObservableObject, IDisposable
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             var page = scope.ServiceProvider.GetRequiredService<Schedule>();
             page.BindingContext = viewModel;
-            await navigation1.PushAsync(page);
+            await navigation.PushAsync(page);
         });
 
-
-        //set schedules from initial state.
-        //this should fire only once (look at the where condition).
-        ObservableHashSet<AlarmSchedule> lastSchedules = null;
-
-        _state.StateChanged += (sender, e) =>
-        {
-            var stateValue = _state.Value;
-            if (stateValue.Schedules == null || stateValue.Schedules == lastSchedules) return;
-            UpdateScheduleViewModels(stateValue.Schedules);
-            lastSchedules = stateValue.Schedules;
-            ListenIsEnabledChanges();
-            IsBusy = false;
-        };
+        _state.StateChanged += OnStateChanged;
         
-        // Trigger initial update if state already has schedules
-        if (_state.Value.Schedules == null) return;
-
-        UpdateScheduleViewModels(_state.Value.Schedules);
-        lastSchedules = _state.Value.Schedules;
-        ListenIsEnabledChanges();
         IsBusy = false;
-
     }
 
-    /// <summary>
-    /// Initializes the HomeViewModel after bootstrap is complete.
-    /// This should be called from App.xaml.cs after InitializedMessage is received.
-    /// </summary>
     public async Task InitializeAsync()
     {
         await HandleInitialized();
@@ -129,7 +91,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             if (!_initialized)
             {
-                await SeedDefaultAlarm();
+                await _databaseSeedService.SeedDefaultAlarmAsync();
 
                 using var scope = _scopeFactory.CreateScope();
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -138,27 +100,6 @@ public class HomeViewModel : ObservableObject, IDisposable
                     .Include(x => x.BibleReadingSchedule)
                     .Include(x => x.Music)
                     .ToListAsync();
-
-                if (DeviceInfo.Platform == DevicePlatform.Android)
-                {
-                    //bible gateway is not supported anymore due to copyright issues
-                    var toRemove = alarmSchedules.Where(x =>
-                        x.BibleReadingSchedule != null &&
-                        BgSourceHelper.PublicationCodeToNameMappings.Any(y =>
-                            y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
-
-                    if (toRemove.Count != 0)
-                    {
-                        foreach (var item in toRemove)
-                        {
-                            if (item.BibleReadingSchedule == null) continue;
-                            item.BibleReadingSchedule.PublicationCode = "bi12";
-                            item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-                        }
-
-                        await scheduleDbContext.SaveChangesAsync();
-                    }
-                }
 
                 var initialSchedules = new ObservableHashSet<AlarmSchedule>();
                 foreach (var schedule in alarmSchedules)
@@ -186,31 +127,6 @@ public class HomeViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task SeedDefaultAlarm()
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        if (!await scheduleDbContext.AlarmSchedules.AnyAsync()
-            && !await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.AlarmSeeded)
-            //for existing apps before version 1.30
-            && !await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == AppConstants.GeneralSettingsKeys.AndroidBatteryOptimizationExclusionPromptShown))
-        {
-            var schedule = await AlarmSchedule.GetSampleSchedule(false, mediaDbContext);
-
-            await scheduleDbContext.AlarmSchedules.AddAsync(schedule);
-            await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
-            {
-                Key = AppConstants.GeneralSettingsKeys.AlarmSeeded,
-                Value = "True"
-            });
-
-            await scheduleDbContext.SaveChangesAsync();
-        }
-    }
-
     private ObservableHashSet<ScheduleListItem> _schedules;
 
     public ObservableHashSet<ScheduleListItem> Schedules
@@ -232,8 +148,8 @@ public class HomeViewModel : ObservableObject, IDisposable
             if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
             {
                 // Update existing ViewModel's Schedule property
+                // Initialize sets IsEnabled internally without triggering the handler
                 existingViewModel.Initialize(schedule);
-                existingViewModel.IsEnabled = schedule.IsEnabled;
                 newViewModels.Add(existingViewModel);
             }
             else
@@ -250,7 +166,6 @@ public class HomeViewModel : ObservableObject, IDisposable
         foreach (var id in toRemove)
         {
             if (!_scheduleViewModels.TryGetValue(id, out var viewModel)) continue;
-            UnsubscribeFromIsEnabledChanges(viewModel);
             viewModel.Dispose();
             _scheduleViewModels.Remove(id);
         }
@@ -293,135 +208,34 @@ public class HomeViewModel : ObservableObject, IDisposable
     private bool _initialized;
     private readonly SemaphoreSlim _lock = new(1);
 
-    private void ListenIsEnabledChanges()
+    private void OnStateChanged(object sender, EventArgs e)
     {
-        // Subscribe to existing schedules
-        if (Schedules != null)
+        var stateValue = _state.Value;
+        if (stateValue.Schedules == null) return;
+        
+        // Ensure UI updates happen on the main thread
+        _ = MainThread.InvokeOnMainThreadAsync(() =>
         {
-            foreach (var item in Schedules)
-            {
-                SubscribeToIsEnabledChanges(item);
-            }
-        }
-
-        // Subscribe to collection changes
-        if (Schedules != null)
-        {
-            Schedules.CollectionChanged += (sender, e) =>
-            {
-                if (e.NewItems != null)
-                {
-                    foreach (ScheduleListItem item in e.NewItems)
-                    {
-                        SubscribeToIsEnabledChanges(item);
-                    }
-                }
-
-                if (e.OldItems == null) return;
-
-                foreach (ScheduleListItem item in e.OldItems)
-                {
-                    UnsubscribeFromIsEnabledChanges(item);
-                }
-            };
-        }
-    }
-
-    private void SubscribeToIsEnabledChanges(ScheduleListItem item)
-    {
-        PropertyChangedEventHandler handler = async (sender, e) =>
-        {
-            if (e.PropertyName == "IsEnabled" && sender is ScheduleListItem scheduleItem)
-            {
-                await HandleIsEnabledChanged(scheduleItem);
-            }
-        };
-
-        item.PropertyChanged += handler;
-        _isEnabledHandlers[item] = handler;
-    }
-
-    private void UnsubscribeFromIsEnabledChanges(ScheduleListItem item)
-    {
-        if (!_isEnabledHandlers.TryGetValue(item, out var handler)) return;
-
-        item.PropertyChanged -= handler;
-        _isEnabledHandlers.Remove(item);
-    }
-
-    private async Task HandleIsEnabledChanged(ScheduleListItem scheduleItem)
-    {
-        await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-
-        if (scheduleItem.IsEnabled &&
-            (DeviceInfo.Platform == DevicePlatform.iOS
-             || DeviceInfo.Platform == DevicePlatform.WinUI)
-            && !await _notificationService.CanSchedule())
-        {
-            scheduleItem.IsEnabled = false;
-
-            if (DeviceInfo.Platform == DevicePlatform.iOS)
-                await _popUpService.ShowMessage(
-                    "Cannot schedule alarm because you've disabled notifications. " +
-                    "Please enable notification for this app under system settings.", 7);
-            else
-                await _popUpService.ShowMessage(
-                    "Cannot schedule alarm because you've denied background apps permission. " +
-                    "Please grant background apps permission for this app under system settings.", 7);
-
-            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            return;
-        }
-
-        await Task.Run(async () =>
-        {
-            using var scope = _scopeFactory.CreateScope();
-            await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-            var existing = await scheduleDbContext.AlarmSchedules.FirstAsync(x => x.Id == scheduleItem.ScheduleId);
-            existing.IsEnabled = scheduleItem.IsEnabled;
-            await scheduleDbContext.SaveChangesAsync();
-
-            _alarmService.Update(existing);
-        });
-
-        if (scheduleItem.IsEnabled) await _popUpService.ShowScheduledNotification(scheduleItem.Schedule);
-
-        SetupMediaCache(scheduleItem.Schedule.Id);
-
-        scheduleItem.RaisePropertiesChangedEvent();
-
-        await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-    }
-
-    private void SetupMediaCache(long scheduleId)
-    {
-        Task.Run(async () =>
-        {
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
-                await mediaCacheService.SetupAlarmCache(scheduleId);
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "An error happened in SetupAlarmCache task.");
-            }
+            // Always update to match the store - keep it simple
+            UpdateScheduleViewModels(stateValue.Schedules);
+            IsBusy = false;
         });
     }
+
 
     public void Dispose()
     {
-        // Unsubscribe from all schedule IsEnabled changes
+        // Unsubscribe from state changes
+        _state.StateChanged -= OnStateChanged;
+        
+        // Dispose all schedule view models
         if (Schedules != null)
         {
             foreach (var item in Schedules)
             {
-                UnsubscribeFromIsEnabledChanges(item);
+                item.Dispose();
             }
         }
-
-        _isEnabledHandlers.Clear();
 
         _lock.Dispose();
     }

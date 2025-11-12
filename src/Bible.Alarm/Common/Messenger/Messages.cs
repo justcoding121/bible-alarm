@@ -1,93 +1,48 @@
 namespace Bible.Alarm.Common.Messenger;
 
 // Message classes for WeakReferenceMessenger
-public class InitializedMessage
+public class InitializedMessage(bool value)
 {
-    public bool Value { get; }
-    
-    public InitializedMessage(bool value)
-    {
-        Value = value;
-    }
+    public bool Value { get; } = value;
 }
 
-public class ShowAlarmModalMessage
+public class ShowAlarmModalMessage(object value)
 {
-    public object Value { get; }
-    
-    public ShowAlarmModalMessage(object value)
-    {
-        Value = value;
-    }
+    public object Value { get; } = value;
 }
 
-public class HideAlarmModalMessage
+public class HideAlarmModalMessage(object value)
 {
-    public object Value { get; }
-    
-    public HideAlarmModalMessage(object value)
-    {
-        Value = value;
-    }
+    public object Value { get; } = value;
 }
 
-public class ShowMediaProgressModalMessage
+public class ShowMediaProgressModalMessage(object value)
 {
-    public object Value { get; }
-    
-    public ShowMediaProgressModalMessage(object value)
-    {
-        Value = value;
-    }
+    public object Value { get; } = value;
 }
 
-public class HideMediaProgressModalMessage
+public class HideMediaProgressModalMessage(object value)
 {
-    public object Value { get; }
-    
-    public HideMediaProgressModalMessage(object value)
-    {
-        Value = value;
-    }
+    public object Value { get; } = value;
 }
 
-public class MediaProgressMessage
+public class MediaProgressMessage(object value)
 {
-    public object Value { get; }
-    
-    public MediaProgressMessage(object value)
-    {
-        Value = value;
-    }
+    public object Value { get; } = value;
 }
 
-public class TrackChangedMessage
+public class TrackChangedMessage(int value)
 {
-    public int Value { get; }
-    
-    public TrackChangedMessage(int value)
-    {
-        Value = value;
-    }
+    public int Value { get; } = value;
 }
 
-public class ShowToastMessage
+public class ShowToastMessage(object value)
 {
-    public object Value { get; }
-    
-    public ShowToastMessage(object value)
-    {
-        Value = value;
-    }
+    public object Value { get; } = value;
 }
 
-public class ClearToastsMessage
+public class ClearToastsMessage(object value)
 {
-    public object Value { get; }
-    
-    public ClearToastsMessage(object value)
-    {
-        Value = value;
-    }
+    public object Value { get; } = value;
 }
 

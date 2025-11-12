@@ -3,12 +3,7 @@ using Bible.Alarm.Shared.DataStructures;
 
 namespace Bible.Alarm.Stores.Actions;
 
-public class InitializeAction
+public class InitializeAction(ObservableHashSet<AlarmSchedule> scheduleList)
 {
-    public ObservableHashSet<AlarmSchedule> ScheduleList { get; }
-
-    public InitializeAction(ObservableHashSet<AlarmSchedule> scheduleList)
-    {
-        ScheduleList = scheduleList ?? new ObservableHashSet<AlarmSchedule>();
-    }
+    public ObservableHashSet<AlarmSchedule> ScheduleList { get; } = scheduleList ?? new ObservableHashSet<AlarmSchedule>();
 }

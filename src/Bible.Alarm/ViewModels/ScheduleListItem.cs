@@ -1,108 +1,88 @@
 using System.Windows.Input;
 using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Shared.Models.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels;
 
-public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRecipient<TrackChangedMessage>
+public class ScheduleListItem(
+    ILogger logger,
+    ISchedulePlaybackService playbackService,
+    IScheduleDisplayService displayService,
+    IScheduleStateService scheduleStateService,
+    IPlaylistService playlistService)
+    : ObservableObject, IComparable, IDisposable, IRecipient<TrackChangedMessage>
 {
-    private readonly ILogger _logger;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private bool _isInitializing;
+    private bool _isRegistered;
 
-    public AlarmSchedule? Schedule { get; private set; }
+    public AlarmSchedule Schedule { get; private set; }
 
-    // Constructor for DI - Initialize() must be called after construction
-    public ScheduleListItem(ILogger logger, IServiceScopeFactory scopeFactory)
-    {
-        _logger = logger;
-        _scopeFactory = scopeFactory;
-        
-        // Commands will be initialized in Initialize() method
-    }
-
-    // Initialize method to set the schedule data
     public void Initialize(AlarmSchedule schedule)
     {
-        Schedule = schedule;
-        _isEnabled = schedule.IsEnabled;
+        _isInitializing = true;
+        try
+        {
+            Schedule = schedule;
+            _isEnabled = schedule.IsEnabled;
+        }
+        finally
+        {
+            _isInitializing = false;
+        }
+
+        // Raise property changed for all computed properties to refresh UI
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(TimeText));
+        OnPropertyChanged(nameof(Hour));
+        OnPropertyChanged(nameof(Minute));
+        OnPropertyChanged(nameof(Meridien));
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(IsEnabled));
+
+        // Register for messages only once
+        if (!_isRegistered)
+        {
+            WeakReferenceMessenger.Default.Register(this);
+            _isRegistered = true;
+        }
 
         PlayCommand = new AsyncRelayCommand(async () =>
         {
-            if (Schedule == null) return;
-            
-            using var scope = _scopeFactory.CreateScope();
-            using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
-
-            try
+            if (Schedule?.Id > 0)
             {
-                if (Schedule.Id > 0)
-                {
-                    var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-                    await playbackService.PrepareAndPlay(Schedule.Id, true);
-
-                    await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
-
-                    using var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-                    await notificationService.ShowNotification(Schedule.Id);
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.Information(e, "An error happened when playing alarm.");
-                await toastService.ShowMessage("Error. Network may not be available." +
-                                               "Please try again.", 5);
+                await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });
 
-        RefreshChapterName(true);
-
-        WeakReferenceMessenger.Default.Register(this);
+        _ = RefreshChapterNameAsync(true);
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
-            if (Schedule == null || !await CanMove()) return;
-            using var scope = _scopeFactory.CreateScope();
-            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
-
-            RefreshChapterName(true);
+            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync())
+            {
+                await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
+                await RefreshChapterNameAsync(true);
+            }
         });
 
         NextCommand = new AsyncRelayCommand(async () =>
         {
-            if (Schedule == null || !await CanMove()) return;
-
-            using var scope = _scopeFactory.CreateScope();
-            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            await playlistService.MoveToNextBibleChapter(Schedule.Id);
-
-            RefreshChapterName(true);
+            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync())
+            {
+                await playlistService.MoveToNextBibleChapter(Schedule.Id);
+                await RefreshChapterNameAsync(true);
+            }
         });
     }
 
-    private async Task<bool> CanMove()
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-
-        if (!playbackService.IsPlaying) return true;
-
-        using var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
-
-        await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
-
-        return false;
-    }
 
     public long ScheduleId => Schedule?.Id ?? 0;
 
@@ -115,7 +95,48 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
     public bool IsEnabled
     {
         get => _isEnabled;
-        set => SetProperty(ref _isEnabled, value);
+        set
+        {
+            if (SetProperty(ref _isEnabled, value) && !_isInitializing && Schedule != null)
+            {
+                // Handle IsEnabled change asynchronously
+                _ = HandleIsEnabledChanged(value);
+            }
+        }
+    }
+
+    private async Task HandleIsEnabledChanged(bool newValue)
+    {
+        try
+        {
+            var success = await scheduleStateService.UpdateScheduleEnabledStateAsync(ScheduleId, newValue);
+            
+            // If the state change was rejected (e.g., due to permissions), revert the UI
+            if (!success)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    _isEnabled = !newValue;
+                    OnPropertyChanged(nameof(IsEnabled));
+                });
+            }
+            else
+            {
+                // Refresh properties to reflect any changes
+                RaisePropertiesChangedEvent();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "An error occurred while handling IsEnabled change for schedule {ScheduleId}", ScheduleId);
+            
+            // Revert on error
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                _isEnabled = !newValue;
+                OnPropertyChanged(nameof(IsEnabled));
+            });
+        }
     }
 
     public DaysOfWeek DaysOfWeek => Schedule?.DaysOfWeek ?? 0;
@@ -147,79 +168,32 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
         }
     }
 
-    public void RefreshChapterName(bool force = false)
+    public async Task RefreshChapterNameAsync(bool force = false)
     {
-        if (_scopeFactory == null || _logger == null)
+        if (Schedule?.Id <= 0) return;
+
+        try
         {
-            // Dependencies not available - skip refresh
-            return;
+            var displayName = await displayService.GetChapterDisplayNameAsync(Schedule.Id, force);
+            
+            if (!string.IsNullOrEmpty(displayName))
+            {
+                SubTitle = displayName;
+                OnPropertyChanged(nameof(SubTitle));
+            }
         }
-
-        using var scope = _scopeFactory.CreateScope();
-        var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
-
-        _ = Task.Run(async () =>
-            {
-                try
-                {
-                    using var serviceScope = _scopeFactory.CreateScope();
-                    var playbackService = serviceScope.ServiceProvider.GetRequiredService<IPlaybackService>();
-
-                    if (Schedule == null || (!force && !playbackService.IsPrepared)) return null;
-
-                    await using var scheduleDbContext = serviceScope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-                    var schedule = await scheduleDbContext.AlarmSchedules
-                        .Include(x => x.BibleReadingSchedule)
-                        .AsNoTracking()
-                        .Where(x => x.Id == Schedule.Id)
-                        .FirstOrDefaultAsync();
-
-                    if (schedule?.BibleReadingSchedule != null && Schedule?.BibleReadingSchedule != null)
-                    {
-                        await using var mediaDbContext = serviceScope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-                        var bookName = await mediaDbContext.BibleBook
-                            .Where(x => x.BibleTranslation.Code == schedule.BibleReadingSchedule.PublicationCode
-                                        && x.BibleTranslation.Language.Code ==
-                                        schedule.BibleReadingSchedule.LanguageCode
-                                        && x.Number == schedule.BibleReadingSchedule.BookNumber)
-                            .Select(x => x.Name)
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync();
-
-                        if (bookName != null)
-                        {
-                            Schedule.BibleReadingSchedule.BookNumber = schedule.BibleReadingSchedule.BookNumber;
-                            Schedule.BibleReadingSchedule.ChapterNumber = schedule.BibleReadingSchedule.ChapterNumber;
-                            return new Tuple<string, int>(bookName, schedule.BibleReadingSchedule.ChapterNumber);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.Error(e, "An error happened in RefreshChapterName task under list item.");
-                }
-
-                return null;
-            })
-            .ContinueWith(x =>
-            {
-                try
-                {
-                    if (!x.IsCompleted || x.Result == null) return;
-
-                    SubTitle = $"{x.Result.Item1} {x.Result.Item2}";
-                    OnPropertyChanged(nameof(SubTitle));
-                }
-                catch (Exception e)
-                {
-                    _logger.Error(e, "An error happened in RefreshChapterName continue with task under list item.");
-                }
-            }, syncContext);
+        catch (Exception e)
+        {
+            logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", Schedule.Id);
+        }
     }
 
-    public int CompareTo(object? obj)
+    public void RefreshChapterName(bool force = false)
+    {
+        _ = RefreshChapterNameAsync(force);
+    }
+
+    public int CompareTo(object obj)
     {
         if (obj is not ScheduleListItem other) return 1;
         return ScheduleId.CompareTo(other.ScheduleId);
@@ -235,6 +209,10 @@ public class ScheduleListItem : ObservableObject, IComparable, IDisposable, IRec
 
     public void Dispose()
     {
-        WeakReferenceMessenger.Default.Unregister<TrackChangedMessage>(this);
+        if (_isRegistered)
+        {
+            WeakReferenceMessenger.Default.Unregister<TrackChangedMessage>(this);
+            _isRegistered = false;
+        }
     }
 }
