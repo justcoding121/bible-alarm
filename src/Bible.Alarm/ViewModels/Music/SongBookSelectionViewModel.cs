@@ -20,17 +20,18 @@ namespace Bible.Alarm.ViewModels.Music;
 public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
-    public SongBookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
+    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
     {
         _mediaService = mediaService;
-        var navigation1 = navigation;
-        var serviceProvider1 = serviceProvider;
-        var dispatcher1 = dispatcher;
+        _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
         
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
@@ -78,7 +79,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         {
             IsBusy = true;
 
-            dispatcher1.Dispatch(new TrackSelectionAction(new AlarmMusic
+            _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
                 Repeat = _current.Repeat,
                 MusicType = MusicType.Vocals,
@@ -86,10 +87,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
                 PublicationCode = x.Code
             }));
 
-            var viewModel = serviceProvider1.GetRequiredService<TrackSelectionViewModel>();
-            var page = serviceProvider1.GetRequiredService<TrackSelection>();
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
+            var page = scope.ServiceProvider.GetRequiredService<TrackSelection>();
             page.BindingContext = viewModel;
-            await navigation1.PushAsync(page);
+            await navigation.PushAsync(page);
 
             IsBusy = false;
         });
@@ -97,24 +100,30 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            var modal = serviceProvider1.GetRequiredService<LanguageModal>();
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            var modal = scope.ServiceProvider.GetRequiredService<LanguageModal>();
             modal.BindingContext = this;
-            await navigation1.PushModalAsync(modal);
+            await navigation.PushModalAsync(modal);
             IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigation1.PopAsync();
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            await navigation.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            if (navigation1.ModalStack.Count > 0)
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            if (navigation.ModalStack.Count > 0)
             {
-                var modal = await navigation1.PopModalAsync();
+                var modal = await navigation.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
         });
@@ -127,9 +136,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            if (navigation1.ModalStack.Count > 0)
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            if (navigation.ModalStack.Count > 0)
             {
-                var modal = await navigation1.PopModalAsync();
+                var modal = await navigation.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
             await PopulateSongBooks(x.Code);

@@ -20,6 +20,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private BibleReadingSchedule _tentative;
 
     private readonly MediaService _mediaService;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
     private EventHandler _onBibleReadingChanged;
     private EventHandler _onBibleReadingInitialized;
@@ -27,15 +29,19 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
+    public BookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
     {
         _mediaService = mediaService;
+        _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
 
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
             await navigation.PopAsync();
             IsBusy = false;
         });
@@ -43,15 +49,17 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
         {
             IsBusy = true;
-            dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
+            _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
                 BookNumber = x.Number
             }));
 
-            var viewModel = serviceProvider.GetRequiredService<ChapterSelectionViewModel>();
-            var page = serviceProvider.GetRequiredService<ChapterSelection>();
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            var viewModel = scope.ServiceProvider.GetRequiredService<ChapterSelectionViewModel>();
+            var page = scope.ServiceProvider.GetRequiredService<ChapterSelection>();
             page.BindingContext = viewModel;
             await navigation.PushAsync(page);
             IsBusy = false;

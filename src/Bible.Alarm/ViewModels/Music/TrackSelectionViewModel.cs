@@ -25,6 +25,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IPreviewPlayService _playService;
+    private readonly INavigation _navigation;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly IDispatcher _dispatcher;
@@ -50,7 +51,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        var navigation1 = navigation;
+        _navigation = navigation;
         _downloadService = downloadService;
         _cacheService = cacheService;
         _dispatcher = dispatcher;
@@ -64,7 +65,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigation1.PopAsync();
+            await _navigation.PopAsync();
             IsBusy = false;
         });
 

@@ -29,10 +29,14 @@ public class ScheduleViewModel : ObservableObject
     private readonly IToastService _popUpService;
     private readonly INavigation _navigation;
     private readonly ISchedulePersistenceService _schedulePersistenceService;
+    private readonly IBibleNavigationService _bibleNavigationService;
     private readonly IMediaCacheSetupService _mediaCacheSetupService;
+    private readonly INavigationService _navigationService;
+    private readonly IScheduleSelectionService _scheduleSelectionService;
     private readonly IScheduleDisplayService _scheduleDisplayService;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     public ICommand BatteryOptimizationExcludeCommand { get; private set; }
@@ -68,12 +72,13 @@ public class ScheduleViewModel : ObservableObject
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         _schedulePersistenceService = schedulePersistenceService;
-        var bibleNavigationService1 = bibleNavigationService;
+        _bibleNavigationService = bibleNavigationService;
         _mediaCacheSetupService = mediaCacheSetupService;
-        var navigationService1 = navigationService;
-        var scheduleSelectionService1 = scheduleSelectionService;
+        _navigationService = navigationService;
+        _scheduleSelectionService = scheduleSelectionService;
         _scheduleDisplayService = scheduleDisplayService;
         _serviceProvider = serviceProvider;
+        _dispatcher = dispatcher;
 
         var lastScheduleId = -1;
         var modelInitialized = false;
@@ -157,11 +162,11 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            await navigationService1.NavigateToMusicSelectionAsync();
+            await _navigationService.NavigateToMusicSelectionAsync();
 
-            Music = await scheduleSelectionService1.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
+            Music = await _scheduleSelectionService.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
 
-            dispatcher.Dispatch(new MusicSelectionAction(Music));
+            _dispatcher.Dispatch(new MusicSelectionAction(Music));
 
             IsBusy = false;
         });
@@ -170,9 +175,9 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            await navigationService1.NavigateToBibleSelectionAsync();
+            await _navigationService.NavigateToBibleSelectionAsync();
 
-            BibleReadingSchedule = await scheduleSelectionService1.LoadBibleReadingForSelectionAsync(
+            BibleReadingSchedule = await _scheduleSelectionService.LoadBibleReadingForSelectionAsync(
                 _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule);
 
             if (BibleReadingSchedule != null)
@@ -180,7 +185,7 @@ public class ScheduleViewModel : ObservableObject
                 RefreshChapterName();
             }
 
-            dispatcher.Dispatch(new BibleSelectionAction(
+            _dispatcher.Dispatch(new BibleSelectionAction(
                 BibleReadingSchedule,
                 new BibleReadingSchedule
                 {
@@ -194,14 +199,14 @@ public class ScheduleViewModel : ObservableObject
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.OpenNumberOfChaptersModalAsync(this);
+            await _navigationService.OpenNumberOfChaptersModalAsync(this);
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.CloseModalAsync();
+            await _navigationService.CloseModalAsync();
             IsBusy = false;
         });
 
@@ -213,7 +218,7 @@ public class ScheduleViewModel : ObservableObject
             CurrentNumberOfChapters = x;
             CurrentNumberOfChapters.IsSelected = true;
 
-            await navigationService1.CloseModalAsync();
+            await _navigationService.CloseModalAsync();
 
             IsBusy = false;
         });
@@ -228,7 +233,7 @@ public class ScheduleViewModel : ObservableObject
                 if (batteryService != null)
                 {
                     await MarkBatteryOptimizationModalAsShown();
-                    await navigationService1.CloseModalAsync();
+                    await _navigationService.CloseModalAsync();
                     batteryService.ShowOptimizationSettingsPage();
                 }
             }
@@ -237,14 +242,14 @@ public class ScheduleViewModel : ObservableObject
         BatteryOptimizationDismissCommand = new AsyncRelayCommand(async () =>
         {
             await MarkBatteryOptimizationModalAsShown();
-            await navigationService1.CloseModalAsync();
+            await _navigationService.CloseModalAsync();
         });
 
         PreviousBookCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToPreviousBookAsync(BibleReadingSchedule))
+            if (await _bibleNavigationService.MoveToPreviousBookAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -255,7 +260,7 @@ public class ScheduleViewModel : ObservableObject
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToNextBookAsync(BibleReadingSchedule))
+            if (await _bibleNavigationService.MoveToNextBookAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -266,7 +271,7 @@ public class ScheduleViewModel : ObservableObject
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToPreviousChapterAsync(BibleReadingSchedule))
+            if (await _bibleNavigationService.MoveToPreviousChapterAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -277,13 +282,12 @@ public class ScheduleViewModel : ObservableObject
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToNextChapterAsync(BibleReadingSchedule))
+            if (await _bibleNavigationService.MoveToNextChapterAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
             }
         });
-        return;
 
         void OnCurrentScheduleChanged(object sender, EventArgs e)
         {

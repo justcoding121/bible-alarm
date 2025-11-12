@@ -19,6 +19,8 @@ namespace Bible.Alarm.ViewModels.Bible;
 public class BibleSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private BibleReadingSchedule _current;
@@ -30,9 +32,11 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    public BibleSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
+    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
     {
         _mediaService = mediaService;
+        _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
         
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
@@ -60,13 +64,15 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
-            dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
+            _dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
             {
                 PublicationCode = x.Code,
                 LanguageCode = CurrentLanguage.Code
             }));
-            var viewModel = serviceProvider.GetRequiredService<BookSelectionViewModel>();
-            var page = serviceProvider.GetRequiredService<BookSelection>();
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            var viewModel = scope.ServiceProvider.GetRequiredService<BookSelectionViewModel>();
+            var page = scope.ServiceProvider.GetRequiredService<BookSelection>();
             page.BindingContext = viewModel;
             await navigation.PushAsync(page);
 
@@ -76,7 +82,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            var modal = serviceProvider.GetRequiredService<LanguageModal>();
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+            var modal = scope.ServiceProvider.GetRequiredService<LanguageModal>();
             modal.BindingContext = this;
             await navigation.PushModalAsync(modal);
             IsBusy = false;
@@ -85,6 +93,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
             await navigation.PopAsync();
             IsBusy = false;
         });
@@ -92,6 +102,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
             if (navigation.ModalStack.Count > 0)
             {
                 var modal = await navigation.PopModalAsync();
@@ -108,6 +120,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
             if (navigation.ModalStack.Count > 0)
             {
                 var modal = await navigation.PopModalAsync();

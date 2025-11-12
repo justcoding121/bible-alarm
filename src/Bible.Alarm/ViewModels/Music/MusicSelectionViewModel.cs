@@ -17,10 +17,15 @@ public class MusicSelectionViewModel : ObservableObject
 {
     private AlarmMusic _current;
 
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
-    public MusicSelectionViewModel(INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
+    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
     {
+        _scopeFactory = scopeFactory;
+        _dispatcher = dispatcher;
+        
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         _state.StateChanged += (_, _) =>
@@ -41,27 +46,31 @@ public class MusicSelectionViewModel : ObservableObject
 
             if (x.MusicType == MusicType.Vocals)
             {
-                dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
+                _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
                     MusicType = MusicType.Vocals,
                     LanguageCode = _current.LanguageCode
                 }));
 
-                var viewModel = serviceProvider.GetRequiredService<SongBookSelectionViewModel>();
-                var page = serviceProvider.GetRequiredService<SongBookSelection>();
+                using var scope = _scopeFactory.CreateScope();
+                var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+                var viewModel = scope.ServiceProvider.GetRequiredService<SongBookSelectionViewModel>();
+                var page = scope.ServiceProvider.GetRequiredService<SongBookSelection>();
                 page.BindingContext = viewModel;
                 await navigation.PushAsync(page);
             }
             else
             {
-                dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+                _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
                     Repeat = _current.Repeat,
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
                 }));
-                var viewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
-                var page = serviceProvider.GetRequiredService<TrackSelection>();
+                using var scope = _scopeFactory.CreateScope();
+                var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
+                var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
+                var page = scope.ServiceProvider.GetRequiredService<TrackSelection>();
                 page.BindingContext = viewModel;
                 await navigation.PushAsync(page);
             }
@@ -72,6 +81,8 @@ public class MusicSelectionViewModel : ObservableObject
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
+            using var scope = _scopeFactory.CreateScope();
+            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
             await navigation.PopAsync();
             IsBusy = false;
         });
