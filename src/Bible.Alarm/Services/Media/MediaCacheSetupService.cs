@@ -1,0 +1,28 @@
+using Bible.Alarm.Common.Interfaces.Media;
+using Serilog;
+
+namespace Bible.Alarm.Services.Media;
+
+public class MediaCacheSetupService(
+    ILogger logger,
+    IServiceScopeFactory scopeFactory)
+    : IMediaCacheSetupService
+{
+    private readonly ILogger _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+
+    public async Task SetupAlarmCacheAsync(long scheduleId)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
+            await mediaCacheService.SetupAlarmCache(scheduleId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error setting up alarm cache for schedule {ScheduleId}", scheduleId);
+        }
+    }
+}
+

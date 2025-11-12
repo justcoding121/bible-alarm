@@ -2,6 +2,7 @@
 // using Bible.Alarm.Views.Shared; // Shared is a folder, not a namespace
 
 using System.Diagnostics;
+using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Network;
 using Bible.Alarm.Common.Interfaces.Platform;
@@ -10,12 +11,14 @@ using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Battery;
 using Bible.Alarm.Services.Database;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.UI;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Stores;
@@ -135,6 +138,11 @@ public static class MauiProgram
         services.AddSingleton<IScheduleStateService, ScheduleStateService>();
         services.AddSingleton<ISchedulePlaybackService, SchedulePlaybackService>();
         services.AddSingleton<IScheduleDisplayService, ScheduleDisplayService>();
+        services.AddSingleton<ISchedulePersistenceService, SchedulePersistenceService>();
+        services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
+        services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
+        services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<IScheduleSelectionService, ScheduleSelectionService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
         services.AddSingleton<IMediaElementAudioService, MediaElementAudioService>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
@@ -156,6 +164,7 @@ public static class MauiProgram
 #if ANDROID
         services.AddSingleton<INotificationService, DroidNotificationService>();
         services.AddSingleton<IToastService, DroidToastService>();
+        services.AddSingleton<IBatteryOptimizationService, BatteryOptimizationService>();
         services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, BatteryOptimizationManager>();

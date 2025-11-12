@@ -7,7 +7,6 @@ using Bible.Alarm.Shared.Models.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels;

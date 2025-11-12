@@ -5,26 +5,19 @@ using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Database;
-using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
-using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.General;
-using Bible.Alarm.Views.Music;
-using Bible.Alarm.Views.Schedule;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Devices;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -34,9 +27,18 @@ public class ScheduleViewModel : ObservableObject
 {
     private readonly ILogger _logger;
 
-    private readonly IAlarmService _alarmService;
     private readonly IToastService _popUpService;
     private readonly INavigation _navigation;
+    private readonly ISchedulePersistenceService _schedulePersistenceService;
+    private readonly IBibleNavigationService _bibleNavigationService;
+    private readonly IMediaCacheSetupService _mediaCacheSetupService;
+    private readonly INavigationService _navigationService;
+    private readonly IScheduleSelectionService _scheduleSelectionService;
+    private readonly IScheduleDisplayService _scheduleDisplayService;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IDispatcher _dispatcher;
+    private readonly IState<ApplicationState> _state;
 
     public ICommand BatteryOptimizationExcludeCommand { get; private set; }
     public ICommand BatteryOptimizationDismissCommand { get; private set; }
@@ -47,38 +49,39 @@ public class ScheduleViewModel : ObservableObject
     public ICommand PreviousChapterCommand { get; set; }
     public ICommand NextChapterCommand { get; set; }
 
-    private readonly IBatteryOptimizationManager _batteryOptimizationManager;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly IDispatcher _dispatcher;
-    private readonly IState<ApplicationState> _state;
-
     public ScheduleViewModel(
         ILogger logger,
         IToastService popUpService,
-        IAlarmService alarmService,
         INavigation navigation,
         IPlaybackService playbackService,
         INotificationService notificationService,
-        IServiceProvider serviceProvider,
         IServiceScopeFactory scopeFactory,
         IDispatcher dispatcher,
         IState<ApplicationState> state,
-        IBatteryOptimizationManager batteryOptimizationManager = null)
+        ISchedulePersistenceService schedulePersistenceService,
+        IBibleNavigationService bibleNavigationService,
+        IMediaCacheSetupService mediaCacheSetupService,
+        INavigationService navigationService,
+        IScheduleSelectionService scheduleSelectionService,
+        IScheduleDisplayService scheduleDisplayService,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _popUpService = popUpService;
-        _alarmService = alarmService;
         _navigation = navigation;
-        var playbackService1 = playbackService;
-        var notificationService1 = notificationService;
-        _serviceProvider = serviceProvider;
         _scopeFactory = scopeFactory;
         _dispatcher = dispatcher;
         _state = state;
+        _schedulePersistenceService = schedulePersistenceService;
+        _bibleNavigationService = bibleNavigationService;
+        _mediaCacheSetupService = mediaCacheSetupService;
+        _navigationService = navigationService;
+        _scheduleSelectionService = scheduleSelectionService;
+        _scheduleDisplayService = scheduleDisplayService;
+        _serviceProvider = serviceProvider;
         
-        if (DeviceInfo.Platform == DevicePlatform.Android)
-            _batteryOptimizationManager = batteryOptimizationManager;
+        var playbackService1 = playbackService;
+        var notificationService1 = notificationService;
 
         // Subscribe to state changes to update when CurrentSchedule changes
         long lastScheduleId = -1;
@@ -180,7 +183,12 @@ public class ScheduleViewModel : ObservableObject
 
             var saved = await SaveAsync();
 
-            if (saved) await _navigation.PopAsync();
+            // Wait a moment for state change to propagate before navigating
+            if (saved)
+            {
+                await Task.Delay(50); // Small delay to ensure state update is processed
+                await _navigation.PopAsync();
+            }
 
             if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
 
@@ -210,25 +218,9 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<MusicSelectionViewModel>();
-            var page = scope.ServiceProvider.GetRequiredService<MusicSelection>();
-            page.BindingContext = viewModel;
-            await _navigation.PushAsync(page);
+            await _navigationService.NavigateToMusicSelectionAsync();
 
-            await Task.Run(async () =>
-            {
-                //get the latest music track
-                if (Music == null || (!IsNewSchedule && !_musicUpdated))
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                    Music = await scheduleDbContext.AlarmMusic
-                        .AsNoTracking()
-                        .FirstAsync(x => x.AlarmScheduleId == _scheduleId);
-                }
-            });
-
+            Music = await _scheduleSelectionService.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
 
             _dispatcher.Dispatch(new MusicSelectionAction(Music));
 
@@ -239,26 +231,15 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<BibleSelectionViewModel>();
-            var page = scope.ServiceProvider.GetRequiredService<BibleSelection>();
-            page.BindingContext = viewModel;
-            await _navigation.PushAsync(page);
+            await _navigationService.NavigateToBibleSelectionAsync();
 
-            await Task.Run(async () =>
+            BibleReadingSchedule = await _scheduleSelectionService.LoadBibleReadingForSelectionAsync(
+                _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule);
+
+            if (BibleReadingSchedule != null)
             {
-                //get the latest bible track
-                if (BibleReadingSchedule == null || (!IsNewSchedule && !_bibleReadingUpdated))
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                    BibleReadingSchedule = await scheduleDbContext.BibleReadingSchedules
-                        .AsNoTracking()
-                        .FirstAsync(x => x.AlarmScheduleId == _scheduleId);
-
-                    RefreshChapterName();
-                }
-            });
+                RefreshChapterName();
+            }
 
             _dispatcher.Dispatch(new BibleSelectionAction(
                 BibleReadingSchedule,
@@ -275,22 +256,14 @@ public class ScheduleViewModel : ObservableObject
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            using var scope = _scopeFactory.CreateScope();
-            var modal = scope.ServiceProvider.GetRequiredService<NumberOfChaptersModal>();
-            modal.BindingContext = this;
-            await _navigation.PushModalAsync(modal);
+            await _navigationService.OpenNumberOfChaptersModalAsync(this);
             IsBusy = false;
         });
-
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            if (_navigation.ModalStack.Count > 0)
-            {
-                var modal = await _navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
             IsBusy = false;
         });
 
@@ -302,11 +275,7 @@ public class ScheduleViewModel : ObservableObject
             CurrentNumberOfChapters = x;
             CurrentNumberOfChapters.IsSelected = true;
 
-            if (_navigation.ModalStack.Count > 0)
-            {
-                var modal = await _navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
 
             IsBusy = false;
         });
@@ -315,100 +284,66 @@ public class ScheduleViewModel : ObservableObject
 
         BatteryOptimizationExcludeCommand = new AsyncRelayCommand(async () =>
         {
-            await MarkBatteryOptimizationModalAsShown();
-
-            if (_navigation.ModalStack.Count > 0)
+            if (DeviceInfo.Platform == DevicePlatform.Android)
             {
-                var modal = await _navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+                var batteryService = _serviceProvider.GetService<IBatteryOptimizationService>();
+                if (batteryService != null)
+                {
+                    await MarkBatteryOptimizationModalAsShown();
+                    await _navigationService.CloseModalAsync();
+                    batteryService.ShowOptimizationSettingsPage();
+                }
             }
-
-            _batteryOptimizationManager.ShowBatteryOptimizationExclusionSettingsPage();
         });
 
         BatteryOptimizationDismissCommand = new AsyncRelayCommand(async () =>
         {
             await MarkBatteryOptimizationModalAsShown();
-
-            if (_navigation.ModalStack.Count > 0)
-            {
-                var modal = await _navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
         });
 
         PreviousBookCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
-            using var scope = _scopeFactory.CreateScope();
-            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var nextBook = await playlistService.GetPreviousBibleBook(BibleReadingSchedule.LanguageCode,
-                BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
-
-            if (nextBook.Value == null) return;
-            
-            BibleReadingSchedule.BookNumber = nextBook.Value.Number;
-            BibleReadingSchedule.ChapterNumber = 1;
-            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-            _bibleReadingUpdated = true;
-            RefreshChapterName();
+            if (await _bibleNavigationService.MoveToPreviousBookAsync(BibleReadingSchedule))
+            {
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
+            }
         });
 
         NextBookCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
-            using var scope = _scopeFactory.CreateScope();
-            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var nextBook = await playlistService.GetNextBibleBook(BibleReadingSchedule.LanguageCode,
-                BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber);
-
-            if (nextBook.Value == null) return;
-            
-            BibleReadingSchedule.BookNumber = nextBook.Value.Number;
-            BibleReadingSchedule.ChapterNumber = 1;
-            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-            _bibleReadingUpdated = true;
-            RefreshChapterName();
+            if (await _bibleNavigationService.MoveToNextBookAsync(BibleReadingSchedule))
+            {
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
+            }
         });
 
         PreviousChapterCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
-            using var scope = _scopeFactory.CreateScope();
-            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var prevChapter = await playlistService.GetPreviousBibleChapter(BibleReadingSchedule.LanguageCode,
-                BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber,
-                BibleReadingSchedule.ChapterNumber);
-
-            if (prevChapter.Key == null || prevChapter.Value == null) return;
-            
-            BibleReadingSchedule.BookNumber = prevChapter.Key.Number;
-            BibleReadingSchedule.ChapterNumber = prevChapter.Value.Number;
-            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-            _bibleReadingUpdated = true;
-            RefreshChapterName();
+            if (await _bibleNavigationService.MoveToPreviousChapterAsync(BibleReadingSchedule))
+            {
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
+            }
         });
 
         NextChapterCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
             
-            using var scope = _scopeFactory.CreateScope();
-            using var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var nextChapter = await playlistService.GetNextBibleChapter(BibleReadingSchedule.LanguageCode,
-                BibleReadingSchedule.PublicationCode, BibleReadingSchedule.BookNumber,
-                BibleReadingSchedule.ChapterNumber);
-
-            if (nextChapter.Key == null || nextChapter.Value == null) return;
-            
-            BibleReadingSchedule.BookNumber = nextChapter.Key.Number;
-            BibleReadingSchedule.ChapterNumber = nextChapter.Value.Number;
-            BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-            _bibleReadingUpdated = true;
-            RefreshChapterName();
+            if (await _bibleNavigationService.MoveToNextChapterAsync(BibleReadingSchedule))
+            {
+                _bibleReadingUpdated = true;
+                RefreshChapterName();
+            }
         });
     }
 
@@ -422,31 +357,28 @@ public class ScheduleViewModel : ObservableObject
 
     private async Task MarkBatteryOptimizationModalAsShown()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
-        if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+        if (DeviceInfo.Platform == DevicePlatform.Android)
         {
-            await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
+            var batteryService = _serviceProvider.GetService<IBatteryOptimizationService>();
+            if (batteryService != null)
             {
-                Key = "AndroidBatteryOptimizationExclusionPromptShown",
-                Value = "True"
-            });
-
-            await scheduleDbContext.SaveChangesAsync();
+                await batteryService.MarkModalAsShownAsync();
+            }
         }
     }
 
     private async Task ShowBatteryOptimizationExclusionPage()
     {
-        if (_batteryOptimizationManager.CanShowOptimizeActivity()) CanOptimizeBattery = true;
+        if (DeviceInfo.Platform != DevicePlatform.Android) return;
 
-        using var scope = _scopeFactory.CreateScope();
-        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+        var batteryService = _serviceProvider.GetService<IBatteryOptimizationService>();
+        if (batteryService == null) return;
+
+        if (batteryService.CanShowOptimizeActivity()) CanOptimizeBattery = true;
+
+        if (await batteryService.ShouldShowModalAsync())
         {
+            using var scope = _scopeFactory.CreateScope();
             var modal = scope.ServiceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
             modal.BindingContext = this;
             await _navigation.PushModalAsync(modal);
@@ -660,19 +592,7 @@ public class ScheduleViewModel : ObservableObject
 
     private void SetupMediaCache(long scheduleId)
     {
-        Task.Run(async () =>
-        {
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                using var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
-                await mediaCacheService.SetupAlarmCache(scheduleId);
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "An error happened in SetupAlarmCache task.");
-            }
-        });
+        _ = _mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
     }
 
     private async Task<bool> SaveAsync()
@@ -682,78 +602,21 @@ public class ScheduleViewModel : ObservableObject
         if (IsNewSchedule) IsEnabled = true;
 
         var model = GetModel();
-
-        if (IsNewSchedule)
+        
+        // Don't pass music if it wasn't updated (for existing schedules)
+        if (!IsNewSchedule && !_musicUpdated)
         {
-            await Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                await scheduleDbContext.AlarmSchedules.AddAsync(model);
-                await scheduleDbContext.SaveChangesAsync();
-                if (model.IsEnabled) await _alarmService.Create(model);
-            });
-
-            using var scope = _scopeFactory.CreateScope();
-            _dispatcher.Dispatch(new AddScheduleAction(model));
-        }
-        else
-        {
-            await Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                
-                var existing = await scheduleDbContext.AlarmSchedules
-                    .Include(x => x.Music)
-                    .Include(x => x.BibleReadingSchedule)
-                    .FirstAsync(x => x.Id == model.Id);
-
-                existing.Hour = model.Hour;
-                existing.Minute = model.Minute;
-                existing.DaysOfWeek = model.DaysOfWeek;
-                existing.IsEnabled = model.IsEnabled;
-
-                if (model.Music != null && existing.Music != null && _musicUpdated)
-                {
-                    existing.Music.Repeat = model.Music.Repeat;
-                    existing.Music.LanguageCode = model.Music.LanguageCode;
-                    existing.Music.MusicType = model.Music.MusicType;
-                    existing.Music.PublicationCode = model.Music.PublicationCode;
-                    existing.Music.TrackNumber = model.Music.TrackNumber;
-                }
-
-                if (model.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
-                {
-                    existing.BibleReadingSchedule.BookNumber = model.BibleReadingSchedule.BookNumber;
-                    existing.BibleReadingSchedule.ChapterNumber = model.BibleReadingSchedule.ChapterNumber;
-                    existing.BibleReadingSchedule.LanguageCode = model.BibleReadingSchedule.LanguageCode;
-                    existing.BibleReadingSchedule.PublicationCode = model.BibleReadingSchedule.PublicationCode;
-
-                    if (_bibleReadingUpdated) existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-                }
-
-                existing.MusicEnabled = model.MusicEnabled;
-                existing.NotificationEnabled = model.NotificationEnabled;
-                existing.AlwaysPlayFromStart = model.AlwaysPlayFromStart;
-                existing.NumberOfChaptersToRead = model.NumberOfChaptersToRead;
-                existing.Name = model.Name;
-                existing.Second = model.Second;
-                existing.SnoozeMinutes = model.SnoozeMinutes;
-
-                await scheduleDbContext.SaveChangesAsync();
-                _alarmService.Update(model);
-            });
-
-            // Update the current schedule reference
-            _currentSchedule = model;
-
-            _dispatcher.Dispatch(new UpdateScheduleAction(model));
+            model.Music = null;
         }
 
-        SetupMediaCache(model.Id);
+        var saved = await _schedulePersistenceService.SaveScheduleAsync(model, IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
+        
+        if (saved)
+        {
+            SetupMediaCache(model.Id);
+        }
 
-        return true;
+        return saved;
     }
 
     private async Task<bool> Validate()
@@ -771,17 +634,7 @@ public class ScheduleViewModel : ObservableObject
     {
         if (_scheduleId >= 0)
         {
-            await Task.Run(async () =>
-            {
-                _alarmService.Delete(_scheduleId);
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                var model = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == _scheduleId);
-                scheduleDbContext.AlarmSchedules.Remove(model);
-                await scheduleDbContext.SaveChangesAsync();
-            });
-
-            _dispatcher.Dispatch(new RemoveScheduleAction(_currentSchedule));
+            await _schedulePersistenceService.DeleteScheduleAsync(_scheduleId);
         }
     }
 
@@ -789,45 +642,26 @@ public class ScheduleViewModel : ObservableObject
     {
         if (BibleReadingSchedule == null) return;
         
-        using var scope = _scopeFactory.CreateScope();
-        var syncContext = scope.ServiceProvider.GetRequiredService<TaskScheduler>();
-
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
+        {
+            try
             {
-                try
+                var displayName = await _scheduleDisplayService.GetChapterDisplayNameForBibleReadingAsync(
+                    _scheduleId, BibleReadingSchedule, true);
+                
+                if (!string.IsNullOrEmpty(displayName))
                 {
-                    await using var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-                    var bookName = await mediaDbContext.BibleBook
-                        .Where(x => x.BibleTranslation.Code == BibleReadingSchedule.PublicationCode
-                                    && x.BibleTranslation.Language.Code == BibleReadingSchedule.LanguageCode
-                                    && x.Number == BibleReadingSchedule.BookNumber)
-                        .Select(x => x.Name)
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync();
-
-                    return bookName;
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        BibleReadingTitleText = displayName;
+                    });
                 }
-                catch (Exception e)
-                {
-                    _logger.Error(e, "An error happened in refreshChapterName task under schedule view model.");
-                }
-
-                return null;
-            })
-            .ContinueWith(x =>
+            }
+            catch (Exception e)
             {
-                if (!x.IsCompleted || BibleReadingSchedule == null) return;
-                try
-                {
-                    BibleReadingTitleText = $"{x.Result} {BibleReadingSchedule.ChapterNumber}";
-                }
-                catch (Exception e)
-                {
-                    _logger.Error(e,
-                        "An error happened in refreshChapterName task continue with under schedule view model.");
-                }
-            }, syncContext);
+                _logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", _scheduleId);
+            }
+        });
     }
 
 }

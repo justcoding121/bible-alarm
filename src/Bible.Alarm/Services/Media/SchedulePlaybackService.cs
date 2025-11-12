@@ -1,6 +1,5 @@
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;

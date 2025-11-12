@@ -1,10 +1,7 @@
-using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
@@ -35,7 +32,6 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     public HomeViewModel(
         ILogger logger,
-        IToastService popUpService, 
         INavigation navigation,
         IServiceScopeFactory scopeFactory,
         Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
@@ -221,7 +217,6 @@ public class HomeViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
     }
-
 
     public void Dispose()
     {

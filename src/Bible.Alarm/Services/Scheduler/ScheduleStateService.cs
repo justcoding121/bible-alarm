@@ -3,10 +3,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Fluxor;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Devices;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
