@@ -66,12 +66,12 @@ public class ScheduleViewModel : ObservableObject
         _navigation = navigation;
         _scopeFactory = scopeFactory;
         var dispatcher1 = dispatcher;
-        
+
         // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
         // that Fluxor uses, not a scoped instance
         // Use MauiAppHolder to get the root service provider, not the scoped one
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        
+
         _schedulePersistenceService = schedulePersistenceService;
         var bibleNavigationService1 = bibleNavigationService;
         _mediaCacheSetupService = mediaCacheSetupService;
@@ -79,7 +79,7 @@ public class ScheduleViewModel : ObservableObject
         var scheduleSelectionService1 = scheduleSelectionService;
         _scheduleDisplayService = scheduleDisplayService;
         _serviceProvider = serviceProvider;
-        
+
         var playbackService1 = playbackService;
         var notificationService1 = notificationService;
 
@@ -90,32 +90,30 @@ public class ScheduleViewModel : ObservableObject
         _onCurrentScheduleChanged = (sender, e) =>
         {
             var stateValue = _state.Value;
-            
+
             // Handle when CurrentSchedule is set (new or existing schedule)
             if (stateValue.CurrentSchedule != null)
             {
                 var currentScheduleId = stateValue.CurrentSchedule.Id;
-                
-                // Always update if this is a different schedule or not yet initialized
-                // This ensures we override any pending new schedule initialization
-                if (currentScheduleId != lastScheduleId || !modelInitialized)
-                {
-                    // Cancel any pending new schedule initialization
-                    isInitializingNewSchedule = false;
-                    
-                    var currentSchedule = stateValue.CurrentSchedule;
-                    lastScheduleId = currentScheduleId;
 
-                    // Determine if this is a new schedule (Id <= 0) or existing (Id > 0)
-                    IsNewSchedule = currentSchedule.Id <= 0;
+                if (currentScheduleId == lastScheduleId && modelInitialized) return;
+
+                isInitializingNewSchedule = false;
+
+                var currentSchedule = stateValue.CurrentSchedule;
+                lastScheduleId = currentScheduleId;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                  
+                    var isNew = currentSchedule.Id <= 0;
+                    IsNewSchedule = isNew;
                     SetModel(currentSchedule);
                     modelInitialized = true;
-
                     IsBusy = false;
-                }
+                });
             }
-            // Handle when CurrentSchedule is null (creating a new schedule)
-            // Only initialize if we haven't initialized yet and aren't already initializing
+      
             else if (!modelInitialized && !isInitializingNewSchedule && stateValue.CurrentSchedule == null)
             {
                 isInitializingNewSchedule = true;
@@ -126,7 +124,6 @@ public class ScheduleViewModel : ObservableObject
                     var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        // Double-check that we're still in the right state before setting
                         var currentState = _state.Value;
                         if (isInitializingNewSchedule && !modelInitialized && currentState.CurrentSchedule == null)
                         {
@@ -141,7 +138,7 @@ public class ScheduleViewModel : ObservableObject
         };
 
         _state.StateChanged += _onCurrentScheduleChanged;
- 
+
         AlarmMusic lastMusic = null;
         BibleReadingSchedule lastBibleReading = null;
 
@@ -198,7 +195,7 @@ public class ScheduleViewModel : ObservableObject
 
             var saved = await SaveAsync();
 
-          
+
             if (saved)
             {
                 await Task.Delay(50);
@@ -328,7 +325,7 @@ public class ScheduleViewModel : ObservableObject
         PreviousBookCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
-            
+
             if (await bibleNavigationService1.MoveToPreviousBookAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
@@ -339,7 +336,7 @@ public class ScheduleViewModel : ObservableObject
         NextBookCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
-            
+
             if (await bibleNavigationService1.MoveToNextBookAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
@@ -350,7 +347,7 @@ public class ScheduleViewModel : ObservableObject
         PreviousChapterCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
-            
+
             if (await bibleNavigationService1.MoveToPreviousChapterAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
@@ -361,7 +358,7 @@ public class ScheduleViewModel : ObservableObject
         NextChapterCommand = new AsyncRelayCommand(async () =>
         {
             if (BibleReadingSchedule == null) return;
-            
+
             if (await bibleNavigationService1.MoveToNextChapterAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
@@ -485,13 +482,13 @@ public class ScheduleViewModel : ObservableObject
         Model = model.DeepClone();
 
         _scheduleId = model.Id;
-        _name = model.Name;
-        _isEnabled = model.IsEnabled;
-        _daysOfWeek = model.DaysOfWeek;
-        _time = new TimeSpan(model.Hour, model.Minute, model.Second);
-        _musicEnabled = model.MusicEnabled;
-        _notificationEnabled = model.NotificationEnabled;
-        _alwaysPlayFromStart = model.AlwaysPlayFromStart;
+        Name = model.Name; // Use property setter to trigger property change notification
+        IsEnabled = model.IsEnabled;
+        DaysOfWeek = model.DaysOfWeek;
+        Time = new TimeSpan(model.Hour, model.Minute, model.Second);
+        MusicEnabled = model.MusicEnabled;
+        NotificationEnabled = model.NotificationEnabled;
+        AlwaysPlayFromStart = model.AlwaysPlayFromStart;
 
         PopulateNumberOfChaptersListView(model);
         RefreshChapterName();
@@ -600,20 +597,17 @@ public class ScheduleViewModel : ObservableObject
 
     private bool _isNewSchedule;
     private bool _isExistingSchedule;
-    
-    public bool IsNewSchedule 
-    { 
+
+    public bool IsNewSchedule
+    {
         get => _isNewSchedule;
-        private set 
+        private set
         {
-            if (SetProperty(ref _isNewSchedule, value))
-            {
-                // Update IsExistingSchedule when IsNewSchedule changes
-                IsExistingSchedule = !value;
-            }
+            IsExistingSchedule = !value;
+            SetProperty(ref _isNewSchedule, value);
         }
     }
-    
+
     public bool IsExistingSchedule
     {
         get => _isExistingSchedule;
@@ -642,7 +636,7 @@ public class ScheduleViewModel : ObservableObject
         if (IsNewSchedule) IsEnabled = true;
 
         var model = GetModel();
-        
+
         // Don't pass music if it wasn't updated (for existing schedules)
         if (!IsNewSchedule && !_musicUpdated)
         {
@@ -650,7 +644,7 @@ public class ScheduleViewModel : ObservableObject
         }
 
         var saved = await _schedulePersistenceService.SaveScheduleAsync(model, IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
-        
+
         if (saved)
         {
             SetupMediaCache(model.Id);
@@ -681,14 +675,14 @@ public class ScheduleViewModel : ObservableObject
     private void RefreshChapterName()
     {
         if (BibleReadingSchedule == null) return;
-        
+
         _ = Task.Run(async () =>
         {
             try
             {
                 var displayName = await _scheduleDisplayService.GetChapterDisplayNameForBibleReadingAsync(
                     _scheduleId, BibleReadingSchedule, true);
-                
+
                 if (!string.IsNullOrEmpty(displayName))
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>

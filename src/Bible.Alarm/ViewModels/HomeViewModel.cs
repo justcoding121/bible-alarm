@@ -23,7 +23,7 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private readonly IDatabaseSeedService _databaseSeedService;
 
-    private readonly Dictionary<long, ScheduleListItem> _scheduleViewModels = [];
+    private readonly Dictionary<int, ScheduleListItem> _scheduleViewModels = [];
 
     private readonly Func<AlarmSchedule, ScheduleListItem> _scheduleListItemFactory;
 
@@ -63,7 +63,7 @@ public class HomeViewModel : ObservableObject, IDisposable
             x.Schedule.IsEnabled = x.IsEnabled;
 
             // Then create scoped VM and navigate
-            var scope = _scopeFactory.CreateScope();
+            using var scope = _scopeFactory.CreateScope();
             var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
             var page = scope.ServiceProvider.GetRequiredService<Schedule>();
             page.BindingContext = viewModel;
@@ -138,7 +138,7 @@ public class HomeViewModel : ObservableObject, IDisposable
     private void UpdateScheduleViewModels(ObservableHashSet<AlarmSchedule> schedules)
     {
         var newViewModels = new ObservableHashSet<ScheduleListItem>();
-        var currentViewModelIds = new HashSet<long>();
+        var currentViewModelIds = new HashSet<int>();
 
         // Create or update ViewModels for each schedule
         foreach (var schedule in schedules)

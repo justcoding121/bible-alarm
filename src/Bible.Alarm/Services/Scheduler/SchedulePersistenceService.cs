@@ -124,6 +124,24 @@ public class SchedulePersistenceService(
     {
         try
         {
+            // Load the schedule BEFORE deleting it, so we can dispatch the action
+            AlarmSchedule scheduleToRemove = null;
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                scheduleToRemove = await scheduleDbContext.AlarmSchedules
+                    .Include(x => x.Music)
+                    .Include(x => x.BibleReadingSchedule)
+                    .FirstOrDefaultAsync(x => x.Id == scheduleId);
+            }
+
+            if (scheduleToRemove == null)
+            {
+                _logger.Warning("Schedule {ScheduleId} not found for deletion", scheduleId);
+                return;
+            }
+
+            // Delete from database
             await Task.Run(async () =>
             {
                 _alarmService.Delete(scheduleId);
@@ -137,13 +155,8 @@ public class SchedulePersistenceService(
                 }
             });
 
-            using var scope = _scopeFactory.CreateScope();
-            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-            var schedule = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleId);
-            if (schedule != null)
-            {
-                _dispatcher.Dispatch(new RemoveScheduleAction(schedule));
-            }
+            // Dispatch action to remove from state (this will trigger HomeViewModel to update)
+            _dispatcher.Dispatch(new RemoveScheduleAction(scheduleToRemove));
         }
         catch (Exception ex)
         {

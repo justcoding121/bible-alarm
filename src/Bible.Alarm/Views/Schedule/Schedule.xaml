@@ -533,6 +533,7 @@
                             HeightRequest="{OnPlatform Default='50',
                                                    WinUI='37'}"
                             HorizontalOptions="Fill"
+                            IsVisible="{Binding IsExistingSchedule}"
                             MinimumHeightRequest="{OnPlatform Default='50',
                                                           WinUI='37'}"
                             Text="REMOVE"

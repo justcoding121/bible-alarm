@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Bible.Alarm.Common;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Enums;
@@ -19,12 +20,15 @@ public class MusicSelectionViewModel : ObservableObject
 
     private readonly IState<ApplicationState> _state;
 
-    public MusicSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
+    public MusicSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
     {
         var navigation1 = navigation;
         var serviceProvider1 = serviceProvider;
         var dispatcher1 = dispatcher;
-        _state = state;
+        
+        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
+        // that Fluxor uses, not a scoped instance
+        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         //set schedules from initial state.
         _state.StateChanged += (sender, e) =>

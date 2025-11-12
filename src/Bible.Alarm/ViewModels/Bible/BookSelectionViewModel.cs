@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Bible.Alarm.Common;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
@@ -26,13 +27,16 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher, IState<ApplicationState> state)
+    public BookSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
     {
         _mediaService = mediaService;
         var navigation1 = navigation;
         var serviceProvider1 = serviceProvider;
         var dispatcher1 = dispatcher;
-        _state = state;
+        
+        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
+        // that Fluxor uses, not a scoped instance
+        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {

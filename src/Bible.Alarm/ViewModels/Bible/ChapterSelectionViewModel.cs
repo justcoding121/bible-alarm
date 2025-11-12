@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
@@ -39,8 +40,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         INavigation navigation,
         IDownloadService downloadService,
         IMediaCacheService cacheService,
-        IDispatcher dispatcher,
-        IState<ApplicationState> state)
+        IDispatcher dispatcher)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -50,7 +50,10 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _downloadService = downloadService;
         _cacheService = cacheService;
         var dispatcher1 = dispatcher;
-        _state = state;
+        
+        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
+        // that Fluxor uses, not a scoped instance
+        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
