@@ -34,7 +34,6 @@ public class ScheduleViewModel : ObservableObject
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IServiceProvider _serviceProvider;
     private readonly IState<ApplicationState> _state;
-    private EventHandler _onCurrentScheduleChanged;
 
     public ICommand BatteryOptimizationExcludeCommand { get; private set; }
     public ICommand BatteryOptimizationDismissCommand { get; private set; }
@@ -65,11 +64,7 @@ public class ScheduleViewModel : ObservableObject
         _popUpService = popUpService;
         _navigation = navigation;
         _scopeFactory = scopeFactory;
-        var dispatcher1 = dispatcher;
 
-        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
-        // that Fluxor uses, not a scoped instance
-        // Use MauiAppHolder to get the root service provider, not the scoped one
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         _schedulePersistenceService = schedulePersistenceService;
@@ -80,92 +75,15 @@ public class ScheduleViewModel : ObservableObject
         _scheduleDisplayService = scheduleDisplayService;
         _serviceProvider = serviceProvider;
 
-        var playbackService1 = playbackService;
-        var notificationService1 = notificationService;
-
-        // Subscribe to state changes to update when CurrentSchedule changes
-        int lastScheduleId = -1;
+        var lastScheduleId = -1;
         var modelInitialized = false;
         var isInitializingNewSchedule = false;
-        _onCurrentScheduleChanged = (sender, e) =>
-        {
-            var stateValue = _state.Value;
 
-            // Handle when CurrentSchedule is set (new or existing schedule)
-            if (stateValue.CurrentSchedule != null)
-            {
-                var currentScheduleId = stateValue.CurrentSchedule.Id;
-
-                if (currentScheduleId == lastScheduleId && modelInitialized) return;
-
-                isInitializingNewSchedule = false;
-
-                var currentSchedule = stateValue.CurrentSchedule;
-                lastScheduleId = currentScheduleId;
-
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                  
-                    var isNew = currentSchedule.Id <= 0;
-                    IsNewSchedule = isNew;
-                    SetModel(currentSchedule);
-                    modelInitialized = true;
-                    IsBusy = false;
-                });
-            }
-      
-            else if (!modelInitialized && !isInitializingNewSchedule && stateValue.CurrentSchedule == null)
-            {
-                isInitializingNewSchedule = true;
-                Task.Run(async () =>
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        var currentState = _state.Value;
-                        if (isInitializingNewSchedule && !modelInitialized && currentState.CurrentSchedule == null)
-                        {
-                            SetModel(sampleSchedule);
-                            modelInitialized = true;
-                            IsNewSchedule = true;
-                        }
-                        isInitializingNewSchedule = false;
-                    });
-                });
-            }
-        };
-
-        _state.StateChanged += _onCurrentScheduleChanged;
+        _state.StateChanged += OnCurrentScheduleChanged;
 
         AlarmMusic lastMusic = null;
         BibleReadingSchedule lastBibleReading = null;
 
-        // Define handlers BEFORE they're subscribed and BEFORE any return statement
-        void OnMusicChanged(object sender, EventArgs e)
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null || stateValue.CurrentMusic == lastMusic ||
-                stateValue.CurrentMusic == Music) return;
-            Music = stateValue.CurrentMusic;
-            lastMusic = stateValue.CurrentMusic;
-            _musicUpdated = true;
-        }
-
-        void OnBibleReadingChanged(object sender, EventArgs e)
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null ||
-                stateValue.CurrentBibleReadingSchedule == lastBibleReading ||
-                stateValue.CurrentBibleReadingSchedule == BibleReadingSchedule) return;
-            BibleReadingSchedule = stateValue.CurrentBibleReadingSchedule;
-            lastBibleReading = stateValue.CurrentBibleReadingSchedule;
-            _bibleReadingUpdated = true;
-            RefreshChapterName();
-        }
-
-        // Subscribe to state changes
         _state.StateChanged += OnMusicChanged;
         _state.StateChanged += OnBibleReadingChanged;
 
@@ -185,13 +103,13 @@ public class ScheduleViewModel : ObservableObject
             if (IsEnabled &&
                 (DeviceInfo.Platform == DevicePlatform.iOS
                  || DeviceInfo.Platform == DevicePlatform.WinUI)
-                && !await notificationService1.CanSchedule())
+                && !await notificationService.CanSchedule())
                 IsEnabled = false;
 
             if (!IsNewSchedule)
-                if (playbackService1.IsPrepared
-                    && _scheduleId == playbackService1.CurrentlyPlayingScheduleId)
-                    await playbackService1.Dismiss();
+                if (playbackService.IsPrepared
+                    && _scheduleId == playbackService.CurrentlyPlayingScheduleId)
+                    await playbackService.Dismiss();
 
             var saved = await SaveAsync();
 
@@ -220,9 +138,9 @@ public class ScheduleViewModel : ObservableObject
             }
 
             // For existing schedules, delete and then navigate back
-            if (playbackService1.IsPrepared
-                && _scheduleId == playbackService1.CurrentlyPlayingScheduleId)
-                await playbackService1.Dismiss();
+            if (playbackService.IsPrepared
+                && _scheduleId == playbackService.CurrentlyPlayingScheduleId)
+                await playbackService.Dismiss();
 
             await DeleteAsync();
 
@@ -243,7 +161,7 @@ public class ScheduleViewModel : ObservableObject
 
             Music = await scheduleSelectionService1.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
 
-            dispatcher1.Dispatch(new MusicSelectionAction(Music));
+            dispatcher.Dispatch(new MusicSelectionAction(Music));
 
             IsBusy = false;
         });
@@ -262,7 +180,7 @@ public class ScheduleViewModel : ObservableObject
                 RefreshChapterName();
             }
 
-            dispatcher1.Dispatch(new BibleSelectionAction(
+            dispatcher.Dispatch(new BibleSelectionAction(
                 BibleReadingSchedule,
                 new BibleReadingSchedule
                 {
@@ -365,6 +283,80 @@ public class ScheduleViewModel : ObservableObject
                 RefreshChapterName();
             }
         });
+        return;
+
+        void OnCurrentScheduleChanged(object sender, EventArgs e)
+        {
+            var stateValue = _state.Value;
+
+            // Handle when CurrentSchedule is set (new or existing schedule)
+            if (stateValue.CurrentSchedule != null)
+            {
+                var currentScheduleId = stateValue.CurrentSchedule.Id;
+
+                if (currentScheduleId == lastScheduleId && modelInitialized) return;
+
+                isInitializingNewSchedule = false;
+
+                var currentSchedule = stateValue.CurrentSchedule;
+                lastScheduleId = currentScheduleId;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    var isNew = currentSchedule.Id <= 0;
+                    IsNewSchedule = isNew;
+                    SetModel(currentSchedule);
+                    modelInitialized = true;
+                    IsBusy = false;
+                });
+            }
+
+            else if (!modelInitialized && !isInitializingNewSchedule && stateValue.CurrentSchedule == null)
+            {
+                isInitializingNewSchedule = true;
+                Task.Run(async () =>
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        var currentState = _state.Value;
+                        if (isInitializingNewSchedule && !modelInitialized && currentState.CurrentSchedule == null)
+                        {
+                            SetModel(sampleSchedule);
+                            modelInitialized = true;
+                            IsNewSchedule = true;
+                        }
+
+                        isInitializingNewSchedule = false;
+                    });
+                });
+            }
+        }
+
+        void OnBibleReadingChanged(object sender, EventArgs e)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null ||
+                stateValue.CurrentBibleReadingSchedule == lastBibleReading ||
+                stateValue.CurrentBibleReadingSchedule == BibleReadingSchedule) return;
+            BibleReadingSchedule = stateValue.CurrentBibleReadingSchedule;
+            lastBibleReading = stateValue.CurrentBibleReadingSchedule;
+            _bibleReadingUpdated = true;
+            RefreshChapterName();
+        }
+
+        // Define handlers BEFORE they're subscribed and BEFORE any return statement
+        void OnMusicChanged(object sender, EventArgs e)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null || stateValue.CurrentMusic == lastMusic ||
+                stateValue.CurrentMusic == Music) return;
+            Music = stateValue.CurrentMusic;
+            lastMusic = stateValue.CurrentMusic;
+            _musicUpdated = true;
+        }
     }
 
     private bool _canOptimizeBattery;
