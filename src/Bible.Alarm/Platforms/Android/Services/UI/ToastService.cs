@@ -20,7 +20,7 @@ public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDis
             //if current is not UI thread, run on UI thread
             if (!MainThread.IsMainThread)
                 await Task.Delay(0)
-                    .ContinueWith(x =>
+                    .ContinueWith(_ =>
                         ShowToast(message, seconds), _taskScheduler);
             else
                 ShowToast(message, seconds);
@@ -52,7 +52,7 @@ public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDis
         {
             if (!MainThread.IsMainThread)
                 await Task.Delay(0)
-                    .ContinueWith(x =>
+                    .ContinueWith(_ =>
                         latest?.Cancel(), _taskScheduler);
             else
                 latest?.Cancel();

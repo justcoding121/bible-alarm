@@ -126,7 +126,7 @@ public static class MauiProgram
         services.AddFluxor(options => options.ScanAssemblies(typeof(MauiProgram).Assembly));
 
         // Register logging
-        services.AddSingleton(sp => Log.Logger);
+        services.AddSingleton(_ => Log.Logger);
 
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
@@ -179,7 +179,7 @@ public static class MauiProgram
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
-        services.AddSingleton(sp => new MediaPlayer());
+        services.AddSingleton(_ => new MediaPlayer());
         services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
         services.AddSingleton<WindowsAlarmHandler>();
 #endif
@@ -200,13 +200,13 @@ public static class MauiProgram
         });
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context
-        services.AddSingleton(sp => TaskScheduler.Default);
+        services.AddSingleton(_ => TaskScheduler.Default);
 
 #if WINDOWS
         // CRITICAL FIX FOR WINDOWS — INavigation is NOT auto-registered on Windows
         // This is a known MAUI bug that affects Windows but not Android/iOS
         // Android/iOS auto-register INavigation, but Windows does not
-        services.AddSingleton(sp =>
+        services.AddSingleton(_ =>
         {
             var app = Application.Current;
             if (app?.MainPage is NavigationPage navPage)

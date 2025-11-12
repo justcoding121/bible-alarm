@@ -16,7 +16,7 @@ public class MediaProgressViewModal : ObservableObject, IDisposable, IRecipient<
 
     public void Receive(MediaProgressMessage message)
     {
-        Task.Delay(0).ContinueWith(x =>
+        Task.Delay(0).ContinueWith(_ =>
         {
             if (message.Value is not Tuple<int, int> kv) return;
             _loadedTracks = kv.Item1;

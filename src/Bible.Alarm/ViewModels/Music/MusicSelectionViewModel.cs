@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
@@ -20,18 +19,11 @@ public class MusicSelectionViewModel : ObservableObject
 
     private readonly IState<ApplicationState> _state;
 
-    public MusicSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
+    public MusicSelectionViewModel(INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
     {
-        var navigation1 = navigation;
-        var serviceProvider1 = serviceProvider;
-        var dispatcher1 = dispatcher;
-        
-        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
-        // that Fluxor uses, not a scoped instance
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
-        //set schedules from initial state.
-        _state.StateChanged += (sender, e) =>
+        _state.StateChanged += (_, _) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentMusic == null) return;
@@ -43,36 +35,35 @@ public class MusicSelectionViewModel : ObservableObject
             });
         };
 
-
         SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
             IsBusy = true;
 
             if (x.MusicType == MusicType.Vocals)
             {
-                dispatcher1.Dispatch(new SongBookSelectionAction(new AlarmMusic
+                dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
                     MusicType = MusicType.Vocals,
                     LanguageCode = _current.LanguageCode
                 }));
 
-                var viewModel = serviceProvider1.GetRequiredService<SongBookSelectionViewModel>();
-                var page = serviceProvider1.GetRequiredService<SongBookSelection>();
+                var viewModel = serviceProvider.GetRequiredService<SongBookSelectionViewModel>();
+                var page = serviceProvider.GetRequiredService<SongBookSelection>();
                 page.BindingContext = viewModel;
-                await navigation1.PushAsync(page);
+                await navigation.PushAsync(page);
             }
             else
             {
-                dispatcher1.Dispatch(new TrackSelectionAction(new AlarmMusic
+                dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
                     Repeat = _current.Repeat,
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
                 }));
-                var viewModel = serviceProvider1.GetRequiredService<TrackSelectionViewModel>();
-                var page = serviceProvider1.GetRequiredService<TrackSelection>();
+                var viewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
+                var page = serviceProvider.GetRequiredService<TrackSelection>();
                 page.BindingContext = viewModel;
-                await navigation1.PushAsync(page);
+                await navigation.PushAsync(page);
             }
 
             IsBusy = false;
@@ -81,7 +72,7 @@ public class MusicSelectionViewModel : ObservableObject
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigation1.PopAsync();
+            await navigation.PopAsync();
             IsBusy = false;
         });
     }
@@ -147,7 +138,6 @@ public class MusicTypeListItemViewModel : ObservableObject, IComparable
 
     public int CompareTo(object obj)
     {
-        if (obj is not MusicTypeListItemViewModel other) return 1;
-        return string.Compare(Name, other.Name, StringComparison.Ordinal);
+        return obj is not MusicTypeListItemViewModel other ? 1 : string.Compare(Name, other.Name, StringComparison.Ordinal);
     }
 }

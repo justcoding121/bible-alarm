@@ -112,7 +112,7 @@ namespace Bible.Alarm.Platforms.iOS
             UNUserNotificationCenter.Current.RequestAuthorization(
                 UNAuthorizationOptions.Alert
                 | UNAuthorizationOptions.Sound
-                | UNAuthorizationOptions.Badge, (approved, err) =>
+                | UNAuthorizationOptions.Badge, (approved, _) =>
                 {
                     if (!approved)
                     {

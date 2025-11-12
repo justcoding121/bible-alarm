@@ -46,19 +46,17 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        var navigation1 = navigation;
+
         _downloadService = downloadService;
         _cacheService = cacheService;
-        var dispatcher1 = dispatcher;
-        
-        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
-        // that Fluxor uses, not a scoped instance
+
+
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigation1.PopAsync();
+            await navigation.PopAsync();
             IsBusy = false;
         });
 
@@ -73,7 +71,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             _tentative.ChapterNumber = x.Number;
 
-            dispatcher1.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
+            dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
@@ -83,10 +81,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        //set schedules from initial state.
-        //this should fire only once 
         EventHandler onBibleReadingInitialized = null;
-        onBibleReadingInitialized = (sender, e) =>
+        onBibleReadingInitialized = (_, _) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null ||
@@ -138,7 +134,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Subscribe to collection changes to handle new items
-        Chapters.CollectionChanged += (sender, e) =>
+        Chapters.CollectionChanged += (_, e) =>
         {
             if (e.NewItems != null)
             {
@@ -267,7 +263,6 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         }
         catch (Exception e)
         {
-            //log error
             _logger.Error(e, "ChapterSelectionViewModel: OnPlayServiceStopped error.");
         }
     }
@@ -285,14 +280,12 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             chapterVMs.Add(chapterVm);
 
-            if (_current.LanguageCode == _tentative.LanguageCode
-                && _current.PublicationCode == _tentative.PublicationCode
-                && _current.BookNumber == _tentative.BookNumber
-                && _current.ChapterNumber == chapter.Number)
-            {
-                chapterVm.IsSelected = true;
-                SelectedChapter = chapterVm;
-            }
+            if (_current.LanguageCode != _tentative.LanguageCode
+                || _current.PublicationCode != _tentative.PublicationCode
+                || _current.BookNumber != _tentative.BookNumber
+                || _current.ChapterNumber != chapter.Number) continue;
+            chapterVm.IsSelected = true;
+            SelectedChapter = chapterVm;
         }
 
         if (DeviceInfo.Platform != DevicePlatform.WinUI) Chapters = chapterVMs;
@@ -310,11 +303,6 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _propertyChangedHandlers.Clear();
 
         _lock.Dispose();
-        
-        // Note: _mediaService (MediaService), _toastService (IToastService), 
-        // _playService (IPreviewPlayService), _downloadService (IDownloadService), 
-        // and _cacheService (IMediaCacheService) are singletons and should not be 
-        // disposed here as they are managed by the DI container
     }
 }
 
@@ -362,6 +350,6 @@ public class BibleChapterListViewItemModel : ObservableObject, IComparable
 
     public int CompareTo(object obj)
     {
-        return Number.CompareTo((obj as BibleChapterListViewItemModel).Number);
+        return Number.CompareTo((obj as BibleChapterListViewItemModel)?.Number);
     }
 }

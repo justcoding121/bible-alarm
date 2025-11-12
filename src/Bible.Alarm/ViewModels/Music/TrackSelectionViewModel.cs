@@ -96,7 +96,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         });
 
         EventHandler onMusicInitialized = null;
-        onMusicInitialized = (sender, e) =>
+        onMusicInitialized = (_, _) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
@@ -143,7 +143,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Subscribe to collection changes to handle new items
-        Tracks.CollectionChanged += (sender, e) =>
+        Tracks.CollectionChanged += (_, e) =>
         {
             if (e.NewItems != null)
             {

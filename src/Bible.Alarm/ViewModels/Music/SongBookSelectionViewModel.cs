@@ -32,14 +32,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         var serviceProvider1 = serviceProvider;
         var dispatcher1 = dispatcher;
         
-        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
-        // that Fluxor uses, not a scoped instance
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
-        //set schedules from initial state.
-        //this should fire only once 
+
         EventHandler onMusicInitialized = null;
-        onMusicInitialized = (sender, e) =>
+        onMusicInitialized = (_, _) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
@@ -54,10 +51,10 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         };
         _state.StateChanged += onMusicInitialized;
 
-        // Subscribe to subsequent music changes (skip first one)
         AlarmMusic lastCurrent = null;
         AlarmMusic lastTentative = null;
 
+        // Define handler BEFORE subscription and BEFORE any return statement
         void OnMusicChanged(object sender, EventArgs e)
         {
             var stateValue = _state.Value;
@@ -67,6 +64,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
             _tentative = stateValue.TentativeMusic;
             lastCurrent = _current;
             lastTentative = _tentative;
+            
+            // Update selected song book when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                SetSelectedSongBook();
+            });
         }
 
         _state.StateChanged += OnMusicChanged;
@@ -155,7 +158,6 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
     public ICommand OpenModalCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
-    public ICommand SelectSongBookCommand { get; set; }
 
     private bool _isBusy;
 

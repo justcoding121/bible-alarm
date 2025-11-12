@@ -20,7 +20,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             if (!MainThread.IsMainThread)
             {
                 await Task.Delay(0)
-                    .ContinueWith(async x =>
+                    .ContinueWith(async _ =>
                         await ShowAlert(message, seconds), taskScheduler);
             }
             else

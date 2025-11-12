@@ -19,7 +19,7 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
         .WaitAndRetryAsync(
             retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,
             sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
-            onRetry: (exception, timeSpan, retryCount, context) =>
+            onRetry: (_, _, _, _) =>
             {
                 // Optional: Add logging here if needed
             });
@@ -30,7 +30,7 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
         .WaitAndRetryAsync(
             retryCount: AppConstants.CacheSettings.FileExistsCheckRetryAttempts,
             sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
-            onRetry: (exception, timeSpan, retryCount, context) =>
+            onRetry: (_, _, _, _) =>
             {
                 // Optional: Add logging here if needed
             });

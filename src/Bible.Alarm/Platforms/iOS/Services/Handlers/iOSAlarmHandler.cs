@@ -31,7 +31,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
                 }
                 else
                 {
-                    await Task.Delay(0).ContinueWith(x =>
+                    await Task.Delay(0).ContinueWith(_ =>
                     {
                         if (!firstTime)
                         {
@@ -83,7 +83,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
                 if (disposeMediaManager)
                 {
                     Task.Delay(0)
-                        .ContinueWith(x => { UIApplication.SharedApplication.EndReceivingRemoteControlEvents(); },
+                        .ContinueWith(_ => { UIApplication.SharedApplication.EndReceivingRemoteControlEvents(); },
                             taskScheduler);
                 }
             }

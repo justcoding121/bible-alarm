@@ -26,7 +26,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             var time = schedule.NextFireDate();
             var daysOfWeek = schedule.DaysOfWeek;
 
-            await Task.Delay(0).ContinueWith(x =>
+            await Task.Delay(0).ContinueWith(_ =>
             {
                 var @params = new Dictionary<string, string>
                 {
@@ -61,7 +61,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
         public async Task Remove(int scheduleId)
         {
-            await Task.Delay(0).ContinueWith(x =>
+            await Task.Delay(0).ContinueWith(_ =>
             {
                 var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
 
@@ -82,7 +82,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
         public async Task<bool> IsScheduled(int scheduleId)
         {
-            return await Task.Delay(0).ContinueWith(x =>
+            return await Task.Delay(0).ContinueWith(_ =>
             {
                 var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
 
@@ -104,7 +104,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
         public async Task<bool> CanSchedule()
         {
-            return await Task.Delay(0).ContinueWith(x =>
+            return await Task.Delay(0).ContinueWith(_ =>
             {
                 var taskCompletionSource = new TaskCompletionSource<bool>();
 

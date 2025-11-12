@@ -29,23 +29,15 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
     public ICommand OpenModalCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
-    public ICommand SelectSongBookCommand { get; set; }
 
     public BibleSelectionViewModel(MediaService mediaService, INavigation navigation, IServiceProvider serviceProvider, IDispatcher dispatcher)
     {
         _mediaService = mediaService;
-        var navigation1 = navigation;
-        var serviceProvider1 = serviceProvider;
-        var dispatcher1 = dispatcher;
         
-        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
-        // that Fluxor uses, not a scoped instance
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
 
-        //set schedules from initial state.
-        //this should fire only once 
         EventHandler onBibleReadingInitialized = null;
-        onBibleReadingInitialized = (sender, e) =>
+        onBibleReadingInitialized = (_, _) =>
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
@@ -60,7 +52,6 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         };
         _state.StateChanged += onBibleReadingInitialized;
 
-        // Subscribe to subsequent schedule changes (skip first one)
         BibleReadingSchedule lastCurrent = null;
         BibleReadingSchedule lastTentative = null;
 
@@ -69,15 +60,15 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
-            dispatcher1.Dispatch(new BookSelectionAction(new BibleReadingSchedule
+            dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
             {
                 PublicationCode = x.Code,
                 LanguageCode = CurrentLanguage.Code
             }));
-            var viewModel = serviceProvider1.GetRequiredService<BookSelectionViewModel>();
-            var page = serviceProvider1.GetRequiredService<BookSelection>();
+            var viewModel = serviceProvider.GetRequiredService<BookSelectionViewModel>();
+            var page = serviceProvider.GetRequiredService<BookSelection>();
             page.BindingContext = viewModel;
-            await navigation1.PushAsync(page);
+            await navigation.PushAsync(page);
 
             IsBusy = false;
         });
@@ -85,25 +76,25 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            var modal = serviceProvider1.GetRequiredService<LanguageModal>();
+            var modal = serviceProvider.GetRequiredService<LanguageModal>();
             modal.BindingContext = this;
-            await navigation1.PushModalAsync(modal);
+            await navigation.PushModalAsync(modal);
             IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigation1.PopAsync();
+            await navigation.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            if (navigation1.ModalStack.Count > 0)
+            if (navigation.ModalStack.Count > 0)
             {
-                var modal = await navigation1.PopModalAsync();
+                var modal = await navigation.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
             IsBusy = false;
@@ -117,9 +108,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            if (navigation1.ModalStack.Count > 0)
+            if (navigation.ModalStack.Count > 0)
             {
-                var modal = await navigation1.PopModalAsync();
+                var modal = await navigation.PopModalAsync();
                 if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
             }
             await PopulateTranslations(x.Code);
@@ -135,6 +126,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
             _tentative = stateValue.TentativeBibleReadingSchedule;
             lastCurrent = _current;
             lastTentative = _tentative;
+            
+            // Update selected translation when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(SetSelectedTranslation);
         }
     }
 
