@@ -150,6 +150,7 @@ public static class MauiProgram
         services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());
         services.AddSingleton<IMediaIndexService>(sp => sp.GetRequiredService<MediaIndexService>());
         services.AddSingleton<IDatabaseSeedService, DatabaseSeedService>();
+        services.AddSingleton<IScheduleMigrationService, ScheduleMigrationService>();
 
         // Register platform-specific version finder
 #if ANDROID

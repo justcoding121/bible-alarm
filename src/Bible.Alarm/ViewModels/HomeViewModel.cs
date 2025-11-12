@@ -22,6 +22,7 @@ public class HomeViewModel : ObservableObject, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
 
     private readonly IDatabaseSeedService _databaseSeedService;
+    private readonly IScheduleMigrationService _scheduleMigrationService;
 
     private readonly Dictionary<int, ScheduleListItem> _scheduleViewModels = [];
 
@@ -37,7 +38,8 @@ public class HomeViewModel : ObservableObject, IDisposable
         Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
         IDispatcher dispatcher,
         IState<ApplicationState> state,
-        IDatabaseSeedService databaseSeedService)
+        IDatabaseSeedService databaseSeedService,
+        IScheduleMigrationService scheduleMigrationService)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -45,6 +47,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         _dispatcher = dispatcher;
         _state = state;
         _databaseSeedService = databaseSeedService;
+        _scheduleMigrationService = scheduleMigrationService;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
@@ -91,6 +94,7 @@ public class HomeViewModel : ObservableObject, IDisposable
             if (!_initialized)
             {
                 await _databaseSeedService.SeedDefaultAlarmAsync();
+                await _scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
 
                 using var scope = _scopeFactory.CreateScope();
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
