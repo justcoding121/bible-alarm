@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
@@ -52,7 +53,6 @@ public class ScheduleViewModel : ObservableObject
         INotificationService notificationService,
         IServiceScopeFactory scopeFactory,
         IDispatcher dispatcher,
-        IState<ApplicationState> state,
         ISchedulePersistenceService schedulePersistenceService,
         IBibleNavigationService bibleNavigationService,
         IMediaCacheSetupService mediaCacheSetupService,
@@ -66,7 +66,12 @@ public class ScheduleViewModel : ObservableObject
         _navigation = navigation;
         _scopeFactory = scopeFactory;
         var dispatcher1 = dispatcher;
-        _state = state;
+        
+        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
+        // that Fluxor uses, not a scoped instance
+        // Use MauiAppHolder to get the root service provider, not the scoped one
+        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        
         _schedulePersistenceService = schedulePersistenceService;
         var bibleNavigationService1 = bibleNavigationService;
         _mediaCacheSetupService = mediaCacheSetupService;
@@ -136,13 +141,35 @@ public class ScheduleViewModel : ObservableObject
         };
 
         _state.StateChanged += _onCurrentScheduleChanged;
-
+ 
         AlarmMusic lastMusic = null;
-
-        _state.StateChanged += OnMusicChanged;
-
         BibleReadingSchedule lastBibleReading = null;
 
+        // Define handlers BEFORE they're subscribed and BEFORE any return statement
+        void OnMusicChanged(object sender, EventArgs e)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null || stateValue.CurrentMusic == lastMusic ||
+                stateValue.CurrentMusic == Music) return;
+            Music = stateValue.CurrentMusic;
+            lastMusic = stateValue.CurrentMusic;
+            _musicUpdated = true;
+        }
+
+        void OnBibleReadingChanged(object sender, EventArgs e)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null ||
+                stateValue.CurrentBibleReadingSchedule == lastBibleReading ||
+                stateValue.CurrentBibleReadingSchedule == BibleReadingSchedule) return;
+            BibleReadingSchedule = stateValue.CurrentBibleReadingSchedule;
+            lastBibleReading = stateValue.CurrentBibleReadingSchedule;
+            _bibleReadingUpdated = true;
+            RefreshChapterName();
+        }
+
+        // Subscribe to state changes
+        _state.StateChanged += OnMusicChanged;
         _state.StateChanged += OnBibleReadingChanged;
 
         CancelCommand = new AsyncRelayCommand(async () =>
@@ -341,29 +368,6 @@ public class ScheduleViewModel : ObservableObject
                 RefreshChapterName();
             }
         });
-        return;
-
-        void OnBibleReadingChanged(object sender, EventArgs e)
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null ||
-                stateValue.CurrentBibleReadingSchedule == lastBibleReading ||
-                stateValue.CurrentBibleReadingSchedule == BibleReadingSchedule) return;
-            BibleReadingSchedule = stateValue.CurrentBibleReadingSchedule;
-            lastBibleReading = stateValue.CurrentBibleReadingSchedule;
-            _bibleReadingUpdated = true;
-            RefreshChapterName();
-        }
-
-        void OnMusicChanged(object sender, EventArgs e)
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null || stateValue.CurrentMusic == lastMusic ||
-                stateValue.CurrentMusic == Music) return;
-            Music = stateValue.CurrentMusic;
-            lastMusic = stateValue.CurrentMusic;
-            _musicUpdated = true;
-        }
     }
 
     private bool _canOptimizeBattery;

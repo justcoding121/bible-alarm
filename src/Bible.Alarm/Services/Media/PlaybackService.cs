@@ -22,7 +22,7 @@ public class PlaybackService : IPlaybackService
     private readonly SemaphoreSlim _lock = new(1);
 
     private bool _isPlaying;
-    private long _currentScheduleId;
+    private int _currentScheduleId;
     private Dictionary<string, NotificationDetail> _currentlyPlaying;
     private string _firstChapter;
     private bool _isPrepared;
@@ -53,7 +53,7 @@ public class PlaybackService : IPlaybackService
 
     public bool IsPlaying => _isPlaying;
     public bool IsPrepared => _isPrepared;
-    public long CurrentlyPlayingScheduleId => _currentScheduleId;
+    public int CurrentlyPlayingScheduleId => _currentScheduleId;
     public int CurrentTrackIndex { get; set; }
     public TimeSpan CurrentTrackPosition { get; set; }
 

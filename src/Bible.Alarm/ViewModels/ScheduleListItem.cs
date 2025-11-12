@@ -83,7 +83,7 @@ public class ScheduleListItem(
     }
 
 
-    public long ScheduleId => Schedule?.Id ?? 0;
+    public int ScheduleId => Schedule?.Id ?? 0;
 
     public string Name => Schedule?.Name ?? string.Empty;
 

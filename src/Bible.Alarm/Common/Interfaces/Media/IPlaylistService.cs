@@ -9,9 +9,9 @@ public interface IPlaylistService : IDisposable
     Task MarkTrackAsFinished(NotificationDetail trackDetail);
     Task<PlayItem> NextTrack(int scheduleId);
     Task<List<PlayItem>> NextTracks(int scheduleId);
-    Task SaveLastPlayed(long currentScheduleId);
+    Task SaveLastPlayed(int currentScheduleId);
 
-    Task<long> GetRelavantScheduleToPlay();
+    Task<int> GetRelavantScheduleToPlay();
 
     Task MoveToNextBibleChapter(int scheduleId);
     Task MoveToPreviousBibleChapter(int scheduleId);

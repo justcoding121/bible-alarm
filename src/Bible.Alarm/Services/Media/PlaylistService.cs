@@ -23,7 +23,7 @@ public class PlaylistService(
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-    public async Task<long> GetRelavantScheduleToPlay()
+    public async Task<int> GetRelavantScheduleToPlay()
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -49,7 +49,7 @@ public class PlaylistService(
         return schedule.Id;
     }
 
-    public async Task SaveLastPlayed(long scheduleId)
+    public async Task SaveLastPlayed(int scheduleId)
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();

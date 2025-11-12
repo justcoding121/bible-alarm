@@ -51,7 +51,7 @@ public class MediaCacheService(
         return await storageService.FileExists(cachePath);
     }
 
-    public async Task<bool> SetupAlarmCache(long alarmScheduleId)
+    public async Task<bool> SetupAlarmCache(int alarmScheduleId)
     {
         var downloaded = false;
 

@@ -4,7 +4,7 @@ public interface IPlaybackService
 {
     TimeSpan CurrentTrackPosition { get; }
     int CurrentTrackIndex { get; }
-    long CurrentlyPlayingScheduleId { get; }
+    int CurrentlyPlayingScheduleId { get; }
     bool IsPlaying { get; }
     bool IsPrepared { get; }
 

@@ -6,7 +6,7 @@ public interface IMediaCacheService : IDisposable
     string GetCacheFileName(string url);
     string GetCacheFilePath(string url);
 
-    Task<bool> SetupAlarmCache(long alarmScheduleId);
+    Task<bool> SetupAlarmCache(int alarmScheduleId);
     Task CleanUp();
 
     Task<string> GetMusicTrackUrl(string languageCode, string lookUpPath);
