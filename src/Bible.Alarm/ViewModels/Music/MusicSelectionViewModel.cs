@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
@@ -18,12 +19,14 @@ public class MusicSelectionViewModel : ObservableObject
     private AlarmMusic _current;
 
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigationService _navigationService;
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
-    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory)
+    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _scopeFactory = scopeFactory;
+        _navigationService = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
@@ -35,33 +38,26 @@ public class MusicSelectionViewModel : ObservableObject
 
             if (x.MusicType == MusicType.Vocals)
             {
+                await _navigationService.NavigateToSongBookSelectionAsync();
+
                 _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
                     MusicType = MusicType.Vocals,
                     LanguageCode = _current.LanguageCode
                 }));
-
-                using var scope = _scopeFactory.CreateScope();
-                var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-                var viewModel = scope.ServiceProvider.GetRequiredService<SongBookSelectionViewModel>();
-                var page = scope.ServiceProvider.GetRequiredService<SongBookSelection>();
-                page.BindingContext = viewModel;
-                await navigation.PushAsync(page);
+  
             }
             else
             {
+                await _navigationService.NavigateToTrackSelectionAsync();
+
                 _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
                     Repeat = _current.Repeat,
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
                 }));
-                using var scope = _scopeFactory.CreateScope();
-                var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-                var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
-                var page = scope.ServiceProvider.GetRequiredService<TrackSelection>();
-                page.BindingContext = viewModel;
-                await navigation.PushAsync(page);
+               
             }
 
             IsBusy = false;

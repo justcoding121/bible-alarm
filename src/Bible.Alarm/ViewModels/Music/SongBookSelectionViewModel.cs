@@ -21,40 +21,25 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigationService _navigationService;
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
-    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory)
+    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _mediaService = mediaService;
         _scopeFactory = scopeFactory;
+        _navigationService = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
-
-
-        EventHandler onMusicInitialized = null;
-        onMusicInitialized = (_, _) =>
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
-            _current = stateValue.CurrentMusic;
-            _tentative = stateValue.TentativeMusic;
-            Task.Run(async () =>
-            {
-                await Initialize();
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            });
-            _state.StateChanged -= onMusicInitialized;
-        };
-        _state.StateChanged += onMusicInitialized;
 
         AlarmMusic lastCurrent = null;
         AlarmMusic lastTentative = null;
 
-        // Define handler BEFORE subscription and BEFORE any return statement
+        // Define handlers BEFORE subscription and BEFORE any return statement
         void OnMusicChanged(object sender, EventArgs e)
         {
             var stateValue = _state.Value;
@@ -66,17 +51,38 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
             lastTentative = _tentative;
             
             // Update selected song book when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                SetSelectedSongBook();
-            });
+            MainThread.BeginInvokeOnMainThread(SetSelectedSongBook);
         }
 
+        void OnMusicInitialized(object o, EventArgs eventArgs)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
+            _current = stateValue.CurrentMusic;
+            _tentative = stateValue.TentativeMusic;
+            Task.Run(async () =>
+            {
+                await Initialize();
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+            _state.StateChanged -= OnMusicInitialized;
+        }
+
+        _state.StateChanged += OnMusicInitialized;
         _state.StateChanged += OnMusicChanged;
+        
+        // Check current state immediately in case state is already set
+        var currentState = _state.Value;
+        if (currentState.CurrentMusic != null && currentState.TentativeMusic != null)
+        {
+            OnMusicInitialized(null, EventArgs.Empty);
+        }
 
         TrackSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
+
+            await _navigationService.NavigateToTrackSelectionAsync();
 
             _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
@@ -86,24 +92,13 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
                 PublicationCode = x.Code
             }));
 
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
-            var page = scope.ServiceProvider.GetRequiredService<TrackSelection>();
-            page.BindingContext = viewModel;
-            await navigation.PushAsync(page);
-
             IsBusy = false;
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            var modal = scope.ServiceProvider.GetRequiredService<LanguageModal>();
-            modal.BindingContext = this;
-            await navigation.PushModalAsync(modal);
+            await _navigationService.OpenLanguageModalAsync(this);
             IsBusy = false;
         });
 
@@ -118,13 +113,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            if (navigation.ModalStack.Count > 0)
-            {
-                var modal = await navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -135,13 +124,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            if (navigation.ModalStack.Count > 0)
-            {
-                var modal = await navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
             await PopulateSongBooks(x.Code);
             IsBusy = false;
         });

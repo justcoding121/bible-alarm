@@ -20,6 +20,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigationService _navigationService;
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
@@ -32,28 +33,15 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory)
+    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _mediaService = mediaService;
         _scopeFactory = scopeFactory;
+        _navigationService = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
-        EventHandler onBibleReadingInitialized = null;
-        onBibleReadingInitialized = (_, _) =>
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
-            _current = stateValue.CurrentBibleReadingSchedule;
-            _tentative = stateValue.TentativeBibleReadingSchedule;
-            Task.Run(async () =>
-            {
-                await Initialize(_tentative.LanguageCode);
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            });
-            _state.StateChanged -= onBibleReadingInitialized;
-        };
-        _state.StateChanged += onBibleReadingInitialized;
+        _state.StateChanged += OnBibleReadingInitialized;
 
         BibleReadingSchedule lastCurrent = null;
         BibleReadingSchedule lastTentative = null;
@@ -63,29 +51,19 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
+            await _navigationService.NavigateToBookSelectionAsync();
             _dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
             {
                 PublicationCode = x.Code,
                 LanguageCode = CurrentLanguage.Code
             }));
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            var viewModel = scope.ServiceProvider.GetRequiredService<BookSelectionViewModel>();
-            var page = scope.ServiceProvider.GetRequiredService<BookSelection>();
-            page.BindingContext = viewModel;
-            await navigation.PushAsync(page);
-
             IsBusy = false;
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            var modal = scope.ServiceProvider.GetRequiredService<LanguageModal>();
-            modal.BindingContext = this;
-            await navigation.PushModalAsync(modal);
+            await _navigationService.OpenLanguageModalAsync(this);
             IsBusy = false;
         });
 
@@ -101,13 +79,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            if (navigation.ModalStack.Count > 0)
-            {
-                var modal = await navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
             IsBusy = false;
         });
 
@@ -119,17 +91,26 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            if (navigation.ModalStack.Count > 0)
-            {
-                var modal = await navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
             await PopulateTranslations(x.Code);
 
             IsBusy = false;
         });
+        return;
+
+        void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
+            _current = stateValue.CurrentBibleReadingSchedule;
+            _tentative = stateValue.TentativeBibleReadingSchedule;
+            Task.Run(async () =>
+            {
+                await Initialize(_tentative.LanguageCode);
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+            _state.StateChanged -= OnBibleReadingInitialized;
+        }
 
         void OnBibleReadingChanged(object sender, EventArgs e)
         {

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
@@ -21,6 +22,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly INavigationService _navigationService;
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
     private EventHandler _onBibleReadingChanged;
@@ -29,10 +31,11 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory)
+    public BookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _mediaService = mediaService;
         _scopeFactory = scopeFactory;
+        _navigationService = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
@@ -48,27 +51,41 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
         {
             IsBusy = true;
+            await _navigationService.NavigateToChapterSelectionAsync();
             _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
                 BookNumber = x.Number
             }));
-
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            var viewModel = scope.ServiceProvider.GetRequiredService<ChapterSelectionViewModel>();
-            var page = scope.ServiceProvider.GetRequiredService<ChapterSelection>();
-            page.BindingContext = viewModel;
-            await navigation.PushAsync(page);
             IsBusy = false;
         });
 
-        _onBibleReadingInitialized = (_, _) =>
+        // Subscribe to current schedule changes (but skip first one)
+        BibleReadingSchedule lastCurrent = null;
+
+        _state.StateChanged += OnBibleReadingInitialized;
+        _state.StateChanged += OnBibleReadingChanged;
+
+        return;
+
+        // Define handler BEFORE subscription and BEFORE any return statement
+        void OnBibleReadingChanged(object sender, EventArgs e)
         {
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null ||
-                stateValue.TentativeBibleReadingSchedule == null) return;
+                stateValue.CurrentBibleReadingSchedule == lastCurrent) return;
+            _current = stateValue.CurrentBibleReadingSchedule;
+            lastCurrent = _current;
+            
+            // Update selected book when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(SetSelectedBook);
+        }
+
+        void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
             _current = stateValue.CurrentBibleReadingSchedule;
             _tentative = stateValue.TentativeBibleReadingSchedule;
             Task.Run(async () =>
@@ -81,30 +98,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             if (_onBibleReadingInitialized == null) return;
             _state.StateChanged -= _onBibleReadingInitialized;
             _onBibleReadingInitialized = null;
-        };
-        _state.StateChanged += _onBibleReadingInitialized;
-
-        // Subscribe to current schedule changes (but skip first one)
-        BibleReadingSchedule lastCurrent = null;
-
-        // Define handler BEFORE subscription and BEFORE any return statement
-        void OnBibleReadingChanged(object sender, EventArgs e)
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null ||
-                stateValue.CurrentBibleReadingSchedule == lastCurrent) return;
-            _current = stateValue.CurrentBibleReadingSchedule;
-            lastCurrent = _current;
-            
-            // Update selected book when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                SetSelectedBook();
-            });
         }
-
-        _onBibleReadingChanged = OnBibleReadingChanged;
-        _state.StateChanged += _onBibleReadingChanged;
     }
 
     public void Dispose()

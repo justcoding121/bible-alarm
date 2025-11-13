@@ -33,6 +33,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
+    private bool _initialized;
 
     private readonly List<IDisposable> _subscriptions = [];
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
@@ -95,22 +96,36 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        EventHandler onMusicInitialized = null;
-        onMusicInitialized = (_, _) =>
+        _state.StateChanged += OnMusicInitialized;
+        
+        // Check current state immediately in case state is already set
+        var currentState = _state.Value;
+        if (currentState.TentativeMusic != null && !_initialized)
         {
+            OnMusicInitialized(null, EventArgs.Empty);
+        }
+
+        return;
+
+        void OnMusicInitialized(object o, EventArgs eventArgs)
+        {
+            if (_initialized) return;
             var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
-            _current = stateValue.CurrentMusic;
+            // For track selection, we only need TentativeMusic to initialize
+            // CurrentMusic might be null when navigating directly to track selection
+            if (stateValue.TentativeMusic == null) return;
             _tentative = stateValue.TentativeMusic;
+            // Use TentativeMusic as CurrentMusic if CurrentMusic is null
+            _current = stateValue.CurrentMusic ?? stateValue.TentativeMusic;
+            _initialized = true;
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= onMusicInitialized;
-        };
-        _state.StateChanged += onMusicInitialized;
+            _state.StateChanged -= OnMusicInitialized;
+        }
     }
 
     public ICommand BackCommand { get; set; }
@@ -124,7 +139,13 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _isBusy, value);
     }
 
-    public ObservableCollection<MusicTrackListViewItemModel> Tracks { get; set; } = [];
+    private ObservableCollection<MusicTrackListViewItemModel> _tracks = [];
+
+    public ObservableCollection<MusicTrackListViewItemModel> Tracks
+    {
+        get => _tracks;
+        set => SetProperty(ref _tracks, value);
+    }
 
     public MusicTrackListViewItemModel SelectedTrack { get; set; }
 
@@ -304,25 +325,55 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
         var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
 
-        if (DeviceInfo.Platform == DevicePlatform.WinUI) Tracks = trackVMs;
+        // On WinUI, assign empty collection first on main thread so ListView can observe CollectionChanged
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => Tracks = trackVMs);
+        }
+
+        // Build the list of track view models
+        var trackViewModelList = new List<MusicTrackListViewItemModel>();
+        MusicTrackListViewItemModel selectedTrack = null;
 
         foreach (var track in tracks.Select(x => x.Value))
         {
             var musicTrackListViewItemViewModel = new MusicTrackListViewItemModel(track, !isVocal);
 
-            trackVMs.Add(musicTrackListViewItemViewModel);
+            trackViewModelList.Add(musicTrackListViewItemViewModel);
 
             if (_current.MusicType != _tentative.MusicType
                 || _current.TrackNumber != track.Number
                 || (_current.MusicType != MusicType.Melodies &&
                     (_current.LanguageCode != _tentative.LanguageCode
                      || _current.PublicationCode != _tentative.PublicationCode))) continue;
-            SelectedTrack = musicTrackListViewItemViewModel;
-            SelectedTrack.IsSelected = true;
-            SelectedTrack.Repeat = _current.Repeat;
+            selectedTrack = musicTrackListViewItemViewModel;
+            selectedTrack.IsSelected = true;
+            selectedTrack.Repeat = _current.Repeat;
         }
 
-        if (DeviceInfo.Platform != DevicePlatform.WinUI) Tracks = trackVMs;
+        // Add items to collection on main thread
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            {
+                // On WinUI, add items one by one to the already-assigned collection
+                // Since Tracks = trackVMs, adding to Tracks will raise CollectionChanged events
+                foreach (var trackVm in trackViewModelList)
+                {
+                    Tracks.Add(trackVm);
+                }
+            }
+            else
+            {
+                // On other platforms, assign the populated collection
+                Tracks = new ObservableCollection<MusicTrackListViewItemModel>(trackViewModelList);
+            }
+
+            if (selectedTrack != null)
+            {
+                SelectedTrack = selectedTrack;
+            }
+        });
     }
 
     public void Dispose()

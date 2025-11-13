@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database;
@@ -24,6 +25,7 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private readonly IDatabaseSeedService _databaseSeedService;
     private readonly IScheduleMigrationService _scheduleMigrationService;
+    private readonly INavigationService _navigationService;
 
     private readonly Dictionary<int, ScheduleListItem> _scheduleViewModels = [];
 
@@ -34,12 +36,12 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     public HomeViewModel(
         ILogger logger,
-        INavigation navigation,
         IServiceScopeFactory scopeFactory,
         Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
         IState<ApplicationState> state,
         IDatabaseSeedService databaseSeedService,
-        IScheduleMigrationService scheduleMigrationService)
+        IScheduleMigrationService scheduleMigrationService,
+        INavigationService navigationService)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -48,31 +50,19 @@ public class HomeViewModel : ObservableObject, IDisposable
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
         _databaseSeedService = databaseSeedService;
         _scheduleMigrationService = scheduleMigrationService;
+        _navigationService = navigationService;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
-            var page = scope.ServiceProvider.GetRequiredService<Schedule>();
-            page.BindingContext = viewModel;
-            await navigation.PushAsync(page);
-
+            await _navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(null));
-
         });
 
         ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
         {
             x.Schedule.IsEnabled = x.IsEnabled;
-
-            using var scope = _scopeFactory.CreateScope();
-            var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
-            var page = scope.ServiceProvider.GetRequiredService<Schedule>();
-            page.BindingContext = viewModel;
-            await navigation.PushAsync(page);
-
+            await _navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
-
         });
 
         _state.StateChanged += OnStateChanged;

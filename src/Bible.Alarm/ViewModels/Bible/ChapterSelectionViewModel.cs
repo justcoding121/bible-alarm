@@ -71,7 +71,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             _tentative.ChapterNumber = x.Number;
 
-            dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
+            _dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
@@ -81,12 +81,13 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        EventHandler onBibleReadingInitialized = null;
-        onBibleReadingInitialized = (_, _) =>
+        _state.StateChanged += OnBibleReadingInitialized;
+        return;
+
+        void OnBibleReadingInitialized(object o, EventArgs eventArgs)
         {
             var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null ||
-                stateValue.TentativeBibleReadingSchedule == null) return;
+            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
             _current = stateValue.CurrentBibleReadingSchedule;
             _tentative = stateValue.TentativeBibleReadingSchedule;
             Task.Run(async () =>
@@ -94,9 +95,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= onBibleReadingInitialized;
-        };
-        _state.StateChanged += onBibleReadingInitialized;
+            _state.StateChanged -= OnBibleReadingInitialized;
+        }
     }
 
     public ICommand BackCommand { get; set; }
@@ -272,23 +272,53 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         var chapters = await _mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
         var chapterVMs = new ObservableCollection<BibleChapterListViewItemModel>();
 
-        if (DeviceInfo.Platform == DevicePlatform.WinUI) Chapters = chapterVMs;
+        // On WinUI, assign empty collection first on main thread so ListView can observe CollectionChanged
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => Chapters = chapterVMs);
+        }
+
+        // Build the list of chapter view models
+        var chapterViewModelList = new List<BibleChapterListViewItemModel>();
+        BibleChapterListViewItemModel selectedChapter = null;
 
         foreach (var chapter in chapters.Select(x => x.Value))
         {
             var chapterVm = new BibleChapterListViewItemModel(chapter);
 
-            chapterVMs.Add(chapterVm);
+            chapterViewModelList.Add(chapterVm);
 
             if (_current.LanguageCode != _tentative.LanguageCode
                 || _current.PublicationCode != _tentative.PublicationCode
                 || _current.BookNumber != _tentative.BookNumber
                 || _current.ChapterNumber != chapter.Number) continue;
-            chapterVm.IsSelected = true;
-            SelectedChapter = chapterVm;
+            selectedChapter = chapterVm;
+            selectedChapter.IsSelected = true;
         }
 
-        if (DeviceInfo.Platform != DevicePlatform.WinUI) Chapters = chapterVMs;
+        // Add items to collection on main thread
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            {
+                // On WinUI, add items one by one to the already-assigned collection
+                // Since Chapters = chapterVMs, adding to Chapters will raise CollectionChanged events
+                foreach (var chapterVm in chapterViewModelList)
+                {
+                    Chapters.Add(chapterVm);
+                }
+            }
+            else
+            {
+                // On other platforms, assign the populated collection
+                Chapters = new ObservableCollection<BibleChapterListViewItemModel>(chapterViewModelList);
+            }
+
+            if (selectedChapter != null)
+            {
+                SelectedChapter = selectedChapter;
+            }
+        });
     }
 
     public void Dispose()
