@@ -25,7 +25,6 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IPreviewPlayService _playService;
-    private readonly INavigationService _navigationService;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly IDispatcher _dispatcher;
@@ -35,7 +34,6 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private AlarmMusic _tentative;
     private bool _initialized;
 
-    private readonly List<IDisposable> _subscriptions = [];
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
 
     public TrackSelectionViewModel(
@@ -51,21 +49,17 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        _navigationService = navigationService;
+        var navigationService1 = navigationService;
         _downloadService = downloadService;
         _cacheService = cacheService;
         
-        // Resolve IState<T> and IDispatcher from ROOT container (singleton) to ensure we get the same instance
-        // that Fluxor uses, not a scoped instance
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
-
-        _subscriptions.Add(_mediaService);
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.PopAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
 
@@ -384,8 +378,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         {
             UnsubscribeFromTrackEvents(track);
         }
-        
-        _subscriptions.ForEach(x => x.Dispose());
+
         _propertyChangedHandlers.Clear();
 
         _lock.Dispose();

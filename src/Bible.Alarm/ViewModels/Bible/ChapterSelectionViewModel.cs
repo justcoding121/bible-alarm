@@ -24,13 +24,11 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IPreviewPlayService _playService;
-    private readonly INavigationService _navigationService;
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly IState<ApplicationState> _state;
-    private readonly IDispatcher _dispatcher;
 
     private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
 
@@ -47,18 +45,18 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        _navigationService = navigationService;
+        var navigationService1 = navigationService;
 
         _downloadService = downloadService;
         _cacheService = cacheService;
 
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.PopAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
 
@@ -73,7 +71,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             _tentative.ChapterNumber = x.Number;
 
-            _dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
+            dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,

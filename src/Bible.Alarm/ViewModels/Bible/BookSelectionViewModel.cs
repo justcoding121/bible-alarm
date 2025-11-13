@@ -7,7 +7,6 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
-using Bible.Alarm.Views.Bible;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -21,9 +20,6 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private BibleReadingSchedule _tentative;
 
     private readonly MediaService _mediaService;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly INavigationService _navigationService;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
     private EventHandler _onBibleReadingChanged;
     private EventHandler _onBibleReadingInitialized;
@@ -31,26 +27,25 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
+    public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        _scopeFactory = scopeFactory;
-        _navigationService = navigationService;
+        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.PopAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
 
         ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
         {
             IsBusy = true;
-            await _navigationService.NavigateToChapterSelectionAsync();
-            _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
+            await navigationService1.NavigateToChapterSelectionAsync();
+            dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
@@ -189,7 +184,6 @@ public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, ICom
 
     public int CompareTo(object obj)
     {
-        if (obj is not BibleBookListViewItemModel other) return 1;
-        return Number.CompareTo(other.Number);
+        return obj is not BibleBookListViewItemModel other ? 1 : Number.CompareTo(other.Number);
     }
 }

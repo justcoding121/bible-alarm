@@ -13,7 +13,6 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views.General;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -27,16 +26,11 @@ public class ScheduleViewModel : ObservableObject
     private readonly ILogger _logger;
 
     private readonly IToastService _popUpService;
-    private readonly INavigation _navigation;
     private readonly ISchedulePersistenceService _schedulePersistenceService;
-    private readonly IBibleNavigationService _bibleNavigationService;
     private readonly IMediaCacheSetupService _mediaCacheSetupService;
     private readonly INavigationService _navigationService;
-    private readonly IScheduleSelectionService _scheduleSelectionService;
     private readonly IScheduleDisplayService _scheduleDisplayService;
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     public ICommand BatteryOptimizationExcludeCommand { get; private set; }
@@ -51,7 +45,6 @@ public class ScheduleViewModel : ObservableObject
     public ScheduleViewModel(
         ILogger logger,
         IToastService popUpService,
-        INavigation navigation,
         IPlaybackService playbackService,
         INotificationService notificationService,
         IServiceScopeFactory scopeFactory,
@@ -65,17 +58,16 @@ public class ScheduleViewModel : ObservableObject
     {
         _logger = logger;
         _popUpService = popUpService;
-        _navigation = navigation;
-        _scopeFactory = scopeFactory;
+        var scopeFactory1 = scopeFactory;
 
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _schedulePersistenceService = schedulePersistenceService;
-        _bibleNavigationService = bibleNavigationService;
+        var bibleNavigationService1 = bibleNavigationService;
         _mediaCacheSetupService = mediaCacheSetupService;
         _navigationService = navigationService;
-        _scheduleSelectionService = scheduleSelectionService;
+        var scheduleSelectionService1 = scheduleSelectionService;
         _scheduleDisplayService = scheduleDisplayService;
         _serviceProvider = serviceProvider;
 
@@ -161,11 +153,11 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            Music = await _scheduleSelectionService.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
+            Music = await scheduleSelectionService1.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
 
             await _navigationService.NavigateToMusicSelectionAsync();
 
-            _dispatcher.Dispatch(new MusicSelectionAction(Music));
+            dispatcher.Dispatch(new MusicSelectionAction(Music));
 
             IsBusy = false;
         });
@@ -174,7 +166,7 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            BibleReadingSchedule = await _scheduleSelectionService.LoadBibleReadingForSelectionAsync(
+            BibleReadingSchedule = await scheduleSelectionService1.LoadBibleReadingForSelectionAsync(
                 _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule);
 
             if (BibleReadingSchedule != null)
@@ -184,7 +176,7 @@ public class ScheduleViewModel : ObservableObject
 
             await _navigationService.NavigateToBibleSelectionAsync();
 
-            _dispatcher.Dispatch(new BibleSelectionAction(
+            dispatcher.Dispatch(new BibleSelectionAction(
                 BibleReadingSchedule,
                 new BibleReadingSchedule
                 {
@@ -248,7 +240,7 @@ public class ScheduleViewModel : ObservableObject
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await _bibleNavigationService.MoveToPreviousBookAsync(BibleReadingSchedule))
+            if (await bibleNavigationService1.MoveToPreviousBookAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -259,7 +251,7 @@ public class ScheduleViewModel : ObservableObject
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await _bibleNavigationService.MoveToNextBookAsync(BibleReadingSchedule))
+            if (await bibleNavigationService1.MoveToNextBookAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -270,7 +262,7 @@ public class ScheduleViewModel : ObservableObject
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await _bibleNavigationService.MoveToPreviousChapterAsync(BibleReadingSchedule))
+            if (await bibleNavigationService1.MoveToPreviousChapterAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -281,12 +273,13 @@ public class ScheduleViewModel : ObservableObject
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await _bibleNavigationService.MoveToNextChapterAsync(BibleReadingSchedule))
+            if (await bibleNavigationService1.MoveToNextChapterAsync(BibleReadingSchedule))
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
             }
         });
+        return;
 
         void OnCurrentScheduleChanged(object sender, EventArgs e)
         {
@@ -313,13 +306,12 @@ public class ScheduleViewModel : ObservableObject
                     IsBusy = false;
                 });
             }
-
             else if (!modelInitialized && !isInitializingNewSchedule && stateValue.CurrentSchedule == null)
             {
                 isInitializingNewSchedule = true;
                 Task.Run(async () =>
                 {
-                    using var scope = _scopeFactory.CreateScope();
+                    using var scope = scopeFactory1.CreateScope();
                     var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
                     var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
                     await MainThread.InvokeOnMainThreadAsync(() =>
@@ -474,7 +466,7 @@ public class ScheduleViewModel : ObservableObject
         Model = model.DeepClone();
 
         _scheduleId = model.Id;
-        Name = model.Name; // Use property setter to trigger property change notification
+        Name = model.Name;
         IsEnabled = model.IsEnabled;
         DaysOfWeek = model.DaysOfWeek;
         Time = new TimeSpan(model.Hour, model.Minute, model.Second);
@@ -647,13 +639,10 @@ public class ScheduleViewModel : ObservableObject
 
     private async Task<bool> Validate()
     {
-        if (DaysOfWeek == 0)
-        {
-            await _popUpService.ShowMessage("Please select day(s) of Week.");
-            return false;
-        }
+        if (DaysOfWeek != 0) return true;
+        await _popUpService.ShowMessage("Please select day(s) of Week.");
+        return false;
 
-        return true;
     }
 
     private async Task DeleteAsync()

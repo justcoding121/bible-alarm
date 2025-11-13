@@ -8,7 +8,6 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Views.Schedule;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -25,7 +24,6 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private readonly IDatabaseSeedService _databaseSeedService;
     private readonly IScheduleMigrationService _scheduleMigrationService;
-    private readonly INavigationService _navigationService;
 
     private readonly Dictionary<int, ScheduleListItem> _scheduleViewModels = [];
 
@@ -50,18 +48,18 @@ public class HomeViewModel : ObservableObject, IDisposable
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
         _databaseSeedService = databaseSeedService;
         _scheduleMigrationService = scheduleMigrationService;
-        _navigationService = navigationService;
+        var navigationService1 = navigationService;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
-            await _navigationService.NavigateToScheduleAsync();
+            await navigationService1.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(null));
         });
 
         ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
         {
             x.Schedule.IsEnabled = x.IsEnabled;
-            await _navigationService.NavigateToScheduleAsync();
+            await navigationService1.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
         });
 

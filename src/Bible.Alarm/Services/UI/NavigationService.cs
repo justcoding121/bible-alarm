@@ -1,7 +1,4 @@
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.ViewModels;
-using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
@@ -9,7 +6,6 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.General;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Services.UI;
 

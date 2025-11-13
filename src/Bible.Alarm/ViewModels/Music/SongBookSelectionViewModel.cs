@@ -8,8 +8,6 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views.Music;
-using Bible.Alarm.Views.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -20,9 +18,6 @@ namespace Bible.Alarm.ViewModels.Music;
 public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly INavigationService _navigationService;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
@@ -31,10 +26,9 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
     public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        _scopeFactory = scopeFactory;
-        _navigationService = navigationService;
+        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         AlarmMusic lastCurrent = null;
         AlarmMusic lastTentative = null;
@@ -82,9 +76,9 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         {
             IsBusy = true;
 
-            await _navigationService.NavigateToTrackSelectionAsync();
+            await navigationService1.NavigateToTrackSelectionAsync();
 
-            _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+            dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
                 Repeat = _current.Repeat,
                 MusicType = MusicType.Vocals,
@@ -98,20 +92,20 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.OpenLanguageModalAsync(this);
+            await navigationService1.OpenLanguageModalAsync(this);
             IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.PopAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            await _navigationService.CloseModalAsync();
+            await navigationService1.CloseModalAsync();
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -122,7 +116,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            await _navigationService.CloseModalAsync();
+            await navigationService1.CloseModalAsync();
             await PopulateSongBooks(x.Code);
             IsBusy = false;
         });

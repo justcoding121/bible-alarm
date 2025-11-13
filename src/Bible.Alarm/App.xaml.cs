@@ -4,7 +4,6 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.ViewModels;
-using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.General;
 using CommunityToolkit.Mvvm.Messaging;

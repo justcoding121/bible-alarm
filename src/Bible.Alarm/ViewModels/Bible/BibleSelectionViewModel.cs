@@ -7,8 +7,6 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views.Bible;
-using Bible.Alarm.Views.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -19,9 +17,6 @@ namespace Bible.Alarm.ViewModels.Bible;
 public class BibleSelectionViewModel : ObservableObject, IListViewModel
 {
     private readonly MediaService _mediaService;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly INavigationService _navigationService;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     private BibleReadingSchedule _current;
@@ -36,10 +31,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
     public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        _scopeFactory = scopeFactory;
-        _navigationService = navigationService;
+        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _state.StateChanged += OnBibleReadingInitialized;
 
@@ -51,8 +45,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
-            await _navigationService.NavigateToBookSelectionAsync();
-            _dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
+            await navigationService1.NavigateToBookSelectionAsync();
+            dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
             {
                 PublicationCode = x.Code,
                 LanguageCode = CurrentLanguage.Code
@@ -63,21 +57,21 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.OpenLanguageModalAsync(this);
+            await navigationService1.OpenLanguageModalAsync(this);
             IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.PopAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.CloseModalAsync();
+            await navigationService1.CloseModalAsync();
             IsBusy = false;
         });
 
@@ -89,7 +83,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            await _navigationService.CloseModalAsync();
+            await navigationService1.CloseModalAsync();
             await PopulateTranslations(x.Code);
 
             IsBusy = false;

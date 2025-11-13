@@ -6,7 +6,6 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
-using Bible.Alarm.Views.Music;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -18,17 +17,13 @@ public class MusicSelectionViewModel : ObservableObject
 {
     private AlarmMusic _current;
 
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly INavigationService _navigationService;
-    private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
     public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
-        _scopeFactory = scopeFactory;
-        _navigationService = navigationService;
+        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _state.StateChanged += OnStateOnStateChanged;
 
@@ -38,9 +33,9 @@ public class MusicSelectionViewModel : ObservableObject
 
             if (x.MusicType == MusicType.Vocals)
             {
-                await _navigationService.NavigateToSongBookSelectionAsync();
+                await navigationService1.NavigateToSongBookSelectionAsync();
 
-                _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
+                dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
                     MusicType = MusicType.Vocals,
                     LanguageCode = _current.LanguageCode
@@ -49,9 +44,9 @@ public class MusicSelectionViewModel : ObservableObject
             }
             else
             {
-                await _navigationService.NavigateToTrackSelectionAsync();
+                await navigationService1.NavigateToTrackSelectionAsync();
 
-                _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+                dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
                     Repeat = _current.Repeat,
                     MusicType = MusicType.Melodies,
@@ -66,7 +61,7 @@ public class MusicSelectionViewModel : ObservableObject
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.PopAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
         return;
