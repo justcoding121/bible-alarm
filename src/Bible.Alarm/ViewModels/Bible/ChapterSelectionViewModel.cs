@@ -24,6 +24,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IPreviewPlayService _playService;
+    private readonly INavigationService _navigationService;
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
     private readonly IMediaCacheService _cacheService;
@@ -38,7 +39,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         MediaService mediaService,
         IToastService toastService,
         IPreviewPlayService playService,
-        INavigation navigation,
+        INavigationService navigationService,
         IDownloadService downloadService,
         IMediaCacheService cacheService)
     {
@@ -46,6 +47,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
+        _navigationService = navigationService;
 
         _downloadService = downloadService;
         _cacheService = cacheService;
@@ -56,7 +58,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigation.PopAsync();
+            await _navigationService.PopAsync();
             IsBusy = false;
         });
 

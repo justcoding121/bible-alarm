@@ -2,7 +2,7 @@
 
 namespace Bible.Alarm.Views;
 
-public partial class Home : ContentPage
+public partial class Home : BaseContentPage
 {
     public Home(HomeViewModel vm)
     {

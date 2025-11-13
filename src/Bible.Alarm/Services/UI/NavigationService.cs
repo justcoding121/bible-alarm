@@ -2,6 +2,8 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.General;
@@ -13,87 +15,121 @@ namespace Bible.Alarm.Services.UI;
 
 public class NavigationService(
     INavigation navigation,
-    IServiceScopeFactory scopeFactory)
+    IServiceProvider serviceProvider)
     : INavigationService
 {
     private readonly INavigation _navigation = navigation;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+
+    public async Task NavigateToHomeAsync()
+    {
+        var homePage = _serviceProvider.GetRequiredService<Home>();
+        NavigationPage.SetHasNavigationBar(homePage, false);
+        await _navigation.PushAsync(homePage);
+        
+        // Remove any other pages from the stack
+        var pagesToRemove = _navigation.NavigationStack.Where(p => p != homePage).ToList();
+        foreach (var page in pagesToRemove)
+        {
+            _navigation.RemovePage(page);
+        }
+    }
 
     public async Task NavigateToScheduleAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var viewModel = scope.ServiceProvider.GetRequiredService<ScheduleViewModel>();
-        var page = scope.ServiceProvider.GetRequiredService<Schedule>();
-        page.BindingContext = viewModel;
+        var page = _serviceProvider.GetRequiredService<Schedule>();
         await _navigation.PushAsync(page);
     }
 
     public async Task NavigateToMusicSelectionAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var viewModel = scope.ServiceProvider.GetRequiredService<MusicSelectionViewModel>();
-        var page = scope.ServiceProvider.GetRequiredService<MusicSelection>();
-        page.BindingContext = viewModel;
+        var page = _serviceProvider.GetRequiredService<MusicSelection>();
         await _navigation.PushAsync(page);
     }
 
     public async Task NavigateToSongBookSelectionAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var viewModel = scope.ServiceProvider.GetRequiredService<SongBookSelectionViewModel>();
-        var page = scope.ServiceProvider.GetRequiredService<SongBookSelection>();
-        page.BindingContext = viewModel;
+        var page = _serviceProvider.GetRequiredService<SongBookSelection>();
         await _navigation.PushAsync(page);
     }
 
     public async Task NavigateToTrackSelectionAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var viewModel = scope.ServiceProvider.GetRequiredService<TrackSelectionViewModel>();
-        var page = scope.ServiceProvider.GetRequiredService<TrackSelection>();
-        page.BindingContext = viewModel;
+        var page = _serviceProvider.GetRequiredService<TrackSelection>();
         await _navigation.PushAsync(page);
     }
 
     public async Task NavigateToBibleSelectionAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var viewModel = scope.ServiceProvider.GetRequiredService<BibleSelectionViewModel>();
-        var page = scope.ServiceProvider.GetRequiredService<BibleSelection>();
-        page.BindingContext = viewModel;
+        var page = _serviceProvider.GetRequiredService<BibleSelection>();
         await _navigation.PushAsync(page);
     }
 
     public async Task NavigateToBookSelectionAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var viewModel = scope.ServiceProvider.GetRequiredService<BookSelectionViewModel>();
-        var page = scope.ServiceProvider.GetRequiredService<BookSelection>();
-        page.BindingContext = viewModel;
+        var page = _serviceProvider.GetRequiredService<BookSelection>();
         await _navigation.PushAsync(page);
     }
 
     public async Task NavigateToChapterSelectionAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var viewModel = scope.ServiceProvider.GetRequiredService<ChapterSelectionViewModel>();
-        var page = scope.ServiceProvider.GetRequiredService<ChapterSelection>();
-        page.BindingContext = viewModel;
+        var page = _serviceProvider.GetRequiredService<ChapterSelection>();
         await _navigation.PushAsync(page);
+    }
+
+    public async Task PopAsync()
+    {
+        if (_navigation.NavigationStack.Count > 1)
+        {
+            await _navigation.PopAsync();
+        }
     }
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var modal = scope.ServiceProvider.GetRequiredService<NumberOfChaptersModal>();
+        var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
         modal.BindingContext = bindingContext;
         await _navigation.PushModalAsync(modal);
     }
 
     public async Task OpenLanguageModalAsync(object bindingContext)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var modal = scope.ServiceProvider.GetRequiredService<LanguageModal>();
+        var modal = _serviceProvider.GetRequiredService<LanguageModal>();
+        modal.BindingContext = bindingContext;
+        await _navigation.PushModalAsync(modal);
+    }
+
+    public async Task OpenAlarmModalAsync()
+    {
+        // Check if alarm modal is already open
+        if (_navigation.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal))
+        {
+            return;
+        }
+
+        var vm = _serviceProvider.GetRequiredService<AlarmViewModal>();
+        var modal = _serviceProvider.GetRequiredService<AlarmModal>();
+        modal.BindingContext = vm;
+        await _navigation.PushModalAsync(modal);
+    }
+
+    public async Task OpenMediaProgressModalAsync()
+    {
+        // Check if media progress modal is already open
+        if (_navigation.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal))
+        {
+            return;
+        }
+
+        var vm = _serviceProvider.GetRequiredService<MediaProgressViewModal>();
+        var modal = _serviceProvider.GetRequiredService<MediaProgressModal>();
+        modal.BindingContext = vm;
+        await _navigation.PushModalAsync(modal);
+    }
+
+    public async Task OpenBatteryOptimizationModalAsync(object bindingContext)
+    {
+        var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
         modal.BindingContext = bindingContext;
         await _navigation.PushModalAsync(modal);
     }
@@ -103,7 +139,10 @@ public class NavigationService(
         if (_navigation.ModalStack.Count > 0)
         {
             var modal = await _navigation.PopModalAsync();
-            if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
+            if (modal.BindingContext is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
     }
 }

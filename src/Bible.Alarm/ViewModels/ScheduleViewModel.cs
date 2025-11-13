@@ -95,7 +95,7 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            await _navigation.PopAsync();
+            await _navigationService.PopAsync();
 
             IsBusy = false;
         });
@@ -121,7 +121,7 @@ public class ScheduleViewModel : ObservableObject
             if (saved)
             {
                 await Task.Delay(50);
-                await _navigation.PopAsync();
+                await _navigationService.PopAsync();
             }
 
             if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
@@ -136,7 +136,7 @@ public class ScheduleViewModel : ObservableObject
             // If it's a new schedule, just navigate back without deleting
             if (IsNewSchedule)
             {
-                await _navigation.PopAsync();
+                await _navigationService.PopAsync();
                 IsBusy = false;
                 return;
             }
@@ -148,7 +148,7 @@ public class ScheduleViewModel : ObservableObject
 
             await DeleteAsync();
 
-            await _navigation.PopAsync();
+            await _navigationService.PopAsync();
 
             IsBusy = false;
         });
@@ -393,10 +393,7 @@ public class ScheduleViewModel : ObservableObject
 
         if (await batteryService.ShouldShowModalAsync())
         {
-            using var scope = _scopeFactory.CreateScope();
-            var modal = scope.ServiceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
-            modal.BindingContext = this;
-            await _navigation.PushModalAsync(modal);
+            await _navigationService.OpenBatteryOptimizationModalAsync(this);
         }
     }
 

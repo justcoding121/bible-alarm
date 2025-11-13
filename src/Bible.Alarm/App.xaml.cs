@@ -23,14 +23,15 @@ public partial class App : Application,
 {
     private readonly ILogger _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly INavigationService _navigationService;
 
-    public static bool IsInForeground { get; set; } 
-    private INavigation Navigation => _serviceProvider.GetService<INavigation>();
+    public static bool IsInForeground { get; set; }
 
-    public App(ILogger logger, IServiceProvider serviceProvider)
+    public App(ILogger logger, IServiceProvider serviceProvider, INavigationService navigationService)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _navigationService = navigationService;
         InitializeComponent();
 
         WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
@@ -124,18 +125,11 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (Navigation == null) return;
-
             var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
             if (!playbackService.IsPlaying)
                 return;
 
-            if (Navigation.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal)) return;
-
-            var vm = _serviceProvider.GetRequiredService<AlarmViewModal>();
-            var modal = _serviceProvider.GetRequiredService<AlarmModal>();
-            modal.BindingContext = vm;
-            await Navigation.PushModalAsync(modal);
+            await _navigationService.OpenAlarmModalAsync();
         });
     }
 
@@ -143,12 +137,7 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (Navigation == null) return;
-            if (Navigation.ModalStack.Count > 0)
-            {
-                var modal = await Navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
         });
     }
 
@@ -156,14 +145,7 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (Navigation == null) return;
-
-            if (Navigation.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal)) return;
-
-            var vm = _serviceProvider.GetRequiredService<MediaProgressViewModal>();
-            var modal = _serviceProvider.GetRequiredService<MediaProgressModal>();
-            modal.BindingContext = vm;
-            await Navigation.PushModalAsync(modal);
+            await _navigationService.OpenMediaProgressModalAsync();
         });
     }
 
@@ -171,12 +153,7 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (Navigation == null) return;
-            if (Navigation.ModalStack.Count > 0)
-            {
-                var modal = await Navigation.PopModalAsync();
-                if (modal.BindingContext is IDisposable disposable) disposable.Dispose();
-            }
+            await _navigationService.CloseModalAsync();
         });
     }
 
@@ -202,22 +179,11 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (Navigation == null) return;
-
             try
             {
+                await _navigationService.NavigateToHomeAsync();
+
                 var homePage = _serviceProvider.GetRequiredService<Home>();
-
-                NavigationPage.SetHasNavigationBar(homePage, false);
-
-                await Navigation.PushAsync(homePage); 
-                
-                var pagesToRemove = Navigation.NavigationStack.Where(p => p != homePage).ToList();
-                foreach (var page in pagesToRemove)
-                {
-                    Navigation.RemovePage(page);
-                }
-
                 if (homePage.BindingContext is HomeViewModel homeViewModel)
                 {
                     await homeViewModel.InitializeAsync();

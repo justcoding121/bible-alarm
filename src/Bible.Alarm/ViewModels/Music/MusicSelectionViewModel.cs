@@ -66,9 +66,7 @@ public class MusicSelectionViewModel : ObservableObject
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            using var scope = _scopeFactory.CreateScope();
-            var navigation = scope.ServiceProvider.GetRequiredService<INavigation>();
-            await navigation.PopAsync();
+            await _navigationService.PopAsync();
             IsBusy = false;
         });
         return;

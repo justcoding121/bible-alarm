@@ -1,9 +1,10 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Shared;
 
-public partial class LanguageModal : ContentPage
+public partial class LanguageModal : BaseContentPage
 {
     public IListViewModel ViewModel => BindingContext as IListViewModel;
 

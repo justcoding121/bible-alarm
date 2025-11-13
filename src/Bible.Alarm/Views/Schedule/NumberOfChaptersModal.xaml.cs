@@ -1,7 +1,9 @@
-﻿namespace Bible.Alarm.Views.Schedule;
+﻿using Bible.Alarm.Views;
+
+namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class NumberOfChaptersModal : ContentPage
+public partial class NumberOfChaptersModal : BaseContentPage
 {
     public NumberOfChaptersModal()
     {

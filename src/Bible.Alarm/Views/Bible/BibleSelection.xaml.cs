@@ -1,15 +1,17 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Bible;
 
-public partial class BibleSelection : ContentPage
+public partial class BibleSelection : BaseContentPage
 {
     public BibleSelectionViewModel ViewModel => BindingContext as BibleSelectionViewModel;
 
-    public BibleSelection()
+    public BibleSelection(BibleSelectionViewModel viewModel)
     {
         InitializeComponent();
+        BindingContext = viewModel;
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
         {

@@ -1,15 +1,17 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Schedule;
 
-public partial class Schedule : ContentPage
+public partial class Schedule : BaseContentPage
 {
     public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
 
-    public Schedule()
+    public Schedule(ScheduleViewModel viewModel)
     {
         InitializeComponent();
+        BindingContext = viewModel;
 
         MusicButton.GestureRecognizers.Add(new TapGestureRecognizer
         {

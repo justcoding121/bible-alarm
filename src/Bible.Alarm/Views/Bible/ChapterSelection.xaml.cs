@@ -1,17 +1,19 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Bible;
 
-public partial class ChapterSelection : ContentPage
+public partial class ChapterSelection : BaseContentPage
 {
     public ChapterSelectionViewModel ViewModel => BindingContext as ChapterSelectionViewModel;
     private readonly TaskScheduler _taskScheduler;
 
-    public ChapterSelection(TaskScheduler taskScheduler)
+    public ChapterSelection(ChapterSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         _taskScheduler = taskScheduler;
         InitializeComponent();
+        BindingContext = viewModel;
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
         {

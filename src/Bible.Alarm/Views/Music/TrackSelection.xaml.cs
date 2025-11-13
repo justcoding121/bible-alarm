@@ -1,17 +1,19 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Music;
 
-public partial class TrackSelection : ContentPage
+public partial class TrackSelection : BaseContentPage
 {
     public TrackSelectionViewModel ViewModel => BindingContext as TrackSelectionViewModel;
     private readonly TaskScheduler _taskScheduler;
 
-    public TrackSelection(TaskScheduler taskScheduler)
+    public TrackSelection(TrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         _taskScheduler = taskScheduler;
         InitializeComponent();
+        BindingContext = viewModel;
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
         {

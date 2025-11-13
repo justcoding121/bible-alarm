@@ -1,15 +1,17 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Music;
 
-public partial class MusicSelection : ContentPage
+public partial class MusicSelection : BaseContentPage
 {
     public MusicSelectionViewModel ViewModel => BindingContext as MusicSelectionViewModel;
 
-    public MusicSelection()
+    public MusicSelection(MusicSelectionViewModel viewModel)
     {
         InitializeComponent();
+        BindingContext = viewModel;
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
