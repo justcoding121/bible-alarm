@@ -44,8 +44,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         IPreviewPlayService playService,
         INavigation navigation,
         IDownloadService downloadService,
-        IMediaCacheService cacheService,
-        IDispatcher dispatcher)
+        IMediaCacheService cacheService)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -54,11 +53,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _navigation = navigation;
         _downloadService = downloadService;
         _cacheService = cacheService;
-        _dispatcher = dispatcher;
         
-        // Resolve IState<T> from ROOT container (singleton) to ensure we get the same instance
+        // Resolve IState<T> and IDispatcher from ROOT container (singleton) to ensure we get the same instance
         // that Fluxor uses, not a scoped instance
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _subscriptions.Add(_mediaService);
 

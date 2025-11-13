@@ -21,24 +21,13 @@ public class MusicSelectionViewModel : ObservableObject
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
 
-    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
+    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory)
     {
         _scopeFactory = scopeFactory;
-        _dispatcher = dispatcher;
-        
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
-        _state.StateChanged += (_, _) =>
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null) return;
-            _current = stateValue.CurrentMusic;
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                SetSelectedMusicType();
-                IsBusy = false;
-            });
-        };
+        _state.StateChanged += OnStateOnStateChanged;
 
         SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
@@ -86,6 +75,19 @@ public class MusicSelectionViewModel : ObservableObject
             await navigation.PopAsync();
             IsBusy = false;
         });
+        return;
+
+        void OnStateOnStateChanged(object o, EventArgs eventArgs)
+        {
+            var stateValue = _state.Value;
+            if (stateValue.CurrentMusic == null) return;
+            _current = stateValue.CurrentMusic;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                SetSelectedMusicType();
+                IsBusy = false;
+            });
+        }
     }
 
     private void SetSelectedMusicType()

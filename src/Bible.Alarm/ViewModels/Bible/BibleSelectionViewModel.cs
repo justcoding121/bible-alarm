@@ -32,13 +32,12 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
+    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory)
     {
         _mediaService = mediaService;
         _scopeFactory = scopeFactory;
-        _dispatcher = dispatcher;
-        
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         EventHandler onBibleReadingInitialized = null;
         onBibleReadingInitialized = (_, _) =>

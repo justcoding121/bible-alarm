@@ -29,13 +29,12 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
+    public BookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory)
     {
         _mediaService = mediaService;
         _scopeFactory = scopeFactory;
-        _dispatcher = dispatcher;
-
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {

@@ -55,7 +55,6 @@ public class ScheduleViewModel : ObservableObject
         IPlaybackService playbackService,
         INotificationService notificationService,
         IServiceScopeFactory scopeFactory,
-        IDispatcher dispatcher,
         ISchedulePersistenceService schedulePersistenceService,
         IBibleNavigationService bibleNavigationService,
         IMediaCacheSetupService mediaCacheSetupService,
@@ -70,6 +69,7 @@ public class ScheduleViewModel : ObservableObject
         _scopeFactory = scopeFactory;
 
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _schedulePersistenceService = schedulePersistenceService;
         _bibleNavigationService = bibleNavigationService;
@@ -78,7 +78,6 @@ public class ScheduleViewModel : ObservableObject
         _scheduleSelectionService = scheduleSelectionService;
         _scheduleDisplayService = scheduleDisplayService;
         _serviceProvider = serviceProvider;
-        _dispatcher = dispatcher;
 
         var lastScheduleId = -1;
         var modelInitialized = false;
@@ -162,9 +161,9 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            await _navigationService.NavigateToMusicSelectionAsync();
-
             Music = await _scheduleSelectionService.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
+
+            await _navigationService.NavigateToMusicSelectionAsync();
 
             _dispatcher.Dispatch(new MusicSelectionAction(Music));
 
@@ -175,8 +174,6 @@ public class ScheduleViewModel : ObservableObject
         {
             IsBusy = true;
 
-            await _navigationService.NavigateToBibleSelectionAsync();
-
             BibleReadingSchedule = await _scheduleSelectionService.LoadBibleReadingForSelectionAsync(
                 _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule);
 
@@ -184,6 +181,8 @@ public class ScheduleViewModel : ObservableObject
             {
                 RefreshChapterName();
             }
+
+            await _navigationService.NavigateToBibleSelectionAsync();
 
             _dispatcher.Dispatch(new BibleSelectionAction(
                 BibleReadingSchedule,

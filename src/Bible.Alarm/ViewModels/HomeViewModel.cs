@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using Bible.Alarm.Common;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database;
@@ -36,7 +37,6 @@ public class HomeViewModel : ObservableObject, IDisposable
         INavigation navigation,
         IServiceScopeFactory scopeFactory,
         Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
-        IDispatcher dispatcher,
         IState<ApplicationState> state,
         IDatabaseSeedService databaseSeedService,
         IScheduleMigrationService scheduleMigrationService)
@@ -44,8 +44,8 @@ public class HomeViewModel : ObservableObject, IDisposable
         _logger = logger;
         _scopeFactory = scopeFactory;
         _scheduleListItemFactory = scheduleListItemFactory;
-        _dispatcher = dispatcher;
         _state = state;
+        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
         _databaseSeedService = databaseSeedService;
         _scheduleMigrationService = scheduleMigrationService;
 

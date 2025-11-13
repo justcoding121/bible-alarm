@@ -27,13 +27,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
     private AlarmMusic _current;
     private AlarmMusic _tentative;
 
-    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
+    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory)
     {
         _mediaService = mediaService;
         _scopeFactory = scopeFactory;
-        _dispatcher = dispatcher;
-        
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
 
         EventHandler onMusicInitialized = null;
