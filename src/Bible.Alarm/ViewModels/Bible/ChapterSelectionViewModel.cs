@@ -57,7 +57,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService1.NavigateToBookSelectionAsync();
             IsBusy = false;
         });
 

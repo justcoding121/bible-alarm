@@ -61,7 +61,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService1.NavigateToScheduleAsync();
             IsBusy = false;
         });
     }

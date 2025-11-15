@@ -65,6 +65,10 @@ public class HomeViewModel : ObservableObject, IDisposable
 
         _state.StateChanged += OnStateChanged;
         
+        // Immediately process current state when ViewModel is created
+        // This ensures the ListView is populated with fresh data when a new Home page is created
+        OnStateChanged(this, EventArgs.Empty);
+        
         IsBusy = false;
     }
 

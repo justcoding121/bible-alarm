@@ -63,14 +63,15 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService1.NavigateToScheduleAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.CloseModalAsync();
+            // Navigate back to BibleSelection (closing LanguageModal)
+            await navigationService1.NavigateToBibleSelectionAsync();
             IsBusy = false;
         });
 
@@ -82,7 +83,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            await navigationService1.CloseModalAsync();
+            // Navigate back to BibleSelection (closing LanguageModal)
+            await navigationService1.NavigateToBibleSelectionAsync();
             await PopulateTranslations(x.Code);
 
             IsBusy = false;

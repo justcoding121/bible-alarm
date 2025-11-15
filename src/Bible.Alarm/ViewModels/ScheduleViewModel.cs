@@ -86,7 +86,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             IsBusy = true;
 
-            await _navigationService.PopAsync();
+            await _navigationService.NavigateToHomeAsync();
 
             IsBusy = false;
         });
@@ -112,7 +112,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             if (saved)
             {
                 await Task.Delay(50);
-                await _navigationService.PopAsync();
+                await _navigationService.NavigateToHomeAsync();
             }
 
             if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
@@ -127,7 +127,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             // If it's a new schedule, just navigate back without deleting
             if (IsNewSchedule)
             {
-                await _navigationService.PopAsync();
+                await _navigationService.NavigateToHomeAsync();
                 IsBusy = false;
                 return;
             }
@@ -139,7 +139,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             await DeleteAsync();
 
-            await _navigationService.PopAsync();
+            await _navigationService.NavigateToHomeAsync();
 
             IsBusy = false;
         });
@@ -196,7 +196,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await _navigationService.CloseModalAsync();
+            // Navigate back to Schedule (closing NumberOfChaptersModal)
+            await _navigationService.NavigateToScheduleAsync();
             IsBusy = false;
         });
 
@@ -208,7 +209,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             CurrentNumberOfChapters = x;
             CurrentNumberOfChapters.IsSelected = true;
 
-            await _navigationService.CloseModalAsync();
+            // Navigate back to Schedule (closing NumberOfChaptersModal)
+            await _navigationService.NavigateToScheduleAsync();
 
             IsBusy = false;
         });
@@ -223,7 +225,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 if (batteryService != null)
                 {
                     await MarkBatteryOptimizationModalAsShown();
-                    await _navigationService.CloseModalAsync();
+                    // Navigate back to Schedule (closing BatteryOptimizationExclusionModal)
+                    await _navigationService.NavigateToScheduleAsync();
                     batteryService.ShowOptimizationSettingsPage();
                 }
             }
@@ -232,7 +235,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         BatteryOptimizationDismissCommand = new AsyncRelayCommand(async () =>
         {
             await MarkBatteryOptimizationModalAsShown();
-            await _navigationService.CloseModalAsync();
+            // Navigate back to Schedule (closing BatteryOptimizationExclusionModal)
+            await _navigationService.NavigateToScheduleAsync();
         });
 
         PreviousBookCommand = new AsyncRelayCommand(async () =>

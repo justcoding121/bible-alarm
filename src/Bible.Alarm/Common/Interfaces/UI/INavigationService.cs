@@ -10,12 +10,10 @@ public interface INavigationService
     Task NavigateToBibleSelectionAsync();
     Task NavigateToBookSelectionAsync();
     Task NavigateToChapterSelectionAsync();
-    Task PopAsync();
     Task OpenNumberOfChaptersModalAsync(object bindingContext);
     Task OpenLanguageModalAsync(object bindingContext);
     Task OpenAlarmModalAsync();
     Task OpenMediaProgressModalAsync();
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
-    Task CloseModalAsync();
 }
 

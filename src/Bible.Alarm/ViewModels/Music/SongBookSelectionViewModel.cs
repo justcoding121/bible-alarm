@@ -70,13 +70,14 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService1.NavigateToMusicSelectionAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService1.CloseModalAsync();
+            // Navigate back to SongBookSelection (closing LanguageModal)
+            await navigationService1.NavigateToSongBookSelectionAsync();
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -87,7 +88,8 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            await navigationService1.CloseModalAsync();
+            // Navigate back to SongBookSelection (closing LanguageModal)
+            await navigationService1.NavigateToSongBookSelectionAsync();
             await PopulateSongBooks(x.Code);
             IsBusy = false;
         });
