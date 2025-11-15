@@ -158,11 +158,11 @@ public class MediaCacheService(
         return downloaded;
     }
 
-    private static readonly string[] JwOrgUrls = new[]
-    {
+    private static readonly string[] JwOrgUrls =
+    [
         UrlHelper.JwOrgIndexServiceBaseUrl,
         AppConstants.ApiEndpoints.JwOrgAlternativeIndexServiceUrl
-    };
+    ];
 
     public async Task<string> GetBibleChapterUrl(string languageCode, string pubCode, int bookNumber, int chapter,
         string lookUpPath)

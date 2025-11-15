@@ -72,8 +72,8 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                         if (notification.Identifier.StartsWith($"{scheduleId}_")
                             || notification.Identifier == scheduleId.ToString())
                         {
-                            UNUserNotificationCenter.Current.RemovePendingNotificationRequests(new[]
-                                { notification.Identifier });
+                            UNUserNotificationCenter.Current.RemovePendingNotificationRequests([notification.Identifier
+                            ]);
                         }
                     }
                 }

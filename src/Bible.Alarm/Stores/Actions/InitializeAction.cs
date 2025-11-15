@@ -5,5 +5,5 @@ namespace Bible.Alarm.Stores.Actions;
 
 public class InitializeAction(ObservableHashSet<AlarmSchedule> scheduleList)
 {
-    public ObservableHashSet<AlarmSchedule> ScheduleList { get; } = scheduleList ?? new ObservableHashSet<AlarmSchedule>();
+    public ObservableHashSet<AlarmSchedule> ScheduleList { get; } = scheduleList ?? [];
 }

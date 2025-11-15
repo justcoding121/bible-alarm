@@ -64,19 +64,18 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             await navigationService1.PopAsync();
             IsBusy = false;
         });
-        return;
+    }
 
-        void OnStateOnStateChanged(object o, EventArgs eventArgs)
+    private void OnStateOnStateChanged(object o, EventArgs eventArgs)
+    {
+        var stateValue = _state.Value;
+        if (stateValue.CurrentMusic == null) return;
+        _current = stateValue.CurrentMusic;
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null) return;
-            _current = stateValue.CurrentMusic;
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                SetSelectedMusicType();
-                IsBusy = false;
-            });
-        }
+            SetSelectedMusicType();
+            IsBusy = false;
+        });
     }
 
     private void SetSelectedMusicType()

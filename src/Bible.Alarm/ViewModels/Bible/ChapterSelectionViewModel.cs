@@ -83,22 +83,21 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         });
 
         _state.StateChanged += OnBibleReadingInitialized;
-        return;
+    }
 
-        void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    private void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    {
+        if (_initComplete) return;
+        var stateValue = _state.Value;
+        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
+        _current = stateValue.CurrentBibleReadingSchedule;
+        _tentative = stateValue.TentativeBibleReadingSchedule;
+        _initComplete = true;
+        Task.Run(async () =>
         {
-            if (_initComplete) return;
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
-            _current = stateValue.CurrentBibleReadingSchedule;
-            _tentative = stateValue.TentativeBibleReadingSchedule;
-            _initComplete = true;
-            Task.Run(async () =>
-            {
-                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            });
-        }
+            await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        });
     }
 
     public ICommand BackCommand { get; set; }

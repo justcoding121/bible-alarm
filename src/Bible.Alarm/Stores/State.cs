@@ -19,7 +19,7 @@ public class ApplicationState
 
     public ApplicationState()
     {
-        Schedules = new ObservableHashSet<AlarmSchedule>();
+        Schedules = [];
     }
 
     public ApplicationState(
@@ -30,7 +30,7 @@ public class ApplicationState
         BibleReadingSchedule currentBibleReadingSchedule,
         BibleReadingSchedule tentativeBibleReadingSchedule)
     {
-        Schedules = schedules ?? new ObservableHashSet<AlarmSchedule>();
+        Schedules = schedules ?? [];
         CurrentSchedule = currentSchedule;
         CurrentMusic = currentMusic;
         TentativeMusic = tentativeMusic;

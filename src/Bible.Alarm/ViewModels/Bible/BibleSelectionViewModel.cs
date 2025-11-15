@@ -22,6 +22,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
     private bool _initComplete;
+    private BibleReadingSchedule _lastCurrent;
+    private BibleReadingSchedule _lastTentative;
 
     public ICommand BackCommand { get; set; }
     public ICommand BookSelectionCommand { get; set; }
@@ -37,10 +39,6 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _state.StateChanged += OnBibleReadingInitialized;
-
-        BibleReadingSchedule lastCurrent = null;
-        BibleReadingSchedule lastTentative = null;
-
         _state.StateChanged += OnBibleReadingChanged;
 
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
@@ -89,35 +87,34 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
             IsBusy = false;
         });
-        return;
+    }
 
-        void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    private void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    {
+        if (_initComplete) return;
+        var stateValue = _state.Value;
+        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
+        _current = stateValue.CurrentBibleReadingSchedule;
+        _tentative = stateValue.TentativeBibleReadingSchedule;
+        _initComplete = true;
+        Task.Run(async () =>
         {
-            if (_initComplete) return;
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
-            _current = stateValue.CurrentBibleReadingSchedule;
-            _tentative = stateValue.TentativeBibleReadingSchedule;
-            _initComplete = true;
-            Task.Run(async () =>
-            {
-                await Initialize(_tentative.LanguageCode);
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            });
-        }
+            await Initialize(_tentative.LanguageCode);
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        });
+    }
 
-        void OnBibleReadingChanged(object sender, EventArgs e)
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null || (stateValue.CurrentBibleReadingSchedule == lastCurrent && stateValue.TentativeBibleReadingSchedule == lastTentative)) return;
-            _current = stateValue.CurrentBibleReadingSchedule;
-            _tentative = stateValue.TentativeBibleReadingSchedule;
-            lastCurrent = _current;
-            lastTentative = _tentative;
-            
-            // Update selected translation when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(SetSelectedTranslation);
-        }
+    private void OnBibleReadingChanged(object sender, EventArgs e)
+    {
+        var stateValue = _state.Value;
+        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null || (stateValue.CurrentBibleReadingSchedule == _lastCurrent && stateValue.TentativeBibleReadingSchedule == _lastTentative)) return;
+        _current = stateValue.CurrentBibleReadingSchedule;
+        _tentative = stateValue.TentativeBibleReadingSchedule;
+        _lastCurrent = _current;
+        _lastTentative = _tentative;
+        
+        // Update selected translation when state changes (e.g., after navigating back)
+        MainThread.BeginInvokeOnMainThread(SetSelectedTranslation);
     }
 
     private void SetSelectedTranslation()

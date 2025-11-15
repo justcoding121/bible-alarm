@@ -23,7 +23,7 @@ namespace Bible.Alarm.Platforms.iOS
         public AppDelegate()
         {
             // Initialize logging and exception handling
-            LogSetup.Initialize(VersionFinder.Default, new string[] { }, "iOS");
+            LogSetup.Initialize(VersionFinder.Default, [], "iOS");
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
         }

@@ -11,7 +11,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
     IEnumerable,
     ICollection where T : IComparable
 {
-    private readonly SortedSet<T> _sortedSet = new SortedSet<T>();
+    private readonly SortedSet<T> _sortedSet = [];
 
     public int Count => _sortedSet.Count;
 

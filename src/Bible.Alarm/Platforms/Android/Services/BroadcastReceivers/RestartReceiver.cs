@@ -9,12 +9,11 @@ using Serilog;
 namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 
 [BroadcastReceiver(Enabled = true, DirectBootAware = true, Exported = true)]
-[IntentFilter(new[]
-{
+[IntentFilter([
     Intent.ActionBootCompleted, Intent.ActionLockedBootCompleted,
     "android.intent.action.QUICKBOOT_POWERON", "com.htc.intent.action.QUICKBOOT_POWERON",
     "com.Bible.Alarm.Restart"
-})]
+])]
 public class RestartReceiver : BroadcastReceiver, IDisposable
 {
     private readonly ILogger _logger;
@@ -29,7 +28,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
     {
         _logger = logger;
         LogSetup.Initialize(VersionFinder.Default,
-            new[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, DevicePlatform.Android.ToString());
+            [$"AndroidSdk {Build.VERSION.SdkInt}"], DevicePlatform.Android.ToString());
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

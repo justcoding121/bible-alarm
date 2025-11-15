@@ -40,7 +40,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 
                     try
                     {
-                        await harvestMusicLinks(publication.Key, new List<string>(new[] { publication.Key }), languageCode);
+                        await harvestMusicLinks(publication.Key, new List<string>([publication.Key]), languageCode);
                         languageCodeToNames[languageCode] = language;
 
                         if (languageCodeToPublications.ContainsKey(languageCode))
@@ -49,7 +49,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                         }
                         else
                         {
-                            languageCodeToPublications[languageCode] = new List<string>(new[] { publication.Key });
+                            languageCodeToPublications[languageCode] = new List<string>([publication.Key]);
                         }
 
                     }

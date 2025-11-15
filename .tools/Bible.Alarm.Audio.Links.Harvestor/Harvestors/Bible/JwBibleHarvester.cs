@@ -39,7 +39,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                     Console.WriteLine($"Harvesting Bible chapter links for {publication.Value} of {language} language.");
                     await harvestBibleLinks(languageCode, publicationCode);
 
-                    if (!languageCodeToEditionsMapping.TryAdd(languageCode, new List<string>(new[] { publication.Key })))
+                    if (!languageCodeToEditionsMapping.TryAdd(languageCode, new List<string>([publication.Key])))
                     {
                         languageCodeToEditionsMapping[languageCode].Add(publication.Key);
                     }

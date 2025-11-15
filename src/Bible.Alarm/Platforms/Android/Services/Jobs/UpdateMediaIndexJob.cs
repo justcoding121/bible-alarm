@@ -23,7 +23,7 @@ public class UpdateMediaIndexJob : JobService
     {
         _logger = logger;
         LogSetup.Initialize(VersionFinder.Default,
-            new[] { $"AndroidSdk {AndroidBuild.VERSION.SdkInt}" }, "Android");
+            [$"AndroidSdk {AndroidBuild.VERSION.SdkInt}"], "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }

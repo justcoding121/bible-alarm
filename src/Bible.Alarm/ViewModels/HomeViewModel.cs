@@ -128,9 +128,13 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private void UpdateScheduleViewModels(ObservableHashSet<AlarmSchedule> schedules)
     {
-        var newViewModels = new ObservableHashSet<ScheduleListItem>();
         var currentViewModelIds = new HashSet<int>();
+        var itemsToKeep = new List<ScheduleListItem>();
 
+        // Initialize Schedules if null
+        Schedules ??= [];
+
+        // Build list of view models to keep
         foreach (var schedule in schedules)
         {
             currentViewModelIds.Add(schedule.Id);
@@ -138,16 +142,17 @@ public class HomeViewModel : ObservableObject, IDisposable
             if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
             {
                 existingViewModel.Initialize(schedule);
-                newViewModels.Add(existingViewModel);
+                itemsToKeep.Add(existingViewModel);
             }
             else
             {
                 var viewModel = _scheduleListItemFactory(schedule);
                 _scheduleViewModels[schedule.Id] = viewModel;
-                newViewModels.Add(viewModel);
+                itemsToKeep.Add(viewModel);
             }
         }
 
+        // Dispose and remove view models that are no longer in the schedules
         var toRemove = _scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
         foreach (var id in toRemove)
         {
@@ -156,7 +161,13 @@ public class HomeViewModel : ObservableObject, IDisposable
             _scheduleViewModels.Remove(id);
         }
 
-        Schedules = newViewModels;
+        // Clear and rebuild the collection to ensure ListView refreshes
+        // This triggers a Reset event followed by Add events
+        Schedules.Clear();
+        foreach (var item in itemsToKeep)
+        {
+            Schedules.Add(item);
+        }
     }
 
     private bool _isBusy = true;

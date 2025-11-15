@@ -23,6 +23,8 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private AlarmMusic _current;
     private AlarmMusic _tentative;
     private bool _initComplete;
+    private AlarmMusic _lastCurrent;
+    private AlarmMusic _lastTentative;
 
     public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
@@ -30,39 +32,6 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
-
-        AlarmMusic lastCurrent = null;
-        AlarmMusic lastTentative = null;
-
-        // Define handlers BEFORE subscription and BEFORE any return statement
-        void OnMusicChanged(object sender, EventArgs e)
-        {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null ||
-                (stateValue.CurrentMusic == lastCurrent && stateValue.TentativeMusic == lastTentative)) return;
-            _current = stateValue.CurrentMusic;
-            _tentative = stateValue.TentativeMusic;
-            lastCurrent = _current;
-            lastTentative = _tentative;
-            
-            // Update selected song book when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(SetSelectedSongBook);
-        }
-
-        void OnMusicInitialized(object o, EventArgs eventArgs)
-        {
-            if (_initComplete) return;
-            var stateValue = _state.Value;
-            if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
-            _current = stateValue.CurrentMusic;
-            _tentative = stateValue.TentativeMusic;
-            _initComplete = true;
-            Task.Run(async () =>
-            {
-                await Initialize();
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            });
-        }
 
         _state.StateChanged += OnMusicInitialized;
         _state.StateChanged += OnMusicChanged;
@@ -121,6 +90,35 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             await navigationService1.CloseModalAsync();
             await PopulateSongBooks(x.Code);
             IsBusy = false;
+        });
+    }
+
+    private void OnMusicChanged(object sender, EventArgs e)
+    {
+        var stateValue = _state.Value;
+        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null ||
+            (stateValue.CurrentMusic == _lastCurrent && stateValue.TentativeMusic == _lastTentative)) return;
+        _current = stateValue.CurrentMusic;
+        _tentative = stateValue.TentativeMusic;
+        _lastCurrent = _current;
+        _lastTentative = _tentative;
+        
+        // Update selected song book when state changes (e.g., after navigating back)
+        MainThread.BeginInvokeOnMainThread(SetSelectedSongBook);
+    }
+
+    private void OnMusicInitialized(object o, EventArgs eventArgs)
+    {
+        if (_initComplete) return;
+        var stateValue = _state.Value;
+        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
+        _current = stateValue.CurrentMusic;
+        _tentative = stateValue.TentativeMusic;
+        _initComplete = true;
+        Task.Run(async () =>
+        {
+            await Initialize();
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
     }
 

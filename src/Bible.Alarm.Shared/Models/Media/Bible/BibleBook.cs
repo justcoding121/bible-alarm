@@ -13,7 +13,7 @@ namespace Bible.Alarm.Shared.Models.Media.Bible
         public int BibleTranslationId { get; set; }
         public BibleTranslation BibleTranslation { get; set; }
 
-        public List<BibleChapter> Chapters { get; set; } = new List<BibleChapter>();
+        public List<BibleChapter> Chapters { get; set; } = [];
 
         public int CompareTo(object obj)
         {

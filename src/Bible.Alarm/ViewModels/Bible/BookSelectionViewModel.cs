@@ -22,6 +22,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
     private bool _initComplete;
+    private BibleReadingSchedule _lastCurrent;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
@@ -53,42 +54,36 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        // Subscribe to current schedule changes (but skip first one)
-        BibleReadingSchedule lastCurrent = null;
-
         _state.StateChanged += OnBibleReadingInitialized;
         _state.StateChanged += OnBibleReadingChanged;
+    }
 
-        return;
+    private void OnBibleReadingChanged(object sender, EventArgs e)
+    {
+        var stateValue = _state.Value;
+        if (stateValue.CurrentBibleReadingSchedule == null ||
+            stateValue.CurrentBibleReadingSchedule == _lastCurrent) return;
+        _current = stateValue.CurrentBibleReadingSchedule;
+        _lastCurrent = _current;
+        
+        // Update selected book when state changes (e.g., after navigating back)
+        MainThread.BeginInvokeOnMainThread(SetSelectedBook);
+    }
 
-        // Define handler BEFORE subscription and BEFORE any return statement
-        void OnBibleReadingChanged(object sender, EventArgs e)
+    private void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    {
+        if (_initComplete) return;
+        var stateValue = _state.Value;
+        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
+        _current = stateValue.CurrentBibleReadingSchedule;
+        _tentative = stateValue.TentativeBibleReadingSchedule;
+        _initComplete = true;
+        Task.Run(async () =>
         {
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null ||
-                stateValue.CurrentBibleReadingSchedule == lastCurrent) return;
-            _current = stateValue.CurrentBibleReadingSchedule;
-            lastCurrent = _current;
-            
-            // Update selected book when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(SetSelectedBook);
-        }
-
-        void OnBibleReadingInitialized(object o, EventArgs eventArgs)
-        {
-            if (_initComplete) return;
-            var stateValue = _state.Value;
-            if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
-            _current = stateValue.CurrentBibleReadingSchedule;
-            _tentative = stateValue.TentativeBibleReadingSchedule;
-            _initComplete = true;
-            Task.Run(async () =>
-            {
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            });
-        }
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+            await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        });
     }
 
     public void Dispose()

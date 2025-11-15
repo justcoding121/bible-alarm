@@ -21,7 +21,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
     public AlarmRingerReceiver()
     {
         LogSetup.Initialize(VersionFinder.Default,
-            new[] { $"AndroidSdk {Build.VERSION.SdkInt}" }, "Android");
+            [$"AndroidSdk {Build.VERSION.SdkInt}"], "Android");
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

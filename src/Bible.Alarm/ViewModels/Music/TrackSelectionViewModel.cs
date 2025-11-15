@@ -99,29 +99,27 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         {
             OnMusicInitialized(null, EventArgs.Empty);
         }
+    }
 
-        return;
-
-        void OnMusicInitialized(object o, EventArgs eventArgs)
+    private void OnMusicInitialized(object o, EventArgs eventArgs)
+    {
+        if (_initComplete) return;
+        if (_initialized) return;
+        var stateValue = _state.Value;
+        // For track selection, we only need TentativeMusic to initialize
+        // CurrentMusic might be null when navigating directly to track selection
+        if (stateValue.TentativeMusic == null) return;
+        _tentative = stateValue.TentativeMusic;
+        // Use TentativeMusic as CurrentMusic if CurrentMusic is null
+        _current = stateValue.CurrentMusic ?? stateValue.TentativeMusic;
+        _initialized = true;
+        _initComplete = true;
+        Task.Run(async () =>
         {
-            if (_initComplete) return;
-            if (_initialized) return;
-            var stateValue = _state.Value;
-            // For track selection, we only need TentativeMusic to initialize
-            // CurrentMusic might be null when navigating directly to track selection
-            if (stateValue.TentativeMusic == null) return;
-            _tentative = stateValue.TentativeMusic;
-            // Use TentativeMusic as CurrentMusic if CurrentMusic is null
-            _current = stateValue.CurrentMusic ?? stateValue.TentativeMusic;
-            _initialized = true;
-            _initComplete = true;
-            Task.Run(async () =>
-            {
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            });
-        }
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+            await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        });
     }
 
     public ICommand BackCommand { get; set; }
