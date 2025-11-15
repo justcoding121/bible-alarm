@@ -1,6 +1,6 @@
 ﻿namespace Bible.Alarm.Views.General;
 
-public partial class BatteryOptimizationExclusionModal : ContentPage
+public partial class BatteryOptimizationExclusionModal : BaseContentPage
 {
     public BatteryOptimizationExclusionModal()
     {

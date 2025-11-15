@@ -2,7 +2,7 @@
 
 namespace Bible.Alarm.Views.General;
 
-public partial class AlarmModal : ContentPage
+public partial class AlarmModal : BaseContentPage
 {
     public AlarmViewModal ViewModel => BindingContext as AlarmViewModal;
 

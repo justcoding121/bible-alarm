@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage
+<views:BaseContentPage
     x:Class="Bible.Alarm.Views.General.MediaProgressModal"
+    xmlns:views="clr-namespace:Bible.Alarm.Views"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:d="http://schemas.microsoft.com/dotnet/2021/maui/design"
@@ -10,7 +11,7 @@
     x:DataType="vm:MediaProgressViewModal"
     BackgroundColor="White"
     mc:Ignorable="d">
-    <ContentPage.Content>
+    <views:BaseContentPage.Content>
         <StackLayout
             HorizontalOptions="Center"
             Orientation="Vertical"
@@ -21,5 +22,5 @@
                 Progress="{Binding Progress}"
                 ProgressColor="SlateBlue" />
         </StackLayout>
-    </ContentPage.Content>
-</ContentPage>
+    </views:BaseContentPage.Content>
+</views:BaseContentPage>

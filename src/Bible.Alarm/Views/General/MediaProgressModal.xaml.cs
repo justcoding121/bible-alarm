@@ -1,7 +1,7 @@
 ﻿namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MediaProgressModal : ContentPage
+public partial class MediaProgressModal : BaseContentPage
 {
     public MediaProgressModal()
     {

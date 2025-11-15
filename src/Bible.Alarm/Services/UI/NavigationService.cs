@@ -152,11 +152,9 @@ public class NavigationService(
         var navigation = GetNavigation();
         if (navigation.ModalStack.Count > 0)
         {
-            var modal = await navigation.PopModalAsync();
-            if (modal.BindingContext is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
+            await navigation.PopModalAsync();
+            // Disposal is handled automatically by BaseContentPage.OnNavigatedFrom
+            // for all modals that inherit from BaseContentPage
         }
     }
 }

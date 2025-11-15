@@ -242,7 +242,7 @@ public static class MauiProgram
         services.AddTransient<BookSelectionViewModel>();
         services.AddTransient<ChapterSelectionViewModel>();
         services.AddTransient<AlarmViewModal>();
-        services.AddSingleton<MediaProgressViewModal>();
+        services.AddTransient<MediaProgressViewModal>();
 
         // Register ScheduleListItem as transient for list items
         services.AddTransient<ScheduleListItem>();
