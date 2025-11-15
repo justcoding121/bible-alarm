@@ -21,8 +21,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
-    private EventHandler _onBibleReadingChanged;
-    private EventHandler _onBibleReadingInitialized;
+    private bool _initComplete;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
@@ -77,34 +76,25 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
         void OnBibleReadingInitialized(object o, EventArgs eventArgs)
         {
+            if (_initComplete) return;
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
             _current = stateValue.CurrentBibleReadingSchedule;
             _tentative = stateValue.TentativeBibleReadingSchedule;
+            _initComplete = true;
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-
-            if (_onBibleReadingInitialized == null) return;
-            _state.StateChanged -= _onBibleReadingInitialized;
-            _onBibleReadingInitialized = null;
         }
     }
 
     public void Dispose()
     {
-        if (_onBibleReadingChanged != null)
-        {
-            _state.StateChanged -= _onBibleReadingChanged;
-            _onBibleReadingChanged = null;
-        }
-
-        if (_onBibleReadingInitialized == null) return;
-        _state.StateChanged -= _onBibleReadingInitialized;
-        _onBibleReadingInitialized = null;
+        _state.StateChanged -= OnBibleReadingChanged;
+        _state.StateChanged -= OnBibleReadingInitialized;
     }
 
     private void SetSelectedBook()

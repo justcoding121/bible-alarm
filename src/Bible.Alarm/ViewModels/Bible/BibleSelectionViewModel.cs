@@ -14,13 +14,14 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class BibleSelectionViewModel : ObservableObject, IListViewModel
+public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
 
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
+    private bool _initComplete;
 
     public ICommand BackCommand { get; set; }
     public ICommand BookSelectionCommand { get; set; }
@@ -92,16 +93,17 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
 
         void OnBibleReadingInitialized(object o, EventArgs eventArgs)
         {
+            if (_initComplete) return;
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
             _current = stateValue.CurrentBibleReadingSchedule;
             _tentative = stateValue.TentativeBibleReadingSchedule;
+            _initComplete = true;
             Task.Run(async () =>
             {
                 await Initialize(_tentative.LanguageCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= OnBibleReadingInitialized;
         }
 
         void OnBibleReadingChanged(object sender, EventArgs e)
@@ -243,5 +245,11 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel
         }
 
         Translations = translationVMs;
+    }
+
+    public void Dispose()
+    {
+        _state.StateChanged -= OnBibleReadingInitialized;
+        _state.StateChanged -= OnBibleReadingChanged;
     }
 }

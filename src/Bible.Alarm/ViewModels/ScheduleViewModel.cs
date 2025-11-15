@@ -21,7 +21,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public class ScheduleViewModel : ObservableObject
+public class ScheduleViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
 
@@ -677,5 +677,12 @@ public class ScheduleViewModel : ObservableObject
                 _logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", _scheduleId);
             }
         });
+    }
+
+    public void Dispose()
+    {
+        _state.StateChanged -= OnCurrentScheduleChanged;
+        _state.StateChanged -= OnMusicChanged;
+        _state.StateChanged -= OnBibleReadingChanged;
     }
 }

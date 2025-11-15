@@ -15,13 +15,14 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class SongBookSelectionViewModel : ObservableObject, IListViewModel
+public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
+    private bool _initComplete;
 
     public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
@@ -50,16 +51,17 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
 
         void OnMusicInitialized(object o, EventArgs eventArgs)
         {
+            if (_initComplete) return;
             var stateValue = _state.Value;
             if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
             _current = stateValue.CurrentMusic;
             _tentative = stateValue.TentativeMusic;
+            _initComplete = true;
             Task.Run(async () =>
             {
                 await Initialize();
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= OnMusicInitialized;
         }
 
         _state.StateChanged += OnMusicInitialized;
@@ -260,5 +262,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel
         }
 
         SongBooks = songBookVMs;
+    }
+
+    public void Dispose()
+    {
+        _state.StateChanged -= OnMusicInitialized;
+        _state.StateChanged -= OnMusicChanged;
     }
 }

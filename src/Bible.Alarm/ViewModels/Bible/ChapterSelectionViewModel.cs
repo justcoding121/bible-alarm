@@ -29,6 +29,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly IState<ApplicationState> _state;
+    private bool _initComplete;
 
     private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
 
@@ -86,16 +87,17 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
         void OnBibleReadingInitialized(object o, EventArgs eventArgs)
         {
+            if (_initComplete) return;
             var stateValue = _state.Value;
             if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
             _current = stateValue.CurrentBibleReadingSchedule;
             _tentative = stateValue.TentativeBibleReadingSchedule;
+            _initComplete = true;
             Task.Run(async () =>
             {
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode, _tentative.BookNumber);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= OnBibleReadingInitialized;
         }
     }
 
@@ -323,11 +325,15 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _state.StateChanged -= OnBibleReadingInitialized;
         _playService.OnStopped -= OnPlayServiceStopped;
         
-        foreach (var chapter in Chapters)
+        if (Chapters != null)
         {
-            UnsubscribeFromChapterEvents(chapter);
+            foreach (var chapter in Chapters)
+            {
+                UnsubscribeFromChapterEvents(chapter);
+            }
         }
         
         _propertyChangedHandlers.Clear();

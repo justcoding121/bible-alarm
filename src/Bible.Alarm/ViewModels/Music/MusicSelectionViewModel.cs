@@ -13,7 +13,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class MusicSelectionViewModel : ObservableObject
+public class MusicSelectionViewModel : ObservableObject, IDisposable
 {
     private AlarmMusic _current;
 
@@ -122,6 +122,11 @@ public class MusicSelectionViewModel : ObservableObject
     {
         get => _selectedMusicType;
         set => SetProperty(ref _selectedMusicType, value);
+    }
+
+    public void Dispose()
+    {
+        _state.StateChanged -= OnStateOnStateChanged;
     }
 }
 

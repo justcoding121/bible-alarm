@@ -33,6 +33,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private AlarmMusic _current;
     private AlarmMusic _tentative;
     private bool _initialized;
+    private bool _initComplete;
 
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
 
@@ -103,6 +104,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
         void OnMusicInitialized(object o, EventArgs eventArgs)
         {
+            if (_initComplete) return;
             if (_initialized) return;
             var stateValue = _state.Value;
             // For track selection, we only need TentativeMusic to initialize
@@ -112,13 +114,13 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             // Use TentativeMusic as CurrentMusic if CurrentMusic is null
             _current = stateValue.CurrentMusic ?? stateValue.TentativeMusic;
             _initialized = true;
+            _initComplete = true;
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
                 await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
-            _state.StateChanged -= OnMusicInitialized;
         }
     }
 
@@ -372,11 +374,15 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _state.StateChanged -= OnMusicInitialized;
         _playService.OnStopped -= OnPlayServiceStopped;
         
-        foreach (var track in Tracks)
+        if (Tracks != null)
         {
-            UnsubscribeFromTrackEvents(track);
+            foreach (var track in Tracks)
+            {
+                UnsubscribeFromTrackEvents(track);
+            }
         }
 
         _propertyChangedHandlers.Clear();
