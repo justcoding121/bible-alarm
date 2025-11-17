@@ -1,8 +1,10 @@
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -14,8 +16,7 @@ public class ScheduleStateService(
     IServiceScopeFactory scopeFactory,
     IAlarmService alarmService,
     INotificationService notificationService,
-    IToastService toastService,
-    IDispatcher dispatcher)
+    IToastService toastService)
     : IScheduleStateService
 {
     private readonly ILogger _logger = logger;
@@ -23,7 +24,7 @@ public class ScheduleStateService(
     private readonly IAlarmService _alarmService = alarmService;
     private readonly INotificationService _notificationService = notificationService;
     private readonly IToastService _toastService = toastService;
-    private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IDispatcher _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {

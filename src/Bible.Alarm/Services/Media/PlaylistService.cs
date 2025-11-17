@@ -1,3 +1,4 @@
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Database;
@@ -8,9 +9,12 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
+using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -22,6 +26,7 @@ public class PlaylistService(
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IDispatcher _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
     public async Task<int> GetRelavantScheduleToPlay()
     {
@@ -288,59 +293,91 @@ public class PlaylistService(
 
     public async Task MoveToNextBibleChapter(int scheduleId)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        AlarmSchedule updatedSchedule = null;
         
-        var schedule = await scheduleDbContext.AlarmSchedules
-            .Include(x => x.BibleReadingSchedule)
-            .FirstOrDefaultAsync(x => x.Id == scheduleId);
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            
+            var schedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.BibleReadingSchedule)
+                .FirstOrDefaultAsync(x => x.Id == scheduleId);
 
-        if (schedule == null) throw new ArgumentException($"Invalid schedule Id {scheduleId}");
+            if (schedule == null) throw new ArgumentException($"Invalid schedule Id {scheduleId}");
 
-        var bibleReadingSchedule = schedule.BibleReadingSchedule;
+            var bibleReadingSchedule = schedule.BibleReadingSchedule;
 
-        var bookNumber = bibleReadingSchedule.BookNumber;
-        var chapter = bibleReadingSchedule.ChapterNumber;
-        var publicationCode = bibleReadingSchedule.PublicationCode;
-        var languageCode = bibleReadingSchedule.LanguageCode;
+            var bookNumber = bibleReadingSchedule.BookNumber;
+            var chapter = bibleReadingSchedule.ChapterNumber;
+            var publicationCode = bibleReadingSchedule.PublicationCode;
+            var languageCode = bibleReadingSchedule.LanguageCode;
 
-        var next = await GetNextBibleChapter(languageCode, publicationCode, bookNumber, chapter);
+            var next = await GetNextBibleChapter(languageCode, publicationCode, bookNumber, chapter);
 
-        bibleReadingSchedule.BookNumber = next.Key.Number;
-        bibleReadingSchedule.ChapterNumber = next.Value.Number;
-        bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+            bibleReadingSchedule.BookNumber = next.Key.Number;
+            bibleReadingSchedule.ChapterNumber = next.Value.Number;
+            bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
 
-        await scheduleDbContext.SaveChangesAsync();
+            await scheduleDbContext.SaveChangesAsync();
+            
+            // Reload the schedule with all includes to get the updated data
+            updatedSchedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.BibleReadingSchedule)
+                .Include(x => x.Music)
+                .FirstAsync(x => x.Id == scheduleId);
+        }
+        
+        // Update the Fluxor store to trigger state change and UI refresh
+        if (updatedSchedule != null)
+        {
+            _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        }
     }
 
     public async Task MoveToPreviousBibleChapter(int scheduleId)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        AlarmSchedule updatedSchedule = null;
         
-        var schedule = await scheduleDbContext.AlarmSchedules
-            .Include(x => x.BibleReadingSchedule)
-            .FirstOrDefaultAsync(x => x.Id == scheduleId);
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            
+            var schedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.BibleReadingSchedule)
+                .FirstOrDefaultAsync(x => x.Id == scheduleId);
 
-        if (schedule == null) throw new ArgumentException($"Invalid schedule Id {scheduleId}");
+            if (schedule == null) throw new ArgumentException($"Invalid schedule Id {scheduleId}");
 
-        var bibleReadingSchedule = schedule.BibleReadingSchedule;
+            var bibleReadingSchedule = schedule.BibleReadingSchedule;
 
-        var bookNumber = bibleReadingSchedule.BookNumber;
-        var chapter = bibleReadingSchedule.ChapterNumber;
-        var publicationCode = bibleReadingSchedule.PublicationCode;
-        var languageCode = bibleReadingSchedule.LanguageCode;
+            var bookNumber = bibleReadingSchedule.BookNumber;
+            var chapter = bibleReadingSchedule.ChapterNumber;
+            var publicationCode = bibleReadingSchedule.PublicationCode;
+            var languageCode = bibleReadingSchedule.LanguageCode;
 
-        var previous = await GetPreviousBibleChapter(languageCode, publicationCode, bookNumber, chapter);
+            var previous = await GetPreviousBibleChapter(languageCode, publicationCode, bookNumber, chapter);
 
             if (previous.Key == null || previous.Value == null)
                 throw new InvalidOperationException($"Previous chapter Key or Value is null");
             
             bibleReadingSchedule.BookNumber = previous.Key.Number;
             bibleReadingSchedule.ChapterNumber = previous.Value.Number;
-        bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+            bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
 
-        await scheduleDbContext.SaveChangesAsync();
+            await scheduleDbContext.SaveChangesAsync();
+            
+            // Reload the schedule with all includes to get the updated data
+            updatedSchedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.BibleReadingSchedule)
+                .Include(x => x.Music)
+                .FirstAsync(x => x.Id == scheduleId);
+        }
+        
+        // Update the Fluxor store to trigger state change and UI refresh
+        if (updatedSchedule != null)
+        {
+            _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        }
     }
 
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetNextBibleChapter(string languageCode,
