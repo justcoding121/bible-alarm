@@ -19,6 +19,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 {
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
+    private readonly INavigationService _navigationService;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
@@ -30,6 +31,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     {
         _mediaService = mediaService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _navigationService = navigationService;
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _state.StateChanged += OnMusicInitialized;
@@ -95,7 +97,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            //await PopulateSongBooks(x.Code);
+            // Close the modal immediately after language selection
+            await _navigationService.PopModalAsync();
+
+            // Populate song books for the selected language after closing the modal
+            await PopulateSongBooks(x.Code);
+
             IsBusy = false;
         });
     }

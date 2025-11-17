@@ -18,6 +18,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 {
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
+    private readonly INavigationService _navigationService;
 
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
@@ -35,6 +36,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     {
         _mediaService = mediaService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _navigationService = navigationService;
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _state.StateChanged += OnBibleReadingInitialized;
@@ -81,6 +83,10 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
+            // Close the modal immediately after language selection
+            await _navigationService.PopModalAsync();
+
+            // Populate translations after closing the modal
             await PopulateTranslations(x.Code);
 
             IsBusy = false;
