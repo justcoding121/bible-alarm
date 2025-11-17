@@ -27,6 +27,9 @@ public partial class TrackSelection : ContentPage
     {
         Appearing -= OnAppearing;
         
+        // Wait for the page to be fully loaded before attempting to scroll
+        await Task.Delay(300);
+        
         if (ViewModel?.SelectedTrack != null && trackListView != null)
         {
             await ListViewHelper.ScrollToWhenReadyAsync(trackListView, ViewModel.SelectedTrack);

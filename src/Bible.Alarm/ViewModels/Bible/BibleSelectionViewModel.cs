@@ -105,7 +105,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     private void OnBibleReadingChanged(object sender, EventArgs e)
     {
         var stateValue = _state.Value;
-        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null || (stateValue.CurrentBibleReadingSchedule == _lastCurrent && stateValue.TentativeBibleReadingSchedule == _lastTentative)) return;
+        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null 
+            || (stateValue.CurrentBibleReadingSchedule == _lastCurrent && stateValue.TentativeBibleReadingSchedule == _lastTentative)) return;
         _current = stateValue.CurrentBibleReadingSchedule;
         _tentative = stateValue.TentativeBibleReadingSchedule;
         _lastCurrent = _current;

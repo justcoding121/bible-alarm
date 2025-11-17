@@ -27,6 +27,9 @@ public partial class ChapterSelection : ContentPage
     {
         Appearing -= OnAppearing;
         
+        // Wait for the page to be fully loaded before attempting to scroll
+        await Task.Delay(300);
+        
         if (ViewModel?.SelectedChapter != null && chapterListView != null)
         {
             await ListViewHelper.ScrollToWhenReadyAsync(chapterListView, ViewModel.SelectedChapter);
