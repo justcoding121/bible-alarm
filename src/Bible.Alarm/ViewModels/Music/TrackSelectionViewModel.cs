@@ -32,7 +32,6 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
-    private bool _initialized;
     private bool _initComplete;
 
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
@@ -50,7 +49,6 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        var navigationService1 = navigationService;
         _downloadService = downloadService;
         _cacheService = cacheService;
         
@@ -60,7 +58,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService.PopAsync();
             IsBusy = false;
         });
 
@@ -92,19 +90,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         });
 
         _state.StateChanged += OnMusicInitialized;
-        
-        // Check current state immediately in case state is already set
-        var currentState = _state.Value;
-        if (currentState.TentativeMusic != null && !_initialized)
-        {
-            OnMusicInitialized(null, EventArgs.Empty);
-        }
     }
 
     private void OnMusicInitialized(object o, EventArgs eventArgs)
     {
         if (_initComplete) return;
-        if (_initialized) return;
         var stateValue = _state.Value;
         // For track selection, we only need TentativeMusic to initialize
         // CurrentMusic might be null when navigating directly to track selection
@@ -112,11 +102,9 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _tentative = stateValue.TentativeMusic;
         // Use TentativeMusic as CurrentMusic if CurrentMusic is null
         _current = stateValue.CurrentMusic ?? stateValue.TentativeMusic;
-        _initialized = true;
         _initComplete = true;
         Task.Run(async () =>
         {
-            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });

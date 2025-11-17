@@ -34,7 +34,6 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
@@ -44,7 +43,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             IsBusy = true;
-            await navigationService1.NavigateToBookSelectionAsync();
+            await navigationService.NavigateToBookSelectionAsync();
             dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
             {
                 PublicationCode = x.Code,
@@ -56,21 +55,21 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.OpenLanguageModalAsync(this);
+            await navigationService.OpenLanguageModalAsync(this);
             IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopModalAsync();
+            await navigationService.PopModalAsync();
             IsBusy = false;
         });
 

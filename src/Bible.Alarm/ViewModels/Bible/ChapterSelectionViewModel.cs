@@ -46,8 +46,6 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _toastService = toastService;
         _playService = playService;
-        var navigationService1 = navigationService;
-
         _downloadService = downloadService;
         _cacheService = cacheService;
 
@@ -57,7 +55,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService.PopAsync();
             IsBusy = false;
         });
 

@@ -48,18 +48,17 @@ public class HomeViewModel : ObservableObject, IDisposable
         _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
         _databaseSeedService = databaseSeedService;
         _scheduleMigrationService = scheduleMigrationService;
-        var navigationService1 = navigationService;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService1.NavigateToScheduleAsync();
+            await navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(null));
         });
 
         ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
         {
             x.Schedule.IsEnabled = x.IsEnabled;
-            await navigationService1.NavigateToScheduleAsync();
+            await navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
         });
 

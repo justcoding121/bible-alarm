@@ -21,7 +21,6 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
     public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
-        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
@@ -33,7 +32,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
             if (x.MusicType == MusicType.Vocals)
             {
-                await navigationService1.NavigateToSongBookSelectionAsync();
+                await navigationService.NavigateToSongBookSelectionAsync();
 
                 dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
@@ -44,7 +43,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             }
             else
             {
-                await navigationService1.NavigateToTrackSelectionAsync();
+                await navigationService.NavigateToTrackSelectionAsync();
 
                 dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
@@ -61,7 +60,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService.PopAsync();
             IsBusy = false;
         });
     }

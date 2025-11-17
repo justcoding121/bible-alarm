@@ -29,7 +29,6 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
@@ -47,7 +46,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         {
             IsBusy = true;
 
-            await navigationService1.NavigateToTrackSelectionAsync();
+            await navigationService.NavigateToTrackSelectionAsync();
 
             dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
@@ -63,20 +62,29 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.OpenLanguageModalAsync(this);
+            
+            // Ensure languages are populated before opening the modal
+            if (Languages == null || Languages.Count == 0)
+            {
+                await PopulateLanguages();
+            }
+            
+            await navigationService.OpenLanguageModalAsync(this);
             IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService.PopAsync();
             IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService1.PopModalAsync();
+            IsBusy = true;
+            await navigationService.PopModalAsync();
+            IsBusy = false;
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -87,7 +95,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            await PopulateSongBooks(x.Code);
+            //await PopulateSongBooks(x.Code);
             IsBusy = false;
         });
     }
@@ -123,18 +131,13 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private void SetSelectedSongBook()
     {
-        if (SelectedSongBook != null)
-        {
-            SelectedSongBook.IsSelected = false;
-            SelectedSongBook = null;
-        }
+        if (_current == null || _current.LanguageCode != _tentative.LanguageCode) return;
+        if (SelectedSongBook != null) SelectedSongBook.IsSelected = false;
 
-        if (_current.LanguageCode != _tentative.LanguageCode) return;
-        SelectedSongBook = _songBookVMsMapping.TryGetValue(_current.PublicationCode, out var value)
-            ? value
-            : null;
-
-        if (SelectedSongBook != null) SelectedSongBook.IsSelected = true;
+        if (!_songBookVMsMapping.TryGetValue(_current.PublicationCode, out var songBook)) return;
+        
+        SelectedSongBook = songBook;
+        SelectedSongBook.IsSelected = true;
     }
 
     public ICommand BackCommand { get; set; }
@@ -237,8 +240,6 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private async Task PopulateSongBooks(string languageCode)
     {
-        SelectedSongBook = null;
-
         _songBookVMsMapping.Clear();
 
         var songBooks = await _mediaService.GetVocalMusicReleases(languageCode);
@@ -251,11 +252,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             songBookVMs.Add(songBookListViewItemModel);
             _songBookVMsMapping.Add(songBookListViewItemModel.Code, songBookListViewItemModel);
 
-            if (_current.MusicType != MusicType.Vocals
+            if (_current == null
+                || _current.MusicType != MusicType.Vocals
                 || _current.LanguageCode != languageCode
                 || _current.PublicationCode != release.Code) continue;
+            songBookListViewItemModel.IsSelected = true;
             SelectedSongBook = songBookListViewItemModel;
-            SelectedSongBook.IsSelected = true;
         }
 
         SongBooks = songBookVMs;

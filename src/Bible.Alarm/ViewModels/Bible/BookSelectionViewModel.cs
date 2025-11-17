@@ -30,21 +30,20 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        var navigationService1 = navigationService;
         _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
         var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.PopAsync();
+            await navigationService.PopAsync();
             IsBusy = false;
         });
 
         ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
         {
             IsBusy = true;
-            await navigationService1.NavigateToChapterSelectionAsync();
+            await navigationService.NavigateToChapterSelectionAsync();
             dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,

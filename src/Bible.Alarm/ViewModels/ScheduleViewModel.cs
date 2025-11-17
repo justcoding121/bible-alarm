@@ -331,6 +331,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private void OnBibleReadingChanged(object sender, EventArgs e)
     {
+        if (Model == null) return;
         var stateValue = _state.Value;
         if (stateValue.CurrentBibleReadingSchedule == null ||
             stateValue.CurrentBibleReadingSchedule == _lastBibleReading ||
@@ -343,6 +344,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private void OnMusicChanged(object sender, EventArgs e)
     {
+        if (Model == null) return;
         var stateValue = _state.Value;
         if (stateValue.CurrentMusic == null || stateValue.CurrentMusic == _lastMusic ||
             stateValue.CurrentMusic == Music) return;
