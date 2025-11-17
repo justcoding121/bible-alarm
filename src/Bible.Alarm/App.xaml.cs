@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Bible.Alarm.Common.Interfaces.Media;
+﻿using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media;
@@ -203,19 +202,19 @@ public partial class App : Application,
                 {
                     try
                     {
-                        Debug.WriteLine("Starting service initialization...");
+                        _logger.Information("Starting service initialization...");
                         
                         var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
                         if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
                         
                         await Task.Delay(100); 
                         
-                        Debug.WriteLine("Service initialization completed!");
+                        _logger.Information("Service initialization completed!");
+
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Error in initialization: {ex.Message}");
-                        Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                        _logger.Error(ex, "Error in initialization");
                     }
                 });
             }

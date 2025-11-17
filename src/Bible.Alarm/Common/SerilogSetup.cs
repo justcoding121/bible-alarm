@@ -45,6 +45,8 @@ public class SerilogSetup
                 loggerConfig.Enrich.WithProperty("Tag", tag);
 
         // Configure debug sink for Visual Studio debug window
+        // This writes to System.Diagnostics.Debug which appears in Visual Studio Output window
+        // Make sure to select "Debug" in the Output window's "Show output from:" dropdown
 #if DEBUG
         loggerConfig.WriteTo.Debug(
             outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);

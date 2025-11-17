@@ -1,7 +1,6 @@
 // using Bible.Alarm.Views.Schedule; // Schedule is a type, not a namespace
 // using Bible.Alarm.Views.Shared; // Shared is a folder, not a namespace
 
-using System.Diagnostics;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Network;
@@ -19,6 +18,7 @@ using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI;
+using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Stores;
@@ -71,7 +71,14 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
-        Debug.WriteLine("CreateMauiApp called!");
+#if WINDOWS
+        // Initialize Serilog for Windows before registering services
+        // This ensures Log.Logger is properly configured before services try to use it
+        var versionFinder = new WindowsVersionFinder();
+        SerilogSetup.Initialize(versionFinder, [], "Windows", isLoggingEnabled: true);
+        Log.Logger.Information("CreateMauiApp called!");
+#endif
+
         var builder = MauiApp.CreateBuilder();
 
         builder
@@ -323,7 +330,23 @@ public static class MauiProgram
         catch (Exception ex)
         {
             // Log error but don't throw - bootstrap should not prevent app from running
-            Debug.WriteLine($"Error in InitializePlatformBootstrap: {ex.Message}");
+            // Try to get logger from services if available, otherwise use static Log.Logger
+            try
+            {
+                var logger = services.GetService<ILogger>();
+                if (logger != null)
+                {
+                    logger.Error(ex, "Error in InitializePlatformBootstrap");
+                }
+                else
+                {
+                    Log.Logger.Error(ex, "Error in InitializePlatformBootstrap");
+                }
+            }
+            catch
+            {
+                // If logging fails, silently continue - bootstrap should not prevent app from running
+            }
         }
     }
 }
