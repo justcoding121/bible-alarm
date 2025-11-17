@@ -55,7 +55,17 @@ public partial class App : Application,
 
         NavigationPage.SetHasNavigationBar(loadingPage, false);
 
-        return new Window(navigationPage);
+        var window = new Window(navigationPage);
+
+#if WINDOWS
+        // Set window size preferences (matching stable code)
+        window.Width = 400;
+        window.Height = 700;
+        window.MinimumWidth = 400;
+        window.MinimumHeight = 700;
+#endif
+
+        return window;
     }
 
     protected override void OnStart()
