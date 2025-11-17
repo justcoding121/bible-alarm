@@ -1,5 +1,4 @@
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.Music;
@@ -106,12 +105,7 @@ public class NavigationService(
         var navigation = GetNavigation();
         var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
         modal.BindingContext = bindingContext;
-        
-        // Push the modal first
         await navigation.PushModalAsync(modal);
-        
-        // Then clear all pages from the navigation stack, leaving only the modal
-        ClearNavigationStackExcept(null);
     }
 
     public async Task OpenLanguageModalAsync(object bindingContext)
@@ -119,52 +113,31 @@ public class NavigationService(
         var navigation = GetNavigation();
         var modal = _serviceProvider.GetRequiredService<LanguageModal>();
         modal.BindingContext = bindingContext;
-        
-        // Push the modal first
         await navigation.PushModalAsync(modal);
-        
-        // Then clear all pages from the navigation stack, leaving only the modal
-        ClearNavigationStackExcept(null);
     }
 
     public async Task OpenAlarmModalAsync()
     {
         var navigation = GetNavigation();
-        // Check if alarm modal is already open
         if (navigation.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal))
         {
             return;
         }
 
-        var vm = _serviceProvider.GetRequiredService<AlarmViewModal>();
         var modal = _serviceProvider.GetRequiredService<AlarmModal>();
-        modal.BindingContext = vm;
-        
-        // Push the modal first
         await navigation.PushModalAsync(modal);
-        
-        // Then clear all pages from the navigation stack, leaving only the modal
-        ClearNavigationStackExcept(null);
     }
 
     public async Task OpenMediaProgressModalAsync()
     {
         var navigation = GetNavigation();
-        // Check if media progress modal is already open
         if (navigation.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal))
         {
             return;
         }
 
-        var vm = _serviceProvider.GetRequiredService<MediaProgressViewModal>();
         var modal = _serviceProvider.GetRequiredService<MediaProgressModal>();
-        modal.BindingContext = vm;
-        
-        // Push the modal first
         await navigation.PushModalAsync(modal);
-        
-        // Then clear all pages from the navigation stack, leaving only the modal
-        ClearNavigationStackExcept(null);
     }
 
     public async Task OpenBatteryOptimizationModalAsync(object bindingContext)
@@ -172,13 +145,16 @@ public class NavigationService(
         var navigation = GetNavigation();
         var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
         modal.BindingContext = bindingContext;
-        
-        // Push the modal first
         await navigation.PushModalAsync(modal);
-        
-        // Then clear all pages from the navigation stack, leaving only the modal
-        ClearNavigationStackExcept(null);
     }
 
+    public async Task PopModalAsync()
+    {
+        var navigation = GetNavigation();
+        if (navigation.ModalStack.Count > 0)
+        {
+            await navigation.PopModalAsync();
+        }
+    }
 }
 

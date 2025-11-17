@@ -136,8 +136,7 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            // Navigate to Home (closing AlarmModal)
-            await _navigationService.NavigateToHomeAsync();
+            await _navigationService.PopModalAsync();
         });
     }
 
@@ -153,8 +152,7 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            // Navigate to Home (closing MediaProgressModal)
-            await _navigationService.NavigateToHomeAsync();
+            await _navigationService.PopModalAsync();
         });
     }
 

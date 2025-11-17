@@ -15,5 +15,6 @@ public interface INavigationService
     Task OpenAlarmModalAsync();
     Task OpenMediaProgressModalAsync();
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
+    Task PopModalAsync();
 }
 

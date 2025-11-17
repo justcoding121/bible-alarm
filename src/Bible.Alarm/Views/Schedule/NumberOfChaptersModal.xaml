@@ -15,11 +15,11 @@
     x:DataType="vm:ScheduleViewModel"
     Padding="0,10,0,10"
     mc:Ignorable="d">
-    <ContentPage.Resources>
+    <views:BaseContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
-    </ContentPage.Resources>
-    <ContentPage.Content>
+    </views:BaseContentPage.Resources>
+    <views:BaseContentPage.Content>
         <Grid
             Margin="{OnPlatform iOS='0,25,0,0'}"
             BackgroundColor="White"
@@ -98,5 +98,5 @@
                 TextColor="SlateBlue"
                 VerticalOptions="Fill" />
         </Grid>
-    </ContentPage.Content>
+    </views:BaseContentPage.Content>
 </views:BaseContentPage>

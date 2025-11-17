@@ -76,8 +76,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            // Navigate back to SongBookSelection (closing LanguageModal)
-            await navigationService1.NavigateToSongBookSelectionAsync();
+            await navigationService1.PopModalAsync();
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -88,8 +87,6 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             CurrentLanguage = x;
             CurrentLanguage.IsSelected = true;
 
-            // Navigate back to SongBookSelection (closing LanguageModal)
-            await navigationService1.NavigateToSongBookSelectionAsync();
             await PopulateSongBooks(x.Code);
             IsBusy = false;
         });
