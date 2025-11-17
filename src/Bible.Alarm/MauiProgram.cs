@@ -210,12 +210,7 @@ public static class MauiProgram
         services.AddSingleton(_ =>
         {
             var app = Application.Current;
-            if (app?.MainPage is NavigationPage navPage)
-            {
-                return navPage.Navigation;
-            }
-            
-            // Fallback — try to get from Window's Page (set in CreateWindow)
+            // Use Windows[0].Page instead of obsolete MainPage
             if (app?.Windows.Count > 0)
             {
                 var window = app.Windows[0];
@@ -224,6 +219,14 @@ public static class MauiProgram
                     return windowNavPage.Navigation;
                 }
             }
+            
+            // Fallback — try MainPage for compatibility (obsolete but may be needed)
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (app?.MainPage is NavigationPage navPage)
+            {
+                return navPage.Navigation;
+            }
+#pragma warning restore CS0618
             
             // During startup, this might not be ready yet
             throw new InvalidOperationException("INavigation is not available. NavigationPage must be set before resolving INavigation.");

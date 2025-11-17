@@ -90,17 +90,16 @@ namespace Bible.Alarm.Platforms.iOS
                 try
                 {
                     // check for a local notification
-#pragma warning disable CA1422
+                    // CA1422: UIApplication.LaunchOptionsLocalNotificationKey is obsolete but needed for compatibility
+#pragma warning disable CA1422 // Validate platform compatibility
                     if (launchOptions.ContainsKey(UIApplication.LaunchOptionsLocalNotificationKey))
                     {
-#pragma warning restore CA1422
                         if (launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] is UILocalNotification localNotification)
                         {
-#pragma warning disable CA1422
                             HandleNotification(localNotification.UserInfo);
-#pragma warning restore CA1422
                         }
                     }
+#pragma warning restore CA1422
                 }
                 catch (Exception e)
                 {

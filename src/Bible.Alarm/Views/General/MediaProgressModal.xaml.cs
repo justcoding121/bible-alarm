@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.ViewModels.Shared;
+﻿#nullable enable
+using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.General;

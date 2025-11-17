@@ -14,6 +14,7 @@
 
 	<!-- Android-specific -->
 	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
+	<AndroidSdkVersion Condition="'$(TargetFramework)' == 'net9.0-android'">34</AndroidSdkVersion>
 	<AndroidPackageFormat>apk</AndroidPackageFormat>
 	<!-- Workaround for Android build permission issues -->
 	<AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
@@ -30,10 +31,10 @@
 		<WindowsPackageType>None</WindowsPackageType>
 
 		<!-- Suppress duplicate assembly attribute warnings -->
-		<NoWarn>$(NoWarn);CS0579</NoWarn>
+		<NoWarn>$(NoWarn);CS0579;XC0022</NoWarn>
 		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 		<WarningsAsErrors />
-		<WarningsNotAsErrors>CS0579</WarningsNotAsErrors>
+		<WarningsNotAsErrors>CS0579;XC0022</WarningsNotAsErrors>
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 	</PropertyGroup>
 
