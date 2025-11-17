@@ -90,7 +90,7 @@
                 </Grid>
                 <ScrollView Grid.Row="1"
                             Margin="0">
-                    <StackLayout HorizontalOptions="Center"
+                    <StackLayout HorizontalOptions="Fill"
                                  Orientation="Vertical">
                         <StackLayout.Resources>
                             <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
@@ -206,9 +206,10 @@
                                    VerticalOptions="Center"
                                    WidthRequest="200" />
                         </StackLayout>
-                        <Frame Margin="3"
+                        <Frame Margin="0,3,0,3"
                                Padding="5"
-                               CornerRadius="10">
+                               CornerRadius="10"
+                               HorizontalOptions="Fill">
                             <StackLayout Orientation="Vertical">
                                 <Grid x:Name="BibleButton"
                                       Margin="5,0,5,0"

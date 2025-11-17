@@ -12,7 +12,7 @@
     mc:Ignorable="d">
     <ContentPage.Content>
         <StackLayout
-            HorizontalOptions="Center"
+            HorizontalOptions="Fill"
             Orientation="Vertical"
             VerticalOptions="Center">
             <Label FontSize="Medium" Text="{Binding ProgressText}" />

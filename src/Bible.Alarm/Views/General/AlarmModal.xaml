@@ -14,7 +14,7 @@
         <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
-        <Grid HorizontalOptions="Center" VerticalOptions="Fill">
+        <Grid HorizontalOptions="Fill" VerticalOptions="Fill">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
