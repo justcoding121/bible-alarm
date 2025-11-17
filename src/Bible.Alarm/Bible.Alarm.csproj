@@ -12,13 +12,14 @@
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
-	<!-- Android-specific -->
-	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
-	<AndroidSdkVersion Condition="'$(TargetFramework)' == 'net9.0-android'">34</AndroidSdkVersion>
-	<AndroidPackageFormat>apk</AndroidPackageFormat>
-	<!-- Workaround for Android build permission issues -->
-	<AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
-	<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidCreatePackagePerAbi>
+		<!-- Android-specific -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
+		<AndroidSdkVersion Condition="'$(TargetFramework)' == 'net9.0-android'">36</AndroidSdkVersion>
+		<AndroidTargetFramework Condition="'$(TargetFramework)' == 'net9.0-android'">v14.0</AndroidTargetFramework>
+		<AndroidPackageFormat Condition="'$(TargetFramework)' == 'net9.0-android'">apk</AndroidPackageFormat>
+		<!-- Workaround for Android build permission issues -->
+		<AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
+		<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidCreatePackagePerAbi>
 
 		<!-- iOS-specific -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>

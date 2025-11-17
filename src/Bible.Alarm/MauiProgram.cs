@@ -51,7 +51,6 @@ using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Battery;
-using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Platforms.Android.Services.Storage;
 #endif

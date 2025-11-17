@@ -1,4 +1,10 @@
 <Project>
+  <!-- Android SDK version - applies to all builds -->
+  <PropertyGroup>
+    <AndroidSdkVersion Condition="'$(TargetFramework)' == 'net9.0-android'">36</AndroidSdkVersion>
+    <AndroidTargetFramework Condition="'$(TargetFramework)' == 'net9.0-android'">v14.0</AndroidTargetFramework>
+  </PropertyGroup>
+  
   <!-- Global build optimizations for faster debug builds -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <!-- General build optimizations -->

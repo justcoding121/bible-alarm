@@ -10,7 +10,7 @@ public class AndroidAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
     IServiceScopeFactory scopeFactory,
-    DroidNotificationService notificationService)
+    DroidNotificationService _)
     : IAndroidAlarmHandler, IDisposable
 {
     private readonly ILogger _logger = logger;
