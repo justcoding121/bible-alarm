@@ -19,42 +19,13 @@ public class NavigationService(
         return _serviceProvider.GetRequiredService<INavigation>();
     }
 
-
-    /// <summary>
-    /// Removes all pages from the navigation stack except the specified page.
-    /// </summary>
-    private void ClearNavigationStackExcept(Page pageToKeep)
-    {
-        var navigation = GetNavigation();
-        var pagesToRemove = navigation.NavigationStack.Where(p => p != pageToKeep).ToList();
-        foreach (var page in pagesToRemove)
-        {
-            navigation.RemovePage(page);
-        }
-    }
-
-    /// <summary>
-    /// Pushes a fresh page instance, then clears all other pages from the stack, leaving only the newly pushed page.
-    /// </summary>
-    private async Task PushFreshPageAsync<T>(T page, bool hasNavigationBar = true) where T : Page
-    {
-        var navigation = GetNavigation();
-        
-        // Set navigation bar setting
-        NavigationPage.SetHasNavigationBar(page, hasNavigationBar);
-        
-        // Push the fresh page first
-        await navigation.PushAsync(page);
-        
-        // Then remove all other pages from the stack, leaving only the newly pushed page
-        ClearNavigationStackExcept(page);
-    }
-
     public async Task NavigateToHomeAsync()
     {
         // Always create a NEW Home page via DI (never reuse)
         var homePage = _serviceProvider.GetRequiredService<Home>();
         await PushFreshPageAsync(homePage, hasNavigationBar: false);
+
+        await ClearNavigationStackExcept(homePage);
     }
 
     public async Task NavigateToScheduleAsync()
@@ -98,7 +69,6 @@ public class NavigationService(
         var page = _serviceProvider.GetRequiredService<ChapterSelection>();
         await PushFreshPageAsync(page);
     }
-
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
     {
@@ -153,7 +123,70 @@ public class NavigationService(
         var navigation = GetNavigation();
         if (navigation.ModalStack.Count > 0)
         {
+            var modal = navigation.ModalStack.LastOrDefault();
             await navigation.PopModalAsync();
+            if (modal is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+    }
+
+    public async Task PopAsync()
+    {
+        var navigation = GetNavigation();
+        if (navigation.NavigationStack.Count > 1)
+        {
+            var page = navigation.NavigationStack.LastOrDefault();
+            await navigation.PopAsync();
+            if (page is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Pushes a fresh page instance, then clears all other pages from the stack, leaving only the newly pushed page.
+    /// </summary>
+    private async Task PushFreshPageAsync<T>(T page, bool hasNavigationBar = true) where T : Page
+    {
+        var navigation = GetNavigation();
+
+        // Set navigation bar setting
+        NavigationPage.SetHasNavigationBar(page, hasNavigationBar);
+
+        // Push the fresh page first
+        await navigation.PushAsync(page);
+    }
+
+    /// <summary>
+    /// Removes all pages from the navigation stack except the specified page, and clears all modals.
+    /// </summary>
+    private async Task ClearNavigationStackExcept(Page pageToKeep)
+    {
+        var navigation = GetNavigation();
+
+        // Clear all modals and dispose them
+        while (navigation.ModalStack.Count > 0)
+        {
+            var modal = navigation.ModalStack.LastOrDefault();
+            await navigation.PopModalAsync();
+            if (modal is IDisposable disposableModal)
+            {
+                disposableModal.Dispose();
+            }
+        }
+
+        // Remove all pages except the one to keep and dispose them
+        var pagesToRemove = navigation.NavigationStack.Where(p => p != pageToKeep).ToList();
+        foreach (var page in pagesToRemove)
+        {
+            navigation.RemovePage(page);
+            if (page is IDisposable disposablePage)
+            {
+                disposablePage.Dispose();
+            }
         }
     }
 }

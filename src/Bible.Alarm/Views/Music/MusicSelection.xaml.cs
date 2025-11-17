@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels.Music;
 
 namespace Bible.Alarm.Views.Music;
 
-public partial class MusicSelection : BaseContentPage
+public partial class MusicSelection : ContentPage
 {
     public MusicSelectionViewModel ViewModel => BindingContext as MusicSelectionViewModel;
 

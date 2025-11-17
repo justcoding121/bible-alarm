@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Views.Schedule;
 
-public partial class Schedule : BaseContentPage
+public partial class Schedule : ContentPage
 {
     public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
 

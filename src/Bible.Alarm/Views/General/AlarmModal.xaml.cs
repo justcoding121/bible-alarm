@@ -3,7 +3,7 @@ using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.General;
 
-public partial class AlarmModal : BaseContentPage, IDisposable
+public partial class AlarmModal : ContentPage, IDisposable
 {
     private bool _isDisposed;
 

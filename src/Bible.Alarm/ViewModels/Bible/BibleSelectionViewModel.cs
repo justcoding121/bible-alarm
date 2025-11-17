@@ -63,7 +63,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.NavigateToScheduleAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
 

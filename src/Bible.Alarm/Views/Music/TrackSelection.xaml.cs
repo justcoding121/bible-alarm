@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels.Music;
 
 namespace Bible.Alarm.Views.Music;
 
-public partial class TrackSelection : BaseContentPage
+public partial class TrackSelection : ContentPage
 {
     public TrackSelectionViewModel ViewModel => BindingContext as TrackSelectionViewModel;
     private readonly TaskScheduler _taskScheduler;

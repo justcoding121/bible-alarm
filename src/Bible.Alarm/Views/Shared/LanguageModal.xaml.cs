@@ -4,7 +4,7 @@ using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Shared;
 
-public partial class LanguageModal : BaseContentPage, IDisposable
+public partial class LanguageModal : ContentPage, IDisposable
 {
     private bool _isDisposed;
 

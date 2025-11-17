@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<views:BaseContentPage
+<ContentPage
     x:Class="Bible.Alarm.Views.General.BatteryOptimizationExclusionModal"
-    xmlns:views="clr-namespace:Bible.Alarm.Views"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:d="http://schemas.microsoft.com/dotnet/2021/maui/design"
@@ -11,10 +10,10 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     x:DataType="vm:ScheduleViewModel"
     mc:Ignorable="d">
-    <views:BaseContentPage.Resources>
+    <ContentPage.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-    </views:BaseContentPage.Resources>
-    <views:BaseContentPage.Content>
+    </ContentPage.Resources>
+    <ContentPage.Content>
         <StackLayout
             Margin="0,0,0,125"
             AutomationId="BatteryOptimizationModal"
@@ -99,5 +98,5 @@
                 TextColor="SlateBlue"
                 WidthRequest="200" />
         </StackLayout>
-    </views:BaseContentPage.Content>
-</views:BaseContentPage>
+    </ContentPage.Content>
+</ContentPage>

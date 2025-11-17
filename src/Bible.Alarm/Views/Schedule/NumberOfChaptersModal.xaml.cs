@@ -3,7 +3,7 @@
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
+public partial class NumberOfChaptersModal : ContentPage, IDisposable
 {
     private bool _isDisposed;
 

@@ -70,7 +70,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            await navigationService1.NavigateToMusicSelectionAsync();
+            await navigationService1.PopAsync();
             IsBusy = false;
         });
 

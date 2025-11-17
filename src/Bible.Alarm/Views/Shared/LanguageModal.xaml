@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<views:BaseContentPage
+<ContentPage
     x:Class="Bible.Alarm.Views.Shared.LanguageModal"
-    xmlns:views="clr-namespace:Bible.Alarm.Views"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
@@ -13,11 +12,11 @@
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     x:DataType="bible:BibleSelectionViewModel"
     Padding="0,10,0,0">
-    <views:BaseContentPage.Resources>
+    <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
-    </views:BaseContentPage.Resources>
-    <views:BaseContentPage.Content>
+    </ContentPage.Resources>
+    <ContentPage.Content>
         <Grid
             Margin="{OnPlatform iOS='0,25,0,0'}"
             BackgroundColor="White"
@@ -117,5 +116,5 @@
                 TextColor="SlateBlue"
                 VerticalOptions="Fill" />
         </Grid>
-    </views:BaseContentPage.Content>
-</views:BaseContentPage>
+    </ContentPage.Content>
+</ContentPage>

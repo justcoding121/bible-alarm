@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels.Bible;
 
 namespace Bible.Alarm.Views.Bible;
 
-public partial class ChapterSelection : BaseContentPage
+public partial class ChapterSelection : ContentPage
 {
     public ChapterSelectionViewModel ViewModel => BindingContext as ChapterSelectionViewModel;
     private readonly TaskScheduler _taskScheduler;

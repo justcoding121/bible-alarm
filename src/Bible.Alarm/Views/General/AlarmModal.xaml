@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<views:BaseContentPage
+<ContentPage
     x:Class="Bible.Alarm.Views.General.AlarmModal"
-    xmlns:views="clr-namespace:Bible.Alarm.Views"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:forms="http://schemas.microsoft.com/dotnet/2021/maui/design"
@@ -11,10 +10,10 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     x:DataType="shared:AlarmViewModal">
-    <views:BaseContentPage.Resources>
+    <ContentPage.Resources>
         <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
-    </views:BaseContentPage.Resources>
-    <views:BaseContentPage.Content>
+    </ContentPage.Resources>
+    <ContentPage.Content>
         <Grid HorizontalOptions="Center" VerticalOptions="Fill">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -224,5 +223,5 @@
             </Grid>
         </Grid>
 
-    </views:BaseContentPage.Content>
-</views:BaseContentPage>
+    </ContentPage.Content>
+</ContentPage>

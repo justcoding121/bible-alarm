@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels.Bible;
 
 namespace Bible.Alarm.Views.Bible;
 
-public partial class BibleSelection : BaseContentPage
+public partial class BibleSelection : ContentPage
 {
     public BibleSelectionViewModel ViewModel => BindingContext as BibleSelectionViewModel;
 

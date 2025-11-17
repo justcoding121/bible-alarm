@@ -4,7 +4,7 @@ using Bible.Alarm.Views;
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MediaProgressModal : BaseContentPage, IDisposable
+public partial class MediaProgressModal : ContentPage, IDisposable
 {
     private bool _isDisposed;
     private MediaProgressViewModal? _viewModel;
