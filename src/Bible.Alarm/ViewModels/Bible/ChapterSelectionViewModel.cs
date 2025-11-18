@@ -58,6 +58,16 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
+            
+            // Stop any ongoing preview playback before navigating away
+            _playService.Stop();
+            if (_currentlyPlaying != null)
+            {
+                _currentlyPlaying.Play = false;
+                _currentlyPlaying.IsBusy = false;
+                _currentlyPlaying = null;
+            }
+            
             await navigationService.PopAsync();
             IsBusy = false;
         });
@@ -327,6 +337,9 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     {
         _state.StateChanged -= OnBibleReadingInitialized;
         _playService.OnStopped -= OnPlayServiceStopped;
+        
+        // Stop any ongoing preview playback when navigating away
+        _playService.Stop();
         
         if (Chapters != null)
         {
