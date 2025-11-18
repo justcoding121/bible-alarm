@@ -31,11 +31,6 @@
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
 
-		<!-- Suppress duplicate assembly attribute warnings -->
-		<NoWarn>$(NoWarn);CS0579;XC0022</NoWarn>
-		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-		<WarningsAsErrors />
-		<WarningsNotAsErrors>CS0579;XC0022</WarningsNotAsErrors>
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 	</PropertyGroup>
 

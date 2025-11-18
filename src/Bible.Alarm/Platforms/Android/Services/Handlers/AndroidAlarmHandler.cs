@@ -9,8 +9,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Handlers;
 public class AndroidAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
-    IServiceScopeFactory scopeFactory,
-    DroidNotificationService _)
+    IServiceScopeFactory scopeFactory)
     : IAndroidAlarmHandler, IDisposable
 {
     private readonly ILogger _logger = logger;

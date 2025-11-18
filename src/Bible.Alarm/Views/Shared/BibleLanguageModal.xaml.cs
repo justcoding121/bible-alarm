@@ -4,13 +4,13 @@ using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.Shared;
 
-public partial class LanguageModal : ContentPage, IDisposable
+public partial class BibleLanguageModal : ContentPage, IDisposable
 {
     private bool _isDisposed;
 
     public IListViewModel ViewModel => BindingContext as IListViewModel;
 
-    public LanguageModal()
+    public BibleLanguageModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -35,3 +35,4 @@ public partial class LanguageModal : ContentPage, IDisposable
         }
     }
 }
+

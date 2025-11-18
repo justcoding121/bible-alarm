@@ -206,10 +206,15 @@
                                    VerticalOptions="Center"
                                    WidthRequest="200" />
                         </StackLayout>
-                        <Frame Margin="0,3,0,3"
+                        <Border Margin="0,3,0,3"
                                Padding="5"
-                               CornerRadius="10"
+                               StrokeThickness="1"
+                               Stroke="LightGray"
+                               BackgroundColor="White"
                                HorizontalOptions="Fill">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
                             <StackLayout Orientation="Vertical">
                                 <Grid x:Name="BibleButton"
                                       Margin="5,0,5,0"
@@ -354,7 +359,7 @@
                                     </StackLayout>
                                 </Grid>
                             </StackLayout>
-                        </Frame>
+                        </Border>
                         <Grid x:Name="ChaptersButton"
                               Margin="5,0,5,0"
                               BackgroundColor="WhiteSmoke"

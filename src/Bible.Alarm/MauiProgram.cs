@@ -276,7 +276,8 @@ public static class MauiProgram
         services.AddTransient<BibleSelection>();
         services.AddTransient<BookSelection>();
         services.AddTransient<ChapterSelection>();
-        services.AddTransient<LanguageModal>();
+        services.AddTransient<BibleLanguageModal>();
+        services.AddTransient<MusicLanguageModal>();
         services.AddTransient<AlarmModal>();
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();

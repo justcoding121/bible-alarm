@@ -71,7 +71,7 @@
                 BackgroundColor="White"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
-                VerticalOptions="FillAndExpand"
+                VerticalOptions="Fill"
                 HasUnevenRows="True"
                 ItemsSource="{Binding Schedules}"
                 SelectionMode="None">
@@ -89,7 +89,7 @@
                                 ColumnSpacing="{OnPlatform iOS='0'}"
                                 HorizontalOptions="Fill"
                                 HeightRequest="{OnPlatform iOS='175'}"
-                                VerticalOptions="CenterAndExpand">
+                                VerticalOptions="Center">
                                 <Grid.Resources>
                                     <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
                                     <enums:DaysOfWeek x:Key="Monday">Monday</enums:DaysOfWeek>
@@ -107,7 +107,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="auto" />
                                 </Grid.RowDefinitions>
-                                <StackLayout VerticalOptions="CenterAndExpand"
+                                <StackLayout VerticalOptions="Center"
                                              Grid.Column="0"
                                              Margin="{OnIdiom Default={OnPlatform Default='10,3,0,0',
                                                                          iOS='10,3,0,0',
@@ -131,7 +131,7 @@
                                                                          WinUI='75'}"
                                         Text="{x:Static fn:GlyphNames.Play}"
                                         TextColor="SlateBlue"
-                                        VerticalOptions="CenterAndExpand"
+                                        VerticalOptions="Center"
                                         WidthRequest="{OnPlatform iOS='75',
                                                                   WinUI='75'}" />
                                     <StackLayout
@@ -139,19 +139,19 @@
                                         Padding="0"
                                         HorizontalOptions="Start"
                                         Orientation="Horizontal"
-                                        VerticalOptions="CenterAndExpand">
+                                        VerticalOptions="Center">
                                         <Label
                                             Padding="0"
                                             FontSize="30"
                                             Text="{Binding TimeText}"
-                                            VerticalOptions="CenterAndExpand"
+                                            VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
                                         <Label
                                             Margin="0"
                                             Padding="0"
                                             FontSize="Small"
                                             Text="{Binding Meridian}"
-                                            VerticalOptions="CenterAndExpand"
+                                            VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
                                             VerticalTextAlignment="Center" />
                                     </StackLayout>
@@ -162,7 +162,7 @@
                                                         iOS='10,0,0,0'}"
                                     HorizontalOptions="Start"
                                     Orientation="Vertical"
-                                    VerticalOptions="FillAndExpand">
+                                    VerticalOptions="Fill">
                                     <StackLayout Orientation="Horizontal">
                                         <Label
                                             Margin="5,0,0,0"
@@ -208,17 +208,17 @@
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}" />
                                     </StackLayout>
                                     <Label
-                                        VerticalOptions="FillAndExpand"
+                                        VerticalOptions="Fill"
                                         Margin="2,0,0,0"
                                         Text="{Binding Name}"
                                         TextColor="Black" />
                                     <Label
-                                        VerticalOptions="FillAndExpand"
+                                        VerticalOptions="Fill"
                                         Margin="2,0,0,0"
                                         Text="{Binding SubTitle}"
                                         TextColor="SlateBlue" />
                                     <StackLayout Orientation="Horizontal" HorizontalOptions="Start"
-                                                 MinimumHeightRequest="30" VerticalOptions="FillAndExpand">
+                                                 MinimumHeightRequest="30" VerticalOptions="Fill">
                                         <Button
                                             CharacterSpacing="0"
                                             Padding="0"
@@ -232,7 +232,7 @@
                                             MinimumHeightRequest="25"
                                             Text="{x:Static fn:GlyphNames.Previous}"
                                             TextColor="LightGray"
-                                            VerticalOptions="FillAndExpand" />
+                                            VerticalOptions="Fill" />
                                         <Button
                                             CharacterSpacing="0"
                                             Padding="0"
@@ -246,7 +246,7 @@
                                             HorizontalOptions="Start"
                                             Text="{x:Static fn:GlyphNames.Next}"
                                             TextColor="LightGray"
-                                            VerticalOptions="FillAndExpand" />
+                                            VerticalOptions="Fill" />
                                     </StackLayout>
                                 </StackLayout>
                                 <StackLayout
@@ -257,11 +257,11 @@
                                                      Tablet={OnPlatform Default='15,0,50,0'}}"
                                     HorizontalOptions="End"
                                     Orientation="Vertical"
-                                    VerticalOptions="CenterAndExpand">
+                                    VerticalOptions="Center">
                                     <Switch
                                         Margin="{OnPlatform WinUI='0,0,-100,0'}"
                                         HorizontalOptions="End"
-                                        VerticalOptions="CenterAndExpand"
+                                        VerticalOptions="Center"
                                         IsToggled="{Binding IsEnabled, Mode=TwoWay}"
                                         Scale="{OnPlatform Default='1',
                                                            iOS='1'}" />

@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage
-    x:Class="Bible.Alarm.Views.Shared.LanguageModal"
+    x:Class="Bible.Alarm.Views.Shared.BibleLanguageModal"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
-    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
     xmlns:bible="clr-namespace:Bible.Alarm.ViewModels.Bible"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    x:DataType="bible:BibleSelectionViewModel"
     Padding="0,10,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -55,7 +55,7 @@
                     Margin="5,0,5,0"
                     BackgroundColor="White"
                     HeightRequest="50"
-                    HorizontalOptions="FillAndExpand"
+                    HorizontalOptions="Fill"
                     HorizontalTextAlignment="Start"
                     MinimumHeightRequest="50"
                     Placeholder="Search languages"
@@ -117,3 +117,4 @@
         </Grid>
     </ContentPage.Content>
 </ContentPage>
+

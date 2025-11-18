@@ -1,4 +1,6 @@
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.Music;
@@ -81,7 +83,22 @@ public class NavigationService(
     public async Task OpenLanguageModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = _serviceProvider.GetRequiredService<LanguageModal>();
+        ContentPage modal;
+        
+        // Use the appropriate modal based on the ViewModel type for compiled bindings
+        if (bindingContext is BibleSelectionViewModel)
+        {
+            modal = _serviceProvider.GetRequiredService<BibleLanguageModal>();
+        }
+        else if (bindingContext is SongBookSelectionViewModel)
+        {
+            modal = _serviceProvider.GetRequiredService<MusicLanguageModal>();
+        }
+        else
+        {
+            throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}", nameof(bindingContext));
+        }
+        
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal);
     }
