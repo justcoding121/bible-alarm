@@ -53,6 +53,7 @@ using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Battery;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Platforms.Android.Services.Storage;
+using Microsoft.Maui.ApplicationModel;
 #endif
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.UI;

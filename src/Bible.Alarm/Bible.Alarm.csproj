@@ -48,9 +48,6 @@
 		<ProjectReference Include="..\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
-		<PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
-	</ItemGroup>
 
 
 	<!-- ProGuard rules to handle Java conflicts -->
