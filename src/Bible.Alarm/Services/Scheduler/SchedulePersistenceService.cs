@@ -14,13 +14,14 @@ namespace Bible.Alarm.Services.Scheduler;
 public class SchedulePersistenceService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
-    IAlarmService alarmService)
+    IAlarmService alarmService,
+    IDispatcher dispatcher)
     : ISchedulePersistenceService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IAlarmService _alarmService = alarmService;
-    private readonly IDispatcher _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<bool> SaveScheduleAsync(AlarmSchedule schedule, bool isNewSchedule, bool musicUpdated = true, bool bibleReadingUpdated = true)
     {

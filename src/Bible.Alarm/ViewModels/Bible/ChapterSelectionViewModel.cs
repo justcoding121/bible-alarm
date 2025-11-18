@@ -29,6 +29,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly IState<ApplicationState> _state;
+    private readonly IDispatcher _dispatcher;
     private bool _initComplete;
 
     private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
@@ -40,7 +41,9 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         IPreviewPlayService playService,
         INavigationService navigationService,
         IDownloadService downloadService,
-        IMediaCacheService cacheService)
+        IMediaCacheService cacheService,
+        IState<ApplicationState> state,
+        IDispatcher dispatcher)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -49,8 +52,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _downloadService = downloadService;
         _cacheService = cacheService;
 
-        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        _state = state;
+        _dispatcher = dispatcher;
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -70,7 +73,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             _tentative.ChapterNumber = x.Number;
 
-            dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
+            _dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,

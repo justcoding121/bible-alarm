@@ -16,7 +16,8 @@ public class ScheduleStateService(
     IServiceScopeFactory scopeFactory,
     IAlarmService alarmService,
     INotificationService notificationService,
-    IToastService toastService)
+    IToastService toastService,
+    IDispatcher dispatcher)
     : IScheduleStateService
 {
     private readonly ILogger _logger = logger;
@@ -24,7 +25,7 @@ public class ScheduleStateService(
     private readonly IAlarmService _alarmService = alarmService;
     private readonly INotificationService _notificationService = notificationService;
     private readonly IToastService _toastService = toastService;
-    private readonly IDispatcher _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {

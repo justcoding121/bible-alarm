@@ -21,12 +21,13 @@ namespace Bible.Alarm.Services.Media;
 public class PlaylistService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
-    MediaService mediaService)
+    MediaService mediaService,
+    IDispatcher dispatcher)
     : IPlaylistService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly IDispatcher _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<int> GetRelavantScheduleToPlay()
     {

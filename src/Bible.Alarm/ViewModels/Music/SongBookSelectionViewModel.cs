@@ -19,6 +19,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 {
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
+    private readonly IDispatcher _dispatcher;
     private readonly INavigationService _navigationService;
 
     private AlarmMusic _current;
@@ -27,12 +28,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private AlarmMusic _lastCurrent;
     private AlarmMusic _lastTentative;
 
-    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
+    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _state = state;
+        _dispatcher = dispatcher;
         _navigationService = navigationService;
-        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _state.StateChanged += OnMusicInitialized;
         _state.StateChanged += OnMusicChanged;
@@ -50,7 +51,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
             await navigationService.NavigateToTrackSelectionAsync();
 
-            dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+            _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
                 Repeat = _current.Repeat,
                 MusicType = MusicType.Vocals,

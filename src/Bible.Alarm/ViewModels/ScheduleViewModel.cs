@@ -32,6 +32,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IScheduleDisplayService _scheduleDisplayService;
     private readonly IServiceProvider _serviceProvider;
     private readonly IState<ApplicationState> _state;
+    private readonly IDispatcher _dispatcher;
     private readonly IServiceScopeFactory _scopeFactory;
 
     private int _lastScheduleId = -1;
@@ -61,14 +62,16 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         INavigationService navigationService,
         IScheduleSelectionService scheduleSelectionService,
         IScheduleDisplayService scheduleDisplayService,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IState<ApplicationState> state,
+        IDispatcher dispatcher)
     {
         _logger = logger;
         _popUpService = popUpService;
         _scopeFactory = scopeFactory;
 
-        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        _state = state;
+        _dispatcher = dispatcher;
 
         _schedulePersistenceService = schedulePersistenceService;
         var bibleNavigationService1 = bibleNavigationService;
@@ -156,7 +159,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             await _navigationService.NavigateToMusicSelectionAsync();
 
-            dispatcher.Dispatch(new MusicSelectionAction(Music));
+            _dispatcher.Dispatch(new MusicSelectionAction(Music));
 
             IsBusy = false;
         });
@@ -175,7 +178,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             await _navigationService.NavigateToBibleSelectionAsync();
 
-            dispatcher.Dispatch(new BibleSelectionAction(
+            _dispatcher.Dispatch(new BibleSelectionAction(
                 BibleReadingSchedule,
                 new BibleReadingSchedule
                 {

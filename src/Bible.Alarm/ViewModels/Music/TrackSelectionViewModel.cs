@@ -43,7 +43,9 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         IPreviewPlayService playService,
         INavigationService navigationService,
         IDownloadService downloadService,
-        IMediaCacheService cacheService)
+        IMediaCacheService cacheService,
+        IState<ApplicationState> state,
+        IDispatcher dispatcher)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -52,8 +54,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _downloadService = downloadService;
         _cacheService = cacheService;
         
-        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        _state = state;
+        _dispatcher = dispatcher;
 
         BackCommand = new AsyncRelayCommand(async () =>
         {

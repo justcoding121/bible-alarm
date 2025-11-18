@@ -18,6 +18,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 {
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
+    private readonly IDispatcher _dispatcher;
     private readonly INavigationService _navigationService;
 
     private BibleReadingSchedule _current;
@@ -32,12 +33,12 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, INavigationService navigationService)
+    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
+        _state = state;
+        _dispatcher = dispatcher;
         _navigationService = navigationService;
-        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
 
         _state.StateChanged += OnBibleReadingInitialized;
         _state.StateChanged += OnBibleReadingChanged;

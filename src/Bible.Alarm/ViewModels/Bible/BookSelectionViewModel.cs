@@ -21,17 +21,18 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly IState<ApplicationState> _state;
+    private readonly IDispatcher _dispatcher;
     private bool _initComplete;
     private BibleReadingSchedule _lastCurrent;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(MediaService mediaService, INavigationService navigationService)
+    public BookSelectionViewModel(MediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
         _mediaService = mediaService;
-        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        _state = state;
+        _dispatcher = dispatcher;
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -44,7 +45,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         {
             IsBusy = true;
             await navigationService.NavigateToChapterSelectionAsync();
-            dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
+            _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,

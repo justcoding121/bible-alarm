@@ -18,11 +18,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     private AlarmMusic _current;
 
     private readonly IState<ApplicationState> _state;
+    private readonly IDispatcher _dispatcher;
 
-    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, INavigationService navigationService)
+    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
-        _state = MauiAppHolder.Services.GetRequiredService<IState<ApplicationState>>();
-        var dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        _state = state;
+        _dispatcher = dispatcher;
 
         _state.StateChanged += OnStateOnStateChanged;
 
@@ -34,7 +35,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             {
                 await navigationService.NavigateToSongBookSelectionAsync();
 
-                dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
+                _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
                     MusicType = MusicType.Vocals,
                     LanguageCode = _current.LanguageCode
@@ -45,7 +46,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             {
                 await navigationService.NavigateToTrackSelectionAsync();
 
-                dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+                _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
                     Repeat = _current.Repeat,
                     MusicType = MusicType.Melodies,

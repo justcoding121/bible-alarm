@@ -37,6 +37,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         IServiceScopeFactory scopeFactory,
         Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
         IState<ApplicationState> state,
+        IDispatcher dispatcher,
         IDatabaseSeedService databaseSeedService,
         IScheduleMigrationService scheduleMigrationService,
         INavigationService navigationService)
@@ -45,7 +46,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         _scopeFactory = scopeFactory;
         _scheduleListItemFactory = scheduleListItemFactory;
         _state = state;
-        _dispatcher = MauiAppHolder.Services.GetRequiredService<IDispatcher>();
+        _dispatcher = dispatcher;
         _databaseSeedService = databaseSeedService;
         _scheduleMigrationService = scheduleMigrationService;
 
