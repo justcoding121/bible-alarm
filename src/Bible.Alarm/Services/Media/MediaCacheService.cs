@@ -8,7 +8,7 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
+using System.Text.Json;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -175,9 +175,10 @@ public class MediaCacheService(
             var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
             tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(tes);
-            var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
 
-            return model["files"][languageCode]["MP3"][0]["file"]["url"];
+            return root.GetProperty("files").GetProperty(languageCode).GetProperty("MP3")[0].GetProperty("file").GetProperty("url").GetString();
         }
         catch
         {
@@ -194,14 +195,15 @@ public class MediaCacheService(
 
             var tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(tes);
-            var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
 
             var lc = languageCode ?? AppConstants.Media.DefaultLanguageCode;
 
             //patch for bad data
             if (lc == AppConstants.Media.LanguageCodePatchFrom) lc = AppConstants.Media.LanguageCodePatchTo;
 
-            return model.files[lc].MP3[0].file.url;
+            return root.GetProperty("files").GetProperty(lc).GetProperty("MP3")[0].GetProperty("file").GetProperty("url").GetString();
         }
         catch
         {

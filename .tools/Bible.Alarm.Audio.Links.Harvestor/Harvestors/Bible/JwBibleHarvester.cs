@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Audio.Links.Harvestor.Models.Bible;
 using Bible.Alarm.Audio.Links.Harvestor.Utility;
 using Bible.Alarm.Shared.Constants;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
 {
@@ -27,12 +27,14 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                 var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
-                var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
+                using var doc = JsonDocument.Parse(jsonString);
+                var root = doc.RootElement;
+                var languages = root.GetProperty("languages");
 
-                foreach (var item in model["languages"])
+                foreach (var item in languages.EnumerateObject())
                 {
                     var languageCode = item.Name;
-                    var language = model["languages"][item.Name]["name"].Value;
+                    var language = item.Value.GetProperty("name").GetString();
 
                     languageCodeToNameMappings.TryAdd(languageCode, language);
 
@@ -65,63 +67,72 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
             {
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
 
-                dynamic model = null;
-                dynamic files = null;
+                JsonDocument doc = null;
+                JsonElement files = default;
 
                 try
                 {
-                    model = JsonConvert.DeserializeObject<dynamic>(jsonString);
-                    files = model["files"];
+                    doc = JsonDocument.Parse(jsonString);
+                    files = doc.RootElement.GetProperty("files");
                 }
                 catch (Exception e)
                 {
-                    if (e is JsonReaderException or ArgumentException)
+                    if (e is JsonException or ArgumentException)
                     {
+                        doc?.Dispose();
                         bookNumber++;
                         harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
 
                         continue;
                     }
+                    throw;
                 }
 
-
-                var bookFiles = files[languageCode]["MP3"];
-                foreach (var bookFile in bookFiles)
+                try
                 {
-                    string url = bookFile["file"]["url"].Value;
-
-                    if (bookFile["track"].Value == 0
-                    || url.EndsWith(".zip")) continue;
-
-                    bookNumber = (int)bookFile["booknum"].Value;
-
-                    if (!bookNumberBookMap.ContainsKey(bookNumber))
+                    var bookFiles = files.GetProperty(languageCode).GetProperty("MP3");
+                    foreach (var bookFile in bookFiles.EnumerateArray())
                     {
-                        var name = harvestLink.Contains("booknum=") ? model["pubName"].Value : bookFile["title"].Value.ToString().Split('-')[0].Trim();
-                        name = name == "Psalm 1" ? "Psalms" : name;
-                        bookNumberBookMap[bookNumber] = new BibleBook
+                        string url = bookFile.GetProperty("file").GetProperty("url").GetString()!;
+                        var track = bookFile.GetProperty("track").GetInt32();
+
+                        if (track == 0
+                        || url.EndsWith(".zip")) continue;
+
+                        bookNumber = bookFile.GetProperty("booknum").GetInt32();
+
+                        if (!bookNumberBookMap.ContainsKey(bookNumber))
                         {
-                            Number = (int)bookFile["booknum"].Value,
-                            Name = name
-                        };
-                    }
+                            var name = harvestLink.Contains("booknum=") ? doc.RootElement.GetProperty("pubName").GetString()! : bookFile.GetProperty("title").GetString()!.Split('-')[0].Trim();
+                            name = name == "Psalm 1" ? "Psalms" : name;
+                            bookNumberBookMap[bookNumber] = new BibleBook
+                            {
+                                Number = bookFile.GetProperty("booknum").GetInt32(),
+                                Name = name
+                            };
+                        }
 
-                    var trackNumber = (int)bookFile["track"].Value;
-                    var duration = (double)bookFile["duration"].Value;
-                    if (!bookNumberChapterMap.ContainsKey(bookNumber))
-                    {
-                        bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
-                    }
-
-                    if (!bookNumberChapterMap[bookNumber].ContainsKey(trackNumber))
-                    {
-                        bookNumberChapterMap[bookNumber].Add(trackNumber,
-                        new BibleChapter
+                        var trackNumber = bookFile.GetProperty("track").GetInt32();
+                        var duration = bookFile.GetProperty("duration").GetDouble();
+                        if (!bookNumberChapterMap.ContainsKey(bookNumber))
                         {
-                            Number = trackNumber,
-                            Url = bookFile["file"]["url"].Value,
-                        });
+                            bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
+                        }
+
+                        if (!bookNumberChapterMap[bookNumber].ContainsKey(trackNumber))
+                        {
+                            bookNumberChapterMap[bookNumber].Add(trackNumber,
+                            new BibleChapter
+                            {
+                                Number = trackNumber,
+                                Url = bookFile.GetProperty("file").GetProperty("url").GetString()!,
+                            });
+                        }
                     }
+                }
+                finally
+                {
+                    doc?.Dispose();
                 }
 
                 if (harvestLink.Contains("booknum="))
@@ -139,7 +150,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                     Directory.CreateDirectory(booksDirectory);
                 }
 
-                File.WriteAllText(booksIndex, JsonConvert.SerializeObject(bookNumberBookMap.Select(x =>
+                File.WriteAllText(booksIndex, JsonSerializer.Serialize(bookNumberBookMap.Select(x =>
                 new BibleBook
                 {
                     Number = x.Key,
@@ -152,7 +163,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                     DirectoryHelper.Ensure(directory);
 
                     var chapterIndex = $"{directory}/chapters.json";
-                    File.WriteAllText(chapterIndex, JsonConvert.SerializeObject(
+                    File.WriteAllText(chapterIndex, JsonSerializer.Serialize(
                     bookNumberChapterMap[book.Key]
                     .Select(x => x.Value)
                     .OrderBy(x => x.Number)

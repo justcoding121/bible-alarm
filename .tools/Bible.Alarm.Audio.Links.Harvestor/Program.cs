@@ -13,7 +13,7 @@ using Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music;
 using Bible.Alarm.Audio.Links.Harvestor.Models;
 using Bible.Alarm.Audio.Links.Harvestor.Utility;
 using Bible.Alarm.Shared.Helpers;
-using Newtonsoft.Json;
+using System.Text.Json;
 using DirectoryHelper = Bible.Alarm.Audio.Links.Harvestor.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.Audio.Links.Harvestor
@@ -69,7 +69,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                     File.Delete(indexFile);
                 }
 
-                await File.WriteAllTextAsync(indexFile, JsonConvert.SerializeObject(index));
+                await File.WriteAllTextAsync(indexFile, JsonSerializer.Serialize(index));
 
                 await DbSeeder.Seed($"{DirectoryHelper.IndexDirectory}");
 
@@ -106,7 +106,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible");
             }
 
-            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonConvert.SerializeObject(
+            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonSerializer.Serialize(
                 languageCodeToEditionsMapping.Select(x =>
                 new Language
                 {
@@ -122,7 +122,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                     Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}");
                 }
 
-                File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonConvert.SerializeObject(
+                File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonSerializer.Serialize(
                 languageEditionsMap.Value.Select(x =>
                 new Publication
                 {

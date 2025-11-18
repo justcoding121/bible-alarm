@@ -1,45 +1,62 @@
 ﻿using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Windows.Input;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace Bible.Alarm.Common.Extensions;
 
 public static class CloneExtensions
 {
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+        TypeInfoResolver = new IgnoreNonSerializableTypeInfoResolver()
+    };
+
     public static T DeepClone<T>(this T obj)
     {
         if (obj == null)
             throw new ArgumentNullException(nameof(obj));
         
-        var settings = new JsonSerializerSettings
-        {
-            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            PreserveReferencesHandling = PreserveReferencesHandling.None,
-            ContractResolver = new IgnoreNonSerializableContractResolver()
-        };
-        var json = JsonConvert.SerializeObject(obj, settings);
-        var result = JsonConvert.DeserializeObject<T>(json, settings);
+        var json = JsonSerializer.Serialize(obj, Options);
+        var result = JsonSerializer.Deserialize<T>(json, Options);
         if (result == null)
             throw new InvalidOperationException("Deserialization returned null");
         
         return result;
     }
 
-    private class IgnoreNonSerializableContractResolver : DefaultContractResolver
+    private class IgnoreNonSerializableTypeInfoResolver : IJsonTypeInfoResolver
     {
-        protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
-        {
-            var property = base.CreateProperty(member, memberSerialization);
-            
-            // Ignore ICommand properties and other interfaces that can't be instantiated
-            if (property.PropertyType == null) return property;
-            if (!typeof(ICommand).IsAssignableFrom(property.PropertyType) &&
-                !property.PropertyType.IsInterface) return property;
-            property.ShouldSerialize = _ => false;
-            property.Ignored = true;
+        private readonly DefaultJsonTypeInfoResolver _defaultResolver = new();
 
-            return property;
+        public JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
+            var typeInfo = _defaultResolver.GetTypeInfo(type, options);
+            
+            if (typeInfo.Kind == JsonTypeInfoKind.Object)
+            {
+                var propertiesToRemove = new List<JsonPropertyInfo>();
+                
+                foreach (var property in typeInfo.Properties)
+                {
+                    // Ignore ICommand properties and other interfaces that can't be instantiated
+                    if (property.PropertyType != null &&
+                        (typeof(ICommand).IsAssignableFrom(property.PropertyType) ||
+                         property.PropertyType.IsInterface))
+                    {
+                        propertiesToRemove.Add(property);
+                    }
+                }
+                
+                foreach (var property in propertiesToRemove)
+                {
+                    typeInfo.Properties.Remove(property);
+                }
+            }
+            
+            return typeInfo;
         }
     }
 }

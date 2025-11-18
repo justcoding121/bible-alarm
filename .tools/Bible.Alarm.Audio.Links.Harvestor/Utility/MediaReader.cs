@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Audio.Links.Harvestor.Models;
 using Bible.Alarm.Audio.Links.Harvestor.Models.Bible;
 using Bible.Alarm.Audio.Links.Harvestor.Models.Music;
-using Newtonsoft.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
@@ -16,7 +16,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var languageIndex = Path.Combine(root, "Audio", "Bible", "languages.json");
             var languages = await File.ReadAllTextAsync(languageIndex);
-            return JsonConvert.DeserializeObject<IEnumerable<Language>>(languages).ToDictionary(x => x.Code, x => x);
+            return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x);
         }
 
         public async Task<Dictionary<string, Publication>> GetBibleTranslations(string languageCode)
@@ -24,7 +24,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var bibleIndex = Path.Combine(root, "Audio", "Bible", languageCode, "publications.json");
             var bibleTranslations = await File.ReadAllTextAsync(bibleIndex);
-            return JsonConvert.DeserializeObject<IEnumerable<Publication>>(bibleTranslations).ToDictionary(x => x.Code, x => x);
+            return JsonSerializer.Deserialize<IEnumerable<Publication>>(bibleTranslations)!.ToDictionary(x => x.Code, x => x);
         }
 
         public async Task<SortedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
@@ -32,7 +32,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, "books.json");
             var bibleBooks = await File.ReadAllTextAsync(booksIndex);
-            return new SortedDictionary<int, BibleBook>(JsonConvert.DeserializeObject<IEnumerable<BibleBook>>(bibleBooks)
+            return new SortedDictionary<int, BibleBook>(JsonSerializer.Deserialize<IEnumerable<BibleBook>>(bibleBooks)!
                                                     .ToDictionary(x => x.Number, x => x));
         }
 
@@ -41,7 +41,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, bookNumber.ToString(), "chapters.json");
             var bibleChapters = await File.ReadAllTextAsync(booksIndex);
-            return new SortedDictionary<int, BibleChapter>(JsonConvert.DeserializeObject<IEnumerable<BibleChapter>>(bibleChapters)
+            return new SortedDictionary<int, BibleChapter>(JsonSerializer.Deserialize<IEnumerable<BibleChapter>>(bibleChapters)!
                                                        .ToDictionary(x => x.Number, x => x));
         }
 
@@ -50,7 +50,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var releaseIndex = Path.Combine(root, "Music", "Melodies", "publications.json");
             var fileContent = await File.ReadAllTextAsync(releaseIndex);
-            return JsonConvert.DeserializeObject<IEnumerable<Publication>>(fileContent).ToDictionary(x => x.Code, x => x);
+            return JsonSerializer.Deserialize<IEnumerable<Publication>>(fileContent)!.ToDictionary(x => x.Code, x => x);
         }
 
         public async Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
@@ -58,7 +58,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var trackIndex = Path.Combine(root, "Music", "Melodies", publicationCode, "tracks.json");
             var fileContent = await File.ReadAllTextAsync(trackIndex);
-            return new SortedDictionary<int, MusicTrack>(JsonConvert.DeserializeObject<IEnumerable<MusicTrack>>(fileContent)
+            return new SortedDictionary<int, MusicTrack>(JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(fileContent)!
                                                     .ToDictionary(x => x.Number, x => x));
         }
 
@@ -67,7 +67,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var languageIndex = Path.Combine(root, "Music", "Vocals", "languages.json");
             var languages = await File.ReadAllTextAsync(languageIndex);
-            return JsonConvert.DeserializeObject<IEnumerable<Language>>(languages).ToDictionary(x => x.Code, x => x);
+            return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x);
         }
 
         public async Task<Dictionary<string, Publication>> GetVocalMusicReleases(string languageCode)
@@ -75,7 +75,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var releaseIndex = Path.Combine(root, "Music", "Vocals", languageCode, "publications.json");
             var vocalReleases = await File.ReadAllTextAsync(releaseIndex);
-            return JsonConvert.DeserializeObject<IEnumerable<Publication>>(vocalReleases).ToDictionary(x => x.Code, x => x);
+            return JsonSerializer.Deserialize<IEnumerable<Publication>>(vocalReleases)!.ToDictionary(x => x.Code, x => x);
         }
 
         public async Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode)
@@ -83,7 +83,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             var root = indexRoot;
             var trackIndex = Path.Combine(root, "Music", "Vocals", languageCode, publicationCode, "tracks.json");
             var melodyTracks = await File.ReadAllTextAsync(trackIndex);
-            return new SortedDictionary<int, MusicTrack>(JsonConvert.DeserializeObject<IEnumerable<MusicTrack>>(melodyTracks)
+            return new SortedDictionary<int, MusicTrack>(JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(melodyTracks)!
                                                     .ToDictionary(x => x.Number, x => x));
         }
 

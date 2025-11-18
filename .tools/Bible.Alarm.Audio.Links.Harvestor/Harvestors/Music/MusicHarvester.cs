@@ -7,7 +7,7 @@ using Bible.Alarm.Audio.Links.Harvestor.Models;
 using Bible.Alarm.Audio.Links.Harvestor.Models.Music;
 using Bible.Alarm.Audio.Links.Harvestor.Utility;
 using Bible.Alarm.Shared.Constants;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 {
@@ -29,12 +29,14 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                 var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publication.Key}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
-                var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
+                using var doc = JsonDocument.Parse(jsonString);
+                var root = doc.RootElement;
+                var languages = root.GetProperty("languages");
 
-                foreach (var item in model["languages"])
+                foreach (var item in languages.EnumerateObject())
                 {
                     var languageCode = item.Name;
-                    var language = model["languages"][item.Name]["name"].Value;
+                    var language = item.Value.GetProperty("name").GetString();
 
                     Console.WriteLine($"Harvesting Music track links for {publication.Value} of {language} language.");
 
@@ -70,7 +72,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                     Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languagePublication.Key}");
                 }
 
-                File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languagePublication.Key}/publications.json", JsonConvert.SerializeObject(
+                File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languagePublication.Key}/publications.json", JsonSerializer.Serialize(
                  languagePublication.Value.Select(x => new
                  Publication
                  {
@@ -80,7 +82,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
             }
 
             File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/languages.json",
-            JsonConvert.SerializeObject(languageCodeToPublications.Select(x =>
+            JsonSerializer.Serialize(languageCodeToPublications.Select(x =>
             new Language
             {
                 Code = x.Key,
@@ -122,7 +124,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                 await harvestMusicLinks(publication.Key, downloadCodes);
             }
 
-            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json", JsonConvert.SerializeObject(
+            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json", JsonSerializer.Serialize(
             melodyPublicationCodeToNameMappings.Select(x => new
             Publication
             {
@@ -146,25 +148,26 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
 
-                var model = JsonConvert.DeserializeObject<dynamic>(jsonString);
+                using var doc = JsonDocument.Parse(jsonString);
+                var root = doc.RootElement;
 
                 var lc = languageCode ?? "E";
 
-                var musicFiles = model["files"][lc]["MP3"];
-                foreach (var musicFile in musicFiles)
+                var musicFiles = root.GetProperty("files").GetProperty(lc).GetProperty("MP3");
+                foreach (var musicFile in musicFiles.EnumerateArray())
                 {
-                    string url = musicFile["file"]["url"].Value;
-                    var track = (int)musicFile["track"].Value;
+                    string url = musicFile.GetProperty("file").GetProperty("url").GetString()!;
+                    var track = musicFile.GetProperty("track").GetInt32();
 
                     if (track == 0
                         || url.EndsWith(".zip"))
                         continue;
 
-                    var duration = (double)musicFile["duration"];
+                    var duration = musicFile.GetProperty("duration").GetDouble();
                     musicTracks.Add(new MusicTrack
                     {
                         Number = trackNumber,
-                        Title = musicFile["title"].Value,
+                        Title = musicFile.GetProperty("title").GetString()!,
                         Url = url,
                         LookUpPath = $"?output=json&pub={publicationDownloadCode}&fileformat=MP3" +
                                     $"{(languageCode == null ? "&langwritten=E" : $"&langwritten={languageCode}")}" +
@@ -183,7 +186,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                     Directory.CreateDirectory(dir);
                 }
 
-                File.WriteAllText(file, JsonConvert.SerializeObject(musicTracks.OrderBy(x => x.Number)));
+                File.WriteAllText(file, JsonSerializer.Serialize(musicTracks.OrderBy(x => x.Number)));
                 return true;
             }
 
