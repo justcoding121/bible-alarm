@@ -1,17 +1,20 @@
 using System.Windows.Input;
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.ApplicationModel;
 using Plugin.StoreReview;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class AlarmViewModal : ObservableObject, IDisposable
+public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<MediaProgressMessage>
 {
     private readonly IPlaybackService _playbackService;
 
@@ -30,6 +33,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory)
     {
         _playbackService = playbackService;
+        WeakReferenceMessenger.Default.Register(this);
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
@@ -118,6 +122,21 @@ public class AlarmViewModal : ObservableObject, IDisposable
             Refresh();
         });
 
+        // Initialize properties with default values
+        Title = "";
+        SubTitle = "";
+        Description = "";
+        CurrentTime = "00:00";
+        EndTime = "00:00";
+        Progress = 0.0;
+        PlayVisible = true;
+        PauseVisible = false;
+        NextEnabled = false;
+        PreviousEnabled = false;
+
+        // Call Refresh immediately to populate initial values
+        Refresh();
+
         Task.Run(async () =>
         {
             while (!_isDisposed)
@@ -162,7 +181,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
 
             // For now, set basic values since MediaElement doesn't have all MediaManager properties
-            Title = "Audio Playback";
+            Title = "";
             SubTitle = "";
             Description = "";
             EndTime = "00:00";
@@ -257,8 +276,46 @@ public class AlarmViewModal : ObservableObject, IDisposable
         set => SetProperty(ref _previousEnabled, value);
     }
 
+    private bool _isPreparing;
+    private int _loadedTracks;
+    private int _totalTracks;
+
+    public bool IsPreparing
+    {
+        get => _isPreparing;
+        set => SetProperty(ref _isPreparing, value);
+    }
+
+    public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
+    
+    public double PreparationProgress { get; private set; }
+
+    public void Receive(MediaProgressMessage message)
+    {
+        Task.Run(() =>
+        {
+            if (message.Value is not Tuple<int, int> kv) return;
+            _loadedTracks = kv.Item1;
+            _totalTracks = kv.Item2;
+            PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
+            // Hide progress when all tracks are loaded (loadedTracks >= totalTracks)
+            IsPreparing = _totalTracks > 0 && _loadedTracks < _totalTracks;
+            
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                OnPropertyChanged(nameof(ProgressText));
+                OnPropertyChanged(nameof(PreparationProgress));
+                OnPropertyChanged(nameof(IsPreparing));
+            });
+        });
+    }
+
     public void Dispose()
     {
-        if (!_isDisposed) _isDisposed = true;
+        if (!_isDisposed)
+        {
+            WeakReferenceMessenger.Default.Unregister<MediaProgressMessage>(this);
+            _isDisposed = true;
+        }
     }
 }

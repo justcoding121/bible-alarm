@@ -5,6 +5,7 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.General;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
@@ -13,8 +14,6 @@ namespace Bible.Alarm;
 public partial class App : Application,
     IRecipient<ShowAlarmModalMessage>,
     IRecipient<HideAlarmModalMessage>,
-    IRecipient<ShowMediaProgressModalMessage>,
-    IRecipient<HideMediaProgressModalMessage>,
     IRecipient<ShowToastMessage>,
     IRecipient<ClearToastsMessage>,
     IRecipient<InitializedMessage>
@@ -37,22 +36,20 @@ public partial class App : Application,
 
         WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<HideAlarmModalMessage>(this);
-        WeakReferenceMessenger.Default.Register<ShowMediaProgressModalMessage>(this);
-        WeakReferenceMessenger.Default.Register<HideMediaProgressModalMessage>(this);
         WeakReferenceMessenger.Default.Register<ShowToastMessage>(this);
         WeakReferenceMessenger.Default.Register<ClearToastsMessage>(this);
     }
 
     protected override Window CreateWindow(IActivationState activationState)
     {
-        var loadingPage = _serviceProvider.GetRequiredService<LoadingPage>();
-        var navigationPage = new NavigationPage(loadingPage)
+        var bootstrapPage = _serviceProvider.GetRequiredService<BootstrapPage>();
+        var navigationPage = new NavigationPage(bootstrapPage)
         {
             BarBackgroundColor = Colors.Transparent,
             BarTextColor = Colors.White
         };
 
-        NavigationPage.SetHasNavigationBar(loadingPage, false);
+        NavigationPage.SetHasNavigationBar(bootstrapPage, false);
 
         var window = new Window(navigationPage);
 
@@ -133,11 +130,16 @@ public partial class App : Application,
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-            if (!playbackService.IsPlaying)
-                return;
-
-            await _navigationService.OpenAlarmModalAsync();
+            try
+            {
+                _logger.Information("ShowAlarmModalMessage received");
+                await _navigationService.OpenAlarmModalAsync();
+                _logger.Information("AlarmModal opened");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error showing AlarmModal");
+            }
         });
     }
 
@@ -149,21 +151,6 @@ public partial class App : Application,
         });
     }
 
-    public void Receive(ShowMediaProgressModalMessage message)
-    {
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            await _navigationService.OpenMediaProgressModalAsync();
-        });
-    }
-
-    public void Receive(HideMediaProgressModalMessage message)
-    {
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            await _navigationService.PopModalAsync();
-        });
-    }
 
     public void Receive(ShowToastMessage message)
     {

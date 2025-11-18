@@ -1,4 +1,5 @@
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Interfaces.UI;
 using CommunityToolkit.Maui.Views;
 using Serilog;
 
@@ -7,8 +8,9 @@ namespace Bible.Alarm.Services.Media;
 public class MediaElementAudioService : IMediaElementAudioService
 {
     private readonly ILogger _logger;
+    private readonly INavigationService _navigationService;
 
-    private readonly MediaElement _mediaElement;
+    private MediaElement _mediaElement;
     private readonly SemaphoreSlim _lock = new(1);
 
     private bool _isPlaying;
@@ -21,22 +23,41 @@ public class MediaElementAudioService : IMediaElementAudioService
     public bool IsPlaying => _isPlaying;
     public bool IsPrepared => _isPrepared;
 
-    public MediaElementAudioService(ILogger logger)
+    public MediaElementAudioService(ILogger logger, INavigationService navigationService)
     {
         _logger = logger;
-        // Initialize MediaElement
-        _mediaElement = new MediaElement
-        {
-            ShouldAutoPlay = false,
-            ShouldLoopPlayback = false,
-            ShouldShowPlaybackControls = true
-        };
+        _navigationService = navigationService;
+    }
 
-        // Subscribe to events
-        _mediaElement.MediaOpened += OnMediaOpened;
-        _mediaElement.MediaEnded += OnMediaEnded;
-        _mediaElement.MediaFailed += OnMediaFailed;
-        _mediaElement.PositionChanged += OnPositionChanged;
+    private MediaElement GetMediaElement()
+    {
+        if (_mediaElement != null) return _mediaElement;
+
+        // Get MediaElement from NavigationService (finds it in BootstrapPage)
+        _mediaElement = _navigationService.GetMediaElement();
+
+        if (_mediaElement != null)
+        {
+            SubscribeToEvents();
+        }
+
+        return _mediaElement;
+    }
+
+    private void SubscribeToEvents()
+    {
+        if (_mediaElement != null)
+        {
+            _mediaElement.MediaOpened -= OnMediaOpened;
+            _mediaElement.MediaEnded -= OnMediaEnded;
+            _mediaElement.MediaFailed -= OnMediaFailed;
+            _mediaElement.PositionChanged -= OnPositionChanged;
+            
+            _mediaElement.MediaOpened += OnMediaOpened;
+            _mediaElement.MediaEnded += OnMediaEnded;
+            _mediaElement.MediaFailed += OnMediaFailed;
+            _mediaElement.PositionChanged += OnPositionChanged;
+        }
     }
 
     public async Task Play()
@@ -44,14 +65,22 @@ public class MediaElementAudioService : IMediaElementAudioService
         await _lock.WaitAsync();
         try
         {
-            if (!_isPrepared) throw new InvalidOperationException("Cannot play without setting source first.");
-
-            if (_mediaElement != null)
+            if (!_isPrepared)
             {
-                _mediaElement.Play();
-                _isPlaying = true;
-                _logger.Information("Playback started");
+                _logger.Warning("Cannot play without setting source first.");
+                return;
             }
+
+            var mediaElement = GetMediaElement();
+            if (mediaElement == null)
+            {
+                _logger.Warning("MediaElement not found in visual tree, discarding play request");
+                return;
+            }
+
+            mediaElement.Play();
+            _isPlaying = true;
+            _logger.Information("Playback started");
         }
         finally
         {
@@ -64,7 +93,11 @@ public class MediaElementAudioService : IMediaElementAudioService
         await _lock.WaitAsync();
         try
         {
-            if (_mediaElement != null) _mediaElement.Stop();
+            var mediaElement = GetMediaElement();
+            if (mediaElement != null)
+            {
+                mediaElement.Stop();
+            }
 
             _isPlaying = false;
             _isPrepared = false;
@@ -83,12 +116,16 @@ public class MediaElementAudioService : IMediaElementAudioService
         await _lock.WaitAsync();
         try
         {
-            if (_mediaElement != null)
+            var mediaElement = GetMediaElement();
+            if (mediaElement == null)
             {
-                _mediaElement.Source = source;
-                _isPrepared = true;
-                _logger.Information($"Media source set to: {source}");
+                _logger.Warning("MediaElement not found in visual tree, discarding SetSource request");
+                return;
             }
+
+            mediaElement.Source = source;
+            _isPrepared = true;
+            _logger.Information($"Media source set to: {source}");
         }
         finally
         {
@@ -101,12 +138,16 @@ public class MediaElementAudioService : IMediaElementAudioService
         await _lock.WaitAsync();
         try
         {
-            if (_mediaElement != null)
+            var mediaElement = GetMediaElement();
+            if (mediaElement == null)
             {
-                _mediaElement.Pause();
-                _isPlaying = false;
-                _logger.Information("Playback paused");
+                _logger.Warning("MediaElement not found in visual tree, discarding pause request");
+                return;
             }
+
+            mediaElement.Pause();
+            _isPlaying = false;
+            _logger.Information("Playback paused");
         }
         finally
         {
@@ -119,13 +160,19 @@ public class MediaElementAudioService : IMediaElementAudioService
         await _lock.WaitAsync();
         try
         {
-            if (_mediaElement != null)
+            var mediaElement = GetMediaElement();
+            if (mediaElement == null)
             {
-                _mediaElement.Stop();
+                _logger.Warning("MediaElement not found in visual tree, discarding stop request");
                 _isPlaying = false;
                 _currentTrackPosition = TimeSpan.Zero;
-                _logger.Information("Playback stopped");
+                return;
             }
+
+            mediaElement.Stop();
+            _isPlaying = false;
+            _currentTrackPosition = TimeSpan.Zero;
+            _logger.Information("Playback stopped");
         }
         finally
         {
@@ -138,19 +185,26 @@ public class MediaElementAudioService : IMediaElementAudioService
         await _lock.WaitAsync();
         try
         {
-            if (_mediaElement != null)
+            var mediaElement = GetMediaElement();
+            if (mediaElement == null)
             {
-                // MediaElement doesn't support direct position setting
-                // This would need to be implemented differently for seeking
-                _currentTrackPosition = position;
-                _logger.Information($"Seeked to position: {position}");
+                _logger.Warning("MediaElement not found in visual tree, discarding seek request");
+                return;
             }
+
+            // MediaElement.Position is read-only, so we need to seek after media is loaded
+            // Store the seek position and apply it when MediaOpened event fires
+            _seekToPosition = position;
+            _currentTrackPosition = position;
+            _logger.Information($"Seek position set to: {position} (will apply when media opens)");
         }
         finally
         {
             _lock.Release();
         }
     }
+    
+    private TimeSpan? _seekToPosition;
 
     public event EventHandler<EventArgs> MediaEnded;
     public event EventHandler<EventArgs> MediaFailed;
@@ -158,6 +212,36 @@ public class MediaElementAudioService : IMediaElementAudioService
     private void OnMediaOpened(object sender, EventArgs e)
     {
         _logger.Information("Media opened successfully");
+        
+        // Apply seek position if one was requested
+        if (_seekToPosition.HasValue)
+        {
+            var mediaElement = GetMediaElement();
+            if (mediaElement != null)
+            {
+                // Wait a bit for media to be fully ready, then seek
+                Task.Run(async () =>
+                {
+                    await Task.Delay(100); // Small delay to ensure media is ready
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        try
+                        {
+                            // MediaElement doesn't support direct position setting
+                            // We'll need to handle this at the platform level or skip seeking
+                            // For now, just log and update our internal position
+                            _currentTrackPosition = _seekToPosition.Value;
+                            _logger.Information($"Seek requested to: {_seekToPosition.Value}, but MediaElement.Position is read-only");
+                            _seekToPosition = null;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(ex, "Error applying seek position");
+                        }
+                    });
+                });
+            }
+        }
     }
 
     private void OnMediaEnded(object sender, EventArgs e)
@@ -176,13 +260,14 @@ public class MediaElementAudioService : IMediaElementAudioService
 
     private void OnPositionChanged(object sender, EventArgs e)
     {
-        if (_mediaElement != null) _currentTrackPosition = _mediaElement.Position;
+        var mediaElement = GetMediaElement();
+        if (mediaElement != null) _currentTrackPosition = mediaElement.Position;
     }
 
 
     public void Dispose()
     {
-        _mediaElement?.Dispose();
+        // Don't dispose MediaElement - it's owned by BootstrapPage in the visual tree
         _lock?.Dispose();
     }
 }

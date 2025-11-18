@@ -9,7 +9,8 @@
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
-    x:DataType="shared:AlarmViewModal">
+    x:DataType="shared:AlarmViewModal"
+    BackgroundColor="White">
     <ContentPage.Resources>
         <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
     </ContentPage.Resources>
@@ -28,7 +29,26 @@
                 Direction="Column"
                 HorizontalOptions="Center"
                 JustifyContent="SpaceEvenly">
-                <StackLayout Orientation="Vertical">
+                <!-- Progress indicator when preparing tracks -->
+                <StackLayout
+                    IsVisible="{Binding IsPreparing}"
+                    Orientation="Vertical"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Margin="20">
+                    <Label
+                        FontSize="Medium"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        Text="{Binding ProgressText}" />
+                    <ProgressBar
+                        Margin="10,5"
+                        MinimumWidthRequest="200"
+                        Progress="{Binding PreparationProgress}"
+                        ProgressColor="SlateBlue" />
+                </StackLayout>
+                <StackLayout 
+                    Orientation="Vertical">
                     <Label
                         Padding="10,0,10,0"
                         FontSize="{OnPlatform Default='Medium',

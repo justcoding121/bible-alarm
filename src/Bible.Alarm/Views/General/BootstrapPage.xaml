@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage
-    x:Class="Bible.Alarm.Views.General.LoadingPage"
+    x:Class="Bible.Alarm.Views.General.BootstrapPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:media="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui.MediaElement"
     BackgroundColor="White"
     Title="Bible Alarm">
     <ContentPage.Resources>
@@ -16,6 +17,12 @@
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid>
+            <!-- Hidden MediaElement for audio playback (always in visual tree) -->
+            <media:MediaElement x:Name="MediaPlayer" 
+                          IsVisible="False" 
+                          ShouldAutoPlay="False" 
+                          ShouldLoopPlayback="False" 
+                          ShouldShowPlaybackControls="False" />
             <StackLayout
                 HorizontalOptions="Center"
                 Orientation="Vertical"

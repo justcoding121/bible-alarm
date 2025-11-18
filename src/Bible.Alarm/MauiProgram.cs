@@ -220,7 +220,8 @@ public static class MauiProgram
             if (app?.Windows.Count > 0)
             {
                 var window = app.Windows[0];
-                if (window.Page is NavigationPage windowNavPage)
+                // Window.Page is directly NavigationPage
+                if (window?.Page is NavigationPage windowNavPage)
                 {
                     return windowNavPage.Navigation;
                 }
@@ -228,9 +229,9 @@ public static class MauiProgram
             
             // Fallback — try MainPage for compatibility (obsolete but may be needed)
 #pragma warning disable CS0618 // Type or member is obsolete
-            if (app?.MainPage is NavigationPage navPage)
+            if (app?.MainPage is NavigationPage mainNavPage)
             {
-                return navPage.Navigation;
+                return mainNavPage.Navigation;
             }
 #pragma warning restore CS0618
             
@@ -251,7 +252,6 @@ public static class MauiProgram
         services.AddTransient<BookSelectionViewModel>();
         services.AddTransient<ChapterSelectionViewModel>();
         services.AddTransient<AlarmViewModal>();
-        services.AddTransient<MediaProgressViewModal>();
 
         // Register ScheduleListItem as transient for list items
         services.AddTransient<ScheduleListItem>();
@@ -281,8 +281,7 @@ public static class MauiProgram
         services.AddTransient<AlarmModal>();
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();
-        services.AddTransient<MediaProgressModal>();
-        services.AddTransient<LoadingPage>();
+        services.AddTransient<BootstrapPage>();
     }
 
     /// <summary>

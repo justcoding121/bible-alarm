@@ -7,14 +7,19 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.General;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
+using CommunityToolkit.Maui.Views;
+using Microsoft.Maui.ApplicationModel;
+using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
 public class NavigationService(
-    IServiceProvider serviceProvider)
+    IServiceProvider serviceProvider,
+    ILogger logger)
     : INavigationService
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly ILogger _logger = logger;
 
     private INavigation GetNavigation()
     {
@@ -26,50 +31,51 @@ public class NavigationService(
         // Always create a NEW Home page via DI (never reuse)
         var homePage = _serviceProvider.GetRequiredService<Home>();
         await PushFreshPageAsync(homePage, hasNavigationBar: false);
-
-        await ClearNavigationStackExcept(homePage);
+        
+        // Ensure back button is hidden for Home page (it's effectively the root after BootstrapPage)
+        NavigationPage.SetHasBackButton(homePage, false);
     }
 
     public async Task NavigateToScheduleAsync()
     {
         var page = _serviceProvider.GetRequiredService<Schedule>();
-        await PushFreshPageAsync(page);
+        await PushFreshPageAsync(page, hasNavigationBar: false);
     }
 
     public async Task NavigateToMusicSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<MusicSelection>();
-        await PushFreshPageAsync(page);
+        await PushFreshPageAsync(page, hasNavigationBar: false);
     }
 
     public async Task NavigateToSongBookSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<SongBookSelection>();
-        await PushFreshPageAsync(page);
+        await PushFreshPageAsync(page, hasNavigationBar: false);
     }
 
     public async Task NavigateToTrackSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<TrackSelection>();
-        await PushFreshPageAsync(page);
+        await PushFreshPageAsync(page, hasNavigationBar: false);
     }
 
     public async Task NavigateToBibleSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<BibleSelection>();
-        await PushFreshPageAsync(page);
+        await PushFreshPageAsync(page, hasNavigationBar: false);
     }
 
     public async Task NavigateToBookSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<BookSelection>();
-        await PushFreshPageAsync(page);
+        await PushFreshPageAsync(page, hasNavigationBar: false);
     }
 
     public async Task NavigateToChapterSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<ChapterSelection>();
-        await PushFreshPageAsync(page);
+        await PushFreshPageAsync(page, hasNavigationBar: false);
     }
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
@@ -105,27 +111,37 @@ public class NavigationService(
 
     public async Task OpenAlarmModalAsync()
     {
-        var navigation = GetNavigation();
-        if (navigation.ModalStack.LastOrDefault()?.GetType() == typeof(AlarmModal))
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            return;
-        }
+            try
+            {
+                var navigation = GetNavigation();
+                
+                // Check if modal is already shown
+                var existingModal = navigation.ModalStack.LastOrDefault();
+                if (existingModal?.GetType() == typeof(AlarmModal) || 
+                    (existingModal is NavigationPage navPage && navPage.CurrentPage is AlarmModal))
+                {
+                    return;
+                }
 
-        var modal = _serviceProvider.GetRequiredService<AlarmModal>();
-        await navigation.PushModalAsync(modal);
+
+                var modal = _serviceProvider.GetRequiredService<AlarmModal>();
+                
+                // Ensure modal is properly configured
+                NavigationPage.SetHasNavigationBar(modal, false);
+                
+                // Push modal directly - wrapping in NavigationPage on Windows causes display issues
+                await navigation.PushModalAsync(modal);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't throw - use a logger if available
+                System.Diagnostics.Debug.WriteLine($"Error opening AlarmModal: {ex.Message}");
+            }
+        });
     }
 
-    public async Task OpenMediaProgressModalAsync()
-    {
-        var navigation = GetNavigation();
-        if (navigation.ModalStack.LastOrDefault()?.GetType() == typeof(MediaProgressModal))
-        {
-            return;
-        }
-
-        var modal = _serviceProvider.GetRequiredService<MediaProgressModal>();
-        await navigation.PushModalAsync(modal);
-    }
 
     public async Task OpenBatteryOptimizationModalAsync(object bindingContext)
     {
@@ -136,17 +152,23 @@ public class NavigationService(
     }
 
     public async Task PopModalAsync()
-    {
-        var navigation = GetNavigation();
-        if (navigation.ModalStack.Count > 0)
-        {
-            var modal = navigation.ModalStack.LastOrDefault();
-            await navigation.PopModalAsync();
-            if (modal is IDisposable disposable)
+    { 
+            var navigation = GetNavigation();
+            if (navigation.ModalStack.Count > 0)
             {
-                disposable.Dispose();
+                var modal = navigation.ModalStack.LastOrDefault();
+                await navigation.PopModalAsync();
+                
+                // Dispose the modal - handle both direct modals and wrapped modals
+                if (modal is NavigationPage navPage && navPage.CurrentPage is IDisposable disposablePage)
+                {
+                    disposablePage.Dispose();
+                }
+                else if (modal is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
             }
-        }
     }
 
     public async Task PopAsync()
@@ -177,34 +199,34 @@ public class NavigationService(
         await navigation.PushAsync(page);
     }
 
-    /// <summary>
-    /// Removes all pages from the navigation stack except the specified page, and clears all modals.
-    /// </summary>
-    private async Task ClearNavigationStackExcept(Page pageToKeep)
+    public MediaElement GetMediaElement()
     {
+        // Find MediaElement from BootstrapPage (always on navigation stack)
         var navigation = GetNavigation();
-
-        // Clear all modals and dispose them
-        while (navigation.ModalStack.Count > 0)
+        
+        // BootstrapPage is always the first page in the navigation stack
+        var navStack = navigation.NavigationStack;
+        foreach (var page in navStack)
         {
-            var modal = navigation.ModalStack.LastOrDefault();
-            await navigation.PopModalAsync();
-            if (modal is IDisposable disposableModal)
+            if (page is BootstrapPage bootstrapPage)
             {
-                disposableModal.Dispose();
+                var mediaElement = bootstrapPage.FindByName("MediaPlayer") as MediaElement;
+                if (mediaElement != null)
+                {
+                    _logger.Information("MediaElement found in BootstrapPage");
+                    return mediaElement;
+                }
             }
         }
 
-        // Remove all pages except the one to keep and dispose them
-        var pagesToRemove = navigation.NavigationStack.Where(p => p != pageToKeep).ToList();
-        foreach (var page in pagesToRemove)
+        _logger.Warning("MediaElement not found in BootstrapPage");
+        // Return a temporary instance (shouldn't happen if BootstrapPage is loaded)
+        return new MediaElement
         {
-            navigation.RemovePage(page);
-            if (page is IDisposable disposablePage)
-            {
-                disposablePage.Dispose();
-            }
-        }
+            ShouldAutoPlay = false,
+            ShouldLoopPlayback = false,
+            ShouldShowPlaybackControls = false
+        };
     }
 }
 

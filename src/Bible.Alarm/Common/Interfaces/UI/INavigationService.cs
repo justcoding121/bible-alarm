@@ -1,3 +1,5 @@
+using CommunityToolkit.Maui.Views;
+
 namespace Bible.Alarm.Common.Interfaces.UI;
 
 public interface INavigationService
@@ -13,9 +15,9 @@ public interface INavigationService
     Task OpenNumberOfChaptersModalAsync(object bindingContext);
     Task OpenLanguageModalAsync(object bindingContext);
     Task OpenAlarmModalAsync();
-    Task OpenMediaProgressModalAsync();
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
     Task PopModalAsync();
     Task PopAsync();
+    MediaElement GetMediaElement();
 }
 

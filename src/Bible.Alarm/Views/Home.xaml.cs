@@ -14,6 +14,12 @@ public partial class Home : ContentPage, IDisposable
         _viewModel = vm;
     }
 
+    protected override bool OnBackButtonPressed()
+    {
+        // Prevent back navigation on Home page - it's the root page
+        return true;
+    }
+
     public void Dispose()
     {
         if (!_isDisposed)

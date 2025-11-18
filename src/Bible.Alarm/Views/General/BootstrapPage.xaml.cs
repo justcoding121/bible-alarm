@@ -4,13 +4,13 @@ using Timer = System.Timers.Timer;
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class LoadingPage : ContentPage, IDisposable
+public partial class BootstrapPage : ContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly Timer _animationTimer;
     private int _currentDot;
 
-    public LoadingPage()
+    public BootstrapPage()
     {
         InitializeComponent();
         

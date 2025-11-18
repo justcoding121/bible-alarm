@@ -81,13 +81,28 @@ public class PlaybackService : IPlaybackService
     {
         try
         {
-            if (!IsPrepared) throw new Exception("Cannot play without preparing.");
+            if (!IsPrepared)
+            {
+                _logger.Warning("Cannot play without preparing, discarding play request");
+                return;
+            }
 
             await _mediaElementService.Play();
+            
+            // Check if playback actually started (MediaElement might not be available)
+            if (!_mediaElementService.IsPlaying)
+            {
+                _logger.Warning("Playback request discarded - MediaElement not available in visual tree");
+                return;
+            }
+
             _isPlaying = true;
 
             // Start watching and saving progress
             await WatchAndSaveProgress();
+
+            // Ensure AlarmModal is shown (it should already be shown during PreparePlay, but ensure it's there)
+            WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
 
             _logger.Information("Playback started");
         }
@@ -198,6 +213,10 @@ public class PlaybackService : IPlaybackService
             }
 
             await StopWatching();
+            
+            // Hide AlarmModal when playback is dismissed
+            WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage(null));
+            
             _logger.Information("Playback dismissed");
         }
         catch (Exception ex)
@@ -227,6 +246,15 @@ public class PlaybackService : IPlaybackService
         try
         {
             WeakReferenceMessenger.Default.Send(new ClearToastsMessage(null));
+
+            // Show AlarmModal early so MediaElement is available when we set source
+            if (isImmediatePlayRequest)
+            {
+                WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
+                // Wait a bit longer to ensure modal is shown and MediaElement is in visual tree
+                // The modal needs to be in the visual tree before SetSource is called
+                await Task.Delay(300);
+            }
 
             _currentScheduleId = scheduleId;
 
@@ -260,7 +288,7 @@ public class PlaybackService : IPlaybackService
             var preparedTracks = 0;
             var totalTracks = nextTracks.Count;
 
-            WeakReferenceMessenger.Default.Send(new ShowMediaProgressModalMessage(null));
+            // Send progress message (AlarmModal will display it)
             WeakReferenceMessenger.Default.Send(new MediaProgressMessage(new Tuple<int, int>(preparedTracks, totalTracks)));
 
             // Process downloaded tracks
@@ -316,7 +344,8 @@ public class PlaybackService : IPlaybackService
             foreach (var item in downloadedMediaItems) mergedMediaItems.Add(item.Key, item.Value);
             foreach (var item in streamableMediaItems) mergedMediaItems.Add(item.Key, item.Value);
 
-            WeakReferenceMessenger.Default.Send(new HideMediaProgressModalMessage(null));
+            // Send final progress (all tracks loaded)
+            WeakReferenceMessenger.Default.Send(new MediaProgressMessage(new Tuple<int, int>(totalTracks, totalTracks)));
 
             _currentlyPlaying = [];
 
