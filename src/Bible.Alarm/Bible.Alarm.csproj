@@ -42,6 +42,12 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+		<PackageReference Include="Fluxor" Version="6.0.0" />
+		<PackageReference Include="Polly" Version="8.5.0" />
+		<PackageReference Include="Quartz" Version="3.13.1" />
+		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -83,17 +89,6 @@
 	<PropertyGroup>
 		<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
 	</PropertyGroup>
-	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-		<PackageReference Include="Fluxor" Version="6.0.0" />
-		<PackageReference Include="Polly" Version="8.5.0" />
-		<PackageReference Include="Quartz" Version="3.13.1" />
-		<PackageReference Include="Serilog" Version="4.2.0" />
-		<PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
-		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-	</ItemGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->
 	<ItemGroup>
