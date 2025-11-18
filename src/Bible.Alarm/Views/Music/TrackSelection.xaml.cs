@@ -3,16 +3,20 @@ using Bible.Alarm.ViewModels.Music;
 
 namespace Bible.Alarm.Views.Music;
 
-public partial class TrackSelection : ContentPage
+public partial class TrackSelection : ContentPage, IDisposable
 {
-    public TrackSelectionViewModel ViewModel => BindingContext as TrackSelectionViewModel;
+    private bool _isDisposed;
+    private readonly TrackSelectionViewModel _viewModel;
     private readonly TaskScheduler _taskScheduler;
+
+    public TrackSelectionViewModel ViewModel => BindingContext as TrackSelectionViewModel;
 
     public TrackSelection(TrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         _taskScheduler = taskScheduler;
         InitializeComponent();
         BindingContext = viewModel;
+        _viewModel = viewModel;
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
@@ -40,5 +44,18 @@ public partial class TrackSelection : ContentPage
     {
         ViewModel.BackCommand.Execute(null);
         return true;
+    }
+
+    public void Dispose()
+    {
+        if (!_isDisposed)
+        {
+            // ViewModel was injected via constructor, so dispose it
+            if (_viewModel is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+            _isDisposed = true;
+        }
     }
 }

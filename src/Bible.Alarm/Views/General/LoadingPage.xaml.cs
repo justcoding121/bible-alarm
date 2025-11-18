@@ -4,8 +4,9 @@ using Timer = System.Timers.Timer;
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class LoadingPage : ContentPage
+public partial class LoadingPage : ContentPage, IDisposable
 {
+    private bool _isDisposed;
     private readonly Timer _animationTimer;
     private int _currentDot;
 
@@ -58,7 +59,16 @@ public partial class LoadingPage : ContentPage
     {
         base.OnDisappearing();
         _animationTimer?.Stop();
-        _animationTimer?.Dispose();
+    }
+
+    public void Dispose()
+    {
+        if (!_isDisposed)
+        {
+            _animationTimer?.Stop();
+            _animationTimer?.Dispose();
+            _isDisposed = true;
+        }
     }
 }
 

@@ -3,16 +3,20 @@ using Bible.Alarm.ViewModels.Bible;
 
 namespace Bible.Alarm.Views.Bible;
 
-public partial class BookSelection : ContentPage
+public partial class BookSelection : ContentPage, IDisposable
 {
-    public BookSelectionViewModel ViewModel => BindingContext as BookSelectionViewModel;
+    private bool _isDisposed;
+    private readonly BookSelectionViewModel _viewModel;
     private readonly TaskScheduler _taskScheduler;
+
+    public BookSelectionViewModel ViewModel => BindingContext as BookSelectionViewModel;
 
     public BookSelection(BookSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         _taskScheduler = taskScheduler;
         InitializeComponent();
         BindingContext = viewModel;
+        _viewModel = viewModel;
 
         BackButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
@@ -40,5 +44,18 @@ public partial class BookSelection : ContentPage
     {
         ViewModel.BackCommand.Execute(null);
         return true;
+    }
+
+    public void Dispose()
+    {
+        if (!_isDisposed)
+        {
+            // ViewModel was injected via constructor, so dispose it
+            if (_viewModel is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+            _isDisposed = true;
+        }
     }
 }

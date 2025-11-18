@@ -3,14 +3,18 @@ using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Views.Schedule;
 
-public partial class Schedule : ContentPage
+public partial class Schedule : ContentPage, IDisposable
 {
+    private bool _isDisposed;
+    private readonly ScheduleViewModel _viewModel;
+
     public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
 
     public Schedule(ScheduleViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
+        _viewModel = viewModel;
 
         MusicButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
@@ -29,5 +33,18 @@ public partial class Schedule : ContentPage
     {
         ViewModel.CancelCommand.Execute(null);
         return true;
+    }
+
+    public void Dispose()
+    {
+        if (!_isDisposed)
+        {
+            // ViewModel was injected via constructor, so dispose it
+            if (_viewModel is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+            _isDisposed = true;
+        }
     }
 }

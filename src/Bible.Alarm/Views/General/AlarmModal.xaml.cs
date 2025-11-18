@@ -6,6 +6,7 @@ namespace Bible.Alarm.Views.General;
 public partial class AlarmModal : ContentPage, IDisposable
 {
     private bool _isDisposed;
+    private readonly AlarmViewModal _viewModel;
 
     public AlarmViewModal ViewModel => BindingContext as AlarmViewModal;
 
@@ -13,6 +14,7 @@ public partial class AlarmModal : ContentPage, IDisposable
     {
         InitializeComponent();
         BindingContext = viewModel;
+        _viewModel = viewModel;
     }
 
     protected override bool OnBackButtonPressed()
@@ -25,8 +27,8 @@ public partial class AlarmModal : ContentPage, IDisposable
     {
         if (!_isDisposed)
         {
-            // ViewModel was injected on page, so dispose it
-            if (ViewModel is IDisposable disposable)
+            // ViewModel was injected via constructor, so dispose it
+            if (_viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }
