@@ -22,7 +22,7 @@ public class SchedulerJob : JobService
     public SchedulerJob(ILogger logger)
     {
         _logger = logger;
-        LogSetup.Initialize(VersionFinder.Default,
+        LogSetup.Initialize(AndroidVersionFinder.Default,
             [$"AndroidSdk {AndroidBuild.VERSION.SdkInt}"], "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

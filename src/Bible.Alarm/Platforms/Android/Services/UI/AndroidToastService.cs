@@ -5,7 +5,7 @@ using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
-public class DroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
+public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {
     private readonly TaskScheduler _taskScheduler = taskScheduler;
     private static readonly SemaphoreSlim Lock = new(1);

@@ -3,7 +3,7 @@ using Bible.Alarm.Services.Storage;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Storage
 {
-    public class IOsStorageService : StorageService
+    public class iOSStorageService : StorageService
     {
         //backed up to cloud
         private static readonly string storageRoot =
@@ -18,6 +18,6 @@ namespace Bible.Alarm.Platforms.iOS.Services.Storage
 
         public override string CacheRoot => cacheRoot;
 
-        public override Assembly MainAssembly => typeof(IOsStorageService).Assembly;
+        public override Assembly MainAssembly => typeof(iOSStorageService).Assembly;
     }
 }

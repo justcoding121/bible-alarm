@@ -3,7 +3,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;
 
-public class BootstrapHelper
+public class iOSBootstrapHelper
 {
     public static void Initialize(ILogger logger, bool isForeground = false)
     {

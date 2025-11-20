@@ -4,6 +4,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;

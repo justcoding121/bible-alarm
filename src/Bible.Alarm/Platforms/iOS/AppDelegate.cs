@@ -1,5 +1,6 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
@@ -23,7 +24,7 @@ namespace Bible.Alarm.Platforms.iOS
         public AppDelegate()
         {
             // Initialize logging and exception handling
-            LogSetup.Initialize(VersionFinder.Default, [], "iOS");
+            LogSetup.Initialize(iOSVersionFinder.Default, [], "iOS");
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
         }

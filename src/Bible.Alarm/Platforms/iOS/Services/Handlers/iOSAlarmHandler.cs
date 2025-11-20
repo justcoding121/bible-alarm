@@ -5,7 +5,7 @@ using UIKit;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Handlers
 {
-    public class IOsAlarmHandler(
+    public class iOSAlarmHandler(
         ILogger logger,
         IPlaybackService playbackService,
         TaskScheduler taskScheduler)

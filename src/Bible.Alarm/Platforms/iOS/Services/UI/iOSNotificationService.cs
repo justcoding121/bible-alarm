@@ -7,7 +7,7 @@ using UserNotifications;
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI
 {
-    public class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
+    public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
     {
         private readonly ILogger _logger = logger;
         private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
@@ -15,7 +15,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
         public async Task ShowNotification(int scheduleId)
         {
             using var scope = _scopeFactory.CreateScope();
-            var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IOsAlarmHandler>();
+            var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<iOSAlarmHandler>();
             await iosAlarmHandler.Handle(scheduleId, true);
         }
 

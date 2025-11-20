@@ -23,7 +23,7 @@ public class AlarmSetupService : Service, IDisposable
 
     public AlarmSetupService()
     {
-        LogSetup.Initialize(VersionFinder.Default,
+        LogSetup.Initialize(AndroidVersionFinder.Default,
             [$"AndroidSdk {Build.VERSION.SdkInt}"], DevicePlatform.Android.ToString());
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;

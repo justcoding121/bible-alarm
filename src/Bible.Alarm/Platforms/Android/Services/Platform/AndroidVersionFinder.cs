@@ -3,10 +3,10 @@ using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Platform;
 
-public class VersionFinder : IVersionFinder
+public class AndroidVersionFinder : IVersionFinder
 {
     private static readonly Lazy<string> Version = new(() => GetVersionNameInternal());
-    public static VersionFinder Default => new();
+    public static AndroidVersionFinder Default => new();
 
     public string GetVersionName()
     {

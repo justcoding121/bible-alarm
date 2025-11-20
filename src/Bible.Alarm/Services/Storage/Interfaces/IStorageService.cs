@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Common.Interfaces.Storage;
+namespace Bible.Alarm.Services.Storage.Interfaces;
 
 public interface IStorageService : IDisposable
 {
@@ -18,3 +18,4 @@ public interface IStorageService : IDisposable
     Task DeleteDirectory(string path);
     Task<DirectoryInfo> CreateDirectory(string path);
 }
+

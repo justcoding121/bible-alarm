@@ -3,10 +3,10 @@ using Foundation;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Platform
 {
-    public class VersionFinder : IVersionFinder
+    public class iOSVersionFinder : IVersionFinder
     {
         private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
-        public static VersionFinder Default => new VersionFinder();
+        public static iOSVersionFinder Default => new iOSVersionFinder();
 
         public string GetVersionName()
         {

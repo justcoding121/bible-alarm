@@ -19,7 +19,7 @@ using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
-public class DroidNotificationService(ILogger logger) : INotificationService
+public class AndroidNotificationService(ILogger logger) : INotificationService
 {
     public static readonly string ChannelIdAndName = "alarm_notification";
     public static readonly string ChannelDescription = "alarm_notification are send to this channel";

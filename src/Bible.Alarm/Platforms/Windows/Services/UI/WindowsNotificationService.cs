@@ -46,7 +46,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
         public Task<bool> CanSchedule()
         {
-            return Task.FromResult(BootstrapHelper.IsBackgroundTaskEnabled);
+            return Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
         }
 
         public void Dispose()

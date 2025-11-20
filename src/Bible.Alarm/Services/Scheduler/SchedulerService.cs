@@ -1,4 +1,4 @@
-using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;

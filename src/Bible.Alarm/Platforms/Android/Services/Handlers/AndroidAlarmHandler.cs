@@ -38,15 +38,15 @@ public class AndroidAlarmHandler(
         if (!isImmediate)
             if (schedule.NotificationEnabled)
             {
-                DroidNotificationService.RemoveLocalNotification(schedule.Id);
-                DroidNotificationService.ShowLocalNotification(schedule.Id,
+                AndroidNotificationService.RemoveLocalNotification(schedule.Id);
+                AndroidNotificationService.ShowLocalNotification(schedule.Id,
                     string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name,
                     "Press to start listening now.");
                 Dispose();
                 return;
             }
 
-        if (schedule.NotificationEnabled) DroidNotificationService.RemoveLocalNotification(schedule.Id);
+        if (schedule.NotificationEnabled) AndroidNotificationService.RemoveLocalNotification(schedule.Id);
 
         // MediaManager removed - using MediaElement instead
 

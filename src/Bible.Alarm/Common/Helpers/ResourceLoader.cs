@@ -1,6 +1,6 @@
-﻿using System.Reflection;
+using System.Reflection;
 
-namespace Bible.Alarm.Services.Storage;
+namespace Bible.Alarm.Common.Helpers;
 
 /// <summary>
 /// Utility class that can be used to find and load embedded resources into memory.
@@ -45,3 +45,4 @@ public static class ResourceLoader
 #pragma warning restore IL3000
     }
 }
+

@@ -13,7 +13,7 @@ using AndroidNet = Android.Net;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
-public class BootstrapHelper
+public class AndroidBootstrapHelper
 {
     /// <summary>
     /// Main entry point for Android platform initialization
@@ -81,9 +81,9 @@ public class BootstrapHelper
             // channel on older versions of Android.
             return;
 
-        var channelId = DroidNotificationService.ChannelIdAndName;
-        var channelName = DroidNotificationService.ChannelIdAndName;
-        var channelDescription = DroidNotificationService.ChannelDescription;
+        var channelId = AndroidNotificationService.ChannelIdAndName;
+        var channelName = AndroidNotificationService.ChannelIdAndName;
+        var channelDescription = AndroidNotificationService.ChannelDescription;
 
         var channel = new NotificationChannel(channelId, channelName, NotificationImportance.High)
         {
@@ -98,7 +98,7 @@ public class BootstrapHelper
         var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName + "/" +
                                             ResourceConstant.Raw.cool_alarm_tone_notification_sound);
 
-        channel.Description = DroidNotificationService.ChannelDescription;
+            channel.Description = AndroidNotificationService.ChannelDescription;
         channel.EnableLights(true);
         channel.EnableVibration(true);
         channel.SetSound(soundUri, attributes);

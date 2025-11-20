@@ -7,7 +7,7 @@ using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
-public class PreviewPlayService(MediaPlayer player) : Object,
+public class AndroidPreviewPlayService(MediaPlayer player) : Object,
     MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable
 {
     private MediaPlayer _player = player;

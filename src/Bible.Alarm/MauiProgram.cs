@@ -4,7 +4,7 @@
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Platform;
-using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -163,34 +163,34 @@ public static class MauiProgram
 
         // Register platform-specific version finder
 #if ANDROID
-        services.AddSingleton<IVersionFinder, VersionFinder>();
+        services.AddSingleton<IVersionFinder, AndroidVersionFinder>();
 #elif IOS
-        services.AddSingleton<IVersionFinder, VersionFinder>();
+        services.AddSingleton<IVersionFinder, iOSVersionFinder>();
 #elif WINDOWS
         services.AddSingleton<IVersionFinder, WindowsVersionFinder>();
 #endif
 
         // Register platform-specific services
 #if ANDROID
-        services.AddSingleton<INotificationService, DroidNotificationService>();
-        services.AddSingleton<IToastService, DroidToastService>();
+        services.AddSingleton<INotificationService, AndroidNotificationService>();
+        services.AddSingleton<IToastService, AndroidToastService>();
         services.AddSingleton<IBatteryOptimizationService, BatteryOptimizationService>();
         services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
         services.AddSingleton<IStorageService, AndroidStorageService>();
-        services.AddSingleton<IBatteryOptimizationManager, BatteryOptimizationManager>();
-        services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
+        services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
+        services.AddSingleton<IPreviewPlayService, AndroidPreviewPlayService>();
 #elif IOS
-        services.AddSingleton<INotificationService, IOsNotificationService>();
-        services.AddSingleton<IToastService, IOsToastService>();
-        services.AddSingleton<IStorageService, IOsStorageService>();
-        services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
-        services.AddSingleton<IOsAlarmHandler>();
+        services.AddSingleton<INotificationService, iOSNotificationService>();
+        services.AddSingleton<IToastService, iOSToastService>();
+        services.AddSingleton<IStorageService, iOSStorageService>();
+        services.AddSingleton<IPreviewPlayService, iOSPreviewPlayService>();
+        services.AddSingleton<iOSAlarmHandler>();
 #elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton(_ => new MediaPlayer());
-        services.AddSingleton<IPreviewPlayService, PreviewPlayService>();
+        services.AddSingleton<IPreviewPlayService, WindowsPreviewPlayService>();
         services.AddSingleton<WindowsAlarmHandler>();
 #endif
 
@@ -319,14 +319,14 @@ public static class MauiProgram
             var application = Platform.CurrentActivity?.Application;
             if (context != null && application != null)
             {
-                BootstrapHelper.Initialize(logger, context, application);
+                AndroidBootstrapHelper.Initialize(logger, context, application);
             }
 #elif IOS
             // iOS bootstrap initialization
-            BootstrapHelper.Initialize(logger, isForeground: true);
+            iOSBootstrapHelper.Initialize(logger, isForeground: true);
 #elif WINDOWS
             // Windows bootstrap initialization
-            BootstrapHelper.Initialize(logger, isForeground: true);
+            WindowsBootstrapHelper.Initialize(logger, isForeground: true);
 #endif
         }
         catch (Exception ex)
