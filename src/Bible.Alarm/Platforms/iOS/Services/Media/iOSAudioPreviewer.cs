@@ -5,8 +5,8 @@ using Foundation;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Media
 {
-    public class iOSPreviewPlayService(IDownloadService downloadService)
-        : IPreviewPlayService, IDisposable
+    public class iOSAudioPreviewer(IDownloadService downloadService)
+        : IAudioPreviewer, IDisposable
     {
         private AVAudioPlayer _player;
 

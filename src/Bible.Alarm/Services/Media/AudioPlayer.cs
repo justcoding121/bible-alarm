@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using CommunityToolkit.Maui.Views;
@@ -5,7 +6,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class MediaElementAudioService : IMediaElementAudioService
+public class AudioPlayer : IAudioPlayer
 {
     private readonly ILogger _logger;
     private readonly INavigationService _navigationService;
@@ -23,7 +24,7 @@ public class MediaElementAudioService : IMediaElementAudioService
     public bool IsPlaying => _isPlaying;
     public bool IsPrepared => _isPrepared;
 
-    public MediaElementAudioService(ILogger logger, INavigationService navigationService)
+    public AudioPlayer(ILogger logger, INavigationService navigationService)
     {
         _logger = logger;
         _navigationService = navigationService;
@@ -62,36 +63,31 @@ public class MediaElementAudioService : IMediaElementAudioService
 
     public async Task Play()
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
         {
             if (!_isPrepared)
             {
                 _logger.Warning("Cannot play without setting source first.");
-                return;
+                return Task.CompletedTask;
             }
 
             var mediaElement = GetMediaElement();
             if (mediaElement == null)
             {
                 _logger.Warning("MediaElement not found in visual tree, discarding play request");
-                return;
+                return Task.CompletedTask;
             }
 
             mediaElement.Play();
             _isPlaying = true;
             _logger.Information("Playback started");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            return Task.CompletedTask;
+        });
     }
 
     public async Task Dismiss()
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
         {
             var mediaElement = GetMediaElement();
             if (mediaElement != null)
@@ -104,61 +100,49 @@ public class MediaElementAudioService : IMediaElementAudioService
             _currentTrackPosition = TimeSpan.Zero;
 
             _logger.Information("Playback dismissed");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            return Task.CompletedTask;
+        });
     }
 
     public async Task SetSource(string source)
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
         {
             var mediaElement = GetMediaElement();
             if (mediaElement == null)
             {
                 _logger.Warning("MediaElement not found in visual tree, discarding SetSource request");
-                return;
+                return Task.CompletedTask;
             }
 
             mediaElement.Source = source;
             _isPrepared = true;
             _logger.Information($"Media source set to: {source}");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            return Task.CompletedTask;
+        });
     }
 
     public async Task Pause()
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
         {
             var mediaElement = GetMediaElement();
             if (mediaElement == null)
             {
                 _logger.Warning("MediaElement not found in visual tree, discarding pause request");
-                return;
+                return Task.CompletedTask;
             }
 
             mediaElement.Pause();
             _isPlaying = false;
             _logger.Information("Playback paused");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            return Task.CompletedTask;
+        });
     }
 
     public async Task Stop()
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
         {
             var mediaElement = GetMediaElement();
             if (mediaElement == null)
@@ -166,30 +150,26 @@ public class MediaElementAudioService : IMediaElementAudioService
                 _logger.Warning("MediaElement not found in visual tree, discarding stop request");
                 _isPlaying = false;
                 _currentTrackPosition = TimeSpan.Zero;
-                return;
+                return Task.CompletedTask;
             }
 
             mediaElement.Stop();
             _isPlaying = false;
             _currentTrackPosition = TimeSpan.Zero;
             _logger.Information("Playback stopped");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            return Task.CompletedTask;
+        });
     }
 
     public async Task SeekTo(TimeSpan position)
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
         {
             var mediaElement = GetMediaElement();
             if (mediaElement == null)
             {
                 _logger.Warning("MediaElement not found in visual tree, discarding seek request");
-                return;
+                return Task.CompletedTask;
             }
 
             // MediaElement.Position is read-only, so we need to seek after media is loaded
@@ -197,11 +177,8 @@ public class MediaElementAudioService : IMediaElementAudioService
             _seekToPosition = position;
             _currentTrackPosition = position;
             _logger.Information($"Seek position set to: {position} (will apply when media opens)");
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            return Task.CompletedTask;
+        });
     }
     
     private TimeSpan? _seekToPosition;

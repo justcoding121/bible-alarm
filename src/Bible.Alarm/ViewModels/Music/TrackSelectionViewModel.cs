@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -26,7 +27,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
-    private readonly IPreviewPlayService _playService;
+    private readonly IAudioPreviewer _playService;
     private readonly IMediaCacheService _cacheService;
     private readonly IDownloadService _downloadService;
     private readonly IDispatcher _dispatcher;
@@ -42,7 +43,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         ILogger logger,
         MediaService mediaService,
         IToastService toastService,
-        IPreviewPlayService playService,
+        IAudioPreviewer playService,
         INavigationService navigationService,
         IDownloadService downloadService,
         IMediaCacheService cacheService,
@@ -215,9 +216,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private async Task HandlePlayTrack(MusicTrackListViewItemModel track)
     {
-        await _lock.WaitAsync();
-
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
         {
             if (_currentlyPlaying != null && _currentlyPlaying != track)
             {
@@ -248,18 +247,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             }
 
             _currentlyPlaying.IsBusy = false;
-        }
-        finally
-        {
-            try
-            {
-                _lock.Release();
-            }
-            catch (ObjectDisposedException e)
-            {
-                _logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
-            }
-        }
+        }, ex => _logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
     }
 
     private void HandleRepeatChanged(MusicTrackListViewItemModel track)
@@ -283,26 +271,13 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     {
         try
         {
-            await _lock.WaitAsync();
-
-            try
+            await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
             {
                 if (_currentlyPlaying == null) return;
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
-            }
-            finally
-            {
-                try
-                {
-                    _lock.Release();
-                }
-                catch (ObjectDisposedException e)
-                {
-                    _logger.Error(e, "TrackSelectionViewModel: @lock disposed error.");
-                }
-            }
+            }, ex => _logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
         }
         catch (Exception e)
         {

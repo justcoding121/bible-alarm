@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Services.Media.Interfaces;
 
-public interface IMediaElementAudioService
+public interface IAudioPlayer
 {
     event EventHandler<EventArgs> MediaEnded;
     event EventHandler<EventArgs> MediaFailed;

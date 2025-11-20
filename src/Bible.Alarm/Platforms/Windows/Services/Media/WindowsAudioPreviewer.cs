@@ -4,12 +4,12 @@ using Bible.Alarm.Common.Interfaces.Media;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Media
 {
-    public class WindowsPreviewPlayService : IPreviewPlayService
+    public class WindowsAudioPreviewer : IAudioPreviewer
     {
         private readonly MediaPlayer _mediaPlayer;
         private TaskCompletionSource<bool> _tcs;
 
-        public WindowsPreviewPlayService(MediaPlayer player)
+        public WindowsAudioPreviewer(MediaPlayer player)
         {
             _mediaPlayer = player;
             

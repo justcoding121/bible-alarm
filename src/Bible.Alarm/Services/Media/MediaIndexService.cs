@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -35,27 +36,14 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
     public async Task Verify()
     {
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
         {
-            await _lock.WaitAsync();
-
             if (verified) return;
 
             if (await IndexDoNotExistOrIsOutdated()) await ClearCopyIndexFromResource();
 
             verified = true;
-        }
-        finally
-        {
-            try
-            {
-                _lock.Release();
-            }
-            catch (ObjectDisposedException e)
-            {
-                _logger.Error(e, "MediaIndexService: @lock disposed error.");
-            }
-        }
+        }, ex => _logger.Error(ex, "MediaIndexService: @lock disposed error."));
     }
 
     public async Task UpdateMediaIndex()
@@ -65,9 +53,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
     public async Task<bool> UpdateIndexIfAvailable()
     {
-        await _lock.WaitAsync();
-
-        try
+        return await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
         {
             var creationDate =
                 await _storageService.GetFileCreationDate(Path.Combine(IndexRoot, "mediaIndex.db"), false);
@@ -111,13 +97,9 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
                 return true;
             }
-        }
-        finally
-        {
-            _lock.Release();
-        }
 
-        return false;
+            return false;
+        });
     }
 
     private async Task<bool> IndexDoNotExistOrIsOutdated()

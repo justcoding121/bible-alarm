@@ -7,8 +7,8 @@ using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
-public class AndroidPreviewPlayService(MediaPlayer player) : Object,
-    MediaPlayer.IOnCompletionListener, IPreviewPlayService, IDisposable
+public class AndroidAudioPreviewer(MediaPlayer player) : Object,
+    MediaPlayer.IOnCompletionListener, IAudioPreviewer, IDisposable
 {
     private MediaPlayer _player = player;
 
@@ -24,7 +24,7 @@ public class AndroidPreviewPlayService(MediaPlayer player) : Object,
         OnStopped?.Invoke();
     }
 
-    Task IPreviewPlayService.Play(string url)
+    Task IAudioPreviewer.Play(string url)
     {
         var uri = AndroidNet.Uri.Parse(url);
         _player.Reset();

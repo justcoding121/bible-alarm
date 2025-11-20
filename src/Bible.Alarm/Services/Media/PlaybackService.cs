@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
@@ -12,7 +13,7 @@ public class PlaybackService : IPlaybackService
 {
     private readonly ILogger _logger;
 
-    private readonly IMediaElementAudioService _mediaElementService;
+    private readonly IAudioPlayer _mediaElementService;
     private readonly IPlaylistService _playlistService;
     private readonly IMediaCacheService _cacheService;
     private readonly IStorageService _storageService;
@@ -31,7 +32,7 @@ public class PlaybackService : IPlaybackService
 
     public PlaybackService(
         ILogger logger,
-        IMediaElementAudioService mediaElementService,
+        IAudioPlayer mediaElementService,
         IPlaylistService playlistService,
         IMediaCacheService cacheService,
         IStorageService storageService,
@@ -494,24 +495,19 @@ public class PlaybackService : IPlaybackService
 
     private async Task StopWatching()
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
         {
             if (_isWatching)
             {
                 _isWatching = false;
             }
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            return Task.CompletedTask;
+        });
     }
 
     private async Task WatchAndSaveProgress()
     {
-        await _lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
         {
             if (_isWatching) return;
 
@@ -523,9 +519,7 @@ public class PlaybackService : IPlaybackService
             {
                 while (_isWatching)
                 {
-                    var acquired = await _lock.WaitAsync(1);
-
-                    try
+                    await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
                     {
                         if (IsPlaying && _mediaElementService.IsPlaying)
                             if (_currentlyPlaying != null && CurrentTrackIndex >= 0 &&
@@ -551,26 +545,14 @@ public class PlaybackService : IPlaybackService
                                     await _playlistService.SaveLastPlayed(_currentScheduleId);
                                 }
                             }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error(ex, "Error updating finished track duration");
-                    }
-                    finally
-                    {
-                        if (acquired) _lock.Release();
-                    }
+                    }, 1);
 
                     await Task.Delay(1000);
                 }
 
                 _watchTask = null;
             });
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        });
     }
 
     public void Dispose()

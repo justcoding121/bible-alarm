@@ -153,7 +153,7 @@ public static class MauiProgram
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IScheduleSelectionService, ScheduleSelectionService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
-        services.AddSingleton<IMediaElementAudioService, MediaElementAudioService>();
+        services.AddSingleton<IAudioPlayer, AudioPlayer>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<SchedulerService>();
         services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());
@@ -178,19 +178,19 @@ public static class MauiProgram
         services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
-        services.AddSingleton<IPreviewPlayService, AndroidPreviewPlayService>();
+        services.AddSingleton<IAudioPreviewer, AndroidAudioPreviewer>();
 #elif IOS
         services.AddSingleton<INotificationService, iOSNotificationService>();
         services.AddSingleton<IToastService, iOSToastService>();
         services.AddSingleton<IStorageService, iOSStorageService>();
-        services.AddSingleton<IPreviewPlayService, iOSPreviewPlayService>();
+        services.AddSingleton<IAudioPreviewer, iOSAudioPreviewer>();
         services.AddSingleton<iOSAlarmHandler>();
 #elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton(_ => new MediaPlayer());
-        services.AddSingleton<IPreviewPlayService, WindowsPreviewPlayService>();
+        services.AddSingleton<IAudioPreviewer, WindowsAudioPreviewer>();
         services.AddSingleton<WindowsAlarmHandler>();
 #endif
 

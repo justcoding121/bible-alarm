@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -25,7 +26,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
-    private readonly IPreviewPlayService _playService;
+    private readonly IAudioPreviewer _playService;
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
     private readonly IMediaCacheService _cacheService;
@@ -40,7 +41,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         ILogger logger,
         MediaService mediaService,
         IToastService toastService,
-        IPreviewPlayService playService,
+        IAudioPreviewer playService,
         INavigationService navigationService,
         IDownloadService downloadService,
         IMediaCacheService cacheService,
@@ -199,9 +200,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     private async Task HandlePlayChapter(BibleChapterListViewItemModel chapter)
     {
-        await _lock.WaitAsync();
-
-        try
+        await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
         {
             if (_currentlyPlaying != null && _currentlyPlaying != chapter)
             {
@@ -236,44 +235,20 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             }
 
             _currentlyPlaying.IsBusy = false;
-        }
-        finally
-        {
-            try
-            {
-                _lock.Release();
-            }
-            catch (ObjectDisposedException e)
-            {
-                _logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
-            }
-        }
+        }, ex => _logger.Error(ex, "ChapterSelectionViewModel: @lock disposed error."));
     }
 
     private async void OnPlayServiceStopped()
     {
         try
         {
-            await _lock.WaitAsync();
-
-            try
+            await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
             {
                 if (_currentlyPlaying == null) return;
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
-            }
-            finally
-            {
-                try
-                {
-                    _lock.Release();
-                }
-                catch (ObjectDisposedException e)
-                {
-                    _logger.Error(e, "ChapterSelectionViewModel: @lock disposed error.");
-                }
-            }
+            }, ex => _logger.Error(ex, "ChapterSelectionViewModel: @lock disposed error."));
         }
         catch (Exception e)
         {
