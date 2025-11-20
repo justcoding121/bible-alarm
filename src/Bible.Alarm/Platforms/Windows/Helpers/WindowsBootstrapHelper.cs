@@ -39,21 +39,5 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             // to handle scheduled tasks rather than system background tasks
             // This is a limitation of moving from UWP to WinUI 3 desktop
         }
-
-        private static void RegisterMediaIndexUpdateTask()
-        {
-            // For WinUI 3 desktop apps, background tasks are not available
-            // This functionality would need to be implemented using alternative approaches
-            // such as Windows Task Scheduler or a background service
-            // For now, we'll skip this registration
-        }
-
-        private static void RegisterSchedulerService()
-        {
-            // For WinUI 3 desktop apps, background tasks are not available
-            // This functionality would need to be implemented using alternative approaches
-            // such as Windows Task Scheduler or a background service
-            // For now, we'll skip this registration
-        }
     }
 }

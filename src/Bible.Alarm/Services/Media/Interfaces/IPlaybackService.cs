@@ -8,7 +8,6 @@ public interface IPlaybackService
     bool IsPlaying { get; }
     bool IsPrepared { get; }
 
-    Task PrepareRelavantPlaylist();
     Task Play();
     Task Pause();
     Task PlayPrevious();

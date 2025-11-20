@@ -57,26 +57,6 @@ public class PlaybackService : IPlaybackService
     public int CurrentTrackIndex { get; set; }
     public TimeSpan CurrentTrackPosition { get; set; }
 
-    public async Task PrepareRelevantPlaylist()
-    {
-        try
-        {
-            _logger.Information("Preparing relevant playlist...");
-            var lastPlayed = await _playlistService.GetRelavantScheduleToPlay();
-            await Prepare(lastPlayed);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error preparing relevant playlist");
-            throw;
-        }
-    }
-
-    public async Task PrepareRelavantPlaylist()
-    {
-        await PrepareRelevantPlaylist();
-    }
-
     public async Task Play()
     {
         try
