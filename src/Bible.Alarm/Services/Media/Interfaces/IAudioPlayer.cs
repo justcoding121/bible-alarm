@@ -1,21 +1,32 @@
+#nullable enable
+using Bible.Alarm.Services.Media.Models;
+
 namespace Bible.Alarm.Services.Media.Interfaces;
 
-public interface IAudioPlayer
+public interface IAudioPlayer : IDisposable
 {
-    event EventHandler<EventArgs> MediaEnded;
-    event EventHandler<EventArgs> MediaFailed;
+    Task PrepareAsync(string uri);
 
-    // Audio properties
-    TimeSpan CurrentTrackPosition { get; }
-    bool IsPlaying { get; }
-    bool IsPrepared { get; }
+    Task PlayAsync();
 
-    // Audio operations
-    Task SetSource(string source);
-    Task Play();
-    Task Pause();
-    Task Stop();
-    Task SeekTo(TimeSpan position);
-    void Dispose();
+    Task PauseAsync();
+
+    Task ResumeAsync();
+
+    Task StopAsync();
+
+    Task SeekToAsync(TimeSpan position);
+
+    TimeSpan? CurrentPosition { get; }
+
+    TimeSpan Duration { get; }
+
+    PlayStatus Status { get; }
+
+    event EventHandler<EventArgs>? MediaEnded;
+
+    event EventHandler<EventArgs>? MediaFailed;
+
+    event EventHandler<MetaData>? MetaDataParsed;
 }
 

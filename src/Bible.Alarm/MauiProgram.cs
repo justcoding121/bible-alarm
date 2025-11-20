@@ -154,6 +154,7 @@ public static class MauiProgram
         services.AddSingleton<IScheduleSelectionService, ScheduleSelectionService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
         services.AddSingleton<IAudioPlayer, AudioPlayer>();
+        services.AddSingleton<IPreparePlaylistService, PreparePlaylistService>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<SchedulerService>();
         services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());

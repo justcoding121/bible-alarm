@@ -1,6 +1,8 @@
-using Bible.Alarm.Common.Helpers;
+#nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.UI.Interfaces;
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using Serilog;
 
@@ -9,242 +11,160 @@ namespace Bible.Alarm.Services.Media;
 public class AudioPlayer : IAudioPlayer
 {
     private readonly ILogger _logger;
-    private readonly INavigationService _navigationService;
+    private readonly MediaElement _mediaElement;
 
-    private MediaElement _mediaElement;
-    private readonly SemaphoreSlim _lock = new(1);
+    private string _currentUri = string.Empty;
 
-    private bool _isPlaying;
-    private bool _isPrepared;
-    private TimeSpan _currentTrackPosition = TimeSpan.Zero;
+    public TimeSpan? CurrentPosition => _mediaElement.Position;
+    public TimeSpan Duration => _mediaElement.Duration;
+    public PlayStatus Status { get; private set; } = PlayStatus.Stopped;
 
-    public TimeSpan CurrentTrackPosition => _currentTrackPosition;
-    public static int CurrentTrackIndex => 0; // MediaElement doesn't have built-in playlist support
-    public static long CurrentlyPlayingScheduleId => 0; // Not managed by this service
-    public bool IsPlaying => _isPlaying;
-    public bool IsPrepared => _isPrepared;
+    public event EventHandler<EventArgs>? MediaEnded;
+    public event EventHandler<EventArgs>? MediaFailed;
+    public event EventHandler<MetaData>? MetaDataParsed;
 
     public AudioPlayer(ILogger logger, INavigationService navigationService)
     {
         _logger = logger;
-        _navigationService = navigationService;
+        _mediaElement = navigationService.GetMediaElement();
+
+        _mediaElement.StateChanged += OnStateChanged;
+        _mediaElement.MediaEnded += OnMediaEnded;
+        _mediaElement.MediaFailed += OnMediaFailed;
+        _mediaElement.MediaOpened += OnMediaOpened;
     }
 
-    private MediaElement GetMediaElement()
+    public async Task PrepareAsync(string uri)
     {
-        if (_mediaElement != null) return _mediaElement;
+        if (string.IsNullOrEmpty(uri))
+            throw new ArgumentException("URI cannot be null or empty");
 
-        // Get MediaElement from NavigationService (finds it in BootstrapPage)
-        _mediaElement = _navigationService.GetMediaElement();
-
-        if (_mediaElement != null)
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            SubscribeToEvents();
+            if (_mediaElement.CurrentState != MediaElementState.Stopped)
+            {
+                _mediaElement.Stop();
+            }
+        });
+
+        _currentUri = uri;
+        Status = PlayStatus.Loading;
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _mediaElement.Source = uri;
+        });
+    }
+
+    public Task PlayAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.Play());
+    }
+
+    private async void OnMediaOpened(object? sender, EventArgs e)
+    {
+        try
+        {
+            var metadata = await ExtractMetadataAsync(_currentUri);
+            await ApplyMetadataToMediaElement(metadata);
+            MetaDataParsed?.Invoke(this, metadata);
         }
-
-        return _mediaElement;
-    }
-
-    private void SubscribeToEvents()
-    {
-        if (_mediaElement != null)
+        catch (Exception ex)
         {
-            _mediaElement.MediaOpened -= OnMediaOpened;
-            _mediaElement.MediaEnded -= OnMediaEnded;
-            _mediaElement.MediaFailed -= OnMediaFailed;
-            _mediaElement.PositionChanged -= OnPositionChanged;
-            
-            _mediaElement.MediaOpened += OnMediaOpened;
-            _mediaElement.MediaEnded += OnMediaEnded;
-            _mediaElement.MediaFailed += OnMediaFailed;
-            _mediaElement.PositionChanged += OnPositionChanged;
-        }
-    }
-
-    public async Task Play()
-    {
-        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
-        {
-            if (!_isPrepared)
+            _logger.Error(ex, "Metadata extraction failed");
+            var fallbackMeta = new MetaData
             {
-                _logger.Warning("Cannot play without setting source first.");
-                return Task.CompletedTask;
-            }
-
-            var mediaElement = GetMediaElement();
-            if (mediaElement == null)
-            {
-                _logger.Warning("MediaElement not found in visual tree, discarding play request");
-                return Task.CompletedTask;
-            }
-
-            mediaElement.Play();
-            _isPlaying = true;
-            _logger.Information("Playback started");
-            return Task.CompletedTask;
-        });
-    }
-
-    public async Task Dismiss()
-    {
-        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
-        {
-            var mediaElement = GetMediaElement();
-            if (mediaElement != null)
-            {
-                mediaElement.Stop();
-            }
-
-            _isPlaying = false;
-            _isPrepared = false;
-            _currentTrackPosition = TimeSpan.Zero;
-
-            _logger.Information("Playback dismissed");
-            return Task.CompletedTask;
-        });
-    }
-
-    public async Task SetSource(string source)
-    {
-        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
-        {
-            var mediaElement = GetMediaElement();
-            if (mediaElement == null)
-            {
-                _logger.Warning("MediaElement not found in visual tree, discarding SetSource request");
-                return Task.CompletedTask;
-            }
-
-            mediaElement.Source = source;
-            _isPrepared = true;
-            _logger.Information($"Media source set to: {source}");
-            return Task.CompletedTask;
-        });
-    }
-
-    public async Task Pause()
-    {
-        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
-        {
-            var mediaElement = GetMediaElement();
-            if (mediaElement == null)
-            {
-                _logger.Warning("MediaElement not found in visual tree, discarding pause request");
-                return Task.CompletedTask;
-            }
-
-            mediaElement.Pause();
-            _isPlaying = false;
-            _logger.Information("Playback paused");
-            return Task.CompletedTask;
-        });
-    }
-
-    public async Task Stop()
-    {
-        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
-        {
-            var mediaElement = GetMediaElement();
-            if (mediaElement == null)
-            {
-                _logger.Warning("MediaElement not found in visual tree, discarding stop request");
-                _isPlaying = false;
-                _currentTrackPosition = TimeSpan.Zero;
-                return Task.CompletedTask;
-            }
-
-            mediaElement.Stop();
-            _isPlaying = false;
-            _currentTrackPosition = TimeSpan.Zero;
-            _logger.Information("Playback stopped");
-            return Task.CompletedTask;
-        });
-    }
-
-    public async Task SeekTo(TimeSpan position)
-    {
-        await ConcurrencyHelper.ExecuteAsync(_lock, () =>
-        {
-            var mediaElement = GetMediaElement();
-            if (mediaElement == null)
-            {
-                _logger.Warning("MediaElement not found in visual tree, discarding seek request");
-                return Task.CompletedTask;
-            }
-
-            // MediaElement.Position is read-only, so we need to seek after media is loaded
-            // Store the seek position and apply it when MediaOpened event fires
-            _seekToPosition = position;
-            _currentTrackPosition = position;
-            _logger.Information($"Seek position set to: {position} (will apply when media opens)");
-            return Task.CompletedTask;
-        });
-    }
-    
-    private TimeSpan? _seekToPosition;
-
-    public event EventHandler<EventArgs> MediaEnded;
-    public event EventHandler<EventArgs> MediaFailed;
-
-    private void OnMediaOpened(object sender, EventArgs e)
-    {
-        _logger.Information("Media opened successfully");
-        
-        // Apply seek position if one was requested
-        if (_seekToPosition.HasValue)
-        {
-            var mediaElement = GetMediaElement();
-            if (mediaElement != null)
-            {
-                // Wait a bit for media to be fully ready, then seek
-                Task.Run(async () =>
-                {
-                    await Task.Delay(100); // Small delay to ensure media is ready
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        try
-                        {
-                            // MediaElement doesn't support direct position setting
-                            // We'll need to handle this at the platform level or skip seeking
-                            // For now, just log and update our internal position
-                            _currentTrackPosition = _seekToPosition.Value;
-                            _logger.Information($"Seek requested to: {_seekToPosition.Value}, but MediaElement.Position is read-only");
-                            _seekToPosition = null;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error(ex, "Error applying seek position");
-                        }
-                    });
-                });
-            }
+                Title = Path.GetFileNameWithoutExtension(_currentUri),
+                Artist = "Unknown Artist"
+            };
+            await ApplyMetadataToMediaElement(fallbackMeta);
+            MetaDataParsed?.Invoke(this, fallbackMeta);
         }
     }
 
-    private void OnMediaEnded(object sender, EventArgs e)
+    private async Task<MetaData> ExtractMetadataAsync(string uri)
     {
-        _logger.Information("Media playback ended");
-        _isPlaying = false;
-        MediaEnded?.Invoke(this, e);
+        await Task.Delay(100);
+
+        var meta = new MetaData
+        {
+            Title = Path.GetFileNameWithoutExtension(uri),
+            Artist = "Unknown Artist"
+        };
+
+        return meta;
     }
 
-    private void OnMediaFailed(object sender, EventArgs e)
+    private async Task ApplyMetadataToMediaElement(MetaData meta)
     {
-        _logger.Error("Media playback failed");
-        _isPlaying = false;
-        MediaFailed?.Invoke(this, e);
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _mediaElement.MetadataTitle = meta.Title ?? "";
+            _mediaElement.MetadataArtist = meta.Artist ?? "";
+
+            if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
+            {
+                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
+                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                _mediaElement.MetadataArtworkUrl = artworkPath;
+            }
+            else if (!string.IsNullOrEmpty(meta.ArtworkUrl))
+            {
+                _mediaElement.MetadataArtworkUrl = meta.ArtworkUrl;
+            }
+        });
     }
 
-    private void OnPositionChanged(object sender, EventArgs e)
+    private void OnMediaEnded(object? sender, EventArgs e)
     {
-        var mediaElement = GetMediaElement();
-        if (mediaElement != null) _currentTrackPosition = mediaElement.Position;
+        Status = PlayStatus.Ended;
+        MediaEnded?.Invoke(this, EventArgs.Empty);
     }
 
+    private void OnMediaFailed(object? sender, EventArgs e)
+    {
+        Status = PlayStatus.Failed;
+        MediaFailed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnStateChanged(object? sender, MediaStateChangedEventArgs e)
+    {
+        Status = e.NewState switch
+        {
+            MediaElementState.Playing => PlayStatus.Playing,
+            MediaElementState.Paused => PlayStatus.Paused,
+            MediaElementState.Stopped => PlayStatus.Stopped,
+            MediaElementState.Buffering => PlayStatus.Loading,
+            MediaElementState.Failed => PlayStatus.Failed,
+            _ => PlayStatus.Stopped
+        };
+    }
+
+    public Task PauseAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.Pause());
+    }
+
+    public Task ResumeAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.Play());
+    }
+
+    public Task StopAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.Stop());
+    }
+
+    public Task SeekToAsync(TimeSpan position)
+    {
+        return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.SeekTo(position));
+    }
 
     public void Dispose()
     {
-        // Don't dispose MediaElement - it's owned by BootstrapPage in the visual tree
-        _lock?.Dispose();
+        _mediaElement.StateChanged -= OnStateChanged;
+        _mediaElement.MediaOpened -= OnMediaOpened;
+        _mediaElement.MediaEnded -= OnMediaEnded;
+        _mediaElement.MediaFailed -= OnMediaFailed;
     }
 }
