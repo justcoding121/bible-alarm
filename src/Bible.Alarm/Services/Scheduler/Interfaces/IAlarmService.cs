@@ -1,6 +1,6 @@
-﻿using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Models.Schedule;
 
-namespace Bible.Alarm.Common.Interfaces.Scheduler;
+namespace Bible.Alarm.Services.Scheduler.Interfaces;
 
 public interface IAlarmService : IDisposable
 {
@@ -8,3 +8,4 @@ public interface IAlarmService : IDisposable
     void Update(AlarmSchedule schedule);
     void Delete(int scheduleId);
 }
+

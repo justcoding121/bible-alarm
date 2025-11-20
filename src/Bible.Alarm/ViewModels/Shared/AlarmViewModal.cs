@@ -1,5 +1,5 @@
 using System.Windows.Input;
-using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;

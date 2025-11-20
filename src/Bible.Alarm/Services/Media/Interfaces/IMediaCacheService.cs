@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Common.Interfaces.Media;
+namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IMediaCacheService : IDisposable
 {
@@ -14,3 +14,4 @@ public interface IMediaCacheService : IDisposable
     Task<string> GetBibleChapterUrl(string languageCode, string pubCode, int bookNumber, int chapter,
         string lookUpPath);
 }
+

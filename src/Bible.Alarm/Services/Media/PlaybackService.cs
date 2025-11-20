@@ -1,6 +1,6 @@
-using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.Network;
 using Bible.Alarm.Common.Interfaces.Storage;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.Messaging;

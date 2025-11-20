@@ -1,4 +1,4 @@
-namespace Bible.Alarm.Common.Interfaces.Media;
+namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IMediaElementAudioService
 {
@@ -18,3 +18,4 @@ public interface IMediaElementAudioService
     Task SeekTo(TimeSpan position);
     void Dispose();
 }
+

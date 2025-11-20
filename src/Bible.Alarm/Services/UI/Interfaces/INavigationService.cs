@@ -1,6 +1,6 @@
 using CommunityToolkit.Maui.Views;
 
-namespace Bible.Alarm.Common.Interfaces.UI;
+namespace Bible.Alarm.Services.UI.Interfaces;
 
 public interface INavigationService
 {

@@ -1,7 +1,7 @@
-﻿using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 
-namespace Bible.Alarm.Common.Interfaces.Media;
+namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IPlaylistService : IDisposable
 {
@@ -27,3 +27,4 @@ public interface IPlaylistService : IDisposable
 
     Task<KeyValuePair<int, BibleBook>> GetNextBibleBook(string languageCode, string publicationCode, int bookNumber);
 }
+

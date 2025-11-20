@@ -1,5 +1,5 @@
-using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using CommunityToolkit.Maui.Views;
 using Serilog;
 

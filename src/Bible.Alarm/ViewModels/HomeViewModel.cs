@@ -1,9 +1,9 @@
 using System.Windows.Input;
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Database;
+using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;

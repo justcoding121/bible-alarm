@@ -1,8 +1,8 @@
 using System.Windows.Input;
-using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Scheduler;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

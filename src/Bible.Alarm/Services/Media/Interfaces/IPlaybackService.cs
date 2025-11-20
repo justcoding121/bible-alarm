@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Common.Interfaces.Media;
+namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IPlaybackService
 {
@@ -17,3 +17,4 @@ public interface IPlaybackService
     Task PrepareAndPlay(int scheduleId, bool isImmediate);
     Task Dismiss();
 }
+

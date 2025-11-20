@@ -1,6 +1,7 @@
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;

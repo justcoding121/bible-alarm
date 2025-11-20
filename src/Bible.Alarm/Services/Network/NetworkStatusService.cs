@@ -1,4 +1,4 @@
-using Bible.Alarm.Common.Interfaces.Network;
+using Bible.Alarm.Services.Network.Interfaces;
 
 namespace Bible.Alarm.Services.Network;
 

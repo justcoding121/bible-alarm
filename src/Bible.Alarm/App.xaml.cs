@@ -1,5 +1,6 @@
-﻿using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.UI;
+﻿using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.ViewModels;

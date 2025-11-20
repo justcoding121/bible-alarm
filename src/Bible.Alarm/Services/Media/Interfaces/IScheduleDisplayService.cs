@@ -1,6 +1,6 @@
 using Bible.Alarm.Models.Schedule;
 
-namespace Bible.Alarm.Common.Interfaces.Media;
+namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IScheduleDisplayService
 {

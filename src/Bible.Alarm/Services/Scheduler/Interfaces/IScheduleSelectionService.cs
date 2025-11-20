@@ -1,6 +1,6 @@
 using Bible.Alarm.Models.Schedule;
 
-namespace Bible.Alarm.Common.Interfaces.Scheduler;
+namespace Bible.Alarm.Services.Scheduler.Interfaces;
 
 public interface IScheduleSelectionService
 {

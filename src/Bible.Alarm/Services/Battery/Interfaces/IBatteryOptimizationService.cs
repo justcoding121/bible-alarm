@@ -1,4 +1,4 @@
-namespace Bible.Alarm.Common.Interfaces.Battery;
+namespace Bible.Alarm.Services.Battery.Interfaces;
 
 public interface IBatteryOptimizationService
 {

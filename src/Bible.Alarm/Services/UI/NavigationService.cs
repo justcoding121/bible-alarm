@@ -1,4 +1,4 @@
-using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.Views;

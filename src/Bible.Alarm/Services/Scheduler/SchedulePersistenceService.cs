@@ -1,5 +1,5 @@
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Interfaces.Scheduler;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;

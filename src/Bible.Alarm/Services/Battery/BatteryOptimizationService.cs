@@ -1,4 +1,5 @@
 using Bible.Alarm.Common.Interfaces.Battery;
+using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Microsoft.EntityFrameworkCore;

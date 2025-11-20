@@ -1,4 +1,4 @@
-using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;

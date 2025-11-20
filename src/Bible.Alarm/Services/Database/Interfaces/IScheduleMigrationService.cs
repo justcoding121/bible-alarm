@@ -1,4 +1,4 @@
-namespace Bible.Alarm.Services.Database;
+namespace Bible.Alarm.Services.Database.Interfaces;
 
 public interface IScheduleMigrationService
 {

@@ -3,20 +3,22 @@
 
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.Network;
 using Bible.Alarm.Common.Interfaces.Platform;
-using Bible.Alarm.Common.Interfaces.Scheduler;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.Battery.Interfaces;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Network.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Battery;
 using Bible.Alarm.Services.Database;
+using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Scheduler;
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Constants;

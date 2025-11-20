@@ -1,6 +1,7 @@
-﻿namespace Bible.Alarm.Common.Interfaces.UI;
+namespace Bible.Alarm.ViewModels.Interfaces;
 
 public interface IListViewModel
 {
     object SelectedItem { get; }
 }
+
