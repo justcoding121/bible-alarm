@@ -242,12 +242,13 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     {
         try
         {
-            await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
+            await ConcurrencyHelper.ExecuteAsync(_lock, () =>
             {
-                if (_currentlyPlaying == null) return;
+                if (_currentlyPlaying == null) return Task.CompletedTask;
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
+                return Task.CompletedTask;
             }, ex => _logger.Error(ex, "ChapterSelectionViewModel: @lock disposed error."));
         }
         catch (Exception e)
