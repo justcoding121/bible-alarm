@@ -57,7 +57,7 @@ public class PlaybackService : IPlaybackService
         _audioPlayer.MediaFailed += OnMediaFailed;
 
         _progressSaveTimer = new System.Timers.Timer(1000);
-        _progressSaveTimer.Elapsed += async (_, __) => await SaveProgressAsync();
+        _progressSaveTimer.Elapsed += OnProgressSaveTimerElapsed;
         _progressSaveTimer.AutoReset = true;
     }
 
@@ -365,6 +365,11 @@ public class PlaybackService : IPlaybackService
         }
     }
 
+    private void OnProgressSaveTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        _ = SaveProgressAsync();
+    }
+
     private async Task SaveProgressAsync()
     {
         if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
@@ -472,8 +477,13 @@ public class PlaybackService : IPlaybackService
 
     public void Dispose()
     {
-        _progressSaveTimer?.Stop();
-        _progressSaveTimer?.Dispose();
+        if (_progressSaveTimer != null)
+        {
+            _progressSaveTimer.Elapsed -= OnProgressSaveTimerElapsed;
+            _progressSaveTimer.Stop();
+            _progressSaveTimer.Dispose();
+        }
+        _audioPlayer.Dispose();
     }
 }
 

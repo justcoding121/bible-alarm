@@ -44,7 +44,7 @@ public class AudioPlayer : IAudioPlayer
         _mediaElement.PositionChanged += OnPositionChanged;
 
         _positionTimer = new System.Timers.Timer(500);
-        _positionTimer.Elapsed += (_, __) => SendPositionUpdate();
+        _positionTimer.Elapsed += OnPositionTimerElapsed;
         _positionTimer.AutoReset = true;
     }
 
@@ -245,6 +245,11 @@ public class AudioPlayer : IAudioPlayer
         SendPositionUpdate();
     }
 
+    private void OnPositionTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        SendPositionUpdate();
+    }
+
     private void SendStatusMessage()
     {
         AudioMessenger.Send(new AudioStatusMessage
@@ -293,8 +298,12 @@ public class AudioPlayer : IAudioPlayer
 
     public void Dispose()
     {
-        _positionTimer?.Stop();
-        _positionTimer?.Dispose();
+        if (_positionTimer != null)
+        {
+            _positionTimer.Elapsed -= OnPositionTimerElapsed;
+            _positionTimer.Stop();
+            _positionTimer.Dispose();
+        }
 
         _mediaElement.StateChanged -= OnStateChanged;
         _mediaElement.MediaOpened -= OnMediaOpened;
