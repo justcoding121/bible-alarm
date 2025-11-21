@@ -1,11 +1,14 @@
 using System.Collections.Concurrent;
 using System.Text;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Database;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -57,93 +60,102 @@ public class MediaCacheService(
 
         var @lock = LockStore.GetOrAdd(alarmScheduleId, new SemaphoreSlim(1));
 
-        if (await @lock.WaitAsync(500))
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
+        {
             try
             {
-                if (!await networkStatusService.IsInternetAvailable()) return downloaded;
+                if (!await networkStatusService.IsInternetAvailable()) return;
 
                 var playlist = await mediaPlayService.NextTracks(alarmScheduleId);
-
-                foreach (var playItem in playlist)
-                {
- 
-                    if (!await ExistsAsync(playItem.Url))
-                    {
-                        downloaded = true;
-
-                        byte[] bytes = null;
-
-                        bytes = await downloadService.DownloadAsync(playItem.Url);
-
-                        if (bytes != null)
-                        {
-                            await storageService.SaveFile(_cacheRoot, GetCacheFileName(playItem.Url), bytes);
-                        }
-                        else
-                        {
-                            var trackMetadata = playItem.Metadata;
-
-                            string url;
-
-                            url = await _urlRefreshService.RefreshUrlAsync(trackMetadata);
-
-                            if (url != null && url != playItem.Url)
-                            {
-                                if (trackMetadata.PlayType == PlayType.Bible)
-                                {
-                                    await mediaService.UpdateBibleTrackUrl(trackMetadata.LanguageCode,
-                                        trackMetadata.PublicationCode, trackMetadata.BookNumber, trackMetadata.ChapterNumber,
-                                        url);
-                                }
-                                else
-                                {
-                                    if (trackMetadata.LanguageCode == null)
-                                        await mediaService.UpdateMelodyTrackUrl(trackMetadata.PublicationCode,
-                                            trackMetadata.TrackNumber, url);
-                                    else
-                                        await mediaService.UpdateVocalTrackUrl(trackMetadata.LanguageCode,
-                                            trackMetadata.PublicationCode, trackMetadata.TrackNumber, url);
-                                }
-
-                                _logger.Warning($"Refreshed URL from {playItem.Url} to {url} for {playItem}");
-                            }
-                            else
-                            {
-                                break;
-                            }
-
-                            if (url != null) bytes = await downloadService.DownloadAsync(url);
-
-                            if (bytes != null)
-                            {
-                                await storageService.SaveFile(_cacheRoot, GetCacheFileName(url), bytes);
-                                _logger.Warning($"Downloaded using updated URL {url} for {playItem}");
-                                continue;
-                            }
-
-                            break;
-                        }
-                    }
-                }
+                downloaded = await ProcessPlaylistAsync(playlist);
             }
-            // Log all exceptions during media download for debugging purposes
             catch (Exception e)
             {
                 _logger.Error(e, "An exception happened when downloading media files for caching.");
             }
-            finally
-            {
-                try
-                {
-                    @lock.Release();
-                }
-                catch (ObjectDisposedException e)
-                {
-                    _logger.Error(e, "MediaCacheService: @lock disposed error.");
-                }
-            }
+        }, 500);
 
         return downloaded;
+    }
+
+    private async Task<bool> ProcessPlaylistAsync(List<PlayItem> playlist)
+    {
+        var downloaded = false;
+
+        foreach (var playItem in playlist)
+        {
+            if (await ExistsAsync(playItem.Url)) continue;
+
+            downloaded = true;
+
+            var success = await DownloadAndCacheTrackAsync(playItem);
+            if (!success) break;
+        }
+
+        return downloaded;
+    }
+
+    private async Task<bool> DownloadAndCacheTrackAsync(PlayItem playItem)
+    {
+        var bytes = await downloadService.DownloadAsync(playItem.Url);
+
+        if (bytes != null)
+        {
+            await storageService.SaveFile(_cacheRoot, GetCacheFileName(playItem.Url), bytes);
+            return true;
+        }
+
+        return await RefreshUrlAndRetryDownloadAsync(playItem);
+    }
+
+    private async Task<bool> RefreshUrlAndRetryDownloadAsync(PlayItem playItem)
+    {
+        var trackMetadata = playItem.Metadata;
+        var refreshedUrl = await _urlRefreshService.RefreshUrlAsync(trackMetadata);
+
+        if (refreshedUrl == null || refreshedUrl == playItem.Url)
+            return false;
+
+        await UpdateTrackUrlInDatabaseAsync(trackMetadata, refreshedUrl);
+        _logger.Warning($"Refreshed URL from {playItem.Url} to {refreshedUrl} for {playItem}");
+
+        var bytes = await downloadService.DownloadAsync(refreshedUrl);
+        if (bytes == null) return false;
+
+        await storageService.SaveFile(_cacheRoot, GetCacheFileName(refreshedUrl), bytes);
+        _logger.Warning($"Downloaded using updated URL {refreshedUrl} for {playItem}");
+        return true;
+    }
+
+    private async Task UpdateTrackUrlInDatabaseAsync(TrackMetadata trackMetadata, string url)
+    {
+        if (trackMetadata.PlayType == PlayType.Bible)
+        {
+            await mediaService.UpdateBibleTrackUrl(
+                trackMetadata.LanguageCode,
+                trackMetadata.PublicationCode,
+                trackMetadata.BookNumber,
+                trackMetadata.ChapterNumber,
+                url);
+        }
+        else
+        {
+            if (trackMetadata.LanguageCode == null)
+            {
+                await mediaService.UpdateMelodyTrackUrl(
+                    trackMetadata.PublicationCode,
+                    trackMetadata.TrackNumber,
+                    url);
+            }
+            else
+            {
+                await mediaService.UpdateVocalTrackUrl(
+                    trackMetadata.LanguageCode,
+                    trackMetadata.PublicationCode,
+                    trackMetadata.TrackNumber,
+                    url);
+            }
+        }
     }
 
 
@@ -157,6 +169,12 @@ public class MediaCacheService(
             .AsNoTracking()
             .ToListAsync();
 
+        var filePathsToDelete = await GetUnusedCacheFilesAsync(schedules);
+        await DeleteFilesAsync(filePathsToDelete);
+    }
+
+    private async Task<HashSet<string>> GetUnusedCacheFilesAsync(List<AlarmSchedule> schedules)
+    {
         var filePathsToDelete = new HashSet<string>(await storageService.GetAllFiles(_cacheRoot));
 
         foreach (var schedule in schedules)
@@ -164,26 +182,30 @@ public class MediaCacheService(
             var playlist = await mediaPlayService.NextTracks(schedule.Id);
             var filePaths = playlist.Select(x => GetCacheFilePath(x.Url)).ToList();
 
-
-
-            filePaths.ForEach(x =>
+            foreach (var filePath in filePaths)
             {
-                if (filePathsToDelete.Contains(x)) filePathsToDelete.Remove(x);
-            });
+                filePathsToDelete.Remove(filePath);
+            }
         }
 
-        filePathsToDelete.ToList().ForEach(x =>
+        return filePathsToDelete;
+    }
+
+    private Task DeleteFilesAsync(HashSet<string> filePathsToDelete)
+    {
+        foreach (var filePath in filePathsToDelete)
         {
-  
             try
             {
-                storageService.DeleteFile(x);
+                storageService.DeleteFile(filePath);
             }
             catch (Exception e)
             {
-                _logger.Error(e, $"Failed to delete file: {x}");
+                _logger.Error(e, $"Failed to delete file: {filePath}");
             }
-        });
+        }
+
+        return Task.CompletedTask;
     }
 
     public void Dispose()

@@ -6,14 +6,11 @@ using Polly.Retry;
 
 namespace Bible.Alarm.Services.Media;
 
-/// <summary>
-/// Download service
-/// </summary>
 public class DownloadService(HttpMessageHandler handler) : IDownloadService
 {
     private readonly int _timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
 
-    // Polly retry policy with exponential backoff (starts at 1 second, doubles each retry)
+
     private readonly AsyncRetryPolicy _downloadRetryPolicy = Policy
         .Handle<Exception>()
         .WaitAndRetryAsync(
@@ -35,11 +32,6 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
                 // Optional: Add logging here if needed
             });
 
-    /// <summary>
-    /// Dowload the file from the Url
-    /// </summary>
-    /// <param name="url"></param>
-    /// <returns></returns>
     public async Task<byte[]> DownloadAsync(string url, string alternativeUrl = null)
     {
         return await _downloadRetryPolicy.ExecuteAsync(async () =>
