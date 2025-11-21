@@ -58,7 +58,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
             
             using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
-            await schedulerService.Handle();
+            await schedulerService.HandleAsync();
 
             context.StopService(intent);
         }

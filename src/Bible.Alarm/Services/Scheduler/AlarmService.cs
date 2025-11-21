@@ -29,14 +29,14 @@ public class AlarmService(
 
     private void ScheduleNotification(AlarmSchedule schedule)
     {
-        notificationService.ScheduleNotification(schedule,
+        notificationService.ScheduleNotificationAsync(schedule,
             string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name,
             "Press to start listening now.");
     }
 
     private void RemoveNotification(int scheduleId)
     {
-        notificationService.Remove(scheduleId);
+        notificationService.RemoveAsync(scheduleId);
     }
 
     public void Dispose()

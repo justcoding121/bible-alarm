@@ -12,14 +12,14 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
         private readonly ILogger _logger = logger;
         private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-        public async Task ShowNotification(int scheduleId)
+        public async Task ShowNotificationAsync(int scheduleId)
         {
             using var scope = _scopeFactory.CreateScope();
             var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<iOSAlarmHandler>();
-            await iosAlarmHandler.Handle(scheduleId, true);
+            await iosAlarmHandler.HandleAsync(scheduleId, true);
         }
 
-        public async Task ScheduleNotification(AlarmSchedule schedule,
+        public async Task ScheduleNotificationAsync(AlarmSchedule schedule,
             string title, string body)
         {
             var scheduleId = schedule.Id;
@@ -59,7 +59,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        public async Task Remove(int scheduleId)
+        public async Task RemoveAsync(int scheduleId)
         {
             await Task.Delay(0).ContinueWith(_ =>
             {
@@ -80,7 +80,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        public async Task<bool> IsScheduled(int scheduleId)
+        public async Task<bool> IsScheduledAsync(int scheduleId)
         {
             return await Task.Delay(0).ContinueWith(_ =>
             {
@@ -102,7 +102,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        public async Task<bool> CanSchedule()
+        public async Task<bool> CanScheduleAsync()
         {
             return await Task.Delay(0).ContinueWith(_ =>
             {

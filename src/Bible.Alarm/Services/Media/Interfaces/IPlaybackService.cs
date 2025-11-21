@@ -8,12 +8,12 @@ public interface IPlaybackService
     bool IsPlaying { get; }
     bool IsPrepared { get; }
 
-    Task Play();
-    Task Pause();
-    Task PlayPrevious();
-    Task PlayNext();
+    Task PlayAsync();
+    Task PauseAsync();
+    Task PlayPreviousAsync();
+    Task PlayNextAsync();
 
-    Task PrepareAndPlay(int scheduleId, bool isAlarm);
-    Task Dismiss();
+    Task PrepareAndPlayAsync(int scheduleId, bool isAlarm);
+    Task StopAsync();
 }
 

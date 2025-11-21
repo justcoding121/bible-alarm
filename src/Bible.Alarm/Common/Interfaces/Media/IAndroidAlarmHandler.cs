@@ -2,5 +2,5 @@
 
 public interface IAndroidAlarmHandler
 {
-    Task Handle(int scheduleId, bool isAlarm);
+    Task HandleAsync(int scheduleId, bool isAlarm);
 }

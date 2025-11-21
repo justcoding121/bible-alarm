@@ -17,7 +17,7 @@ public class MediaCacheSetupService(
         {
             using var scope = _scopeFactory.CreateScope();
             var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
-            await mediaCacheService.SetupAlarmCache(scheduleId);
+            await mediaCacheService.SetupAlarmCacheAsync(scheduleId);
         }
         catch (Exception ex)
         {

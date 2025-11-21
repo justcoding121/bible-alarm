@@ -45,13 +45,13 @@ public class MediaCacheService(
         return Path.Combine(_cacheRoot, GetCacheFileName(url));
     }
 
-    public async Task<bool> Exists(string url)
+    public async Task<bool> ExistsAsync(string url)
     {
         var cachePath = Path.Combine(_cacheRoot, GetCacheFileName(url));
         return await storageService.FileExists(cachePath);
     }
 
-    public async Task<bool> SetupAlarmCache(int alarmScheduleId)
+    public async Task<bool> SetupAlarmCacheAsync(int alarmScheduleId)
     {
         var downloaded = false;
 
@@ -67,7 +67,7 @@ public class MediaCacheService(
                 foreach (var playItem in playlist)
                 {
  
-                    if (!await Exists(playItem.Url))
+                    if (!await ExistsAsync(playItem.Url))
                     {
                         downloaded = true;
 
@@ -147,7 +147,7 @@ public class MediaCacheService(
     }
 
 
-    public async Task CleanUp()
+    public async Task CleanUpAsync()
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();

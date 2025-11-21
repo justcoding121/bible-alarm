@@ -28,7 +28,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
     private readonly ILogger _logger = logger;
 
 
-    public async Task ShowNotification(int scheduleId)
+    public async Task ShowNotificationAsync(int scheduleId)
     {
         try
         {
@@ -47,7 +47,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
         }
     }
 
-    public Task ScheduleNotification(AlarmSchedule schedule,
+    public Task ScheduleNotificationAsync(AlarmSchedule schedule,
         string title, string body)
     {
         var time = schedule.NextFireDate();
@@ -139,7 +139,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
         notificationManager.Cancel(scheduleId);
     }
 
-    public Task Remove(int scheduleId)
+    public Task RemoveAsync(int scheduleId)
     {
         var pIntent = FindIntent(scheduleId);
 
@@ -153,7 +153,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
         return Task.CompletedTask;
     }
 
-    public Task<bool> IsScheduled(int scheduleId)
+    public Task<bool> IsScheduledAsync(int scheduleId)
     {
         var pIntent = FindIntent(scheduleId);
         return Task.FromResult(pIntent != null);
@@ -175,7 +175,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
         return pIntent;
     }
 
-    public Task<bool> CanSchedule()
+    public Task<bool> CanScheduleAsync()
     {
         return Task.FromResult(true);
     }

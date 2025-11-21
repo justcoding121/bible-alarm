@@ -23,12 +23,12 @@ public class SchedulerService(
 
     private static readonly SemaphoreSlim Lock = new(1);
 
-    public async Task ProcessScheduledTasks()
+    public async Task ProcessScheduledTasksAsync()
     {
-        await Handle();
+        await HandleAsync();
     }
 
-    public async Task<bool> Handle()
+    public async Task<bool> HandleAsync()
     {
         var downloaded = false;
         if (await Lock.WaitAsync(1000))
@@ -36,7 +36,7 @@ public class SchedulerService(
             {
                 try
                 {
-                    await mediaCacheService.CleanUp();
+                    await mediaCacheService.CleanUpAsync();
                 }
                 catch (Exception e)
                 {
@@ -47,14 +47,14 @@ public class SchedulerService(
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                 var schedules = await scheduleDbContext.AlarmSchedules.Where(x => x.IsEnabled).ToListAsync();
                 foreach (var schedule in schedules)
-                    if (!await notificationService.IsScheduled(schedule.Id))
+                    if (!await notificationService.IsScheduledAsync(schedule.Id))
                     {
                         downloaded = true;
                         await alarmService.Create(schedule);
                     }
                     else
                     {
-                        downloaded = await mediaCacheService.SetupAlarmCache(schedule.Id);
+                        downloaded = await mediaCacheService.SetupAlarmCacheAsync(schedule.Id);
                     }
             }
             catch (Exception e)

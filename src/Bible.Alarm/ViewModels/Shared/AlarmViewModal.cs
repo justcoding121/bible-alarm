@@ -47,7 +47,7 @@ public class AlarmViewModal : ObservableObject, IDisposable,
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.Dismiss();
+            await _playbackService.StopAsync();
             
             using var scope = scopeFactory.CreateScope();
             var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -98,32 +98,32 @@ public class AlarmViewModal : ObservableObject, IDisposable,
 
         PlayCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.Play();
+            await _playbackService.PlayAsync();
         });
 
         PauseCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.Pause();
+            await _playbackService.PauseAsync();
         });
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PlayPrevious();
+            await _playbackService.PlayPreviousAsync();
         });
 
         NextCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PlayNext();
+            await _playbackService.PlayNextAsync();
         });
 
         ForwardCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.Play();
+            await _playbackService.PlayAsync();
         });
 
         BackwardCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.Pause();
+            await _playbackService.PauseAsync();
         });
 
         // Initialize properties with default values

@@ -220,7 +220,7 @@ namespace Bible.Alarm.Platforms.iOS
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
 
                 using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
-                downloaded = await schedulerService.Handle();
+                downloaded = await schedulerService.HandleAsync();
 
                 var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
                 downloaded = downloaded || await mediaIndexService.UpdateIndexIfAvailable();

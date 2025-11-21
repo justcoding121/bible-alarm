@@ -4,10 +4,10 @@ namespace Bible.Alarm.Common.Interfaces.UI;
 
 public interface INotificationService : IDisposable
 {
-    Task ShowNotification(int scheduleId);
-    Task ScheduleNotification(AlarmSchedule alarmSchedule, string title, string body);
-    Task Remove(int scheduleId);
-    Task<bool> IsScheduled(int scheduleId);
+    Task ShowNotificationAsync(int scheduleId);
+    Task ScheduleNotificationAsync(AlarmSchedule alarmSchedule, string title, string body);
+    Task RemoveAsync(int scheduleId);
+    Task<bool> IsScheduledAsync(int scheduleId);
 
-    Task<bool> CanSchedule();
+    Task<bool> CanScheduleAsync();
 }

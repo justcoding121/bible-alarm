@@ -50,7 +50,7 @@ public class SchedulerJob : JobService
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 
                 var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
-                await schedulerService.Handle();
+                await schedulerService.HandleAsync();
             }
             catch (Exception e)
             {

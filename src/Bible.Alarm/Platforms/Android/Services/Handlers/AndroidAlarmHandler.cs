@@ -21,7 +21,7 @@ public class AndroidAlarmHandler(
 
     public event EventHandler<bool> Disposed;
 
-    public async Task Handle(int scheduleId, bool isAlarm)
+    public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -54,7 +54,7 @@ public class AndroidAlarmHandler(
         {
             try
             {
-                await playbackService.PrepareAndPlay(scheduleId, isAlarm);
+                await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
 
                 _playbackServiceInitialized = true;
 

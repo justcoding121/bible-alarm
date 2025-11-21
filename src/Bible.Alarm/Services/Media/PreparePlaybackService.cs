@@ -30,7 +30,7 @@ public class PreparePlaybackService : IPreparePlaybackService
         {
             string uri;
             
-            if (await _cacheService.Exists(playItem.Url))
+            if (await _cacheService.ExistsAsync(playItem.Url))
             {
                 var cachePath = _cacheService.GetCacheFilePath(playItem.Url);
                 uri = new Uri(cachePath).AbsoluteUri;

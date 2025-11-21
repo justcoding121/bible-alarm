@@ -24,9 +24,9 @@ public class SchedulePlaybackService(
 
         try
         {
-            await playbackService.PrepareAndPlay(scheduleId, false);
+            await playbackService.PrepareAndPlayAsync(scheduleId, false);
             await toastService.ShowMessage("Your schedule will start playing in a few seconds.", 5);
-            await notificationService.ShowNotification(scheduleId);
+            await notificationService.ShowNotificationAsync(scheduleId);
         }
         catch (Exception e)
         {

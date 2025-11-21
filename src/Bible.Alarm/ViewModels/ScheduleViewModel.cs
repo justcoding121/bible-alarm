@@ -103,13 +103,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             if (IsEnabled &&
                 (DeviceInfo.Platform == DevicePlatform.iOS
                  || DeviceInfo.Platform == DevicePlatform.WinUI)
-                && !await notificationService.CanSchedule())
+                && !await notificationService.CanScheduleAsync())
                 IsEnabled = false;
 
             if (!IsNewSchedule)
                 if (playbackService.IsPrepared
                     && _scheduleId == playbackService.CurrentlyPlayingScheduleId)
-                    await playbackService.Dismiss();
+                    await playbackService.StopAsync();
 
             var saved = await SaveAsync();
 

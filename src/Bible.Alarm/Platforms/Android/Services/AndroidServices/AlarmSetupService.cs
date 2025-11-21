@@ -82,7 +82,7 @@ public class AlarmSetupService : Service, IDisposable
                         try
                         {
                             using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
-                            await schedulerService.Handle();
+                            await schedulerService.HandleAsync();
                         }
                         catch (Exception e)
                         {

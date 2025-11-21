@@ -34,7 +34,7 @@ public class ScheduleStateService(
         if (isEnabled &&
             (DeviceInfo.Platform == DevicePlatform.iOS
              || DeviceInfo.Platform == DevicePlatform.WinUI)
-            && !await _notificationService.CanSchedule())
+            && !await _notificationService.CanScheduleAsync())
         {
             if (DeviceInfo.Platform == DevicePlatform.iOS)
                 await _toastService.ShowMessage(

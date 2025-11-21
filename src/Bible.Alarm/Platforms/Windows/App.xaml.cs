@@ -105,7 +105,7 @@ namespace Bible.Alarm.WinUI
                             MauiAppHolder.CreateAndStore();
 
                             var alarmHandler = MauiAppHolder.Services.GetRequiredService<WindowsAlarmHandler>();
-                            await alarmHandler.Handle(scheduleId, true);
+                            await alarmHandler.HandleAsync(scheduleId, true);
                         }
                         catch (Exception e)
                         {
