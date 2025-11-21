@@ -73,7 +73,7 @@ public class PlaylistService(
         await scheduleDbContext.SaveChangesAsync();
     }
 
-    public async Task MarkTrackAsPlayed(NotificationDetail trackDetail)
+    public async Task MarkTrackAsPlayed(TrackMetadata trackMetadata)
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -83,15 +83,15 @@ public class PlaylistService(
         var schedule = await scheduleDbContext.AlarmSchedules
             .Include(x => x.Music)
             .Include(x => x.BibleReadingSchedule)
-            .FirstAsync(x => x.Id == trackDetail.ScheduleId);
+            .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
 
-        if (trackDetail.PlayType == PlayType.Music)
+        if (trackMetadata.PlayType == PlayType.Music)
         {
             if (schedule.Music != null && !schedule.Music.Repeat)
             {
-                schedule.Music.TrackNumber = trackDetail.TrackNumber;
+                schedule.Music.TrackNumber = trackMetadata.TrackNumber;
                 var next = await NextMusicUrlToPlay(schedule, true);
-                schedule.Music.TrackNumber = next.PlayDetail.TrackNumber;
+                schedule.Music.TrackNumber = next.Metadata.TrackNumber;
             }
         }
         else
@@ -100,13 +100,13 @@ public class PlaylistService(
             if (bibleReadingSchedule == null)
                 throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
-            if (bibleReadingSchedule.BookNumber != trackDetail.BookNumber
-                || bibleReadingSchedule.ChapterNumber != trackDetail.ChapterNumber)
+            if (bibleReadingSchedule.BookNumber != trackMetadata.BookNumber
+                || bibleReadingSchedule.ChapterNumber != trackMetadata.ChapterNumber)
                 trackChanged = true;
 
-            bibleReadingSchedule.BookNumber = trackDetail.BookNumber;
-            bibleReadingSchedule.ChapterNumber = trackDetail.ChapterNumber;
-            bibleReadingSchedule.FinishedDuration = trackDetail.FinishedDuration;
+            bibleReadingSchedule.BookNumber = trackMetadata.BookNumber;
+            bibleReadingSchedule.ChapterNumber = trackMetadata.ChapterNumber;
+            bibleReadingSchedule.FinishedDuration = trackMetadata.FinishedDuration;
         }
 
         await scheduleDbContext.SaveChangesAsync();
@@ -114,7 +114,7 @@ public class PlaylistService(
         if (trackChanged) WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
     }
 
-    public async Task MarkTrackAsFinished(NotificationDetail trackDetail)
+    public async Task MarkTrackAsFinished(TrackMetadata trackMetadata)
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -122,14 +122,14 @@ public class PlaylistService(
         var schedule = await scheduleDbContext.AlarmSchedules
             .Include(x => x.Music)
             .Include(x => x.BibleReadingSchedule)
-            .FirstAsync(x => x.Id == trackDetail.ScheduleId);
+            .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
 
-        if (trackDetail.PlayType == PlayType.Music)
+        if (trackMetadata.PlayType == PlayType.Music)
         {
             if (schedule.Music != null && !schedule.Music.Repeat)
             {
                 var next = await NextMusicUrlToPlay(schedule, true);
-                schedule.Music.TrackNumber = next.PlayDetail.TrackNumber;
+                schedule.Music.TrackNumber = next.Metadata.TrackNumber;
             }
         }
         else
@@ -138,8 +138,8 @@ public class PlaylistService(
             if (bibleReadingSchedule == null)
                 throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
-            var next = await GetNextBibleChapter(trackDetail.LanguageCode, trackDetail.PublicationCode,
-                trackDetail.BookNumber, trackDetail.ChapterNumber);
+            var next = await GetNextBibleChapter(trackMetadata.LanguageCode, trackMetadata.PublicationCode,
+                trackMetadata.BookNumber, trackMetadata.ChapterNumber);
 
             if (next.Key == null || next.Value == null)
                 throw new InvalidOperationException($"Next chapter Key or Value is null");
@@ -186,7 +186,7 @@ public class PlaylistService(
         var url = chapterDetail.Source.Url;
         var lookUpPath = chapterDetail.Source.LookUpPath;
 
-        var notificationDetail = new NotificationDetail
+        var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
             PublicationCode = publicationCode,
@@ -197,7 +197,7 @@ public class PlaylistService(
             IsLastTrack = false
         };
 
-        return new PlayItem(notificationDetail, url);
+        return new PlayItem(trackMetadata, url);
     }
 
     public async Task<List<PlayItem>> NextTracks(int scheduleId)
@@ -248,7 +248,7 @@ public class PlaylistService(
 
         while (numberOfChaptersToRead > 0)
         {
-            var notificationDetail = new NotificationDetail
+            var trackMetadata = new TrackMetadata
             {
                 ScheduleId = scheduleId,
                 PublicationCode = publicationCode,
@@ -256,21 +256,20 @@ public class PlaylistService(
                 LookUpPath = lookUpPath,
                 BookNumber = bookNumber,
                 ChapterNumber = chapter,
-                IsLastTrack = numberOfChaptersToRead == 1 ? true : false
+                IsLastTrack = numberOfChaptersToRead == 1
             };
 
-            //resume from where it was stopped last time
             if (!markedSeekTrack
                 && !schedule.AlwaysPlayFromStart
                 && !bibleReadingSchedule.FinishedDuration.Equals(TimeSpan.Zero)
-                && bibleReadingSchedule.LanguageCode == notificationDetail.LanguageCode
-                && bibleReadingSchedule.PublicationCode == notificationDetail.PublicationCode
-                && bookNumber == notificationDetail.BookNumber)
-                notificationDetail.FinishedDuration = bibleReadingSchedule.FinishedDuration;
+                && bibleReadingSchedule.LanguageCode == trackMetadata.LanguageCode
+                && bibleReadingSchedule.PublicationCode == trackMetadata.PublicationCode
+                && bookNumber == trackMetadata.BookNumber)
+                trackMetadata.FinishedDuration = bibleReadingSchedule.FinishedDuration;
 
             markedSeekTrack = true;
 
-            result.Add(new PlayItem(notificationDetail, url));
+            result.Add(new PlayItem(trackMetadata, url));
 
             numberOfChaptersToRead--;
 
@@ -486,7 +485,7 @@ public class PlaylistService(
                 if (melodyTrack.Source == null)
                     throw new InvalidOperationException($"Melody track {melodyTrackIndex} Source is null");
                 
-                return new PlayItem(new NotificationDetail
+                return new PlayItem(new TrackMetadata
                 {
                     ScheduleId = schedule.Id,
                     PublicationCode = melodyMusic.PublicationCode,
@@ -509,7 +508,7 @@ public class PlaylistService(
                 if (vocalTrack.Source == null)
                     throw new InvalidOperationException($"Vocal track {vocalTrackIndex} Source is null");
                 
-                return new PlayItem(new NotificationDetail
+                return new PlayItem(new TrackMetadata
                 {
                     ScheduleId = schedule.Id,
                     PublicationCode = vocalMusic.PublicationCode,

@@ -81,39 +81,38 @@ public class MediaCacheService(
                         }
                         else
                         {
-                            var playDetail = playItem.PlayDetail;
+                            var trackMetadata = playItem.Metadata;
 
                             string url;
 
-                            if (playDetail.PlayType == PlayType.Bible)
+                            if (trackMetadata.PlayType == PlayType.Bible)
                             {
-                                url = await GetBibleChapterUrl(playDetail.LanguageCode, playDetail.PublicationCode,
-                                    playDetail.BookNumber, playDetail.ChapterNumber, playDetail.LookUpPath);
+                                url = await GetBibleChapterUrl(trackMetadata.LanguageCode, trackMetadata.PublicationCode,
+                                    trackMetadata.BookNumber, trackMetadata.ChapterNumber, trackMetadata.LookUpPath);
                                 if (url != null && url != playItem.Url)
                                 {
-                                    await mediaService.UpdateBibleTrackUrl(playDetail.LanguageCode,
-                                        playDetail.PublicationCode, playDetail.BookNumber, playDetail.ChapterNumber,
+                                    await mediaService.UpdateBibleTrackUrl(trackMetadata.LanguageCode,
+                                        trackMetadata.PublicationCode, trackMetadata.BookNumber, trackMetadata.ChapterNumber,
                                         url);
                                     _logger.Warning($"Updated URL to {url} for {playItem}");
                                 }
                                 else
                                 {
-                                    //url haven't changed, just that download failed.
                                     break;
                                 }
                             }
                             else
                             {
-                                url = await GetMusicTrackUrl(playDetail.LanguageCode, playDetail.LookUpPath);
+                                url = await GetMusicTrackUrl(trackMetadata.LanguageCode, trackMetadata.LookUpPath);
 
                                 if (url != null && url != playItem.Url)
                                 {
-                                    if (playDetail.LanguageCode == null)
-                                        await mediaService.UpdateMelodyTrackUrl(playDetail.PublicationCode,
-                                            playDetail.TrackNumber, url);
+                                    if (trackMetadata.LanguageCode == null)
+                                        await mediaService.UpdateMelodyTrackUrl(trackMetadata.PublicationCode,
+                                            trackMetadata.TrackNumber, url);
                                     else
-                                        await mediaService.UpdateVocalTrackUrl(playDetail.LanguageCode,
-                                            playDetail.PublicationCode, playDetail.TrackNumber, url);
+                                        await mediaService.UpdateVocalTrackUrl(trackMetadata.LanguageCode,
+                                            trackMetadata.PublicationCode, trackMetadata.TrackNumber, url);
 
                                     _logger.Warning($"Updated URL to {url} for {playItem}");
                                 }

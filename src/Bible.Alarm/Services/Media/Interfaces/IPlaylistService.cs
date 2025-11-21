@@ -5,8 +5,8 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IPlaylistService : IDisposable
 {
-    Task MarkTrackAsPlayed(NotificationDetail trackDetail);
-    Task MarkTrackAsFinished(NotificationDetail trackDetail);
+    Task MarkTrackAsPlayed(TrackMetadata trackMetadata);
+    Task MarkTrackAsFinished(TrackMetadata trackMetadata);
     Task<PlayItem> NextTrack(int scheduleId);
     Task<List<PlayItem>> NextTracks(int scheduleId);
     Task SaveLastPlayed(int currentScheduleId);
