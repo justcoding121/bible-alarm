@@ -1,7 +1,9 @@
 #nullable enable
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -47,27 +49,36 @@ public class PlaybackService : IPlaybackService
             return;
         }
 
+        WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
+
         try
         {
             _currentScheduleId = scheduleId;
             _playlist = await _preparePlaybackService.PrepareTracksAsync(scheduleId);
-            _currentTrackIndex = 0;
 
-            if (_playlist == null || _playlist.Count == 0)
+            if (_playlist == null)
             {
-                _logger.Warning($"No tracks prepared for schedule {scheduleId}");
-                _currentScheduleId = null;
+                _logger.Warning($"Failed to prepare tracks for schedule {scheduleId}");
+                WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
+                await ResetAsync();
                 return;
             }
 
+            if (_playlist.Count == 0)
+            {
+                _logger.Warning($"No tracks prepared for schedule {scheduleId}");
+                await ResetAsync();
+                return;
+            }
+
+            _currentTrackIndex = 0;
             await PlayCurrentTrackAsync();
         }
         catch (Exception ex)
         {
             _logger.Error(ex, $"Error preparing and playing schedule {scheduleId}");
-            _currentScheduleId = null;
-            _playlist = null;
-            _currentTrackIndex = -1;
+            await ResetAsync();
             throw;
         }
     }
@@ -135,6 +146,19 @@ public class PlaybackService : IPlaybackService
             await _playlistService.SaveLastPlayed(_currentScheduleId.Value);
         }
 
+        await ResetAsync();
+
+        WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+    }
+
+    private async Task ResetAsync()
+    {
+        await _audioPlayer.ResetAsync();
+        ResetState();
+    }
+
+    private void ResetState()
+    {
         _currentScheduleId = null;
         _playlist = null;
         _currentTrackIndex = -1;

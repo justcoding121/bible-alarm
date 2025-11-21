@@ -1,4 +1,5 @@
 ﻿using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -210,6 +211,37 @@ public class MediaService(
             await dbContext.SaveChangesAsync();
             return Task.CompletedTask;
         });
+    }
+
+    public async Task UpdateTrackUrlAsync(TrackMetadata trackMetadata, string url)
+    {
+        if (trackMetadata.PlayType == PlayType.Bible)
+        {
+            await UpdateBibleTrackUrl(
+                trackMetadata.LanguageCode,
+                trackMetadata.PublicationCode,
+                trackMetadata.BookNumber,
+                trackMetadata.ChapterNumber,
+                url);
+        }
+        else
+        {
+            if (trackMetadata.LanguageCode == null)
+            {
+                await UpdateMelodyTrackUrl(
+                    trackMetadata.PublicationCode,
+                    trackMetadata.TrackNumber,
+                    url);
+            }
+            else
+            {
+                await UpdateVocalTrackUrl(
+                    trackMetadata.LanguageCode,
+                    trackMetadata.PublicationCode,
+                    trackMetadata.TrackNumber,
+                    url);
+            }
+        }
     }
 
     public void Dispose()

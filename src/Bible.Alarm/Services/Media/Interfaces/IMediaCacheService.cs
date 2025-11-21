@@ -1,3 +1,6 @@
+#nullable enable
+using Bible.Alarm.Shared.Models.Media;
+
 namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IMediaCacheService : IDisposable
@@ -8,5 +11,6 @@ public interface IMediaCacheService : IDisposable
 
     Task<bool> SetupAlarmCacheAsync(int alarmScheduleId);
     Task CleanUpAsync();
+    Task<string?> GetOrDownloadTrackUriAsync(PlayItem playItem);
 }
 

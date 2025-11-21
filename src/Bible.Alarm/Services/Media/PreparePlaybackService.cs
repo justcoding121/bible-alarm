@@ -21,23 +21,19 @@ public class PreparePlaybackService : IPreparePlaybackService
         _cacheService = cacheService;
     }
 
-    public async Task<List<AudioPlayerTrack>> PrepareTracksAsync(int scheduleId)
+    public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
     {
         var playItems = await _playlistService.NextTracks(scheduleId);
         var preparedTracks = new List<AudioPlayerTrack>();
 
         foreach (var playItem in playItems)
         {
-            string uri;
+            var uri = await _cacheService.GetOrDownloadTrackUriAsync(playItem);
             
-            if (await _cacheService.ExistsAsync(playItem.Url))
+            if (uri == null)
             {
-                var cachePath = _cacheService.GetCacheFilePath(playItem.Url);
-                uri = new Uri(cachePath).AbsoluteUri;
-            }
-            else
-            {
-                uri = playItem.Url;
+                _logger.Warning($"Failed to download {playItem.Url}");
+                return null;
             }
 
             preparedTracks.Add(new AudioPlayerTrack

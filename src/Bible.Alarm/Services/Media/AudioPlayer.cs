@@ -9,6 +9,8 @@ using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
+using TagLib;
+using SystemFile = System.IO.File;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -17,12 +19,10 @@ public class AudioPlayer : IAudioPlayer
     private static readonly ObservableMessenger AudioMessenger = new();
 
     private readonly ILogger _logger;
-    private readonly IMediaUrlRefreshService _urlRefreshService;
     private readonly MediaElement _mediaElement;
     private System.Timers.Timer? _positionTimer;
 
     private AudioPlayerTrack? _currentTrack;
-    private bool _hasRetriedUrl = false;
 
     public TimeSpan? CurrentPosition => _mediaElement.Position;
     public TimeSpan Duration => _mediaElement.Duration;
@@ -31,10 +31,9 @@ public class AudioPlayer : IAudioPlayer
     public event EventHandler<EventArgs>? MediaEnded;
     public event EventHandler<EventArgs>? MediaFailed;
 
-    public AudioPlayer(ILogger logger, INavigationService navigationService, IMediaUrlRefreshService urlRefreshService)
+    public AudioPlayer(ILogger logger, INavigationService navigationService)
     {
         _logger = logger;
-        _urlRefreshService = urlRefreshService;
         _mediaElement = navigationService.GetMediaElement();
 
         _mediaElement.StateChanged += OnStateChanged;
@@ -64,7 +63,6 @@ public class AudioPlayer : IAudioPlayer
         });
 
         _currentTrack = track;
-        _hasRetriedUrl = false;
         Status = PlayStatus.Loading;
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -93,7 +91,7 @@ public class AudioPlayer : IAudioPlayer
             _logger.Error(ex, "Metadata extraction failed");
             var fallbackMeta = new MetaData
             {
-                Title = Path.GetFileNameWithoutExtension(_currentTrack.Uri),
+                Title = "Unknown Title",
                 Artist = "Unknown Artist"
             };
             await ApplyMetadataToMediaElement(fallbackMeta);
@@ -123,15 +121,52 @@ public class AudioPlayer : IAudioPlayer
 
     private async Task<MetaData> ExtractMetadataAsync(string uri)
     {
-        await Task.Delay(100);
-
-        var meta = new MetaData
+        return await Task.Run(() =>
         {
-            Title = Path.GetFileNameWithoutExtension(uri),
-            Artist = "Unknown Artist"
-        };
+            try
+            {
+                // Convert file:// URI to local path, or use URI as-is if already a file path
+                string filePath = uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
+                    ? new Uri(uri).LocalPath
+                    : uri;
 
-        return meta;
+                // Extract metadata using TagLibSharp
+                using var file = TagLib.File.Create(filePath);
+                var tag = file.Tag;
+
+                var meta = new MetaData
+                {
+                    Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : Path.GetFileNameWithoutExtension(filePath),
+                    Artist = !string.IsNullOrEmpty(tag.FirstPerformer) ? tag.FirstPerformer : 
+                             !string.IsNullOrEmpty(tag.FirstAlbumArtist) ? tag.FirstAlbumArtist : 
+                             "Unknown Artist",
+                    Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
+                };
+
+                // Extract artwork if available
+                if (tag.Pictures != null && tag.Pictures.Length > 0)
+                {
+                    var picture = tag.Pictures[0];
+                    if (picture?.Data?.Data != null)
+                    {
+                        meta.ArtworkBytes = picture.Data.Data;
+                    }
+                }
+
+                return meta;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, $"Failed to extract metadata from {uri}");
+                
+                // Return fallback metadata
+                return new MetaData
+                {
+                    Title = Path.GetFileNameWithoutExtension(uri),
+                    Artist = "Unknown Artist"
+                };
+            }
+        });
     }
 
     private async Task ApplyMetadataToMediaElement(MetaData meta)
@@ -144,7 +179,7 @@ public class AudioPlayer : IAudioPlayer
             if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
             {
                 var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
-                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                SystemFile.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 _mediaElement.MetadataArtworkUrl = artworkPath;
             }
             else if (!string.IsNullOrEmpty(meta.ArtworkUrl))
@@ -160,35 +195,10 @@ public class AudioPlayer : IAudioPlayer
         MediaEnded?.Invoke(this, EventArgs.Empty);
     }
 
-    private async void OnMediaFailed(object? sender, EventArgs e)
+    private void OnMediaFailed(object? sender, EventArgs e)
     {
-        if (!_hasRetriedUrl && _currentTrack != null && IsHttpUrl(_currentTrack.Uri))
-        {
-            _hasRetriedUrl = true;
-            var refreshedUrl = await _urlRefreshService.RefreshUrlAsync(_currentTrack.PlayItem.Metadata);
-            
-            if (!string.IsNullOrEmpty(refreshedUrl) && refreshedUrl != _currentTrack.Uri)
-            {
-                _logger.Information($"Refreshed URL from {_currentTrack.Uri} to {refreshedUrl}");
-                var refreshedTrack = new AudioPlayerTrack
-                {
-                    Uri = refreshedUrl,
-                    PlayItem = _currentTrack.PlayItem
-                };
-                await PrepareAsync(refreshedTrack);
-                await PlayAsync();
-                return;
-            }
-        }
-
         Status = PlayStatus.Failed;
         MediaFailed?.Invoke(this, EventArgs.Empty);
-    }
-
-    private bool IsHttpUrl(string uri)
-    {
-        return uri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-               uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnStateChanged(object? sender, MediaStateChangedEventArgs e)
@@ -243,6 +253,20 @@ public class AudioPlayer : IAudioPlayer
     public Task StopAsync()
     {
         return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.Stop());
+    }
+
+    public async Task ResetAsync()
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _mediaElement.Stop();
+            _mediaElement.Source = null;
+        });
+        
+        Status = PlayStatus.Stopped;
+        _currentTrack = null;
+        _positionTimer?.Stop();
+        SendStatusMessage();
     }
 
     public Task SeekToAsync(TimeSpan position)

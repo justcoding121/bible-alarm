@@ -16,6 +16,8 @@ public interface IAudioPlayer : IDisposable
 
     Task StopAsync();
 
+    Task ResetAsync();
+
     Task SeekToAsync(TimeSpan position);
 
     TimeSpan? CurrentPosition { get; }

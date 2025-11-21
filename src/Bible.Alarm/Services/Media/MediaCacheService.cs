@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Concurrent;
 using System.Text;
 using Bible.Alarm.Common.Helpers;
@@ -88,74 +89,63 @@ public class MediaCacheService(
 
             downloaded = true;
 
-            var success = await DownloadAndCacheTrackAsync(playItem);
-            if (!success) break;
+            var cachedUrl = await DownloadAndCacheTrackAsync(playItem);
+            if (cachedUrl == null) break;
         }
 
         return downloaded;
     }
 
-    private async Task<bool> DownloadAndCacheTrackAsync(PlayItem playItem)
+    public async Task<string?> GetOrDownloadTrackUriAsync(PlayItem playItem)
+    {
+        // Check if file exists in cache
+        if (await ExistsAsync(playItem.Url))
+        {
+            var cachedFilePath = GetCacheFilePath(playItem.Url);
+            return new Uri(cachedFilePath).AbsoluteUri;
+        }
+
+        // Download and cache the file
+        var cachedUrl = await DownloadAndCacheTrackAsync(playItem);
+        if (cachedUrl == null)
+        {
+            return null;
+        }
+
+        var downloadedFilePath = GetCacheFilePath(cachedUrl);
+        return new Uri(downloadedFilePath).AbsoluteUri;
+    }
+
+    private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem)
     {
         var bytes = await downloadService.DownloadAsync(playItem.Url);
 
         if (bytes != null)
         {
             await storageService.SaveFile(_cacheRoot, GetCacheFileName(playItem.Url), bytes);
-            return true;
+            return playItem.Url;
         }
 
         return await RefreshUrlAndRetryDownloadAsync(playItem);
     }
 
-    private async Task<bool> RefreshUrlAndRetryDownloadAsync(PlayItem playItem)
+    private async Task<string?> RefreshUrlAndRetryDownloadAsync(PlayItem playItem)
     {
         var trackMetadata = playItem.Metadata;
         var refreshedUrl = await _urlRefreshService.RefreshUrlAsync(trackMetadata);
 
         if (refreshedUrl == null || refreshedUrl == playItem.Url)
-            return false;
+            return null;
 
-        await UpdateTrackUrlInDatabaseAsync(trackMetadata, refreshedUrl);
+        await mediaService.UpdateTrackUrlAsync(trackMetadata, refreshedUrl);
         _logger.Warning($"Refreshed URL from {playItem.Url} to {refreshedUrl} for {playItem}");
 
         var bytes = await downloadService.DownloadAsync(refreshedUrl);
-        if (bytes == null) return false;
+        if (bytes == null) return null;
 
         await storageService.SaveFile(_cacheRoot, GetCacheFileName(refreshedUrl), bytes);
         _logger.Warning($"Downloaded using updated URL {refreshedUrl} for {playItem}");
-        return true;
-    }
-
-    private async Task UpdateTrackUrlInDatabaseAsync(TrackMetadata trackMetadata, string url)
-    {
-        if (trackMetadata.PlayType == PlayType.Bible)
-        {
-            await mediaService.UpdateBibleTrackUrl(
-                trackMetadata.LanguageCode,
-                trackMetadata.PublicationCode,
-                trackMetadata.BookNumber,
-                trackMetadata.ChapterNumber,
-                url);
-        }
-        else
-        {
-            if (trackMetadata.LanguageCode == null)
-            {
-                await mediaService.UpdateMelodyTrackUrl(
-                    trackMetadata.PublicationCode,
-                    trackMetadata.TrackNumber,
-                    url);
-            }
-            else
-            {
-                await mediaService.UpdateVocalTrackUrl(
-                    trackMetadata.LanguageCode,
-                    trackMetadata.PublicationCode,
-                    trackMetadata.TrackNumber,
-                    url);
-            }
-        }
+        return refreshedUrl;
     }
 
 

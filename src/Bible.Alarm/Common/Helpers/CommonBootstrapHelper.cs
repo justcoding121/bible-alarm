@@ -25,7 +25,7 @@ public static class CommonBootstrapHelper
             // This ensures databases are initialized before the message is sent
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                WeakReferenceMessenger.Default.Send(new InitializedMessage(true));
+                WeakReferenceMessenger.Default.Send(new InitializedMessage());
             });
         }
         finally

@@ -4,29 +4,24 @@ using Bible.Alarm.Services.Media.Models;
 namespace Bible.Alarm.Common.Messenger;
 
 // Message classes for WeakReferenceMessenger
-public class InitializedMessage(bool value)
+public class InitializedMessage
 {
-    public bool Value { get; } = value;
 }
 
-public class ShowAlarmModalMessage(object value)
+public class ShowAlarmModalMessage
 {
-    public object Value { get; } = value;
 }
 
-public class HideAlarmModalMessage(object value)
+public class HideAlarmModalMessage
 {
-    public object Value { get; } = value;
 }
 
-public class ShowMediaProgressModalMessage(object value)
+public class ShowMediaProgressModalMessage
 {
-    public object Value { get; } = value;
 }
 
-public class HideMediaProgressModalMessage(object value)
+public class HideMediaProgressModalMessage
 {
-    public object Value { get; } = value;
 }
 
 public class MediaProgressMessage(object value)
@@ -39,14 +34,13 @@ public class TrackChangedMessage(int value)
     public int Value { get; } = value;
 }
 
-public class ShowToastMessage(object value)
+public class ShowToastMessage(string value)
 {
-    public object Value { get; } = value;
+    public string Value { get; } = value;
 }
 
-public class ClearToastsMessage(object value)
+public class ClearToastsMessage
 {
-    public object Value { get; } = value;
 }
 
 public class AudioMetadataMessage
