@@ -29,7 +29,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IAudioPreviewer _playService;
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
-    private readonly IMediaCacheService _cacheService;
+    private readonly IMediaUrlRefreshService _urlRefreshService;
     private readonly IDownloadService _downloadService;
     private readonly IState<ApplicationState> _state;
     private readonly IDispatcher _dispatcher;
@@ -44,7 +44,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         IAudioPreviewer playService,
         INavigationService navigationService,
         IDownloadService downloadService,
-        IMediaCacheService cacheService,
+        IMediaUrlRefreshService urlRefreshService,
         IState<ApplicationState> state,
         IDispatcher dispatcher)
     {
@@ -53,7 +53,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _toastService = toastService;
         _playService = playService;
         _downloadService = downloadService;
-        _cacheService = cacheService;
+        _urlRefreshService = urlRefreshService;
 
         _state = state;
         _dispatcher = dispatcher;
@@ -218,7 +218,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
                 await Task.Run(async () =>
                 {
                     if (!await _downloadService.FileExists(url))
-                        url = await _cacheService.GetBibleChapterUrl(
+                        url = await _urlRefreshService.GetBibleChapterUrl(
                             _tentative.LanguageCode,
                             _tentative.PublicationCode,
                             _tentative.BookNumber,

@@ -28,7 +28,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IAudioPreviewer _playService;
-    private readonly IMediaCacheService _cacheService;
+    private readonly IMediaUrlRefreshService _urlRefreshService;
     private readonly IDownloadService _downloadService;
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
@@ -46,7 +46,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         IAudioPreviewer playService,
         INavigationService navigationService,
         IDownloadService downloadService,
-        IMediaCacheService cacheService,
+        IMediaUrlRefreshService urlRefreshService,
         IState<ApplicationState> state,
         IDispatcher dispatcher)
     {
@@ -55,7 +55,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _toastService = toastService;
         _playService = playService;
         _downloadService = downloadService;
-        _cacheService = cacheService;
+        _urlRefreshService = urlRefreshService;
         
         _state = state;
         _dispatcher = dispatcher;
@@ -233,7 +233,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                 await Task.Run(async () =>
                 {
                     if (!await _downloadService.FileExists(url))
-                        url = await _cacheService.GetMusicTrackUrl(
+                        url = await _urlRefreshService.GetMusicTrackUrl(
                             _tentative.LanguageCode,
                             track.LookUpPath);
 

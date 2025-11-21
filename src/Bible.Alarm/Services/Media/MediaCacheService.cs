@@ -5,10 +5,8 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -20,11 +18,13 @@ public class MediaCacheService(
     IPlaylistService mediaPlayService,
     IServiceScopeFactory scopeFactory,
     MediaService mediaService,
-    INetworkStatusService networkStatusService)
+    INetworkStatusService networkStatusService,
+    IMediaUrlRefreshService urlRefreshService)
     : IMediaCacheService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IMediaUrlRefreshService _urlRefreshService = urlRefreshService;
 
     // Use StorageRoot instead of CacheRoot to ensure media cache is in a permanent location
     // that the OS won't delete. We manage the cache ourselves.
@@ -85,27 +85,17 @@ public class MediaCacheService(
 
                             string url;
 
-                            if (trackMetadata.PlayType == PlayType.Bible)
+                            url = await _urlRefreshService.RefreshUrlAsync(trackMetadata);
+
+                            if (url != null && url != playItem.Url)
                             {
-                                url = await GetBibleChapterUrl(trackMetadata.LanguageCode, trackMetadata.PublicationCode,
-                                    trackMetadata.BookNumber, trackMetadata.ChapterNumber, trackMetadata.LookUpPath);
-                                if (url != null && url != playItem.Url)
+                                if (trackMetadata.PlayType == PlayType.Bible)
                                 {
                                     await mediaService.UpdateBibleTrackUrl(trackMetadata.LanguageCode,
                                         trackMetadata.PublicationCode, trackMetadata.BookNumber, trackMetadata.ChapterNumber,
                                         url);
-                                    _logger.Warning($"Updated URL to {url} for {playItem}");
                                 }
                                 else
-                                {
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                url = await GetMusicTrackUrl(trackMetadata.LanguageCode, trackMetadata.LookUpPath);
-
-                                if (url != null && url != playItem.Url)
                                 {
                                     if (trackMetadata.LanguageCode == null)
                                         await mediaService.UpdateMelodyTrackUrl(trackMetadata.PublicationCode,
@@ -113,14 +103,13 @@ public class MediaCacheService(
                                     else
                                         await mediaService.UpdateVocalTrackUrl(trackMetadata.LanguageCode,
                                             trackMetadata.PublicationCode, trackMetadata.TrackNumber, url);
+                                }
 
-                                    _logger.Warning($"Updated URL to {url} for {playItem}");
-                                }
-                                else
-                                {
-                                    //url haven't changed, just that download failed.
-                                    break;
-                                }
+                                _logger.Warning($"Refreshed URL from {playItem.Url} to {url} for {playItem}");
+                            }
+                            else
+                            {
+                                break;
                             }
 
                             if (url != null) bytes = await downloadService.DownloadAsync(url);
@@ -157,58 +146,6 @@ public class MediaCacheService(
         return downloaded;
     }
 
-    private static readonly string[] JwOrgUrls =
-    [
-        UrlHelper.JwOrgIndexServiceBaseUrl,
-        AppConstants.ApiEndpoints.JwOrgAlternativeIndexServiceUrl
-    ];
-
-    public async Task<string> GetBibleChapterUrl(string languageCode, string pubCode, int bookNumber, int chapter,
-        string lookUpPath)
-    {
-        try
-        {
-            byte[] tes;
-
-            var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
-            var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
-            tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
-            var jsonString = Encoding.Default.GetString(tes);
-            using var doc = JsonDocument.Parse(jsonString);
-            var root = doc.RootElement;
-
-            return root.GetProperty("files").GetProperty(languageCode).GetProperty("MP3")[0].GetProperty("file").GetProperty("url").GetString();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public async Task<string> GetMusicTrackUrl(string languageCode, string lookUpPath)
-    {
-        try
-        {
-            var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
-            var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
-
-            var tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
-            var jsonString = Encoding.Default.GetString(tes);
-            using var doc = JsonDocument.Parse(jsonString);
-            var root = doc.RootElement;
-
-            var lc = languageCode ?? AppConstants.Media.DefaultLanguageCode;
-
-            //patch for bad data
-            if (lc == AppConstants.Media.LanguageCodePatchFrom) lc = AppConstants.Media.LanguageCodePatchTo;
-
-            return root.GetProperty("files").GetProperty(lc).GetProperty("MP3")[0].GetProperty("file").GetProperty("url").GetString();
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     public async Task CleanUp()
     {

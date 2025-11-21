@@ -21,10 +21,10 @@ public class PreparePlaybackService : IPreparePlaybackService
         _cacheService = cacheService;
     }
 
-    public async Task<List<PreparedTrack>> PrepareTracksAsync(int scheduleId)
+    public async Task<List<AudioPlayerTrack>> PrepareTracksAsync(int scheduleId)
     {
         var playItems = await _playlistService.NextTracks(scheduleId);
-        var preparedTracks = new List<PreparedTrack>();
+        var preparedTracks = new List<AudioPlayerTrack>();
 
         foreach (var playItem in playItems)
         {
@@ -40,7 +40,7 @@ public class PreparePlaybackService : IPreparePlaybackService
                 uri = playItem.Url;
             }
 
-            preparedTracks.Add(new PreparedTrack
+            preparedTracks.Add(new AudioPlayerTrack
             {
                 Uri = uri,
                 PlayItem = playItem

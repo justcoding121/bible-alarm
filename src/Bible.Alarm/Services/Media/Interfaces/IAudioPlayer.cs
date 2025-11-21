@@ -1,11 +1,12 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IAudioPlayer : IDisposable
 {
-    Task PrepareAsync(string uri);
+    Task PrepareAsync(AudioPlayerTrack track);
 
     Task PlayAsync();
 

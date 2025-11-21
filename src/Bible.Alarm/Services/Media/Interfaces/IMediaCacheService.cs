@@ -8,10 +8,5 @@ public interface IMediaCacheService : IDisposable
 
     Task<bool> SetupAlarmCache(int alarmScheduleId);
     Task CleanUp();
-
-    Task<string> GetMusicTrackUrl(string languageCode, string lookUpPath);
-
-    Task<string> GetBibleChapterUrl(string languageCode, string pubCode, int bookNumber, int chapter,
-        string lookUpPath);
 }
 

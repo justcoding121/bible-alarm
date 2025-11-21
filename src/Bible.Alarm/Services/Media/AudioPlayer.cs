@@ -2,6 +2,8 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Services.UI.Interfaces;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
@@ -15,10 +17,12 @@ public class AudioPlayer : IAudioPlayer
     private static readonly ObservableMessenger AudioMessenger = new();
 
     private readonly ILogger _logger;
+    private readonly IMediaUrlRefreshService _urlRefreshService;
     private readonly MediaElement _mediaElement;
     private System.Timers.Timer? _positionTimer;
 
-    private string _currentUri = string.Empty;
+    private AudioPlayerTrack? _currentTrack;
+    private bool _hasRetriedUrl = false;
 
     public TimeSpan? CurrentPosition => _mediaElement.Position;
     public TimeSpan Duration => _mediaElement.Duration;
@@ -27,9 +31,10 @@ public class AudioPlayer : IAudioPlayer
     public event EventHandler<EventArgs>? MediaEnded;
     public event EventHandler<EventArgs>? MediaFailed;
 
-    public AudioPlayer(ILogger logger, INavigationService navigationService)
+    public AudioPlayer(ILogger logger, INavigationService navigationService, IMediaUrlRefreshService urlRefreshService)
     {
         _logger = logger;
+        _urlRefreshService = urlRefreshService;
         _mediaElement = navigationService.GetMediaElement();
 
         _mediaElement.StateChanged += OnStateChanged;
@@ -43,10 +48,12 @@ public class AudioPlayer : IAudioPlayer
         _positionTimer.AutoReset = true;
     }
 
-    public async Task PrepareAsync(string uri)
+    public async Task PrepareAsync(AudioPlayerTrack track)
     {
-        if (string.IsNullOrEmpty(uri))
-            throw new ArgumentException("URI cannot be null or empty");
+        if (track == null)
+            throw new ArgumentNullException(nameof(track));
+        if (string.IsNullOrEmpty(track.Uri))
+            throw new ArgumentException("Track URI cannot be null or empty", nameof(track));
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
@@ -56,12 +63,13 @@ public class AudioPlayer : IAudioPlayer
             }
         });
 
-        _currentUri = uri;
+        _currentTrack = track;
+        _hasRetriedUrl = false;
         Status = PlayStatus.Loading;
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            _mediaElement.Source = uri;
+            _mediaElement.Source = track.Uri;
         });
     }
 
@@ -72,9 +80,11 @@ public class AudioPlayer : IAudioPlayer
 
     private async void OnMediaOpened(object? sender, EventArgs e)
     {
+        if (_currentTrack == null) return;
+
         try
         {
-            var metadata = await ExtractMetadataAsync(_currentUri);
+            var metadata = await ExtractMetadataAsync(_currentTrack.Uri);
             await ApplyMetadataToMediaElement(metadata);
             SendMetadataMessage(metadata);
         }
@@ -83,7 +93,7 @@ public class AudioPlayer : IAudioPlayer
             _logger.Error(ex, "Metadata extraction failed");
             var fallbackMeta = new MetaData
             {
-                Title = Path.GetFileNameWithoutExtension(_currentUri),
+                Title = Path.GetFileNameWithoutExtension(_currentTrack.Uri),
                 Artist = "Unknown Artist"
             };
             await ApplyMetadataToMediaElement(fallbackMeta);
@@ -150,10 +160,35 @@ public class AudioPlayer : IAudioPlayer
         MediaEnded?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnMediaFailed(object? sender, EventArgs e)
+    private async void OnMediaFailed(object? sender, EventArgs e)
     {
+        if (!_hasRetriedUrl && _currentTrack != null && IsHttpUrl(_currentTrack.Uri))
+        {
+            _hasRetriedUrl = true;
+            var refreshedUrl = await _urlRefreshService.RefreshUrlAsync(_currentTrack.PlayItem.Metadata);
+            
+            if (!string.IsNullOrEmpty(refreshedUrl) && refreshedUrl != _currentTrack.Uri)
+            {
+                _logger.Information($"Refreshed URL from {_currentTrack.Uri} to {refreshedUrl}");
+                var refreshedTrack = new AudioPlayerTrack
+                {
+                    Uri = refreshedUrl,
+                    PlayItem = _currentTrack.PlayItem
+                };
+                await PrepareAsync(refreshedTrack);
+                await PlayAsync();
+                return;
+            }
+        }
+
         Status = PlayStatus.Failed;
         MediaFailed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool IsHttpUrl(string uri)
+    {
+        return uri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+               uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnStateChanged(object? sender, MediaStateChangedEventArgs e)
