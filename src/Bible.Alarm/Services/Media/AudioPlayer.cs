@@ -9,8 +9,7 @@ using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
-using TagLib;
-using SystemFile = System.IO.File;
+using System.IO;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -20,6 +19,7 @@ public class AudioPlayer : IAudioPlayer
 
     private readonly ILogger _logger;
     private readonly MediaElement _mediaElement;
+    private readonly IDisplayMetadataService _displayMetadataService;
     private System.Timers.Timer? _positionTimer;
 
     private AudioPlayerTrack? _currentTrack;
@@ -32,10 +32,11 @@ public class AudioPlayer : IAudioPlayer
     public event EventHandler<EventArgs>? MediaEnded;
     public event EventHandler<EventArgs>? MediaFailed;
 
-    public AudioPlayer(ILogger logger, INavigationService navigationService)
+    public AudioPlayer(ILogger logger, INavigationService navigationService, IDisplayMetadataService displayMetadataService)
     {
         _logger = logger;
         _mediaElement = navigationService.GetMediaElement();
+        _displayMetadataService = displayMetadataService;
 
         _mediaElement.StateChanged += OnStateChanged;
         _mediaElement.MediaEnded += OnMediaEnded;
@@ -96,7 +97,7 @@ public class AudioPlayer : IAudioPlayer
 
         try
         {
-            var metadata = await ExtractMetadataAsync(_currentTrack.Uri);
+            var metadata = await _displayMetadataService.GetDisplayMetadataAsync(_currentTrack);
             await ApplyMetadataToMediaElement(metadata);
             SendMetadataMessage(metadata);
         }
@@ -133,55 +134,6 @@ public class AudioPlayer : IAudioPlayer
         });
     }
 
-    private async Task<MetaData> ExtractMetadataAsync(string uri)
-    {
-        return await Task.Run(() =>
-        {
-            try
-            {
-                // Convert file:// URI to local path, or use URI as-is if already a file path
-                string filePath = uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
-                    ? new Uri(uri).LocalPath
-                    : uri;
-
-                // Extract metadata using TagLibSharp
-                using var file = TagLib.File.Create(filePath);
-                var tag = file.Tag;
-
-                var meta = new MetaData
-                {
-                    Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : Path.GetFileNameWithoutExtension(filePath),
-                    Artist = !string.IsNullOrEmpty(tag.FirstPerformer) ? tag.FirstPerformer : 
-                             !string.IsNullOrEmpty(tag.FirstAlbumArtist) ? tag.FirstAlbumArtist : 
-                             "Unknown Artist",
-                    Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
-                };
-
-                // Extract artwork if available
-                if (tag.Pictures != null && tag.Pictures.Length > 0)
-                {
-                    var picture = tag.Pictures[0];
-                    if (picture?.Data?.Data != null)
-                    {
-                        meta.ArtworkBytes = picture.Data.Data;
-                    }
-                }
-
-                return meta;
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning(ex, $"Failed to extract metadata from {uri}");
-                
-                // Return fallback metadata
-                return new MetaData
-                {
-                    Title = "Unknown Title",
-                    Artist = "Unknown Artist"
-                };
-            }
-        });
-    }
 
     private async Task ApplyMetadataToMediaElement(MetaData meta)
     {
@@ -193,7 +145,7 @@ public class AudioPlayer : IAudioPlayer
             if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
             {
                 var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
-                SystemFile.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                System.IO.File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 _mediaElement.MetadataArtworkUrl = artworkPath;
             }
             else if (!string.IsNullOrEmpty(meta.ArtworkUrl))
