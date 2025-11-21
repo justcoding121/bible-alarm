@@ -1,6 +1,8 @@
 #nullable enable
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -25,6 +27,11 @@ public class PreparePlaybackService : IPreparePlaybackService
     {
         var playItems = await _playlistService.NextTracks(scheduleId);
         var preparedTracks = new List<AudioPlayerTrack>();
+        var totalTracks = playItems.Count;
+        var loadedTracks = 0;
+
+        // Send initial progress message with total count
+        WeakReferenceMessenger.Default.Send(new MediaProgressMessage(new Tuple<int, int>(0, totalTracks)));
 
         foreach (var playItem in playItems)
         {
@@ -41,6 +48,10 @@ public class PreparePlaybackService : IPreparePlaybackService
                 Uri = uri,
                 PlayItem = playItem
             });
+
+            // Send progress update after each track is prepared
+            loadedTracks++;
+            WeakReferenceMessenger.Default.Send(new MediaProgressMessage(new Tuple<int, int>(loadedTracks, totalTracks)));
         }
 
         return preparedTracks;
