@@ -145,6 +145,7 @@ public static class MauiProgram
         services.AddSingleton<IMediaUrlRefreshService, MediaUrlRefreshService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();
         services.AddSingleton<IPreparePlaybackService, PreparePlaybackService>();
+        services.AddSingleton<IFallbackAlarmSoundService, FallbackAlarmSoundService>();
         services.AddSingleton<IAlarmService, AlarmService>();
         services.AddSingleton<IScheduleStateService, ScheduleStateService>();
         services.AddSingleton<ISchedulePlaybackService, SchedulePlaybackService>();

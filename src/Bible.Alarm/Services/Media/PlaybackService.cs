@@ -14,10 +14,12 @@ public class PlaybackService : IPlaybackService
     private readonly IAudioPlayer _audioPlayer;
     private readonly IPreparePlaybackService _preparePlaybackService;
     private readonly IPlaylistService _playlistService;
+    private readonly IFallbackAlarmSoundService _fallbackAlarmSoundService;
 
     private List<AudioPlayerTrack>? _playlist;
     private int _currentTrackIndex = -1;
     private int? _currentScheduleId;
+    private bool _isAlarm;
 
     public int? CurrentScheduleId => _currentScheduleId;
     
@@ -30,12 +32,14 @@ public class PlaybackService : IPlaybackService
         ILogger logger,
         IAudioPlayer audioPlayer,
         IPreparePlaybackService preparePlaybackService,
-        IPlaylistService playlistService)
+        IPlaylistService playlistService,
+        IFallbackAlarmSoundService fallbackAlarmSoundService)
     {
         _logger = logger;
         _audioPlayer = audioPlayer;
         _preparePlaybackService = preparePlaybackService;
         _playlistService = playlistService;
+        _fallbackAlarmSoundService = fallbackAlarmSoundService;
 
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
@@ -54,14 +58,13 @@ public class PlaybackService : IPlaybackService
         try
         {
             _currentScheduleId = scheduleId;
+            _isAlarm = isAlarm;
             _playlist = await _preparePlaybackService.PrepareTracksAsync(scheduleId);
 
             if (_playlist == null)
             {
                 _logger.Warning($"Failed to prepare tracks for schedule {scheduleId}");
-                WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
-                await ResetAsync();
+                await HandlePlaybackFailureAsync();
                 return;
             }
 
@@ -162,6 +165,7 @@ public class PlaybackService : IPlaybackService
         _currentScheduleId = null;
         _playlist = null;
         _currentTrackIndex = -1;
+        _isAlarm = false;
     }
 
     private async Task PlayCurrentTrackAsync()
@@ -209,7 +213,7 @@ public class PlaybackService : IPlaybackService
             }
             else
             {
-                await StopAsync();
+                await HandlePlaybackFailureAsync();
             }
         }
         catch (Exception ex)
@@ -247,6 +251,48 @@ public class PlaybackService : IPlaybackService
         catch (Exception ex)
         {
             _logger.Error(ex, "Error marking track as finished");
+        }
+    }
+
+    private async Task HandlePlaybackFailureAsync()
+    {
+        if (_isAlarm)
+        {
+            // For alarms, play fallback sound instead of showing error
+            await PlayFallbackAlarmSoundAsync();
+        }
+        else
+        {
+            WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
+            await ResetAsync();
+        }
+    }
+
+    private async Task PlayFallbackAlarmSoundAsync()
+    {
+        try
+        {
+            var fallbackTrack = await _fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
+            if (fallbackTrack == null)
+            {
+                _logger.Error("Failed to get fallback alarm track");
+                WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
+                await ResetAsync();
+                return;
+            }
+
+            _playlist = new List<AudioPlayerTrack> { fallbackTrack };
+            _currentTrackIndex = 0;
+            await PlayCurrentTrackAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error playing fallback alarm sound");
+            WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
+            await ResetAsync();
         }
     }
 }
