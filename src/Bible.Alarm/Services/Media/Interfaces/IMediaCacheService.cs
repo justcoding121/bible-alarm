@@ -12,5 +12,6 @@ public interface IMediaCacheService : IDisposable
     Task<bool> SetupAlarmCacheAsync(int alarmScheduleId);
     Task CleanUpAsync();
     Task<string?> GetOrDownloadTrackUriAsync(PlayItem playItem);
+    Task DeleteScheduleCacheAsync(int scheduleId);
 }
 

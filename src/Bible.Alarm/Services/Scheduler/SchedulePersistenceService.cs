@@ -1,5 +1,6 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
@@ -15,13 +16,15 @@ public class SchedulePersistenceService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IAlarmService alarmService,
-    IDispatcher dispatcher)
+    IDispatcher dispatcher,
+    IMediaCacheService mediaCacheService)
     : ISchedulePersistenceService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IAlarmService _alarmService = alarmService;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IMediaCacheService _mediaCacheService = mediaCacheService;
 
     public async Task<bool> SaveScheduleAsync(AlarmSchedule schedule, bool isNewSchedule, bool musicUpdated = true, bool bibleReadingUpdated = true)
     {
@@ -142,6 +145,9 @@ public class SchedulePersistenceService(
                 _logger.Warning("Schedule {ScheduleId} not found for deletion", scheduleId);
                 return;
             }
+
+            // Delete cached media files for this schedule
+            await _mediaCacheService.DeleteScheduleCacheAsync(scheduleId);
 
             // Delete from database
             await Task.Run(async () =>

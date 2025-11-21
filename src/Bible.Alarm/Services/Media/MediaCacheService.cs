@@ -198,6 +198,31 @@ public class MediaCacheService(
         return Task.CompletedTask;
     }
 
+    public async Task DeleteScheduleCacheAsync(int scheduleId)
+    {
+        try
+        {
+            var playlist = await mediaPlayService.NextTracks(scheduleId);
+            var filePathsToDelete = new HashSet<string>();
+
+            foreach (var playItem in playlist)
+            {
+                var cacheFilePath = GetCacheFilePath(playItem.Url);
+                if (await storageService.FileExists(cacheFilePath))
+                {
+                    filePathsToDelete.Add(cacheFilePath);
+                }
+            }
+
+            await DeleteFilesAsync(filePathsToDelete);
+            _logger.Information($"Deleted {filePathsToDelete.Count} cache files for schedule {scheduleId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, $"Error deleting cache files for schedule {scheduleId}");
+        }
+    }
+
     public void Dispose()
     {
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
