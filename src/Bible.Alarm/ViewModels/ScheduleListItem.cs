@@ -63,7 +63,7 @@ public class ScheduleListItem(
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
-            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync())
+            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(Schedule.Id))
             {
                 await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
                 await RefreshChapterNameAsync(true);
@@ -72,7 +72,7 @@ public class ScheduleListItem(
 
         NextCommand = new AsyncRelayCommand(async () =>
         {
-            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync())
+            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(Schedule.Id))
             {
                 await playlistService.MoveToNextBibleChapter(Schedule.Id);
                 await RefreshChapterNameAsync(true);

@@ -80,7 +80,7 @@ public partial class App : Application,
 
                 var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
 
-                if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
+                if (playbackService.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
 
                 await Task.Delay(1000);
 
@@ -112,7 +112,7 @@ public partial class App : Application,
             {
                 var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
 
-                if (playbackService.IsPrepared) 
+                if (playbackService.IsPreparingOrPlaying) 
                     WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
 
                 await Task.Delay(1000);
@@ -193,7 +193,7 @@ public partial class App : Application,
                         _logger.Information("Starting service initialization...");
                         
                         var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-                        if (playbackService.IsPrepared) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
+                        if (playbackService.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage(null));
                         
                         await Task.Delay(100); 
                         

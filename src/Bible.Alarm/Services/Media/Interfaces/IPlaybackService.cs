@@ -2,11 +2,8 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IPlaybackService
 {
-    TimeSpan CurrentTrackPosition { get; }
-    int CurrentTrackIndex { get; }
-    int CurrentlyPlayingScheduleId { get; }
-    bool IsPlaying { get; }
-    bool IsPrepared { get; }
+    int? CurrentScheduleId { get; }
+    bool IsPreparingOrPlaying { get; }
 
     Task PlayAsync();
     Task PauseAsync();

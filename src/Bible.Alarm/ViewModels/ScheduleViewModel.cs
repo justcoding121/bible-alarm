@@ -107,8 +107,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 IsEnabled = false;
 
             if (!IsNewSchedule)
-                if (playbackService.IsPrepared
-                    && _scheduleId == playbackService.CurrentlyPlayingScheduleId)
+                if (playbackService.IsPreparingOrPlaying
+                    && _scheduleId == playbackService.CurrentScheduleId)
                     await playbackService.StopAsync();
 
             var saved = await SaveAsync();
@@ -138,9 +138,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             }
 
             // For existing schedules, delete and then navigate back
-            if (playbackService.IsPrepared
-                && _scheduleId == playbackService.CurrentlyPlayingScheduleId)
-                await playbackService.Dismiss();
+            if (playbackService.IsPreparingOrPlaying
+                && _scheduleId == playbackService.CurrentScheduleId)
+                await playbackService.StopAsync();
 
             await DeleteAsync();
 

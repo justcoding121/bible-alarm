@@ -35,12 +35,12 @@ public class SchedulePlaybackService(
         }
     }
 
-    public async Task<bool> CanMoveChapterAsync()
+    public async Task<bool> CanMoveChapterAsync(int scheduleId)
     {
         using var scope = _scopeFactory.CreateScope();
         var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
-        if (!playbackService.IsPlaying) return true;
+        if (!playbackService.IsPreparingOrPlaying || playbackService.CurrentScheduleId != scheduleId) return true;
 
         var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
         await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");

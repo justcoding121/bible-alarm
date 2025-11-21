@@ -25,7 +25,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
             {
                 await Lock.WaitAsync();
 
-                if (playbackService.IsPrepared)
+                if (playbackService.IsPreparingOrPlaying)
                 {
                     Dispose();
                     return;

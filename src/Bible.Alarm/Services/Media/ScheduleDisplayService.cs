@@ -34,7 +34,7 @@ public class ScheduleDisplayService(
                 if (!force)
                 {
                     var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-                    if (!playbackService.IsPrepared) return string.Empty;
+                    if (!playbackService.IsPreparingOrPlaying) return string.Empty;
                 }
 
                 await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();

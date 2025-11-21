@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Common.Messenger;
@@ -38,7 +39,7 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory)
     {
         _playbackService = playbackService;
-        WeakReferenceMessenger.Default.Register(this);
+        WeakReferenceMessenger.Default.Register<MediaProgressMessage>(this);
         
         var audioMessenger = AudioPlayer.GetMessenger();
         audioMessenger.Register<AudioMetadataMessage>(this);
@@ -144,13 +145,13 @@ public class AlarmViewModal : ObservableObject, IDisposable,
             {
                 await Task.Delay(1000);
 
-                var isRunning = _playbackService.IsPrepared;
+                var isRunning = _playbackService.IsPreparingOrPlaying;
 
                 var count = 6;
                 while (!isRunning && count > 0)
                 {
                     await Task.Delay(500);
-                    isRunning = _playbackService.IsPrepared;
+                    isRunning = _playbackService.IsPreparingOrPlaying;
                     count--;
                 }
 
@@ -159,41 +160,6 @@ public class AlarmViewModal : ObservableObject, IDisposable,
         });
     }
 
-    private void Refresh()
-    {
-        try
-        {
-    
-            if (_playbackService.IsPlaying)
-            {
-                PlayVisible = false;
-                PauseVisible = true;
-            }
-            else
-            {
-                PlayVisible = true;
-                PauseVisible = false;
-            }
-
-            // Basic time display - MediaElement doesn't have the same properties
-            var position = _playbackService.CurrentTrackPosition;
-            CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
-
-            // For now, set basic values since MediaElement doesn't have all MediaManager properties
-            Title = "";
-            SubTitle = "";
-            Description = "";
-            EndTime = "00:00";
-            Progress = 0.0;
-            NextEnabled = false;
-            PreviousEnabled = false;
-        }
-        catch(Exception e) 
-        {
-            // Log and ignore refresh errors
-            Log.Error(e, "Error refreshing AlarmViewModal.");
-        }
-    }
 
     private string _title;
 

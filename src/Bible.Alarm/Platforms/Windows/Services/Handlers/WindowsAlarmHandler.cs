@@ -17,7 +17,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
             {
                 await Lock.WaitAsync();
 
-                if (playbackService.IsPrepared)
+                if (playbackService.IsPreparingOrPlaying)
                 {
                     Dispose();
                     return;
