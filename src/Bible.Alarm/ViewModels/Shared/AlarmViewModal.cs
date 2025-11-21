@@ -20,7 +20,8 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     IRecipient<MediaProgressMessage>,
     IRecipient<AudioMetadataMessage>,
     IRecipient<AudioPositionMessage>,
-    IRecipient<AudioStatusMessage>
+    IRecipient<AudioStatusMessage>,
+    IRecipient<PlaybackNavigationChangedMessage>
 {
     private readonly IPlaybackService _playbackService;
 
@@ -40,6 +41,7 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     {
         _playbackService = playbackService;
         WeakReferenceMessenger.Default.Register<MediaProgressMessage>(this);
+        WeakReferenceMessenger.Default.Register<PlaybackNavigationChangedMessage>(this);
         
         var audioMessenger = AudioPlayer.GetMessenger();
         audioMessenger.Register<AudioMetadataMessage>(this);
@@ -119,12 +121,12 @@ public class AlarmViewModal : ObservableObject, IDisposable,
 
         ForwardCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PlayAsync();
+            await _playbackService.SeekForwardAsync();
         });
 
         BackwardCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PauseAsync();
+            await _playbackService.SeekBackwardAsync();
         });
 
         // Initialize properties with default values
@@ -322,11 +324,21 @@ public class AlarmViewModal : ObservableObject, IDisposable,
         });
     }
 
+    public void Receive(PlaybackNavigationChangedMessage message)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            NextEnabled = message.CanPlayNext;
+            PreviousEnabled = message.CanPlayPrevious;
+        });
+    }
+
     public void Dispose()
     {
         if (!_isDisposed)
         {
             WeakReferenceMessenger.Default.Unregister<MediaProgressMessage>(this);
+            WeakReferenceMessenger.Default.Unregister<PlaybackNavigationChangedMessage>(this);
             AudioPlayer.GetMessenger().Unregister<AudioMetadataMessage>(this);
             AudioPlayer.GetMessenger().Unregister<AudioPositionMessage>(this);
             AudioPlayer.GetMessenger().Unregister<AudioStatusMessage>(this);

@@ -22,6 +22,7 @@ public class PlaybackService : IPlaybackService
     private int? _currentScheduleId;
     private bool _isAlarm;
     private System.Timers.Timer? _progressSaveTimer;
+    private HashSet<int> _manuallyVisitedTrackIndices = new();
 
     public int? CurrentScheduleId => _currentScheduleId;
     
@@ -29,6 +30,15 @@ public class PlaybackService : IPlaybackService
         _audioPlayer.Status == PlayStatus.Loading || 
         _audioPlayer.Status == PlayStatus.Playing || 
         _audioPlayer.Status == PlayStatus.Paused;
+
+    public bool CanPlayNext => 
+        _playlist != null && 
+        _currentTrackIndex >= 0 && 
+        _currentTrackIndex < _playlist.Count - 1;
+
+    public bool CanPlayPrevious => 
+        _playlist != null && 
+        _currentTrackIndex > 0;
 
     public PlaybackService(
         ILogger logger,
@@ -46,7 +56,7 @@ public class PlaybackService : IPlaybackService
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
 
-        _progressSaveTimer = new System.Timers.Timer(1000); // 1 second
+        _progressSaveTimer = new System.Timers.Timer(1000);
         _progressSaveTimer.Elapsed += async (_, __) => await SaveProgressAsync();
         _progressSaveTimer.AutoReset = true;
     }
@@ -82,7 +92,9 @@ public class PlaybackService : IPlaybackService
             }
 
             _currentTrackIndex = 0;
+            _manuallyVisitedTrackIndices.Clear();
             await PlayCurrentTrackAsync();
+            NotifyNavigationChanged();
         }
         catch (Exception ex)
         {
@@ -129,9 +141,18 @@ public class PlaybackService : IPlaybackService
 
         if (_currentTrackIndex < _playlist.Count - 1)
         {
+            _progressSaveTimer?.Stop();
+            await _audioPlayer.StopAsync();
             await MarkCurrentTrackAsPlayedAsync();
             _currentTrackIndex++;
-            await PlayCurrentTrackAsync();
+            
+            // If we've already manually visited this track, start from beginning
+            // Otherwise, allow resume from saved position (for Bible tracks)
+            var startFromBeginning = _manuallyVisitedTrackIndices.Contains(_currentTrackIndex);
+            _manuallyVisitedTrackIndices.Add(_currentTrackIndex);
+            
+            await PlayCurrentTrackAsync(startFromBeginning: startFromBeginning);
+            NotifyNavigationChanged();
         }
     }
 
@@ -142,10 +163,72 @@ public class PlaybackService : IPlaybackService
 
         if (_currentTrackIndex > 0)
         {
+            _progressSaveTimer?.Stop();
+            await _audioPlayer.StopAsync();
             await MarkCurrentTrackAsPlayedAsync();
             _currentTrackIndex--;
-            await PlayCurrentTrackAsync();
+            
+            // Previous button always starts from beginning
+            _manuallyVisitedTrackIndices.Add(_currentTrackIndex);
+            await PlayCurrentTrackAsync(startFromBeginning: true);
+            NotifyNavigationChanged();
         }
+    }
+
+    private void NotifyNavigationChanged()
+    {
+        WeakReferenceMessenger.Default.Send(new PlaybackNavigationChangedMessage
+        {
+            CanPlayNext = CanPlayNext,
+            CanPlayPrevious = CanPlayPrevious
+        });
+    }
+
+    public async Task SeekForwardAsync()
+    {
+        if (!IsPreparingOrPlaying)
+            return;
+
+        var currentPosition = _audioPlayer.CurrentPosition;
+        if (!currentPosition.HasValue)
+            return;
+
+        var duration = _audioPlayer.Duration;
+        
+        // Don't seek if duration is not yet loaded or is zero
+        if (duration <= TimeSpan.Zero)
+            return;
+
+        var newPosition = currentPosition.Value.Add(TimeSpan.FromSeconds(15));
+        
+        // Clamp to duration - seeking to duration will trigger MediaEnded
+        // which will advance to next track, which is the desired behavior
+        if (newPosition >= duration)
+        {
+            newPosition = duration;
+        }
+
+        await _audioPlayer.SeekToAsync(newPosition);
+    }
+
+    public async Task SeekBackwardAsync()
+    {
+        if (!IsPreparingOrPlaying)
+            return;
+
+        var currentPosition = _audioPlayer.CurrentPosition;
+        if (!currentPosition.HasValue)
+            return;
+
+        var newPosition = currentPosition.Value.Subtract(TimeSpan.FromSeconds(15));
+        
+        // Clamp to zero - can't seek before the start
+        if (newPosition < TimeSpan.Zero)
+        {
+            newPosition = TimeSpan.Zero;
+        }
+
+        await _audioPlayer.SeekToAsync(newPosition);
     }
 
     public async Task StopAsync()
@@ -176,9 +259,10 @@ public class PlaybackService : IPlaybackService
         _playlist = null;
         _currentTrackIndex = -1;
         _isAlarm = false;
+        _manuallyVisitedTrackIndices.Clear();
     }
 
-    private async Task PlayCurrentTrackAsync()
+    private async Task PlayCurrentTrackAsync(bool startFromBeginning = false)
     {
         if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
             return;
@@ -187,7 +271,9 @@ public class PlaybackService : IPlaybackService
         await _audioPlayer.PrepareAsync(track);
         
         // Seek to saved position for Bible tracks if resume is enabled
-        if (track.PlayItem.Metadata.PlayType == PlayType.Bible 
+        // But always start from beginning if startFromBeginning is true (e.g., when going to previous track)
+        if (!startFromBeginning 
+            && track.PlayItem.Metadata.PlayType == PlayType.Bible 
             && track.PlayItem.Metadata.FinishedDuration != TimeSpan.Zero)
         {
             var shouldResume = await ShouldResumeFromLastPositionAsync();
@@ -228,6 +314,7 @@ public class PlaybackService : IPlaybackService
             {
                 _currentTrackIndex++;
                 await PlayCurrentTrackAsync();
+                NotifyNavigationChanged();
             }
             else
             {

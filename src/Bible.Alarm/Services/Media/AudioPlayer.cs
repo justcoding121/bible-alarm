@@ -23,6 +23,7 @@ public class AudioPlayer : IAudioPlayer
     private System.Timers.Timer? _positionTimer;
 
     private AudioPlayerTrack? _currentTrack;
+    private TaskCompletionSource<bool>? _mediaOpenedCompletionSource;
 
     public TimeSpan? CurrentPosition => _mediaElement.Position;
     public TimeSpan Duration => _mediaElement.Duration;
@@ -64,11 +65,21 @@ public class AudioPlayer : IAudioPlayer
 
         _currentTrack = track;
         Status = PlayStatus.Loading;
+        _mediaOpenedCompletionSource = new TaskCompletionSource<bool>();
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             _mediaElement.Source = track.Uri;
         });
+
+        // Wait for media to open (with timeout)
+        var timeoutTask = Task.Delay(5000); // 5 second timeout
+        var completedTask = await Task.WhenAny(_mediaOpenedCompletionSource.Task, timeoutTask);
+        
+        if (completedTask == timeoutTask)
+        {
+            _logger.Warning("Timeout waiting for media to open");
+        }
     }
 
     public Task PlayAsync()
@@ -79,6 +90,9 @@ public class AudioPlayer : IAudioPlayer
     private async void OnMediaOpened(object? sender, EventArgs e)
     {
         if (_currentTrack == null) return;
+
+        // Signal that media is ready
+        _mediaOpenedCompletionSource?.TrySetResult(true);
 
         try
         {
@@ -162,7 +176,7 @@ public class AudioPlayer : IAudioPlayer
                 // Return fallback metadata
                 return new MetaData
                 {
-                    Title = Path.GetFileNameWithoutExtension(uri),
+                    Title = "Unknown Title",
                     Artist = "Unknown Artist"
                 };
             }
@@ -198,6 +212,7 @@ public class AudioPlayer : IAudioPlayer
     private void OnMediaFailed(object? sender, EventArgs e)
     {
         Status = PlayStatus.Failed;
+        _mediaOpenedCompletionSource?.TrySetResult(false);
         MediaFailed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -266,6 +281,8 @@ public class AudioPlayer : IAudioPlayer
         Status = PlayStatus.Stopped;
         _currentTrack = null;
         _positionTimer?.Stop();
+        _mediaOpenedCompletionSource?.TrySetCanceled();
+        _mediaOpenedCompletionSource = null;
         SendStatusMessage();
     }
 

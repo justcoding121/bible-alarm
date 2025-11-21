@@ -4,11 +4,15 @@ public interface IPlaybackService
 {
     int? CurrentScheduleId { get; }
     bool IsPreparingOrPlaying { get; }
+    bool CanPlayNext { get; }
+    bool CanPlayPrevious { get; }
 
     Task PlayAsync();
     Task PauseAsync();
     Task PlayPreviousAsync();
     Task PlayNextAsync();
+    Task SeekForwardAsync();
+    Task SeekBackwardAsync();
 
     Task PrepareAndPlayAsync(int scheduleId, bool isAlarm);
     Task StopAsync();

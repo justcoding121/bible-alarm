@@ -62,3 +62,9 @@ public class AudioStatusMessage
     public PlayStatus Status { get; init; }
 }
 
+public class PlaybackNavigationChangedMessage
+{
+    public bool CanPlayNext { get; init; }
+    public bool CanPlayPrevious { get; init; }
+}
+
