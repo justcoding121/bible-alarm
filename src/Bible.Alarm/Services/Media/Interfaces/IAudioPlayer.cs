@@ -26,7 +26,5 @@ public interface IAudioPlayer : IDisposable
     event EventHandler<EventArgs>? MediaEnded;
 
     event EventHandler<EventArgs>? MediaFailed;
-
-    event EventHandler<MetaData>? MetaDataParsed;
 }
 

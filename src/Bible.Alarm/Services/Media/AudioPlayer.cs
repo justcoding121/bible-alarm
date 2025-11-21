@@ -1,17 +1,22 @@
 #nullable enable
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.UI.Interfaces;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
 public class AudioPlayer : IAudioPlayer
 {
+    private static readonly ObservableMessenger AudioMessenger = new();
+
     private readonly ILogger _logger;
     private readonly MediaElement _mediaElement;
+    private System.Timers.Timer? _positionTimer;
 
     private string _currentUri = string.Empty;
 
@@ -21,7 +26,6 @@ public class AudioPlayer : IAudioPlayer
 
     public event EventHandler<EventArgs>? MediaEnded;
     public event EventHandler<EventArgs>? MediaFailed;
-    public event EventHandler<MetaData>? MetaDataParsed;
 
     public AudioPlayer(ILogger logger, INavigationService navigationService)
     {
@@ -32,6 +36,11 @@ public class AudioPlayer : IAudioPlayer
         _mediaElement.MediaEnded += OnMediaEnded;
         _mediaElement.MediaFailed += OnMediaFailed;
         _mediaElement.MediaOpened += OnMediaOpened;
+        _mediaElement.PositionChanged += OnPositionChanged;
+
+        _positionTimer = new System.Timers.Timer(500);
+        _positionTimer.Elapsed += (_, __) => SendPositionUpdate();
+        _positionTimer.AutoReset = true;
     }
 
     public async Task PrepareAsync(string uri)
@@ -67,7 +76,7 @@ public class AudioPlayer : IAudioPlayer
         {
             var metadata = await ExtractMetadataAsync(_currentUri);
             await ApplyMetadataToMediaElement(metadata);
-            MetaDataParsed?.Invoke(this, metadata);
+            SendMetadataMessage(metadata);
         }
         catch (Exception ex)
         {
@@ -78,8 +87,28 @@ public class AudioPlayer : IAudioPlayer
                 Artist = "Unknown Artist"
             };
             await ApplyMetadataToMediaElement(fallbackMeta);
-            MetaDataParsed?.Invoke(this, fallbackMeta);
+            SendMetadataMessage(fallbackMeta);
         }
+    }
+
+    private void SendMetadataMessage(MetaData meta)
+    {
+        AudioMessenger.Send(new AudioMetadataMessage
+        {
+            Title = meta.Title,
+            Artist = meta.Artist,
+            Album = meta.Album,
+            ArtworkUrl = meta.ArtworkUrl
+        });
+    }
+
+    private void SendPositionUpdate()
+    {
+        AudioMessenger.Send(new AudioPositionMessage
+        {
+            CurrentPosition = CurrentPosition,
+            Duration = Duration
+        });
     }
 
     private async Task<MetaData> ExtractMetadataAsync(string uri)
@@ -138,7 +167,33 @@ public class AudioPlayer : IAudioPlayer
             MediaElementState.Failed => PlayStatus.Failed,
             _ => PlayStatus.Stopped
         };
+
+        SendStatusMessage();
+
+        if (Status == PlayStatus.Playing)
+        {
+            _positionTimer?.Start();
+        }
+        else
+        {
+            _positionTimer?.Stop();
+        }
     }
+
+    private void OnPositionChanged(object? sender, EventArgs e)
+    {
+        SendPositionUpdate();
+    }
+
+    private void SendStatusMessage()
+    {
+        AudioMessenger.Send(new AudioStatusMessage
+        {
+            Status = Status
+        });
+    }
+
+    public static ObservableMessenger GetMessenger() => AudioMessenger;
 
     public Task PauseAsync()
     {
@@ -162,9 +217,13 @@ public class AudioPlayer : IAudioPlayer
 
     public void Dispose()
     {
+        _positionTimer?.Stop();
+        _positionTimer?.Dispose();
+
         _mediaElement.StateChanged -= OnStateChanged;
         _mediaElement.MediaOpened -= OnMediaOpened;
         _mediaElement.MediaEnded -= OnMediaEnded;
         _mediaElement.MediaFailed -= OnMediaFailed;
+        _mediaElement.PositionChanged -= OnPositionChanged;
     }
 }

@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
@@ -14,7 +15,11 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<MediaProgressMessage>
+public class AlarmViewModal : ObservableObject, IDisposable, 
+    IRecipient<MediaProgressMessage>,
+    IRecipient<AudioMetadataMessage>,
+    IRecipient<AudioPositionMessage>,
+    IRecipient<AudioStatusMessage>
 {
     private readonly IPlaybackService _playbackService;
 
@@ -34,6 +39,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<MediaPro
     {
         _playbackService = playbackService;
         WeakReferenceMessenger.Default.Register(this);
+        
+        var audioMessenger = AudioPlayer.GetMessenger();
+        audioMessenger.Register<AudioMetadataMessage>(this);
+        audioMessenger.Register<AudioPositionMessage>(this);
+        audioMessenger.Register<AudioStatusMessage>(this);
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
@@ -89,37 +99,31 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<MediaPro
         PlayCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Play();
-            Refresh();
         });
 
         PauseCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Pause();
-            Refresh();
         });
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.PlayPrevious();
-            Refresh();
         });
 
         NextCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.PlayNext();
-            Refresh();
         });
 
         ForwardCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Play();
-            Refresh();
         });
 
         BackwardCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.Pause();
-            Refresh();
         });
 
         // Initialize properties with default values
@@ -134,19 +138,14 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<MediaPro
         NextEnabled = false;
         PreviousEnabled = false;
 
-        // Call Refresh immediately to populate initial values
-        Refresh();
-
         Task.Run(async () =>
         {
             while (!_isDisposed)
             {
-                Refresh();
                 await Task.Delay(1000);
 
                 var isRunning = _playbackService.IsPrepared;
 
-                //check for 3 seconds
                 var count = 6;
                 while (!isRunning && count > 0)
                 {
@@ -298,7 +297,6 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<MediaPro
             _loadedTracks = kv.Item1;
             _totalTracks = kv.Item2;
             PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
-            // Hide progress when all tracks are loaded (loadedTracks >= totalTracks)
             IsPreparing = _totalTracks > 0 && _loadedTracks < _totalTracks;
             
             MainThread.BeginInvokeOnMainThread(() =>
@@ -310,11 +308,62 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<MediaPro
         });
     }
 
+    public void Receive(AudioMetadataMessage message)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            Title = message.Title ?? "";
+            SubTitle = message.Artist ?? "";
+            Description = message.Album ?? "";
+        });
+    }
+
+    public void Receive(AudioPositionMessage message)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (message.CurrentPosition.HasValue)
+            {
+                var position = message.CurrentPosition.Value;
+                CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
+            }
+            else
+            {
+                CurrentTime = "00:00";
+            }
+
+            var duration = message.Duration;
+            EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
+
+            if (message.CurrentPosition.HasValue && duration.TotalSeconds > 0)
+            {
+                Progress = message.CurrentPosition.Value.TotalSeconds / duration.TotalSeconds;
+            }
+            else
+            {
+                Progress = 0.0;
+            }
+        });
+    }
+
+    public void Receive(AudioStatusMessage message)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var isPlaying = message.Status == PlayStatus.Playing;
+            PlayVisible = !isPlaying;
+            PauseVisible = isPlaying;
+        });
+    }
+
     public void Dispose()
     {
         if (!_isDisposed)
         {
             WeakReferenceMessenger.Default.Unregister<MediaProgressMessage>(this);
+            AudioPlayer.GetMessenger().Unregister<AudioMetadataMessage>(this);
+            AudioPlayer.GetMessenger().Unregister<AudioPositionMessage>(this);
+            AudioPlayer.GetMessenger().Unregister<AudioStatusMessage>(this);
             _isDisposed = true;
         }
     }
