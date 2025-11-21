@@ -35,7 +35,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
             var context = AndroidApplication.Context;
             var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
             alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
-            alarmIntent.PutExtra("IsImmediate", true);
+            alarmIntent.PutExtra("IsAlarm", false);
 
             context.SendBroadcast(alarmIntent);
         }

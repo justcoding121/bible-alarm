@@ -90,7 +90,7 @@ public class MainActivity : MauiAppCompatActivity
                     MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                     
                     _alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
-                    await _alarmHandler.Handle(scheduleId, true);
+                    await _alarmHandler.Handle(scheduleId, false);
                 }
                 catch (Exception e)
                 {

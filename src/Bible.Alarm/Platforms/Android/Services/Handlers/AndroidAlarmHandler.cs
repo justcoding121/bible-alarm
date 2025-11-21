@@ -21,7 +21,7 @@ public class AndroidAlarmHandler(
 
     public event EventHandler<bool> Disposed;
 
-    public async Task Handle(int scheduleId, bool isImmediate)
+    public async Task Handle(int scheduleId, bool isAlarm)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -35,7 +35,7 @@ public class AndroidAlarmHandler(
         }
 
         //local notification for android
-        if (!isImmediate)
+        if (!isAlarm)
             if (schedule.NotificationEnabled)
             {
                 AndroidNotificationService.RemoveLocalNotification(schedule.Id);
@@ -54,7 +54,7 @@ public class AndroidAlarmHandler(
         {
             try
             {
-                await playbackService.PrepareAndPlay(scheduleId, isImmediate);
+                await playbackService.PrepareAndPlay(scheduleId, isAlarm);
 
                 _playbackServiceInitialized = true;
 

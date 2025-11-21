@@ -54,11 +54,11 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
             
             var scheduleId = intent.GetStringExtra("ScheduleId");
-            var isImmediate = intent.GetBooleanExtra("IsImmediate", false);
+            var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
 
             _alarmHandler = ServiceProviderManager.GetService<AndroidAlarmHandler>();
             _alarmHandler.Disposed += OnDisposed;
-            await _alarmHandler.Handle(int.Parse(scheduleId), isImmediate);
+            await _alarmHandler.Handle(int.Parse(scheduleId), isAlarm);
         }
         catch (Exception e)
         {

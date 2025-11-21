@@ -115,6 +115,7 @@ public class AlarmSetupService : Service, IDisposable
     {
         using var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
         alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
+        alarmIntent.PutExtra("IsAlarm", true);
 
         using var pIntent = PendingIntent.GetBroadcast(
             context,

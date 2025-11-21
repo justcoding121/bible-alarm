@@ -11,7 +11,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
 
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 
-        public async Task Handle(int scheduleId, bool isImmediate)
+        public async Task Handle(int scheduleId, bool isAlarm)
         {
             try
             {
@@ -27,7 +27,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
                 {
                     try
                     {
-                        await playbackService.PrepareAndPlay(scheduleId, isImmediate);
+                        await playbackService.PrepareAndPlay(scheduleId, isAlarm);
                     }
                     catch (Exception e)
                     {
