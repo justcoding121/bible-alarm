@@ -522,6 +522,21 @@ public class PlaylistService(
         }
     }
 
+    public async Task<bool> ShouldResumeFromLastPositionAsync(int scheduleId)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        
+        var schedule = await scheduleDbContext.AlarmSchedules
+            .FirstOrDefaultAsync(x => x.Id == scheduleId);
+
+        if (schedule == null)
+            return false;
+
+        // Resume is enabled when AlwaysPlayFromStart is false
+        return !schedule.AlwaysPlayFromStart;
+    }
+
     public void Dispose()
     {
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope

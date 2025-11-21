@@ -26,5 +26,6 @@ public interface IPlaylistService : IDisposable
         GetPreviousBibleBook(string languageCode, string publicationCode, int bookNumber);
 
     Task<KeyValuePair<int, BibleBook>> GetNextBibleBook(string languageCode, string publicationCode, int bookNumber);
+    Task<bool> ShouldResumeFromLastPositionAsync(int scheduleId);
 }
 

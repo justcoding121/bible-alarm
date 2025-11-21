@@ -2,6 +2,7 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
@@ -20,6 +21,7 @@ public class PlaybackService : IPlaybackService
     private int _currentTrackIndex = -1;
     private int? _currentScheduleId;
     private bool _isAlarm;
+    private System.Timers.Timer? _progressSaveTimer;
 
     public int? CurrentScheduleId => _currentScheduleId;
     
@@ -43,6 +45,10 @@ public class PlaybackService : IPlaybackService
 
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
+
+        _progressSaveTimer = new System.Timers.Timer(1000); // 1 second
+        _progressSaveTimer.Elapsed += async (_, __) => await SaveProgressAsync();
+        _progressSaveTimer.AutoReset = true;
     }
 
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
@@ -94,6 +100,7 @@ public class PlaybackService : IPlaybackService
         if (_audioPlayer.Status == PlayStatus.Paused)
         {
             await _audioPlayer.ResumeAsync();
+            StartProgressTimerIfBibleTrack();
         }
         else if (_audioPlayer.Status == PlayStatus.Stopped || _audioPlayer.Status == PlayStatus.Ended)
         {
@@ -102,6 +109,7 @@ public class PlaybackService : IPlaybackService
         else
         {
             await _audioPlayer.PlayAsync();
+            StartProgressTimerIfBibleTrack();
         }
     }
 
@@ -109,6 +117,7 @@ public class PlaybackService : IPlaybackService
     {
         if (IsPreparingOrPlaying)
         {
+            _progressSaveTimer?.Stop();
             await _audioPlayer.PauseAsync();
         }
     }
@@ -156,6 +165,7 @@ public class PlaybackService : IPlaybackService
 
     private async Task ResetAsync()
     {
+        _progressSaveTimer?.Stop();
         await _audioPlayer.ResetAsync();
         ResetState();
     }
@@ -175,13 +185,43 @@ public class PlaybackService : IPlaybackService
 
         var track = _playlist[_currentTrackIndex];
         await _audioPlayer.PrepareAsync(track);
+        
+        // Seek to saved position for Bible tracks if resume is enabled
+        if (track.PlayItem.Metadata.PlayType == PlayType.Bible 
+            && track.PlayItem.Metadata.FinishedDuration != TimeSpan.Zero)
+        {
+            var shouldResume = await ShouldResumeFromLastPositionAsync();
+            if (shouldResume)
+            {
+                await _audioPlayer.SeekToAsync(track.PlayItem.Metadata.FinishedDuration);
+            }
+        }
+        
         await _audioPlayer.PlayAsync();
+        StartProgressTimerIfBibleTrack();
+    }
+
+    private void StartProgressTimerIfBibleTrack()
+    {
+        if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+            return;
+
+        var track = _playlist[_currentTrackIndex];
+        if (track.PlayItem.Metadata.PlayType == PlayType.Bible)
+        {
+            _progressSaveTimer?.Start();
+        }
+        else
+        {
+            _progressSaveTimer?.Stop();
+        }
     }
 
     private async void OnMediaEnded(object? sender, EventArgs e)
     {
         try
         {
+            _progressSaveTimer?.Stop();
             await MarkCurrentTrackAsFinishedAsync();
             
             if (_playlist != null && _currentTrackIndex < _playlist.Count - 1)
@@ -235,6 +275,53 @@ public class PlaybackService : IPlaybackService
         catch (Exception ex)
         {
             _logger.Error(ex, "Error marking track as played");
+        }
+    }
+
+    private async Task SaveProgressAsync()
+    {
+        if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+            return;
+
+        var track = _playlist[_currentTrackIndex];
+        
+        // Only save progress for Bible tracks
+        if (track.PlayItem.Metadata.PlayType != PlayType.Bible)
+            return;
+
+        // Only save if currently playing
+        if (_audioPlayer.Status != PlayStatus.Playing)
+            return;
+
+        try
+        {
+            var currentPosition = _audioPlayer.CurrentPosition;
+            if (currentPosition.HasValue)
+            {
+                // Update the track metadata with current position
+                track.PlayItem.Metadata.FinishedDuration = currentPosition.Value;
+                await _playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error saving progress");
+        }
+    }
+
+    private async Task<bool> ShouldResumeFromLastPositionAsync()
+    {
+        if (!_currentScheduleId.HasValue)
+            return false;
+
+        try
+        {
+            return await _playlistService.ShouldResumeFromLastPositionAsync(_currentScheduleId.Value);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error checking if should resume from last position");
+            return false;
         }
     }
 
@@ -294,6 +381,12 @@ public class PlaybackService : IPlaybackService
             WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
             await ResetAsync();
         }
+    }
+
+    public void Dispose()
+    {
+        _progressSaveTimer?.Stop();
+        _progressSaveTimer?.Dispose();
     }
 }
 
