@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -251,7 +251,7 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                         DisplayLanguage = displayLanguage
                     };
 
-                SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack> tracks;
+                SortedDictionary<int, Bible.Alarm.Audio.Links.Harvestor.Models.Music.MusicTrack> tracks;
                 try
                 {
                     tracks = await mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key);

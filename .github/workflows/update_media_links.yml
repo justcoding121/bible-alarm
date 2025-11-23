@@ -21,7 +21,7 @@ jobs:
         dotnet-version: '9.0.x'
 
     - name: Run Link Harvestor
-      run: dotnet run --project .tools/Bible.Alarm.Audio.Links.Harvestor/Bible.Alarm.Audio.Links.Harvestor.csproj --configuration Release
+      run: dotnet run --project .tools/Bible.Alarm.AudioLinksHarvestor/Bible.Alarm.AudioLinksHarvestor.csproj --configuration Release
      
     - name: Commit changes
       uses: EndBug/add-and-commit@v7

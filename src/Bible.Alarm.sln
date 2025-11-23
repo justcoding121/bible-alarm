@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm", "Bible.Alarm\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.Shared", "Bible.Alarm.Shared\Bible.Alarm.Shared.csproj", "{034F9129-8C3C-A7B5-65AB-7122B3C70D55}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.Audio.Links.Harvestor", "..\.tools\Bible.Alarm.Audio.Links.Harvestor\Bible.Alarm.Audio.Links.Harvestor.csproj", "{2573B1CF-096C-6C9B-D3A0-A38D0910E8BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.AudioLinksHarvestor", "..\.tools\Bible.Alarm.AudioLinksHarvestor\Bible.Alarm.AudioLinksHarvestor.csproj", "{2573B1CF-096C-6C9B-D3A0-A38D0910E8BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.VersionPatcher", "..\.tools\Bible.Alarm.VersionPatcher\Bible.Alarm.VersionPatcher.csproj", "{4659DF73-6481-81A7-FF14-9837F2428071}"
 EndProject
