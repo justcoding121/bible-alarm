@@ -14,6 +14,13 @@ using Bible.Alarm.Audio.Links.Harvestor.Models;
 using Bible.Alarm.Audio.Links.Harvestor.Utility;
 using Bible.Alarm.Shared.Helpers;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
+using Serilog;
+using Serilog.Extensions.Logging;
+using Bible.Alarm.Shared.Database;
 using DirectoryHelper = Bible.Alarm.Audio.Links.Harvestor.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.Audio.Links.Harvestor
@@ -25,17 +32,52 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             JwSourceHelper.PublicationCodeToNameMappings;
 
 
-        /// <summary>
-        /// Harvest URL links to get the mp3 files liks for Bible & Music 
-        /// </summary>
-        /// <param name="args"></param>
         public static async Task Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+
+            var services = new ServiceCollection();
+            services.AddLogging(builder =>
+            {
+                builder.AddSerilog(Log.Logger);
+                builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+            });
+            services.AddSingleton<Serilog.ILogger>(_ => Log.Logger);
+            
+            services.AddDbContext<MediaDbContext>(options =>
+            {
+                var indexDir = DirectoryHelper.IndexDirectory;
+                var dbDir = Path.Combine(new DirectoryInfo(indexDir).FullName, "db");
+                if (!Directory.Exists(dbDir))
+                {
+                    Directory.CreateDirectory(dbDir);
+                }
+                var dbPath = Path.Combine(dbDir, "mediaIndex.db");
+
+                var connectionString = $"Data Source={dbPath};";
+
+                options.UseSqlite(connectionString, sqliteOptions =>
+                {
+                    sqliteOptions.CommandTimeout(60);
+                });
+            });
+            
+            services.AddTransient<JwBibleHarvester>();
+            services.AddTransient<MusicHarverster>();
+            services.AddTransient<DbSeeder>();
+            services.AddTransient<Bible.Alarm.Audio.Links.Harvestor.Utility.DownloadUtility>();
+            
+            await using var serviceProvider = services.BuildServiceProvider();
+            var logger = serviceProvider.GetRequiredService<Serilog.ILogger>();
+
             bool isTestRun = args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
             
             if (isTestRun)
             {
-                Console.WriteLine("=== TEST RUN MODE: Processing at most 2 languages per publication ===");
+                logger.Information("=== TEST RUN MODE: Processing only English language per publication ===");
             }
 
             try
@@ -50,18 +92,21 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 var languageCodeToNameMappings = new ConcurrentDictionary<string, string>();
                 var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>();
 
-                //////Bible
-                bibleTasks.Add(JwBibleHarvester.Harvest_Bible_Links(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
-                //bibleTasks.Add(BgBibleHarvester.Harvest_Bible_Links(BgSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping));
-
-                var musicTasks = new List<Task>
+                await using (var harvesterScope = serviceProvider.CreateAsyncScope())
                 {
-                    ////////Music
-                    MusicHarverster.Harvest_Vocal_Music_Links(isTestRun),
-                    MusicHarverster.Harvest_Music_Melody_Links(isTestRun)
-                };
+                    var bibleHarvester = harvesterScope.ServiceProvider.GetRequiredService<JwBibleHarvester>();
+                    var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarverster>();
+                    
+                    bibleTasks.Add(bibleHarvester.Harvest_Bible_Links(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
 
-                await Task.WhenAll(bibleTasks.Concat(musicTasks).ToArray());
+                    var musicTasks = new List<Task>
+                    {
+                        musicHarvester.Harvest_Vocal_Music_Links(isTestRun),
+                        musicHarvester.Harvest_Music_Melody_Links(isTestRun)
+                    };
+
+                    await Task.WhenAll(bibleTasks.Concat(musicTasks).ToArray());
+                }
 
                 writeBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
 
@@ -78,16 +123,22 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
                 await File.WriteAllTextAsync(indexFile, JsonSerializer.Serialize(index));
 
-                await DbSeeder.Seed($"{DirectoryHelper.IndexDirectory}");
+                await using (var seederScope = serviceProvider.CreateAsyncScope())
+                {
+                    var dbSeeder = seederScope.ServiceProvider.GetRequiredService<DbSeeder>();
+                    await dbSeeder.Seed();
+                }
 
-                // Wait and retry to ensure database file is fully released
-                await RetryZipFiles();
+                SqliteConnection.ClearAllPools();
+                logger.Information("All SQLite connections closed. Safe to zip database.");
+
+                ZipFiles();
 
                 var newIndexFileSize =
                     (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
 
-                Console.WriteLine("Old size:" + (originalIndexFileSize / 1024) + "kb");
-                Console.WriteLine("New size:" + (newIndexFileSize / 1024) + "kb");
+                logger.Information("Old size: {OldSize}kb", originalIndexFileSize / 1024);
+                logger.Information("New size: {NewSize}kb", newIndexFileSize / 1024);
 
                 if (!isTestRun && Math.Abs(originalIndexFileSize - newIndexFileSize) > (1024 * 700))
                 {
@@ -96,20 +147,37 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
                 if (!isTestRun)
                 {
-                    await publishToCloudFront();
+                    await publishToCloudFront(logger);
                 }
                 else
                 {
-                    Console.WriteLine("=== TEST RUN: Skipping cloud publishing ===");
+                    logger.Information("=== TEST RUN: Skipping cloud publishing ===");
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error during harvesting");
+                throw;
             }
             finally
             {
                 var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
                 if (!File.Exists(zipIndex))
                 {
+                    logger.Error("Harvesting failed to create zip file.");
                     throw new Exception("Harvesting failed to create zip file.");
                 }
+                
+                if (serviceProvider is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+                else if (serviceProvider is IAsyncDisposable asyncDisposable)
+                {
+                    await asyncDisposable.DisposeAsync();
+                }
+                
+                Log.CloseAndFlush();
             }
         }
 
@@ -149,99 +217,6 @@ namespace Bible.Alarm.Audio.Links.Harvestor
         }
 
 
-        private static async Task RetryZipFiles(int maxRetries = 10, int delayMs = 2000)
-        {
-            for (int attempt = 0; attempt < maxRetries; attempt++)
-            {
-                try
-                {
-                    if (attempt > 0)
-                    {
-                        Console.WriteLine($"Retrying zip operation (attempt {attempt + 1}/{maxRetries}) after {delayMs}ms delay...");
-                        await Task.Delay(delayMs);
-                    }
-
-                    ZipFiles();
-                    return; // Success
-                }
-                catch (System.IO.IOException ex) when (attempt < maxRetries - 1 && ex.Message.Contains("being used by another process"))
-                {
-                    // Continue to retry
-                    Console.WriteLine($"Database file is still locked, will retry...");
-                }
-            }
-
-            // If we get here, all retries failed - try copying to temp location first
-            Console.WriteLine("All retries failed. Attempting to copy database to temporary location before zipping...");
-            await ZipFilesWithCopy();
-        }
-
-        private static async Task ZipFilesWithCopy()
-        {
-            var dbDir = Path.Combine(DirectoryHelper.IndexDirectory, "db");
-            var tempDbDir = Path.Combine(DirectoryHelper.IndexDirectory, "db_temp");
-            var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
-
-            try
-            {
-                // Delete temp directory if it exists
-                if (Directory.Exists(tempDbDir))
-                {
-                    Directory.Delete(tempDbDir, true);
-                }
-
-                // Create temp directory
-                Directory.CreateDirectory(tempDbDir);
-
-                // Copy all files from db to db_temp
-                foreach (var file in Directory.GetFiles(dbDir))
-                {
-                    var fileName = Path.GetFileName(file);
-                    var destFile = Path.Combine(tempDbDir, fileName);
-                    
-                    // Retry copying the database file if it's locked
-                    var maxCopyRetries = 5;
-                    for (int i = 0; i < maxCopyRetries; i++)
-                    {
-                        try
-                        {
-                            File.Copy(file, destFile, true);
-                            break; // Success
-                        }
-                        catch (System.IO.IOException) when (i < maxCopyRetries - 1 && fileName == "mediaIndex.db")
-                        {
-                            Console.WriteLine($"Database file is locked, retrying copy (attempt {i + 1}/{maxCopyRetries})...");
-                            await Task.Delay(1000);
-                        }
-                    }
-                }
-
-                // Now zip from the temp directory
-                if (File.Exists(zipIndex))
-                {
-                    File.Delete(zipIndex);
-                }
-
-                ZipFile.CreateFromDirectory(tempDbDir, zipIndex);
-                Console.WriteLine("Successfully zipped database from temporary copy.");
-            }
-            finally
-            {
-                // Clean up temp directory
-                if (Directory.Exists(tempDbDir))
-                {
-                    try
-                    {
-                        Directory.Delete(tempDbDir, true);
-                    }
-                    catch
-                    {
-                        // Ignore cleanup errors
-                    }
-                }
-            }
-        }
-
         private static void ZipFiles()
         {
             var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
@@ -253,10 +228,6 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex);
         }
 
-        /// <summary>
-        /// Depth-first recursive delete, with handling for descendant 
-        /// directories open in Windows Explorer.
-        /// </summary>
         private static void deleteDirectory(string path)
         {
             if (!Directory.Exists(path))
@@ -299,7 +270,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             }
         }
 
-        private async static Task publishToCloudFront()
+        private async static Task publishToCloudFront(Serilog.ILogger logger)
         {
             var keyPrefix = "bible-alarm/media-index";
             var bucketName = "jthomas.info";

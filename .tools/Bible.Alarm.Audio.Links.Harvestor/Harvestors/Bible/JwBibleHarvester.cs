@@ -10,15 +10,23 @@ using Bible.Alarm.Audio.Links.Harvestor.Models.Bible;
 using Bible.Alarm.Audio.Links.Harvestor.Utility;
 using Bible.Alarm.Shared.Constants;
 using System.Text.Json;
+using Serilog;
 
 namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
 {
     internal class JwBibleHarvester
     {
-        // Maximum concurrent language downloads to avoid overwhelming network/CPU
         private const int MaxConcurrentLanguageDownloads = 8;
+        private readonly ILogger _logger;
+        private readonly DownloadUtility _downloadUtility;
 
-        internal async static Task Harvest_Bible_Links(
+        public JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
+        {
+            _logger = logger;
+            _downloadUtility = downloadUtility;
+        }
+
+        internal async Task Harvest_Bible_Links(
             Dictionary<string, string> biblePublicationCodeToNameMappings,
             ConcurrentDictionary<string, string> languageCodeToNameMappings,
             ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,
@@ -27,41 +35,54 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
             foreach (var publication in biblePublicationCodeToNameMappings)
             {
                 var publicationCode = publication.Key;
-                Console.WriteLine($"Starting harvest for publication: {publicationCode} ({publication.Value})");
+                _logger.Information("Starting harvest for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
 
-                Dictionary<string, string> discoveredLanguages = await DiscoverLanguagesFromApi(publicationCode);
+                Dictionary<string, string> discoveredLanguages;
+                try
+                {
+                    discoveredLanguages = await DiscoverLanguagesFromApi(publicationCode);
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+                {
+                    continue;
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+                {
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Failed to discover languages for publication {PublicationCode} ({PublicationName}). Skipping.", publicationCode, publication.Value);
+                    continue;
+                }
+
                 if (discoveredLanguages.Count == 0)
                 {
                     continue;
                 }
 
-                // Filter out sign languages and songs
                 var filteredLanguages = discoveredLanguages
                     .Where(lang => !ShouldSkipLanguage(lang.Value))
                     .ToDictionary(x => x.Key, x => x.Value);
 
                 if (filteredLanguages.Count == 0)
                 {
-                    Console.WriteLine($"No valid languages found for publication {publicationCode} after filtering.");
                     continue;
                 }
 
-                // In test run mode, only process English ("E") language
                 if (isTestRun)
                 {
                     if (filteredLanguages.TryGetValue("E", out var englishName))
                     {
-                        Console.WriteLine($"TEST RUN: Processing only English language for publication {publicationCode}");
+                        _logger.Information("TEST RUN: Processing only English language for publication {PublicationCode}", publicationCode);
                         filteredLanguages = new Dictionary<string, string> { ["E"] = englishName };
                     }
                     else
                     {
-                        Console.WriteLine($"TEST RUN: English language not found for publication {publicationCode}. Skipping.");
                         continue;
                     }
                 }
 
-                // Process discovered languages in parallel with throttling
                 using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
                 var languageTasks = filteredLanguages.Select(async langEntry =>
                 {
@@ -73,13 +94,17 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
 
                         languageCodeToNameMappings.TryAdd(languageCode, language);
 
-                        Console.WriteLine($"Harvesting Bible chapter links for {publication.Value} of {language} language.");
+                        _logger.Information("Harvesting Bible chapter links for {PublicationName} of {Language} language.", publication.Value, language);
                         await HarvestBibleLinks(languageCode, publicationCode);
 
                         if (!languageCodeToEditionsMapping.TryAdd(languageCode, new List<string>([publication.Key])))
                         {
                             languageCodeToEditionsMapping[languageCode].Add(publication.Key);
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(ex, "Failed to harvest Bible links for {PublicationName} ({PublicationCode}) in {Language} ({LanguageCode}).", publication.Value, publicationCode, langEntry.Value, langEntry.Key);
                     }
                     finally
                     {
@@ -91,7 +116,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
             }
         }
 
-        private static bool ShouldSkipLanguage(string languageName)
+        private bool ShouldSkipLanguage(string languageName)
         {
             if (string.IsNullOrWhiteSpace(languageName))
                 return false;
@@ -101,12 +126,12 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
         }
 
 
-        private static async Task<Dictionary<string, string>> DiscoverLanguagesFromApi(string publicationCode)
+        private async Task<Dictionary<string, string>> DiscoverLanguagesFromApi(string publicationCode)
         {
             var discoveredLanguages = new Dictionary<string, string>();
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum=1&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
-            var jsonString = await DownloadUtility.GetAsync(harvestLink);
+            var jsonString = await _downloadUtility.GetAsync(harvestLink);
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
@@ -141,7 +166,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
             return discoveredLanguages;
         }
 
-        private static async Task<bool> HarvestBibleLinks(string languageCode, string publicationCode)
+        private async Task<bool> HarvestBibleLinks(string languageCode, string publicationCode)
         {
             var booksDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageCode}/{publicationCode}";
             var booksIndex = $"{booksDirectory}/books.json";
@@ -154,7 +179,23 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
 
             while (bookNumber <= 66)
             {
-                var jsonString = await DownloadUtility.GetAsync(harvestLink);
+                string jsonString;
+                try
+                {
+                    jsonString = await _downloadUtility.GetAsync(harvestLink);
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+                {
+                    AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Failed to fetch book {BookNumber} for publication {PublicationCode} in language {LanguageCode}. Skipping to next book.", bookNumber, publicationCode, languageCode);
+                    AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                    continue;
+                }
+
                 JsonDocument doc = null;
                 JsonElement files = default;
 

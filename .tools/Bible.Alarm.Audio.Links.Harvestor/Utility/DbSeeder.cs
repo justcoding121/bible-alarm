@@ -5,100 +5,61 @@ using System.Threading.Tasks;
 using Bible.Alarm.Audio.Links.Harvestor.Models;
 using Bible.Alarm.Audio.Links.Harvestor.Models.Bible;
 using Bible.Alarm.Audio.Links.Harvestor.Models.Music;
+using Bible.Alarm.Audio.Links.Harvestor.Utility;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 {
     public class DbSeeder
     {
-        public async static Task Seed(string indexDir)
+        private readonly ILogger _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
+
+        public DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         {
-            var zipDir = Path.Combine(new DirectoryInfo(indexDir).FullName, "db");
-
-            if (!Directory.Exists(zipDir))
-            {
-                Directory.CreateDirectory(zipDir);
-            }
-
-            var dbPath = Path.Combine(zipDir, "mediaIndex.db");
-            // Use default connection string without Cache=Shared to avoid file locking issues
-            var connectionString = $"Data Source={dbPath}";
-            var dbConfig = new DbContextOptionsBuilder<MediaDbContext>()
-               .UseSqlite(connectionString).Options;
-
-            MediaDbContext db = null;
-            try
-            {
-                db = new MediaDbContext(dbConfig);
-                await db.Database.MigrateAsync();
-
-                var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-                if (displayLanguage == null)
-                {
-                    displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
-                    {
-                        Code = "E",
-                        Name = "English"
-                    };
-                }
-
-                var mediaDir = Path.Combine(indexDir, "media");
-                await seedBibleTranslations(mediaDir, db, displayLanguage);
-                await seedMelodies(mediaDir, db, displayLanguage);
-                await seedVocals(mediaDir, db, displayLanguage);
-            }
-            finally
-            {
-                if (db != null)
-                {
-                    try
-                    {
-                        // Save any pending changes first
-                        await db.SaveChangesAsync();
-                    }
-                    catch
-                    {
-                        // Ignore errors during save
-                    }
-
-                    try
-                    {
-                        // Explicitly close the database connection before disposal
-                        await db.Database.CloseConnectionAsync();
-                    }
-                    catch
-                    {
-                        // Ignore errors during close
-                    }
-
-                    try
-                    {
-                        await db.DisposeAsync();
-                    }
-                    catch
-                    {
-                        // Ignore errors during dispose
-                    }
-                    
-                    db = null;
-                }
-                
-                // Force garbage collection to ensure all database resources are released
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect(); // Second collection to catch finalizers
-                
-                // Additional delay to allow SQLite to fully release the file
-                await Task.Delay(100);
-            }
+            _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
-        private async static Task seedBibleTranslations(string indexDir, MediaDbContext db, Bible.Alarm.Shared.Models.Media.Language displayLanguage)
+        public async Task Seed()
         {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = DELETE;");
+                await db.Database.MigrateAsync();
+            }
+
+            var indexDir = DirectoryHelper.IndexDirectory;
+            var mediaDir = Path.Combine(indexDir, "media");
+            await seedBibleTranslations(mediaDir);
+            await seedMelodies(mediaDir);
+            await seedVocals(mediaDir);
+        }
+
+        private async Task seedBibleTranslations(string indexDir)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
+            if (displayLanguage == null)
+            {
+                displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+                {
+                    Code = "E",
+                    Name = "English"
+                };
+                db.Languages.Add(displayLanguage);
+                await db.SaveChangesAsync();
+            }
+
             var mediaReader = new MediaReader(indexDir);
 
             Dictionary<string, Bible.Alarm.Audio.Links.Harvestor.Models.Language> bibleLanguages;
@@ -108,25 +69,20 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine("Warning: languages.json not found. No Bible translations to seed.");
                 return;
             }
             catch (DirectoryNotFoundException)
             {
-                Console.WriteLine("Warning: Bible directory not found. No Bible translations to seed.");
                 return;
             }
 
             if (bibleLanguages == null || bibleLanguages.Count == 0)
             {
-                Console.WriteLine("Warning: No Bible languages found. Skipping Bible translation seeding.");
                 return;
             }
 
             foreach (var language in bibleLanguages)
             {
-                Console.WriteLine($"Seeding language code {language.Key} Bible audio links to database.");
-
                 var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
                                                                         && x.Name == language.Value.Name);
                 if (newLanguage == null)
@@ -145,22 +101,21 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                 }
                 catch (FileNotFoundException)
                 {
-                    Console.WriteLine($"Warning: publications.json not found for language {language.Key}. Skipping language.");
                     continue;
                 }
                 catch (DirectoryNotFoundException)
                 {
-                    Console.WriteLine($"Warning: Directory not found for language {language.Key}. Skipping language.");
                     continue;
                 }
 
                 if (translations == null || translations.Count == 0)
                 {
-                    Console.WriteLine($"Warning: No translations found for language {language.Key}. Skipping language.");
                     continue;
                 }
 
                 foreach (var translation in translations)
+                {
+                    _logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
                 {
                     SortedDictionary<int, Bible.Alarm.Audio.Links.Harvestor.Models.Bible.BibleBook> books;
                     try
@@ -169,18 +124,15 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                     }
                     catch (FileNotFoundException)
                     {
-                        Console.WriteLine($"Warning: books.json not found for language {language.Key}, translation {translation.Key}. Skipping.");
                         continue;
                     }
                     catch (DirectoryNotFoundException)
                     {
-                        Console.WriteLine($"Warning: Directory not found for language {language.Key}, translation {translation.Key}. Skipping.");
                         continue;
                     }
 
                     if (books == null || books.Count == 0)
                     {
-                        Console.WriteLine($"Warning: No books found for language {language.Key}, translation {translation.Key}. Skipping.");
                         continue;
                     }
 
@@ -209,18 +161,15 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                         }
                         catch (FileNotFoundException)
                         {
-                            Console.WriteLine($"Warning: chapters.json not found for language {language.Key}, translation {translation.Key}, book {book.Key}. Skipping book.");
                             continue;
                         }
                         catch (DirectoryNotFoundException)
                         {
-                            Console.WriteLine($"Warning: Directory not found for language {language.Key}, translation {translation.Key}, book {book.Key}. Skipping book.");
                             continue;
                         }
 
                         if (chapters == null || chapters.Count == 0)
                         {
-                            Console.WriteLine($"Warning: No chapters found for language {language.Key}, translation {translation.Key}, book {book.Key}. Skipping book.");
                             continue;
                         }
 
@@ -253,8 +202,23 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             }
         }
 
-        private async static Task seedMelodies(string indexDir, MediaDbContext db, Bible.Alarm.Shared.Models.Media.Language displayLanguage)
+        private async Task seedMelodies(string indexDir)
         {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
+            if (displayLanguage == null)
+            {
+                displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+                {
+                    Code = "E",
+                    Name = "English"
+                };
+                db.Languages.Add(displayLanguage);
+                await db.SaveChangesAsync();
+            }
+
             var mediaReader = new MediaReader(indexDir);
 
             Dictionary<string, Bible.Alarm.Audio.Links.Harvestor.Models.Publication> melodyMusicReleases;
@@ -264,24 +228,21 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine("Warning: Melody publications.json not found. No melodies to seed.");
                 return;
             }
             catch (DirectoryNotFoundException)
             {
-                Console.WriteLine("Warning: Melody directory not found. No melodies to seed.");
                 return;
             }
 
             if (melodyMusicReleases == null || melodyMusicReleases.Count == 0)
             {
-                Console.WriteLine("Warning: No melody releases found. Skipping melody seeding.");
                 return;
             }
 
             foreach (var melodyMusicRelease in melodyMusicReleases)
             {
-                Console.WriteLine($"Seeding melody code {melodyMusicRelease.Key} music to database.");
+                _logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
 
                 var newMelodyMusic = new Bible.Alarm.Shared.Models.Media.Music.MelodyMusic
                     {
@@ -297,18 +258,15 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                 }
                 catch (FileNotFoundException)
                 {
-                    Console.WriteLine($"Warning: tracks.json not found for melody {melodyMusicRelease.Key}. Skipping.");
                     continue;
                 }
                 catch (DirectoryNotFoundException)
                 {
-                    Console.WriteLine($"Warning: Directory not found for melody {melodyMusicRelease.Key}. Skipping.");
                     continue;
                 }
 
                 if (tracks == null || tracks.Count == 0)
                 {
-                    Console.WriteLine($"Warning: No tracks found for melody {melodyMusicRelease.Key}. Skipping.");
                     continue;
                 }
 
@@ -329,14 +287,28 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                 }
 
                 await db.MelodyMusic.AddAsync(newMelodyMusic);
-                //db.Music
                 await db.SaveChangesAsync();
             }
 
         }
 
-        private async static Task seedVocals(string indexDir, MediaDbContext db, Bible.Alarm.Shared.Models.Media.Language displayLanguage)
+        private async Task seedVocals(string indexDir)
         {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
+            if (displayLanguage == null)
+            {
+                displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+                {
+                    Code = "E",
+                    Name = "English"
+                };
+                db.Languages.Add(displayLanguage);
+                await db.SaveChangesAsync();
+            }
+
             var mediaReader = new MediaReader(indexDir);
 
             Dictionary<string, Bible.Alarm.Audio.Links.Harvestor.Models.Language> melodyLanguages;
@@ -346,25 +318,20 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine("Warning: Vocal languages.json not found. No vocals to seed.");
                 return;
             }
             catch (DirectoryNotFoundException)
             {
-                Console.WriteLine("Warning: Vocal directory not found. No vocals to seed.");
                 return;
             }
 
             if (melodyLanguages == null || melodyLanguages.Count == 0)
             {
-                Console.WriteLine("Warning: No vocal languages found. Skipping vocal seeding.");
                 return;
             }
 
             foreach (var language in melodyLanguages)
             {
-                Console.WriteLine($"Seeding language code {language.Key} vocals to database.");
-
                 var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
                                                                         && x.Name == language.Value.Name);
                 if (newLanguage == null)
@@ -383,22 +350,21 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                 }
                 catch (FileNotFoundException)
                 {
-                    Console.WriteLine($"Warning: publications.json not found for vocal language {language.Value.Code}. Skipping language.");
                     continue;
                 }
                 catch (DirectoryNotFoundException)
                 {
-                    Console.WriteLine($"Warning: Directory not found for vocal language {language.Value.Code}. Skipping language.");
                     continue;
                 }
 
                 if (vocalMusicReleases == null || vocalMusicReleases.Count == 0)
                 {
-                    Console.WriteLine($"Warning: No vocal releases found for language {language.Value.Code}. Skipping language.");
                     continue;
                 }
 
                 foreach (var vocalMusicRelease in vocalMusicReleases)
+                {
+                    _logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
                 {
                     var newVocalMusic = new Bible.Alarm.Shared.Models.Media.Music.VocalMusic
                     {
@@ -415,18 +381,15 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                     }
                     catch (FileNotFoundException)
                     {
-                        Console.WriteLine($"Warning: tracks.json not found for language {language.Value.Code}, vocal {vocalMusicRelease.Key}. Skipping.");
                         continue;
                     }
                     catch (DirectoryNotFoundException)
                     {
-                        Console.WriteLine($"Warning: Directory not found for language {language.Value.Code}, vocal {vocalMusicRelease.Key}. Skipping.");
                         continue;
                     }
 
                     if (tracks == null || tracks.Count == 0)
                     {
-                        Console.WriteLine($"Warning: No tracks found for language {language.Value.Code}, vocal {vocalMusicRelease.Key}. Skipping.");
                         continue;
                     }
 
