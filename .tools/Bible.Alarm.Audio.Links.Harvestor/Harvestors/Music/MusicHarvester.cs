@@ -14,7 +14,7 @@ using Serilog;
 
 namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 {
-    internal class MusicHarverster
+    internal class MusicHarvester
     {
         private const int MaxConcurrentLanguageDownloads = 8;
         private readonly ILogger _logger;
@@ -26,13 +26,13 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
             new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
         });
 
-        public MusicHarverster(ILogger logger, DownloadUtility downloadUtility)
+        public MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         {
             _logger = logger;
             _downloadUtility = downloadUtility;
         }
 
-        internal async Task Harvest_Vocal_Music_Links(bool isTestRun = false)
+        internal async Task HarvestVocalMusicLinks(bool isTestRun = false)
         {
             var languageCodeToNames = new Dictionary<string, string>();
             var languageCodeToPublications = new Dictionary<string, List<string>>();
@@ -112,7 +112,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 
                         try
                         {
-                            await harvestMusicLinks(publication.Key, new List<string>([publication.Key]), languageCode);
+                            await HarvestMusicLinks(publication.Key, new List<string>([publication.Key]), languageCode);
                             languageCodeToNames[languageCode] = language;
 
                             lock (languageCodeToPublications)
@@ -172,7 +172,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
             new KeyValuePair<string, string>("iam","Sing Praises to Jehovah (1984)")
         });
 
-        internal async Task Harvest_Music_Melody_Links(bool isTestRun = false)
+        internal async Task HarvestMusicMelodyLinks(bool isTestRun = false)
         {
             var discs = new List<string>();
             var downloadCodes = new List<string>();
@@ -196,7 +196,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                 }
 
                 _logger.Information("Harvesting Music track links for {PublicationName}.", publication.Value);
-                await harvestMusicLinks(publication.Key, downloadCodes);
+                await HarvestMusicLinks(publication.Key, downloadCodes);
             }
 
             File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json", JsonSerializer.Serialize(
@@ -208,7 +208,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
             }).OrderBy(x => x.Code)));
         }
 
-        private async Task<bool> harvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string languageCode = null)
+        private async Task<bool> HarvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string languageCode = null)
         {
             var dir = languageCode == null ? $"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/{publicationCode}" :
                                              $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languageCode}/{publicationCode}";

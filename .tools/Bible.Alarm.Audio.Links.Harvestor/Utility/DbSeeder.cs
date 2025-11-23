@@ -38,12 +38,12 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 
             var indexDir = DirectoryHelper.IndexDirectory;
             var mediaDir = Path.Combine(indexDir, "media");
-            await seedBibleTranslations(mediaDir);
-            await seedMelodies(mediaDir);
-            await seedVocals(mediaDir);
+            await SeedBibleTranslations(mediaDir);
+            await SeedMelodies(mediaDir);
+            await SeedVocals(mediaDir);
         }
 
-        private async Task seedBibleTranslations(string indexDir)
+        private async Task SeedBibleTranslations(string indexDir)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -116,7 +116,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                 foreach (var translation in translations)
                 {
                     _logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
-                {
+                    
                     SortedDictionary<int, Bible.Alarm.Audio.Links.Harvestor.Models.Bible.BibleBook> books;
                     try
                     {
@@ -202,7 +202,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             }
         }
 
-        private async Task seedMelodies(string indexDir)
+        private async Task SeedMelodies(string indexDir)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -292,7 +292,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
 
         }
 
-        private async Task seedVocals(string indexDir)
+        private async Task SeedVocals(string indexDir)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -365,7 +365,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                 foreach (var vocalMusicRelease in vocalMusicReleases)
                 {
                     _logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
-                {
+                    
                     var newVocalMusic = new Bible.Alarm.Shared.Models.Media.Music.VocalMusic
                     {
                         Code = vocalMusicRelease.Value.Code,

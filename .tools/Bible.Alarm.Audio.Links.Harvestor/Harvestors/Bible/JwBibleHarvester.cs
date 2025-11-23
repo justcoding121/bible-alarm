@@ -26,7 +26,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
             _downloadUtility = downloadUtility;
         }
 
-        internal async Task Harvest_Bible_Links(
+        internal async Task HarvestBibleLinks(
             Dictionary<string, string> biblePublicationCodeToNameMappings,
             ConcurrentDictionary<string, string> languageCodeToNameMappings,
             ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,

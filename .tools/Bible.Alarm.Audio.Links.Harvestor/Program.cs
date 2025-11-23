@@ -66,7 +66,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             });
             
             services.AddTransient<JwBibleHarvester>();
-            services.AddTransient<MusicHarverster>();
+            services.AddTransient<MusicHarvester>();
             services.AddTransient<DbSeeder>();
             services.AddTransient<Bible.Alarm.Audio.Links.Harvestor.Utility.DownloadUtility>();
             
@@ -85,7 +85,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 var originalIndexFileSize =
                     (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
 
-                deleteDirectory(DirectoryHelper.IndexDirectory);
+                DeleteDirectory(DirectoryHelper.IndexDirectory);
 
                 var bibleTasks = new List<Task>();
 
@@ -95,20 +95,20 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 await using (var harvesterScope = serviceProvider.CreateAsyncScope())
                 {
                     var bibleHarvester = harvesterScope.ServiceProvider.GetRequiredService<JwBibleHarvester>();
-                    var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarverster>();
+                    var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarvester>();
                     
-                    bibleTasks.Add(bibleHarvester.Harvest_Bible_Links(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
+                    bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
 
                     var musicTasks = new List<Task>
                     {
-                        musicHarvester.Harvest_Vocal_Music_Links(isTestRun),
-                        musicHarvester.Harvest_Music_Melody_Links(isTestRun)
+                        musicHarvester.HarvestVocalMusicLinks(isTestRun),
+                        musicHarvester.HarvestMusicMelodyLinks(isTestRun)
                     };
 
                     await Task.WhenAll(bibleTasks.Concat(musicTasks).ToArray());
                 }
 
-                writeBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
+                WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
 
                 var index = new
                 {
@@ -147,7 +147,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
                 if (!isTestRun)
                 {
-                    await publishToCloudFront(logger);
+                    await PublishToCloudFront(logger);
                 }
                 else
                 {
@@ -181,7 +181,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             }
         }
 
-        private static void writeBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
+        private static void WriteBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
                 ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
         {
             if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
@@ -228,7 +228,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex);
         }
 
-        private static void deleteDirectory(string path)
+        private static void DeleteDirectory(string path)
         {
             if (!Directory.Exists(path))
             {
@@ -237,7 +237,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
             foreach (var directory in Directory.GetDirectories(path))
             {
-                deleteDirectory(directory);
+                DeleteDirectory(directory);
             }
 
             var files = Directory.GetFiles(path);
@@ -270,7 +270,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor
             }
         }
 
-        private async static Task publishToCloudFront(Serilog.ILogger logger)
+        private static async Task PublishToCloudFront(Serilog.ILogger logger)
         {
             var keyPrefix = "bible-alarm/media-index";
             var bucketName = "jthomas.info";
