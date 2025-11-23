@@ -76,6 +76,43 @@ public class SchedulerService(
         return downloaded;
     }
 
+    /// <summary>
+    /// Reschedules the next occurrence of a recurring alarm.
+    /// This is necessary for WinUI 3 which doesn't support UWP background tasks.
+    /// </summary>
+    public async Task RescheduleNextOccurrenceAsync(int scheduleId)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            var alarmService = scope.ServiceProvider.GetRequiredService<IAlarmService>();
+            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+            // Load the schedule with all includes
+            var schedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.BibleReadingSchedule)
+                .Include(x => x.Music)
+                .FirstOrDefaultAsync(x => x.Id == scheduleId);
+
+            if (schedule != null && schedule.IsEnabled)
+            {
+                // Check if notification is already scheduled (shouldn't be, but check anyway)
+                var isScheduled = await notificationService.IsScheduledAsync(scheduleId);
+                if (!isScheduled)
+                {
+                    // Reschedule the next occurrence
+                    await alarmService.Create(schedule);
+                    _logger.Information("Rescheduled next occurrence for schedule {ScheduleId}", scheduleId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error rescheduling next occurrence for schedule {ScheduleId}", scheduleId);
+        }
+    }
+
     public void Dispose()
     {
         // Note: DbContext is now created via IServiceScopeFactory and disposed by the scope

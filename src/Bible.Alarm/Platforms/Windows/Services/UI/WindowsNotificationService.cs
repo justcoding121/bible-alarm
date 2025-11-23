@@ -1,8 +1,13 @@
+#nullable enable
+
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
-// Removed UWP toast notification APIs - using WinUI 3 alternatives
+using System.Linq;
+using Windows.ApplicationModel;
+using Windows.Data.Xml.Dom;
+using Windows.UI.Notifications;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
@@ -18,35 +23,233 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         public Task ScheduleNotificationAsync(AlarmSchedule schedule,
             string title, string body)
         {
-            // For WinUI 3 desktop apps, we can't use UWP toast notifications
-            // This functionality would need to be implemented using alternative approaches
-            // such as Windows Task Scheduler, Windows Notifications API, or a custom solution
-            // For now, we'll return a completed task without scheduling
-            // TODO: Implement proper notification scheduling for WinUI 3 desktop apps
+            try
+            {
+                var scheduleId = schedule.Id;
+                var time = schedule.NextFireDate();
+
+                if (time <= DateTimeOffset.Now)
+                {
+                    Serilog.Log.Warning("Cannot schedule notification for schedule {ScheduleId}: time {Time} is in the past", scheduleId, time);
+                    return Task.CompletedTask;
+                }
+
+                Serilog.Log.Information("Scheduling notification for schedule {ScheduleId} at {Time}", scheduleId, time);
+
+                var notifier = GetToastNotifier();
+                if (notifier == null)
+                {
+                    Serilog.Log.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications.", scheduleId);
+                    return Task.CompletedTask;
+                }
+
+                var toast = CreateScheduledToast(scheduleId, title, body, time);
+                notifier.AddToSchedule(toast);
+                
+                if (IsNotificationScheduled(notifier, scheduleId))
+                {
+                    Serilog.Log.Information("Successfully scheduled notification for schedule {ScheduleId} at {Time}", scheduleId, time);
+                }
+                else
+                {
+                    Serilog.Log.Warning("Notification may not have been scheduled for schedule {ScheduleId}. Check Windows notification settings.", scheduleId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Error scheduling notification for schedule {ScheduleId}", schedule.Id);
+            }
+
             return Task.CompletedTask;
         }
 
         public Task RemoveAsync(int scheduleId)
         {
-            // For WinUI 3 desktop apps, we can't use UWP toast notifications
-            // This functionality would need to be implemented using alternative approaches
-            // For now, we'll return a completed task without removing
-            // TODO: Implement proper notification removal for WinUI 3 desktop apps
+            try
+            {
+                var notifier = GetToastNotifier();
+                if (notifier == null) return Task.CompletedTask;
+                
+                var toRemove = FindScheduledToast(notifier, scheduleId);
+                if (toRemove != null)
+                {
+                    notifier.RemoveFromSchedule(toRemove);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Error removing notification for schedule {ScheduleId}", scheduleId);
+            }
+
             return Task.CompletedTask;
         }
 
         public Task<bool> IsScheduledAsync(int scheduleId)
         {
-            // For WinUI 3 desktop apps, we can't use UWP toast notifications
-            // This functionality would need to be implemented using alternative approaches
-            // For now, we'll return false
-            // TODO: Implement proper notification checking for WinUI 3 desktop apps
-            return Task.FromResult(false);
+            try
+            {
+                var notifier = GetToastNotifier();
+                if (notifier == null) return Task.FromResult(false);
+                
+                return Task.FromResult(IsNotificationScheduled(notifier, scheduleId));
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Error checking if notification is scheduled for schedule {ScheduleId}", scheduleId);
+                return Task.FromResult(false);
+            }
         }
 
         public Task<bool> CanScheduleAsync()
         {
             return Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
+        }
+
+        private static ScheduledToastNotification CreateScheduledToast(int scheduleId, string title, string body, DateTimeOffset time)
+        {
+            var toastXml = CreateToastXml(title, body, scheduleId);
+            return new ScheduledToastNotification(toastXml, time)
+            {
+                Id = scheduleId.ToString()
+            };
+        }
+
+        private static XmlDocument CreateToastXml(string title, string body, int scheduleId)
+        {
+            var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
+            
+            var textElements = toastXml.GetElementsByTagName("text");
+            if (textElements.Length > 0)
+            {
+                textElements[0].AppendChild(toastXml.CreateTextNode(title));
+            }
+
+            if (textElements.Length > 1)
+            {
+                textElements[1].AppendChild(toastXml.CreateTextNode(body));
+            }
+
+            var toastNode = toastXml.SelectSingleNode("/toast");
+            if (toastNode?.Attributes != null)
+            {
+                var launchAttribute = toastXml.CreateAttribute("launch");
+                launchAttribute.Value = scheduleId.ToString();
+                toastNode.Attributes.SetNamedItem(launchAttribute);
+            }
+
+            var audioNode = toastXml.CreateElement("audio");
+            audioNode.SetAttribute("src", "ms-winsoundevent:Notification.Default");
+            toastNode?.AppendChild(audioNode);
+
+            return toastXml;
+        }
+
+        private static bool IsNotificationScheduled(ToastNotifier notifier, int scheduleId)
+        {
+            var scheduledToasts = notifier.GetScheduledToastNotifications();
+            return scheduledToasts.Any(t => t.Id == scheduleId.ToString());
+        }
+
+        private static ScheduledToastNotification? FindScheduledToast(ToastNotifier notifier, int scheduleId)
+        {
+            var scheduledToasts = notifier.GetScheduledToastNotifications();
+            return scheduledToasts.FirstOrDefault(t => t.Id == scheduleId.ToString());
+        }
+
+        private static ToastNotifier? GetToastNotifier()
+        {
+            var notifier = TryCreateNotifierWithoutParameters();
+            if (notifier != null) return notifier;
+
+            notifier = TryCreateNotifierWithAumid();
+            if (notifier != null) return notifier;
+
+            Serilog.Log.Error(
+                "Unable to create toast notifier. Scheduled notifications will not work. " +
+                "This is common in debug mode. Try running the app from an installed package instead of Visual Studio.");
+            
+            return null;
+        }
+
+        private static ToastNotifier? TryCreateNotifierWithoutParameters()
+        {
+            try
+            {
+                Serilog.Log.Debug("Attempting to create toast notifier without parameters...");
+                var notifier = ToastNotificationManager.CreateToastNotifier();
+                if (notifier != null)
+                {
+                    Serilog.Log.Debug("Successfully created toast notifier without parameters");
+                    return notifier;
+                }
+                Serilog.Log.Warning("ToastNotificationManager.CreateToastNotifier() returned null");
+            }
+            catch (System.Runtime.InteropServices.COMException ex) when (ex.HResult == unchecked((int)0x80070490))
+            {
+                Serilog.Log.Warning("Failed to create toast notifier without parameters (0x80070490). Trying with AUMID...");
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}", ex.HResult);
+            }
+            return null;
+        }
+
+        private static ToastNotifier? TryCreateNotifierWithAumid()
+        {
+            try
+            {
+                var package = Package.Current;
+                var packageId = package.Id;
+                
+                var aumidFormats = new[]
+                {
+                    $"{packageId.FamilyName}!App",
+                    packageId.FamilyName,
+                    packageId.Name,
+                };
+
+                foreach (var aumid in aumidFormats)
+                {
+                    var notifier = TryCreateNotifierWithAumid(aumid);
+                    if (notifier != null) return notifier;
+                }
+
+                Serilog.Log.Warning(
+                    "Failed to create toast notifier with any AUMID format. " +
+                    "Package: {PackageName}, FamilyName: {FamilyName}, Publisher: {Publisher}",
+                    packageId.Name, packageId.FamilyName, packageId.Publisher);
+            }
+            catch (InvalidOperationException)
+            {
+                Serilog.Log.Warning(
+                    "Package.Current is not available. This is expected in debug mode or unpackaged WinUI 3 apps. " +
+                    "Scheduled notifications require the app to be properly packaged and installed.");
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Exception while trying to create toast notifier with AUMID");
+            }
+            return null;
+        }
+
+        private static ToastNotifier? TryCreateNotifierWithAumid(string aumid)
+        {
+            try
+            {
+                Serilog.Log.Debug("Trying to create toast notifier with AUMID: {AUMID}", aumid);
+                var notifier = ToastNotificationManager.CreateToastNotifier(aumid);
+                if (notifier != null)
+                {
+                    Serilog.Log.Information("Successfully created toast notifier with AUMID: {AUMID}", aumid);
+                    return notifier;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Debug(ex, "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}", aumid, ex.HResult);
+            }
+            return null;
         }
 
         public void Dispose()

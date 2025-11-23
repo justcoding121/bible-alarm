@@ -4,4 +4,5 @@ public interface ISchedulerService
 {
     Task ProcessScheduledTasksAsync();
     Task<bool> HandleAsync();
+    Task RescheduleNextOccurrenceAsync(int scheduleId);
 }

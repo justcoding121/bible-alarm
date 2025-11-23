@@ -106,6 +106,11 @@ namespace Bible.Alarm.WinUI
 
                             var alarmHandler = MauiAppHolder.Services.GetRequiredService<WindowsAlarmHandler>();
                             await alarmHandler.HandleAsync(scheduleId, true);
+
+                            // Reschedule the next occurrence for recurring alarms
+                            // WinUI 3 doesn't have background tasks, so we reschedule immediately when notification fires
+                            var schedulerService = MauiAppHolder.Services.GetRequiredService<Bible.Alarm.Services.Scheduler.Interfaces.ISchedulerService>();
+                            await schedulerService.RescheduleNextOccurrenceAsync(scheduleId);
                         }
                         catch (Exception e)
                         {

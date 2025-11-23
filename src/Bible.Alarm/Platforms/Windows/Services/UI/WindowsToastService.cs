@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿#nullable enable
+
+using System.Linq;
 using Bible.Alarm.Services.UI;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
@@ -15,7 +17,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
     {
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
 
-        private static TaskCompletionSource<bool> clearRequest;
+        private static TaskCompletionSource<bool>? clearRequest;
         private readonly TaskScheduler _taskScheduler;
 
         public WindowsToastService(TaskScheduler taskScheduler)
@@ -161,7 +163,14 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             flyout.OverlayInputPassThroughElement = targetElement;
             flyout.ShowAt(targetElement);
 
-            await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
+            if (clearRequest != null)
+            {
+                await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
+            }
+            else
+            {
+                await Task.Delay((int)(seconds * 1000));
+            }
             flyout.Hide();
         }
 

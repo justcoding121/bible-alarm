@@ -86,6 +86,13 @@ public partial class App : Application,
 
                 var mediaIndexService = _serviceProvider.GetRequiredService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
+
+#if WINDOWS
+                // Reschedule any enabled alarms that may have fired while app was closed
+                // This is a fallback for WinUI 3 which doesn't have background tasks
+                var schedulerService = _serviceProvider.GetRequiredService<Services.Scheduler.Interfaces.ISchedulerService>();
+                await schedulerService.HandleAsync();
+#endif
             }
             catch (Exception e)
             {
@@ -119,6 +126,13 @@ public partial class App : Application,
 
                 var mediaIndexService = _serviceProvider.GetRequiredService<MediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
+
+#if WINDOWS
+                // Reschedule any enabled alarms that may have fired while app was in background
+                // This is a fallback for WinUI 3 which doesn't have background tasks
+                var schedulerService = _serviceProvider.GetRequiredService<Services.Scheduler.Interfaces.ISchedulerService>();
+                await schedulerService.HandleAsync();
+#endif
             }
             catch (Exception e)
             {
