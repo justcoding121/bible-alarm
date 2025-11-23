@@ -612,9 +612,31 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(DaysOfWeek));
     }
 
-    private void SetupMediaCache(int scheduleId)
+    private void SetupMediaCache(int scheduleId, bool isUpdate = false)
     {
-        _ = _mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
+        if (isUpdate)
+        {
+            // For updates, delete old cache files first in a separate task, then cache new files
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
+                    await mediaCacheService.DeleteScheduleCacheAsync(scheduleId);
+                    await _mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error deleting old cache and setting up new cache for schedule {ScheduleId}", scheduleId);
+                }
+            });
+        }
+        else
+        {
+            // For new schedules, just cache files
+            _ = _mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
+        }
     }
 
     private async Task<bool> SaveAsync()
@@ -635,7 +657,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         if (saved)
         {
-            SetupMediaCache(model.Id);
+            SetupMediaCache(model.Id, isUpdate: !IsNewSchedule);
         }
 
         return saved;
