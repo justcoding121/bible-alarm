@@ -2,7 +2,7 @@ name: Patch App Version Every Month 15th
 
 on:
  schedule:
-    - cron:  '0 2 * * *'
+    - cron:  '0 2 15 * *'
 
 jobs:
   build:
@@ -12,13 +12,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '5.0.x'
+        dotnet-version: '9.0.x'
 
     - name: Run Version Patcher
-      run: dotnet run --project src/_tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
+      run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
     
     - name: Commit changes
       uses: EndBug/add-and-commit@v7

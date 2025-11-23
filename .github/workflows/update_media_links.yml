@@ -2,7 +2,7 @@ name: Update media links
 
 on:
   schedule:
-    - cron:  '0 2 * * *'
+    - cron:  '0 2 * * 0'
     
 jobs:
   build:
@@ -15,13 +15,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '5.0.x'
+        dotnet-version: '9.0.x'
 
     - name: Run Link Harvestor
-      run: dotnet run --project src/_tools/Bible.Alarm.Audio.Links.Harvestor/Bible.Alarm.Audio.Links.Harvestor.csproj --configuration Release
+      run: dotnet run --project .tools/Bible.Alarm.Audio.Links.Harvestor/Bible.Alarm.Audio.Links.Harvestor.csproj --configuration Release
      
     - name: Commit changes
       uses: EndBug/add-and-commit@v7
@@ -29,4 +29,4 @@ jobs:
           author_name: buildbot171
           author_email: buildbot171@gmail.com
           message: 'Update media links database'
-          add: '*.zip'
+          add: '.tools/_index/index.zip'
