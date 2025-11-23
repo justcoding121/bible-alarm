@@ -72,6 +72,9 @@
 		<EmbeddedResource Include="..\..\.tools\_index\index.zip">
 			<Link>Resources\index.zip</Link>
 		</EmbeddedResource>
+		<EmbeddedResource Include="Resources\cool_alarm_tone_notification_sound.mp3">
+			<Link>Resources\cool-alarm-tone-notification-sound.mp3</Link>
+		</EmbeddedResource>
 	</ItemGroup>
 
 

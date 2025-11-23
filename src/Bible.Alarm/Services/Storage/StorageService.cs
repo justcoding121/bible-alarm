@@ -1,6 +1,7 @@
 using System.Reflection;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Serilog;
 
 namespace Bible.Alarm.Services.Storage;
 
@@ -76,16 +77,30 @@ public abstract class StorageService : IStorageService
             await DeleteFile(destinationFilePath);
         }
 
-        await using var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName);
-        var buffer = new byte[1024];
-        await using var fileWriter =
-            new BinaryWriter(File.Create(destinationFilePath));
-        long readCount = 0;
-        while (readCount < sr.Length)
+        try
         {
-            var read = await sr.ReadAsync(buffer, 0, buffer.Length);
-            readCount += read;
-            fileWriter.Write(buffer, 0, read);
+            await using var sr = ResourceLoader.GetEmbeddedResourceStream(MainAssembly, resourceFileName);
+            var buffer = new byte[1024];
+            await using var fileWriter =
+                new BinaryWriter(File.Create(destinationFilePath));
+            long readCount = 0;
+            while (readCount < sr.Length)
+            {
+                var read = await sr.ReadAsync(buffer, 0, buffer.Length);
+                readCount += read;
+                fileWriter.Write(buffer, 0, read);
+            }
+        }
+        catch (Exception ex)
+        {
+            var availableResources = string.Join(", ", MainAssembly.GetManifestResourceNames());
+            var errorMessage = $"Failed to copy embedded resource '{resourceFileName}'. " +
+                              $"Available resources: {availableResources}. " +
+                              $"Make sure the file is included as an EmbeddedResource in the project file.";
+            
+            Log.Logger.Error(ex, errorMessage);
+            
+            throw new InvalidOperationException(errorMessage, ex);
         }
     }
 

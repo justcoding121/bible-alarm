@@ -10,11 +10,11 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
         /// <summary>
         /// Main entry point for Windows platform initialization
         /// </summary>
-        public static void Initialize(ILogger logger, bool isForeground = false)
+        public static async Task Initialize(ILogger logger, bool isForeground = false)
         {
             try
             {
-                CommonBootstrapHelper.VerifyServices().Wait();
+                await CommonBootstrapHelper.VerifyServices().ConfigureAwait(false);
                 logger.Information("Windows database initialization completed successfully.");
             }
             catch (Exception e)

@@ -23,6 +23,20 @@ namespace Bible.Alarm.WinUI
         public App()
         {
             InitializeComponent();
+
+            // Set up global exception handlers
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
+        }
+
+        private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            Logger.Error(e.Exception, "Unobserved task exception.");
+        }
+
+        private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+        {
+            Logger.Error("Unhandled exception.", e.SerializeObject());
         }
 
         protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore(isForeground: true);

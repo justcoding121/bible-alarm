@@ -5,11 +5,11 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 
 public class iOSBootstrapHelper
 {
-    public static void Initialize(ILogger logger, bool isForeground = false)
+    public static async Task Initialize(ILogger logger, bool isForeground = false)
     {
         try
         {
-            CommonBootstrapHelper.VerifyServices().Wait();
+            await CommonBootstrapHelper.VerifyServices().ConfigureAwait(false);
             logger.Information("iOS database initialization completed successfully.");
         }
         catch (Exception e)

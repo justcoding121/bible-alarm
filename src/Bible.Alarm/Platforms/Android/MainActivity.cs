@@ -21,6 +21,10 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
+        // Set up global exception handlers
+        AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
+
         // Set up fullscreen and system UI for splash screen experience
         SetupSplashScreen();
 
@@ -32,6 +36,16 @@ public class MainActivity : MauiAppCompatActivity
 
         // Set up background tasks
         SetupBackgroundTasks();
+    }
+
+    private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Logger.Error(e.Exception, "Unobserved task exception.");
+    }
+
+    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    {
+        Logger.Error("Unhandled exception.", e.SerializeObject());
     }
 
     private void SetupSplashScreen()

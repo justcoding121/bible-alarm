@@ -8,7 +8,7 @@ using AndroidBuild = Android.OS.Build;
 
 namespace Bible.Alarm.Platforms.Android.Services.Jobs;
 
-[Service(Enabled = true)]
+[Service(Enabled = true, Permission = "android.permission.BIND_JOB_SERVICE")]
 public class SchedulerJob : JobService
 {
     public const int JobId = 1;

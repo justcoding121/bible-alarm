@@ -1,3 +1,4 @@
+#nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
@@ -23,17 +24,176 @@ public class NavigationService(
 
     private INavigation GetNavigation()
     {
-        return _serviceProvider.GetRequiredService<INavigation>();
+        // First, try to get from DI
+        INavigation? navigation = null;
+        try
+        {
+            navigation = _serviceProvider.GetService<INavigation>();
+            if (navigation is not null)
+            {
+                _logger?.Debug("Got INavigation from DI");
+                return navigation;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but continue to fallback
+            _logger?.Warning(ex, "Exception getting INavigation from DI, falling back to direct access");
+        }
+        
+        // If not in DI or GetService returned null, get it directly from the current application window
+        var app = Application.Current;
+        if (app is null)
+        {
+            var errorMsg = "Application.Current is null. Cannot get INavigation.";
+            _logger?.Error(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+        
+        _logger?.Debug($"Application.Current found. Windows count: {app.Windows.Count}");
+        
+        // Try to get navigation from windows
+        if (app.Windows.Count > 0)
+        {
+            var window = app.Windows[0];
+            _logger?.Debug($"Window found. Page type: {window?.Page?.GetType().Name ?? "null"}");
+            
+            // Check if window.Page is NavigationPage
+            if (window?.Page is NavigationPage navPage)
+            {
+                _logger?.Debug("Found NavigationPage in window.Page");
+                return navPage.Navigation;
+            }
+            
+            // If window.Page is a regular Page, try to get navigation from it
+            if (window?.Page is Page page)
+            {
+                _logger?.Debug($"Window.Page is {page.GetType().Name}, checking for navigation");
+                
+                // Try to get navigation from the page itself
+                if (page.Navigation is not null)
+                {
+                    _logger?.Debug("Found navigation from page.Navigation");
+                    return page.Navigation;
+                }
+                
+                // Check if the page has a parent NavigationPage
+                var parent = page.Parent;
+                int depth = 0;
+                while (parent is not null && depth < 10)
+                {
+                    _logger?.Debug($"Checking parent at depth {depth}: {parent.GetType().Name}");
+                    if (parent is NavigationPage parentNavPage)
+                    {
+                        _logger?.Debug("Found NavigationPage in parent hierarchy");
+                        return parentNavPage.Navigation;
+                    }
+                    parent = parent.Parent;
+                    depth++;
+                }
+            }
+        }
+        else
+        {
+            _logger?.Warning("Application.Current.Windows.Count is 0 - window may not be initialized yet");
+        }
+        
+        // Fallback to MainPage (obsolete but may be needed)
+#pragma warning disable CS0618 // Type or member is obsolete
+        if (app.MainPage is NavigationPage mainNavPage)
+        {
+            _logger?.Debug("Found NavigationPage in MainPage");
+            return mainNavPage.Navigation;
+        }
+        
+        if (app.MainPage is Page mainPage && mainPage.Navigation is not null)
+        {
+            _logger?.Debug("Found navigation in MainPage.Navigation");
+            return mainPage.Navigation;
+        }
+#pragma warning restore CS0618
+        
+        var finalErrorMsg = $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={app.MainPage?.GetType().Name ?? "null"}";
+        _logger?.Error(finalErrorMsg);
+        throw new InvalidOperationException(finalErrorMsg);
+    }
+    
+    private async Task<INavigation> GetNavigationAsync(int maxRetries = 30, int delayMs = 200)
+    {
+        // Ensure we're on the main thread when accessing UI elements
+        if (!MainThread.IsMainThread)
+        {
+            return await MainThread.InvokeOnMainThreadAsync(async () => await GetNavigationAsync(maxRetries, delayMs));
+        }
+        
+        var app = Application.Current;
+        if (app is null)
+        {
+            throw new InvalidOperationException("Application.Current is null. Cannot get INavigation.");
+        }
+        
+        // First, wait for at least one window to be available
+        int initialWindowCount = app.Windows.Count;
+        int retriesForWindow = 0;
+        while (app.Windows.Count == 0 && retriesForWindow < maxRetries)
+        {
+            _logger?.Debug($"Waiting for window to be added to Application. Current count: {app.Windows.Count} (attempt {retriesForWindow + 1}/{maxRetries})");
+            await Task.Delay(delayMs);
+            retriesForWindow++;
+        }
+        
+        if (app.Windows.Count == 0)
+        {
+            throw new InvalidOperationException($"No windows available after {maxRetries} retries. Application may not be fully initialized.");
+        }
+        
+        _logger?.Debug($"Window found. Now attempting to get navigation (window count: {app.Windows.Count})");
+        
+        // Now try to get navigation
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                var navigation = GetNavigation();
+                if (i > 0 || retriesForWindow > 0)
+                {
+                    _logger?.Information($"Navigation obtained after {retriesForWindow} window waits and {i} navigation retries");
+                }
+                return navigation;
+            }
+            catch (InvalidOperationException ex)
+            {
+                if (i < maxRetries - 1)
+                {
+                    _logger?.Debug($"Navigation not available yet, retrying in {delayMs}ms (attempt {i + 1}/{maxRetries}). Error: {ex.Message}");
+                    await Task.Delay(delayMs);
+                }
+                else
+                {
+                    _logger?.Error(ex, $"Failed to get INavigation after {maxRetries} retries");
+                    throw;
+                }
+            }
+        }
+        
+        // Should never reach here, but compiler needs it
+        throw new InvalidOperationException("Failed to get INavigation after retries");
     }
 
     public async Task NavigateToHomeAsync()
     {
+        // Wait for navigation to be available (window might still be initializing)
+        var navigation = await GetNavigationAsync();
+        
         // Always create a NEW Home page via DI (never reuse)
         var homePage = _serviceProvider.GetRequiredService<Home>();
-        await PushFreshPageAsync(homePage, hasNavigationBar: false);
         
-        // Ensure back button is hidden for Home page (it's effectively the root after BootstrapPage)
+        // Set navigation bar setting
         NavigationPage.SetHasBackButton(homePage, false);
+        NavigationPage.SetHasNavigationBar(homePage, false);
+        
+        // Push the fresh page
+        await navigation.PushAsync(homePage);
     }
 
     public async Task NavigateToScheduleAsync()
@@ -80,7 +240,7 @@ public class NavigationService(
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
     {
-        var navigation = GetNavigation();
+        var navigation = await GetNavigationAsync();
         var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal);
@@ -88,7 +248,7 @@ public class NavigationService(
 
     public async Task OpenLanguageModalAsync(object bindingContext)
     {
-        var navigation = GetNavigation();
+        var navigation = await GetNavigationAsync();
         ContentPage modal;
         
         // Use the appropriate modal based on the ViewModel type for compiled bindings
@@ -115,7 +275,7 @@ public class NavigationService(
         {
             try
             {
-                var navigation = GetNavigation();
+                var navigation = await GetNavigationAsync();
                 
                 // Check if modal is already shown
                 var existingModal = navigation.ModalStack.LastOrDefault();
@@ -136,8 +296,7 @@ public class NavigationService(
             }
             catch (Exception ex)
             {
-                // Log error but don't throw - use a logger if available
-                System.Diagnostics.Debug.WriteLine($"Error opening AlarmModal: {ex.Message}");
+                _logger.Error(ex, "Error opening AlarmModal");
             }
         });
     }
@@ -145,7 +304,7 @@ public class NavigationService(
 
     public async Task OpenBatteryOptimizationModalAsync(object bindingContext)
     {
-        var navigation = GetNavigation();
+        var navigation = await GetNavigationAsync();
         var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal);
@@ -153,7 +312,7 @@ public class NavigationService(
 
     public async Task PopModalAsync()
     { 
-            var navigation = GetNavigation();
+            var navigation = await GetNavigationAsync();
             if (navigation.ModalStack.Count > 0)
             {
                 var modal = navigation.ModalStack.LastOrDefault();
@@ -173,7 +332,7 @@ public class NavigationService(
 
     public async Task PopAsync()
     {
-        var navigation = GetNavigation();
+        var navigation = await GetNavigationAsync();
         if (navigation.NavigationStack.Count > 1)
         {
             var page = navigation.NavigationStack.LastOrDefault();
@@ -190,7 +349,7 @@ public class NavigationService(
     /// </summary>
     private async Task PushFreshPageAsync<T>(T page, bool hasNavigationBar = true) where T : Page
     {
-        var navigation = GetNavigation();
+        var navigation = await GetNavigationAsync();
 
         // Set navigation bar setting
         NavigationPage.SetHasNavigationBar(page, hasNavigationBar);
@@ -202,6 +361,8 @@ public class NavigationService(
     public MediaElement GetMediaElement()
     {
         // Find MediaElement from BootstrapPage (always on navigation stack)
+        // Note: This is synchronous, so we use GetNavigation() directly
+        // If navigation isn't ready, it will throw - caller should handle this
         var navigation = GetNavigation();
         
         // BootstrapPage is always the first page in the navigation stack

@@ -18,12 +18,12 @@ public class AndroidBootstrapHelper
     /// <summary>
     /// Main entry point for Android platform initialization
     /// </summary>
-    public static void Initialize(ILogger logger, Context context, AndroidApplication application = null)
+    public static async Task Initialize(ILogger logger, Context context, AndroidApplication application = null)
     {
 
         try
         {
-            CommonBootstrapHelper.VerifyServices().Wait();
+            await CommonBootstrapHelper.VerifyServices().ConfigureAwait(false);
             logger.Information("Android database initialization completed successfully.");
         }
         catch (Exception e)

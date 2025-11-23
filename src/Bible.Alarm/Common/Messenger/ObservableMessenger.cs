@@ -28,5 +28,10 @@ public class ObservableMessenger
     {
         _messenger.Unregister<TMessage>(recipient);
     }
+    
+    /// <summary>
+    /// Static instance for InitializedMessage to ensure messages are not lost
+    /// </summary>
+    public static readonly ObservableMessenger InitializationMessenger = new();
 }
 

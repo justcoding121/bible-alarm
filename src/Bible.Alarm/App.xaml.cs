@@ -9,6 +9,7 @@ using Bible.Alarm.Views.General;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
+using Bible.Alarm.Common;
 
 namespace Bible.Alarm;
 
@@ -32,13 +33,27 @@ public partial class App : Application,
         _navigationService = navigationService;
         InitializeComponent();
 
-        WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
+        // Set up global exception handlers
+        AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
 
+        // Use ObservableMessenger for InitializedMessage so message is not lost if sent before registration
+        ObservableMessenger.InitializationMessenger.Register<InitializedMessage>(this);
 
         WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<HideAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<ShowToastMessage>(this);
         WeakReferenceMessenger.Default.Register<ClearToastsMessage>(this);
+    }
+
+    private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        _logger.Error(e.Exception, "Unobserved task exception.");
+    }
+
+    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    {
+        _logger.Error("Unhandled exception.", e.SerializeObject());
     }
 
     protected override Window CreateWindow(IActivationState activationState)
