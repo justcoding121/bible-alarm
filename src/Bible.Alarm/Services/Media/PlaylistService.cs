@@ -100,6 +100,7 @@ public class PlaylistService(
             if (bibleReadingSchedule == null)
                 throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
+            // Check if chapter changed (not just progress)
             if (bibleReadingSchedule.BookNumber != trackMetadata.BookNumber
                 || bibleReadingSchedule.ChapterNumber != trackMetadata.ChapterNumber)
                 trackChanged = true;
@@ -111,47 +112,76 @@ public class PlaylistService(
 
         await scheduleDbContext.SaveChangesAsync();
 
-        if (trackChanged) WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
+        if (trackChanged)
+        {
+            WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
+            
+            // Only update state when chapter/track actually changed (not just progress)
+            // Reload the schedule with all includes to get the updated data
+            var updatedSchedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.BibleReadingSchedule)
+                .Include(x => x.Music)
+                .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
+            
+            // Update the Fluxor store to trigger state change and UI refresh
+            _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        }
     }
 
     public async Task MarkTrackAsFinished(TrackMetadata trackMetadata)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        AlarmSchedule updatedSchedule = null;
         
-        var schedule = await scheduleDbContext.AlarmSchedules
-            .Include(x => x.Music)
-            .Include(x => x.BibleReadingSchedule)
-            .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
-
-        if (trackMetadata.PlayType == PlayType.Music)
+        using (var scope = _scopeFactory.CreateScope())
         {
-            if (schedule.Music != null && !schedule.Music.Repeat)
-            {
-                var next = await NextMusicUrlToPlay(schedule, true);
-                schedule.Music.TrackNumber = next.Metadata.TrackNumber;
-            }
-        }
-        else
-        {
-            var bibleReadingSchedule = schedule.BibleReadingSchedule;
-            if (bibleReadingSchedule == null)
-                throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
-
-            var next = await GetNextBibleChapter(trackMetadata.LanguageCode, trackMetadata.PublicationCode,
-                trackMetadata.BookNumber, trackMetadata.ChapterNumber);
-
-            if (next.Key == null || next.Value == null)
-                throw new InvalidOperationException($"Next chapter Key or Value is null");
+            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
             
-            bibleReadingSchedule.BookNumber = next.Key.Number;
-            bibleReadingSchedule.ChapterNumber = next.Value.Number;
-            bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+            var schedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.Music)
+                .Include(x => x.BibleReadingSchedule)
+                .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
+
+            if (trackMetadata.PlayType == PlayType.Music)
+            {
+                if (schedule.Music != null && !schedule.Music.Repeat)
+                {
+                    var next = await NextMusicUrlToPlay(schedule, true);
+                    schedule.Music.TrackNumber = next.Metadata.TrackNumber;
+                }
+            }
+            else
+            {
+                var bibleReadingSchedule = schedule.BibleReadingSchedule;
+                if (bibleReadingSchedule == null)
+                    throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
+
+                var next = await GetNextBibleChapter(trackMetadata.LanguageCode, trackMetadata.PublicationCode,
+                    trackMetadata.BookNumber, trackMetadata.ChapterNumber);
+
+                if (next.Key == null || next.Value == null)
+                    throw new InvalidOperationException($"Next chapter Key or Value is null");
+                
+                bibleReadingSchedule.BookNumber = next.Key.Number;
+                bibleReadingSchedule.ChapterNumber = next.Value.Number;
+                bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+            }
+
+            await scheduleDbContext.SaveChangesAsync();
+
+            WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
+            
+            // Reload the schedule with all includes to get the updated data
+            updatedSchedule = await scheduleDbContext.AlarmSchedules
+                .Include(x => x.BibleReadingSchedule)
+                .Include(x => x.Music)
+                .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
         }
-
-        await scheduleDbContext.SaveChangesAsync();
-
-        WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
+        
+        // Update the Fluxor store to trigger state change and UI refresh
+        if (updatedSchedule != null)
+        {
+            _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        }
     }
 
     public async Task<PlayItem> NextTrack(int scheduleId)
