@@ -31,6 +31,13 @@ namespace Bible.Alarm.Audio.Links.Harvestor
         /// <param name="args"></param>
         public static async Task Main(string[] args)
         {
+            bool isTestRun = args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
+            
+            if (isTestRun)
+            {
+                Console.WriteLine("=== TEST RUN MODE: Processing at most 2 languages per publication ===");
+            }
+
             try
             {
                 var originalIndexFileSize =
@@ -44,14 +51,14 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>();
 
                 //////Bible
-                bibleTasks.Add(JwBibleHarvester.Harvest_Bible_Links(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping));
+                bibleTasks.Add(JwBibleHarvester.Harvest_Bible_Links(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
                 //bibleTasks.Add(BgBibleHarvester.Harvest_Bible_Links(BgSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping));
 
                 var musicTasks = new List<Task>
                 {
                     ////////Music
-                    MusicHarverster.Harvest_Vocal_Music_Links(),
-                    MusicHarverster.Harvest_Music_Melody_Links()
+                    MusicHarverster.Harvest_Vocal_Music_Links(isTestRun),
+                    MusicHarverster.Harvest_Music_Melody_Links(isTestRun)
                 };
 
                 await Task.WhenAll(bibleTasks.Concat(musicTasks).ToArray());
@@ -73,7 +80,8 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
                 await DbSeeder.Seed($"{DirectoryHelper.IndexDirectory}");
 
-                ZipFiles();
+                // Wait and retry to ensure database file is fully released
+                await RetryZipFiles();
 
                 var newIndexFileSize =
                     (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
@@ -81,12 +89,19 @@ namespace Bible.Alarm.Audio.Links.Harvestor
                 Console.WriteLine("Old size:" + (originalIndexFileSize / 1024) + "kb");
                 Console.WriteLine("New size:" + (newIndexFileSize / 1024) + "kb");
 
-                if (Math.Abs(originalIndexFileSize - newIndexFileSize) > (1024 * 700))
+                if (!isTestRun && Math.Abs(originalIndexFileSize - newIndexFileSize) > (1024 * 700))
                 {
                     throw new ApplicationException("New index file size is strangely smaller than old index file size.");
                 }
 
-                await publishToCloudFront();
+                if (!isTestRun)
+                {
+                    await publishToCloudFront();
+                }
+                else
+                {
+                    Console.WriteLine("=== TEST RUN: Skipping cloud publishing ===");
+                }
             }
             finally
             {
@@ -133,6 +148,99 @@ namespace Bible.Alarm.Audio.Links.Harvestor
 
         }
 
+
+        private static async Task RetryZipFiles(int maxRetries = 10, int delayMs = 2000)
+        {
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    if (attempt > 0)
+                    {
+                        Console.WriteLine($"Retrying zip operation (attempt {attempt + 1}/{maxRetries}) after {delayMs}ms delay...");
+                        await Task.Delay(delayMs);
+                    }
+
+                    ZipFiles();
+                    return; // Success
+                }
+                catch (System.IO.IOException ex) when (attempt < maxRetries - 1 && ex.Message.Contains("being used by another process"))
+                {
+                    // Continue to retry
+                    Console.WriteLine($"Database file is still locked, will retry...");
+                }
+            }
+
+            // If we get here, all retries failed - try copying to temp location first
+            Console.WriteLine("All retries failed. Attempting to copy database to temporary location before zipping...");
+            await ZipFilesWithCopy();
+        }
+
+        private static async Task ZipFilesWithCopy()
+        {
+            var dbDir = Path.Combine(DirectoryHelper.IndexDirectory, "db");
+            var tempDbDir = Path.Combine(DirectoryHelper.IndexDirectory, "db_temp");
+            var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
+
+            try
+            {
+                // Delete temp directory if it exists
+                if (Directory.Exists(tempDbDir))
+                {
+                    Directory.Delete(tempDbDir, true);
+                }
+
+                // Create temp directory
+                Directory.CreateDirectory(tempDbDir);
+
+                // Copy all files from db to db_temp
+                foreach (var file in Directory.GetFiles(dbDir))
+                {
+                    var fileName = Path.GetFileName(file);
+                    var destFile = Path.Combine(tempDbDir, fileName);
+                    
+                    // Retry copying the database file if it's locked
+                    var maxCopyRetries = 5;
+                    for (int i = 0; i < maxCopyRetries; i++)
+                    {
+                        try
+                        {
+                            File.Copy(file, destFile, true);
+                            break; // Success
+                        }
+                        catch (System.IO.IOException) when (i < maxCopyRetries - 1 && fileName == "mediaIndex.db")
+                        {
+                            Console.WriteLine($"Database file is locked, retrying copy (attempt {i + 1}/{maxCopyRetries})...");
+                            await Task.Delay(1000);
+                        }
+                    }
+                }
+
+                // Now zip from the temp directory
+                if (File.Exists(zipIndex))
+                {
+                    File.Delete(zipIndex);
+                }
+
+                ZipFile.CreateFromDirectory(tempDbDir, zipIndex);
+                Console.WriteLine("Successfully zipped database from temporary copy.");
+            }
+            finally
+            {
+                // Clean up temp directory
+                if (Directory.Exists(tempDbDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempDbDir, true);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+            }
+        }
 
         private static void ZipFiles()
         {

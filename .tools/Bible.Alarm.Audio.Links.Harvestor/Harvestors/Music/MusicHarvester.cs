@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Audio.Links.Harvestor.Models;
 using Bible.Alarm.Audio.Links.Harvestor.Models.Music;
@@ -13,13 +14,16 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
 {
     internal class MusicHarverster
     {
+        // Maximum concurrent language downloads to avoid overwhelming network/CPU
+        private const int MaxConcurrentLanguageDownloads = 8;
+
         private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new Dictionary<string, string>(new[]{
             new KeyValuePair<string, string>("osg","Original Songs"),
             new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
             new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
         });
 
-        internal async static Task Harvest_Vocal_Music_Links()
+        internal async static Task Harvest_Vocal_Music_Links(bool isTestRun = false)
         {
             var languageCodeToNames = new Dictionary<string, string>();
             var languageCodeToPublications = new Dictionary<string, List<string>>();
@@ -45,6 +49,8 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                     continue;
                 }
 
+                // Collect all languages first
+                var languageEntries = new List<(string Code, string Name)>();
                 foreach (var item in languages.EnumerateObject())
                 {
                     var languageCode = item.Name;
@@ -62,30 +68,66 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                         continue;
                     }
 
-                    Console.WriteLine($"Harvesting Music track links for {publication.Value} of {language} language.");
+                    languageEntries.Add((languageCode, language));
+                }
 
-                    try
+                // In test run mode, only process English ("E") language
+                if (isTestRun)
+                {
+                    var englishEntry = languageEntries.FirstOrDefault(e => e.Code == "E");
+                    if (englishEntry.Code == "E")
                     {
-                        await harvestMusicLinks(publication.Key, new List<string>([publication.Key]), languageCode);
-                        languageCodeToNames[languageCode] = language;
-
-                        if (languageCodeToPublications.ContainsKey(languageCode))
-                        {
-                            languageCodeToPublications[languageCode].Add(publication.Key);
-                        }
-                        else
-                        {
-                            languageCodeToPublications[languageCode] = new List<string>([publication.Key]);
-                        }
-
+                        Console.WriteLine($"TEST RUN: Processing only English language for publication {publication.Key}");
+                        languageEntries = new List<(string Code, string Name)> { englishEntry };
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"Failed: Harvesting Music track links for {publication.Value} of {language} language. Exception: {e}");
-                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine($"TEST RUN: English language not found for publication {publication.Key}. Skipping.");
+                        continue;
                     }
                 }
+
+                // Process languages in parallel with throttling
+                using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
+                var languageTasks = languageEntries.Select(async entry =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        var (languageCode, language) = entry;
+                        Console.WriteLine($"Harvesting Music track links for {publication.Value} of {language} language.");
+
+                        try
+                        {
+                            await harvestMusicLinks(publication.Key, new List<string>([publication.Key]), languageCode);
+                            languageCodeToNames[languageCode] = language;
+
+                            lock (languageCodeToPublications)
+                            {
+                                if (languageCodeToPublications.ContainsKey(languageCode))
+                                {
+                                    languageCodeToPublications[languageCode].Add(publication.Key);
+                                }
+                                else
+                                {
+                                    languageCodeToPublications[languageCode] = new List<string>([publication.Key]);
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"Failed: Harvesting Music track links for {publication.Value} of {language} language. Exception: {e}");
+                            Console.ForegroundColor = ConsoleColor.White;
+                        }
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                });
+
+                await Task.WhenAll(languageTasks);
 
             }
 
@@ -119,7 +161,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
             new KeyValuePair<string, string>("iam","Sing Praises to Jehovah (1984)")
         });
 
-        internal async static Task Harvest_Music_Melody_Links()
+        internal async static Task Harvest_Music_Melody_Links(bool isTestRun = false)
         {
             var discs = new List<string>();
             var downloadCodes = new List<string>();
