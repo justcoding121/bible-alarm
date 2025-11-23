@@ -11,7 +11,7 @@ using Windows.UI.Notifications;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public class WindowsNotificationService(WindowsAlarmHandler windowsAlarmHandler) : INotificationService
+    public sealed partial class WindowsNotificationService(WindowsAlarmHandler windowsAlarmHandler) : INotificationService
     {
         private readonly WindowsAlarmHandler _windowsAlarmHandler = windowsAlarmHandler;
 
@@ -68,10 +68,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 var notifier = GetToastNotifier();
-                if (notifier == null) return Task.CompletedTask;
+                if (notifier is null) return Task.CompletedTask;
                 
                 var toRemove = FindScheduledToast(notifier, scheduleId);
-                if (toRemove != null)
+                if (toRemove is not null)
                 {
                     notifier.RemoveFromSchedule(toRemove);
                 }
@@ -89,7 +89,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 var notifier = GetToastNotifier();
-                if (notifier == null) return Task.FromResult(false);
+                if (notifier is null) return Task.FromResult(false);
                 
                 return Task.FromResult(IsNotificationScheduled(notifier, scheduleId));
             }
@@ -147,22 +147,38 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         private static bool IsNotificationScheduled(ToastNotifier notifier, int scheduleId)
         {
             var scheduledToasts = notifier.GetScheduledToastNotifications();
-            return scheduledToasts.Any(t => t.Id == scheduleId.ToString());
+            var scheduleIdString = scheduleId.ToString();
+            foreach (var toast in scheduledToasts)
+            {
+                if (toast.Id == scheduleIdString)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static ScheduledToastNotification? FindScheduledToast(ToastNotifier notifier, int scheduleId)
         {
             var scheduledToasts = notifier.GetScheduledToastNotifications();
-            return scheduledToasts.FirstOrDefault(t => t.Id == scheduleId.ToString());
+            var scheduleIdString = scheduleId.ToString();
+            foreach (var toast in scheduledToasts)
+            {
+                if (toast.Id == scheduleIdString)
+                {
+                    return toast;
+                }
+            }
+            return null;
         }
 
         private static ToastNotifier? GetToastNotifier()
         {
             var notifier = TryCreateNotifierWithoutParameters();
-            if (notifier != null) return notifier;
+            if (notifier is not null) return notifier;
 
             notifier = TryCreateNotifierWithAumid();
-            if (notifier != null) return notifier;
+            if (notifier is not null) return notifier;
 
             Serilog.Log.Error(
                 "Unable to create toast notifier. Scheduled notifications will not work. " +
@@ -177,7 +193,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             {
                 Serilog.Log.Debug("Attempting to create toast notifier without parameters...");
                 var notifier = ToastNotificationManager.CreateToastNotifier();
-                if (notifier != null)
+                if (notifier is not null)
                 {
                     Serilog.Log.Debug("Successfully created toast notifier without parameters");
                     return notifier;
@@ -202,17 +218,17 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 var package = Package.Current;
                 var packageId = package.Id;
                 
-                var aumidFormats = new[]
-                {
+                string[] aumidFormats =
+                [
                     $"{packageId.FamilyName}!App",
                     packageId.FamilyName,
                     packageId.Name,
-                };
+                ];
 
                 foreach (var aumid in aumidFormats)
                 {
                     var notifier = TryCreateNotifierWithAumid(aumid);
-                    if (notifier != null) return notifier;
+                    if (notifier is not null) return notifier;
                 }
 
                 Serilog.Log.Warning(
@@ -239,7 +255,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             {
                 Serilog.Log.Debug("Trying to create toast notifier with AUMID: {AUMID}", aumid);
                 var notifier = ToastNotificationManager.CreateToastNotifier(aumid);
-                if (notifier != null)
+                if (notifier is not null)
                 {
                     Serilog.Log.Information("Successfully created toast notifier with AUMID: {AUMID}", aumid);
                     return notifier;
@@ -254,6 +270,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
         }
     }
 }

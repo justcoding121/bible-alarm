@@ -21,8 +21,8 @@ public class PlaybackService : IPlaybackService
     private int _currentTrackIndex = -1;
     private int? _currentScheduleId;
     private bool _isAlarm;
-    private System.Timers.Timer? _progressSaveTimer;
-    private HashSet<int> _manuallyVisitedTrackIndices = new();
+    private readonly System.Timers.Timer? _progressSaveTimer;
+    private readonly HashSet<int> _manuallyVisitedTrackIndices = [];
 
     public int? CurrentScheduleId => _currentScheduleId;
     
@@ -32,12 +32,12 @@ public class PlaybackService : IPlaybackService
         _audioPlayer.Status == PlayStatus.Paused;
 
     public bool CanPlayNext => 
-        _playlist != null && 
+        _playlist is not null && 
         _currentTrackIndex >= 0 && 
         _currentTrackIndex < _playlist.Count - 1;
 
     public bool CanPlayPrevious => 
-        _playlist != null && 
+        _playlist is not null && 
         _currentTrackIndex > 0;
 
     public PlaybackService(
@@ -56,7 +56,7 @@ public class PlaybackService : IPlaybackService
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
 
-        _progressSaveTimer = new System.Timers.Timer(1000);
+        _progressSaveTimer = new(1000);
         _progressSaveTimer.Elapsed += OnProgressSaveTimerElapsed;
         _progressSaveTimer.AutoReset = true;
     }
@@ -77,7 +77,7 @@ public class PlaybackService : IPlaybackService
             _isAlarm = isAlarm;
             _playlist = await _preparePlaybackService.PrepareTracksAsync(scheduleId);
 
-            if (_playlist == null)
+            if (_playlist is null)
             {
                 _logger.Warning($"Failed to prepare tracks for schedule {scheduleId}");
                 await HandlePlaybackFailureAsync();
@@ -106,7 +106,7 @@ public class PlaybackService : IPlaybackService
 
     public async Task PlayAsync()
     {
-        if (_currentTrackIndex < 0 || _playlist == null || _currentTrackIndex >= _playlist.Count)
+        if (_currentTrackIndex < 0 || _playlist is null || _currentTrackIndex >= _playlist.Count)
             return;
 
         if (_audioPlayer.Status == PlayStatus.Paused)
@@ -136,7 +136,7 @@ public class PlaybackService : IPlaybackService
 
     public async Task PlayNextAsync()
     {
-        if (_playlist == null || _playlist.Count == 0)
+        if (_playlist is null || _playlist.Count == 0)
             return;
 
         if (_currentTrackIndex < _playlist.Count - 1)
@@ -158,7 +158,7 @@ public class PlaybackService : IPlaybackService
 
     public async Task PlayPreviousAsync()
     {
-        if (_playlist == null || _playlist.Count == 0)
+        if (_playlist is null || _playlist.Count == 0)
             return;
 
         if (_currentTrackIndex > 0)
@@ -310,7 +310,7 @@ public class PlaybackService : IPlaybackService
             _progressSaveTimer?.Stop();
             await MarkCurrentTrackAsFinishedAsync();
             
-            if (_playlist != null && _currentTrackIndex < _playlist.Count - 1)
+            if (_playlist is not null && _currentTrackIndex < _playlist.Count - 1)
             {
                 _currentTrackIndex++;
                 await PlayCurrentTrackAsync();
@@ -333,7 +333,7 @@ public class PlaybackService : IPlaybackService
         {
             _logger.Warning($"Media failed for track at index {_currentTrackIndex}");
             
-            if (_playlist != null && _currentTrackIndex < _playlist.Count - 1)
+            if (_playlist is not null && _currentTrackIndex < _playlist.Count - 1)
             {
                 _currentTrackIndex++;
                 await PlayCurrentTrackAsync();
@@ -453,7 +453,7 @@ public class PlaybackService : IPlaybackService
         try
         {
             var fallbackTrack = await _fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
-            if (fallbackTrack == null)
+            if (fallbackTrack is null)
             {
                 _logger.Error("Failed to get fallback alarm track");
                 WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
@@ -462,7 +462,7 @@ public class PlaybackService : IPlaybackService
                 return;
             }
 
-            _playlist = new List<AudioPlayerTrack> { fallbackTrack };
+            _playlist = [fallbackTrack];
             _currentTrackIndex = 0;
             await PlayCurrentTrackAsync();
         }
@@ -477,11 +477,11 @@ public class PlaybackService : IPlaybackService
 
     public void Dispose()
     {
-        if (_progressSaveTimer != null)
+        if (_progressSaveTimer is { } timer)
         {
-            _progressSaveTimer.Elapsed -= OnProgressSaveTimerElapsed;
-            _progressSaveTimer.Stop();
-            _progressSaveTimer.Dispose();
+            timer.Elapsed -= OnProgressSaveTimerElapsed;
+            timer.Stop();
+            timer.Dispose();
         }
         _audioPlayer.Dispose();
     }

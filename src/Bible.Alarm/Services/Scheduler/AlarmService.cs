@@ -5,7 +5,7 @@ using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-public class AlarmService(
+public sealed partial class AlarmService(
     INotificationService notificationService)
     : IAlarmService
 {
@@ -41,7 +41,6 @@ public class AlarmService(
 
     public void Dispose()
     {
-        // Note: notificationService is a singleton
-        // and should not be disposed here as it is managed by the DI container
+        GC.SuppressFinalize(this);
     }
 }

@@ -13,23 +13,18 @@ using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public class WindowsToastService : ToastService
+    public sealed partial class WindowsToastService(TaskScheduler taskScheduler) : ToastService
     {
-        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
+        private static readonly SemaphoreSlim Lock = new(1);
 
         private static TaskCompletionSource<bool>? clearRequest;
-        private readonly TaskScheduler _taskScheduler;
-
-        public WindowsToastService(TaskScheduler taskScheduler)
-        {
-            _taskScheduler = taskScheduler;
-        }
+        private readonly TaskScheduler _taskScheduler = taskScheduler;
 
         public override Task Clear()
         {
-            if (clearRequest != null)
+            if (clearRequest is { } request)
             {
-                clearRequest.SetResult(true);
+                request.SetResult(true);
             }
 
             return Task.CompletedTask;
@@ -37,7 +32,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
         public override async Task ShowMessage(string message, int seconds)
         {
-            if (clearRequest != null)
+            if (clearRequest is not null)
             {
                 return;
             }
@@ -62,13 +57,13 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 var currentWindow = GetNativeWindow();
-                if (currentWindow == null)
+                if (currentWindow is null)
                 {
                     return;
                 }
 
                 var targetElement = FindTargetElement(currentWindow);
-                if (targetElement == null)
+                if (targetElement is null)
                 {
                     return;
                 }
@@ -89,11 +84,12 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             var currentWindow = Window.Current;
             
             // If Window.Current is null, try to get it from MAUI Application
-            if (currentWindow == null)
+            if (currentWindow is null)
             {
-                var mauiWindow = Microsoft.Maui.Controls.Application.Current?.Windows?.FirstOrDefault();
-                if (mauiWindow != null)
+                var windows = Microsoft.Maui.Controls.Application.Current?.Windows;
+                if (windows is not null && windows.Count > 0)
                 {
+                    var mauiWindow = windows[0];
                     var handler = mauiWindow.Handler;
                     if (handler?.PlatformView is Window nativeWindow)
                     {
@@ -131,7 +127,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             }
 
             var parent = VisualTreeHelper.GetParent(depObj);
-            while (parent != null)
+            while (parent is not null)
             {
                 if (parent is FrameworkElement frameworkElement)
                 {
@@ -163,9 +159,9 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             flyout.OverlayInputPassThroughElement = targetElement;
             flyout.ShowAt(targetElement);
 
-            if (clearRequest != null)
+            if (clearRequest is { } request)
             {
-                await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
+                await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
             }
             else
             {
