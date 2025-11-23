@@ -31,12 +31,36 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
-                var languages = root.GetProperty("languages");
+                
+                // Check if root is an object, not an array
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    Console.WriteLine($"Warning: Root element is not an object (type: {root.ValueKind}) for publication {publication.Key}. Skipping.");
+                    continue;
+                }
+                
+                if (!root.TryGetProperty("languages", out var languages))
+                {
+                    Console.WriteLine($"Warning: 'languages' property not found in response for publication {publication.Key}. Skipping.");
+                    continue;
+                }
 
                 foreach (var item in languages.EnumerateObject())
                 {
                     var languageCode = item.Name;
-                    var language = item.Value.GetProperty("name").GetString();
+                    
+                    if (!item.Value.TryGetProperty("name", out var nameElement))
+                    {
+                        Console.WriteLine($"Warning: 'name' property not found for language {languageCode}. Skipping.");
+                        continue;
+                    }
+                    
+                    var language = nameElement.GetString();
+                    if (string.IsNullOrEmpty(language))
+                    {
+                        Console.WriteLine($"Warning: Language name is null or empty for language {languageCode}. Skipping.");
+                        continue;
+                    }
 
                     Console.WriteLine($"Harvesting Music track links for {publication.Value} of {language} language.");
 
@@ -151,23 +175,76 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Music
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
 
+                // Check if root is an object, not an array
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    Console.WriteLine($"Warning: Root element is not an object (type: {root.ValueKind}) for publication {publicationDownloadCode}. Skipping.");
+                    continue;
+                }
+
                 var lc = languageCode ?? "E";
 
-                var musicFiles = root.GetProperty("files").GetProperty(lc).GetProperty("MP3");
+                if (!root.TryGetProperty("files", out var filesElement))
+                {
+                    Console.WriteLine($"Warning: 'files' property not found for publication {publicationDownloadCode}. Skipping.");
+                    continue;
+                }
+
+                if (!filesElement.TryGetProperty(lc, out var languageFiles))
+                {
+                    Console.WriteLine($"Warning: Language '{lc}' not found in files for publication {publicationDownloadCode}. Skipping.");
+                    continue;
+                }
+
+                if (!languageFiles.TryGetProperty("MP3", out var musicFiles))
+                {
+                    Console.WriteLine($"Warning: 'MP3' property not found for language '{lc}' in publication {publicationDownloadCode}. Skipping.");
+                    continue;
+                }
+
                 foreach (var musicFile in musicFiles.EnumerateArray())
                 {
-                    string url = musicFile.GetProperty("file").GetProperty("url").GetString()!;
-                    var track = musicFile.GetProperty("track").GetInt32();
+                    if (!musicFile.TryGetProperty("file", out var fileElement) ||
+                        !fileElement.TryGetProperty("url", out var urlElement))
+                    {
+                        Console.WriteLine($"Warning: Missing 'file.url' property in music file. Skipping.");
+                        continue;
+                    }
 
-                    if (track == 0
-                        || url.EndsWith(".zip"))
+                    string url = urlElement.GetString();
+                    if (string.IsNullOrEmpty(url))
+                    {
+                        Console.WriteLine($"Warning: URL is null or empty. Skipping.");
+                        continue;
+                    }
+
+                    if (!musicFile.TryGetProperty("track", out var trackElement))
+                    {
+                        Console.WriteLine($"Warning: Missing 'track' property in music file. Skipping.");
+                        continue;
+                    }
+
+                    var track = trackElement.GetInt32();
+
+                    if (track == 0 || url.EndsWith(".zip"))
                         continue;
 
-                    var duration = musicFile.GetProperty("duration").GetDouble();
+                    if (!musicFile.TryGetProperty("duration", out var durationElement))
+                    {
+                        Console.WriteLine($"Warning: Missing 'duration' property. Using default value.");
+                    }
+                    var duration = durationElement.ValueKind != JsonValueKind.Undefined ? durationElement.GetDouble() : 0.0;
+
+                    if (!musicFile.TryGetProperty("title", out var titleElement))
+                    {
+                        Console.WriteLine($"Warning: Missing 'title' property. Using default value.");
+                    }
+                    var title = titleElement.ValueKind != JsonValueKind.Undefined ? titleElement.GetString()! : "Unknown";
+
                     musicTracks.Add(new MusicTrack
                     {
                         Number = trackNumber,
-                        Title = musicFile.GetProperty("title").GetString()!,
+                        Title = title,
                         Url = url,
                         LookUpPath = $"?output=json&pub={publicationDownloadCode}&fileformat=MP3" +
                                     $"{(languageCode == null ? "&langwritten=E" : $"&langwritten={languageCode}")}" +

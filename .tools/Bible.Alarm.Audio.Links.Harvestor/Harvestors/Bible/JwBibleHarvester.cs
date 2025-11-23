@@ -29,12 +29,36 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                 var jsonString = await DownloadUtility.GetAsync(harvestLink);
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
-                var languages = root.GetProperty("languages");
+                
+                // Check if root is an object, not an array
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    Console.WriteLine($"Warning: Root element is not an object (type: {root.ValueKind}) for publication {publicationCode}. Skipping.");
+                    continue;
+                }
+                
+                if (!root.TryGetProperty("languages", out var languages))
+                {
+                    Console.WriteLine($"Warning: 'languages' property not found in response for publication {publicationCode}. Skipping.");
+                    continue;
+                }
 
                 foreach (var item in languages.EnumerateObject())
                 {
                     var languageCode = item.Name;
-                    var language = item.Value.GetProperty("name").GetString();
+                    
+                    if (!item.Value.TryGetProperty("name", out var nameElement))
+                    {
+                        Console.WriteLine($"Warning: 'name' property not found for language {languageCode}. Skipping.");
+                        continue;
+                    }
+                    
+                    var language = nameElement.GetString();
+                    if (string.IsNullOrEmpty(language))
+                    {
+                        Console.WriteLine($"Warning: Language name is null or empty for language {languageCode}. Skipping.");
+                        continue;
+                    }
 
                     languageCodeToNameMappings.TryAdd(languageCode, language);
 
@@ -73,12 +97,32 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                 try
                 {
                     doc = JsonDocument.Parse(jsonString);
-                    files = doc.RootElement.GetProperty("files");
+                    var root = doc.RootElement;
+                    
+                    // Check if root is an object, not an array
+                    if (root.ValueKind != JsonValueKind.Object)
+                    {
+                        Console.WriteLine($"Warning: Root element is not an object (type: {root.ValueKind}) for book {bookNumber}, language {languageCode}. Skipping.");
+                        doc?.Dispose();
+                        bookNumber++;
+                        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+                        continue;
+                    }
+                    
+                    if (!root.TryGetProperty("files", out files))
+                    {
+                        Console.WriteLine($"Warning: 'files' property not found in response for book {bookNumber}, language {languageCode}. Skipping.");
+                        doc?.Dispose();
+                        bookNumber++;
+                        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+                        continue;
+                    }
                 }
                 catch (Exception e)
                 {
-                    if (e is JsonException or ArgumentException)
+                    if (e is JsonException or ArgumentException or KeyNotFoundException or InvalidOperationException)
                     {
+                        Console.WriteLine($"Warning: Error parsing JSON for book {bookNumber}, language {languageCode}: {e.Message}. Skipping.");
                         doc?.Dispose();
                         bookNumber++;
                         harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
@@ -90,30 +134,93 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
 
                 try
                 {
-                    var bookFiles = files.GetProperty(languageCode).GetProperty("MP3");
+                    if (!files.TryGetProperty(languageCode, out var languageFiles))
+                    {
+                        Console.WriteLine($"Warning: Language '{languageCode}' not found in files. Skipping book {bookNumber}.");
+                        bookNumber++;
+                        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+                        continue;
+                    }
+
+                    if (!languageFiles.TryGetProperty("MP3", out var bookFiles))
+                    {
+                        Console.WriteLine($"Warning: 'MP3' property not found for language '{languageCode}'. Skipping book {bookNumber}.");
+                        bookNumber++;
+                        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+                        continue;
+                    }
+
                     foreach (var bookFile in bookFiles.EnumerateArray())
                     {
-                        string url = bookFile.GetProperty("file").GetProperty("url").GetString()!;
-                        var track = bookFile.GetProperty("track").GetInt32();
+                        if (!bookFile.TryGetProperty("file", out var fileElement) || 
+                            !fileElement.TryGetProperty("url", out var urlElement))
+                        {
+                            Console.WriteLine($"Warning: Missing 'file.url' property in book file. Skipping.");
+                            continue;
+                        }
 
-                        if (track == 0
-                        || url.EndsWith(".zip")) continue;
+                        string url = urlElement.GetString();
+                        if (string.IsNullOrEmpty(url))
+                        {
+                            Console.WriteLine($"Warning: URL is null or empty. Skipping.");
+                            continue;
+                        }
 
-                        bookNumber = bookFile.GetProperty("booknum").GetInt32();
+                        if (!bookFile.TryGetProperty("track", out var trackElement))
+                        {
+                            Console.WriteLine($"Warning: Missing 'track' property in book file. Skipping.");
+                            continue;
+                        }
+
+                        var track = trackElement.GetInt32();
+
+                        if (track == 0 || url.EndsWith(".zip")) continue;
+
+                        if (!bookFile.TryGetProperty("booknum", out var bookNumElement))
+                        {
+                            Console.WriteLine($"Warning: Missing 'booknum' property in book file. Skipping.");
+                            continue;
+                        }
+
+                        bookNumber = bookNumElement.GetInt32();
 
                         if (!bookNumberBookMap.ContainsKey(bookNumber))
                         {
-                            var name = harvestLink.Contains("booknum=") ? doc.RootElement.GetProperty("pubName").GetString()! : bookFile.GetProperty("title").GetString()!.Split('-')[0].Trim();
+                            string name;
+                            if (harvestLink.Contains("booknum="))
+                            {
+                                if (!doc.RootElement.TryGetProperty("pubName", out var pubNameElement))
+                                {
+                                    Console.WriteLine($"Warning: Missing 'pubName' property. Skipping book {bookNumber}.");
+                                    continue;
+                                }
+                                name = pubNameElement.GetString()!;
+                            }
+                            else
+                            {
+                                if (!bookFile.TryGetProperty("title", out var titleElement))
+                                {
+                                    Console.WriteLine($"Warning: Missing 'title' property. Skipping book {bookNumber}.");
+                                    continue;
+                                }
+                                name = titleElement.GetString()!.Split('-')[0].Trim();
+                            }
                             name = name == "Psalm 1" ? "Psalms" : name;
                             bookNumberBookMap[bookNumber] = new BibleBook
                             {
-                                Number = bookFile.GetProperty("booknum").GetInt32(),
+                                Number = bookNumber,
                                 Name = name
                             };
                         }
 
-                        var trackNumber = bookFile.GetProperty("track").GetInt32();
-                        var duration = bookFile.GetProperty("duration").GetDouble();
+                        var trackNumber = track;
+                        
+                        if (!bookFile.TryGetProperty("duration", out var durationElement))
+                        {
+                            Console.WriteLine($"Warning: Missing 'duration' property. Using default value.");
+                        }
+                        var duration = durationElement.ValueKind != JsonValueKind.Undefined ? durationElement.GetDouble() : 0.0;
+                        
                         if (!bookNumberChapterMap.ContainsKey(bookNumber))
                         {
                             bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
@@ -125,10 +232,17 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Harvestors.Bible
                             new BibleChapter
                             {
                                 Number = trackNumber,
-                                Url = bookFile.GetProperty("file").GetProperty("url").GetString()!,
+                                Url = url,
                             });
                         }
                     }
+                }
+                catch (KeyNotFoundException ex)
+                {
+                    Console.WriteLine($"Warning: KeyNotFoundException in book processing: {ex.Message}. Skipping book {bookNumber}.");
+                    bookNumber++;
+                    harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+                    continue;
                 }
                 finally
                 {

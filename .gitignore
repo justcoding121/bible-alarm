@@ -207,8 +207,8 @@ FakesAssemblies/
 # Docfx
 docs/manifest.json
 _index*/
-# Exclude .tools/_index directory
-.tools/_index/
-.tools/_index/**
+# Exclude .tools/_index directory contents, but track index.zip
+.tools/_index/*
+!.tools/_index/index.zip
 
 BundleArtifacts*/

@@ -40,6 +40,9 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
             await seedBibleTranslations(mediaDir, db, displayLanguage);
             await seedMelodies(mediaDir, db, displayLanguage);
             await seedVocals(mediaDir, db, displayLanguage);
+            
+            // Explicitly close the database connection to ensure the file is not locked
+            await db.Database.CloseConnectionAsync();
         }
 
         private async static Task seedBibleTranslations(string indexDir, MediaDbContext db, Language displayLanguage)

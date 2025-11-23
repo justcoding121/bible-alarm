@@ -16,7 +16,7 @@ namespace Bible.Alarm.Audio.Links.Harvestor.Utility
                  currentDir = currentDir.Parent;
              }
 
-             return Path.Combine(currentDir.FullName, "src", "_tools", "_index");
+             return Path.Combine(currentDir.FullName, ".tools", "_index");
          });
 
         public static void Ensure(string directory)

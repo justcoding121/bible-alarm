@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -72,10 +73,65 @@ public class MediaUrlRefreshService : IMediaUrlRefreshService
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            return root.GetProperty("files").GetProperty(languageCode).GetProperty("MP3")[0].GetProperty("file").GetProperty("url").GetString();
+            // Check if root is an object, not an array
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                _logger.Warning("Root element is not an object (type: {ValueKind}) for Bible chapter URL refresh", root.ValueKind);
+                return null;
+            }
+
+            if (!root.TryGetProperty("files", out var files))
+            {
+                _logger.Warning("'files' property not found in JSON response for Bible chapter URL refresh");
+                return null;
+            }
+
+            if (!files.TryGetProperty(languageCode, out var languageFiles))
+            {
+                _logger.Warning("Language '{LanguageCode}' not found in files for Bible chapter URL refresh", languageCode);
+                return null;
+            }
+
+            if (!languageFiles.TryGetProperty("MP3", out var mp3Files))
+            {
+                _logger.Warning("'MP3' property not found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
+                return null;
+            }
+
+            // Check if MP3 is an array
+            if (mp3Files.ValueKind != JsonValueKind.Array)
+            {
+                _logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in Bible chapter URL refresh", mp3Files.ValueKind, languageCode);
+                return null;
+            }
+
+            var mp3Array = mp3Files.EnumerateArray().ToList();
+            if (mp3Array.Count == 0)
+            {
+                _logger.Warning("No MP3 files found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
+                return null;
+            }
+
+            var firstMp3 = mp3Array[0];
+            if (!firstMp3.TryGetProperty("file", out var fileElement) ||
+                !fileElement.TryGetProperty("url", out var urlElement))
+            {
+                _logger.Warning("Missing 'file.url' property in MP3 file for Bible chapter URL refresh");
+                return null;
+            }
+
+            var url = urlElement.GetString();
+            if (string.IsNullOrEmpty(url))
+            {
+                _logger.Warning("URL is null or empty in MP3 file for Bible chapter URL refresh");
+                return null;
+            }
+
+            return url;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.Error(ex, "Exception in GetBibleChapterUrl for language '{LanguageCode}', book {BookNumber}, chapter {Chapter}", languageCode, bookNumber, chapter);
             return null;
         }
     }
@@ -92,14 +148,69 @@ public class MediaUrlRefreshService : IMediaUrlRefreshService
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
+            // Check if root is an object, not an array
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                _logger.Warning("Root element is not an object (type: {ValueKind}) for music track URL refresh", root.ValueKind);
+                return null;
+            }
+
             var lc = languageCode ?? AppConstants.Media.DefaultLanguageCode;
 
             if (lc == AppConstants.Media.LanguageCodePatchFrom) lc = AppConstants.Media.LanguageCodePatchTo;
 
-            return root.GetProperty("files").GetProperty(lc).GetProperty("MP3")[0].GetProperty("file").GetProperty("url").GetString();
+            if (!root.TryGetProperty("files", out var files))
+            {
+                _logger.Warning("'files' property not found in JSON response for music track URL refresh");
+                return null;
+            }
+
+            if (!files.TryGetProperty(lc, out var languageFiles))
+            {
+                _logger.Warning("Language '{LanguageCode}' not found in files for music track URL refresh", lc);
+                return null;
+            }
+
+            if (!languageFiles.TryGetProperty("MP3", out var mp3Files))
+            {
+                _logger.Warning("'MP3' property not found for language '{LanguageCode}' in music track URL refresh", lc);
+                return null;
+            }
+
+            // Check if MP3 is an array
+            if (mp3Files.ValueKind != JsonValueKind.Array)
+            {
+                _logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in music track URL refresh", mp3Files.ValueKind, lc);
+                return null;
+            }
+
+            var mp3Array = mp3Files.EnumerateArray().ToList();
+            if (mp3Array.Count == 0)
+            {
+                _logger.Warning("No MP3 files found for language '{LanguageCode}' in music track URL refresh", lc);
+                return null;
+            }
+
+            var firstMp3 = mp3Array[0];
+            if (!firstMp3.TryGetProperty("file", out var fileElement) ||
+                !fileElement.TryGetProperty("url", out var urlElement))
+            {
+                _logger.Warning("Missing 'file.url' property in MP3 file for music track URL refresh");
+                return null;
+            }
+
+            var url = urlElement.GetString();
+            if (string.IsNullOrEmpty(url))
+            {
+                _logger.Warning("URL is null or empty in MP3 file for music track URL refresh");
+                return null;
+            }
+
+            return url;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.Error(ex, "Exception in GetMusicTrackUrl for language '{LanguageCode}'", languageCode ?? "null");
             return null;
         }
     }
