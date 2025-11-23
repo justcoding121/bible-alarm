@@ -5,11 +5,16 @@ using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
-public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
+public class AndroidToastService : ToastService, IDisposable
 {
-    private readonly TaskScheduler _taskScheduler = taskScheduler;
+    private readonly TaskScheduler _taskScheduler;
     private static readonly SemaphoreSlim Lock = new(1);
     private static Toast latest;
+
+    public AndroidToastService(TaskScheduler taskScheduler)
+    {
+        _taskScheduler = taskScheduler;
+    }
 
     public override async Task ShowMessage(string message, int seconds)
     {
