@@ -8,23 +8,56 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class DownloadService(HttpMessageHandler handler, ILogger logger) : IDownloadService
+public class DownloadService : IDownloadService
 {
+    private readonly HttpMessageHandler _handler;
     private readonly int _timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
-    private readonly ILogger _logger = logger;
+    private readonly ILogger _logger;
 
     // User-Agent string to identify the app and prevent 403 errors from servers that block requests without proper User-Agent
     private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
 
-    private readonly AsyncRetryPolicy _downloadRetryPolicy = Policy
-        .Handle<Exception>()
-        .WaitAndRetryAsync(
-            retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,
-            sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
-            onRetry: (_, _, _, _) =>
+    private readonly AsyncRetryPolicy<byte[]> _downloadRetryPolicy;
+
+    public DownloadService(HttpMessageHandler handler, ILogger logger)
+    {
+        _handler = handler;
+        _logger = logger;
+        
+        _downloadRetryPolicy = Policy<byte[]>
+            .Handle<Exception>(ex => 
             {
-                // Optional: Add logging here if needed
-            });
+                // Don't retry on HTTP errors like 403, 404 (permanent failures)
+                if (ex is HttpRequestException httpEx)
+                {
+                    var message = httpEx.Message;
+                    // Check for permanent HTTP errors that shouldn't be retried
+                    if (message.Contains("403") || 
+                        message.Contains("404") || 
+                        message.Contains("Forbidden") ||
+                        message.Contains("Not Found"))
+                    {
+                        _logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
+                        return false; // Don't handle/retry this exception
+                    }
+                }
+                return true; // Handle/retry other exceptions
+            })
+            .WaitAndRetryAsync(
+                retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
+                onRetry: (DelegateResult<byte[]> outcome, TimeSpan timespan, int retryCount, Context context) =>
+                {
+                    // Log retry attempts
+                    var exception = outcome?.Exception;
+                    var exceptionMessage = exception?.Message ?? "Unknown error";
+                    _logger.Warning(exception, "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}", 
+                        retryCount, 
+                        AppConstants.CacheSettings.DownloadRetryAttempts,
+                        timespan.TotalSeconds,
+                        exceptionMessage);
+                });
+    }
 
     // Polly retry policy for file existence checks
     private readonly AsyncRetryPolicy _fileExistsRetryPolicy = Policy
@@ -47,7 +80,7 @@ public class DownloadService(HttpMessageHandler handler, ILogger logger) : IDown
                 request.Headers.UserAgent.ParseAdd(UserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
                 
-                using var client = new HttpClient(handler, false);
+                using var client = new HttpClient(_handler, false);
                 using var response = await client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsByteArrayAsync();
@@ -70,7 +103,7 @@ public class DownloadService(HttpMessageHandler handler, ILogger logger) : IDown
                     request.Headers.UserAgent.ParseAdd(UserAgent);
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
                     
-                    using var client = new HttpClient(handler, false);
+                    using var client = new HttpClient(_handler, false);
                     using var response = await client.SendAsync(request);
                     response.EnsureSuccessStatusCode();
                     return await response.Content.ReadAsByteArrayAsync();
@@ -87,14 +120,14 @@ public class DownloadService(HttpMessageHandler handler, ILogger logger) : IDown
 
     public void Dispose()
     {
-        handler.Dispose();
+        _handler.Dispose();
     }
 
     public async Task<bool> FileExists(string url)
     {
         return await _fileExistsRetryPolicy.ExecuteAsync(async () =>
         {
-            using var client = new HttpClient(handler, false)
+            using var client = new HttpClient(_handler, false)
             {
                 Timeout = TimeSpan.FromSeconds(_timeOutSeconds)
             };

@@ -265,9 +265,29 @@ public class PlaybackService : IPlaybackService
     private async Task PlayCurrentTrackAsync(bool startFromBeginning = false)
     {
         if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+        {
+            _logger.Warning("Cannot play track: playlist is null or track index {TrackIndex} is out of range (playlist count: {PlaylistCount})", 
+                _currentTrackIndex, 
+                _playlist?.Count ?? 0);
             return;
+        }
 
         var track = _playlist[_currentTrackIndex];
+        
+        if (string.IsNullOrEmpty(track.Uri))
+        {
+            _logger.Error("Cannot play track at index {TrackIndex}: URI is null or empty. URL: {TrackUrl}", 
+                _currentTrackIndex, 
+                track.PlayItem?.Url ?? "Unknown");
+            await HandlePlaybackFailureAsync();
+            return;
+        }
+        
+        _logger.Debug("Preparing to play track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}", 
+            _currentTrackIndex, 
+            track.Uri, 
+            track.PlayItem?.Url ?? "Unknown");
+        
         await _audioPlayer.PrepareAsync(track);
         
         // Seek to saved position for Bible tracks if resume is enabled
@@ -331,15 +351,23 @@ public class PlaybackService : IPlaybackService
     {
         try
         {
-            _logger.Warning($"Media failed for track at index {_currentTrackIndex}");
+            var trackUri = _playlist?[_currentTrackIndex]?.Uri ?? "Unknown";
+            var trackUrl = _playlist?[_currentTrackIndex]?.PlayItem?.Url ?? "Unknown";
+            
+            _logger.Warning("Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}", 
+                _currentTrackIndex, 
+                trackUri, 
+                trackUrl);
             
             if (_playlist is not null && _currentTrackIndex < _playlist.Count - 1)
             {
                 _currentTrackIndex++;
+                _logger.Information("Attempting to play next track at index {NextTrackIndex}", _currentTrackIndex);
                 await PlayCurrentTrackAsync();
             }
             else
             {
+                _logger.Warning("No more tracks available or all tracks failed. Handling playback failure.");
                 await HandlePlaybackFailureAsync();
             }
         }

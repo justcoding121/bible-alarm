@@ -135,9 +135,10 @@ public static class AppConstants
     public static class CacheSettings
     {
         /// <summary>
-        /// Media index update check interval in hours
+        /// Media index update check interval in days (weekly = 7 days)
+        /// The harvester runs weekly on Sundays, so we check weekly to match the update frequency
         /// </summary>
-        public const int MediaIndexUpdateCheckHours = 12;
+        public const int MediaIndexUpdateCheckDays = 7; // Weekly
         
         /// <summary>
         /// Download retry attempts

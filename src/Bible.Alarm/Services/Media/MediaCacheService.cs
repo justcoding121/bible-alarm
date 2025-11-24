@@ -11,6 +11,7 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.Essentials;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -102,31 +103,72 @@ public class MediaCacheService(
         if (await ExistsAsync(playItem.Url))
         {
             var cachedFilePath = GetCacheFilePath(playItem.Url);
+            _logger.Debug("Using cached file for track: {Url}, Path: {CachedPath}", playItem.Url, cachedFilePath);
+            // On iOS, MediaElement needs the file path directly instead of file:// URI
+            if (DeviceInfo.Platform == DevicePlatform.iOS)
+            {
+                return cachedFilePath;
+            }
             return new Uri(cachedFilePath).AbsoluteUri;
         }
 
+        // Check internet connectivity before attempting download
+        if (!await networkStatusService.IsInternetAvailable())
+        {
+            _logger.Warning("No internet connection available. Cannot download track: {Url}", playItem.Url);
+            return null;
+        }
+
         // Download and cache the file
+        _logger.Information("Downloading track (not in cache): {Url}", playItem.Url);
         var cachedUrl = await DownloadAndCacheTrackAsync(playItem);
         if (cachedUrl == null)
         {
+            _logger.Error("Failed to download and cache track: {Url}", playItem.Url);
             return null;
         }
 
         var downloadedFilePath = GetCacheFilePath(cachedUrl);
+        _logger.Information("Successfully downloaded and cached track: {Url}, Path: {CachedPath}", playItem.Url, downloadedFilePath);
+        // On iOS, MediaElement may need the file path directly instead of file:// URI
+        if (DeviceInfo.Platform == DevicePlatform.iOS)
+        {
+            return downloadedFilePath;
+        }
         return new Uri(downloadedFilePath).AbsoluteUri;
     }
 
     private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem)
     {
-        var bytes = await downloadService.DownloadAsync(playItem.Url);
-
-        if (bytes != null)
+        try
         {
-            await storageService.SaveFile(_cacheRoot, GetCacheFileName(playItem.Url), bytes);
-            return playItem.Url;
-        }
+            var bytes = await downloadService.DownloadAsync(playItem.Url);
 
-        return await RefreshUrlAndRetryDownloadAsync(playItem);
+            if (bytes != null && bytes.Length > 0)
+            {
+                await storageService.SaveFile(_cacheRoot, GetCacheFileName(playItem.Url), bytes);
+                _logger.Debug("Successfully downloaded and saved track: {Url}, Size: {Size} bytes", playItem.Url, bytes.Length);
+                return playItem.Url;
+            }
+
+            _logger.Warning("Download returned null or empty bytes for: {Url}, attempting URL refresh", playItem.Url);
+            return await RefreshUrlAndRetryDownloadAsync(playItem);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Exception while downloading track: {Url}", playItem.Url);
+            
+            // Try refreshing URL and retrying
+            try
+            {
+                return await RefreshUrlAndRetryDownloadAsync(playItem);
+            }
+            catch (Exception refreshEx)
+            {
+                _logger.Error(refreshEx, "Exception while refreshing URL for track: {Url}", playItem.Url);
+                return null;
+            }
+        }
     }
 
     private async Task<string?> RefreshUrlAndRetryDownloadAsync(PlayItem playItem)

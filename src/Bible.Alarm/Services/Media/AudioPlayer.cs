@@ -165,6 +165,12 @@ public class AudioPlayer : IAudioPlayer
     {
         Status = PlayStatus.Failed;
         _mediaOpenedCompletionSource?.TrySetResult(false);
+        
+        var trackUri = _currentTrack?.Uri ?? "Unknown";
+        _logger.Error("MediaElement failed to play track. URI: {TrackUri}, Source: {Source}", 
+            trackUri, 
+            _mediaElement.Source?.ToString() ?? "null");
+        
         MediaFailed?.Invoke(this, EventArgs.Empty);
     }
 

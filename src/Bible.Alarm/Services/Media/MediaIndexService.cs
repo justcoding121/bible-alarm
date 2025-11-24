@@ -55,50 +55,97 @@ public class MediaIndexService : IMediaIndexService, IDisposable
     {
         return await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
         {
-            var creationDate =
-                await _storageService.GetFileCreationDate(Path.Combine(IndexRoot, "mediaIndex.db"), false);
-
-            //if downloaded within last 12 hours
-            if (creationDate.UtcDateTime > DateTime.UtcNow.AddHours(-AppConstants.CacheSettings.MediaIndexUpdateCheckHours)) return false;
-
-            var time = DateTime.UtcNow;
-
-            for (var i = 0; time.Day > 0 && i <= 1; i++)
+            try
             {
-                var bytes = await _downloadService.DownloadAsync(
-                    $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{time.Day - i}-{time.Month}-{time.Year}.zip");
+                var mediaIndexPath = Path.Combine(IndexRoot, "mediaIndex.db");
+                var indexExists = await _storageService.FileExists(mediaIndexPath);
+                
+                if (!indexExists)
+                {
+                    _logger.Information("Media index does not exist, attempting to download");
+                }
+                else
+                {
+                    var creationDate = await _storageService.GetFileCreationDate(mediaIndexPath, false);
 
-                if (bytes == null) continue;
+                    //if downloaded within last week (harvester runs weekly on Sundays)
+                    if (creationDate.UtcDateTime > DateTime.UtcNow.AddDays(-AppConstants.CacheSettings.MediaIndexUpdateCheckDays))
+                    {
+                        _logger.Debug("Media index is up to date (downloaded within last {Days} days)", 
+                            AppConstants.CacheSettings.MediaIndexUpdateCheckDays);
+                        return false;
+                    }
 
-                const string indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
+                    _logger.Information("Media index is older than {Days} days (created: {CreationDate}), attempting to update", 
+                        AppConstants.CacheSettings.MediaIndexUpdateCheckDays,
+                        creationDate.UtcDateTime);
+                }
 
-                if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
+                // Try to find the most recent weekly index file
+                // Harvester runs weekly on Sundays, so we check the last few weeks
+                var time = DateTime.UtcNow;
+                var weeksToCheck = 4; // Check up to 4 weeks back to find the latest index
 
-                var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
+                for (var i = 0; i < weeksToCheck; i++)
+                {
+                    var checkDate = time.AddDays(-i * 7);
+                    var url = $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{checkDate.Day}-{checkDate.Month}-{checkDate.Year}.zip";
+                    _logger.Debug("Attempting to download media index from: {Url} (week {WeekNumber} ago)", url, i);
+                    
+                    byte[] bytes;
+                    try
+                    {
+                        bytes = await _downloadService.DownloadAsync(url);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warning(ex, "Failed to download media index from {Url}, will try previous week if available", url);
+                        continue;
+                    }
 
-                if (await _storageService.FileExists(tmpIndexZipFilePath))
+                    if (bytes == null || bytes.Length == 0)
+                    {
+                        _logger.Warning("Downloaded media index from {Url} is empty, trying previous week", url);
+                        continue;
+                    }
+
+                    const string indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
+
+                    if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
+
+                    var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
+
+                    if (await _storageService.FileExists(tmpIndexZipFilePath))
+                        await _storageService.DeleteFile(tmpIndexZipFilePath);
+
+                    await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
+
+                    if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+                        await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+
+                    var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
+                    await _storageService.CreateDirectory(extractionDir);
+
+                    ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
+
+                    File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
+                        true);
+
+                    await _storageService.DeleteDirectory(extractionDir);
                     await _storageService.DeleteFile(tmpIndexZipFilePath);
 
-                await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
+                    _logger.Information("Successfully updated media index from {Url}", url);
+                    return true;
+                }
 
-                if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
-                    await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
-
-                var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
-                await _storageService.CreateDirectory(extractionDir);
-
-                ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
-
-                File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
-                    true);
-
-                await _storageService.DeleteDirectory(extractionDir);
-                await _storageService.DeleteFile(tmpIndexZipFilePath);
-
-                return true;
+                _logger.Warning("Failed to download media index after checking {WeeksToCheck} weeks, using existing index if available", weeksToCheck);
+                return false;
             }
-
-            return false;
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error updating media index, will use existing index if available");
+                return false;
+            }
         });
     }
 
