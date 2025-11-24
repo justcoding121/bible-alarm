@@ -3,21 +3,12 @@
 namespace Bible.Alarm.Common.Messenger;
 
 // Message classes for WeakReferenceMessenger
+/// <summary>
+/// App initialization message. Should use ObservableMessenger.InitializationMessenger
+/// to ensure the message is not lost if sent before recipient registration.
+/// </summary>
 public class InitializedMessage
 {
-}
-
-public class ShowAlarmModalMessage
-{
-}
-
-public class HideAlarmModalMessage
-{
-}
-
-public class TrackChangedMessage(int value)
-{
-    public int Value { get; } = value;
 }
 
 public class ShowToastMessage(string value)

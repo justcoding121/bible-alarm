@@ -22,7 +22,8 @@ public static class PlaybackReducer
             currentPosition: state.CurrentPosition,
             duration: state.Duration,
             loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks);
+            totalTracks: state.TotalTracks,
+            errorMessage: null); // Clear error when starting new playback
     }
 
     [ReducerMethod]
@@ -41,7 +42,8 @@ public static class PlaybackReducer
             currentPosition: null,
             duration: TimeSpan.Zero,
             loadedTracks: 0,
-            totalTracks: 0);
+            totalTracks: 0,
+            errorMessage: null);
     }
 
     [ReducerMethod]
@@ -60,18 +62,26 @@ public static class PlaybackReducer
             currentPosition: state.CurrentPosition,
             duration: state.Duration,
             loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks);
+            totalTracks: state.TotalTracks,
+            errorMessage: state.ErrorMessage);
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackStatusChanged(PlaybackState state, PlaybackStatusChangedAction action)
     {
         // Update IsPreparingOrPlaying based on status
+        // Keep modal open when:
+        // - Loading, Playing, or Paused (normal playback states)
+        // - Failed (to show error message) if we have a current schedule
+        // - Stopped (when switching tracks) if we have a current schedule (keep modal open during track navigation)
         var isPreparingOrPlaying = action.Status == PlayStatus.Loading ||
                                    action.Status == PlayStatus.Playing ||
-                                   action.Status == PlayStatus.Paused;
+                                   action.Status == PlayStatus.Paused ||
+                                   (action.Status == PlayStatus.Failed && state.CurrentScheduleId.HasValue) ||
+                                   (action.Status == PlayStatus.Stopped && state.CurrentScheduleId.HasValue);
 
-        // If status is Stopped/Ended/Failed and we're not preparing/playing, clear schedule
+        // If status is Stopped/Ended and we're not preparing/playing, clear schedule
+        // Keep schedule when Failed or Stopped (during track navigation) to allow error display and retry
         var currentScheduleId = (isPreparingOrPlaying || state.IsPreparingOrPlaying) 
             ? state.CurrentScheduleId 
             : null;
@@ -89,7 +99,8 @@ public static class PlaybackReducer
             currentPosition: state.CurrentPosition,
             duration: state.Duration,
             loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks);
+            totalTracks: state.TotalTracks,
+            errorMessage: state.ErrorMessage);
     }
 
     [ReducerMethod]
@@ -108,7 +119,8 @@ public static class PlaybackReducer
             currentPosition: state.CurrentPosition,
             duration: state.Duration,
             loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks);
+            totalTracks: state.TotalTracks,
+            errorMessage: state.ErrorMessage);
     }
 
     [ReducerMethod]
@@ -127,7 +139,8 @@ public static class PlaybackReducer
             currentPosition: action.CurrentPosition,
             duration: action.Duration,
             loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks);
+            totalTracks: state.TotalTracks,
+            errorMessage: state.ErrorMessage);
     }
 
     [ReducerMethod]
@@ -146,7 +159,28 @@ public static class PlaybackReducer
             currentPosition: state.CurrentPosition,
             duration: state.Duration,
             loadedTracks: action.LoadedTracks,
-            totalTracks: action.TotalTracks);
+            totalTracks: action.TotalTracks,
+            errorMessage: state.ErrorMessage);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnPlaybackError(PlaybackState state, PlaybackErrorAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying, // Keep modal open to show error
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            currentPosition: state.CurrentPosition,
+            duration: state.Duration,
+            loadedTracks: state.LoadedTracks,
+            totalTracks: state.TotalTracks,
+            errorMessage: action.ErrorMessage);
     }
 }
 

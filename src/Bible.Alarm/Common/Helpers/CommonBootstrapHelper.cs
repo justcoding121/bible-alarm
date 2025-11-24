@@ -10,6 +10,7 @@ namespace Bible.Alarm.Common.Helpers;
 public static class CommonBootstrapHelper
 {
     private static readonly SemaphoreSlim Lock = new(1);
+    private static volatile bool _initializationMessageSent = false;
 
     public static async Task VerifyServices()
     {
@@ -30,13 +31,18 @@ public static class CommonBootstrapHelper
         }
         finally
         {
-            // Always send InitializedMessage, even if bootstrap had errors
+            // Always send InitializedMessage once, even if bootstrap had errors
             // This ensures the app can still navigate to Home page
             // Use ObservableMessenger so the message is not lost if recipient registers late
-            MainThread.BeginInvokeOnMainThread(() =>
+            // Only send once to prevent multiple navigation attempts
+            if (!_initializationMessageSent)
             {
-                ObservableMessenger.InitializationMessenger.Send(new InitializedMessage());
-            });
+                _initializationMessageSent = true;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    ObservableMessenger.InitializationMessenger.Send(new InitializedMessage());
+                });
+            }
             
             Lock.Release();
         }

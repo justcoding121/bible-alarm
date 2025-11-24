@@ -1,12 +1,13 @@
+#nullable enable
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels;
@@ -16,13 +17,14 @@ public class ScheduleListItem(
     ISchedulePlaybackService playbackService,
     IScheduleDisplayService displayService,
     IScheduleStateService scheduleStateService,
-    IPlaylistService playlistService)
-    : ObservableObject, IComparable, IDisposable, IRecipient<TrackChangedMessage>
+    IPlaylistService playlistService,
+    IState<ApplicationState> applicationState)
+    : ObservableObject, IComparable, IDisposable
 {
     private bool _isInitializing;
-    private bool _isRegistered;
+    private AlarmSchedule? _lastKnownSchedule;
 
-    public AlarmSchedule Schedule { get; private set; }
+    public AlarmSchedule? Schedule { get; private set; }
 
     public void Initialize(AlarmSchedule schedule)
     {
@@ -45,11 +47,9 @@ public class ScheduleListItem(
         OnPropertyChanged(nameof(DaysOfWeek));
         OnPropertyChanged(nameof(IsEnabled));
 
-        if (!_isRegistered)
-        {
-            WeakReferenceMessenger.Default.Register(this);
-            _isRegistered = true;
-        }
+        // Subscribe to ApplicationState changes to react when this schedule is updated
+        applicationState.StateChanged += OnApplicationStateChanged;
+        _lastKnownSchedule = Schedule; // Store initial state for comparison
 
         PlayCommand = new AsyncRelayCommand(async () =>
         {
@@ -143,10 +143,10 @@ public class ScheduleListItem(
 
     public ScheduleListItem This => this;
 
-    public ICommand PlayCommand { get; private set; }
+    public ICommand PlayCommand { get; private set; } = null!;
 
-    public ICommand PreviousCommand { get; set; }
-    public ICommand NextCommand { get; set; }
+    public ICommand PreviousCommand { get; set; } = null!;
+    public ICommand NextCommand { get; set; } = null!;
 
     public void RaisePropertiesChangedEvent()
     {
@@ -163,10 +163,13 @@ public class ScheduleListItem(
     public async Task RefreshChapterNameAsync(bool force = false)
     {
         if (Schedule?.Id <= 0) return;
+        var schedule = Schedule; // Capture to avoid null reference
+        if (schedule == null) return;
+        var scheduleId = schedule.Id;
 
         try
         {
-            var displayName = await displayService.GetChapterDisplayNameAsync(Schedule.Id, force);
+            var displayName = await displayService.GetChapterDisplayNameAsync(scheduleId, force);
             
             if (!string.IsNullOrEmpty(displayName))
             {
@@ -176,7 +179,7 @@ public class ScheduleListItem(
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", Schedule.Id);
+            logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", scheduleId);
         }
     }
 
@@ -185,23 +188,64 @@ public class ScheduleListItem(
         _ = RefreshChapterNameAsync(force);
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
         return obj is not ScheduleListItem other ? 1 : ScheduleId.CompareTo(other.ScheduleId);
     }
 
-    public void Receive(TrackChangedMessage message)
+    private void OnApplicationStateChanged(object? sender, EventArgs e)
     {
-        if (Schedule != null && message.Value == Schedule.Id)
+        if (Schedule?.Id <= 0) return;
+        var schedule = Schedule; // Capture to avoid null reference
+        if (schedule == null) return;
+        var scheduleId = schedule.Id;
+
+        // Find the updated schedule in the state
+        var updatedSchedule = applicationState.Value.Schedules
+            .FirstOrDefault(s => s.Id == scheduleId);
+
+        if (updatedSchedule == null) return;
+
+        // Check if the track/chapter changed by comparing BibleReadingSchedule or Music properties
+        var trackChanged = false;
+
+        if (_lastKnownSchedule?.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
         {
+            // Check if book or chapter changed
+            if (_lastKnownSchedule.BibleReadingSchedule.BookNumber != updatedSchedule.BibleReadingSchedule.BookNumber ||
+                _lastKnownSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber)
+            {
+                trackChanged = true;
+            }
+        }
+        else if (_lastKnownSchedule?.Music != null && updatedSchedule.Music != null)
+        {
+            // Check if track number changed
+            if (_lastKnownSchedule.Music.TrackNumber != updatedSchedule.Music.TrackNumber)
+            {
+                trackChanged = true;
+            }
+        }
+
+        if (trackChanged)
+        {
+            // Update local schedule reference
+            Schedule = updatedSchedule;
+            _lastKnownSchedule = updatedSchedule;
+            
+            // Refresh the chapter name display
             RefreshChapterName();
+        }
+        else
+        {
+            // Still update the reference even if track didn't change (for other property updates)
+            Schedule = updatedSchedule;
+            _lastKnownSchedule = updatedSchedule;
         }
     }
 
     public void Dispose()
     {
-        if (!_isRegistered) return;
-        WeakReferenceMessenger.Default.Unregister<TrackChangedMessage>(this);
-        _isRegistered = false;
+        applicationState.StateChanged -= OnApplicationStateChanged;
     }
 }

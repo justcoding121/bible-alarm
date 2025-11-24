@@ -114,8 +114,6 @@ public class PlaylistService(
 
         if (trackChanged)
         {
-            WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
-            
             // Only update state when chapter/track actually changed (not just progress)
             // Reload the schedule with all includes to get the updated data
             var updatedSchedule = await scheduleDbContext.AlarmSchedules
@@ -124,6 +122,7 @@ public class PlaylistService(
                 .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
             
             // Update the Fluxor store to trigger state change and UI refresh
+            // ScheduleListItem now subscribes to ApplicationState changes instead of TrackChangedMessage
             _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
         }
     }
@@ -167,8 +166,6 @@ public class PlaylistService(
             }
 
             await scheduleDbContext.SaveChangesAsync();
-
-            WeakReferenceMessenger.Default.Send(new TrackChangedMessage(schedule.Id));
             
             // Reload the schedule with all includes to get the updated data
             updatedSchedule = await scheduleDbContext.AlarmSchedules
@@ -178,6 +175,7 @@ public class PlaylistService(
         }
         
         // Update the Fluxor store to trigger state change and UI refresh
+        // ScheduleListItem now subscribes to ApplicationState changes instead of TrackChangedMessage
         if (updatedSchedule != null)
         {
             _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));

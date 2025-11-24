@@ -263,6 +263,16 @@ public class AlarmViewModal : ObservableObject, IDisposable
     
     public double PreparationProgress { get; private set; }
 
+    private string _errorMessage = string.Empty;
+    
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set => SetProperty(ref _errorMessage, value);
+    }
+    
+    public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
         UpdateFromState();
@@ -312,6 +322,9 @@ public class AlarmViewModal : ObservableObject, IDisposable
             PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
             IsPreparing = state.IsPreparing;
             
+            // Update error message
+            ErrorMessage = state.ErrorMessage ?? "";
+            
             // Update play/pause visibility based on status
             var isPlaying = state.Status == PlayStatus.Playing;
             PlayVisible = !isPlaying;
@@ -320,6 +333,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             // Notify property changes
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(PreparationProgress));
+            OnPropertyChanged(nameof(HasError));
         });
     }
 

@@ -17,8 +17,6 @@ using Bible.Alarm.Common;
 namespace Bible.Alarm;
 
 public partial class App : Application,
-    IRecipient<ShowAlarmModalMessage>,
-    IRecipient<HideAlarmModalMessage>,
     IRecipient<ShowToastMessage>,
     IRecipient<InitializedMessage>
 {
@@ -45,11 +43,10 @@ public partial class App : Application,
         // Use ObservableMessenger for InitializedMessage so message is not lost if sent before registration
         ObservableMessenger.InitializationMessenger.Register<InitializedMessage>(this);
 
-        WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
-        WeakReferenceMessenger.Default.Register<HideAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<ShowToastMessage>(this);
         
         // Subscribe to PlaybackState changes to reactively show/hide alarm modal
+        // Modal visibility is driven entirely by PlaybackState.IsPreparingOrPlaying
         _playbackState.StateChanged += OnPlaybackStateChanged;
     }
 
@@ -200,48 +197,6 @@ public partial class App : Application,
                 }
             });
         }
-    }
-
-    public void Receive(ShowAlarmModalMessage message)
-    {
-        // Keep for backward compatibility, but prefer using PlaybackState subscription
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            try
-            {
-                if (!_isModalOpen)
-                {
-                    _logger.Information("ShowAlarmModalMessage received (backward compatibility)");
-                    await _navigationService.OpenAlarmModalAsync();
-                    _isModalOpen = true;
-                    _logger.Information("AlarmModal opened");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error showing AlarmModal");
-            }
-        });
-    }
-
-    public void Receive(HideAlarmModalMessage message)
-    {
-        // Keep for backward compatibility, but prefer using PlaybackState subscription
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            try
-            {
-                if (_isModalOpen)
-                {
-                    await _navigationService.PopModalAsync();
-                    _isModalOpen = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error hiding AlarmModal");
-            }
-        });
     }
 
     public void Receive(InitializedMessage message)

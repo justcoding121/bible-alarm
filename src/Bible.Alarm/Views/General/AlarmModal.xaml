@@ -47,6 +47,21 @@
                         Progress="{Binding PreparationProgress}"
                         ProgressColor="SlateBlue" />
                 </StackLayout>
+                
+                <!-- Error message when playback fails -->
+                <StackLayout
+                    IsVisible="{Binding HasError}"
+                    Orientation="Vertical"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Margin="20">
+                    <Label
+                        FontSize="Medium"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        TextColor="Red"
+                        Text="{Binding ErrorMessage}" />
+                </StackLayout>
                 <StackLayout 
                     Orientation="Vertical">
                     <Label

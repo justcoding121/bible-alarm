@@ -513,13 +513,23 @@ public class PlaybackService : IPlaybackService
         if (_isAlarm)
         {
             // For alarms, play fallback sound instead of showing error
+            // Modal stays open (IsPreparingOrPlaying remains true) to allow fallback playback
             await PlayFallbackAlarmSoundAsync();
         }
         else
         {
-            WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+            // For non-alarms, show error message in UI but keep modal open
+            // User can dismiss manually or retry
+            _dispatcher.Dispatch(new PlaybackErrorAction
+            {
+                ErrorMessage = "Internet not available. Please check your network connection."
+            });
+            
+            // Also show toast for immediate feedback
             WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
-            await ResetAsync();
+            
+            // Don't call ResetAsync - keep playback state active so modal stays open
+            // User can dismiss manually or retry playback
         }
     }
 
@@ -531,12 +541,19 @@ public class PlaybackService : IPlaybackService
             if (fallbackTrack is null)
             {
                 _logger.Error("Failed to get fallback alarm track");
-                WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+                // Even for alarms, if fallback fails, show error but keep modal open
+                _dispatcher.Dispatch(new PlaybackErrorAction
+                {
+                    ErrorMessage = "Internet not available. Please check your network connection."
+                });
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
-                await ResetAsync();
+                // Don't reset - keep modal open so user can see the error
                 return;
             }
 
+            // Clear any previous error when starting fallback playback
+            _dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
+            
             _playlist = [fallbackTrack];
             _currentTrackIndex = 0;
             await PlayCurrentTrackAsync();
@@ -544,9 +561,13 @@ public class PlaybackService : IPlaybackService
         catch (Exception ex)
         {
             _logger.Error(ex, "Error playing fallback alarm sound");
-            WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+            // Even for alarms, if fallback fails, show error but keep modal open
+            _dispatcher.Dispatch(new PlaybackErrorAction
+            {
+                ErrorMessage = "Internet not available. Please check your network connection."
+            });
             WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
-            await ResetAsync();
+            // Don't reset - keep modal open so user can see the error
         }
     }
 

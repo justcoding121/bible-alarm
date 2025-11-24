@@ -28,6 +28,9 @@ public class PlaybackState
     public int LoadedTracks { get; init; }
     public int TotalTracks { get; init; }
     public bool IsPreparing => TotalTracks > 0 && LoadedTracks < TotalTracks;
+    
+    // Error message (shown when playback fails)
+    public string? ErrorMessage { get; init; }
 
     public PlaybackState()
     {
@@ -44,6 +47,7 @@ public class PlaybackState
         Duration = TimeSpan.Zero;
         LoadedTracks = 0;
         TotalTracks = 0;
+        ErrorMessage = null;
     }
 
     public PlaybackState(
@@ -59,7 +63,8 @@ public class PlaybackState
         TimeSpan? currentPosition = null,
         TimeSpan duration = default,
         int loadedTracks = 0,
-        int totalTracks = 0)
+        int totalTracks = 0,
+        string? errorMessage = null)
     {
         CurrentScheduleId = currentScheduleId;
         IsPreparingOrPlaying = isPreparingOrPlaying;
@@ -74,6 +79,7 @@ public class PlaybackState
         Duration = duration;
         LoadedTracks = loadedTracks;
         TotalTracks = totalTracks;
+        ErrorMessage = errorMessage;
     }
 }
 
