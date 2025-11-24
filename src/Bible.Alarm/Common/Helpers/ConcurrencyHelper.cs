@@ -1,4 +1,6 @@
 #nullable enable
+using Serilog;
+
 namespace Bible.Alarm.Common.Helpers;
 
 /// <summary>
@@ -116,6 +118,7 @@ public static class ConcurrencyHelper
             }
             catch (ObjectDisposedException ex)
             {
+                Log.Logger.Debug(ex, "ObjectDisposedException while releasing SemaphoreSlim lock");
                 onDisposedException?.Invoke(ex);
             }
         }
@@ -145,6 +148,7 @@ public static class ConcurrencyHelper
             }
             catch (ObjectDisposedException ex)
             {
+                Log.Logger.Debug(ex, "ObjectDisposedException while releasing SemaphoreSlim lock");
                 onDisposedException?.Invoke(ex);
             }
         }

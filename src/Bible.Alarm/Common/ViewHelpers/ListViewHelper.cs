@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 #endif
 using System.Runtime.InteropServices;
+using Serilog;
 using MauiListView = Microsoft.Maui.Controls.ListView;
 
 namespace Bible.Alarm.Common.ViewHelpers;
@@ -52,21 +53,24 @@ public static class ListViewHelper
                         {
                             listView.ScrollTo(item, position, animated);
                         }
-                        catch (COMException)
+                        catch (COMException ex)
                         {
                             // Visual tree/ScrollViewer not ready yet, ignore the error
+                            Log.Logger.Debug(ex, "COMException while scrolling ListView - visual tree not ready yet");
                         }
-                        catch
+                        catch (Exception ex)
                         {
                             // Other errors, ignore
+                            Log.Logger.Debug(ex, "Exception while scrolling ListView");
                         }
                     });
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Ignore errors - scrolling is not critical
+            Log.Logger.Debug(ex, "Exception in ScrollToWhenReadyAsync - scrolling is not critical");
         }
     }
 
@@ -115,9 +119,10 @@ public static class ListViewHelper
                                     break;
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
                                 // Items not ready yet, continue waiting
+                                Log.Logger.Debug(ex, "Exception while checking ListView items - not ready yet");
                             }
                         }
                         else
@@ -137,9 +142,10 @@ public static class ListViewHelper
                 }
 #endif
             }
-            catch
+            catch (Exception ex)
             {
                 // Visual tree not ready yet, continue waiting
+                Log.Logger.Debug(ex, "Exception while waiting for ListView ready - visual tree not ready yet");
             }
         }
 
@@ -176,9 +182,10 @@ public static class ListViewHelper
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Can't safely scroll yet
+            Log.Logger.Debug(ex, "Exception in CanSafelyScrollWindows - can't safely scroll yet");
             return false;
         }
 

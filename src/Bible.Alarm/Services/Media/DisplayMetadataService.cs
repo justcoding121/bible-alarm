@@ -112,9 +112,10 @@ public class DisplayMetadataService : IDisplayMetadataService
                         meta.ArtworkBytes = fileMeta.ArtworkBytes;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     // Ignore file metadata extraction errors
+                    _logger.Debug(ex, "Error extracting file metadata, ignoring");
                 }
             }
         }

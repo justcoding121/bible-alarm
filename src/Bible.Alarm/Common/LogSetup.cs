@@ -62,8 +62,9 @@ public class LogSetup
         {
             return versionFinder.GetVersionName();
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Logger.Debug(ex, "Failed to get version name from version finder, using fallback");
             return "AssemblyVersionNotFound";
         }
     }
