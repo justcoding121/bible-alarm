@@ -46,7 +46,7 @@
                 HorizontalOptions="Fill"
                 Color="Gray" />
             <CollectionView
-                x:Name="LanguageCollectionView"
+                x:Name="ChaptersCollectionView"
                 Grid.Row="2"
                 BackgroundColor="White"
                 Footer="{OnPlatform iOS=''}"
@@ -54,7 +54,7 @@
                 ItemsSource="{Binding NumberOfChaptersList}"
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
-                SelectionMode="None">
+                SelectionMode="Single">
                 <CollectionView.Behaviors>
                     <behaviours:EventToCommandBehavior
                         Command="{Binding SelectNumberOfChaptersCommand}"
