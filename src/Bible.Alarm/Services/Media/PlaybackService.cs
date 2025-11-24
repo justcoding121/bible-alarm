@@ -334,6 +334,10 @@ public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
         
         await _audioPlayer.PrepareAsync(track);
         
+        // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
+        // Wait for the media to be in a ready state (not None or Failed)
+        await WaitForMediaReadyAsync();
+        
         // Seek to saved position for Bible tracks if resume is enabled
         // But always start from beginning if startFromBeginning is true (e.g., when going to previous track)
         if (!startFromBeginning 
@@ -347,7 +351,11 @@ public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
             }
         }
         
+        _logger.Debug("Calling PlayAsync for track at index {TrackIndex}", _currentTrackIndex);
         await _audioPlayer.PlayAsync();
+        _logger.Debug("PlayAsync completed for track at index {TrackIndex}, Status: {Status}", 
+            _currentTrackIndex, 
+            _audioPlayer.Status);
         StartProgressTimerIfBibleTrack();
     }
 
@@ -487,6 +495,16 @@ public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
             _logger.Error(ex, "Error checking if should resume from last position");
             return false;
         }
+    }
+
+    private async Task WaitForMediaReadyAsync()
+    {
+        // On iOS, MediaElement may need a moment after PrepareAsync before it can play
+        // This is especially important when transitioning between tracks (Stop -> Prepare -> Play)
+        // Give it a small delay to ensure the MediaElement has fully transitioned states
+        await Task.Delay(200);
+        
+        _logger.Debug("Media ready check completed, proceeding to play");
     }
 
     private async Task MarkCurrentTrackAsFinishedAsync()
