@@ -1,15 +1,20 @@
 using System.Net;
+using System.Net.Http.Headers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Polly;
 using Polly.Retry;
+using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class DownloadService(HttpMessageHandler handler) : IDownloadService
+public class DownloadService(HttpMessageHandler handler, ILogger logger) : IDownloadService
 {
     private readonly int _timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
+    private readonly ILogger _logger = logger;
 
+    // User-Agent string to identify the app and prevent 403 errors from servers that block requests without proper User-Agent
+    private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
 
     private readonly AsyncRetryPolicy _downloadRetryPolicy = Policy
         .Handle<Exception>()
@@ -38,15 +43,43 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
         {
             try
             {
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.UserAgent.ParseAdd(UserAgent);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                
                 using var client = new HttpClient(handler, false);
-                return await client.GetByteArrayAsync(url);
+                using var response = await client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsByteArrayAsync();
             }
-            catch
+            catch (Exception ex)
             {
-                if (alternativeUrl == null) throw;
+                _logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
+                
+                if (alternativeUrl == null)
+                {
+                    _logger.Error(ex, "No alternative URL provided for failed download: {Url}", url);
+                    throw;
+                }
 
-                using var client = new HttpClient(handler, false);
-                return await client.GetByteArrayAsync(alternativeUrl);
+                _logger.Information("Attempting to download from alternative URL: {AlternativeUrl}", alternativeUrl);
+                
+                try
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Get, alternativeUrl);
+                    request.Headers.UserAgent.ParseAdd(UserAgent);
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                    
+                    using var client = new HttpClient(handler, false);
+                    using var response = await client.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
+                    return await response.Content.ReadAsByteArrayAsync();
+                }
+                catch (Exception altEx)
+                {
+                    _logger.Error(altEx, "Failed to download from alternative URL: {AlternativeUrl}", alternativeUrl);
+                    throw;
+                }
             }
         });
     }
@@ -68,7 +101,11 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
 
             var getRequest = async () =>
             {
-                var result = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, url));
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.UserAgent.ParseAdd(UserAgent);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                
+                var result = await client.SendAsync(request);
                 var statusCode = result.StatusCode;
 
                 if (statusCode == HttpStatusCode.OK) return true;
@@ -78,7 +115,11 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
 
             try
             {
-                var result = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+                using var request = new HttpRequestMessage(HttpMethod.Head, url);
+                request.Headers.UserAgent.ParseAdd(UserAgent);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                
+                var result = await client.SendAsync(request);
                 var statusCode = result.StatusCode;
 
                 if (statusCode is HttpStatusCode.Accepted or HttpStatusCode.OK)
@@ -86,8 +127,9 @@ public class DownloadService(HttpMessageHandler handler) : IDownloadService
 
                 return await getRequest();
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Warning(ex, "HEAD request failed for URL: {Url}, falling back to GET request", url);
                 return await getRequest();
             }
         });
