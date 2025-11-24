@@ -108,6 +108,8 @@ public static class MauiProgram
                 fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);
 #if WINDOWS
                 fonts.AddFont("Platforms/Windows/Assets/Fonts/Font Awesome 5 Free-Solid-900.otf", "FontAwesomeSolid");
+#else
+                fonts.AddFont("Resources/Fonts/FontAwesome5Free_Solid_900.otf", "FontAwesomeSolid");
 #endif
             });
 
@@ -128,7 +130,6 @@ public static class MauiProgram
 
     private static readonly SemaphoreSlim BootstrapLock = new(1, 1);
     private static volatile bool BootstrapCompleted = false;
-    private static volatile bool BootstrapInProgress = false;
 
     /// <summary>
     /// Initializes platform-specific bootstrap.
@@ -178,11 +179,9 @@ public static class MauiProgram
                 return;
             }
 
-            BootstrapInProgress = true;
-
-            if (isForeground)
-            {
-                // Run bootstrap as a background job for foreground launches to avoid blocking UI
+        if (isForeground)
+        {
+            // Run bootstrap as a background job for foreground launches to avoid blocking UI
                 Task.Run(async () =>
                 {
                     try
@@ -192,7 +191,6 @@ public static class MauiProgram
                     }
                     finally
                     {
-                        BootstrapInProgress = false;
                         BootstrapLock.Release();
                     }
                 });
@@ -208,14 +206,12 @@ public static class MauiProgram
                 }
                 finally
                 {
-                    BootstrapInProgress = false;
                     BootstrapLock.Release();
                 }
             }
         }
         catch
         {
-            BootstrapInProgress = false;
             BootstrapLock.Release();
             throw;
         }

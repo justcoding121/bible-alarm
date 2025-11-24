@@ -113,7 +113,8 @@ public class NavigationService(
         }
 #pragma warning restore CS0618
         
-        var finalErrorMsg = $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={app.MainPage?.GetType().Name ?? "null"}";
+        var mainPageType = app.Windows.Count > 0 ? app.Windows[0].Page?.GetType().Name ?? "null" : "null (no windows)";
+        var finalErrorMsg = $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={mainPageType}";
         _logger?.Error(finalErrorMsg);
         throw new InvalidOperationException(finalErrorMsg);
     }

@@ -43,12 +43,14 @@ public partial class FontFileResources : ResourceDictionary
 
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
-                return "Font Awesome 5 Free";
+                return "FontAwesomeSolid";
             }
 
             if (DeviceInfo.Platform == DevicePlatform.Android)
             {
-                return "Font Awesome 5 Free-Solid-900.otf#Font Awesome 5 Free Solid";
+                // Android needs the font family name from the font file, not the alias
+                // Format: filename#FontFamilyName (the font family name inside the OTF file)
+                return "FontAwesome5Free_Solid_900.otf#Font Awesome 5 Free Solid";
             }
             
             // Fallback: try to get from ResourceDictionary
