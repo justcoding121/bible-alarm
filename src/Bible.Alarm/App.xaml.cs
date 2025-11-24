@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.Common.Interfaces.UI;
+﻿#nullable enable
+using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Common.Messenger;
@@ -19,13 +20,13 @@ public partial class App : Application,
     IRecipient<ShowAlarmModalMessage>,
     IRecipient<HideAlarmModalMessage>,
     IRecipient<ShowToastMessage>,
-    IRecipient<ClearToastsMessage>,
     IRecipient<InitializedMessage>
 {
     private readonly ILogger _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly INavigationService _navigationService;
     private readonly IState<PlaybackState> _playbackState;
+    private bool _isModalOpen;
 
     public static bool IsInForeground { get; set; }
 
@@ -47,7 +48,9 @@ public partial class App : Application,
         WeakReferenceMessenger.Default.Register<ShowAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<HideAlarmModalMessage>(this);
         WeakReferenceMessenger.Default.Register<ShowToastMessage>(this);
-        WeakReferenceMessenger.Default.Register<ClearToastsMessage>(this);
+        
+        // Subscribe to PlaybackState changes to reactively show/hide alarm modal
+        _playbackState.StateChanged += OnPlaybackStateChanged;
     }
 
     private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
@@ -97,8 +100,6 @@ public partial class App : Application,
             try
             {
 
-                if (_playbackState.Value.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
-
                 await Task.Delay(1000);
 
                 var mediaIndexService = _serviceProvider.GetRequiredService<MediaIndexService>();
@@ -134,9 +135,6 @@ public partial class App : Application,
         {
             try
             {
-                if (_playbackState.Value.IsPreparingOrPlaying) 
-                    WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
-
                 await Task.Delay(1000);
 
                 var mediaIndexService = _serviceProvider.GetRequiredService<MediaIndexService>();
@@ -156,15 +154,68 @@ public partial class App : Application,
         });
     }
 
+    public void Receive(ShowToastMessage message)
+    {
+        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            using var toastService = _serviceProvider.GetRequiredService<IToastService>();
+            await toastService.ShowMessage(message.Value);
+        });
+    }
+
+    private void OnPlaybackStateChanged(object? sender, EventArgs e)
+    {
+        var shouldShowModal = _playbackState.Value.IsPreparingOrPlaying;
+        
+        if (shouldShowModal && !_isModalOpen)
+        {
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    _logger.Information("PlaybackState changed - showing AlarmModal (IsPreparingOrPlaying: true)");
+                    await _navigationService.OpenAlarmModalAsync();
+                    _isModalOpen = true;
+                    _logger.Information("AlarmModal opened");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error showing AlarmModal");
+                }
+            });
+        }
+        else if (!shouldShowModal && _isModalOpen)
+        {
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    _logger.Information("PlaybackState changed - hiding AlarmModal (IsPreparingOrPlaying: false)");
+                    await _navigationService.PopModalAsync();
+                    _isModalOpen = false;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error hiding AlarmModal");
+                }
+            });
+        }
+    }
+
     public void Receive(ShowAlarmModalMessage message)
     {
+        // Keep for backward compatibility, but prefer using PlaybackState subscription
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
-                _logger.Information("ShowAlarmModalMessage received");
-                await _navigationService.OpenAlarmModalAsync();
-                _logger.Information("AlarmModal opened");
+                if (!_isModalOpen)
+                {
+                    _logger.Information("ShowAlarmModalMessage received (backward compatibility)");
+                    await _navigationService.OpenAlarmModalAsync();
+                    _isModalOpen = true;
+                    _logger.Information("AlarmModal opened");
+                }
             }
             catch (Exception ex)
             {
@@ -175,28 +226,21 @@ public partial class App : Application,
 
     public void Receive(HideAlarmModalMessage message)
     {
+        // Keep for backward compatibility, but prefer using PlaybackState subscription
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            await _navigationService.PopModalAsync();
-        });
-    }
-
-
-    public void Receive(ShowToastMessage message)
-    {
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            using var toastService = _serviceProvider.GetRequiredService<IToastService>();
-            await toastService.ShowMessage(message.Value);
-        });
-    }
-
-    public void Receive(ClearToastsMessage message)
-    {
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            using var toastService = _serviceProvider.GetRequiredService<IToastService>();
-            await toastService.Clear();
+            try
+            {
+                if (_isModalOpen)
+                {
+                    await _navigationService.PopModalAsync();
+                    _isModalOpen = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error hiding AlarmModal");
+            }
         });
     }
 
@@ -221,7 +265,8 @@ public partial class App : Application,
                     {
                         _logger.Information("Starting service initialization...");
                         
-                        if (_playbackState.Value.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
+                        // Modal visibility is now handled reactively via PlaybackState subscription
+                        // No need to manually send ShowAlarmModalMessage here
                         
                         await Task.Delay(100); 
                         

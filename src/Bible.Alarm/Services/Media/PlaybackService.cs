@@ -12,7 +12,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
+public class PlaybackService : IPlaybackService
 {
     private readonly ILogger _logger;
     private readonly IAudioPlayer _audioPlayer;
@@ -71,16 +71,6 @@ public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
         _progressSaveTimer = new(1000);
         _progressSaveTimer.Elapsed += OnProgressSaveTimerElapsed;
         _progressSaveTimer.AutoReset = true;
-        
-        // Subscribe to audio status changes to dispatch Fluxor actions
-        var audioMessenger = AudioPlayer.GetMessenger();
-        audioMessenger.Register<AudioStatusMessage>(this);
-    }
-    
-    public void Receive(AudioStatusMessage message)
-    {
-        // Dispatch status change to Fluxor state
-        _dispatcher.Dispatch(new PlaybackStatusChangedAction(message.Status));
     }
 
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
@@ -94,7 +84,8 @@ public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
             return;
         }
 
-        WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
+        // Modal visibility is now handled reactively via PlaybackState subscription in App.xaml.cs
+        // No need to send ShowAlarmModalMessage here
 
         try
         {
@@ -211,13 +202,6 @@ public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
         
         // Dispatch Fluxor action
         _dispatcher.Dispatch(new PlaybackNavigationChangedAction(canPlayNext, canPlayPrevious));
-        
-        // Also send message for backward compatibility (until all consumers are updated)
-        WeakReferenceMessenger.Default.Send(new PlaybackNavigationChangedMessage
-        {
-            CanPlayNext = canPlayNext,
-            CanPlayPrevious = canPlayPrevious
-        });
     }
 
     public async Task SeekForwardAsync()
@@ -279,7 +263,8 @@ public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
 
         await ResetAsync();
 
-        WeakReferenceMessenger.Default.Send(new HideAlarmModalMessage());
+        // Modal visibility is now handled reactively via PlaybackState subscription in App.xaml.cs
+        // No need to send HideAlarmModalMessage here
     }
 
     private async Task ResetAsync()

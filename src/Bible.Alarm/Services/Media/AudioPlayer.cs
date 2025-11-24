@@ -5,9 +5,11 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
-using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
+using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
 using System.IO;
 
@@ -15,11 +17,10 @@ namespace Bible.Alarm.Services.Media;
 
 public class AudioPlayer : IAudioPlayer
 {
-    private static readonly ObservableMessenger AudioMessenger = new();
-
     private readonly ILogger _logger;
     private readonly MediaElement _mediaElement;
     private readonly IDisplayMetadataService _displayMetadataService;
+    private readonly IDispatcher _dispatcher;
     private System.Timers.Timer? _positionTimer;
 
     private AudioPlayerTrack? _currentTrack;
@@ -65,11 +66,12 @@ public class AudioPlayer : IAudioPlayer
     public event EventHandler<EventArgs>? MediaEnded;
     public event EventHandler<EventArgs>? MediaFailed;
 
-    public AudioPlayer(ILogger logger, INavigationService navigationService, IDisplayMetadataService displayMetadataService)
+    public AudioPlayer(ILogger logger, INavigationService navigationService, IDisplayMetadataService displayMetadataService, IDispatcher dispatcher)
     {
         _logger = logger;
         _mediaElement = navigationService.GetMediaElement();
         _displayMetadataService = displayMetadataService;
+        _dispatcher = dispatcher;
 
         _mediaElement.StateChanged += OnStateChanged;
         _mediaElement.MediaEnded += OnMediaEnded;
@@ -151,7 +153,8 @@ public class AudioPlayer : IAudioPlayer
 
     private void SendMetadataMessage(MetaData meta)
     {
-        AudioMessenger.Send(new AudioMetadataMessage
+        // Dispatch Fluxor action
+        _dispatcher.Dispatch(new PlaybackMetadataChangedAction
         {
             Title = meta.Title,
             Artist = meta.Artist,
@@ -162,7 +165,8 @@ public class AudioPlayer : IAudioPlayer
 
     private void SendPositionUpdate()
     {
-        AudioMessenger.Send(new AudioPositionMessage
+        // Dispatch Fluxor action
+        _dispatcher.Dispatch(new PlaybackPositionChangedAction
         {
             CurrentPosition = CurrentPosition,
             Duration = Duration
@@ -269,13 +273,9 @@ public class AudioPlayer : IAudioPlayer
 
     private void SendStatusMessage()
     {
-        AudioMessenger.Send(new AudioStatusMessage
-        {
-            Status = Status
-        });
+        // Dispatch status change to Fluxor state
+        _dispatcher.Dispatch(new PlaybackStatusChangedAction(Status));
     }
-
-    public static ObservableMessenger GetMessenger() => AudioMessenger;
 
     public Task PauseAsync()
     {

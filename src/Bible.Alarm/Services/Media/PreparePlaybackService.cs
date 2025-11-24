@@ -1,8 +1,9 @@
 #nullable enable
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
-using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.Stores.Actions.Playback;
+using Fluxor;
+using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -12,15 +13,18 @@ public class PreparePlaybackService : IPreparePlaybackService
     private readonly ILogger _logger;
     private readonly IPlaylistService _playlistService;
     private readonly IMediaCacheService _cacheService;
+    private readonly IDispatcher _dispatcher;
 
     public PreparePlaybackService(
         ILogger logger,
         IPlaylistService playlistService,
-        IMediaCacheService cacheService)
+        IMediaCacheService cacheService,
+        IDispatcher dispatcher)
     {
         _logger = logger;
         _playlistService = playlistService;
         _cacheService = cacheService;
+        _dispatcher = dispatcher;
     }
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
@@ -30,8 +34,12 @@ public class PreparePlaybackService : IPreparePlaybackService
         var totalTracks = playItems.Count;
         var loadedTracks = 0;
 
-        // Send initial progress message with total count
-        WeakReferenceMessenger.Default.Send(new MediaProgressMessage(new Tuple<int, int>(0, totalTracks)));
+        // Dispatch initial progress action with total count
+        _dispatcher.Dispatch(new PlaybackPreparationProgressAction
+        {
+            LoadedTracks = 0,
+            TotalTracks = totalTracks
+        });
 
         foreach (var playItem in playItems)
         {
@@ -49,9 +57,13 @@ public class PreparePlaybackService : IPreparePlaybackService
                 PlayItem = playItem
             });
 
-            // Send progress update after each track is prepared
+            // Dispatch progress update after each track is prepared
             loadedTracks++;
-            WeakReferenceMessenger.Default.Send(new MediaProgressMessage(new Tuple<int, int>(loadedTracks, totalTracks)));
+            _dispatcher.Dispatch(new PlaybackPreparationProgressAction
+            {
+                LoadedTracks = loadedTracks,
+                TotalTracks = totalTracks
+            });
         }
 
         return preparedTracks;

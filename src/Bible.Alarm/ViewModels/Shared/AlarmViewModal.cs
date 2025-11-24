@@ -1,15 +1,12 @@
 using System.Windows.Input;
-using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.ApplicationModel;
@@ -18,12 +15,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class AlarmViewModal : ObservableObject, IDisposable, 
-    IRecipient<MediaProgressMessage>,
-    IRecipient<AudioMetadataMessage>,
-    IRecipient<AudioPositionMessage>,
-    IRecipient<AudioStatusMessage>,
-    IRecipient<PlaybackNavigationChangedMessage>
+public class AlarmViewModal : ObservableObject, IDisposable
 {
     private readonly IPlaybackService _playbackService;
     private readonly IState<PlaybackState> _playbackState;
@@ -44,16 +36,12 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     {
         _playbackService = playbackService;
         _playbackState = playbackState;
-        WeakReferenceMessenger.Default.Register<MediaProgressMessage>(this);
-        WeakReferenceMessenger.Default.Register<PlaybackNavigationChangedMessage>(this);
-        
-        var audioMessenger = AudioPlayer.GetMessenger();
-        audioMessenger.Register<AudioMetadataMessage>(this);
-        audioMessenger.Register<AudioPositionMessage>(this);
-        audioMessenger.Register<AudioStatusMessage>(this);
         
         // Subscribe to Fluxor state changes for reactive updates
         _playbackState.StateChanged += OnPlaybackStateChanged;
+        
+        // Initialize from current state
+        UpdateFromState();
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
@@ -275,42 +263,30 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     
     public double PreparationProgress { get; private set; }
 
-    public void Receive(MediaProgressMessage message)
+    private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
-        Task.Run(() =>
+        UpdateFromState();
+    }
+    
+    private void UpdateFromState()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (message.Value is not Tuple<int, int> kv) return;
-            _loadedTracks = kv.Item1;
-            _totalTracks = kv.Item2;
-            PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
-            IsPreparing = _totalTracks > 0 && _loadedTracks < _totalTracks;
+            var state = _playbackState.Value;
             
-            MainThread.BeginInvokeOnMainThread(() =>
+            // Update navigation controls
+            NextEnabled = state.CanPlayNext;
+            PreviousEnabled = state.CanPlayPrevious;
+            
+            // Update metadata
+            Title = state.Title ?? "";
+            SubTitle = state.Artist ?? "";
+            Description = state.Album ?? "";
+            
+            // Update position and duration
+            if (state.CurrentPosition.HasValue)
             {
-                OnPropertyChanged(nameof(ProgressText));
-                OnPropertyChanged(nameof(PreparationProgress));
-                OnPropertyChanged(nameof(IsPreparing));
-            });
-        });
-    }
-
-    public void Receive(AudioMetadataMessage message)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            Title = message.Title ?? "";
-            SubTitle = message.Artist ?? "";
-            Description = message.Album ?? "";
-        });
-    }
-
-    public void Receive(AudioPositionMessage message)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (message.CurrentPosition.HasValue)
-            {
-                var position = message.CurrentPosition.Value;
+                var position = state.CurrentPosition.Value;
                 CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
             }
             else
@@ -318,43 +294,32 @@ public class AlarmViewModal : ObservableObject, IDisposable,
                 CurrentTime = "00:00";
             }
 
-            var duration = message.Duration;
+            var duration = state.Duration;
             EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
 
-            if (message.CurrentPosition.HasValue && duration.TotalSeconds > 0)
+            if (state.CurrentPosition.HasValue && duration.TotalSeconds > 0)
             {
-                Progress = message.CurrentPosition.Value.TotalSeconds / duration.TotalSeconds;
+                Progress = state.CurrentPosition.Value.TotalSeconds / duration.TotalSeconds;
             }
             else
             {
                 Progress = 0.0;
             }
-        });
-    }
-
-    public void Receive(AudioStatusMessage message)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            var isPlaying = message.Status == PlayStatus.Playing;
+            
+            // Update preparation progress
+            _loadedTracks = state.LoadedTracks;
+            _totalTracks = state.TotalTracks;
+            PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
+            IsPreparing = state.IsPreparing;
+            
+            // Update play/pause visibility based on status
+            var isPlaying = state.Status == PlayStatus.Playing;
             PlayVisible = !isPlaying;
             PauseVisible = isPlaying;
-        });
-    }
-
-    public void Receive(PlaybackNavigationChangedMessage message)
-    {
-        // Navigation changes are now handled by Fluxor state subscription
-        // This method is kept for backward compatibility
-        OnPlaybackStateChanged(this, EventArgs.Empty);
-    }
-    
-    private void OnPlaybackStateChanged(object? sender, EventArgs e)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            NextEnabled = _playbackState.Value.CanPlayNext;
-            PreviousEnabled = _playbackState.Value.CanPlayPrevious;
+            
+            // Notify property changes
+            OnPropertyChanged(nameof(ProgressText));
+            OnPropertyChanged(nameof(PreparationProgress));
         });
     }
 
@@ -362,11 +327,6 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     {
         if (!_isDisposed)
         {
-            WeakReferenceMessenger.Default.Unregister<MediaProgressMessage>(this);
-            WeakReferenceMessenger.Default.Unregister<PlaybackNavigationChangedMessage>(this);
-            AudioPlayer.GetMessenger().Unregister<AudioMetadataMessage>(this);
-            AudioPlayer.GetMessenger().Unregister<AudioPositionMessage>(this);
-            AudioPlayer.GetMessenger().Unregister<AudioStatusMessage>(this);
             _playbackState.StateChanged -= OnPlaybackStateChanged;
             _isDisposed = true;
         }

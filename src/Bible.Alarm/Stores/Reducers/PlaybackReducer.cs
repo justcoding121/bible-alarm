@@ -13,7 +13,16 @@ public static class PlaybackReducer
             currentScheduleId: action.ScheduleId,
             isPreparingOrPlaying: true,
             canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious);
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            currentPosition: state.CurrentPosition,
+            duration: state.Duration,
+            loadedTracks: state.LoadedTracks,
+            totalTracks: state.TotalTracks);
     }
 
     [ReducerMethod]
@@ -23,7 +32,16 @@ public static class PlaybackReducer
             currentScheduleId: null,
             isPreparingOrPlaying: false,
             canPlayNext: false,
-            canPlayPrevious: false);
+            canPlayPrevious: false,
+            status: PlayStatus.Stopped,
+            title: null,
+            artist: null,
+            album: null,
+            artworkUrl: null,
+            currentPosition: null,
+            duration: TimeSpan.Zero,
+            loadedTracks: 0,
+            totalTracks: 0);
     }
 
     [ReducerMethod]
@@ -33,7 +51,16 @@ public static class PlaybackReducer
             currentScheduleId: state.CurrentScheduleId,
             isPreparingOrPlaying: state.IsPreparingOrPlaying,
             canPlayNext: action.CanPlayNext,
-            canPlayPrevious: action.CanPlayPrevious);
+            canPlayPrevious: action.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            currentPosition: state.CurrentPosition,
+            duration: state.Duration,
+            loadedTracks: state.LoadedTracks,
+            totalTracks: state.TotalTracks);
     }
 
     [ReducerMethod]
@@ -53,7 +80,73 @@ public static class PlaybackReducer
             currentScheduleId: currentScheduleId,
             isPreparingOrPlaying: isPreparingOrPlaying,
             canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious);
+            canPlayPrevious: state.CanPlayPrevious,
+            status: action.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            currentPosition: state.CurrentPosition,
+            duration: state.Duration,
+            loadedTracks: state.LoadedTracks,
+            totalTracks: state.TotalTracks);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnPlaybackMetadataChanged(PlaybackState state, PlaybackMetadataChangedAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: action.Title,
+            artist: action.Artist,
+            album: action.Album,
+            artworkUrl: action.ArtworkUrl,
+            currentPosition: state.CurrentPosition,
+            duration: state.Duration,
+            loadedTracks: state.LoadedTracks,
+            totalTracks: state.TotalTracks);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnPlaybackPositionChanged(PlaybackState state, PlaybackPositionChangedAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            currentPosition: action.CurrentPosition,
+            duration: action.Duration,
+            loadedTracks: state.LoadedTracks,
+            totalTracks: state.TotalTracks);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnPlaybackPreparationProgress(PlaybackState state, PlaybackPreparationProgressAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            currentPosition: state.CurrentPosition,
+            duration: state.Duration,
+            loadedTracks: action.LoadedTracks,
+            totalTracks: action.TotalTracks);
     }
 }
 
