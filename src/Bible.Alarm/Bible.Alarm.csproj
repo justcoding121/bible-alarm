@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>Bible.Alarm</RootNamespace>
 		<UseMaui>true</UseMaui>
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<LangVersion>13.0</LangVersion>
+		<LangVersion>latest</LangVersion>
 
 		<!-- Display Version -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -14,12 +14,12 @@
 
 		<!-- Android-specific -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
-		<AndroidSdkVersion Condition="'$(TargetFramework)' == 'net9.0-android'">36</AndroidSdkVersion>
-		<AndroidTargetFramework Condition="'$(TargetFramework)' == 'net9.0-android'">v14.0</AndroidTargetFramework>
-		<AndroidPackageFormat Condition="'$(TargetFramework)' == 'net9.0-android'">apk</AndroidPackageFormat>
+		<AndroidSdkVersion Condition="'$(TargetFramework)' == 'net10.0-android'">36</AndroidSdkVersion>
+		<AndroidTargetFramework Condition="'$(TargetFramework)' == 'net10.0-android'">v14.0</AndroidTargetFramework>
+		<AndroidPackageFormat Condition="'$(TargetFramework)' == 'net10.0-android'">apk</AndroidPackageFormat>
 		<!-- Workaround for Android build permission issues -->
-		<AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
-		<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidCreatePackagePerAbi>
+		<AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseAapt2>
+		<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>
 
 		<!-- iOS-specific -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
@@ -27,26 +27,31 @@
 		<!-- Windows-specific -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
 		<UseWinUI>true</UseWinUI>
+		<WindowsTargetPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</WindowsTargetPlatformVersion>
 		
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
 
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+		
+		<!-- Suppress IL trimming warnings only when trimming is NOT enabled -->
+		<!-- MAUI apps use platform-specific linking (AndroidLinkMode, MtouchLink), not .NET trimming -->
+		<!-- If PublishTrimmed is enabled, these warnings will appear and should be addressed -->
+		<NoWarn Condition="'$(PublishTrimmed)' != 'true'">$(NoWarn);IL2026;IL2072;IL2111</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="6.1.2" />
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
-		<PackageReference Include="System.Text.Json" Version="9.0.10" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
+		<PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="7.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.10" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.10" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-		<PackageReference Include="Fluxor" Version="6.0.0" />
-		<PackageReference Include="Polly" Version="8.5.0" />
-		<PackageReference Include="Quartz" Version="3.13.1" />
-		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="Fluxor" Version="6.8.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+		<PackageReference Include="Polly" Version="8.6.5" />
+		<PackageReference Include="Quartz" Version="3.15.1" />
+		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
@@ -58,13 +63,18 @@
 
 
 	<!-- ProGuard rules to handle Java conflicts -->
-	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
 		<AndroidProguardConfiguration Include="proguard.cfg" />
 	</ItemGroup>
 
 	<!-- App Icon (MauiIcon) -->
 	<ItemGroup>
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#512BD4" />
+	</ItemGroup>
+
+	<!-- Fonts -->
+	<ItemGroup>
+		<MauiFont Include="Resources\Fonts\FontAwesome5Free_Solid_900.otf" />
 	</ItemGroup>
 
 	<!-- Embedded Resources -->
@@ -85,7 +95,7 @@
 	</ItemGroup>
 	
 	<!-- Exclude Windows-specific XAML files from MAUI build -->
-	<ItemGroup Condition="!$(TargetFramework.StartsWith('net9.0-windows'))">
+	<ItemGroup Condition="!$(TargetFramework.StartsWith('net10.0-windows'))">
 		<None Include="Platforms\Windows\**\*.xaml" />
 	</ItemGroup>
 	
@@ -108,18 +118,19 @@
 	</ItemGroup>
 
 	<!-- Platform-specific resources -->
-	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-android'))">
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
 		<AndroidResource Include="Platforms\Android\Resources\**" Exclude="Platforms\Android\Resources\raw\cool_alarm_tone_notification_sound.mp3" />
 		<AndroidResource Include="Resources\cool_alarm_tone_notification_sound.mp3" Link="Resources\raw\cool_alarm_tone_notification_sound.mp3" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-ios'))">
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-ios'))">
 		<BundleResource Include="Platforms\iOS\Resources\**" />
 		<BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
 		<BundleResource Include="Resources\cool_alarm_tone_notification_sound.mp3" />
+		<BundleResource Include="Resources\Fonts\FontAwesome5Free_Solid_900.otf" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-windows'))">
 		<Content Include="Platforms\Windows\Assets\**" />
 		<Content Include="Resources\cool_alarm_tone_notification_sound.mp3" />
 	</ItemGroup>

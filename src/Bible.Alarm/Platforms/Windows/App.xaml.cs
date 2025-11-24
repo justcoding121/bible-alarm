@@ -29,7 +29,7 @@ namespace Bible.Alarm.WinUI
             TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
         }
 
-        private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
+        private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
         {
             Logger.Error(e.Exception, "Unobserved task exception.");
         }

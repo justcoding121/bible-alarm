@@ -6,7 +6,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:system="clr-namespace:System;assembly=System.Runtime">
     <OnPlatform x:Key="FontAwesomeSolidId" x:TypeArguments="system:String">
-        <On Platform="iOS" Value="FontAwesomeSolid" />
+        <On Platform="iOS" Value="Font Awesome 5 Free Solid" />
         <On Platform="Android" Value="FontAwesome5Free_Solid_900.otf#Font Awesome 5 Free Solid" />
         <On Platform="WinUI" Value="FontAwesomeSolid" />
     </OnPlatform>

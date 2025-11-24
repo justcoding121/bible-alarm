@@ -1,8 +1,8 @@
 <Project>
   <!-- Android SDK version - applies to all builds -->
   <PropertyGroup>
-    <AndroidSdkVersion Condition="'$(TargetFramework)' == 'net9.0-android'">36</AndroidSdkVersion>
-    <AndroidTargetFramework Condition="'$(TargetFramework)' == 'net9.0-android'">v14.0</AndroidTargetFramework>
+    <AndroidSdkVersion Condition="'$(TargetFramework)' == 'net10.0-android'">36</AndroidSdkVersion>
+    <AndroidTargetFramework Condition="'$(TargetFramework)' == 'net10.0-android'">v14.0</AndroidTargetFramework>
   </PropertyGroup>
   
   <!-- Global build optimizations for faster debug builds -->
@@ -14,30 +14,30 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     
     <!-- Android-specific debug optimizations -->
-    <AndroidUseSharedRuntime Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseSharedRuntime>
-    <AndroidLinkMode Condition="'$(TargetFramework)' == 'net9.0-android'">None</AndroidLinkMode>
-    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
-    <AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidCreatePackagePerAbi>
-    <AndroidEnableProguard Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableProguard>
-    <AndroidEnableMultiDex Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableMultiDex>
-    <AndroidDexTool Condition="'$(TargetFramework)' == 'net9.0-android'">d8</AndroidDexTool>
-    <AndroidStoreUncompressedFileExtensions Condition="'$(TargetFramework)' == 'net9.0-android'">.so;.a;.mp3;.wav;.ogg</AndroidStoreUncompressedFileExtensions>
-    <AndroidLinkResources Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidLinkResources>
-    <AndroidEnableSGenConcurrent Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidEnableSGenConcurrent>
-    <AndroidAotEnable Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidAotEnable>
-    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
-    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android;Quartz</AndroidLinkSkip>
+    <AndroidUseSharedRuntime Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseSharedRuntime>
+    <AndroidLinkMode Condition="'$(TargetFramework)' == 'net10.0-android'">None</AndroidLinkMode>
+    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseAapt2>
+    <AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>
+    <AndroidEnableProguard Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidEnableProguard>
+    <AndroidEnableMultiDex Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidEnableMultiDex>
+    <AndroidDexTool Condition="'$(TargetFramework)' == 'net10.0-android'">d8</AndroidDexTool>
+    <AndroidStoreUncompressedFileExtensions Condition="'$(TargetFramework)' == 'net10.0-android'">.so;.a;.mp3;.wav;.ogg</AndroidStoreUncompressedFileExtensions>
+    <AndroidLinkResources Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidLinkResources>
+    <AndroidEnableSGenConcurrent Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidEnableSGenConcurrent>
+    <AndroidAotEnable Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidAotEnable>
+    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidEnableAssemblyCompression>
+    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net10.0-android'">System.Core;System;System.Xml;Mono.Android;Quartz</AndroidLinkSkip>
     
     <!-- Additional performance optimizations -->
-    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
-    <AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidCreatePackagePerAbi>
-    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
-    <AndroidLinkResources Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidLinkResources>
-    <AndroidUseSharedRuntime Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseSharedRuntime>
-    <AndroidEnableSGenConcurrent Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidEnableSGenConcurrent>
-    <AndroidAotEnable Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidAotEnable>
-    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net9.0-android'">false</AndroidEnableAssemblyCompression>
-    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net9.0-android'">true</AndroidUseAapt2>
-    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net9.0-android'">System.Core;System;System.Xml;Mono.Android;Quartz</AndroidLinkSkip>
+    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseAapt2>
+    <AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>
+    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidEnableAssemblyCompression>
+    <AndroidLinkResources Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidLinkResources>
+    <AndroidUseSharedRuntime Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseSharedRuntime>
+    <AndroidEnableSGenConcurrent Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidEnableSGenConcurrent>
+    <AndroidAotEnable Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidAotEnable>
+    <AndroidEnableAssemblyCompression Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidEnableAssemblyCompression>
+    <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseAapt2>
+    <AndroidLinkSkip Condition="'$(TargetFramework)' == 'net10.0-android'">System.Core;System;System.Xml;Mono.Android;Quartz</AndroidLinkSkip>
   </PropertyGroup>
 </Project>

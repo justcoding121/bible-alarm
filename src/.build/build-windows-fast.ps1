@@ -9,7 +9,7 @@ $env:MSBUILDDISABLENODEREUSE = "1"
 # Build with optimizations
 dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
   --configuration Debug `
-  --framework net9.0-windows10.0.19041.0 `
+  --framework net10.0-windows10.0.19041.0 `
   --verbosity minimal `
   --no-restore `
   --property:UseWinUI=true `

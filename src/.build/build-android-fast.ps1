@@ -9,7 +9,7 @@ $env:MSBUILDDISABLENODEREUSE = "1"
 # Build with optimizations
 dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
   --configuration Debug `
-  --framework net9.0-android `
+  --framework net10.0-android `
   --verbosity minimal `
   --no-restore `
   --property:AndroidUseSharedRuntime=true `

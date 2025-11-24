@@ -24,7 +24,7 @@ echo.
 echo Building Android...
 dotnet build ../Bible.Alarm/Bible.Alarm.csproj ^
   --configuration Debug ^
-  --framework net9.0-android ^
+  --framework net10.0-android ^
   --verbosity minimal ^
   --no-restore ^
   --property:AndroidUseSharedRuntime=true ^
@@ -47,7 +47,7 @@ echo.
 echo Building iOS...
 dotnet build ../Bible.Alarm/Bible.Alarm.csproj ^
   --configuration Debug ^
-  --framework net9.0-ios ^
+  --framework net10.0-ios ^
   --verbosity minimal ^
   --no-restore ^
   --property:MtouchLink=None ^
@@ -57,7 +57,7 @@ dotnet build ../Bible.Alarm/Bible.Alarm.csproj ^
   --property:MtouchAot=false ^
   --property:MtouchArch=ARM64 ^
   --property:MtouchSdkVersion=latest ^
-  --property:MtouchMinimumOSVersion=11.0 ^
+  --property:MtouchMinimumOSVersion=15.0 ^
   --property:MtouchEnableBitcode=false ^
   --property:MtouchEnableIncrementalBuilds=true ^
   --property:MtouchFastDev=true ^
@@ -72,7 +72,7 @@ echo.
 echo Building Windows...
 dotnet build ../Bible.Alarm/Bible.Alarm.csproj ^
   --configuration Debug ^
-  --framework net9.0-windows10.0.19041.0 ^
+  --framework net10.0-windows10.0.19041.0 ^
   --verbosity minimal ^
   --no-restore ^
   --property:UseWinUI=true ^

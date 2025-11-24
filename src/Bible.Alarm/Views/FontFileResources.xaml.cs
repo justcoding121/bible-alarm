@@ -43,7 +43,9 @@ public partial class FontFileResources : ResourceDictionary
 
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
-                return "FontAwesomeSolid";
+                // iOS: Try using just the font family name from the font file
+                // The font family name inside the OTF file is "Font Awesome 5 Free Solid"
+                return "Font Awesome 5 Free Solid";
             }
 
             if (DeviceInfo.Platform == DevicePlatform.Android)

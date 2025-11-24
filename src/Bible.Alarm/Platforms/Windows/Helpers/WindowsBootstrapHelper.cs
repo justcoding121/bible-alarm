@@ -23,8 +23,8 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
                 throw;
             }
             
-
-            Task.Run(SetupBackgroundTask);
+            // Fire-and-forget: SetupBackgroundTask runs synchronously and completes immediately
+            _ = Task.Run(SetupBackgroundTask);
         }
 
         private static Task SetupBackgroundTask()

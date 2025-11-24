@@ -16,7 +16,7 @@ if ($Platform -eq "all" -or $Platform -eq "android") {
     Write-Host "`nBuilding Android..." -ForegroundColor Yellow
     dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
       --configuration Debug `
-      --framework net9.0-android `
+      --framework net10.0-android `
       --verbosity minimal `
       --no-restore `
       --property:AndroidUseSharedRuntime=true `
@@ -38,17 +38,17 @@ if ($Platform -eq "all" -or $Platform -eq "ios") {
     Write-Host "`nBuilding iOS..." -ForegroundColor Yellow
     dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
       --configuration Debug `
-      --framework net9.0-ios `
-      --verbosity minimal `
-      --no-restore `
-      --property:MtouchLink=None `
-      --property:MtouchDebug=true `
-      --property:MtouchUseLlvm=false `
-      --property:MtouchInterpreter=false `
-      --property:MtouchAot=false `
-      --property:MtouchArch=ARM64 `
-      --property:MtouchSdkVersion=latest `
-      --property:MtouchMinimumOSVersion=11.0 `
+      --framework net10.0-ios `
+  --verbosity minimal `
+  --no-restore `
+  --property:MtouchLink=None `
+  --property:MtouchDebug=true `
+  --property:MtouchUseLlvm=false `
+  --property:MtouchInterpreter=false `
+  --property:MtouchAot=false `
+  --property:MtouchArch=ARM64 `
+  --property:MtouchSdkVersion=latest `
+  --property:MtouchMinimumOSVersion=15.0 `
       --property:MtouchEnableBitcode=false `
       --property:MtouchEnableIncrementalBuilds=true `
       --property:MtouchFastDev=true `
@@ -62,7 +62,7 @@ if ($Platform -eq "all" -or $Platform -eq "windows") {
     Write-Host "`nBuilding Windows..." -ForegroundColor Yellow
     dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
       --configuration Debug `
-      --framework net9.0-windows10.0.19041.0 `
+      --framework net10.0-windows10.0.19041.0 `
       --verbosity minimal `
       --no-restore `
       --property:UseWinUI=true `

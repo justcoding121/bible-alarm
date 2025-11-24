@@ -9,7 +9,7 @@ $env:MSBUILDDISABLENODEREUSE = "1"
 # Build with optimizations
 dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
   --configuration Debug `
-  --framework net9.0-ios `
+  --framework net10.0-ios `
   --verbosity minimal `
   --no-restore `
   --property:MtouchLink=None `
@@ -19,7 +19,7 @@ dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
   --property:MtouchAot=false `
   --property:MtouchArch=ARM64 `
   --property:MtouchSdkVersion=latest `
-  --property:MtouchMinimumOSVersion=11.0 `
+  --property:MtouchMinimumOSVersion=15.0 `
   --property:MtouchEnableBitcode=false `
   --property:MtouchEnableIncrementalBuilds=true `
   --property:MtouchFastDev=true `
