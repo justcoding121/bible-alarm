@@ -111,6 +111,7 @@
                 Margin="5,5,5,25"
                 Padding="0"
                 FlexLayout.AlignSelf="Stretch"
+                IsVisible="{Binding AreControlsVisible}"
                 RowSpacing="0"
                 VerticalOptions="End">
                 <Grid.ColumnDefinitions>

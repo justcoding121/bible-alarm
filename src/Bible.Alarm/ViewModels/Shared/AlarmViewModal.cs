@@ -257,8 +257,19 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     public bool IsPreparing
     {
         get => _isPreparing;
-        set => SetProperty(ref _isPreparing, value);
+        set
+        {
+            if (SetProperty(ref _isPreparing, value))
+            {
+                OnPropertyChanged(nameof(AreControlsVisible));
+            }
+        }
     }
+
+    /// <summary>
+    /// Controls are visible when not preparing tracks
+    /// </summary>
+    public bool AreControlsVisible => !IsPreparing;
 
     public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
     
