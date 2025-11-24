@@ -297,7 +297,22 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             var currentScheduleId = stateValue.CurrentSchedule.Id;
 
-            if (currentScheduleId == _lastScheduleId && _modelInitialized) return;
+            if (currentScheduleId == _lastScheduleId && _modelInitialized) 
+            {
+                // Check if the schedule in Schedules collection has been updated (e.g., from next/prev in home view)
+                var updatedSchedule = stateValue.Schedules?.FirstOrDefault(s => s.Id == currentScheduleId);
+                if (updatedSchedule != null && updatedSchedule != Model)
+                {
+                    // Schedule was updated externally (e.g., next/prev from home view)
+                    // Update the model to reflect the changes
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        SetModel(updatedSchedule);
+                        RefreshChapterName();
+                    });
+                }
+                return;
+            }
 
             _isInitializingNewSchedule = false;
 
