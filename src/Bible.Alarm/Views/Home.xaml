@@ -65,25 +65,23 @@
                     Text="{x:Static fn:GlyphNames.Plus}"
                     TextColor="SlateBlue" />
             </StackLayout>
-            <ListView
+            <CollectionView
+                x:Name="SchedulesCollectionView"
                 Grid.Row="1"
-                ios:ListView.SeparatorStyle="FullWidth"
                 BackgroundColor="White"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"
-                HasUnevenRows="True"
                 ItemsSource="{Binding Schedules}"
-                SelectionMode="None">
-                <ListView.Behaviors>
+                SelectionMode="Single">
+                <CollectionView.Behaviors>
                     <behaviours:EventToCommandBehavior
                         Command="{Binding ViewScheduleCommand}"
                         EventArgsConverter="{StaticResource itemTappedConverter}"
-                        EventName="ItemTapped" />
-                </ListView.Behaviors>
-                <ListView.ItemTemplate>
+                        EventName="SelectionChanged" />
+                </CollectionView.Behaviors>
+                <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItem">
-                        <ViewCell>
                             <Grid
                                 Margin="{OnPlatform Default='0,10,0,10'}"
                                 ColumnSpacing="{OnPlatform iOS='0'}"
@@ -267,10 +265,9 @@
                                                            iOS='1'}" />
                                 </StackLayout>
                             </Grid>
-                        </ViewCell>
                     </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         </Grid>
     </Grid>
 </ContentPage>

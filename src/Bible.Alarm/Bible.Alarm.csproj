@@ -94,9 +94,10 @@
 		<MauiXaml Include="Views\**\*.xaml" />
 	</ItemGroup>
 	
-	<!-- Exclude Windows-specific XAML files from MAUI build -->
+	<!-- Exclude Windows-specific files from non-Windows builds -->
 	<ItemGroup Condition="!$(TargetFramework.StartsWith('net10.0-windows'))">
 		<None Include="Platforms\Windows\**\*.xaml" />
+		<None Include="Platforms\Windows\**\*" />
 	</ItemGroup>
 	
 	<!-- Disable duplicate XAML compilation -->

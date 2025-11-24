@@ -29,6 +29,8 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
         SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
 
             if (x.MusicType == MusicType.Vocals)

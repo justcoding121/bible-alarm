@@ -21,6 +21,9 @@ public partial class MusicSelection : ContentPage, IDisposable
             Command = new Command(() => AnimateUtils.FlickUponTouched(BackButton, 1500,
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
         });
+
+        // Note: We don't clear selection here because this page navigates away when an item is selected
+        // The page will be disposed, so clearing selection is unnecessary and can interfere with navigation on iOS
     }
 
     protected override bool OnBackButtonPressed()

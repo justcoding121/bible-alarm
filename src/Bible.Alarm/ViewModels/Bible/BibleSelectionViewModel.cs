@@ -46,6 +46,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
             await navigationService.NavigateToBookSelectionAsync();
             dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
@@ -79,6 +81,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
             if (CurrentLanguage != null) CurrentLanguage.IsSelected = false;
 

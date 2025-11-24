@@ -45,10 +45,9 @@
                 HeightRequest="1"
                 HorizontalOptions="Fill"
                 Color="Gray" />
-            <ListView
-                x:Name="LanguageListView"
+            <CollectionView
+                x:Name="LanguageCollectionView"
                 Grid.Row="2"
-                ios:ListView.SeparatorStyle="FullWidth"
                 BackgroundColor="White"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
@@ -56,31 +55,29 @@
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
                 SelectionMode="None">
-                <ListView.Behaviors>
+                <CollectionView.Behaviors>
                     <behaviours:EventToCommandBehavior
                         Command="{Binding SelectNumberOfChaptersCommand}"
                         EventArgsConverter="{StaticResource itemTappedConverter}"
-                        EventName="ItemTapped" />
-                </ListView.Behaviors>
-                <ListView.ItemTemplate>
+                        EventName="SelectionChanged" />
+                </CollectionView.Behaviors>
+                <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="shared:NumberOfChaptersListViewItemModel">
-                        <ViewCell>
-                            <Grid
-                                BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
-                                HorizontalOptions="Fill">
-                                <Label
-                                    Margin="15,0,0,0"
-                                    HeightRequest="45"
-                                    HorizontalOptions="Start"
-                                    HorizontalTextAlignment="Start"
-                                    Text="{Binding Text}"
-                                    TextColor="Black"
-                                    VerticalTextAlignment="Center" />
-                            </Grid>
-                        </ViewCell>
+                        <Grid
+                            BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
+                            HorizontalOptions="Fill">
+                            <Label
+                                Margin="15,0,0,0"
+                                HeightRequest="45"
+                                HorizontalOptions="Start"
+                                HorizontalTextAlignment="Start"
+                                Text="{Binding Text}"
+                                TextColor="Black"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
                     </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
             <Button
                 x:Name="CloseButton"
                 Grid.Row="3"

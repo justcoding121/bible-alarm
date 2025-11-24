@@ -24,6 +24,9 @@ public partial class BookSelection : ContentPage, IDisposable
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
         });
 
+        // Note: We don't clear selection here because this page navigates away when an item is selected
+        // The page will be disposed, so clearing selection is unnecessary and can interfere with navigation on iOS
+
         Appearing += OnAppearing;
     }
 
@@ -34,9 +37,9 @@ public partial class BookSelection : ContentPage, IDisposable
         // Wait for the page to be fully loaded before attempting to scroll
         await Task.Delay(300);
         
-        if (ViewModel?.SelectedBook != null && bookListView != null)
+        if (ViewModel?.SelectedBook != null && bookCollectionView != null)
         {
-            await ListViewHelper.ScrollToWhenReadyAsync(bookListView, ViewModel.SelectedBook);
+            await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook);
         }
     }
 

@@ -77,6 +77,8 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
         SetChapterCommand = new RelayCommand<BibleChapterListViewItemModel>(x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
 
             if (SelectedChapter != null) SelectedChapter.IsSelected = false;
@@ -260,13 +262,6 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     private async Task PopulateChapters(string languageCode, string publicationCode, int bookNumber)
     {
         var chapters = await _mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
-        var chapterVMs = new ObservableCollection<BibleChapterListViewItemModel>();
-
-        // On WinUI, assign empty collection first on main thread so ListView can observe CollectionChanged
-        if (DeviceInfo.Platform == DevicePlatform.WinUI)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() => Chapters = chapterVMs);
-        }
 
         // Build the list of chapter view models
         var chapterViewModelList = new List<BibleChapterListViewItemModel>();
@@ -286,23 +281,11 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             selectedChapter.IsSelected = true;
         }
 
-        // Add items to collection on main thread
+        // Assign the complete collection on main thread to ensure CollectionView refreshes
+        // CollectionView responds better to property change notifications than collection modification
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            if (DeviceInfo.Platform == DevicePlatform.WinUI)
-            {
-                // On WinUI, add items one by one to the already-assigned collection
-                // Since Chapters = chapterVMs, adding to Chapters will raise CollectionChanged events
-                foreach (var chapterVm in chapterViewModelList)
-                {
-                    Chapters.Add(chapterVm);
-                }
-            }
-            else
-            {
-                // On other platforms, assign the populated collection
-                Chapters = new ObservableCollection<BibleChapterListViewItemModel>(chapterViewModelList);
-            }
+            Chapters = new ObservableCollection<BibleChapterListViewItemModel>(chapterViewModelList);
 
             if (selectedChapter != null)
             {

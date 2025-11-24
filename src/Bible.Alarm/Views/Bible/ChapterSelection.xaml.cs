@@ -11,6 +11,8 @@ public partial class ChapterSelection : ContentPage, IDisposable
 
     public ChapterSelectionViewModel ViewModel => BindingContext as ChapterSelectionViewModel;
 
+    private bool _isClearingSelection;
+
     public ChapterSelection(ChapterSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         _taskScheduler = taskScheduler;
@@ -24,6 +26,31 @@ public partial class ChapterSelection : ContentPage, IDisposable
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
         });
 
+        // Clear selection after SelectionChanged fires to allow command to execute first
+        chapterCollectionView.SelectionChanged += (sender, e) =>
+        {
+            // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
+            if (_isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
+            {
+                return;
+            }
+            
+            // Clear selection after a short delay to allow command to execute
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (!_isDisposed && chapterCollectionView != null)
+                    {
+                        _isClearingSelection = true;
+                        chapterCollectionView.SelectedItem = null;
+                        _isClearingSelection = false;
+                    }
+                });
+            });
+        };
+
         Appearing += OnAppearing;
     }
 
@@ -34,9 +61,9 @@ public partial class ChapterSelection : ContentPage, IDisposable
         // Wait for the page to be fully loaded before attempting to scroll
         await Task.Delay(300);
         
-        if (ViewModel?.SelectedChapter != null && chapterListView != null)
+        if (ViewModel?.SelectedChapter != null && chapterCollectionView != null)
         {
-            await ListViewHelper.ScrollToWhenReadyAsync(chapterListView, ViewModel.SelectedChapter);
+            await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter);
         }
     }
 

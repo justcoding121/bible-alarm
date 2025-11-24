@@ -43,6 +43,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
         ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
             await navigationService.NavigateToChapterSelectionAsync();
             _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule

@@ -79,6 +79,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
         SetTrackCommand = new RelayCommand<MusicTrackListViewItemModel>(x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
             if (SelectedTrack != null)
             {
@@ -295,14 +297,6 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             : await _mediaService.GetMelodyMusicTracks(
                 (await _mediaService.GetMelodyMusicReleases()).FirstOrDefault().Value?.Code ?? "iam");
 
-        var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
-
-        // On WinUI, assign empty collection first on main thread so ListView can observe CollectionChanged
-        if (DeviceInfo.Platform == DevicePlatform.WinUI)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() => Tracks = trackVMs);
-        }
-
         // Build the list of track view models
         var trackViewModelList = new List<MusicTrackListViewItemModel>();
         MusicTrackListViewItemModel selectedTrack = null;
@@ -323,23 +317,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             selectedTrack.Repeat = _current.Repeat;
         }
 
-        // Add items to collection on main thread
+        // Assign the complete collection on main thread to ensure CollectionView refreshes
+        // CollectionView responds better to property change notifications than collection modification
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            if (DeviceInfo.Platform == DevicePlatform.WinUI)
-            {
-                // On WinUI, add items one by one to the already-assigned collection
-                // Since Tracks = trackVMs, adding to Tracks will raise CollectionChanged events
-                foreach (var trackVm in trackViewModelList)
-                {
-                    Tracks.Add(trackVm);
-                }
-            }
-            else
-            {
-                // On other platforms, assign the populated collection
-                Tracks = new ObservableCollection<MusicTrackListViewItemModel>(trackViewModelList);
-            }
+            Tracks = new ObservableCollection<MusicTrackListViewItemModel>(trackViewModelList);
 
             if (selectedTrack != null)
             {

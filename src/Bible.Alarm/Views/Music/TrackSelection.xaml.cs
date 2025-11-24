@@ -11,6 +11,8 @@ public partial class TrackSelection : ContentPage, IDisposable
 
     public TrackSelectionViewModel ViewModel => BindingContext as TrackSelectionViewModel;
 
+    private bool _isClearingSelection;
+
     public TrackSelection(TrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         _taskScheduler = taskScheduler;
@@ -24,6 +26,31 @@ public partial class TrackSelection : ContentPage, IDisposable
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
         });
 
+        // Clear selection after SelectionChanged fires to allow command to execute first
+        trackCollectionView.SelectionChanged += (sender, e) =>
+        {
+            // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
+            if (_isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
+            {
+                return;
+            }
+            
+            // Clear selection after a short delay to allow command to execute
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (!_isDisposed && trackCollectionView != null)
+                    {
+                        _isClearingSelection = true;
+                        trackCollectionView.SelectedItem = null;
+                        _isClearingSelection = false;
+                    }
+                });
+            });
+        };
+
         Appearing += OnAppearing;
     }
 
@@ -34,9 +61,9 @@ public partial class TrackSelection : ContentPage, IDisposable
         // Wait for the page to be fully loaded before attempting to scroll
         await Task.Delay(300);
         
-        if (ViewModel?.SelectedTrack != null && trackListView != null)
+        if (ViewModel?.SelectedTrack != null && trackCollectionView != null)
         {
-            await ListViewHelper.ScrollToWhenReadyAsync(trackListView, ViewModel.SelectedTrack);
+            await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack);
         }
     }
 

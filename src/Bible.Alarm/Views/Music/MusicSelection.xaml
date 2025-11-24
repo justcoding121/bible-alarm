@@ -84,24 +84,22 @@
                         TextColor="Black"
                         VerticalOptions="Center" />
                 </Grid>
-                <ListView
+                <CollectionView
+                    x:Name="musicTypesCollectionView"
                     Grid.Row="1"
-                    ios:ListView.SeparatorStyle="FullWidth"
                     BackgroundColor="White"
-                    CachingStrategy="RecycleElementAndDataTemplate"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding MusicTypes}"
-                    SelectionMode="None">
-                    <ListView.Behaviors>
+                    SelectionMode="Single">
+                    <CollectionView.Behaviors>
                         <behaviours:EventToCommandBehavior
                             Command="{Binding SongBookSelectionCommand}"
                             EventArgsConverter="{StaticResource itemTappedConverter}"
-                            EventName="ItemTapped" />
-                    </ListView.Behaviors>
-                    <ListView.ItemTemplate>
+                            EventName="SelectionChanged" />
+                    </CollectionView.Behaviors>
+                    <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="music:MusicTypeListItemViewModel">
-                            <ViewCell>
                                 <Grid
                                     Padding="5,0,5,0"
                                     BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
@@ -134,10 +132,9 @@
                                             VerticalTextAlignment="Center" />
                                     </StackLayout>
                                 </Grid>
-                            </ViewCell>
                         </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
             </Grid>
         </Grid>
     </ContentPage.Content>

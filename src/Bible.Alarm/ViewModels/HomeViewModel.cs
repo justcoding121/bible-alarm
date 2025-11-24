@@ -58,6 +58,8 @@ public class HomeViewModel : ObservableObject, IDisposable
 
         ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
         {
+            if (x == null || x.Schedule == null) return;
+            
             x.Schedule.IsEnabled = x.IsEnabled;
             await navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
@@ -165,13 +167,14 @@ public class HomeViewModel : ObservableObject, IDisposable
             _scheduleViewModels.Remove(id);
         }
 
-        // Clear and rebuild the collection to ensure ListView refreshes
-        // This triggers a Reset event followed by Add events
-        Schedules.Clear();
+        // Replace the entire collection to ensure CollectionView refreshes
+        // CollectionView responds better to property change notifications than collection modification
+        var newSchedules = new ObservableHashSet<ScheduleListItem>();
         foreach (var item in itemsToKeep)
         {
-            Schedules.Add(item);
+            newSchedules.Add(item);
         }
+        Schedules = newSchedules;
     }
 
     private bool _isBusy = true;

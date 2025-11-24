@@ -84,25 +84,22 @@
                         TextColor="Black"
                         VerticalOptions="Center" />
                 </Grid>
-                <ListView
-                    x:Name="chapterListView"
+                <CollectionView
+                    x:Name="chapterCollectionView"
                     Grid.Row="1"
-                    ios:ListView.SeparatorStyle="FullWidth"
                     BackgroundColor="White"
-                    CachingStrategy="RecycleElementAndDataTemplate"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Chapters}"
                     SelectionMode="Single">
-                    <ListView.Behaviors>
+                    <CollectionView.Behaviors>
                         <behaviours:EventToCommandBehavior
                             Command="{Binding SetChapterCommand}"
                             EventArgsConverter="{StaticResource itemTappedConverter}"
-                            EventName="ItemTapped" />
-                    </ListView.Behaviors>
-                    <ListView.ItemTemplate>
+                            EventName="SelectionChanged" />
+                    </CollectionView.Behaviors>
+                    <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="bible:BibleChapterListViewItemModel">
-                            <ViewCell>
                                 <Grid
                                     Padding="5,0,5,0"
                                     BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
@@ -158,10 +155,9 @@
                                             WidthRequest="45" />
                                     </StackLayout>
                                 </Grid>
-                            </ViewCell>
                         </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
             </Grid>
         </Grid>
     </ContentPage.Content>

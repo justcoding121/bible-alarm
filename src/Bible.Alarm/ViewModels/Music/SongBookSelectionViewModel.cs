@@ -48,6 +48,8 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
         TrackSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
 
             await navigationService.NavigateToTrackSelectionAsync();
@@ -93,6 +95,8 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
         {
+            if (x == null) return;
+            
             IsBusy = true;
             if (CurrentLanguage != null) CurrentLanguage.IsSelected = false;
 

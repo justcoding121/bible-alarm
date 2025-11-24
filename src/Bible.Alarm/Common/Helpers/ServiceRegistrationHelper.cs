@@ -45,6 +45,7 @@ using Bible.Alarm.Platforms.iOS.Services.Media;
 #endif
 
 #if ANDROID
+using Android.Media;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
@@ -143,6 +144,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
+        services.AddSingleton(_ => new MediaPlayer());
         services.AddSingleton<IAudioPreviewer, AndroidAudioPreviewer>();
 #elif IOS
         services.AddSingleton<INotificationService, iOSNotificationService>();
