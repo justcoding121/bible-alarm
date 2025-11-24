@@ -6,9 +6,11 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.ApplicationModel;
 using Plugin.StoreReview;
@@ -24,6 +26,7 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     IRecipient<PlaybackNavigationChangedMessage>
 {
     private readonly IPlaybackService _playbackService;
+    private readonly IState<PlaybackState> _playbackState;
 
     private bool _isDisposed;
 
@@ -37,9 +40,10 @@ public class AlarmViewModal : ObservableObject, IDisposable,
     public ICommand ForwardCommand { get; set; }
     public ICommand BackwardCommand { get; set; }
 
-    public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory)
+    public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState)
     {
         _playbackService = playbackService;
+        _playbackState = playbackState;
         WeakReferenceMessenger.Default.Register<MediaProgressMessage>(this);
         WeakReferenceMessenger.Default.Register<PlaybackNavigationChangedMessage>(this);
         
@@ -47,6 +51,9 @@ public class AlarmViewModal : ObservableObject, IDisposable,
         audioMessenger.Register<AudioMetadataMessage>(this);
         audioMessenger.Register<AudioPositionMessage>(this);
         audioMessenger.Register<AudioStatusMessage>(this);
+        
+        // Subscribe to Fluxor state changes for reactive updates
+        _playbackState.StateChanged += OnPlaybackStateChanged;
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
@@ -147,13 +154,13 @@ public class AlarmViewModal : ObservableObject, IDisposable,
             {
                 await Task.Delay(1000);
 
-                var isRunning = _playbackService.IsPreparingOrPlaying;
+                var isRunning = _playbackState.Value.IsPreparingOrPlaying;
 
                 var count = 6;
                 while (!isRunning && count > 0)
                 {
                     await Task.Delay(500);
-                    isRunning = _playbackService.IsPreparingOrPlaying;
+                    isRunning = _playbackState.Value.IsPreparingOrPlaying;
                     count--;
                 }
 
@@ -326,10 +333,17 @@ public class AlarmViewModal : ObservableObject, IDisposable,
 
     public void Receive(PlaybackNavigationChangedMessage message)
     {
+        // Navigation changes are now handled by Fluxor state subscription
+        // This method is kept for backward compatibility
+        OnPlaybackStateChanged(this, EventArgs.Empty);
+    }
+    
+    private void OnPlaybackStateChanged(object? sender, EventArgs e)
+    {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            NextEnabled = message.CanPlayNext;
-            PreviousEnabled = message.CanPlayPrevious;
+            NextEnabled = _playbackState.Value.CanPlayNext;
+            PreviousEnabled = _playbackState.Value.CanPlayPrevious;
         });
     }
 
@@ -342,6 +356,7 @@ public class AlarmViewModal : ObservableObject, IDisposable,
             AudioPlayer.GetMessenger().Unregister<AudioMetadataMessage>(this);
             AudioPlayer.GetMessenger().Unregister<AudioPositionMessage>(this);
             AudioPlayer.GetMessenger().Unregister<AudioStatusMessage>(this);
+            _playbackState.StateChanged -= OnPlaybackStateChanged;
             _isDisposed = true;
         }
     }

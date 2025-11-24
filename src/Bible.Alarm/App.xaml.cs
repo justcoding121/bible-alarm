@@ -6,8 +6,10 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.General;
+using Bible.Alarm.Stores;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using Serilog;
 using Bible.Alarm.Common;
 
@@ -23,14 +25,16 @@ public partial class App : Application,
     private readonly ILogger _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly INavigationService _navigationService;
+    private readonly IState<PlaybackState> _playbackState;
 
     public static bool IsInForeground { get; set; }
 
-    public App(ILogger logger, IServiceProvider serviceProvider, INavigationService navigationService)
+    public App(ILogger logger, IServiceProvider serviceProvider, INavigationService navigationService, IState<PlaybackState> playbackState)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _navigationService = navigationService;
+        _playbackState = playbackState;
         InitializeComponent();
 
         // Set up global exception handlers
@@ -93,9 +97,7 @@ public partial class App : Application,
             try
             {
 
-                var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-
-                if (playbackService.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
+                if (_playbackState.Value.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
 
                 await Task.Delay(1000);
 
@@ -132,9 +134,7 @@ public partial class App : Application,
         {
             try
             {
-                var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-
-                if (playbackService.IsPreparingOrPlaying) 
+                if (_playbackState.Value.IsPreparingOrPlaying) 
                     WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
 
                 await Task.Delay(1000);
@@ -221,8 +221,7 @@ public partial class App : Application,
                     {
                         _logger.Information("Starting service initialization...");
                         
-                        var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
-                        if (playbackService.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
+                        if (_playbackState.Value.IsPreparingOrPlaying) WeakReferenceMessenger.Default.Send(new ShowAlarmModalMessage());
                         
                         await Task.Delay(100); 
                         

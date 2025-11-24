@@ -1,12 +1,18 @@
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Stores;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Handlers
 {
-    public class WindowsAlarmHandler(ILogger logger, IPlaybackService playbackService) : IDisposable
+    public class WindowsAlarmHandler(
+        ILogger logger, 
+        IPlaybackService playbackService,
+        IState<PlaybackState> playbackState) : IDisposable
     {
         private readonly ILogger _logger = logger;
+        private readonly IState<PlaybackState> _playbackState = playbackState;
 
 
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
@@ -17,7 +23,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
             {
                 await Lock.WaitAsync();
 
-                if (playbackService.IsPreparingOrPlaying)
+                if (_playbackState.Value.IsPreparingOrPlaying)
                 {
                     Dispose();
                     return;

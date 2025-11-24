@@ -1,5 +1,7 @@
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Stores;
+using Fluxor;
 using Serilog;
 using UIKit;
 
@@ -8,10 +10,12 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
     public class iOSAlarmHandler(
         ILogger logger,
         IPlaybackService playbackService,
+        IState<PlaybackState> playbackState,
         TaskScheduler taskScheduler)
         : IDisposable
     {
         private readonly ILogger _logger = logger;
+        private readonly IState<PlaybackState> _playbackState = playbackState;
 
 
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
@@ -25,7 +29,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
             {
                 await Lock.WaitAsync();
 
-                if (playbackService.IsPreparingOrPlaying)
+                if (_playbackState.Value.IsPreparingOrPlaying)
                 {
                     Dispose();
                     return;

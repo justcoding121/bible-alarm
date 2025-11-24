@@ -1,17 +1,21 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Stores;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
 public class SchedulePlaybackService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory)
+    IServiceScopeFactory scopeFactory,
+    IState<PlaybackState> playbackState)
     : ISchedulePlaybackService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IState<PlaybackState> _playbackState = playbackState;
 
     public async Task PlayScheduleAsync(int scheduleId)
     {
@@ -37,9 +41,8 @@ public class SchedulePlaybackService(
     public async Task<bool> CanMoveChapterAsync(int scheduleId)
     {
         using var scope = _scopeFactory.CreateScope();
-        var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
 
-        if (!playbackService.IsPreparingOrPlaying || playbackService.CurrentScheduleId != scheduleId) return true;
+        if (!_playbackState.Value.IsPreparingOrPlaying || _playbackState.Value.CurrentScheduleId != scheduleId) return true;
 
         var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
         await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");

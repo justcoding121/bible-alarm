@@ -4,18 +4,22 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
+using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PlaybackService : IPlaybackService
+public class PlaybackService : IPlaybackService, IRecipient<AudioStatusMessage>
 {
     private readonly ILogger _logger;
     private readonly IAudioPlayer _audioPlayer;
     private readonly IPreparePlaybackService _preparePlaybackService;
     private readonly IPlaylistService _playlistService;
     private readonly IFallbackAlarmSoundService _fallbackAlarmSoundService;
+    private readonly IDispatcher _dispatcher;
 
     private List<AudioPlayerTrack>? _playlist;
     private int _currentTrackIndex = -1;
@@ -24,19 +28,25 @@ public class PlaybackService : IPlaybackService
     private readonly System.Timers.Timer? _progressSaveTimer;
     private readonly HashSet<int> _manuallyVisitedTrackIndices = [];
 
-    public int? CurrentScheduleId => _currentScheduleId;
-    
-    public bool IsPreparingOrPlaying => 
-        _audioPlayer.Status == PlayStatus.Loading || 
-        _audioPlayer.Status == PlayStatus.Playing || 
-        _audioPlayer.Status == PlayStatus.Paused;
+    private bool IsPreparingOrPlayingInternal
+    {
+        get
+        {
+            var isActuallyPlaying = _audioPlayer.IsActuallyPlayingOrPaused;
+            var status = _audioPlayer.Status;
+            return isActuallyPlaying || 
+                   status == PlayStatus.Loading || 
+                   status == PlayStatus.Playing || 
+                   status == PlayStatus.Paused;
+        }
+    }
 
-    public bool CanPlayNext => 
+    private bool CanPlayNextInternal => 
         _playlist is not null && 
         _currentTrackIndex >= 0 && 
         _currentTrackIndex < _playlist.Count - 1;
 
-    public bool CanPlayPrevious => 
+    private bool CanPlayPreviousInternal => 
         _playlist is not null && 
         _currentTrackIndex > 0;
 
@@ -45,13 +55,15 @@ public class PlaybackService : IPlaybackService
         IAudioPlayer audioPlayer,
         IPreparePlaybackService preparePlaybackService,
         IPlaylistService playlistService,
-        IFallbackAlarmSoundService fallbackAlarmSoundService)
+        IFallbackAlarmSoundService fallbackAlarmSoundService,
+        IDispatcher dispatcher)
     {
         _logger = logger;
         _audioPlayer = audioPlayer;
         _preparePlaybackService = preparePlaybackService;
         _playlistService = playlistService;
         _fallbackAlarmSoundService = fallbackAlarmSoundService;
+        _dispatcher = dispatcher;
 
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
@@ -59,13 +71,26 @@ public class PlaybackService : IPlaybackService
         _progressSaveTimer = new(1000);
         _progressSaveTimer.Elapsed += OnProgressSaveTimerElapsed;
         _progressSaveTimer.AutoReset = true;
+        
+        // Subscribe to audio status changes to dispatch Fluxor actions
+        var audioMessenger = AudioPlayer.GetMessenger();
+        audioMessenger.Register<AudioStatusMessage>(this);
+    }
+    
+    public void Receive(AudioStatusMessage message)
+    {
+        // Dispatch status change to Fluxor state
+        _dispatcher.Dispatch(new PlaybackStatusChangedAction(message.Status));
     }
 
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
     {
-        if (IsPreparingOrPlaying)
+        if (IsPreparingOrPlayingInternal)
         {
-            _logger.Warning($"Cannot prepare and play schedule {scheduleId} - already preparing or playing schedule {_currentScheduleId}");
+            _logger.Warning("Cannot prepare and play schedule {ScheduleId} - already preparing or playing schedule {CurrentScheduleId}. Status: {Status}", 
+                scheduleId, 
+                _currentScheduleId, 
+                _audioPlayer.Status);
             return;
         }
 
@@ -93,6 +118,10 @@ public class PlaybackService : IPlaybackService
 
             _currentTrackIndex = 0;
             _manuallyVisitedTrackIndices.Clear();
+            
+            // Dispatch playback started action
+            _dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
+            
             await PlayCurrentTrackAsync();
             NotifyNavigationChanged();
         }
@@ -127,7 +156,7 @@ public class PlaybackService : IPlaybackService
 
     public async Task PauseAsync()
     {
-        if (IsPreparingOrPlaying)
+        if (IsPreparingOrPlayingInternal)
         {
             _progressSaveTimer?.Stop();
             await _audioPlayer.PauseAsync();
@@ -177,16 +206,23 @@ public class PlaybackService : IPlaybackService
 
     private void NotifyNavigationChanged()
     {
+        var canPlayNext = CanPlayNextInternal;
+        var canPlayPrevious = CanPlayPreviousInternal;
+        
+        // Dispatch Fluxor action
+        _dispatcher.Dispatch(new PlaybackNavigationChangedAction(canPlayNext, canPlayPrevious));
+        
+        // Also send message for backward compatibility (until all consumers are updated)
         WeakReferenceMessenger.Default.Send(new PlaybackNavigationChangedMessage
         {
-            CanPlayNext = CanPlayNext,
-            CanPlayPrevious = CanPlayPrevious
+            CanPlayNext = canPlayNext,
+            CanPlayPrevious = canPlayPrevious
         });
     }
 
     public async Task SeekForwardAsync()
     {
-        if (!IsPreparingOrPlaying)
+        if (!IsPreparingOrPlayingInternal)
             return;
 
         var currentPosition = _audioPlayer.CurrentPosition;
@@ -213,7 +249,7 @@ public class PlaybackService : IPlaybackService
 
     public async Task SeekBackwardAsync()
     {
-        if (!IsPreparingOrPlaying)
+        if (!IsPreparingOrPlayingInternal)
             return;
 
         var currentPosition = _audioPlayer.CurrentPosition;
@@ -251,6 +287,14 @@ public class PlaybackService : IPlaybackService
         _progressSaveTimer?.Stop();
         await _audioPlayer.ResetAsync();
         ResetState();
+        
+        // Dispatch playback stopped action
+        _dispatcher.Dispatch(new PlaybackStoppedAction());
+        
+        // Log reset completion for debugging
+        _logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}", 
+            _audioPlayer.Status, 
+            _currentScheduleId);
     }
 
     private void ResetState()

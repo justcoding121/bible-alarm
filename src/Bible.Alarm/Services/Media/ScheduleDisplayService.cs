@@ -2,6 +2,8 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Stores;
+using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -9,11 +11,13 @@ namespace Bible.Alarm.Services.Media;
 
 public class ScheduleDisplayService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory)
+    IServiceScopeFactory scopeFactory,
+    IState<PlaybackState> playbackState)
     : IScheduleDisplayService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IState<PlaybackState> _playbackState = playbackState;
 
     public async Task<string> GetChapterDisplayNameAsync(int scheduleId, bool force = false)
     {
@@ -33,8 +37,7 @@ public class ScheduleDisplayService(
                 
                 if (!force)
                 {
-                    var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
-                    if (!playbackService.IsPreparingOrPlaying) return string.Empty;
+                    if (!_playbackState.Value.IsPreparingOrPlaying) return string.Empty;
                 }
 
                 await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();

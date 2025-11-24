@@ -34,6 +34,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IScheduleDisplayService _scheduleDisplayService;
     private readonly IServiceProvider _serviceProvider;
     private readonly IState<ApplicationState> _state;
+    private readonly IState<PlaybackState> _playbackState;
     private readonly IDispatcher _dispatcher;
     private readonly IServiceScopeFactory _scopeFactory;
 
@@ -66,6 +67,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IScheduleDisplayService scheduleDisplayService,
         IServiceProvider serviceProvider,
         IState<ApplicationState> state,
+        IState<PlaybackState> playbackState,
         IDispatcher dispatcher)
     {
         _logger = logger;
@@ -73,6 +75,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _scopeFactory = scopeFactory;
 
         _state = state;
+        _playbackState = playbackState;
         _dispatcher = dispatcher;
 
         _schedulePersistenceService = schedulePersistenceService;
@@ -107,8 +110,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 IsEnabled = false;
 
             if (!IsNewSchedule)
-                if (playbackService.IsPreparingOrPlaying
-                    && _scheduleId == playbackService.CurrentScheduleId)
+                if (_playbackState.Value.IsPreparingOrPlaying
+                    && _scheduleId == _playbackState.Value.CurrentScheduleId)
                     await playbackService.StopAsync();
 
             var saved = await SaveAsync();
@@ -138,8 +141,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             }
 
             // For existing schedules, delete and then navigate back
-            if (playbackService.IsPreparingOrPlaying
-                && _scheduleId == playbackService.CurrentScheduleId)
+            if (_playbackState.Value.IsPreparingOrPlaying
+                && _scheduleId == _playbackState.Value.CurrentScheduleId)
                 await playbackService.StopAsync();
 
             await DeleteAsync();

@@ -2,11 +2,6 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IPlaybackService
 {
-    int? CurrentScheduleId { get; }
-    bool IsPreparingOrPlaying { get; }
-    bool CanPlayNext { get; }
-    bool CanPlayPrevious { get; }
-
     Task PlayAsync();
     Task PauseAsync();
     Task PlayPreviousAsync();
