@@ -205,15 +205,17 @@ public partial class App : Application,
         {
             try
             {
-                await _navigationService.NavigateToHomeAsync();
-
+                // Create Home page and initialize ViewModel before navigating
                 var homePage = _serviceProvider.GetRequiredService<Home>();
                 if (homePage.BindingContext is HomeViewModel homeViewModel)
                 {
+                    // Wait for initialization to complete before navigating
                     await homeViewModel.InitializeAsync();
                 }
 
-      
+                // Navigate to the initialized home page
+                await _navigationService.NavigateToHomeAsync();
+
                 _ = Task.Run(async () =>
                 {
                     try
