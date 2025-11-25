@@ -137,7 +137,14 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         _initComplete = true;
         Task.Run(async () =>
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize();
+            
+            // CollectionView needs a moment to render before hiding the busy indicator
+            // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
+            await Task.Delay(100); // Give CollectionView time to render
+            
+            // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
     }
@@ -246,7 +253,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             CurrentLanguage = languageVm;
         }
 
-        Languages = languageVMs;
+        // Assign collection on main thread to ensure UI updates
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Languages = languageVMs;
+        });
     }
 
     private readonly Dictionary<string, PublicationListViewItemModel> _songBookVMsMapping = [];
@@ -273,7 +284,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             SelectedSongBook = songBookListViewItemModel;
         }
 
-        SongBooks = songBookVMs;
+        // Assign collection on main thread to ensure UI updates before IsBusy is set to false
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            SongBooks = songBookVMs;
+        });
     }
 
     public void Dispose()

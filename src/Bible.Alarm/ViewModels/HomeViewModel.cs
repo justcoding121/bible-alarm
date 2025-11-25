@@ -71,7 +71,8 @@ public class HomeViewModel : ObservableObject, IDisposable
         // This ensures the ListView is populated with fresh data when a new Home page is created
         OnStateChanged(this, EventArgs.Empty);
         
-        IsBusy = false;
+        // Don't set IsBusy = false here - it will be set after initialization completes
+        // IsBusy starts as true and will be set to false in OnStateChanged after schedules are populated
     }
 
     public async Task InitializeAsync()

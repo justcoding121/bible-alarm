@@ -84,6 +84,12 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+            
+            // CollectionView needs a moment to render before hiding the busy indicator
+            // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
+            await Task.Delay(100); // Give CollectionView time to render
+            
+            // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
     }
@@ -152,7 +158,11 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             SelectedBook = bookVm;
         }
 
-        Books = bookVMs;
+        // Assign collection on main thread to ensure UI updates before IsBusy is set to false
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Books = bookVMs;
+        });
     }
 }
 

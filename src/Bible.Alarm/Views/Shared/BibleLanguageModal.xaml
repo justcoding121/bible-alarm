@@ -14,6 +14,7 @@
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
@@ -28,6 +29,25 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
+            <ActivityIndicator
+                Grid.Row="0"
+                Grid.RowSpan="5"
+                HorizontalOptions="Center"
+                IsEnabled="True"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                VerticalOptions="Center"
+                Color="SlateBlue">
+                <ActivityIndicator.Scale>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <OnPlatform.Platforms>
+                            <On Platform="iOS" Value="4.0" />
+                            <On Platform="Android" Value="1.0" />
+                            <On Platform="Win" Value="1.0" />
+                        </OnPlatform.Platforms>
+                    </OnPlatform>
+                </ActivityIndicator.Scale>
+            </ActivityIndicator>
             <Label
                 Grid.Row="0"
                 Margin="10,2,2,2"
@@ -69,6 +89,7 @@
                 BackgroundColor="White"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
+                IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 ItemsSource="{Binding Languages}"
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"

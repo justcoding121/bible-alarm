@@ -321,6 +321,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                IsBusy = true; // Show busy indicator during initialization
                 var isNew = currentSchedule.Id <= 0;
                 IsNewSchedule = isNew;
                 SetModel(currentSchedule);
@@ -331,6 +332,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         else if (!_modelInitialized && !_isInitializingNewSchedule && stateValue.CurrentSchedule == null)
         {
             _isInitializingNewSchedule = true;
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = true); // Show busy indicator during initialization
             Task.Run(async () =>
             {
                 using var scope = _scopeFactory.CreateScope();
@@ -347,6 +349,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                     }
 
                     _isInitializingNewSchedule = false;
+                    IsBusy = false; // Hide busy indicator after initialization
                 });
             });
         }

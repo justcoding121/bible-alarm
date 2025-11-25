@@ -91,13 +91,7 @@ public class AudioPlayer : IAudioPlayer
         if (string.IsNullOrEmpty(track.Uri))
             throw new ArgumentException("Track URI cannot be null or empty", nameof(track));
 
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            if (_mediaElement.CurrentState != MediaElementState.Stopped)
-            {
-                _mediaElement.Stop();
-            }
-        });
+        await SafeStopMediaElementAsync(clearSource: false);
 
         _currentTrack = track;
         Status = PlayStatus.Loading;
@@ -298,26 +292,20 @@ public class AudioPlayer : IAudioPlayer
         
         try
         {
-            // Force stop multiple times to ensure MediaElement actually stops
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                _mediaElement.Stop();
-                _mediaElement.Source = null;
-            });
+            // Stop and clear source
+            await SafeStopMediaElementAsync(clearSource: true);
             
             // Wait a bit for the stop to take effect
             await Task.Delay(100);
             
-            // Force stop again if still not stopped
+            // Force stop again if still in a valid state to stop
             var actualState = await MainThread.InvokeOnMainThreadAsync(() => _mediaElement.CurrentState);
-            if (actualState != MediaElementState.Stopped && actualState != MediaElementState.None)
+            if (actualState == MediaElementState.Playing || 
+                actualState == MediaElementState.Paused || 
+                actualState == MediaElementState.Buffering)
             {
                 _logger.Debug("MediaElement still in {State} state after first stop, forcing stop again", actualState);
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    _mediaElement.Stop();
-                    _mediaElement.Source = null;
-                });
+                await SafeStopMediaElementAsync(clearSource: true);
                 await Task.Delay(100);
             }
             
@@ -342,6 +330,33 @@ public class AudioPlayer : IAudioPlayer
     public Task SeekToAsync(TimeSpan position)
     {
         return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.SeekTo(position));
+    }
+
+    /// <summary>
+    /// Safely stops the MediaElement by checking its state first.
+    /// On Android, calling Stop() when in IDLE or ERROR states causes errors.
+    /// </summary>
+    /// <param name="clearSource">If true, clears the Source property after stopping. If false, only clears Source for invalid states.</param>
+    private Task SafeStopMediaElementAsync(bool clearSource = true)
+    {
+        return MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            // Only call Stop() if MediaElement is in a valid state (Playing, Paused, or Buffering)
+            // On Android, calling Stop() when in IDLE or ERROR states causes errors
+            var currentState = _mediaElement.CurrentState;
+            if (currentState == MediaElementState.Playing || 
+                currentState == MediaElementState.Paused || 
+                currentState == MediaElementState.Buffering)
+            {
+                _mediaElement.Stop();
+            }
+            
+            // Clear source if requested, or if in an invalid state (like Failed)
+            if (clearSource || (currentState != MediaElementState.Stopped && currentState != MediaElementState.None))
+            {
+                _mediaElement.Source = null;
+            }
+        });
     }
 
     public void Dispose()

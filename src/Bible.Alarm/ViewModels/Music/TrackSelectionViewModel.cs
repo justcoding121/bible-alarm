@@ -16,6 +16,7 @@ using Bible.Alarm.Stores.Actions.Music;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Maui.Essentials;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -122,7 +123,14 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _initComplete = true;
         Task.Run(async () =>
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+            
+            // CollectionView needs a moment to render before hiding the busy indicator
+            // Add a small delay to prevent blank page flash (following book selection pattern)
+            await Task.Delay(100); // Give CollectionView time to render
+            
+            // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
     }
@@ -319,6 +327,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
         // Assign the complete collection on main thread to ensure CollectionView refreshes
         // CollectionView responds better to property change notifications than collection modification
+        // Follow the same pattern as language modal: assign collection but don't set IsBusy here
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             Tracks = new ObservableCollection<MusicTrackListViewItemModel>(trackViewModelList);

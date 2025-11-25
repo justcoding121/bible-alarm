@@ -109,7 +109,14 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         _initComplete = true;
         Task.Run(async () =>
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize(_tentative.LanguageCode);
+            
+            // CollectionView needs a moment to render before hiding the busy indicator
+            // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
+            await Task.Delay(100); // Give CollectionView time to render
+            
+            // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
     }
@@ -227,7 +234,11 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             CurrentLanguage = languageVm;
         }
 
-        Languages = languageVMs;
+        // Assign collection on main thread to ensure UI updates
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Languages = languageVMs;
+        });
     }
 
     private readonly Dictionary<string, PublicationListViewItemModel> _translationVMsMapping = [];
@@ -252,7 +263,11 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             SelectedTranslation = translationVm;
         }
 
-        Translations = translationVMs;
+        // Assign collection on main thread to ensure UI updates before IsBusy is set to false
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Translations = translationVMs;
+        });
     }
 
     public void Dispose()
