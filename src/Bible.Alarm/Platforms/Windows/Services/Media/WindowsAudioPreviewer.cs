@@ -1,17 +1,22 @@
+#nullable enable
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Bible.Alarm.Common.Interfaces.Media;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Media
 {
     public class WindowsAudioPreviewer : IAudioPreviewer
     {
         private readonly MediaPlayer _mediaPlayer;
-        private TaskCompletionSource<bool> _tcs;
+        private readonly ILogger _logger;
+        private TaskCompletionSource<bool>? _tcs;
+        private bool _disposed;
 
-        public WindowsAudioPreviewer(MediaPlayer player)
+        public WindowsAudioPreviewer(MediaPlayer player, ILogger logger)
         {
             _mediaPlayer = player;
+            _logger = logger;
             
             // Configure audio category for proper playback
             _mediaPlayer.AudioCategory = MediaPlayerAudioCategory.Media;
@@ -20,45 +25,81 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media
             _mediaPlayer.CurrentStateChanged += BufferingStartedHandler;
         }
 
-        private void MediaEndHandler(MediaPlayer sender, object args)
+        private void MediaEndHandler(MediaPlayer sender, object? args)
         {
             OnStopped?.Invoke();
         }
 
-        private void BufferingStartedHandler(MediaPlayer sender, object args)
+        private void BufferingStartedHandler(MediaPlayer sender, object? args)
         {
-            if (sender.PlaybackSession.PlaybackState is MediaPlaybackState.Buffering or MediaPlaybackState.Opening or MediaPlaybackState.Playing)
+            try
             {
-                if (_tcs.Task.Status is TaskStatus.Running or TaskStatus.WaitingForActivation or TaskStatus.Created)
+                if (sender.PlaybackSession.PlaybackState is MediaPlaybackState.Buffering or MediaPlaybackState.Opening or MediaPlaybackState.Playing)
                 {
-                    _tcs.SetResult(true);
+                    if (_tcs != null && _tcs.Task.Status is TaskStatus.Running or TaskStatus.WaitingForActivation or TaskStatus.Created)
+                    {
+                        _tcs.SetResult(true);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error in BufferingStartedHandler");
             }
         }
 
-        public event Action OnStopped;
+        public event Action? OnStopped;
 
         public async Task Play(string url)
         {
-            _tcs = new TaskCompletionSource<bool>();
+            try
+            {
+                _tcs = new TaskCompletionSource<bool>();
 
-            var manifestUri = new Uri(url);
-            _mediaPlayer.Source = MediaSource.CreateFromUri(manifestUri);
-            _mediaPlayer.Play();
+                var manifestUri = new Uri(url);
+                _mediaPlayer.Source = MediaSource.CreateFromUri(manifestUri);
+                _mediaPlayer.Play();
 
-            await _tcs.Task;
+                await _tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error playing preview audio from URL: {Url}", url);
+                _tcs?.TrySetException(ex);
+                throw;
+            }
         }
 
         public void Stop()
         {
-            _mediaPlayer.Pause();
+            try
+            {
+                _mediaPlayer.Pause();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error stopping MediaPlayer, player may already be disposed");
+            }
         }
 
         public void Dispose()
         {
-            _mediaPlayer.MediaEnded -= MediaEndHandler;
-            _mediaPlayer.BufferingStarted -= BufferingStartedHandler;
-            _mediaPlayer.Dispose();
+            if (_disposed) return;
+
+            try
+            {
+                _mediaPlayer.MediaEnded -= MediaEndHandler;
+                _mediaPlayer.CurrentStateChanged -= BufferingStartedHandler;
+                _mediaPlayer.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error disposing WindowsAudioPreviewer");
+            }
+            finally
+            {
+                _disposed = true;
+            }
         }
     }
 }

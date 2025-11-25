@@ -100,7 +100,8 @@ public class AudioPlayer : IAudioPlayer
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             // Clear previous artwork to prevent iOS from trying to load null data
-            _mediaElement.MetadataArtworkUrl = null;
+            // Using null-forgiving operator: MediaElement.MetadataArtworkUrl accepts null to clear artwork
+            _mediaElement.MetadataArtworkUrl = null!;
             _mediaElement.Source = track.Uri;
         });
 

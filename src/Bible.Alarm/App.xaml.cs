@@ -50,7 +50,7 @@ public partial class App : Application,
         _playbackState.StateChanged += OnPlaybackStateChanged;
     }
 
-    private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         _logger.Error(e.Exception, "Unobserved task exception.");
     }
@@ -60,7 +60,7 @@ public partial class App : Application,
         _logger.Error("Unhandled exception.", e.SerializeObject());
     }
 
-    protected override Window CreateWindow(IActivationState activationState)
+    protected override Window CreateWindow(IActivationState? activationState)
     {
         var bootstrapPage = _serviceProvider.GetRequiredService<BootstrapPage>();
         var navigationPage = new NavigationPage(bootstrapPage)

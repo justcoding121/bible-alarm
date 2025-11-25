@@ -326,6 +326,7 @@ public class PlaybackService : IPlaybackService
         // Seek to saved position for Bible tracks if resume is enabled
         // But always start from beginning if startFromBeginning is true (e.g., when going to previous track)
         if (!startFromBeginning 
+            && track.PlayItem?.Metadata != null
             && track.PlayItem.Metadata.PlayType == PlayType.Bible 
             && track.PlayItem.Metadata.FinishedDuration != TimeSpan.Zero)
         {

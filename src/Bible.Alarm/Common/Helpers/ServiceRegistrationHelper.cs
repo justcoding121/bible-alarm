@@ -37,6 +37,7 @@ using Serilog;
 using System;
 using System.Threading.Tasks;
 #if IOS
+using AVFoundation;
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
@@ -145,19 +146,27 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
         services.AddSingleton(_ => new MediaPlayer());
-        services.AddSingleton<IAudioPreviewer, AndroidAudioPreviewer>();
+        services.AddSingleton<IAudioPreviewer>(sp => new AndroidAudioPreviewer(
+            sp.GetRequiredService<MediaPlayer>(), 
+            sp.GetRequiredService<ILogger>()));
 #elif IOS
         services.AddSingleton<INotificationService, iOSNotificationService>();
         services.AddSingleton<IToastService, iOSToastService>();
         services.AddSingleton<IStorageService, iOSStorageService>();
-        services.AddSingleton<IAudioPreviewer, iOSAudioPreviewer>();
+        // Note: AVAudioPlayer cannot be injected as it must be created from data (AVAudioPlayer.FromData)
+        // Each track creates a new player instance, unlike Android/Windows MediaPlayer which can be reused
+        services.AddSingleton<IAudioPreviewer>(sp => new iOSAudioPreviewer(
+            sp.GetRequiredService<IDownloadService>(),
+            sp.GetRequiredService<ILogger>()));
         services.AddSingleton<iOSAlarmHandler>();
 #elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton(_ => new MediaPlayer());
-        services.AddSingleton<IAudioPreviewer, WindowsAudioPreviewer>();
+        services.AddSingleton<IAudioPreviewer>(sp => new WindowsAudioPreviewer(
+            sp.GetRequiredService<MediaPlayer>(),
+            sp.GetRequiredService<ILogger>()));
         services.AddSingleton<WindowsAlarmHandler>();
 #endif
 
@@ -184,11 +193,7 @@ public static class ServiceRegistrationHelper
         // Using a factory that is evaluated lazily when first requested
         services.AddSingleton<INavigation>(sp =>
         {
-            var app = Application.Current;
-            if (app is null)
-            {
-                throw new InvalidOperationException("Application.Current is null. Cannot register INavigation. This should not happen during service registration.");
-            }
+            var app = Application.Current ?? throw new InvalidOperationException("Application.Current is null. Cannot register INavigation. This should not happen during service registration.");
 
             // Use Windows[0].Page instead of obsolete MainPage
             if (app.Windows.Count > 0)

@@ -1,3 +1,4 @@
+#nullable enable
 using Bible.Alarm.Services.Media.Models;
 using Fluxor;
 

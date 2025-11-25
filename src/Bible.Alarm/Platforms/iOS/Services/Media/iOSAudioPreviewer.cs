@@ -1,83 +1,155 @@
+#nullable enable
+using System.IO;
 using AVFoundation;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Foundation;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Media
 {
-    public class iOSAudioPreviewer(IDownloadService downloadService)
+    public class iOSAudioPreviewer(IDownloadService downloadService, ILogger logger)
         : IAudioPreviewer, IDisposable
     {
-        private AVAudioPlayer _player;
+        private AVAudioPlayer? _player;
+        private readonly IDownloadService _downloadService = downloadService;
+        private readonly ILogger _logger = logger;
+        private bool _disposed;
 
-        public event Action OnStopped;
+        public event Action? OnStopped;
 
         ///<Summary>
-        /// Load wave or mp3 audio file from the Android assets folder
+        /// Load wave or mp3 audio file from the iOS assets folder
         ///</Summary>
         private async Task<bool> Load(string url)
         {
-            DeletePlayer();
+            try
+            {
+                DeletePlayer();
 
-            var bytes = await downloadService.DownloadAsync(url);
-            using var stream = new MemoryStream(bytes);
-            var data = NSData.FromStream(stream);
-            _player = AVAudioPlayer.FromData(data);
+                // Download and create new player instance with the audio data
+                // Note: AVAudioPlayer must be created from data, unlike Android MediaPlayer which can be reused
+                var bytes = await _downloadService.DownloadAsync(url);
+                using var stream = new MemoryStream(bytes);
+                var data = NSData.FromStream(stream);
+                if (data == null)
+                {
+                    _logger.Error("Failed to create NSData from stream for URL: {Url}", url);
+                    return false;
+                }
+                _player = AVAudioPlayer.FromData(data);
 
-            return PreparePlayer();
+                return PreparePlayer();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error loading preview audio from URL: {Url}", url);
+                return false;
+            }
         }
 
         private bool PreparePlayer()
         {
-            if (_player != null)
+            try
             {
-                _player.FinishedPlaying += OnPlaybackEnded;
-                _player.PrepareToPlay();
+                if (_player != null)
+                {
+                    _player.FinishedPlaying += OnPlaybackEnded;
+                    _player.PrepareToPlay();
+                    return true;
+                }
+                return false;
             }
-
-            return _player == null ? false : true;
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error preparing AVAudioPlayer");
+                return false;
+            }
         }
-
 
         public async Task Play(string url)
         {
-            if (await Load(url))
+            try
             {
-                if (_player == null)
-                    return;
+                if (await Load(url))
+                {
+                    if (_player == null)
+                    {
+                        _logger.Warning("AVAudioPlayer is null after loading, cannot play");
+                        return;
+                    }
 
-                if (_player.Playing)
-                    _player.CurrentTime = 0;
-                else
-                    _player?.Play();
+                    if (_player.Playing)
+                    {
+                        _player.CurrentTime = 0;
+                    }
+                    else
+                    {
+                        _player.Play();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error playing preview audio from URL: {Url}", url);
+                throw;
             }
         }
 
         public void Stop()
         {
-            _player?.Stop();
+            try
+            {
+                _player?.Stop();
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error stopping AVAudioPlayer, player may already be disposed");
+            }
         }
 
         private void DeletePlayer()
         {
-            Stop();
-
-            if (_player != null)
+            try
             {
-                _player.FinishedPlaying -= OnPlaybackEnded;
-                _player.Dispose();
-                _player = null;
+                Stop();
+
+                if (_player != null)
+                {
+                    _player.FinishedPlaying -= OnPlaybackEnded;
+                    _player.Dispose();
+                    _player = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error deleting AVAudioPlayer, player may already be disposed");
             }
         }
 
-        private void OnPlaybackEnded(object sender, AVStatusEventArgs e)
+        private void OnPlaybackEnded(object? sender, AVStatusEventArgs e)
         {
             OnStopped?.Invoke();
         }
 
         public void Dispose()
         {
-            DeletePlayer();
+            if (_disposed) return;
+
+            try
+            {
+                DeletePlayer();
+                // Note: AVAudioPlayer is created from data for each track (unlike Android/Windows MediaPlayer)
+                // The player is disposed in DeletePlayer() when switching tracks or on disposal
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error disposing iOSAudioPreviewer");
+            }
+            finally
+            {
+                _disposed = true;
+            }
         }
     }
 }

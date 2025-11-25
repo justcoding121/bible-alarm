@@ -1,3 +1,4 @@
+#nullable enable
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -36,6 +37,13 @@ public class AlarmViewModal : ObservableObject, IDisposable
     {
         _playbackService = playbackService;
         _playbackState = playbackState;
+        
+        // Initialize string fields to avoid nullable warnings
+        _title = "";
+        _subTitle = "";
+        _description = "";
+        _currentTime = "00:00";
+        _endTime = "00:00";
         
         // Subscribe to Fluxor state changes for reactive updates
         _playbackState.StateChanged += OnPlaybackStateChanged;
