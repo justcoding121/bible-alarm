@@ -23,25 +23,6 @@
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
     <Grid AutomationId="HomePage" BackgroundColor="White">
-        <ActivityIndicator
-            Grid.Row="0"
-            HorizontalOptions="Center"
-            IsEnabled="True"
-            IsRunning="{Binding IsBusy}"
-            IsVisible="{Binding IsBusy}"
-            Scale="0.5"
-            VerticalOptions="Center"
-            Color="SlateBlue">
-            <ActivityIndicator.Scale>
-                <OnPlatform x:TypeArguments="system:Double">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS" Value="4.0" />
-                        <On Platform="Android" Value="1.0" />
-                        <On Platform="WinUI" Value="1.0" />
-                    </OnPlatform.Platforms>
-                </OnPlatform>
-            </ActivityIndicator.Scale>
-        </ActivityIndicator>
         <Grid
             Grid.Row="0"
             Margin="{OnPlatform iOS='0,10,0,0'}"
@@ -123,49 +104,27 @@
                                                      Tablet={OnPlatform Default='30,3,0,0'}}"
                                              Padding="0"
                                              Orientation="Vertical">
-                                    <Grid>
-                                        <Button
-                                            Margin="0"
-                                            Padding="0"
-                                            BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                                         WinUI='LightGray'}"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
-                                            Command="{Binding PlayCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            HeightRequest="{OnPlatform WinUI='50',
-                                                                       iOS='50'}"
-                                            HorizontalOptions="Center"
-                                            IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
-                                            MinimumHeightRequest="{OnPlatform WinUI='50',
-                                                                              iOS='50'}"
-                                            MinimumWidthRequest="{OnPlatform iOS='75',
-                                                                             WinUI='75'}"
-                                            Text="{x:Static fn:GlyphNames.Play}"
-                                            TextColor="SlateBlue"
-                                            VerticalOptions="Center"
-                                            WidthRequest="{OnPlatform iOS='75',
-                                                                       WinUI='75'}" />
-                                        <ActivityIndicator
-                                            IsRunning="{Binding IsBusy}"
-                                            IsVisible="{Binding IsBusy}"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center"
-                                            WidthRequest="{OnPlatform iOS='75',
-                                                                      WinUI='75'}"
-                                            HeightRequest="{OnPlatform WinUI='50',
-                                                                       iOS='50'}">
-                                            <ActivityIndicator.Color>
-                                                <OnPlatform x:TypeArguments="Color">
-                                                    <OnPlatform.Platforms>
-                                                        <On Platform="iOS" Value="SlateBlue" />
-                                                        <On Platform="Android" Value="SlateBlue" />
-                                                        <On Platform="Win" Value="#483D8B" />
-                                                    </OnPlatform.Platforms>
-                                                </OnPlatform>
-                                            </ActivityIndicator.Color>
-                                        </ActivityIndicator>
-                                    </Grid>
+                                    <Button
+                                        Margin="0"
+                                        Padding="0"
+                                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                                     WinUI='LightGray'}"
+                                        BorderWidth="0"
+                                        BorderColor="Transparent"
+                                        Command="{Binding PlayCommand}"
+                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                        HeightRequest="{OnPlatform WinUI='50',
+                                                                   iOS='50'}"
+                                        HorizontalOptions="Center"
+                                        MinimumHeightRequest="{OnPlatform WinUI='50',
+                                                                          iOS='50'}"
+                                        MinimumWidthRequest="{OnPlatform iOS='75',
+                                                                         WinUI='75'}"
+                                        Text="{x:Static fn:GlyphNames.Play}"
+                                        TextColor="SlateBlue"
+                                        VerticalOptions="Center"
+                                        WidthRequest="{OnPlatform iOS='75',
+                                                                   WinUI='75'}" />
                                     <StackLayout
                                         Margin="0"
                                         Padding="0"
@@ -306,6 +265,32 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+        </Grid>
+        <!-- Overlay with busy indicator -->
+        <Grid
+            Grid.Row="0"
+            BackgroundColor="White"
+            IsVisible="{Binding IsBusy}"
+            HorizontalOptions="Fill"
+            VerticalOptions="Fill">
+            <ActivityIndicator
+                HorizontalOptions="Center"
+                IsEnabled="True"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Scale="0.5"
+                VerticalOptions="Center"
+                Color="SlateBlue">
+                <ActivityIndicator.Scale>
+                    <OnPlatform x:TypeArguments="system:Double">
+                        <OnPlatform.Platforms>
+                            <On Platform="iOS" Value="4.0" />
+                            <On Platform="Android" Value="1.0" />
+                            <On Platform="WinUI" Value="1.0" />
+                        </OnPlatform.Platforms>
+                    </OnPlatform>
+                </ActivityIndicator.Scale>
+            </ActivityIndicator>
         </Grid>
     </Grid>
 </ContentPage>

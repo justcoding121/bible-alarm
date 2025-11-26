@@ -11,7 +11,7 @@ public class ScheduleItemStateService(ILogger logger)
     private readonly ILogger _logger = logger;
 
     /// <summary>
-    /// Sets IsBusy to false for the schedule item with the given ID.
+    /// Sets IsBusy to false for the schedule item with the given ID and hides the Home page overlay.
     /// This is called after the alarm modal is shown to hide the busy indicator.
     /// </summary>
     public void SetScheduleItemBusyToFalse(int? scheduleId)
@@ -36,6 +36,9 @@ public class ScheduleItemStateService(ILogger logger)
                         {
                             scheduleItem.IsBusy = false;
                         }
+                        
+                        // Also hide the Home page overlay
+                        homeViewModel.IsBusy = false;
                     }
                 }
             }

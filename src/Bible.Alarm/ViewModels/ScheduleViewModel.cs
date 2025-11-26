@@ -93,6 +93,47 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         // Set IsBusy to true by default so the page shows loading indicator immediately
         IsBusy = true;
+        
+        // Check if schedule is already in state (e.g., if state changed before this ViewModel was created)
+        // This ensures we load the schedule immediately if it's already available
+        // Check synchronously first, then also set up a delayed check as fallback
+        var currentState = _state.Value;
+        
+        if (currentState.CurrentSchedule != null)
+        {
+            // Schedule is already in state, trigger the handler immediately on main thread
+            MainThread.BeginInvokeOnMainThread(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
+        }
+        else
+        {
+            // Schedule not in state yet, set up a delayed check as fallback
+            // This handles the case where the action is dispatched but state hasn't updated yet
+            _ = Task.Run(async () =>
+            {
+                // Wait a bit for the state to update after action dispatch
+                await Task.Delay(100);
+                var delayedState = _state.Value;
+                if (delayedState.CurrentSchedule != null && !_modelInitialized)
+                {
+                    // Schedule is now in state, trigger the handler
+                    await MainThread.InvokeOnMainThreadAsync(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
+                }
+            });
+        }
+        
+        // Safety fallback: ensure IsBusy is set to false after a maximum delay
+        // This prevents the overlay from staying visible indefinitely if something goes wrong
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2000); // 2 second timeout
+            if (IsBusy && !_modelInitialized)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = false;
+                });
+            }
+        });
 
         CancelCommand = new AsyncRelayCommand(async () =>
         {
@@ -102,12 +143,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         SaveCommand = new AsyncRelayCommand(async () =>
         {
-            // Set IsSaving and force property change notification
-            IsSaving = true;
-            OnPropertyChanged(nameof(IsSaving));
-            
-            // Give UI time to render the progress indicator before starting operations
-            await Task.Delay(100);
+            // Show overlay immediately
+            IsBusy = true;
+            // Wait 50ms to ensure overlay is visible before starting operations
+            await Task.Delay(50);
 
             if (IsEnabled &&
                 (DeviceInfo.Platform == DevicePlatform.iOS
@@ -122,17 +161,15 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             var saved = await SaveAsync();
 
-
             if (saved)
             {
-                await Task.Delay(50);
                 await _navigationService.NavigateToHomeAsync();
-                // Set IsSaving to false after navigation completes
-                IsSaving = false;
+                // Set IsBusy to false after navigation completes
+                IsBusy = false;
             }
             else
             {
-                IsSaving = false;
+                IsBusy = false;
             }
 
             if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
@@ -140,18 +177,16 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         DeleteCommand = new AsyncRelayCommand(async () =>
         {
-            // Set IsRemoving and force property change notification
-            IsRemoving = true;
-            OnPropertyChanged(nameof(IsRemoving));
-            
-            // Give UI time to render the progress indicator before starting operations
-            await Task.Delay(100);
+            // Show overlay immediately
+            IsBusy = true;
+            // Wait 50ms to ensure overlay is visible before starting operations
+            await Task.Delay(50);
 
             // If it's a new schedule, just navigate back without deleting
             if (IsNewSchedule)
             {
                 await _navigationService.NavigateToHomeAsync();
-                IsRemoving = false;
+                IsBusy = false;
                 return;
             }
 
@@ -163,8 +198,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             await DeleteAsync();
 
             await _navigationService.NavigateToHomeAsync();
-            // Set IsRemoving to false after navigation completes
-            IsRemoving = false;
+            // Set IsBusy to false after navigation completes
+            IsBusy = false;
         });
 
         ToggleDayCommand = new RelayCommand<DaysOfWeek>(Toggle);
@@ -319,14 +354,28 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             var currentSchedule = stateValue.CurrentSchedule;
             _lastScheduleId = currentScheduleId;
 
-            MainThread.BeginInvokeOnMainThread(() =>
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                IsBusy = true; // Show busy indicator during initialization
-                var isNew = currentSchedule.Id <= 0;
-                IsNewSchedule = isNew;
-                SetModel(currentSchedule);
-                _modelInitialized = true;
-                IsBusy = false;
+                try
+                {
+                    // IsBusy is already true from constructor, no need to set it again
+                    var isNew = currentSchedule.Id <= 0;
+                    IsNewSchedule = isNew;
+                    SetModel(currentSchedule);
+                    _modelInitialized = true;
+                    // Small delay to ensure UI has rendered the content before hiding overlay
+                    await Task.Delay(100);
+                    IsBusy = false;
+                    // Explicitly notify property change to ensure UI updates
+                    OnPropertyChanged(nameof(IsBusy));
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error in OnCurrentScheduleChanged handler");
+                    // Ensure IsBusy is set to false even if there's an error
+                    IsBusy = false;
+                    OnPropertyChanged(nameof(IsBusy));
+                }
             });
         }
         else if (!_modelInitialized && !_isInitializingNewSchedule && stateValue.CurrentSchedule == null)
@@ -513,21 +562,6 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _isBusy, value);
     }
 
-    private bool _isSaving;
-
-    public bool IsSaving
-    {
-        get => _isSaving;
-        set => SetProperty(ref _isSaving, value);
-    }
-
-    private bool _isRemoving;
-
-    public bool IsRemoving
-    {
-        get => _isRemoving;
-        set => SetProperty(ref _isRemoving, value);
-    }
 
     private string _name;
 

@@ -52,6 +52,10 @@ public class HomeViewModel : ObservableObject, IDisposable
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
+            // Show overlay immediately
+            IsBusy = true;
+            // Wait 50ms to ensure overlay is visible before navigating
+            await Task.Delay(50);
             await navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(null));
         });
@@ -60,6 +64,11 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             if (x == null || x.Schedule == null) return;
             
+            // Show overlay immediately
+            IsBusy = true;
+            // Wait 50ms to ensure overlay is visible before navigating
+            await Task.Delay(50);
+            
             x.Schedule.IsEnabled = x.IsEnabled;
             // Start navigation immediately (don't await yet)
             var navigationTask = navigationService.NavigateToScheduleAsync();
@@ -67,6 +76,8 @@ public class HomeViewModel : ObservableObject, IDisposable
             _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
             // Wait for navigation to complete
             await navigationTask;
+            // Reset IsBusy after navigation completes
+            IsBusy = false;
         });
 
         _state.StateChanged += OnStateChanged;
@@ -156,11 +167,35 @@ public class HomeViewModel : ObservableObject, IDisposable
                 // Existing view model - just update it in place
                 // Initialize() will trigger property change notifications for this specific item
                 existingViewModel.Initialize(schedule);
+                // Ensure callbacks are set (in case it was created before we added this logic)
+                if (existingViewModel.OnPlayStarted == null)
+                {
+                    existingViewModel.OnPlayStarted = () =>
+                    {
+                        IsBusy = true;
+                    };
+                }
+                if (existingViewModel.OnPlaybackStarted == null)
+                {
+                    existingViewModel.OnPlaybackStarted = () =>
+                    {
+                        IsBusy = false;
+                    };
+                }
             }
             else
             {
                 // New schedule - create new view model
                 var viewModel = _scheduleListItemFactory(schedule);
+                // Set callbacks to show/hide overlay when play is pressed/started
+                viewModel.OnPlayStarted = () =>
+                {
+                    IsBusy = true;
+                };
+                viewModel.OnPlaybackStarted = () =>
+                {
+                    IsBusy = false;
+                };
                 _scheduleViewModels[schedule.Id] = viewModel;
                 schedulesToAdd.Add(viewModel);
             }

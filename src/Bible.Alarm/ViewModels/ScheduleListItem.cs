@@ -25,8 +25,28 @@ public class ScheduleListItem(
     private bool _isInitializing;
     private AlarmSchedule? _lastKnownSchedule;
     private bool _isBusy;
+    private Action? _onPlayStarted;
+    private Action? _onPlaybackStarted;
 
     public AlarmSchedule? Schedule { get; private set; }
+
+    /// <summary>
+    /// Action to call when play button is pressed. Used to show overlay on Home page.
+    /// </summary>
+    public Action? OnPlayStarted
+    {
+        get => _onPlayStarted;
+        set => _onPlayStarted = value;
+    }
+
+    /// <summary>
+    /// Action to call when playback actually starts (modal is shown). Used to hide overlay on Home page.
+    /// </summary>
+    public Action? OnPlaybackStarted
+    {
+        get => _onPlaybackStarted;
+        set => _onPlaybackStarted = value;
+    }
 
     public void Initialize(AlarmSchedule schedule)
     {
@@ -60,13 +80,10 @@ public class ScheduleListItem(
         {
             if (Schedule?.Id > 0)
             {
-                // Set IsBusy immediately to show progress indicator right away
-                // AsyncRelayCommand executes on main thread, so direct assignment is safe
-                IsBusy = true;
-                // Force property change notification to ensure UI updates immediately
-                OnPropertyChanged(nameof(IsBusy));
-                // Give UI time to render the progress indicator before starting playback
-                await Task.Delay(100);
+                // Notify HomeViewModel to show overlay immediately
+                _onPlayStarted?.Invoke();
+                // Wait 50ms to ensure overlay is visible before starting playback
+                await Task.Delay(50);
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });
@@ -264,14 +281,9 @@ public class ScheduleListItem(
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
-        // Set IsBusy to false when playback starts (modal is shown)
-        // This happens when IsPreparingOrPlaying becomes true for this schedule
-        if (Schedule?.Id > 0 && 
-            playbackState.Value.IsPreparingOrPlaying && 
-            playbackState.Value.CurrentScheduleId == Schedule.Id)
-        {
-            IsBusy = false;
-        }
+        // Note: IsBusy is set to false by ScheduleItemStateService after the modal is actually shown.
+        // This handler is kept for potential future use but doesn't hide the overlay anymore.
+        // The overlay is hidden by AlarmModalService -> ScheduleItemStateService after modal is shown.
     }
 
     public void Dispose()
