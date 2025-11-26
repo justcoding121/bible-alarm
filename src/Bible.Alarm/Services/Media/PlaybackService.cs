@@ -589,6 +589,11 @@ public class PlaybackService : IPlaybackService
             timer.Stop();
             timer.Dispose();
         }
+        
+        // Unsubscribe from AudioPlayer events
+        _audioPlayer.MediaEnded -= OnMediaEnded;
+        _audioPlayer.MediaFailed -= OnMediaFailed;
+        
         _audioPlayer.Dispose();
     }
 }

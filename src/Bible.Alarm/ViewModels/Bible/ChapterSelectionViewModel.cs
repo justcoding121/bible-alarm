@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
@@ -38,6 +39,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
     private bool _initComplete;
 
     private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
+    private NotifyCollectionChangedEventHandler? _collectionChangedHandler;
 
     public ChapterSelectionViewModel(
         ILogger logger,
@@ -162,7 +164,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Subscribe to collection changes to handle new items
-        Chapters.CollectionChanged += (_, e) =>
+        _collectionChangedHandler = (_, e) =>
         {
             if (e.NewItems is not null)
             {
@@ -180,6 +182,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
                 }
             }
         };
+        Chapters.CollectionChanged += _collectionChangedHandler;
 
         // Subscribe to play service stopped event
         _playService.OnStopped += OnPlayServiceStopped;
@@ -318,8 +321,13 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
         _state.StateChanged -= OnBibleReadingInitialized;
         _playService.OnStopped -= OnPlayServiceStopped;
         
+        // Unsubscribe from collection changes
+        if (Chapters is not null && _collectionChangedHandler is not null)
+        {
+            Chapters.CollectionChanged -= _collectionChangedHandler;
+        }
+        
         // Stop any ongoing preview playback when navigating away
-        GC.SuppressFinalize(this);
         _playService.Stop();
         
         if (Chapters is not null)

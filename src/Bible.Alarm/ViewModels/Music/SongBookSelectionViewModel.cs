@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -28,6 +29,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private bool _initComplete;
     private AlarmMusic _lastCurrent;
     private AlarmMusic _lastTentative;
+    private PropertyChangedEventHandler? _propertyChangedHandler;
 
     public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
@@ -225,13 +227,14 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         await PopulateLanguages();
         await PopulateSongBooks(languageCode);
 
-        PropertyChanged += (sender, e) =>
+        _propertyChangedHandler = (sender, e) =>
         {
             if (e.PropertyName == "LanguageSearchTerm")
             {
                 _ = PopulateLanguages(LanguageSearchTerm);
             }
         };
+        PropertyChanged += _propertyChangedHandler;
     }
 
     private async Task PopulateLanguages(string searchTerm = null)
@@ -295,5 +298,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     {
         _state.StateChanged -= OnMusicInitialized;
         _state.StateChanged -= OnMusicChanged;
+        
+        // Unsubscribe from PropertyChanged self-subscription
+        if (_propertyChangedHandler is not null)
+        {
+            PropertyChanged -= _propertyChangedHandler;
+        }
     }
 }

@@ -432,14 +432,10 @@ public class NavigationService(
             }
         }
 
-        _logger.Warning("MediaElement not found in BootstrapPage");
-        // Return a temporary instance (shouldn't happen if BootstrapPage is loaded)
-        return new MediaElement
-        {
-            ShouldAutoPlay = false,
-            ShouldLoopPlayback = false,
-            ShouldShowPlaybackControls = false
-        };
+        _logger.Error("MediaElement not found in BootstrapPage - this should never happen!");
+        // Throw exception instead of creating orphaned MediaElement instance
+        // This prevents memory leaks and makes the issue immediately visible
+        throw new InvalidOperationException("MediaElement not found in BootstrapPage. BootstrapPage must be loaded before accessing MediaElement.");
     }
 }
 

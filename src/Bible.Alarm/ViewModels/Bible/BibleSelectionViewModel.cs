@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -27,6 +28,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     private bool _initComplete;
     private BibleReadingSchedule _lastCurrent;
     private BibleReadingSchedule _lastTentative;
+    private PropertyChangedEventHandler? _propertyChangedHandler;
 
     public ICommand BackCommand { get; set; }
     public ICommand BookSelectionCommand { get; set; }
@@ -206,13 +208,14 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         await PopulateTranslations(languageCode);
 
         // Subscribe to LanguageSearchTerm property changes
-        PropertyChanged += (sender, e) =>
+        _propertyChangedHandler = (sender, e) =>
         {
             if (e.PropertyName == "LanguageSearchTerm")
             {
                 _ = PopulateLanguages(LanguageSearchTerm);
             }
         };
+        PropertyChanged += _propertyChangedHandler;
     }
 
     private async Task PopulateLanguages(string searchTerm = null)
@@ -274,5 +277,11 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     {
         _state.StateChanged -= OnBibleReadingInitialized;
         _state.StateChanged -= OnBibleReadingChanged;
+        
+        // Unsubscribe from PropertyChanged self-subscription
+        if (_propertyChangedHandler is not null)
+        {
+            PropertyChanged -= _propertyChangedHandler;
+        }
     }
 }
