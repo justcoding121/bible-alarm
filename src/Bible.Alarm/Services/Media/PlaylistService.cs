@@ -426,10 +426,11 @@ public class PlaylistService(
             throw new InvalidOperationException($"Next bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
 
         chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, nextBook.Key);
-        if (chapters.Count < 2)
-            throw new InvalidOperationException($"Not enough chapters in next book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={nextBook.Key}");
+        if (chapters.Count == 0)
+            throw new InvalidOperationException($"No chapters in next book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={nextBook.Key}");
         
-        return new KeyValuePair<BibleBook, BibleChapter>(nextBook.Value, chapters.ElementAt(1).Value);
+        // Start at the first chapter of the next book (index 0)
+        return new KeyValuePair<BibleBook, BibleChapter>(nextBook.Value, chapters.ElementAt(0).Value);
     }
 
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetPreviousBibleChapter(string languageCode,
