@@ -219,29 +219,59 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
         private static async Task ShowFlyoutAsync(Popup popup, Window currentWindow, double seconds)
         {
+            FrameworkElement? windowContent = null;
+            
             try
             {
-                // Attach popup to the window
-                if (currentWindow?.Content is FrameworkElement windowContent)
+                // Attach popup to the window and get window content for positioning
+                // Safely access window content - it may not be accessible during navigation
+                try
                 {
-                    // Set the popup's XamlRoot
-                    popup.XamlRoot = windowContent.XamlRoot;
+                    if (currentWindow?.Content is FrameworkElement content)
+                    {
+                        windowContent = content;
+                        // Set the popup's XamlRoot
+                        if (content.XamlRoot != null)
+                        {
+                            popup.XamlRoot = content.XamlRoot;
+                        }
+                    }
+                }
+                catch (System.Runtime.InteropServices.COMException ex)
+                {
+                    // Window content may not be accessible if window is being disposed or during navigation
+                    Log.Debug(ex, "Window content not accessible when setting up popup (window may be disposed)");
+                    // Continue without setting XamlRoot - popup may not work but won't crash
                 }
 
                 // Store the current window for size change handling
                 _currentWindow = currentWindow;
 
-                // Show the popup first so we can measure it
+                // Set initial position before showing to prevent it appearing at top first
+                // Use estimated position based on window size
+                if (windowContent != null)
+                {
+                    var windowWidth = windowContent.ActualWidth > 0 ? windowContent.ActualWidth : 400;
+                    var windowHeight = windowContent.ActualHeight > 0 ? windowContent.ActualHeight : 600;
+                    // Estimate popup size (will be adjusted after render)
+                    var estimatedPopupWidth = 300;
+                    var estimatedPopupHeight = 50;
+                    
+                    popup.HorizontalOffset = (windowWidth - estimatedPopupWidth) / 2;
+                    popup.VerticalOffset = windowHeight - estimatedPopupHeight - 50;
+                }
+
+                // Show the popup
                 popup.IsOpen = true;
 
                 // Wait for the popup to render so we can get its actual size
                 await Task.Delay(100);
 
-                // Initial positioning
+                // Update position with actual measurements
                 UpdatePopupPosition(popup, currentWindow);
 
                 // Subscribe to window size changes to reposition the popup
-                if (currentWindow?.Content is FrameworkElement content)
+                if (windowContent != null)
                 {
                     _sizeChangedHandler = (sender, args) =>
                     {
@@ -254,7 +284,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                             Log.Warning(ex, "Exception occurred while updating popup position on window resize");
                         }
                     };
-                    content.SizeChanged += _sizeChangedHandler;
+                    windowContent.SizeChanged += _sizeChangedHandler;
                 }
 
                 if (clearRequest is { } request)
@@ -273,18 +303,30 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             }
             finally
             {
-                // Unsubscribe from size changes
-                if (_currentWindow?.Content is FrameworkElement content && _sizeChangedHandler != null)
+                // Unsubscribe from size changes - safely access window content
+                if (_sizeChangedHandler != null)
                 {
                     try
                     {
-                        content.SizeChanged -= _sizeChangedHandler;
+                        // Safely access window content - it may be disposed during navigation
+                        if (_currentWindow?.Content is FrameworkElement content)
+                        {
+                            content.SizeChanged -= _sizeChangedHandler;
+                        }
+                    }
+                    catch (System.Runtime.InteropServices.COMException ex)
+                    {
+                        // Window may be disposed or in invalid state during navigation
+                        Log.Debug(ex, "Window content not accessible during cleanup (window may be disposed)");
                     }
                     catch (Exception ex)
                     {
                         Log.Warning(ex, "Exception occurred while unsubscribing from window size changed event");
                     }
-                    _sizeChangedHandler = null;
+                    finally
+                    {
+                        _sizeChangedHandler = null;
+                    }
                 }
                 _currentWindow = null;
 
@@ -339,12 +381,14 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 popup.Child = null;
-                popup.XamlRoot = null;
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Exception occurred during popup cleanup");
+                Log.Debug(ex, "Exception occurred while clearing popup child");
             }
+            
+            // Don't try to set XamlRoot to null - it can fail if already set or popup is disposed
+            // The popup will be garbage collected anyway, and setting it to null can cause COM exceptions
         }
 
     }

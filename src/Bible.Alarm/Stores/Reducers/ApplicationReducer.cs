@@ -74,21 +74,29 @@ public static class ApplicationReducer
         if (state.Schedules == null)
             return state;
 
-        var newSchedules = new ObservableHashSet<AlarmSchedule>();
-        foreach (var schedule in state.Schedules)
+        // Update the existing collection in place to avoid creating a new collection reference
+        // This prevents the entire list from reloading when only one item is updated
+        var existingSchedule = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+        if (existingSchedule != null)
         {
-            if (schedule.Id == action.Schedule.Id)
+            // Only remove and re-add if it's actually a different object reference
+            // This keeps the same collection reference, preventing full list reload
+            // The HomeViewModel will update the view model in place via Initialize()
+            if (!ReferenceEquals(existingSchedule, action.Schedule))
             {
-                newSchedules.Add(action.Schedule);
+                state.Schedules.Remove(existingSchedule);
+                state.Schedules.Add(action.Schedule);
             }
-            else
-            {
-                newSchedules.Add(schedule);
-            }
+            // If it's the same reference, no need to update the collection
+        }
+        else
+        {
+            // Schedule not found, add it (shouldn't happen, but handle gracefully)
+            state.Schedules.Add(action.Schedule);
         }
         
         return new ApplicationState(
-            schedules: newSchedules,
+            schedules: state.Schedules, // Reuse the same collection reference
             currentSchedule: state.CurrentSchedule?.Id == action.Schedule.Id ? action.Schedule : state.CurrentSchedule,
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,

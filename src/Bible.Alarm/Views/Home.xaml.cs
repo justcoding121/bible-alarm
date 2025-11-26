@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.ViewModels;
+﻿#nullable enable
+using Bible.Alarm.ViewModels;
 using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Views;

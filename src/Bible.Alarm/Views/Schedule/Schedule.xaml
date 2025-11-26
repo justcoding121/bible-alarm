@@ -19,8 +19,7 @@
     <ContentPage.Content>
         <Grid AutomationId="SchedulePage"
               BackgroundColor="White">
-            <ActivityIndicator Grid.Row="0"
-                               HorizontalOptions="Center"
+            <ActivityIndicator HorizontalOptions="Center"
                                IsEnabled="True"
                                IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
@@ -39,8 +38,7 @@
                     </OnPlatform>
                 </ActivityIndicator.Scale>
             </ActivityIndicator>
-            <Grid Grid.Row="0"
-                  Margin="{OnPlatform iOS='0,10,0,0'}"
+            <Grid Margin="{OnPlatform iOS='0,10,0,0'}"
                   IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                   RowSpacing="0">
                 <Grid.RowDefinitions>
@@ -48,34 +46,34 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
-                <Grid Grid.Row="0"
-                      Margin="{OnPlatform Default='0',
-                                        iOS='0,25,0,0'}"
-                      ColumnSpacing="0"
-                      RowSpacing="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Button Grid.Column="0"
-                            Margin="2,2,0,2"
-                            AutomationId="CancelButton"
-                            BackgroundColor="White"
-                            Command="{Binding CancelCommand}"
-                            FontSize="{OnPlatform Default='18',
-                                          WinUI='16'}"
-                            FontAttributes="Bold"
-                            HeightRequest="{OnPlatform Default='50',
-                                                   WinUI='37'}"
-                            HorizontalOptions="Fill"
-                            MinimumHeightRequest="{OnPlatform Default='50',
-                                                          WinUI='37'}"
-                            Text="CANCEL"
-                            TextColor="SlateBlue"
-                            VerticalOptions="Fill" />
-                    <Button Grid.Column="1"
-                            Margin="0,2,2,2"
-                            AutomationId="SaveButton"
+            <Grid Grid.Row="0"
+                  Margin="{OnPlatform Default='0',
+                                    iOS='0,25,0,0'}"
+                  ColumnSpacing="0"
+                  RowSpacing="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0"
+                        Margin="2,2,0,2"
+                        AutomationId="CancelButton"
+                        BackgroundColor="White"
+                        Command="{Binding CancelCommand}"
+                        FontSize="{OnPlatform Default='18',
+                                      WinUI='16'}"
+                        FontAttributes="Bold"
+                        HeightRequest="{OnPlatform Default='50',
+                                               WinUI='37'}"
+                        HorizontalOptions="Fill"
+                        MinimumHeightRequest="{OnPlatform Default='50',
+                                                      WinUI='37'}"
+                        Text="CANCEL"
+                        TextColor="SlateBlue"
+                        VerticalOptions="Fill" />
+                <Grid Grid.Column="1"
+                      Margin="0,2,2,2">
+                    <Button AutomationId="SaveButton"
                             BackgroundColor="White"
                             Command="{Binding SaveCommand}"
                             FontSize="{OnPlatform Default='18',
@@ -84,14 +82,33 @@
                             HeightRequest="{OnPlatform Default='50',
                                                    WinUI='37'}"
                             HorizontalOptions="Fill"
+                            IsVisible="{Binding IsSaving, Converter={StaticResource negateBooleanConverter}}"
                             MinimumHeightRequest="{OnPlatform Default='50',
                                                           WinUI='37'}"
                             Text="SAVE"
                             TextColor="SlateBlue"
                             VerticalOptions="Fill" />
+                    <ActivityIndicator
+                        IsRunning="{Binding IsSaving}"
+                        IsVisible="{Binding IsSaving}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        WidthRequest="30"
+                        HeightRequest="30">
+                        <ActivityIndicator.Color>
+                            <OnPlatform x:TypeArguments="Color">
+                                <OnPlatform.Platforms>
+                                    <On Platform="iOS" Value="SlateBlue" />
+                                    <On Platform="Android" Value="SlateBlue" />
+                                    <On Platform="Win" Value="#483D8B" />
+                                </OnPlatform.Platforms>
+                            </OnPlatform>
+                        </ActivityIndicator.Color>
+                    </ActivityIndicator>
                 </Grid>
-                <ScrollView Grid.Row="1"
-                            Margin="0">
+            </Grid>
+            <ScrollView Grid.Row="1"
+                        Margin="0">
                     <StackLayout HorizontalOptions="Fill"
                                  Orientation="Vertical">
                         <StackLayout.Resources>
@@ -531,23 +548,41 @@
 
                     </StackLayout>
                 </ScrollView>
-                <Grid Grid.Row="2"
-                      VerticalOptions="End">
-                    <Button Margin="2,2,2,10"
-                            Padding="0"
-                            BackgroundColor="White"
-                            Command="{Binding DeleteCommand}"
-                            FontSize="{OnPlatform Default='16',
-                                          WinUI='14'}"
-                            HeightRequest="{OnPlatform Default='50',
-                                                   WinUI='37'}"
-                            HorizontalOptions="Fill"
-                            IsVisible="{Binding IsExistingSchedule}"
-                            MinimumHeightRequest="{OnPlatform Default='50',
-                                                          WinUI='37'}"
-                            Text="REMOVE"
-                            TextColor="SlateBlue" />
-                </Grid>
+            <Grid Grid.Row="2"
+                  Margin="2,2,2,10"
+                  IsVisible="{Binding IsExistingSchedule}"
+                  VerticalOptions="End">
+                <Button Padding="0"
+                        BackgroundColor="White"
+                        Command="{Binding DeleteCommand}"
+                        FontSize="{OnPlatform Default='16',
+                                      WinUI='14'}"
+                        HeightRequest="{OnPlatform Default='50',
+                                               WinUI='37'}"
+                        HorizontalOptions="Fill"
+                        IsVisible="{Binding IsRemoving, Converter={StaticResource negateBooleanConverter}}"
+                        MinimumHeightRequest="{OnPlatform Default='50',
+                                                      WinUI='37'}"
+                        Text="REMOVE"
+                        TextColor="SlateBlue" />
+                <ActivityIndicator
+                    IsRunning="{Binding IsRemoving}"
+                    IsVisible="{Binding IsRemoving}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    WidthRequest="30"
+                    HeightRequest="30">
+                    <ActivityIndicator.Color>
+                        <OnPlatform x:TypeArguments="Color">
+                            <OnPlatform.Platforms>
+                                <On Platform="iOS" Value="SlateBlue" />
+                                <On Platform="Android" Value="SlateBlue" />
+                                <On Platform="Win" Value="#483D8B" />
+                            </OnPlatform.Platforms>
+                        </OnPlatform>
+                    </ActivityIndicator.Color>
+                </ActivityIndicator>
+            </Grid>
             </Grid>
         </Grid>
     </ContentPage.Content>

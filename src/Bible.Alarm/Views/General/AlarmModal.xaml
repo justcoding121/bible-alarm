@@ -143,21 +143,12 @@
                     HorizontalTextAlignment="Center"
                     Text="{Binding SubTitle}" />
             </FlexLayout>
-            <!-- Placeholder to prevent layout shift when controls are hidden -->
-            <BoxView
-                Grid.Row="1"
-                Margin="5,5,5,25"
-                HeightRequest="80"
-                IsVisible="{Binding AreControlsVisible, Converter={StaticResource negateBooleanConverter}}"
-                Opacity="0"
-                VerticalOptions="End" />
-            
             <Grid
                 Grid.Row="1"
                 Margin="5,5,5,25"
                 Padding="0"
                 FlexLayout.AlignSelf="Stretch"
-                IsVisible="{Binding AreControlsVisible}"
+                IsEnabled="{Binding AreControlsEnabled}"
                 RowSpacing="0"
                 VerticalOptions="End">
                 <Grid.ColumnDefinitions>
@@ -177,13 +168,16 @@
                                           WinUI='Micro'}"
                     HorizontalOptions="Start"
                     Text="{Binding CurrentTime}"
+                    TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                     VerticalOptions="Center" />
                 <ProgressBar
                     Grid.Row="0"
                     Grid.Column="1"
                     Margin="5,0,5,0"
                     HorizontalOptions="Fill"
+                    IsEnabled="{Binding AreControlsEnabled}"
                     Progress="{Binding Progress}"
+                    ProgressColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                     VerticalOptions="Center" />
                 <Label
                     Grid.Row="0"
@@ -193,6 +187,7 @@
                                           WinUI='Micro'}"
                     HorizontalOptions="End"
                     Text="{Binding EndTime}"
+                    TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                     VerticalOptions="Center" />
                 <Grid
                     Grid.Row="1"
@@ -217,6 +212,7 @@
                         FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
                         HorizontalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Previous}"
                         TextColor="{Binding PreviousEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                         VerticalOptions="Center" />
@@ -230,8 +226,9 @@
                         FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
                         HorizontalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Backward}"
-                        TextColor="SlateBlue"
+                        TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                         VerticalOptions="Center" />
                     <Button
                         Grid.Column="2"
@@ -243,9 +240,10 @@
                         FontSize="{OnPlatform Default='Large',
                                               WinUI='Small'}"
                         HorizontalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}"
                         IsVisible="{Binding PlayVisible}"
                         Text="{x:Static fn:GlyphNames.Play}"
-                        TextColor="SlateBlue"
+                        TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                         VerticalOptions="Center" />
                     <Button
                         Grid.Column="2"
@@ -257,9 +255,10 @@
                         FontSize="{OnPlatform Default='Large',
                                               WinUI='Small'}"
                         HorizontalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}"
                         IsVisible="{Binding PauseVisible}"
                         Text="{x:Static fn:GlyphNames.Pause}"
-                        TextColor="SlateBlue"
+                        TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                         VerticalOptions="Center" />
                     <Button
                         Grid.Column="3"
@@ -271,8 +270,9 @@
                         FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
                         HorizontalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Forward}"
-                        TextColor="SlateBlue" />
+                        TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}" />
                     <Button
                         Grid.Column="4"
                         Margin="0,0,10,0"
@@ -283,6 +283,7 @@
                         FontSize="{OnPlatform Default='Medium',
                                               WinUI='Micro'}"
                         HorizontalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Next}"
                         TextColor="{Binding NextEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
                         VerticalOptions="Center" />

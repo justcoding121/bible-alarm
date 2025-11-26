@@ -136,46 +136,69 @@ public class HomeViewModel : ObservableObject, IDisposable
     private void UpdateScheduleViewModels(ObservableHashSet<AlarmSchedule> schedules)
     {
         var currentViewModelIds = new HashSet<int>();
-        var itemsToKeep = new List<ScheduleListItem>();
+        var schedulesToAdd = new List<ScheduleListItem>();
+        var schedulesToRemove = new List<int>();
 
         // Initialize Schedules if null
         Schedules ??= [];
 
-        // Build list of view models to keep
+        // Process each schedule from the state
         foreach (var schedule in schedules)
         {
             currentViewModelIds.Add(schedule.Id);
             
             if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
             {
+                // Existing view model - just update it in place
+                // Initialize() will trigger property change notifications for this specific item
                 existingViewModel.Initialize(schedule);
-                itemsToKeep.Add(existingViewModel);
             }
             else
             {
+                // New schedule - create new view model
                 var viewModel = _scheduleListItemFactory(schedule);
                 _scheduleViewModels[schedule.Id] = viewModel;
-                itemsToKeep.Add(viewModel);
+                schedulesToAdd.Add(viewModel);
             }
         }
 
-        // Dispose and remove view models that are no longer in the schedules
+        // Identify view models to remove
         var toRemove = _scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
         foreach (var id in toRemove)
         {
             if (!_scheduleViewModels.TryGetValue(id, out var viewModel)) continue;
+            schedulesToRemove.Add(id);
             viewModel.Dispose();
             _scheduleViewModels.Remove(id);
         }
 
-        // Replace the entire collection to ensure CollectionView refreshes
-        // CollectionView responds better to property change notifications than collection modification
-        var newSchedules = new ObservableHashSet<ScheduleListItem>();
-        foreach (var item in itemsToKeep)
+        // Only replace the collection if schedules were added or removed
+        // For updates to existing schedules, Initialize() already updated the view model properties
+        // and triggered property change notifications on that specific item, so no collection replacement needed
+        if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
         {
-            newSchedules.Add(item);
+            // Create new collection only when items are added/removed
+            var newSchedules = new ObservableHashSet<ScheduleListItem>();
+            
+            // Add all existing items that aren't being removed
+            foreach (var item in Schedules)
+            {
+                if (item.ScheduleId > 0 && !schedulesToRemove.Contains(item.ScheduleId))
+                {
+                    newSchedules.Add(item);
+                }
+            }
+            
+            // Add new items
+            foreach (var item in schedulesToAdd)
+            {
+                newSchedules.Add(item);
+            }
+            
+            Schedules = newSchedules;
         }
-        Schedules = newSchedules;
+        // If no adds/removes, the collection stays the same and only individual item properties are updated
+        // This prevents the entire list from reloading when a single item changes
     }
 
     private bool _isBusy = true;

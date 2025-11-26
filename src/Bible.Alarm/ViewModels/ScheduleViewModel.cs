@@ -18,6 +18,7 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -90,18 +91,23 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _state.StateChanged += OnMusicChanged;
         _state.StateChanged += OnBibleReadingChanged;
 
+        // Set IsBusy to true by default so the page shows loading indicator immediately
+        IsBusy = true;
+
         CancelCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
-
+            // Cancel just navigates back, no need for progress indicator
             await _navigationService.NavigateToHomeAsync();
-
-            IsBusy = false;
         });
 
         SaveCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
+            // Set IsSaving and force property change notification
+            IsSaving = true;
+            OnPropertyChanged(nameof(IsSaving));
+            
+            // Give UI time to render the progress indicator before starting operations
+            await Task.Delay(100);
 
             if (IsEnabled &&
                 (DeviceInfo.Platform == DevicePlatform.iOS
@@ -121,22 +127,31 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             {
                 await Task.Delay(50);
                 await _navigationService.NavigateToHomeAsync();
+                // Set IsSaving to false after navigation completes
+                IsSaving = false;
+            }
+            else
+            {
+                IsSaving = false;
             }
 
             if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
-
-            IsBusy = false;
         });
 
         DeleteCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
+            // Set IsRemoving and force property change notification
+            IsRemoving = true;
+            OnPropertyChanged(nameof(IsRemoving));
+            
+            // Give UI time to render the progress indicator before starting operations
+            await Task.Delay(100);
 
             // If it's a new schedule, just navigate back without deleting
             if (IsNewSchedule)
             {
                 await _navigationService.NavigateToHomeAsync();
-                IsBusy = false;
+                IsRemoving = false;
                 return;
             }
 
@@ -148,8 +163,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             await DeleteAsync();
 
             await _navigationService.NavigateToHomeAsync();
-
-            IsBusy = false;
+            // Set IsRemoving to false after navigation completes
+            IsRemoving = false;
         });
 
         ToggleDayCommand = new RelayCommand<DaysOfWeek>(Toggle);
@@ -158,21 +173,15 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         SelectMusicCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
-
             Music = await scheduleSelectionService1.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
 
             await _navigationService.NavigateToMusicSelectionAsync();
 
             _dispatcher.Dispatch(new MusicSelectionAction(Music));
-
-            IsBusy = false;
         });
 
         SelectBibleCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
-
             BibleReadingSchedule = await scheduleSelectionService1.LoadBibleReadingForSelectionAsync(
                 _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule);
 
@@ -190,35 +199,26 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                     PublicationCode = BibleReadingSchedule?.PublicationCode ?? "",
                     LanguageCode = BibleReadingSchedule?.LanguageCode ?? ""
                 }));
-
-            IsBusy = false;
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await _navigationService.OpenNumberOfChaptersModalAsync(this);
-            IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await _navigationService.PopModalAsync();
-            IsBusy = false;
         });
 
         SelectNumberOfChaptersCommand = new AsyncRelayCommand<NumberOfChaptersListViewItemModel>(async x =>
         {
-            IsBusy = true;
             if (CurrentNumberOfChapters != null) CurrentNumberOfChapters.IsSelected = false;
 
             CurrentNumberOfChapters = x;
             CurrentNumberOfChapters.IsSelected = true;
 
             await _navigationService.PopModalAsync();
-
-            IsBusy = false;
         });
 
         NotificationEnabledCommand = new RelayCommand(() => { NotificationEnabled = !NotificationEnabled; });
@@ -511,6 +511,22 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     {
         get => _isBusy;
         set => SetProperty(ref _isBusy, value);
+    }
+
+    private bool _isSaving;
+
+    public bool IsSaving
+    {
+        get => _isSaving;
+        set => SetProperty(ref _isSaving, value);
+    }
+
+    private bool _isRemoving;
+
+    public bool IsRemoving
+    {
+        get => _isRemoving;
+        set => SetProperty(ref _isRemoving, value);
     }
 
     private string _name;

@@ -186,15 +186,60 @@ public class NavigationService(
         // Wait for navigation to be available (window might still be initializing)
         var navigation = await GetNavigationAsync();
         
-        // Always create a NEW Home page via DI (never reuse)
-        var homePage = _serviceProvider.GetRequiredService<Home>();
+        // Check if we're already on Home page
+        if (navigation.NavigationStack.Count > 0 && navigation.NavigationStack.LastOrDefault() is Home)
+        {
+            // Already on Home, no need to navigate
+            return;
+        }
         
-        // Set navigation bar setting
-        NavigationPage.SetHasBackButton(homePage, false);
-        NavigationPage.SetHasNavigationBar(homePage, false);
+        // Find Home in the stack (BootstrapPage is at index 0, Home should be at index 1)
+        Home? existingHome = null;
+        for (int i = navigation.NavigationStack.Count - 1; i >= 0; i--)
+        {
+            if (navigation.NavigationStack[i] is Home home)
+            {
+                existingHome = home;
+                break;
+            }
+        }
         
-        // Push the fresh page
-        await navigation.PushAsync(homePage);
+        if (existingHome != null)
+        {
+            // Home exists in stack - pop all pages until we reach Home (but keep BootstrapPage)
+            while (navigation.NavigationStack.Count > 1 && navigation.NavigationStack.LastOrDefault() != existingHome)
+            {
+                var page = navigation.NavigationStack.LastOrDefault();
+                await navigation.PopAsync(animated: false);
+                if (page != existingHome && page is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+        else
+        {
+            // Home doesn't exist - pop all pages except BootstrapPage (index 0), then push new Home
+            while (navigation.NavigationStack.Count > 1)
+            {
+                var page = navigation.NavigationStack.LastOrDefault();
+                await navigation.PopAsync(animated: false);
+                if (page is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+            
+            // Create a new Home page via DI
+            var homePage = _serviceProvider.GetRequiredService<Home>();
+            
+            // Set navigation bar setting
+            NavigationPage.SetHasBackButton(homePage, false);
+            NavigationPage.SetHasNavigationBar(homePage, false);
+            
+            // Push the new Home page without animation
+            await navigation.PushAsync(homePage, animated: false);
+        }
     }
 
     public async Task NavigateToScheduleAsync()

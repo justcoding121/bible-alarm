@@ -269,7 +269,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
         {
             if (SetProperty(ref _isBusy, value))
             {
-                OnPropertyChanged(nameof(AreControlsVisible));
+                OnPropertyChanged(nameof(AreControlsEnabled));
             }
         }
     }
@@ -285,15 +285,15 @@ public class AlarmViewModal : ObservableObject, IDisposable
         {
             if (SetProperty(ref _isPreparing, value))
             {
-                OnPropertyChanged(nameof(AreControlsVisible));
+                OnPropertyChanged(nameof(AreControlsEnabled));
             }
         }
     }
 
     /// <summary>
-    /// Controls are visible when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
+    /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
     /// </summary>
-    public bool AreControlsVisible => _hasReceivedInitialState && !IsPreparing && !HasError && !IsBusy;
+    public bool AreControlsEnabled => _hasReceivedInitialState && !IsPreparing && !HasError && !IsBusy;
 
     public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
     
@@ -309,7 +309,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             if (SetProperty(ref _errorMessage, value))
             {
                 OnPropertyChanged(nameof(HasError));
-                OnPropertyChanged(nameof(AreControlsVisible));
+                OnPropertyChanged(nameof(AreControlsEnabled));
             }
         }
     }
@@ -339,8 +339,9 @@ public class AlarmViewModal : ObservableObject, IDisposable
             
             if (trackChanged)
             {
-                // Track has changed - hide controls until we receive play-related event for new track
+                // Track has changed - disable controls until we receive play-related event for new track
                 _hasReceivedInitialState = false;
+                OnPropertyChanged(nameof(AreControlsEnabled));
             }
             
             // Mark that we've received initial state when playback has started or is preparing
@@ -348,6 +349,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             if (!_hasReceivedInitialState && (state.IsPreparingOrPlaying || state.Status != PlayStatus.Stopped || state.Duration.TotalSeconds > 0))
             {
                 _hasReceivedInitialState = true;
+                OnPropertyChanged(nameof(AreControlsEnabled));
             }
             
             // Update previous track metadata only after we've received initial state for the new track
@@ -409,7 +411,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(PreparationProgress));
             OnPropertyChanged(nameof(HasError));
-            OnPropertyChanged(nameof(AreControlsVisible));
+            OnPropertyChanged(nameof(AreControlsEnabled));
         });
     }
 
