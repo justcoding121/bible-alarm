@@ -104,10 +104,12 @@
                             BackgroundColor="{OnPlatform Default='WhiteSmoke',
                                                          iOS='WhiteSmoke',
                                                          WinUI='WhiteSmoke'}"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
                             Command="{Binding DismissCommand}"
                             CornerRadius="10"
                             FontSize="{OnPlatform Default='Medium',
-                                                  iOS='Title'}"
+                                                 iOS='Title'}"
                             HeightRequest="45"
                             HorizontalOptions="Center"
                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
@@ -207,6 +209,8 @@
                         Margin="10,0,0,0"
                         Padding="0"
                         BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding PreviousCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',
@@ -221,6 +225,8 @@
                         Margin="0"
                         Padding="0"
                         BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding BackwardCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',
@@ -235,6 +241,8 @@
                         Margin="0"
                         Padding="0"
                         BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding PlayCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Large',
@@ -250,6 +258,8 @@
                         Margin="0"
                         Padding="0"
                         BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding PauseCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Large',
@@ -265,6 +275,8 @@
                         Margin="0"
                         Padding="0"
                         BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding ForwardCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',
@@ -278,6 +290,8 @@
                         Margin="0,0,10,0"
                         Padding="10,0,10,0"
                         BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding NextCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{OnPlatform Default='Medium',

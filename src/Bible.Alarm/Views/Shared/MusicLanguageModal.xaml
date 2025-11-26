@@ -10,7 +10,7 @@
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     x:DataType="music:SongBookSelectionViewModel"
-    Padding="0,10,0,0">
+    Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
@@ -123,6 +123,8 @@
                 Margin="2"
                 Padding="0"
                 BackgroundColor="White"
+                BorderWidth="0"
+                BorderColor="Transparent"
                 Command="{Binding CloseModalCommand}"
                 FontSize="18" FontAttributes="Bold"
                 HeightRequest="{OnPlatform Default='50',

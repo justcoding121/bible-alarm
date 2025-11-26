@@ -56,6 +56,8 @@
                                         iOS='2,25,2,2'}"
                     AutomationId="AddScheduleButton"
                     BackgroundColor="{OnPlatform Default='WhiteSmoke', WinUI='LightGray'}"
+                    BorderWidth="0"
+                    BorderColor="Transparent"
                     Command="{Binding AddScheduleCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="{OnPlatform Default='18',
@@ -77,11 +79,17 @@
                 VerticalOptions="Fill"
                 ItemsSource="{Binding Schedules}"
                 SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" 
+                                       ItemSpacing="{OnPlatform Default='0',
+                                                                 WinUI='20'}" />
+                </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItem">
                             <Grid
                                 x:Name="ScheduleItemGrid"
-                                Margin="{OnPlatform Default='0,10,0,10'}"
+                                Margin="{OnPlatform Default='0,20,0,20',
+                                                     WinUI='0,20,0,20'}"
                                 ColumnSpacing="{OnPlatform iOS='0'}"
                                 HorizontalOptions="Fill"
                                 HeightRequest="{OnPlatform iOS='175'}"
@@ -121,6 +129,8 @@
                                             Padding="0"
                                             BackgroundColor="{OnPlatform Default='WhiteSmoke',
                                                                          WinUI='LightGray'}"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding PlayCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             HeightRequest="{OnPlatform WinUI='50',
@@ -135,7 +145,7 @@
                                             TextColor="SlateBlue"
                                             VerticalOptions="Center"
                                             WidthRequest="{OnPlatform iOS='75',
-                                                                      WinUI='75'}" />
+                                                                       WinUI='75'}" />
                                         <ActivityIndicator
                                             IsRunning="{Binding IsBusy}"
                                             IsVisible="{Binding IsBusy}"
@@ -246,6 +256,8 @@
                                             Padding="0"
                                             Margin="0,0,10,0"
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding PreviousCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',
@@ -260,6 +272,8 @@
                                             Padding="0"
                                             Margin="10,0,10,0"
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding NextCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',

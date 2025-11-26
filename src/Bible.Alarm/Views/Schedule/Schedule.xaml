@@ -59,6 +59,8 @@
                         Margin="2,2,0,2"
                         AutomationId="CancelButton"
                         BackgroundColor="White"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding CancelCommand}"
                         FontSize="{OnPlatform Default='18',
                                       WinUI='16'}"
@@ -75,6 +77,8 @@
                       Margin="0,2,2,2">
                     <Button AutomationId="SaveButton"
                             BackgroundColor="White"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
                             Command="{Binding SaveCommand}"
                             FontSize="{OnPlatform Default='18',
                                           WinUI='16'}"
@@ -137,6 +141,7 @@
                                      HorizontalOptions="Center"
                                      Orientation="Horizontal">
                             <Button Margin="5,0,0,0"
+                                    Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     BorderWidth="1"
@@ -145,8 +150,10 @@
                                     FontAttributes="Bold"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                    WidthRequest="35" />
+                                    WidthRequest="35"
+                                    HeightRequest="35" />
                             <Button Margin="2,0,0,0"
+                                    Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     BorderWidth="1"
@@ -155,8 +162,10 @@
                                     FontAttributes="Bold"
                                     Text="M"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                    WidthRequest="35" />
+                                    WidthRequest="35"
+                                    HeightRequest="35" />
                             <Button Margin="2,0,0,0"
+                                    Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     BorderWidth="1"
@@ -165,8 +174,10 @@
                                     FontAttributes="Bold"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                    WidthRequest="35" />
+                                    WidthRequest="35"
+                                    HeightRequest="35" />
                             <Button Margin="2,0,0,0"
+                                    Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     BorderWidth="1"
@@ -175,8 +186,10 @@
                                     FontAttributes="Bold"
                                     Text="W"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                    WidthRequest="35" />
+                                    WidthRequest="35"
+                                    HeightRequest="35" />
                             <Button Margin="2,0,0,0"
+                                    Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     BorderWidth="1"
@@ -185,8 +198,10 @@
                                     FontAttributes="Bold"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                    WidthRequest="35" />
+                                    WidthRequest="35"
+                                    HeightRequest="35" />
                             <Button Margin="2,0,0,0"
+                                    Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     BorderWidth="1"
@@ -195,8 +210,10 @@
                                     FontAttributes="Bold"
                                     Text="F"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                    WidthRequest="35" />
+                                    WidthRequest="35"
+                                    HeightRequest="35" />
                             <Button Margin="2,0,0,0"
+                                    Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     BorderWidth="1"
@@ -205,7 +222,8 @@
                                     FontAttributes="Bold"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                    WidthRequest="35" />
+                                    WidthRequest="35"
+                                    HeightRequest="35" />
                         </StackLayout>
                         <StackLayout
                             Margin="{OnPlatform Default='0,5,0,5',
@@ -223,20 +241,21 @@
                                    MinimumWidthRequest="200"
                                    Text="{Binding Name, Mode=TwoWay}"
                                    VerticalOptions="Center"
-                                   WidthRequest="200" />
+                                   WidthRequest="200"
+                                   BackgroundColor="Transparent" />
                         </StackLayout>
-                        <Border Margin="0,3,0,3"
-                               Padding="5"
+                        <Border Margin="3,2,3,2"
+                               Padding="0"
                                StrokeThickness="1"
                                Stroke="LightGray"
-                               BackgroundColor="White"
+                               BackgroundColor="WhiteSmoke"
                                HorizontalOptions="Fill">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="10" />
                             </Border.StrokeShape>
                             <StackLayout Orientation="Vertical">
                                 <Grid x:Name="BibleButton"
-                                      Margin="5,0,5,0"
+                                      Margin="5,5,5,5"
                                       BackgroundColor="WhiteSmoke"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
@@ -268,7 +287,7 @@
                                                Text="{Binding BibleReadingTitleText}"
                                                TextColor="SlateBlue" />
                                         <Label
-                                            Margin="0,0,10,0"
+                                            Margin="10,0,10,0"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="Medium"
                                             HorizontalOptions="End"
@@ -278,7 +297,7 @@
                                     </StackLayout>
                                 </Grid>
                                 <Grid x:Name="BibleBookButton"
-                                      Margin="5,0,5,0"
+                                      Margin="5,5,5,5"
                                       BackgroundColor="WhiteSmoke"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
@@ -305,6 +324,8 @@
                                             Margin="10,0,10,0"
                                             Padding="0"
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding PreviousBookCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',
@@ -317,6 +338,8 @@
                                             Margin="10,0,15,0"
                                             Padding="0"
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding NextBookCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',
@@ -328,7 +351,7 @@
                                     </StackLayout>
                                 </Grid>
                                 <Grid x:Name="BibleChapterButton"
-                                      Margin="5,0,5,0"
+                                      Margin="5,5,5,5"
                                       BackgroundColor="WhiteSmoke"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
@@ -355,6 +378,8 @@
                                             Margin="10,0,10,0"
                                             Padding="0"
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding PreviousChapterCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',
@@ -367,6 +392,8 @@
                                             Margin="10,0,15,0"
                                             Padding="0"
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding NextChapterCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="{OnPlatform Default='Medium',
@@ -379,11 +406,13 @@
                                 </Grid>
                             </StackLayout>
                         </Border>
-                        <Grid x:Name="ChaptersButton"
-                              Margin="5,0,5,0"
-                              BackgroundColor="WhiteSmoke"
-                              HorizontalOptions="Fill"
-                              VerticalOptions="Fill">
+                        <StackLayout Margin="5,5,5,0"
+                                     Spacing="0">
+                            <Grid x:Name="ChaptersButton"
+                                  Margin="5,0,5,0"
+                                  BackgroundColor="WhiteSmoke"
+                                  HorizontalOptions="Fill"
+                                  VerticalOptions="Fill">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="7*" />
                                 <ColumnDefinition Width="3*" />
@@ -408,12 +437,12 @@
                                    Text="{Binding CurrentNumberOfChapters.Text}"
                                    TextColor="SlateBlue"
                                    VerticalOptions="Center" />
-                        </Grid>
-                        <Grid x:Name="AlwaysPlayFromStartButton"
-                              Margin="5,0,5,0"
-                              BackgroundColor="WhiteSmoke"
-                              HorizontalOptions="Fill"
-                              VerticalOptions="Fill">
+                            </Grid>
+                            <Grid x:Name="AlwaysPlayFromStartButton"
+                                  Margin="5,0,5,0"
+                                  BackgroundColor="WhiteSmoke"
+                                  HorizontalOptions="Fill"
+                                  VerticalOptions="Fill">
                             <Grid.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding ToggleAlwaysPlayFromStartCommand}"
                                                       NumberOfTapsRequired="1" />
@@ -449,12 +478,12 @@
                                                        WinUI='1'}"
                                     VerticalOptions="Center" />
                             </StackLayout>
-                        </Grid>
-                        <Grid x:Name="ShowNotificationButton"
-                              Margin="5,0,5,0"
-                              BackgroundColor="WhiteSmoke"
-                              HorizontalOptions="Fill"
-                              VerticalOptions="Fill">
+                            </Grid>
+                            <Grid x:Name="ShowNotificationButton"
+                                  Margin="5,0,5,0"
+                                  BackgroundColor="WhiteSmoke"
+                                  HorizontalOptions="Fill"
+                                  VerticalOptions="Fill">
                             <Grid.IsVisible>
                                 <OnPlatform x:TypeArguments="x:Boolean" Default="false">
                                     <On Platform="Android" Value="true" />
@@ -495,9 +524,10 @@
                                                        WinUI='1'}"
                                     VerticalOptions="Center" />
                             </StackLayout>
-                        </Grid>
+                            </Grid>
+                        </StackLayout>
                         <Grid x:Name="MusicButton"
-                              Padding="0,0,0,30"
+                              Padding="5,0,5,0"
                               Margin="{OnPlatform Default='5,0,5,30'}"
                               BackgroundColor="WhiteSmoke"
                               HorizontalOptions="Fill"
@@ -554,9 +584,12 @@
                   VerticalOptions="End">
                 <Button Padding="0"
                         BackgroundColor="White"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
                         Command="{Binding DeleteCommand}"
                         FontSize="{OnPlatform Default='16',
                                       WinUI='14'}"
+                        FontAttributes="Bold"
                         HeightRequest="{OnPlatform Default='50',
                                                WinUI='37'}"
                         HorizontalOptions="Fill"

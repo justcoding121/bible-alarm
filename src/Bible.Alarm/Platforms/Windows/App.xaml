@@ -10,5 +10,9 @@
             <Setter Property="OffContent" Value=" " />
             <Setter Property="OnContent" Value=" " />
         </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
     </Application.Resources>
 </maui:MauiWinUIApplication>

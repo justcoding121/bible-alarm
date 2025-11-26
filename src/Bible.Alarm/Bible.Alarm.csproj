@@ -102,10 +102,16 @@
 		<None Include="Platforms\Windows\**\*" />
 	</ItemGroup>
 	
-	<!-- Disable duplicate XAML compilation -->
-	<PropertyGroup>
-		<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
-	</PropertyGroup>
+		<!-- Disable duplicate XAML compilation -->
+		<PropertyGroup>
+			<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
+		</PropertyGroup>
+		
+		<!-- Enable Hot Reload for Windows -->
+		<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+			<XamlDebuggingInformation>True</XamlDebuggingInformation>
+			<EnableHotReload>true</EnableHotReload>
+		</PropertyGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->
 	<ItemGroup>

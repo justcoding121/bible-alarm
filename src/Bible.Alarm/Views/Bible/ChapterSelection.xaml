@@ -146,6 +146,8 @@
                                         </ActivityIndicator>
                                         <Button
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding TogglePlayCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             HorizontalOptions="Start"

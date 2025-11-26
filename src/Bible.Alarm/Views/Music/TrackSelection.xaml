@@ -147,6 +147,8 @@
                                         </ActivityIndicator>
                                         <Button
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding ToggleRepeatCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             IsVisible="{Binding IsSelected}"
@@ -157,6 +159,8 @@
                                             WidthRequest="40" />
                                         <Button
                                             BackgroundColor="Transparent"
+                                            BorderWidth="0"
+                                            BorderColor="Transparent"
                                             Command="{Binding TogglePlayCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             MinimumWidthRequest="40"
