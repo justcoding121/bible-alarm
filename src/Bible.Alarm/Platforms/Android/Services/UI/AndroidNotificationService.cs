@@ -86,7 +86,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
         stackBuilder.AddNextIntent(resultIntent);
 
         // Create the PendingIntent with the back stack:
-        var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)PendingIntentFlags.UpdateCurrent);
+        var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)(PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable));
 
         var drawable = ContextCompat.GetDrawable(AndroidApplication.Context, ResourceConstant.Drawable.ic_launcher_round);
         var bitmap = DrawableToBitmap(drawable);
@@ -170,7 +170,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
             context,
             (int)scheduleId,
             alarmIntent,
-            PendingIntentFlags.NoCreate);
+            PendingIntentFlags.NoCreate | PendingIntentFlags.Immutable);
 
         return pIntent;
     }

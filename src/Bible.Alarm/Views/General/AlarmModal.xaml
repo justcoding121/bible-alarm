@@ -13,6 +13,7 @@
     BackgroundColor="White">
     <ContentPage.Resources>
         <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid HorizontalOptions="Fill" VerticalOptions="Fill">
@@ -96,22 +97,42 @@
                         Text="{x:Static fn:GlyphNames.Bell}"
                         TextColor="SlateBlue"
                         VerticalOptions="Center" />
-                    <Button
-                        Margin="5"
-                        AutomationId="AlarmDismissButton"
-                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                     iOS='WhiteSmoke',
-                                                     WinUI='WhiteSmoke'}"
-                        Command="{Binding DismissCommand}"
-                        CornerRadius="10"
-                        FontSize="{OnPlatform Default='Medium',
-                                              iOS='Title'}"
-                        HeightRequest="45"
-                        HorizontalOptions="Center"
-                        Text="Dismiss"
-                        TextColor="SlateBlue"
-                        VerticalOptions="Center"
-                        WidthRequest="200" />
+                    <Grid>
+                        <Button
+                            Margin="5"
+                            AutomationId="AlarmDismissButton"
+                            BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                         iOS='WhiteSmoke',
+                                                         WinUI='WhiteSmoke'}"
+                            Command="{Binding DismissCommand}"
+                            CornerRadius="10"
+                            FontSize="{OnPlatform Default='Medium',
+                                                  iOS='Title'}"
+                            HeightRequest="45"
+                            HorizontalOptions="Center"
+                            IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                            Text="Dismiss"
+                            TextColor="SlateBlue"
+                            VerticalOptions="Center"
+                            WidthRequest="200" />
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            IsVisible="{Binding IsBusy}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            WidthRequest="30"
+                            HeightRequest="30">
+                            <ActivityIndicator.Color>
+                                <OnPlatform x:TypeArguments="Color">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS" Value="SlateBlue" />
+                                        <On Platform="Android" Value="SlateBlue" />
+                                        <On Platform="Win" Value="#483D8B" />
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
+                            </ActivityIndicator.Color>
+                        </ActivityIndicator>
+                    </Grid>
                 </StackLayout>
                 <Label
                     Margin="15,0,15,0"

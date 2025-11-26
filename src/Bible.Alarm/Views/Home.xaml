@@ -2,6 +2,7 @@
 
 <ContentPage
     x:Class="Bible.Alarm.Views.Home"
+    x:Name="HomePage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
@@ -75,13 +76,7 @@
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"
                 ItemsSource="{Binding Schedules}"
-                SelectionMode="Single">
-                <CollectionView.Behaviors>
-                    <behaviours:EventToCommandBehavior
-                        Command="{Binding ViewScheduleCommand}"
-                        EventArgsConverter="{StaticResource itemTappedConverter}"
-                        EventName="SelectionChanged" />
-                </CollectionView.Behaviors>
+                SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItem">
                             <Grid
@@ -90,6 +85,11 @@
                                 HorizontalOptions="Fill"
                                 HeightRequest="{OnPlatform iOS='175'}"
                                 VerticalOptions="Center">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer 
+                                        Command="{Binding Source={x:Reference HomePage}, Path=BindingContext.ViewScheduleCommand}" 
+                                        CommandParameter="{Binding .}" />
+                                </Grid.GestureRecognizers>
                                 <Grid.Resources>
                                     <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
                                     <enums:DaysOfWeek x:Key="Monday">Monday</enums:DaysOfWeek>
@@ -139,11 +139,20 @@
                                         <ActivityIndicator
                                             IsRunning="{Binding IsBusy}"
                                             IsVisible="{Binding IsBusy}"
-                                            Color="SlateBlue"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Center"
                                             WidthRequest="30"
-                                            HeightRequest="30" />
+                                            HeightRequest="30">
+                                            <ActivityIndicator.Color>
+                                                <OnPlatform x:TypeArguments="Color">
+                                                    <OnPlatform.Platforms>
+                                                        <On Platform="iOS" Value="SlateBlue" />
+                                                        <On Platform="Android" Value="SlateBlue" />
+                                                        <On Platform="Win" Value="#483D8B" />
+                                                    </OnPlatform.Platforms>
+                                                </OnPlatform>
+                                            </ActivityIndicator.Color>
+                                        </ActivityIndicator>
                                     </Grid>
                                     <StackLayout
                                         Margin="0"

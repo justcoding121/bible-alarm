@@ -22,6 +22,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
     private readonly IState<PlaybackState> _playbackState;
 
     private bool _isDisposed;
+    private bool _hasReceivedInitialState;
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
@@ -45,6 +46,9 @@ public class AlarmViewModal : ObservableObject, IDisposable
         _currentTime = "00:00";
         _endTime = "00:00";
         
+        // Controls are hidden until first playback state is received
+        _hasReceivedInitialState = false;
+        
         // Subscribe to Fluxor state changes for reactive updates
         _playbackState.StateChanged += OnPlaybackStateChanged;
         
@@ -53,6 +57,13 @@ public class AlarmViewModal : ObservableObject, IDisposable
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
+            // Set IsBusy immediately to show progress indicator right away
+            IsBusy = true;
+            // Force property change notification to ensure UI updates immediately
+            OnPropertyChanged(nameof(IsBusy));
+            // Give UI time to render the progress indicator before starting dismiss operation
+            await Task.Delay(100);
+            
             await _playbackService.StopAsync();
             
             using var scope = scopeFactory.CreateScope();
@@ -246,6 +257,20 @@ public class AlarmViewModal : ObservableObject, IDisposable
         set => SetProperty(ref _previousEnabled, value);
     }
 
+    private bool _isBusy;
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                OnPropertyChanged(nameof(AreControlsVisible));
+            }
+        }
+    }
+
     private bool _isPreparing;
     private int _loadedTracks;
     private int _totalTracks;
@@ -263,9 +288,9 @@ public class AlarmViewModal : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Controls are visible when not preparing tracks and there's no error
+    /// Controls are visible when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
     /// </summary>
-    public bool AreControlsVisible => !IsPreparing && !HasError;
+    public bool AreControlsVisible => _hasReceivedInitialState && !IsPreparing && !HasError && !IsBusy;
 
     public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
     
@@ -298,6 +323,13 @@ public class AlarmViewModal : ObservableObject, IDisposable
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var state = _playbackState.Value;
+            
+            // Mark that we've received initial state when playback has started or is preparing
+            // This happens when IsPreparingOrPlaying is true, or when we have meaningful playback data
+            if (!_hasReceivedInitialState && (state.IsPreparingOrPlaying || state.Status != PlayStatus.Stopped || state.Duration.TotalSeconds > 0))
+            {
+                _hasReceivedInitialState = true;
+            }
             
             // Update navigation controls
             NextEnabled = state.CanPlayNext;

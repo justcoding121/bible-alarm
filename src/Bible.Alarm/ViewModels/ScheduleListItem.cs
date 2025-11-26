@@ -60,7 +60,13 @@ public class ScheduleListItem(
         {
             if (Schedule?.Id > 0)
             {
+                // Set IsBusy immediately to show progress indicator right away
+                // AsyncRelayCommand executes on main thread, so direct assignment is safe
                 IsBusy = true;
+                // Force property change notification to ensure UI updates immediately
+                OnPropertyChanged(nameof(IsBusy));
+                // Give UI time to render the progress indicator before starting playback
+                await Task.Delay(100);
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });

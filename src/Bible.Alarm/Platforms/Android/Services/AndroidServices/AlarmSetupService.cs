@@ -121,7 +121,7 @@ public class AlarmSetupService : Service, IDisposable
             context,
             (int)scheduleId,
             alarmIntent,
-            PendingIntentFlags.UpdateCurrent);
+            PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
         using var alarmService = (AlarmManager)context.GetSystemService(AlarmService);
 
         // Figure out the alaram in milliseconds.
@@ -139,7 +139,7 @@ public class AlarmSetupService : Service, IDisposable
                 context,
                 0,
                 mainLauncherIntent,
-                PendingIntentFlags.UpdateCurrent);
+                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
 
             alarmService.SetAlarmClock(new AlarmClockInfo(milliSecondsRemaining, mainLauncherPendingIntent),
                 pIntent);
