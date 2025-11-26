@@ -18,13 +18,13 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 
 namespace Bible.Alarm.Services.Media;
 
-public class AudioPlayer : IAudioPlayer
+public partial class AudioPlayer : IAudioPlayer
 {
     private readonly ILogger _logger;
     private readonly MediaElement _mediaElement;
     private readonly IDisplayMetadataService _displayMetadataService;
     private readonly IDispatcher _dispatcher;
-    private System.Timers.Timer? _positionTimer;
+    private readonly System.Timers.Timer? _positionTimer;
 
     private AudioPlayerTrack? _currentTrack;
     private TaskCompletionSource<bool>? _mediaOpenedCompletionSource;
@@ -89,8 +89,7 @@ public class AudioPlayer : IAudioPlayer
 
     public async Task PrepareAsync(AudioPlayerTrack track)
     {
-        if (track == null)
-            throw new ArgumentNullException(nameof(track));
+        ArgumentNullException.ThrowIfNull(track);
         if (string.IsNullOrEmpty(track.Uri))
             throw new ArgumentException("Track URI cannot be null or empty", nameof(track));
 
@@ -135,7 +134,9 @@ public class AudioPlayer : IAudioPlayer
         await Task.Delay(100);
         
         var stateAfterPlay = await iOSMediaElementHelper.GetCurrentStateAsync(_mediaElement, _logger);
-        if (stateAfterPlay == MediaElementState.Playing || stateAfterPlay == MediaElementState.Buffering)
+        // Check state using string comparison since helper returns object
+        var stateString = stateAfterPlay.ToString();
+        if (stateString == "Playing" || stateString == "Buffering")
         {
             _logger.Debug("MediaElement is in {State} state after Play()", stateAfterPlay);
         }
@@ -449,5 +450,7 @@ public class AudioPlayer : IAudioPlayer
         _mediaElement.MediaEnded -= OnMediaEnded;
         _mediaElement.MediaFailed -= OnMediaFailed;
         _mediaElement.PositionChanged -= OnPositionChanged;
+        
+        GC.SuppressFinalize(this);
     }
 }

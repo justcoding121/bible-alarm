@@ -6,15 +6,10 @@ using UIKit;
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI
 {
-    public class iOSToastService : ToastService, IDisposable
+    public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
-        private readonly TaskScheduler _taskScheduler;
+        private readonly TaskScheduler _taskScheduler = taskScheduler;
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
-
-        public iOSToastService(TaskScheduler taskScheduler)
-        {
-            _taskScheduler = taskScheduler;
-        }
 
         public override async Task ShowMessage(string message, int seconds)
         {

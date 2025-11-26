@@ -4,14 +4,9 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class ExceptionHandlingService
+public class ExceptionHandlingService(ILogger logger)
 {
-    private readonly ILogger _logger;
-
-    public ExceptionHandlingService(ILogger logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger _logger = logger;
 
     public void SetupGlobalExceptionHandlers()
     {

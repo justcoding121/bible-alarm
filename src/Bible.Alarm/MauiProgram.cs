@@ -146,10 +146,43 @@ public static class MauiProgram
             return;
         }
 
-        // Try to acquire lock - if already in progress, handle accordingly
-        if (!BootstrapLock.Wait(0))
+        // Try to acquire lock without blocking (timeout = 0)
+        var lockAcquired = ConcurrencyHelper.ExecuteAsync(BootstrapLock, async () =>
         {
-            // Another bootstrap is in progress
+            // Double-check if completed while waiting for lock
+            if (BootstrapCompleted)
+            {
+                return;
+            }
+
+            if (isForeground)
+            {
+                // Run bootstrap as a background job for foreground launches to avoid blocking UI
+                // Fire and forget - don't await
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await RunBootstrap(services).ConfigureAwait(false);
+                        BootstrapCompleted = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Logger.Error(ex, "Error in background bootstrap initialization");
+                    }
+                });
+            }
+            else
+            {
+                // Run bootstrap synchronously for background services/jobs
+                await RunBootstrap(services).ConfigureAwait(false);
+                BootstrapCompleted = true;
+            }
+        }, timeoutMs: 0).GetAwaiter().GetResult();
+
+        // If lock wasn't acquired (timeout = 0 means try without waiting)
+        if (!lockAcquired)
+        {
             if (isForeground)
             {
                 // For foreground, don't block - just return and let the other bootstrap complete
@@ -157,63 +190,20 @@ public static class MauiProgram
             }
             else
             {
-                // For background services, wait for the lock (which will be released when bootstrap completes)
-                BootstrapLock.Wait();
-                // Double-check if completed while waiting
-                if (BootstrapCompleted)
+                // For background services, wait for the lock and check if bootstrap completed
+                ConcurrencyHelper.ExecuteAsync(BootstrapLock, async () =>
                 {
-                    BootstrapLock.Release();
-                    return;
-                }
-                // If we got here, the previous bootstrap failed or was interrupted
-                // Continue to run bootstrap
-            }
-        }
-
-        try
-        {
-            // Double-check if completed while waiting for lock
-            if (BootstrapCompleted)
-            {
-                BootstrapLock.Release();
-                return;
-            }
-
-        if (isForeground)
-        {
-            // Run bootstrap as a background job for foreground launches to avoid blocking UI
-                Task.Run(async () =>
-                {
-                    try
+                    // Double-check if completed while waiting
+                    if (BootstrapCompleted)
                     {
-                        await RunBootstrap(services).ConfigureAwait(false);
-                        BootstrapCompleted = true;
+                        return;
                     }
-                    finally
-                    {
-                        BootstrapLock.Release();
-                    }
-                });
-            }
-            else
-            {
-                // Run bootstrap synchronously for background services/jobs
-                // Use Task.Run to avoid deadlock - runs on thread pool without sync context
-                try
-                {
-                    Task.Run(async () => await RunBootstrap(services).ConfigureAwait(false)).GetAwaiter().GetResult();
+                    // If we got here, the previous bootstrap failed or was interrupted
+                    // Continue to run bootstrap
+                    await RunBootstrap(services).ConfigureAwait(false);
                     BootstrapCompleted = true;
-                }
-                finally
-                {
-                    BootstrapLock.Release();
-                }
+                }).GetAwaiter().GetResult();
             }
-        }
-        catch
-        {
-            BootstrapLock.Release();
-            throw;
         }
     }
 

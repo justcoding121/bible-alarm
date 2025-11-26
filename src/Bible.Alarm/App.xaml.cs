@@ -53,7 +53,7 @@ public partial class App : Application
     protected override void OnSleep()
     {
         base.OnSleep();
-        _appLifecycleService.OnSleep();
+        AppLifecycleService.OnSleep();
     }
 
     protected override void OnResume()

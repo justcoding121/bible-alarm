@@ -14,17 +14,11 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible
 {
-    internal class JwBibleHarvester
+    internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     {
         private const int MaxConcurrentLanguageDownloads = 8;
-        private readonly ILogger _logger;
-        private readonly DownloadUtility _downloadUtility;
-
-        public JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
-        {
-            _logger = logger;
-            _downloadUtility = downloadUtility;
-        }
+        private readonly ILogger _logger = logger;
+        private readonly DownloadUtility _downloadUtility = downloadUtility;
 
         internal async Task HarvestBibleLinks(
             Dictionary<string, string> biblePublicationCodeToNameMappings,

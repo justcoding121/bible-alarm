@@ -14,23 +14,17 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music
 {
-    internal class MusicHarvester
+    internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
     {
         private const int MaxConcurrentLanguageDownloads = 8;
-        private readonly ILogger _logger;
-        private readonly DownloadUtility _downloadUtility;
+        private readonly ILogger _logger = logger;
+        private readonly DownloadUtility _downloadUtility = downloadUtility;
 
         private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new Dictionary<string, string>(new[]{
             new KeyValuePair<string, string>("osg","Original Songs"),
             new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
             new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
         });
-
-        public MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
-        {
-            _logger = logger;
-            _downloadUtility = downloadUtility;
-        }
 
         internal async Task HarvestVocalMusicLinks(bool isTestRun = false)
         {

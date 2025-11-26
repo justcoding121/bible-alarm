@@ -5,14 +5,9 @@ using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Services.UI;
 
-public class WindowSetupService
+public class WindowSetupService(IServiceProvider serviceProvider)
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    public WindowSetupService(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     public Window CreateWindow(IActivationState? activationState)
     {

@@ -9,16 +9,10 @@ using TagLib;
 
 namespace Bible.Alarm.Services.Media;
 
-public class DisplayMetadataService : IDisplayMetadataService
+public class DisplayMetadataService(ILogger logger, MediaService mediaService) : IDisplayMetadataService
 {
-    private readonly ILogger _logger;
-    private readonly MediaService _mediaService;
-
-    public DisplayMetadataService(ILogger logger, MediaService mediaService)
-    {
-        _logger = logger;
-        _mediaService = mediaService;
-    }
+    private readonly ILogger _logger = logger;
+    private readonly MediaService _mediaService = mediaService;
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {

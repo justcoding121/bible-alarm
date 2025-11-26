@@ -12,22 +12,16 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class MediaUrlRefreshService : IMediaUrlRefreshService
+public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService
 {
-    private readonly ILogger _logger;
-    private readonly IDownloadService _downloadService;
+    private readonly ILogger _logger = logger;
+    private readonly IDownloadService _downloadService = downloadService;
 
     private static readonly string[] JwOrgUrls =
     [
         UrlHelper.JwOrgIndexServiceBaseUrl,
         AppConstants.ApiEndpoints.JwOrgAlternativeIndexServiceUrl
     ];
-
-    public MediaUrlRefreshService(ILogger logger, IDownloadService downloadService)
-    {
-        _logger = logger;
-        _downloadService = downloadService;
-    }
 
     public async Task<string?> RefreshUrlAsync(TrackMetadata trackMetadata)
     {

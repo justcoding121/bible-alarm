@@ -8,24 +8,16 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PreparePlaybackService : IPreparePlaybackService
+public class PreparePlaybackService(
+    ILogger logger,
+    IPlaylistService playlistService,
+    IMediaCacheService cacheService,
+    IDispatcher dispatcher) : IPreparePlaybackService
 {
-    private readonly ILogger _logger;
-    private readonly IPlaylistService _playlistService;
-    private readonly IMediaCacheService _cacheService;
-    private readonly IDispatcher _dispatcher;
-
-    public PreparePlaybackService(
-        ILogger logger,
-        IPlaylistService playlistService,
-        IMediaCacheService cacheService,
-        IDispatcher dispatcher)
-    {
-        _logger = logger;
-        _playlistService = playlistService;
-        _cacheService = cacheService;
-        _dispatcher = dispatcher;
-    }
+    private readonly ILogger _logger = logger;
+    private readonly IPlaylistService _playlistService = playlistService;
+    private readonly IMediaCacheService _cacheService = cacheService;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
     {

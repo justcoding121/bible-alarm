@@ -87,5 +87,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         _disposed = true;
 
         base.Dispose();
+        
+        GC.SuppressFinalize(this);
     }
 }

@@ -6,14 +6,9 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class FallbackAlarmSoundService : IFallbackAlarmSoundService
+public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundService
 {
-    private readonly ILogger _logger;
-
-    public FallbackAlarmSoundService(ILogger logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger _logger = logger;
 
     public async Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync()
     {

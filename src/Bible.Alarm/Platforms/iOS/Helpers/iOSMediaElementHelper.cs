@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Maui.ApplicationModel;
-using MediaElementState = CommunityToolkit.Maui.Views.MediaElementState;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;
 
@@ -166,8 +165,9 @@ public static class iOSMediaElementHelper
 
     /// <summary>
     /// Gets the current MediaElement state on the main thread.
+    /// Returns the state as object since MediaElementState enum type may not be accessible in this context.
     /// </summary>
-    public static async Task<MediaElementState> GetCurrentStateAsync(MediaElement mediaElement, ILogger logger)
+    public static async Task<object> GetCurrentStateAsync(MediaElement mediaElement, ILogger logger)
     {
         return await MainThread.InvokeOnMainThreadAsync(() =>
         {
@@ -182,9 +182,11 @@ public static class iOSMediaElementHelper
     /// <summary>
     /// Handles the Paused state on iOS by stopping first, as calling Play() directly may not work.
     /// </summary>
-    public static async Task HandlePausedStateAsync(MediaElement mediaElement, MediaElementState currentState, ILogger logger)
+    public static async Task HandlePausedStateAsync(MediaElement mediaElement, object currentState, ILogger logger)
     {
-        if (currentState == MediaElementState.Paused)
+        // Check if state is Paused by comparing string representation
+        var stateString = currentState.ToString();
+        if (stateString == "Paused")
         {
             logger.Debug("MediaElement is in Paused state on iOS, stopping first then playing");
             await MainThread.InvokeOnMainThreadAsync(() => mediaElement.Stop());
@@ -231,15 +233,22 @@ public static class iOSMediaElementHelper
     /// <summary>
     /// Retries Play() on iOS if playback didn't start after initial attempt.
     /// </summary>
-    public static async Task RetryPlayIfNeededAsync(MediaElement mediaElement, MediaElementState stateAfterPlay, ILogger logger)
+    public static async Task RetryPlayIfNeededAsync(MediaElement mediaElement, object stateAfterPlay, ILogger logger)
     {
-        if (stateAfterPlay != MediaElementState.Playing && stateAfterPlay != MediaElementState.Buffering)
+        // Check if state is Playing or Buffering by comparing string representation
+        var stateString = stateAfterPlay.ToString();
+        var isPlayingOrBuffering = stateString == "Playing" || stateString == "Buffering";
+        
+        if (!isPlayingOrBuffering)
         {
             logger.Debug("MediaElement not in Playing/Buffering state after Play(), waiting longer and retrying. Current state: {State}", stateAfterPlay);
             await Task.Delay(200);
             
             var stateAfterWait = await GetCurrentStateAsync(mediaElement, logger);
-            if (stateAfterWait != MediaElementState.Playing && stateAfterWait != MediaElementState.Buffering)
+            var waitStateString = stateAfterWait.ToString();
+            var isStillPlayingOrBuffering = waitStateString == "Playing" || waitStateString == "Buffering";
+            
+            if (!isStillPlayingOrBuffering)
             {
                 logger.Debug("MediaElement still not playing after wait, attempting Play() again. State: {State}", stateAfterWait);
                 await MainThread.InvokeOnMainThreadAsync(() => mediaElement.Play());

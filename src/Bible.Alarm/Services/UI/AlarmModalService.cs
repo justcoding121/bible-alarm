@@ -6,25 +6,17 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class AlarmModalService
+public class AlarmModalService(
+    ILogger logger,
+    INavigationService navigationService,
+    IState<PlaybackState> playbackState,
+    ScheduleItemStateService scheduleItemStateService)
 {
-    private readonly ILogger _logger;
-    private readonly INavigationService _navigationService;
-    private readonly IState<PlaybackState> _playbackState;
-    private readonly ScheduleItemStateService _scheduleItemStateService;
+    private readonly ILogger _logger = logger;
+    private readonly INavigationService _navigationService = navigationService;
+    private readonly IState<PlaybackState> _playbackState = playbackState;
+    private readonly ScheduleItemStateService _scheduleItemStateService = scheduleItemStateService;
     private bool _isModalOpen;
-
-    public AlarmModalService(
-        ILogger logger,
-        INavigationService navigationService,
-        IState<PlaybackState> playbackState,
-        ScheduleItemStateService scheduleItemStateService)
-    {
-        _logger = logger;
-        _navigationService = navigationService;
-        _playbackState = playbackState;
-        _scheduleItemStateService = scheduleItemStateService;
-    }
 
     public void SubscribeToPlaybackStateChanges()
     {

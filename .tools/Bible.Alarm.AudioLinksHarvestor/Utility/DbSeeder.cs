@@ -16,16 +16,10 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility
 {
-    public class DbSeeder
+    public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     {
-        private readonly ILogger _logger;
-        private readonly IServiceScopeFactory _scopeFactory;
-
-        public DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
-        {
-            _logger = logger;
-            _scopeFactory = scopeFactory;
-        }
+        private readonly ILogger _logger = logger;
+        private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
         public async Task Seed()
         {

@@ -9,21 +9,14 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class MessageHandlingService : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>
+public class MessageHandlingService(
+    ILogger logger,
+    IServiceProvider serviceProvider,
+    INavigationService navigationService) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>
 {
-    private readonly ILogger _logger;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly INavigationService _navigationService;
-
-    public MessageHandlingService(
-        ILogger logger,
-        IServiceProvider serviceProvider,
-        INavigationService navigationService)
-    {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-        _navigationService = navigationService;
-    }
+    private readonly ILogger _logger = logger;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly INavigationService _navigationService = navigationService;
 
     public void RegisterMessageHandlers()
     {

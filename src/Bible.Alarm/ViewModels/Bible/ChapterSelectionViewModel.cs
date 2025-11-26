@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
@@ -21,15 +22,15 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class ChapterSelectionViewModel : ObservableObject, IDisposable
+public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
 
     private readonly MediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IAudioPreviewer _playService;
-    private BibleReadingSchedule _current;
-    private BibleReadingSchedule _tentative;
+    private BibleReadingSchedule? _current;
+    private BibleReadingSchedule? _tentative;
     private readonly IMediaUrlRefreshService _urlRefreshService;
     private readonly IDownloadService _downloadService;
     private readonly IState<ApplicationState> _state;
@@ -65,7 +66,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             
             // Stop any ongoing preview playback before navigating away
             _playService.Stop();
-            if (_currentlyPlaying != null)
+            if (_currentlyPlaying is not null)
             {
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
@@ -78,16 +79,18 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
         SetChapterCommand = new RelayCommand<BibleChapterListViewItemModel>(x =>
         {
-            if (x == null) return;
+            if (x is null) return;
             
             IsBusy = true;
 
-            if (SelectedChapter != null) SelectedChapter.IsSelected = false;
+            SelectedChapter?.IsSelected = false;
 
             SelectedChapter = x;
             SelectedChapter.IsSelected = true;
 
-            _tentative.ChapterNumber = x.Number;
+            _tentative?.ChapterNumber = x.Number;
+
+            if (_tentative is null) return;
 
             _dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
             {
@@ -102,11 +105,11 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _state.StateChanged += OnBibleReadingInitialized;
     }
 
-    private void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
     {
         if (_initComplete) return;
         var stateValue = _state.Value;
-        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null) return;
+        if (stateValue.CurrentBibleReadingSchedule is null || stateValue.TentativeBibleReadingSchedule is null) return;
         _current = stateValue.CurrentBibleReadingSchedule;
         _tentative = stateValue.TentativeBibleReadingSchedule;
         _initComplete = true;
@@ -127,7 +130,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand SetChapterCommand { get; set; }
 
-    public BibleChapterListViewItemModel SelectedChapter { get; set; }
+    public BibleChapterListViewItemModel? SelectedChapter { get; set; }
 
     private bool _isBusy;
 
@@ -137,15 +140,15 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _isBusy, value);
     }
 
-    private ObservableCollection<BibleChapterListViewItemModel> _chapters;
+    private ObservableCollection<BibleChapterListViewItemModel>? _chapters;
 
     public ObservableCollection<BibleChapterListViewItemModel> Chapters
     {
-        get => _chapters;
+        get => _chapters ??= [];
         set => SetProperty(ref _chapters, value);
     }
 
-    private BibleChapterListViewItemModel _currentlyPlaying;
+    private BibleChapterListViewItemModel? _currentlyPlaying;
     private readonly SemaphoreSlim _lock = new(1);
 
     private async Task Initialize(string languageCode, string publicationCode, int bookNumber)
@@ -161,7 +164,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         // Subscribe to collection changes to handle new items
         Chapters.CollectionChanged += (_, e) =>
         {
-            if (e.NewItems != null)
+            if (e.NewItems is not null)
             {
                 foreach (BibleChapterListViewItemModel item in e.NewItems)
                 {
@@ -169,7 +172,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
                 }
             }
 
-            if (e.OldItems == null) return;
+            if (e.OldItems is null) return;
             {
                 foreach (BibleChapterListViewItemModel item in e.OldItems)
                 {
@@ -184,7 +187,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     private void SubscribeToChapterEvents(BibleChapterListViewItemModel chapter)
     {
-        PropertyChangedEventHandler handler = (sender, e) =>
+        void Handler(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName != "Play" || sender is not BibleChapterListViewItemModel item) return;
             if (item.Play)
@@ -195,10 +198,10 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             {
                 _playService.Stop();
             }
-        };
+        }
 
-        chapter.PropertyChanged += handler;
-        _propertyChangedHandlers[chapter] = handler;
+        chapter.PropertyChanged += Handler;
+        _propertyChangedHandlers[chapter] = Handler;
     }
 
     private void UnsubscribeFromChapterEvents(BibleChapterListViewItemModel chapter)
@@ -212,7 +215,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     {
         await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
         {
-            if (_currentlyPlaying != null && _currentlyPlaying != chapter)
+            if (_currentlyPlaying is not null && _currentlyPlaying != chapter)
             {
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
@@ -228,30 +231,27 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
                 await Task.Run(async () =>
                 {
                     if (!await _downloadService.FileExists(url))
+                    {
+                        if (_tentative is null) return;
                         url = await _urlRefreshService.GetBibleChapterUrl(
                             _tentative.LanguageCode,
                             _tentative.PublicationCode,
                             _tentative.BookNumber,
                             chapter.Number,
                             chapter.LookUpPath);
+                    }
 
                     await _playService.Play(url);
                 });
             }
             catch
             {
-                if (_currentlyPlaying != null)
-                {
-                    _currentlyPlaying.Play = false;
-                }
+                _currentlyPlaying?.Play = false;
                 await _toastService.ShowMessage("Media download failed. Check your internet connection.");
             }
             finally
             {
-                if (_currentlyPlaying != null)
-                {
-                    _currentlyPlaying.IsBusy = false;
-                }
+                _currentlyPlaying?.IsBusy = false;
             }
         }, ex => _logger.Error(ex, "ChapterSelectionViewModel: @lock disposed error."));
     }
@@ -262,7 +262,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         {
             await ConcurrencyHelper.ExecuteAsync(_lock, () =>
             {
-                if (_currentlyPlaying == null) return Task.CompletedTask;
+                if (_currentlyPlaying is null) return Task.CompletedTask;
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
@@ -281,13 +281,15 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
 
         // Build the list of chapter view models
         var chapterViewModelList = new List<BibleChapterListViewItemModel>();
-        BibleChapterListViewItemModel selectedChapter = null;
+        BibleChapterListViewItemModel? selectedChapter = null;
 
         foreach (var chapter in chapters.Select(x => x.Value))
         {
             var chapterVm = new BibleChapterListViewItemModel(chapter);
 
             chapterViewModelList.Add(chapterVm);
+
+            if (_current is null || _tentative is null) continue;
 
             if (_current.LanguageCode != _tentative.LanguageCode
                 || _current.PublicationCode != _tentative.PublicationCode
@@ -304,7 +306,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         {
             Chapters = new ObservableCollection<BibleChapterListViewItemModel>(chapterViewModelList);
 
-            if (selectedChapter != null)
+            if (selectedChapter is not null)
             {
                 SelectedChapter = selectedChapter;
             }
@@ -317,9 +319,10 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _playService.OnStopped -= OnPlayServiceStopped;
         
         // Stop any ongoing preview playback when navigating away
+        GC.SuppressFinalize(this);
         _playService.Stop();
         
-        if (Chapters != null)
+        if (Chapters is not null)
         {
             foreach (var chapter in Chapters)
             {
@@ -330,10 +333,12 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
         _propertyChangedHandlers.Clear();
 
         _lock.Dispose();
+        
+        GC.SuppressFinalize(this);
     }
 }
 
-public class BibleChapterListViewItemModel : ObservableObject, IComparable
+public partial class BibleChapterListViewItemModel : ObservableObject, IComparable
 {
     private readonly BibleChapter _chapter;
 
@@ -375,7 +380,7 @@ public class BibleChapterListViewItemModel : ObservableObject, IComparable
         set => SetProperty(ref _isBusy, value);
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
         return Number.CompareTo((obj as BibleChapterListViewItemModel)?.Number);
     }

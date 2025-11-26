@@ -6,14 +6,9 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class ScheduleItemStateService
+public class ScheduleItemStateService(ILogger logger)
 {
-    private readonly ILogger _logger;
-
-    public ScheduleItemStateService(ILogger logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger _logger = logger;
 
     /// <summary>
     /// Sets IsBusy to false for the schedule item with the given ID.

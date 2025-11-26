@@ -6,16 +6,10 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class AppLifecycleService
+public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider)
 {
-    private readonly ILogger _logger;
-    private readonly IServiceProvider _serviceProvider;
-
-    public AppLifecycleService(ILogger logger, IServiceProvider serviceProvider)
-    {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-    }
+    private readonly ILogger _logger = logger;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     public void OnStart()
     {
@@ -46,7 +40,7 @@ public class AppLifecycleService
         });
     }
 
-    public void OnSleep()
+    public static void OnSleep()
     {
         App.IsInForeground = false;
     }
