@@ -253,7 +253,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             catch
             {
                 _currentlyPlaying.Play = false;
-                await _toastService.ShowMessage("Failed to download the file.");
+                await _toastService.ShowMessage("Media download failed. Check your internet connection.");
             }
 
             _currentlyPlaying.IsBusy = false;

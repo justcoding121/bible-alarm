@@ -91,6 +91,11 @@ public class PlaybackService : IPlaybackService
         {
             _currentScheduleId = scheduleId;
             _isAlarm = isAlarm;
+            
+            // Dispatch playback started action BEFORE preparing tracks so modal opens
+            // This ensures the modal is visible when we show error messages or play fallback
+            _dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
+            
             _playlist = await _preparePlaybackService.PrepareTracksAsync(scheduleId);
 
             if (_playlist is null)
@@ -109,9 +114,6 @@ public class PlaybackService : IPlaybackService
 
             _currentTrackIndex = 0;
             _manuallyVisitedTrackIndices.Clear();
-            
-            // Dispatch playback started action
-            _dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
             
             await PlayCurrentTrackAsync();
             NotifyNavigationChanged();
@@ -339,6 +341,13 @@ public class PlaybackService : IPlaybackService
         
         _logger.Debug("Calling PlayAsync for track at index {TrackIndex}", _currentTrackIndex);
         await _audioPlayer.PlayAsync();
+        
+        // On iOS, wait a bit longer for playback to actually start
+        // MediaElement may need time to transition to Playing state
+#if IOS
+        await Task.Delay(300);
+#endif
+        
         _logger.Debug("PlayAsync completed for track at index {TrackIndex}, Status: {Status}", 
             _currentTrackIndex, 
             _audioPlayer.Status);
@@ -523,11 +532,11 @@ public class PlaybackService : IPlaybackService
             // User can dismiss manually or retry
             _dispatcher.Dispatch(new PlaybackErrorAction
             {
-                ErrorMessage = "Internet not available. Please check your network connection."
+                ErrorMessage = "Media download failed. Check your internet connection."
             });
             
             // Also show toast for immediate feedback
-            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed. Check your internet connection."));
             
             // Don't call ResetAsync - keep playback state active so modal stays open
             // User can dismiss manually or retry playback
@@ -545,9 +554,9 @@ public class PlaybackService : IPlaybackService
                 // Even for alarms, if fallback fails, show error but keep modal open
                 _dispatcher.Dispatch(new PlaybackErrorAction
                 {
-                    ErrorMessage = "Internet not available. Please check your network connection."
+                    ErrorMessage = "Media download failed. Check your internet connection."
                 });
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed. Check your internet connection."));
                 // Don't reset - keep modal open so user can see the error
                 return;
             }
@@ -565,9 +574,9 @@ public class PlaybackService : IPlaybackService
             // Even for alarms, if fallback fails, show error but keep modal open
             _dispatcher.Dispatch(new PlaybackErrorAction
             {
-                ErrorMessage = "Internet not available. Please check your network connection."
+                ErrorMessage = "Media download failed. Check your internet connection."
             });
-            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Failed to download media. Please check your network connection."));
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed. Check your internet connection."));
             // Don't reset - keep modal open so user can see the error
         }
     }

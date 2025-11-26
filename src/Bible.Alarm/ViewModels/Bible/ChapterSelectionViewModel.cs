@@ -240,11 +240,19 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
             }
             catch
             {
-                _currentlyPlaying.Play = false;
-                await _toastService.ShowMessage("Failed to download the file.");
+                if (_currentlyPlaying != null)
+                {
+                    _currentlyPlaying.Play = false;
+                }
+                await _toastService.ShowMessage("Media download failed. Check your internet connection.");
             }
-
-            _currentlyPlaying.IsBusy = false;
+            finally
+            {
+                if (_currentlyPlaying != null)
+                {
+                    _currentlyPlaying.IsBusy = false;
+                }
+            }
         }, ex => _logger.Error(ex, "ChapterSelectionViewModel: @lock disposed error."));
     }
 

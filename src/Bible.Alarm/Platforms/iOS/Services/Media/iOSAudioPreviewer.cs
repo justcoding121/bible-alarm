@@ -2,6 +2,7 @@
 using System.IO;
 using AVFoundation;
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Foundation;
 using Serilog;
@@ -71,6 +72,9 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media
         {
             try
             {
+                // Configure audio session before playing
+                ConfigureAudioSession();
+                
                 if (await Load(url))
                 {
                     if (_player == null)
@@ -86,6 +90,9 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media
                     else
                     {
                         _player.Play();
+                        _logger.Debug("AVAudioPlayer.Play() called. Playing: {Playing}, Volume: {Volume}", 
+                            _player.Playing, 
+                            _player.Volume);
                     }
                 }
             }
@@ -94,6 +101,11 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media
                 _logger.Error(ex, "Error playing preview audio from URL: {Url}", url);
                 throw;
             }
+        }
+
+        private void ConfigureAudioSession()
+        {
+            iOSAudioSessionHelper.ConfigureAudioSession(_logger, "preview");
         }
 
         public void Stop()

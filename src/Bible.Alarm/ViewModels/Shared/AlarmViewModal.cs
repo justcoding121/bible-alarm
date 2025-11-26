@@ -263,9 +263,9 @@ public class AlarmViewModal : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Controls are visible when not preparing tracks
+    /// Controls are visible when not preparing tracks and there's no error
     /// </summary>
-    public bool AreControlsVisible => !IsPreparing;
+    public bool AreControlsVisible => !IsPreparing && !HasError;
 
     public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
     
@@ -276,7 +276,14 @@ public class AlarmViewModal : ObservableObject, IDisposable
     public string ErrorMessage
     {
         get => _errorMessage;
-        private set => SetProperty(ref _errorMessage, value);
+        private set
+        {
+            if (SetProperty(ref _errorMessage, value))
+            {
+                OnPropertyChanged(nameof(HasError));
+                OnPropertyChanged(nameof(AreControlsVisible));
+            }
+        }
     }
     
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
@@ -342,6 +349,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(PreparationProgress));
             OnPropertyChanged(nameof(HasError));
+            OnPropertyChanged(nameof(AreControlsVisible));
         });
     }
 

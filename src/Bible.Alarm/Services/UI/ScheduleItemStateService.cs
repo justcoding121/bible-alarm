@@ -26,17 +26,21 @@ public class ScheduleItemStateService
         try
         {
             // Try to get the current page and find HomeViewModel
-            var mainPage = Application.Current?.MainPage;
-            if (mainPage is NavigationPage navPage)
+            var app = Application.Current;
+            if (app?.Windows.Count > 0)
             {
-                var currentPage = navPage.CurrentPage;
-                if (currentPage is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
+                var mainPage = app.Windows[0].Page;
+                if (mainPage is NavigationPage navPage)
                 {
-                    // Find the schedule item and set IsBusy to false
-                    var scheduleItem = homeViewModel.Schedules?.FirstOrDefault(s => s.ScheduleId == scheduleId);
-                    if (scheduleItem != null)
+                    var currentPage = navPage.CurrentPage;
+                    if (currentPage is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
                     {
-                        scheduleItem.IsBusy = false;
+                        // Find the schedule item and set IsBusy to false
+                        var scheduleItem = homeViewModel.Schedules?.FirstOrDefault(s => s.ScheduleId == scheduleId);
+                        if (scheduleItem != null)
+                        {
+                            scheduleItem.IsBusy = false;
+                        }
                     }
                 }
             }

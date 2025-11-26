@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Views;
+using Bible.Alarm.Views.General;
 using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Services.UI;

@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
