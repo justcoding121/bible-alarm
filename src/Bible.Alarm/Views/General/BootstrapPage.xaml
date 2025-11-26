@@ -9,8 +9,12 @@
     Title="Bible Alarm">
     <ContentPage.Resources>
         <Style x:Key="DotStyle" TargetType="Label">
-            <Setter Property="FontSize" Value="48" />
-            <Setter Property="TextColor" Value="SlateBlue" />
+            <Setter Property="FontSize" Value="24" />
+            <Setter Property="HorizontalOptions" Value="Center" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+        <Style x:Key="DotStyleWindows" TargetType="Label">
+            <Setter Property="FontSize" Value="32" />
             <Setter Property="HorizontalOptions" Value="Center" />
             <Setter Property="VerticalOptions" Value="Center" />
         </Style>
@@ -28,17 +32,45 @@
                 Orientation="Vertical"
                 VerticalOptions="Center"
                 Spacing="20">
+                <!-- App Icon for Windows (shows immediately when BootstrapPage loads) -->
+                <Image
+                    x:Name="AppIcon"
+                    Source="logo_solid.png"
+                    WidthRequest="120"
+                    HeightRequest="120"
+                    HorizontalOptions="Center"
+                    Margin="0,0,0,20"
+                    IsVisible="True">
+                    <Image.IsVisible>
+                        <OnPlatform x:TypeArguments="x:Boolean">
+                            <OnPlatform.Platforms>
+                                <On Platform="Win" Value="True" />
+                                <On Platform="Default" Value="False" />
+                            </OnPlatform.Platforms>
+                        </OnPlatform>
+                    </Image.IsVisible>
+                </Image>
                 <ActivityIndicator
+                    x:Name="ActivityIndicator"
                     IsRunning="True"
                     Color="SlateBlue"
                     WidthRequest="80"
                     HeightRequest="80">
+                    <ActivityIndicator.IsVisible>
+                        <OnPlatform x:TypeArguments="x:Boolean">
+                            <OnPlatform.Platforms>
+                                <On Platform="iOS" Value="True" />
+                                <On Platform="Android" Value="True" />
+                                <On Platform="Win" Value="False" />
+                            </OnPlatform.Platforms>
+                        </OnPlatform>
+                    </ActivityIndicator.IsVisible>
                     <ActivityIndicator.Scale>
                         <OnPlatform x:TypeArguments="x:Double">
                             <OnPlatform.Platforms>
                                 <On Platform="iOS" Value="2.0" />
                                 <On Platform="Android" Value="1.5" />
-                                <On Platform="Win" Value="1.5" />
+                                <On Platform="Win" Value="2.0" />
                             </OnPlatform.Platforms>
                         </OnPlatform>
                     </ActivityIndicator.Scale>
@@ -47,22 +79,70 @@
                 <!-- Animated loading dots -->
                 <HorizontalStackLayout
                     HorizontalOptions="Center"
-                    Spacing="8">
+                    Spacing="12">
                     <Label
                         x:Name="Dot1"
                         Text="●"
-                        Style="{StaticResource DotStyle}"
-                        Opacity="0.3" />
+                        Opacity="0.3">
+                        <Label.Style>
+                            <OnPlatform x:TypeArguments="Style">
+                                <OnPlatform.Platforms>
+                                    <On Platform="Win" Value="{StaticResource DotStyleWindows}" />
+                                    <On Platform="Default" Value="{StaticResource DotStyle}" />
+                                </OnPlatform.Platforms>
+                            </OnPlatform>
+                        </Label.Style>
+                        <Label.TextColor>
+                            <OnPlatform x:TypeArguments="Color">
+                                <OnPlatform.Platforms>
+                                    <On Platform="Win" Value="#483D8B" />
+                                    <On Platform="Default" Value="SlateBlue" />
+                                </OnPlatform.Platforms>
+                            </OnPlatform>
+                        </Label.TextColor>
+                    </Label>
                     <Label
                         x:Name="Dot2"
                         Text="●"
-                        Style="{StaticResource DotStyle}"
-                        Opacity="0.3" />
+                        Opacity="0.3">
+                        <Label.Style>
+                            <OnPlatform x:TypeArguments="Style">
+                                <OnPlatform.Platforms>
+                                    <On Platform="Win" Value="{StaticResource DotStyleWindows}" />
+                                    <On Platform="Default" Value="{StaticResource DotStyle}" />
+                                </OnPlatform.Platforms>
+                            </OnPlatform>
+                        </Label.Style>
+                        <Label.TextColor>
+                            <OnPlatform x:TypeArguments="Color">
+                                <OnPlatform.Platforms>
+                                    <On Platform="Win" Value="#483D8B" />
+                                    <On Platform="Default" Value="SlateBlue" />
+                                </OnPlatform.Platforms>
+                            </OnPlatform>
+                        </Label.TextColor>
+                    </Label>
                     <Label
                         x:Name="Dot3"
                         Text="●"
-                        Style="{StaticResource DotStyle}"
-                        Opacity="0.3" />
+                        Opacity="0.3">
+                        <Label.Style>
+                            <OnPlatform x:TypeArguments="Style">
+                                <OnPlatform.Platforms>
+                                    <On Platform="Win" Value="{StaticResource DotStyleWindows}" />
+                                    <On Platform="Default" Value="{StaticResource DotStyle}" />
+                                </OnPlatform.Platforms>
+                            </OnPlatform>
+                        </Label.Style>
+                        <Label.TextColor>
+                            <OnPlatform x:TypeArguments="Color">
+                                <OnPlatform.Platforms>
+                                    <On Platform="Win" Value="#483D8B" />
+                                    <On Platform="Default" Value="SlateBlue" />
+                                </OnPlatform.Platforms>
+                            </OnPlatform>
+                        </Label.TextColor>
+                    </Label>
                 </HorizontalStackLayout>
             </StackLayout>
         </Grid>

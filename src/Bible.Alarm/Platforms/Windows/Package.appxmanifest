@@ -38,7 +38,7 @@
         Square150x150Logo="Platforms\Windows\Assets\MediumTile.scale-100.png"
         Square44x44Logo="Platforms\Windows\Assets\SmallTile.scale-100.png">
         <uap:DefaultTile Wide310x150Logo="Platforms\Windows\Assets\Wide310x150Logo.scale-100.png" />
-        <uap:SplashScreen Image="Platforms\Windows\Assets\SplashScreen.scale-100.png" />
+        <uap:SplashScreen Image="Platforms\Windows\Assets\SplashScreen.scale-100.png" BackgroundColor="#FFFFFF" />
       </uap:VisualElements>
     </Application>
   </Applications>

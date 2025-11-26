@@ -24,6 +24,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
         UpdateDots();
     }
 
+
     private void OnTimerElapsed(object sender, ElapsedEventArgs e)
     {
         MainThread.BeginInvokeOnMainThread(() =>

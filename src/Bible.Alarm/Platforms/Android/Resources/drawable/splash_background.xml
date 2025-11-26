@@ -4,11 +4,4 @@
     <item>
         <color android:color="@color/splash_background"/>
     </item>
-    
-    <!-- App logo centered - using gravity to center the icon like stable's layout -->
-    <item android:gravity="center" android:width="100dp" android:height="100dp">
-        <bitmap
-            android:src="@drawable/ic_launcher_foreground"
-            android:gravity="center" />
-    </item>
 </layer-list>
