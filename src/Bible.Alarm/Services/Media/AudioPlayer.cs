@@ -13,8 +13,6 @@ using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
 using System.IO;
 #if IOS
-using AVFoundation;
-using Foundation;
 using Bible.Alarm.Platforms.iOS.Helpers;
 #endif
 
@@ -108,12 +106,8 @@ public class AudioPlayer : IAudioPlayer
             _mediaElement.MetadataArtworkUrl = null!;
             
 #if IOS
-            var processedUri = ProcessiOSUri(track.Uri);
-            _mediaElement.Source = processedUri;
-            _mediaElement.Volume = 1.0;
-            _logger.Debug("Set MediaElement Volume to 1.0 on iOS. Source: {Source}, CurrentState: {State}", 
-                _mediaElement.Source?.ToString() ?? "null",
-                _mediaElement.CurrentState);
+            var processedUri = iOSMediaElementHelper.ProcessUriForMediaElement(track.Uri, _logger);
+            iOSMediaElementHelper.SetSourceAndVolume(_mediaElement, processedUri, _logger);
 #else
             _mediaElement.Source = track.Uri;
 #endif
@@ -129,170 +123,36 @@ public class AudioPlayer : IAudioPlayer
         }
     }
 
-#if IOS
-    /// <summary>
-    /// Processes a URI for iOS MediaElement by normalizing paths and converting to file:// format.
-    /// Note: MediaCacheService always returns cached file paths, never HTTP/HTTPS URLs.
-    /// </summary>
-    private string ProcessiOSUri(string uri)
-    {
-        _logger.Debug("Original track URI: {Uri}", uri);
-        
-        if (!uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
-        {
-            return ProcessiOSFilePath(uri);
-        }
-        else
-        {
-            return ProcessiOSFileUri(uri);
-        }
-    }
-
-    /// <summary>
-    /// Processes a plain file path (not file:// URI) for iOS by normalizing and converting to file:// format.
-    /// </summary>
-    private string ProcessiOSFilePath(string filePath)
-    {
-        try
-        {
-            var normalizedPath = NormalizeFilePath(filePath);
-            _logger.Debug("Normalized path: {Path} (original: {Original})", normalizedPath, filePath);
-            
-            // Verify file exists
-            if (!System.IO.File.Exists(normalizedPath))
-            {
-                _logger.Error("File does not exist at normalized path: {Path}", normalizedPath);
-                // Try the original path as fallback
-                if (System.IO.File.Exists(filePath))
-                {
-                    _logger.Warning("File exists at original path, using original: {Path}", filePath);
-                    return ConvertToFileUri(filePath);
-                }
-                else
-                {
-                    _logger.Error("File does not exist at original path either: {Path}", filePath);
-                    throw new FileNotFoundException($"File not found: {normalizedPath}");
-                }
-            }
-            
-            return ConvertToFileUri(normalizedPath);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error normalizing file path: {Path}", filePath);
-            // Fallback: use original path if normalization fails
-            if (System.IO.File.Exists(filePath))
-            {
-                _logger.Warning("Using original path as fallback: {Path}", filePath);
-                return ConvertToFileUri(filePath);
-            }
-            else
-            {
-                _logger.Error("Original path also does not exist: {Path}", filePath);
-                throw;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Normalizes a file path by resolving ../ and ./ segments.
-    /// </summary>
-    private string NormalizeFilePath(string path)
-    {
-        var isAbsolute = path.StartsWith("/");
-        var pathParts = path.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-        var normalizedParts = new List<string>();
-        
-        foreach (var part in pathParts)
-        {
-            if (part == "..")
-            {
-                if (normalizedParts.Count > 0)
-                {
-                    normalizedParts.RemoveAt(normalizedParts.Count - 1);
-                }
-            }
-            else if (part != "." && !string.IsNullOrEmpty(part))
-            {
-                normalizedParts.Add(part);
-            }
-        }
-        
-        return isAbsolute ? "/" + string.Join("/", normalizedParts) : string.Join("/", normalizedParts);
-    }
-
-    /// <summary>
-    /// Converts a file path to a file:// URI using NSUrl for iOS.
-    /// </summary>
-    private string ConvertToFileUri(string filePath)
-    {
-        var nsUrl = NSUrl.FromFilename(filePath);
-        var uri = nsUrl.AbsoluteString ?? filePath;
-        _logger.Debug("Converted path to file:// URI for iOS: {Uri} (original path: {Path})", uri, filePath);
-        return uri;
-    }
-
-    /// <summary>
-    /// Processes a file:// URI for iOS by ensuring proper format and verifying file exists.
-    /// </summary>
-    private string ProcessiOSFileUri(string uri)
-    {
-        // Ensure proper file:// URL format for iOS (file:/// for absolute paths)
-        if (!uri.StartsWith("file:///", StringComparison.OrdinalIgnoreCase))
-        {
-            uri = uri.Replace("file://", "file:///");
-            _logger.Debug("Formatted file URI for iOS: {Uri}", uri);
-        }
-        
-        // Verify file exists by converting to local path
-        try
-        {
-            var fileUri = new Uri(uri);
-            var localPath = fileUri.LocalPath;
-            if (!System.IO.File.Exists(localPath))
-            {
-                _logger.Error("File does not exist at path: {Path}", localPath);
-                throw new FileNotFoundException($"File not found: {localPath}");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error verifying file:// URI: {Uri}", uri);
-            throw;
-        }
-        
-        return uri;
-    }
-#endif
-
     public async Task PlayAsync()
     {
 #if IOS
-        await ConfigureiOSAudioSessionBeforePlayAsync();
-        var currentState = await GetCurrentMediaElementStateAsync();
-        await HandlePausedStateOniOSAsync(currentState);
-#endif
+        await iOSMediaElementHelper.ConfigureAudioSessionBeforePlayAsync(_logger);
+        var currentState = await iOSMediaElementHelper.GetCurrentStateAsync(_mediaElement, _logger);
+        await iOSMediaElementHelper.HandlePausedStateAsync(_mediaElement, currentState, _logger);
+        await iOSMediaElementHelper.InvokePlayAsync(_mediaElement, _logger);
         
+        // Wait briefly and check if playback started
+        await Task.Delay(100);
+        
+        var stateAfterPlay = await iOSMediaElementHelper.GetCurrentStateAsync(_mediaElement, _logger);
+        if (stateAfterPlay == MediaElementState.Playing || stateAfterPlay == MediaElementState.Buffering)
+        {
+            _logger.Debug("MediaElement is in {State} state after Play()", stateAfterPlay);
+        }
+        await iOSMediaElementHelper.RetryPlayIfNeededAsync(_mediaElement, stateAfterPlay, _logger);
+#else
         await InvokePlayOnMainThreadAsync();
         
         // Wait briefly and check if playback started
         await Task.Delay(100);
         
-#if IOS
-        var stateAfterPlay = await GetCurrentMediaElementStateAsync();
-        if (stateAfterPlay == MediaElementState.Playing || stateAfterPlay == MediaElementState.Buffering)
-        {
-            _logger.Debug("MediaElement is in {State} state after Play()", stateAfterPlay);
-        }
-        await RetryPlayIfNeededOniOSAsync(stateAfterPlay);
-#else
         var stateAfterPlay = await MainThread.InvokeOnMainThreadAsync(() => _mediaElement.CurrentState);
         _logger.Debug("After Play() call, MediaElement state: {State}", stateAfterPlay);
 #endif
     }
 
     /// <summary>
-    /// Invokes Play() on the main thread and sets volume on iOS.
+    /// Invokes Play() on the main thread (for non-iOS platforms).
     /// </summary>
     private async Task InvokePlayOnMainThreadAsync()
     {
@@ -303,81 +163,8 @@ public class AudioPlayer : IAudioPlayer
                 _mediaElement.Source?.ToString() ?? "null");
             
             _mediaElement.Play();
-            
-#if IOS
-            // Ensure volume is set to 1.0 before playing on iOS
-            _mediaElement.Volume = 1.0;
-            _logger.Debug("Set MediaElement Volume to 1.0 before Play() on iOS. Current Volume: {Volume}, State after Play(): {State}", 
-                _mediaElement.Volume, 
-                _mediaElement.CurrentState);
-#endif
         });
     }
-
-#if IOS
-    /// <summary>
-    /// Configures iOS audio session before playing. Critical for MediaElement to actually play audio on iOS.
-    /// </summary>
-    private async Task ConfigureiOSAudioSessionBeforePlayAsync()
-    {
-        _logger.Debug("Configuring iOS audio session before Play()");
-        await ConfigureiOSAudioSessionAsync();
-        _logger.Debug("iOS audio session configuration completed");
-    }
-
-    /// <summary>
-    /// Gets the current MediaElement state on the main thread.
-    /// </summary>
-    private async Task<MediaElementState> GetCurrentMediaElementStateAsync()
-    {
-        return await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            var state = _mediaElement.CurrentState;
-            _logger.Debug("MediaElement state: {CurrentState}, Source: {Source}", 
-                state, 
-                _mediaElement.Source?.ToString() ?? "null");
-            return state;
-        });
-    }
-
-    /// <summary>
-    /// Handles the Paused state on iOS by stopping first, as calling Play() directly may not work.
-    /// </summary>
-    private async Task HandlePausedStateOniOSAsync(MediaElementState currentState)
-    {
-        if (currentState == MediaElementState.Paused)
-        {
-            _logger.Debug("MediaElement is in Paused state on iOS, stopping first then playing");
-            await MainThread.InvokeOnMainThreadAsync(() => _mediaElement.Stop());
-            await Task.Delay(50);
-            
-            var stateAfterStop = await GetCurrentMediaElementStateAsync();
-            _logger.Debug("MediaElement state after Stop(): {State}", stateAfterStop);
-        }
-    }
-
-    /// <summary>
-    /// Retries Play() on iOS if playback didn't start after initial attempt.
-    /// </summary>
-    private async Task RetryPlayIfNeededOniOSAsync(MediaElementState stateAfterPlay)
-    {
-        if (stateAfterPlay != MediaElementState.Playing && stateAfterPlay != MediaElementState.Buffering)
-        {
-            _logger.Debug("MediaElement not in Playing/Buffering state after Play(), waiting longer and retrying. Current state: {State}", stateAfterPlay);
-            await Task.Delay(200);
-            
-            var stateAfterWait = await GetCurrentMediaElementStateAsync();
-            if (stateAfterWait != MediaElementState.Playing && stateAfterWait != MediaElementState.Buffering)
-            {
-                _logger.Debug("MediaElement still not playing after wait, attempting Play() again. State: {State}", stateAfterWait);
-                await MainThread.InvokeOnMainThreadAsync(() => _mediaElement.Play());
-                await Task.Delay(100);
-                stateAfterWait = await GetCurrentMediaElementStateAsync();
-                _logger.Debug("After retry, MediaElement state: {State}", stateAfterWait);
-            }
-        }
-    }
-#endif
 
     private async void OnMediaOpened(object? sender, EventArgs e)
     {
@@ -647,15 +434,6 @@ public class AudioPlayer : IAudioPlayer
         });
     }
 
-#if IOS
-    private async Task ConfigureiOSAudioSessionAsync()
-    {
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            iOSAudioSessionHelper.ConfigureAudioSession(_logger, "main playback");
-        });
-    }
-#endif
 
     public void Dispose()
     {
