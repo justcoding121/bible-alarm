@@ -146,6 +146,7 @@
                                             </ActivityIndicator.Scale>
                                         </ActivityIndicator>
                                         <Button
+                                            BackgroundColor="Transparent"
                                             Command="{Binding ToggleRepeatCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             IsVisible="{Binding IsSelected}"
@@ -155,6 +156,7 @@
                                             VerticalOptions="Center"
                                             WidthRequest="40" />
                                         <Button
+                                            BackgroundColor="Transparent"
                                             Command="{Binding TogglePlayCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             MinimumWidthRequest="40"

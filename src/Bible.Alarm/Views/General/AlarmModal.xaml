@@ -99,7 +99,8 @@
                     <Button
                         Margin="5"
                         AutomationId="AlarmDismissButton"
-                        BackgroundColor="{OnPlatform iOS='WhiteSmoke',
+                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                     iOS='WhiteSmoke',
                                                      WinUI='WhiteSmoke'}"
                         Command="{Binding DismissCommand}"
                         CornerRadius="10"

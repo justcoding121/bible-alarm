@@ -53,6 +53,7 @@
                     Margin="{OnPlatform Default='2',
                                         iOS='2,25,2,2'}"
                     AutomationId="AddScheduleButton"
+                    BackgroundColor="{OnPlatform Default='WhiteSmoke', WinUI='LightGray'}"
                     Command="{Binding AddScheduleCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="{OnPlatform Default='18',

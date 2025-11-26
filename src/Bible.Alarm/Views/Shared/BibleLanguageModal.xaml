@@ -122,6 +122,7 @@
                 Grid.Row="4"
                 Margin="2"
                 Padding="0"
+                BackgroundColor="White"
                 Command="{Binding CloseModalCommand}"
                 FontSize="18" FontAttributes="Bold"
                 HeightRequest="{OnPlatform Default='50',

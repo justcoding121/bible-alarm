@@ -60,6 +60,7 @@
                     <Button Grid.Column="0"
                             Margin="2,2,0,2"
                             AutomationId="CancelButton"
+                            BackgroundColor="White"
                             Command="{Binding CancelCommand}"
                             FontSize="{OnPlatform Default='18',
                                           WinUI='16'}"
@@ -75,6 +76,7 @@
                     <Button Grid.Column="1"
                             Margin="0,2,2,2"
                             AutomationId="SaveButton"
+                            BackgroundColor="White"
                             Command="{Binding SaveCommand}"
                             FontSize="{OnPlatform Default='18',
                                           WinUI='16'}"
@@ -533,6 +535,7 @@
                       VerticalOptions="End">
                     <Button Margin="2,2,2,10"
                             Padding="0"
+                            BackgroundColor="White"
                             Command="{Binding DeleteCommand}"
                             FontSize="{OnPlatform Default='16',
                                           WinUI='14'}"

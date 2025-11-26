@@ -49,6 +49,7 @@
             <Button
                 IsVisible="{Binding CanOptimizeBattery}"
                 Margin="5"
+                BackgroundColor="White"
                 Command="{Binding BatteryOptimizationExcludeCommand}"
                 CornerRadius="10"
                 FontSize="Medium"
@@ -75,6 +76,7 @@
                 IsVisible="{Binding CanOptimizeBattery}"
                 Margin="5"
                 AutomationId="BatteryOptimizationDismissButton"
+                BackgroundColor="White"
                 Command="{Binding BatteryOptimizationDismissCommand}"
                 CornerRadius="10"
                 FontSize="Medium"
@@ -88,6 +90,7 @@
                 IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
                 Margin="5"
                 AutomationId="BatteryOptimizationDismissButton"
+                BackgroundColor="White"
                 Command="{Binding BatteryOptimizationDismissCommand}"
                 CornerRadius="10"
                 FontSize="Medium"
