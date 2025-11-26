@@ -2,7 +2,9 @@
 
 <resources>
 	<color name="ic_launcher_background">#FFFFFF</color>
-	<color name="colorPrimary">#3F51B5</color>
-	<color name="colorPrimaryDark">#303F9F</color>
-	<color name="colorAccent">#3F51B5</color>
+	<color name="colorPrimary">#483D8B</color>
+	<color name="colorPrimaryDark">#362d68</color>
+	<color name="colorAccent">#483D8B</color>
+	<color name="splash_background">#FFFFFF</color>
+	<color name="splash_progress">#0078D4</color>
 </resources>

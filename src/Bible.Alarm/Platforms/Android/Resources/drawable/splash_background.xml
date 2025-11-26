@@ -1,20 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background color -->
-    <item android:drawable="@color/splash_background" />
-    
-    <!-- App logo centered -->
-    <item android:gravity="center">
-        <bitmap
-            android:src="@drawable/ic_alarm_bell"
-            android:gravity="center" />
+    <!-- Background color - white like stable -->
+    <item>
+        <color android:color="@color/splash_background"/>
     </item>
     
-    <!-- Progress indicator at bottom -->
-    <item android:gravity="bottom|center_horizontal" android:bottom="100dp">
-        <shape android:shape="oval">
-            <size android:width="40dp" android:height="40dp" />
-            <solid android:color="@color/splash_progress" />
-        </shape>
+    <!-- App logo centered - using gravity to center the icon like stable's layout -->
+    <item android:gravity="center" android:width="100dp" android:height="100dp">
+        <bitmap
+            android:src="@drawable/ic_launcher_foreground"
+            android:gravity="center" />
     </item>
 </layer-list>

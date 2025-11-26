@@ -45,7 +45,7 @@ namespace Bible.Alarm.Platforms.iOS
             {
                 // Ensure MauiApp is created exactly once (thread-safe)
                 // Foreground launch - bootstrap will run on background Task
-                return MauiAppHolder.CreateAndStore(isForeground: true);
+                return MauiAppHolder.CreateAndStore();
             }
             catch (Exception e)
             {

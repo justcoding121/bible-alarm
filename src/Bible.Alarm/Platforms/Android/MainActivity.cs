@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Android;
 
-[Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+[Activity(Theme = "@style/MainTheme", LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
     private static readonly ILogger Logger = Log.ForContext<MainActivity>();
@@ -25,10 +25,7 @@ public class MainActivity : MauiAppCompatActivity
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
 
-        // Set up fullscreen and system UI for splash screen experience
-        SetupSplashScreen();
-
-        // BootstrapHelper is already initialized in MauiProgram.cs
+        // BootstrapHelper is already initialized in SplashActivity
         // No need to call it again here for foreground scenarios
 
         // Handle incoming intents (e.g., from notifications)
@@ -46,45 +43,6 @@ public class MainActivity : MauiAppCompatActivity
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         Logger.Error("Unhandled exception.", e.SerializeObject());
-    }
-
-    private void SetupSplashScreen()
-    {
-        try
-        {
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
-            {
-#pragma warning disable CA1416, CA1422
-                Window?.SetDecorFitsSystemWindows(false);
-#pragma warning restore CA1416, CA1422
-            }
-            else
-            {
-#pragma warning disable CS0618 // Type or member is obsolete
-                try
-                {
-                    if (Window?.DecorView != null)
-                    {
-                        Window.DecorView.SystemUiVisibility =
-                            (StatusBarVisibility)((int)Window.DecorView.SystemUiVisibility ^
-                                                  (int)SystemUiFlags.LayoutStable ^ (int)SystemUiFlags.LayoutFullscreen);
-                    }   
-                }
-                catch
-                {
-                    // ignored
-                }
-#pragma warning restore CS0618 // Type or member is obsolete
-            }
-
-            if (Window == null) return;
-            Window.AddFlags(WindowManagerFlags.DrawsSystemBarBackgrounds);
-            Window.SetFlags(WindowManagerFlags.Fullscreen, WindowManagerFlags.Fullscreen);
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Error setting up splash screen");
-        }
     }
 
     private void HandleIncomingIntent()

@@ -24,7 +24,7 @@ public static class MauiAppHolder
 
     public static IServiceProvider Services => App.Services;
 
-    public static MauiApp CreateAndStore(bool isForeground = false)
+    public static MauiApp CreateAndStore()
     {
         lock (Lock)
         {

@@ -39,7 +39,7 @@ namespace Bible.Alarm.WinUI
             Logger.Error("Unhandled exception.", e.SerializeObject());
         }
 
-        protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore(isForeground: true);
+        protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore();
 
         /// <summary>
         /// Handles app activation (e.g., from toast notifications, protocol handlers, etc.)
@@ -51,7 +51,7 @@ namespace Bible.Alarm.WinUI
 
             // Ensure MauiApp is created
             // Foreground launch - bootstrap will run on background Task
-            MauiAppHolder.CreateAndStore(isForeground: true);
+            MauiAppHolder.CreateAndStore();
 
             // Handle activation arguments (e.g., from toast notifications)
             if (!string.IsNullOrEmpty(args.Arguments))
