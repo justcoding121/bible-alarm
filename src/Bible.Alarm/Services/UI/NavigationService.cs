@@ -245,7 +245,13 @@ public class NavigationService(
     public async Task NavigateToScheduleAsync()
     {
         var page = _serviceProvider.GetRequiredService<Schedule>();
-        await PushFreshPageAsync(page, hasNavigationBar: false);
+        var navigation = await GetNavigationAsync();
+        
+        // Set navigation bar setting
+        NavigationPage.SetHasNavigationBar(page, false);
+        
+        // Push the page without animation for instant navigation
+        await navigation.PushAsync(page, animated: false);
     }
 
     public async Task NavigateToMusicSelectionAsync()

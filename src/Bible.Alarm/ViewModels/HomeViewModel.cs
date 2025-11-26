@@ -61,8 +61,12 @@ public class HomeViewModel : ObservableObject, IDisposable
             if (x == null || x.Schedule == null) return;
             
             x.Schedule.IsEnabled = x.IsEnabled;
-            await navigationService.NavigateToScheduleAsync();
+            // Start navigation immediately (don't await yet)
+            var navigationTask = navigationService.NavigateToScheduleAsync();
+            // Dispatch action immediately so data loading can start
             _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
+            // Wait for navigation to complete
+            await navigationTask;
         });
 
         _state.StateChanged += OnStateChanged;

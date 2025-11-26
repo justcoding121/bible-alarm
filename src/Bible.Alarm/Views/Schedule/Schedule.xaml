@@ -93,8 +93,8 @@
                         IsVisible="{Binding IsSaving}"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
-                        WidthRequest="30"
-                        HeightRequest="30">
+                        HeightRequest="{OnPlatform Default='50',
+                                                   WinUI='37'}">
                         <ActivityIndicator.Color>
                             <OnPlatform x:TypeArguments="Color">
                                 <OnPlatform.Platforms>
@@ -570,8 +570,8 @@
                     IsVisible="{Binding IsRemoving}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    WidthRequest="30"
-                    HeightRequest="30">
+                    HeightRequest="{OnPlatform Default='50',
+                                               WinUI='37'}">
                     <ActivityIndicator.Color>
                         <OnPlatform x:TypeArguments="Color">
                             <OnPlatform.Platforms>

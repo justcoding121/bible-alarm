@@ -344,9 +344,9 @@ public class AlarmViewModal : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
             
-            // Mark that we've received initial state when playback has started or is preparing
-            // This happens when IsPreparingOrPlaying is true, or when we have meaningful playback data
-            if (!_hasReceivedInitialState && (state.IsPreparingOrPlaying || state.Status != PlayStatus.Stopped || state.Duration.TotalSeconds > 0))
+            // Mark that we've received initial state only when playback is actually playing
+            // This ensures controls are disabled until playback actually starts (not just when track metadata is available)
+            if (!_hasReceivedInitialState && state.Status == PlayStatus.Playing)
             {
                 _hasReceivedInitialState = true;
                 OnPropertyChanged(nameof(AreControlsEnabled));

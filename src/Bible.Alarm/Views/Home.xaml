@@ -141,8 +141,10 @@
                                             IsVisible="{Binding IsBusy}"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Center"
-                                            WidthRequest="30"
-                                            HeightRequest="30">
+                                            WidthRequest="{OnPlatform iOS='75',
+                                                                      WinUI='75'}"
+                                            HeightRequest="{OnPlatform WinUI='50',
+                                                                       iOS='50'}">
                                             <ActivityIndicator.Color>
                                                 <OnPlatform x:TypeArguments="Color">
                                                     <OnPlatform.Platforms>
