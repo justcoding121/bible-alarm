@@ -19,10 +19,7 @@ public static class PlaybackReducer
             artist: state.Artist,
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
-            currentPosition: state.CurrentPosition,
             duration: state.Duration,
-            loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks,
             errorMessage: null); // Clear error when starting new playback
     }
 
@@ -39,10 +36,7 @@ public static class PlaybackReducer
             artist: null,
             album: null,
             artworkUrl: null,
-            currentPosition: null,
             duration: TimeSpan.Zero,
-            loadedTracks: 0,
-            totalTracks: 0,
             errorMessage: null);
     }
 
@@ -59,10 +53,7 @@ public static class PlaybackReducer
             artist: state.Artist,
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
-            currentPosition: state.CurrentPosition,
             duration: state.Duration,
-            loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks,
             errorMessage: state.ErrorMessage);
     }
 
@@ -96,10 +87,7 @@ public static class PlaybackReducer
             artist: state.Artist,
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
-            currentPosition: state.CurrentPosition,
             duration: state.Duration,
-            loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks,
             errorMessage: state.ErrorMessage);
     }
 
@@ -116,15 +104,12 @@ public static class PlaybackReducer
             artist: action.Artist,
             album: action.Album,
             artworkUrl: action.ArtworkUrl,
-            currentPosition: state.CurrentPosition,
             duration: state.Duration,
-            loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks,
             errorMessage: state.ErrorMessage);
     }
 
     [ReducerMethod]
-    public static PlaybackState OnPlaybackPositionChanged(PlaybackState state, PlaybackPositionChangedAction action)
+    public static PlaybackState OnPlaybackDurationChanged(PlaybackState state, PlaybackDurationChangedAction action)
     {
         return new PlaybackState(
             currentScheduleId: state.CurrentScheduleId,
@@ -136,30 +121,7 @@ public static class PlaybackReducer
             artist: state.Artist,
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
-            currentPosition: action.CurrentPosition,
             duration: action.Duration,
-            loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks,
-            errorMessage: state.ErrorMessage);
-    }
-
-    [ReducerMethod]
-    public static PlaybackState OnPlaybackPreparationProgress(PlaybackState state, PlaybackPreparationProgressAction action)
-    {
-        return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            currentPosition: state.CurrentPosition,
-            duration: state.Duration,
-            loadedTracks: action.LoadedTracks,
-            totalTracks: action.TotalTracks,
             errorMessage: state.ErrorMessage);
     }
 
@@ -176,10 +138,7 @@ public static class PlaybackReducer
             artist: state.Artist,
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
-            currentPosition: state.CurrentPosition,
             duration: state.Duration,
-            loadedTracks: state.LoadedTracks,
-            totalTracks: state.TotalTracks,
             errorMessage: action.ErrorMessage);
     }
 }

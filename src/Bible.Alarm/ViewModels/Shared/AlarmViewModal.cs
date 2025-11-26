@@ -1,5 +1,6 @@
 #nullable enable
 using System.Windows.Input;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Database;
@@ -8,6 +9,7 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.ApplicationModel;
@@ -16,7 +18,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class AlarmViewModal : ObservableObject, IDisposable
+public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
 {
     private readonly IPlaybackService _playbackService;
     private readonly IState<PlaybackState> _playbackState;
@@ -26,6 +28,7 @@ public class AlarmViewModal : ObservableObject, IDisposable
     private string? _previousTrackTitle;
     private string? _previousTrackArtist;
     private string? _previousTrackAlbum;
+    private TimeSpan _currentDuration = TimeSpan.Zero;
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
@@ -54,6 +57,10 @@ public class AlarmViewModal : ObservableObject, IDisposable
         
         // Subscribe to Fluxor state changes for reactive updates
         _playbackState.StateChanged += OnPlaybackStateChanged;
+        
+        // Subscribe to position and preparation progress messages (high-frequency updates)
+        WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
+        WeakReferenceMessenger.Default.Register<PlaybackPreparationProgressMessage>(this);
         
         // Initialize from current state
         UpdateFromState();
@@ -370,34 +377,12 @@ public class AlarmViewModal : ObservableObject, IDisposable
             SubTitle = currentArtist;
             Description = currentAlbum;
             
-            // Update position and duration
-            if (state.CurrentPosition.HasValue)
-            {
-                var position = state.CurrentPosition.Value;
-                CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
-            }
-            else
-            {
-                CurrentTime = "00:00";
-            }
-
+            // Update duration (from Fluxor state, only changes when track changes)
             var duration = state.Duration;
+            _currentDuration = duration;
             EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
-
-            if (state.CurrentPosition.HasValue && duration.TotalSeconds > 0)
-            {
-                Progress = state.CurrentPosition.Value.TotalSeconds / duration.TotalSeconds;
-            }
-            else
-            {
-                Progress = 0.0;
-            }
             
-            // Update preparation progress
-            _loadedTracks = state.LoadedTracks;
-            _totalTracks = state.TotalTracks;
-            PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
-            IsPreparing = state.IsPreparing;
+            // Note: Position and PreparationProgress are updated via messages (high-frequency updates)
             
             // Update error message
             ErrorMessage = state.ErrorMessage ?? "";
@@ -415,11 +400,60 @@ public class AlarmViewModal : ObservableObject, IDisposable
         });
     }
 
+    public void Receive(PlaybackPositionChangedMessage message)
+    {
+        // Handle high-frequency position updates via messaging
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (message.CurrentPosition.HasValue)
+            {
+                var position = message.CurrentPosition.Value;
+                CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
+                
+                // Update progress based on current position and duration
+                if (_currentDuration.TotalSeconds > 0)
+                {
+                    Progress = position.TotalSeconds / _currentDuration.TotalSeconds;
+                }
+                else
+                {
+                    Progress = 0.0;
+                }
+            }
+            else
+            {
+                CurrentTime = "00:00";
+                Progress = 0.0;
+            }
+            
+            // Notify property changes
+            OnPropertyChanged(nameof(ProgressText));
+        });
+    }
+
+    public void Receive(PlaybackPreparationProgressMessage message)
+    {
+        // Handle high-frequency preparation progress updates via messaging
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            _loadedTracks = message.LoadedTracks;
+            _totalTracks = message.TotalTracks;
+            PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
+            IsPreparing = _totalTracks > 0 && _loadedTracks < _totalTracks;
+            
+            // Notify property changes
+            OnPropertyChanged(nameof(ProgressText));
+            OnPropertyChanged(nameof(PreparationProgress));
+        });
+    }
+
     public void Dispose()
     {
         if (!_isDisposed)
         {
             _playbackState.StateChanged -= OnPlaybackStateChanged;
+            WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
+            WeakReferenceMessenger.Default.Unregister<PlaybackPreparationProgressMessage>(this);
             _isDisposed = true;
         }
     }

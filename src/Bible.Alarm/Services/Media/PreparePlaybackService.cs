@@ -1,9 +1,8 @@
 #nullable enable
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Stores.Actions.Playback;
-using Fluxor;
-using IDispatcher = Fluxor.IDispatcher;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -11,13 +10,11 @@ namespace Bible.Alarm.Services.Media;
 public class PreparePlaybackService(
     ILogger logger,
     IPlaylistService playlistService,
-    IMediaCacheService cacheService,
-    IDispatcher dispatcher) : IPreparePlaybackService
+    IMediaCacheService cacheService) : IPreparePlaybackService
 {
     private readonly ILogger _logger = logger;
     private readonly IPlaylistService _playlistService = playlistService;
     private readonly IMediaCacheService _cacheService = cacheService;
-    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
     {
@@ -26,8 +23,8 @@ public class PreparePlaybackService(
         var totalTracks = playItems.Count;
         var loadedTracks = 0;
 
-        // Dispatch initial progress action with total count
-        _dispatcher.Dispatch(new PlaybackPreparationProgressAction
+        // Send initial progress message with total count
+        WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
         {
             LoadedTracks = 0,
             TotalTracks = totalTracks
@@ -49,9 +46,9 @@ public class PreparePlaybackService(
                 PlayItem = playItem
             });
 
-            // Dispatch progress update after each track is prepared
+            // Send progress update message after each track is prepared
             loadedTracks++;
-            _dispatcher.Dispatch(new PlaybackPreparationProgressAction
+            WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
             {
                 LoadedTracks = loadedTracks,
                 TotalTracks = totalTracks

@@ -21,14 +21,9 @@ public class PlaybackState
     public string? Album { get; init; }
     public string? ArtworkUrl { get; init; }
     
-    // Position and duration
-    public TimeSpan? CurrentPosition { get; init; }
+    // Duration (updated when track changes, infrequent)
+    // Note: CurrentPosition and PreparationProgress are handled via MVVM messaging for performance (high-frequency updates)
     public TimeSpan Duration { get; init; }
-    
-    // Preparation progress
-    public int LoadedTracks { get; init; }
-    public int TotalTracks { get; init; }
-    public bool IsPreparing => TotalTracks > 0 && LoadedTracks < TotalTracks;
     
     // Error message (shown when playback fails)
     public string? ErrorMessage { get; init; }
@@ -44,10 +39,7 @@ public class PlaybackState
         Artist = null;
         Album = null;
         ArtworkUrl = null;
-        CurrentPosition = null;
         Duration = TimeSpan.Zero;
-        LoadedTracks = 0;
-        TotalTracks = 0;
         ErrorMessage = null;
     }
 
@@ -61,10 +53,7 @@ public class PlaybackState
         string? artist = null,
         string? album = null,
         string? artworkUrl = null,
-        TimeSpan? currentPosition = null,
         TimeSpan duration = default,
-        int loadedTracks = 0,
-        int totalTracks = 0,
         string? errorMessage = null)
     {
         CurrentScheduleId = currentScheduleId;
@@ -76,10 +65,7 @@ public class PlaybackState
         Artist = artist;
         Album = album;
         ArtworkUrl = artworkUrl;
-        CurrentPosition = currentPosition;
         Duration = duration;
-        LoadedTracks = loadedTracks;
-        TotalTracks = totalTracks;
         ErrorMessage = errorMessage;
     }
 }

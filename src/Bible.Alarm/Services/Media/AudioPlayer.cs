@@ -8,6 +8,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
@@ -29,6 +30,7 @@ public partial class AudioPlayer : IAudioPlayer
     private AudioPlayerTrack? _currentTrack;
     private TaskCompletionSource<bool>? _mediaOpenedCompletionSource;
     private bool _isResetting = false;
+    private TimeSpan _lastDuration = TimeSpan.Zero;
 
     public TimeSpan? CurrentPosition => _mediaElement.Position;
     public TimeSpan Duration => _mediaElement.Duration;
@@ -98,6 +100,8 @@ public partial class AudioPlayer : IAudioPlayer
         _currentTrack = track;
         Status = PlayStatus.Loading;
         _mediaOpenedCompletionSource = new TaskCompletionSource<bool>();
+        // Reset duration tracking so new track's duration will be detected as changed
+        _lastDuration = TimeSpan.Zero;
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
@@ -174,6 +178,17 @@ public partial class AudioPlayer : IAudioPlayer
         // Signal that media is ready
         _mediaOpenedCompletionSource?.TrySetResult(true);
 
+        // Update duration when track opens (track change)
+        var currentDuration = Duration;
+        if (currentDuration != _lastDuration && currentDuration > TimeSpan.Zero)
+        {
+            _lastDuration = currentDuration;
+            _dispatcher.Dispatch(new PlaybackDurationChangedAction
+            {
+                Duration = currentDuration
+            });
+        }
+
         try
         {
             var metadata = await _displayMetadataService.GetDisplayMetadataAsync(_currentTrack);
@@ -207,12 +222,22 @@ public partial class AudioPlayer : IAudioPlayer
 
     private void SendPositionUpdate()
     {
-        // Dispatch Fluxor action
-        _dispatcher.Dispatch(new PlaybackPositionChangedAction
+        // Send position update via MVVM messaging (high-frequency updates)
+        WeakReferenceMessenger.Default.Send(new PlaybackPositionChangedMessage
         {
-            CurrentPosition = CurrentPosition,
-            Duration = Duration
+            CurrentPosition = CurrentPosition
         });
+        
+        // Check if duration changed (track change) and update Fluxor state if needed
+        var currentDuration = Duration;
+        if (currentDuration != _lastDuration && currentDuration > TimeSpan.Zero)
+        {
+            _lastDuration = currentDuration;
+            _dispatcher.Dispatch(new PlaybackDurationChangedAction
+            {
+                Duration = currentDuration
+            });
+        }
     }
 
 
