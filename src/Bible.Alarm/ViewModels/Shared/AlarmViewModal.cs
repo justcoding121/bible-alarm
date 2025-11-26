@@ -23,6 +23,9 @@ public class AlarmViewModal : ObservableObject, IDisposable
 
     private bool _isDisposed;
     private bool _hasReceivedInitialState;
+    private string? _previousTrackTitle;
+    private string? _previousTrackArtist;
+    private string? _previousTrackAlbum;
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
@@ -324,6 +327,22 @@ public class AlarmViewModal : ObservableObject, IDisposable
         {
             var state = _playbackState.Value;
             
+            // Detect track change by comparing current metadata with previous
+            var currentTitle = state.Title ?? "";
+            var currentArtist = state.Artist ?? "";
+            var currentAlbum = state.Album ?? "";
+            
+            var trackChanged = _hasReceivedInitialState && 
+                               (_previousTrackTitle != currentTitle || 
+                                _previousTrackArtist != currentArtist || 
+                                _previousTrackAlbum != currentAlbum);
+            
+            if (trackChanged)
+            {
+                // Track has changed - hide controls until we receive play-related event for new track
+                _hasReceivedInitialState = false;
+            }
+            
             // Mark that we've received initial state when playback has started or is preparing
             // This happens when IsPreparingOrPlaying is true, or when we have meaningful playback data
             if (!_hasReceivedInitialState && (state.IsPreparingOrPlaying || state.Status != PlayStatus.Stopped || state.Duration.TotalSeconds > 0))
@@ -331,14 +350,23 @@ public class AlarmViewModal : ObservableObject, IDisposable
                 _hasReceivedInitialState = true;
             }
             
+            // Update previous track metadata only after we've received initial state for the new track
+            // This ensures we can detect the next track change correctly
+            if (_hasReceivedInitialState)
+            {
+                _previousTrackTitle = currentTitle;
+                _previousTrackArtist = currentArtist;
+                _previousTrackAlbum = currentAlbum;
+            }
+            
             // Update navigation controls
             NextEnabled = state.CanPlayNext;
             PreviousEnabled = state.CanPlayPrevious;
             
             // Update metadata
-            Title = state.Title ?? "";
-            SubTitle = state.Artist ?? "";
-            Description = state.Album ?? "";
+            Title = currentTitle;
+            SubTitle = currentArtist;
+            Description = currentAlbum;
             
             // Update position and duration
             if (state.CurrentPosition.HasValue)

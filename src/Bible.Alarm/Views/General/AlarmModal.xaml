@@ -143,6 +143,15 @@
                     HorizontalTextAlignment="Center"
                     Text="{Binding SubTitle}" />
             </FlexLayout>
+            <!-- Placeholder to prevent layout shift when controls are hidden -->
+            <BoxView
+                Grid.Row="1"
+                Margin="5,5,5,25"
+                HeightRequest="80"
+                IsVisible="{Binding AreControlsVisible, Converter={StaticResource negateBooleanConverter}}"
+                Opacity="0"
+                VerticalOptions="End" />
+            
             <Grid
                 Grid.Row="1"
                 Margin="5,5,5,25"

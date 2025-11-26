@@ -80,6 +80,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItem">
                             <Grid
+                                x:Name="ScheduleItemGrid"
                                 Margin="{OnPlatform Default='0,10,0,10'}"
                                 ColumnSpacing="{OnPlatform iOS='0'}"
                                 HorizontalOptions="Fill"
@@ -87,8 +88,7 @@
                                 VerticalOptions="Center">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer 
-                                        Command="{Binding Source={x:Reference HomePage}, Path=BindingContext.ViewScheduleCommand}" 
-                                        CommandParameter="{Binding .}" />
+                                        Tapped="OnScheduleItemTapped" />
                                 </Grid.GestureRecognizers>
                                 <Grid.Resources>
                                     <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
