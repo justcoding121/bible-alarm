@@ -37,19 +37,81 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
             try
             {
-                var alert = UIAlertController.Create(null, message, UIAlertControllerStyle.Alert);
-#pragma warning disable CA1422
-                UIApplication.SharedApplication.KeyWindow.RootViewController.PresentViewController(alert, true, null);
-#pragma warning restore CA1422
+                var window = UIApplication.SharedApplication.KeyWindow;
+                if (window?.RootViewController?.View == null)
+                {
+                    return;
+                }
 
+                var containerView = window.RootViewController.View;
+                
+                // Create a non-blocking toast view
+                var toastView = CreateToastView(message);
+                containerView.AddSubview(toastView);
+                
+                // Position at bottom center
+                toastView.TranslatesAutoresizingMaskIntoConstraints = false;
+                NSLayoutConstraint.ActivateConstraints(new[]
+                {
+                    toastView.CenterXAnchor.ConstraintEqualTo(containerView.CenterXAnchor),
+                    toastView.BottomAnchor.ConstraintEqualTo(containerView.SafeAreaLayoutGuide.BottomAnchor, -50),
+                    toastView.LeadingAnchor.ConstraintGreaterThanOrEqualTo(containerView.LeadingAnchor, 20),
+                    toastView.TrailingAnchor.ConstraintLessThanOrEqualTo(containerView.TrailingAnchor, -20)
+                });
+                
+                // Animate in
+                toastView.Alpha = 0;
+                UIView.Animate(0.3, () => toastView.Alpha = 1);
+                
+                // Wait for duration or clear request
                 await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
-                alert.DismissViewController(true, null);
+                
+                // Animate out and remove
+                UIView.Animate(0.3, () => toastView.Alpha = 0, () =>
+                {
+                    toastView.RemoveFromSuperview();
+                    toastView.Dispose();
+                });
             }
             finally
             {
                 Lock.Release();
                 clearRequest = null;
             }
+        }
+
+        private static UIView CreateToastView(string message)
+        {
+            var label = new UILabel
+            {
+                Text = message,
+                TextColor = UIColor.White,
+                TextAlignment = UITextAlignment.Center,
+                Font = UIFont.SystemFontOfSize(16),
+                Lines = 0,
+                LineBreakMode = UILineBreakMode.WordWrap,
+                BackgroundColor = UIColor.Black.ColorWithAlpha(0.8f)
+            };
+            
+            label.Layer.CornerRadius = 10;
+            label.Layer.MasksToBounds = true;
+            
+            var containerView = new UIView
+            {
+                BackgroundColor = UIColor.Clear
+            };
+            
+            containerView.AddSubview(label);
+            label.TranslatesAutoresizingMaskIntoConstraints = false;
+            NSLayoutConstraint.ActivateConstraints(new[]
+            {
+                label.TopAnchor.ConstraintEqualTo(containerView.TopAnchor, 12),
+                label.BottomAnchor.ConstraintEqualTo(containerView.BottomAnchor, -12),
+                label.LeadingAnchor.ConstraintEqualTo(containerView.LeadingAnchor, 16),
+                label.TrailingAnchor.ConstraintEqualTo(containerView.TrailingAnchor, -16)
+            });
+            
+            return containerView;
         }
 
         private static TaskCompletionSource<bool> clearRequest;

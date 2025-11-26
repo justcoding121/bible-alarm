@@ -56,6 +56,12 @@ public class PreparePlaybackService(
                 LoadedTracks = loadedTracks,
                 TotalTracks = totalTracks
             });
+            
+            // Add delay to ensure each progress state (1/3, 2/3, 3/3) is visible on UI
+            if (loadedTracks < totalTracks)
+            {
+                await Task.Delay(50);
+            }
         }
 
         return preparedTracks;

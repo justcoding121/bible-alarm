@@ -68,8 +68,8 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                     return;
                 }
 
-                var flyout = CreateFlyout(message);
-                await ShowFlyoutAsync(flyout, targetElement, seconds);
+                var teachingTip = CreateTeachingTip(message, targetElement);
+                await ShowFlyoutAsync(teachingTip, targetElement, seconds);
             }
             finally
             {
@@ -139,35 +139,68 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             return null;
         }
 
-        private static Flyout CreateFlyout(string message)
+        private static TeachingTip CreateTeachingTip(string message, FrameworkElement targetElement)
         {
-            return new Flyout
+            var teachingTip = new TeachingTip
             {
-                Content = new TextBlock
-                {
-                    Text = message,
-                    TextWrapping = TextWrapping.Wrap,
-                    Padding = new Microsoft.UI.Xaml.Thickness(12)
-                },
-                Placement = FlyoutPlacementMode.Bottom,
-                LightDismissOverlayMode = LightDismissOverlayMode.On
+                Title = message,
+                IsLightDismissEnabled = true,
+                PreferredPlacement = TeachingTipPlacementMode.Bottom,
+                Target = targetElement,
+                IsOpen = false
             };
+            
+            return teachingTip;
         }
 
-        private static async Task ShowFlyoutAsync(Flyout flyout, FrameworkElement targetElement, double seconds)
+        private static async Task ShowFlyoutAsync(TeachingTip teachingTip, FrameworkElement targetElement, double seconds)
         {
-            flyout.OverlayInputPassThroughElement = targetElement;
-            flyout.ShowAt(targetElement);
+            // Ensure TeachingTip is in the visual tree by adding it to the window's content
+            var currentWindow = GetNativeWindow();
+            Panel? containerPanel = null;
+            
+            if (currentWindow?.Content is FrameworkElement windowContent)
+            {
+                // Try to find or create a container for the TeachingTip
+                if (windowContent is Panel panel)
+                {
+                    containerPanel = panel;
+                }
+                else if (windowContent is ContentControl contentControl && contentControl.Content is Panel contentPanel)
+                {
+                    containerPanel = contentPanel;
+                }
+                
+                // If we found a panel, add the TeachingTip to it
+                if (containerPanel != null && !containerPanel.Children.Contains(teachingTip))
+                {
+                    containerPanel.Children.Add(teachingTip);
+                }
+            }
+            
+            teachingTip.IsOpen = true;
 
             if (clearRequest is { } request)
             {
-                await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
+                await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(false);
             }
             else
             {
                 await Task.Delay((int)(seconds * 1000));
             }
-            flyout.Hide();
+            
+            teachingTip.IsOpen = false;
+            
+            // Clean up after a brief delay to allow animation to complete
+            await Task.Delay(200);
+            
+            // Remove from visual tree
+            if (containerPanel != null && containerPanel.Children.Contains(teachingTip))
+            {
+                containerPanel.Children.Remove(teachingTip);
+            }
+            
+            teachingTip.Target = null;
         }
 
     }
