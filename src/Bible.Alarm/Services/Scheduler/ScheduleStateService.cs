@@ -50,20 +50,46 @@ public class ScheduleStateService(
 
         // Update database and alarm service
         AlarmSchedule updatedSchedule = null;
-        await Task.Run(async () =>
+        try
         {
-            using var scope = _scopeFactory.CreateScope();
-            await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-            var existing = await scheduleDbContext.AlarmSchedules
-                .Include(x => x.BibleReadingSchedule)
-                .Include(x => x.Music)
-                .FirstAsync(x => x.Id == scheduleId);
-            existing.IsEnabled = isEnabled;
-            await scheduleDbContext.SaveChangesAsync();
+            await Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                var existing = await scheduleDbContext.AlarmSchedules
+                    .Include(x => x.BibleReadingSchedule)
+                    .Include(x => x.Music)
+                    .FirstAsync(x => x.Id == scheduleId);
+                existing.IsEnabled = isEnabled;
+                await scheduleDbContext.SaveChangesAsync();
 
-            _alarmService.Update(existing);
-            updatedSchedule = existing;
-        });
+                _alarmService.Update(existing);
+                updatedSchedule = existing;
+            });
+        }
+        catch (Exception ex)
+        {
+            // Check if it's a SecurityException (Android exact alarm permission issue)
+            var exceptionType = ex.GetType().FullName;
+            if (exceptionType == "Java.Lang.SecurityException" || ex.Message.Contains("SCHEDULE_EXACT_ALARM") || ex.Message.Contains("USE_EXACT_ALARM"))
+            {
+                _logger.Error(ex, "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
+                
+                // Show user-friendly message for Android
+                if (DeviceInfo.Platform == DevicePlatform.Android)
+                {
+                    await _toastService.ShowMessage(
+                        "Cannot schedule alarm. Please enable 'Alarms & reminders' permission in system settings.", 
+                        7);
+                }
+                
+                // Return false to indicate the state change was rejected
+                return false;
+            }
+            
+            // Re-throw if it's a different exception
+            throw;
+        }
 
         // Update the Fluxor store to trigger state change and UI refresh
         if (updatedSchedule != null)

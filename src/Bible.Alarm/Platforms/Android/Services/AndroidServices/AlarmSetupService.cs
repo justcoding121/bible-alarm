@@ -113,36 +113,59 @@ public class AlarmSetupService : Service, IDisposable
     public static void ScheduleNotification(Context context, int scheduleId, DateTimeOffset time,
         string title, string body)
     {
-        using var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
-        alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
-        alarmIntent.PutExtra("IsAlarm", true);
-
-        using var pIntent = PendingIntent.GetBroadcast(
-            context,
-            (int)scheduleId,
-            alarmIntent,
-            PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
-        using var alarmService = (AlarmManager)context.GetSystemService(AlarmService);
-
-        // Figure out the alaram in milliseconds.
-        var milliSecondsRemaining = JavaSystem.CurrentTimeMillis()
-                                    + (long)time.Subtract(DateTimeOffset.Now).TotalSeconds * 1000;
-
-        if (Build.VERSION.SdkInt < BuildVersionCodes.M)
-            alarmService.SetExact(AlarmType.RtcWakeup, milliSecondsRemaining, pIntent);
-        else
+        try
         {
-            using var mainLauncherIntent = new Intent(context, typeof(MainActivity));
-            mainLauncherIntent.SetFlags(ActivityFlags.ReorderToFront);
+            using var alarmIntent = new Intent(context, typeof(AlarmRingerReceiver));
+            alarmIntent.PutExtra("ScheduleId", scheduleId.ToString());
+            alarmIntent.PutExtra("IsAlarm", true);
 
-            var mainLauncherPendingIntent = PendingIntent.GetActivity(
+            using var pIntent = PendingIntent.GetBroadcast(
                 context,
-                0,
-                mainLauncherIntent,
+                (int)scheduleId,
+                alarmIntent,
                 PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+            using var alarmService = (AlarmManager)context.GetSystemService(AlarmService);
 
-            alarmService.SetAlarmClock(new AlarmClockInfo(milliSecondsRemaining, mainLauncherPendingIntent),
-                pIntent);
+            // Check if exact alarms can be scheduled (Android 12+)
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.S)
+            {
+#pragma warning disable CA1416
+                if (!alarmService.CanScheduleExactAlarms())
+                {
+                    Logger.Warning("Cannot schedule exact alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may have been revoked by user.", scheduleId);
+                    // Note: On Android 12+, user needs to grant this permission in system settings
+                    // The app should guide users to Settings > Apps > Bible Alarm > Alarms & reminders
+                    return;
+                }
+#pragma warning restore CA1416
+            }
+
+            // Figure out the alarm in milliseconds.
+            var milliSecondsRemaining = JavaSystem.CurrentTimeMillis()
+                                        + (long)time.Subtract(DateTimeOffset.Now).TotalSeconds * 1000;
+
+            if (Build.VERSION.SdkInt < BuildVersionCodes.M)
+                alarmService.SetExact(AlarmType.RtcWakeup, milliSecondsRemaining, pIntent);
+            else
+            {
+                using var mainLauncherIntent = new Intent(context, typeof(MainActivity));
+                mainLauncherIntent.SetFlags(ActivityFlags.ReorderToFront);
+
+                var mainLauncherPendingIntent = PendingIntent.GetActivity(
+                    context,
+                    0,
+                    mainLauncherIntent,
+                    PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+
+                alarmService.SetAlarmClock(new AlarmClockInfo(milliSecondsRemaining, mainLauncherPendingIntent),
+                    pIntent);
+            }
+        }
+        catch (SecurityException ex)
+        {
+            Logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
+            // Re-throw to be handled by caller
+            throw;
         }
     }
 

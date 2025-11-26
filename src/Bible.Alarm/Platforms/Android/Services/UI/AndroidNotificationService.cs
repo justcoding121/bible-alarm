@@ -6,10 +6,12 @@ using Android.Graphics.Drawables;
 using Android.OS;
 using AndroidX.Core.App;
 using AndroidX.Core.Content;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
+using Bible.Alarm.Services.UI.Interfaces;
 using Java.Lang;
 using Serilog;
 using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
@@ -47,27 +49,51 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
         }
     }
 
-    public Task ScheduleNotificationAsync(AlarmSchedule schedule,
+    public async Task ScheduleNotificationAsync(AlarmSchedule schedule,
         string title, string body)
     {
         var time = schedule.NextFireDate();
 
-        if (IsAndroidService())
+        try
         {
-            AlarmSetupService.ScheduleNotification(AndroidApplication.Context, schedule.Id, time, title, body);
+            if (IsAndroidService())
+            {
+                AlarmSetupService.ScheduleNotification(AndroidApplication.Context, schedule.Id, time, title, body);
+            }
+            else
+            {
+                var intent = new Intent(AndroidApplication.Context, typeof(AlarmSetupService));
+                intent.PutExtra("Action", "Add");
+                intent.PutExtra("ScheduleId", schedule.Id.ToString());
+                intent.PutExtra("Time", time.ToString());
+                intent.PutExtra("Title", title);
+                intent.PutExtra("Body", body);
+                AndroidApplication.Context.StartService(intent);
+            }
         }
-        else
+        catch (SecurityException ex)
         {
-            var intent = new Intent(AndroidApplication.Context, typeof(AlarmSetupService));
-            intent.PutExtra("Action", "Add");
-            intent.PutExtra("ScheduleId", schedule.Id.ToString());
-            intent.PutExtra("Time", time.ToString());
-            intent.PutExtra("Title", title);
-            intent.PutExtra("Body", body);
-            AndroidApplication.Context.StartService(intent);
+            _logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", schedule.Id);
+            
+            // Show user-friendly message
+            try
+            {
+                var toastService = ServiceProviderManager.GetService<IToastService>();
+                if (toastService != null)
+                {
+                    await toastService.ShowMessage(
+                        "Cannot schedule alarm. Please enable 'Alarms & reminders' permission in system settings.", 
+                        7);
+                }
+            }
+            catch (Exception toastEx)
+            {
+                _logger.Warning(toastEx, "Failed to show toast message for exact alarm permission error");
+            }
+            
+            // Re-throw to be handled by caller
+            throw;
         }
-
-        return Task.CompletedTask;
     }
 
     public static void ShowLocalNotification(int scheduleId, string title, string body)
