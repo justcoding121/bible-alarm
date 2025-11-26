@@ -117,6 +117,12 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<ScheduleItemStateService>();
+        services.AddSingleton<ExceptionHandlingService>();
+        services.AddSingleton<WindowSetupService>();
+        services.AddSingleton<AppLifecycleService>();
+        services.AddSingleton<AlarmModalService>();
+        services.AddSingleton<MessageHandlingService>();
         services.AddSingleton<IScheduleSelectionService, ScheduleSelectionService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
         services.AddSingleton<IDisplayMetadataService, DisplayMetadataService>();

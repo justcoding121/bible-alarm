@@ -19,6 +19,7 @@
         <converters:DayColorConverter x:Key="dayColorConverter" />
         <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
     <Grid AutomationId="HomePage" BackgroundColor="White">
         <ActivityIndicator
@@ -114,25 +115,36 @@
                                                      Tablet={OnPlatform Default='30,3,0,0'}}"
                                              Padding="0"
                                              Orientation="Vertical">
-                                    <Button
-                                        Margin="0"
-                                        Padding="0"
-                                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                                     WinUI='LightGray'}"
-                                        Command="{Binding PlayCommand}"
-                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        HeightRequest="{OnPlatform WinUI='50',
-                                                                   iOS='50'}"
-                                        HorizontalOptions="Center"
-                                        MinimumHeightRequest="{OnPlatform WinUI='50',
-                                                                          iOS='50'}"
-                                        MinimumWidthRequest="{OnPlatform iOS='75',
-                                                                         WinUI='75'}"
-                                        Text="{x:Static fn:GlyphNames.Play}"
-                                        TextColor="SlateBlue"
-                                        VerticalOptions="Center"
-                                        WidthRequest="{OnPlatform iOS='75',
-                                                                  WinUI='75'}" />
+                                    <Grid>
+                                        <Button
+                                            Margin="0"
+                                            Padding="0"
+                                            BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                                         WinUI='LightGray'}"
+                                            Command="{Binding PlayCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            HeightRequest="{OnPlatform WinUI='50',
+                                                                       iOS='50'}"
+                                            HorizontalOptions="Center"
+                                            IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                                            MinimumHeightRequest="{OnPlatform WinUI='50',
+                                                                              iOS='50'}"
+                                            MinimumWidthRequest="{OnPlatform iOS='75',
+                                                                             WinUI='75'}"
+                                            Text="{x:Static fn:GlyphNames.Play}"
+                                            TextColor="SlateBlue"
+                                            VerticalOptions="Center"
+                                            WidthRequest="{OnPlatform iOS='75',
+                                                                      WinUI='75'}" />
+                                        <ActivityIndicator
+                                            IsRunning="{Binding IsBusy}"
+                                            IsVisible="{Binding IsBusy}"
+                                            Color="SlateBlue"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            WidthRequest="30"
+                                            HeightRequest="30" />
+                                    </Grid>
                                     <StackLayout
                                         Margin="0"
                                         Padding="0"

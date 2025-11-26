@@ -18,11 +18,13 @@ public class ScheduleListItem(
     IScheduleDisplayService displayService,
     IScheduleStateService scheduleStateService,
     IPlaylistService playlistService,
-    IState<ApplicationState> applicationState)
+    IState<ApplicationState> applicationState,
+    IState<PlaybackState> playbackState)
     : ObservableObject, IComparable, IDisposable
 {
     private bool _isInitializing;
     private AlarmSchedule? _lastKnownSchedule;
+    private bool _isBusy;
 
     public AlarmSchedule? Schedule { get; private set; }
 
@@ -51,10 +53,14 @@ public class ScheduleListItem(
         applicationState.StateChanged += OnApplicationStateChanged;
         _lastKnownSchedule = Schedule; // Store initial state for comparison
 
+        // Subscribe to PlaybackState changes to manage IsBusy
+        playbackState.StateChanged += OnPlaybackStateChanged;
+
         PlayCommand = new AsyncRelayCommand(async () =>
         {
             if (Schedule?.Id > 0)
             {
+                IsBusy = true;
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });
@@ -147,6 +153,12 @@ public class ScheduleListItem(
 
     public ICommand PreviousCommand { get; set; } = null!;
     public ICommand NextCommand { get; set; } = null!;
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set => SetProperty(ref _isBusy, value);
+    }
 
     public void RaisePropertiesChangedEvent()
     {
@@ -244,8 +256,21 @@ public class ScheduleListItem(
         }
     }
 
+    private void OnPlaybackStateChanged(object? sender, EventArgs e)
+    {
+        // Set IsBusy to false when playback starts (modal is shown)
+        // This happens when IsPreparingOrPlaying becomes true for this schedule
+        if (Schedule?.Id > 0 && 
+            playbackState.Value.IsPreparingOrPlaying && 
+            playbackState.Value.CurrentScheduleId == Schedule.Id)
+        {
+            IsBusy = false;
+        }
+    }
+
     public void Dispose()
     {
         applicationState.StateChanged -= OnApplicationStateChanged;
+        playbackState.StateChanged -= OnPlaybackStateChanged;
     }
 }
