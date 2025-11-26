@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Serilog;
 using Frame = Microsoft.UI.Xaml.Controls.Frame;
 using Window = Microsoft.UI.Xaml.Window;
 
@@ -18,6 +19,9 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         private static readonly SemaphoreSlim Lock = new(1);
 
         private static TaskCompletionSource<bool>? clearRequest;
+        private static Popup? _currentPopup;
+        private static Window? _currentWindow;
+        private static SizeChangedEventHandler? _sizeChangedHandler;
         private readonly TaskScheduler _taskScheduler = taskScheduler;
 
         public override Task Clear()
@@ -25,6 +29,19 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             if (clearRequest is { } request)
             {
                 request.SetResult(true);
+            }
+
+            // Also close any currently open popup
+            if (_currentPopup != null)
+            {
+                try
+                {
+                    _currentPopup.IsOpen = false;
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Exception occurred while closing popup in Clear()");
+                }
             }
 
             return Task.CompletedTask;
@@ -56,23 +73,47 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
             try
             {
+                // Close any existing popup first
+                if (_currentPopup != null)
+                {
+                    try
+                    {
+                        _currentPopup.IsOpen = false;
+                        await Task.Delay(100); // Give it time to close
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Exception occurred while closing existing popup before showing new one");
+                    }
+                    finally
+                    {
+                        CleanupPopup(_currentPopup);
+                        _currentPopup = null;
+                    }
+                }
+
                 var currentWindow = GetNativeWindow();
                 if (currentWindow is null)
                 {
                     return;
                 }
 
-                var targetElement = FindTargetElement(currentWindow);
-                if (targetElement is null)
-                {
-                    return;
-                }
-
-                var teachingTip = CreateTeachingTip(message, targetElement);
-                await ShowFlyoutAsync(teachingTip, targetElement, seconds);
+                var popup = CreateToastPopup(message, currentWindow);
+                _currentPopup = popup;
+                await ShowFlyoutAsync(popup, currentWindow, seconds);
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                // COM exceptions can occur when manipulating UI elements from wrong thread or during cleanup
+                Log.Warning(ex, "COM exception occurred while showing toast message. This can happen when manipulating UI elements from wrong thread or during cleanup");
             }
             finally
             {
+                if (_currentPopup != null)
+                {
+                    CleanupPopup(_currentPopup);
+                    _currentPopup = null;
+                }
                 Lock.Release();
                 clearRequest = null;
             }
@@ -139,68 +180,171 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             return null;
         }
 
-        private static TeachingTip CreateTeachingTip(string message, FrameworkElement targetElement)
+        private static Popup CreateToastPopup(string message, Window currentWindow)
         {
-            var teachingTip = new TeachingTip
+            // Create a TextBlock for the message
+            var textBlock = new TextBlock
             {
-                Title = message,
-                IsLightDismissEnabled = true,
-                PreferredPlacement = TeachingTipPlacementMode.Bottom,
-                Target = targetElement,
-                IsOpen = false
+                Text = message,
+                TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
+                Padding = new Microsoft.UI.Xaml.Thickness(16, 12, 16, 12),
+                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White),
+                HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center,
+                MaxWidth = 400 // Limit width for better appearance
             };
-            
-            return teachingTip;
+
+            // Create a Border for the toast background
+            var border = new Microsoft.UI.Xaml.Controls.Border
+            {
+                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Black)
+                {
+                    Opacity = 0.8
+                },
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(8),
+                Child = textBlock,
+                HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center
+            };
+
+            // Create the Popup
+            var popup = new Popup
+            {
+                Child = border,
+                IsLightDismissEnabled = false,
+                ShouldConstrainToRootBounds = true
+            };
+
+            return popup;
         }
 
-        private static async Task ShowFlyoutAsync(TeachingTip teachingTip, FrameworkElement targetElement, double seconds)
+        private static async Task ShowFlyoutAsync(Popup popup, Window currentWindow, double seconds)
         {
-            // Ensure TeachingTip is in the visual tree by adding it to the window's content
-            var currentWindow = GetNativeWindow();
-            Panel? containerPanel = null;
-            
-            if (currentWindow?.Content is FrameworkElement windowContent)
+            try
             {
-                // Try to find or create a container for the TeachingTip
-                if (windowContent is Panel panel)
+                // Attach popup to the window
+                if (currentWindow?.Content is FrameworkElement windowContent)
                 {
-                    containerPanel = panel;
+                    // Set the popup's XamlRoot
+                    popup.XamlRoot = windowContent.XamlRoot;
                 }
-                else if (windowContent is ContentControl contentControl && contentControl.Content is Panel contentPanel)
+
+                // Store the current window for size change handling
+                _currentWindow = currentWindow;
+
+                // Show the popup first so we can measure it
+                popup.IsOpen = true;
+
+                // Wait for the popup to render so we can get its actual size
+                await Task.Delay(100);
+
+                // Initial positioning
+                UpdatePopupPosition(popup, currentWindow);
+
+                // Subscribe to window size changes to reposition the popup
+                if (currentWindow?.Content is FrameworkElement content)
                 {
-                    containerPanel = contentPanel;
+                    _sizeChangedHandler = (sender, args) =>
+                    {
+                        try
+                        {
+                            UpdatePopupPosition(popup, currentWindow);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(ex, "Exception occurred while updating popup position on window resize");
+                        }
+                    };
+                    content.SizeChanged += _sizeChangedHandler;
+                }
+
+                if (clearRequest is { } request)
+                {
+                    await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(false);
+                }
+                else
+                {
+                    await Task.Delay((int)(seconds * 1000));
+                }
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                // COM exceptions can occur when manipulating UI elements
+                Log.Warning(ex, "COM exception occurred while showing popup flyout. Closing popup and continuing");
+            }
+            finally
+            {
+                // Unsubscribe from size changes
+                if (_currentWindow?.Content is FrameworkElement content && _sizeChangedHandler != null)
+                {
+                    try
+                    {
+                        content.SizeChanged -= _sizeChangedHandler;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Exception occurred while unsubscribing from window size changed event");
+                    }
+                    _sizeChangedHandler = null;
+                }
+                _currentWindow = null;
+
+                try
+                {
+                    if (popup.IsOpen)
+                    {
+                        popup.IsOpen = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Exception occurred while closing popup in ShowFlyoutAsync finally block");
                 }
                 
-                // If we found a panel, add the TeachingTip to it
-                if (containerPanel != null && !containerPanel.Children.Contains(teachingTip))
+                // Clean up after a brief delay to allow animation to complete
+                await Task.Delay(200);
+                
+                CleanupPopup(popup);
+            }
+        }
+
+        private static void UpdatePopupPosition(Popup popup, Window? currentWindow)
+        {
+            if (currentWindow?.Content is FrameworkElement content && popup.Child is Microsoft.UI.Xaml.Controls.Border border)
+            {
+                var windowWidth = content.ActualWidth;
+                var windowHeight = content.ActualHeight;
+                var borderWidth = border.ActualWidth;
+                var borderHeight = border.ActualHeight;
+                
+                if (windowWidth > 0 && windowHeight > 0 && borderWidth > 0 && borderHeight > 0)
                 {
-                    containerPanel.Children.Add(teachingTip);
+                    try
+                    {
+                        // Center horizontally, position at bottom (50px from bottom)
+                        popup.HorizontalOffset = (windowWidth - borderWidth) / 2;
+                        popup.VerticalOffset = windowHeight - borderHeight - 50;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Exception occurred while updating popup position");
+                    }
                 }
             }
-            
-            teachingTip.IsOpen = true;
+        }
 
-            if (clearRequest is { } request)
+        private static void CleanupPopup(Popup? popup)
+        {
+            if (popup == null) return;
+
+            try
             {
-                await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(false);
+                popup.Child = null;
+                popup.XamlRoot = null;
             }
-            else
+            catch (Exception ex)
             {
-                await Task.Delay((int)(seconds * 1000));
+                Log.Warning(ex, "Exception occurred during popup cleanup");
             }
-            
-            teachingTip.IsOpen = false;
-            
-            // Clean up after a brief delay to allow animation to complete
-            await Task.Delay(200);
-            
-            // Remove from visual tree
-            if (containerPanel != null && containerPanel.Children.Contains(teachingTip))
-            {
-                containerPanel.Children.Remove(teachingTip);
-            }
-            
-            teachingTip.Target = null;
         }
 
     }

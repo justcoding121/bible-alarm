@@ -78,8 +78,9 @@ public static class JsonConvertExtension
         {
             return JsonSerializer.Serialize(@object);
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Logger.Warning(ex, "Failed to serialize object to JSON");
             return null;
         }
     }

@@ -41,7 +41,10 @@ public class SplashActivity : AppCompatActivity
                                                   (int)SystemUiFlags.LayoutStable ^ (int)SystemUiFlags.LayoutFullscreen);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Logger.Debug(ex, "Exception occurred while setting SystemUiVisibility on older Android version. This is expected and can be ignored.");
+                }
 #pragma warning restore CS0618 // Type or member is obsolete
             }
 

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Bible.Alarm.Common.Interfaces.Platform;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Platform
 {
@@ -36,8 +37,9 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform
                 
                 return "Windows 1.0.0.0";
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Logger.Debug(ex, "Failed to get Windows version, using default version");
                 // If all else fails, return a default version
                 return "Windows 1.0.0.0";
             }
