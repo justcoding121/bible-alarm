@@ -82,6 +82,16 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         {
             if (x == null) return;
             
+            // Ensure _tentative is set from state if it's null
+            if (_tentative == null)
+            {
+                var stateValue = _state.Value;
+                _tentative = stateValue.TentativeMusic;
+                _current = stateValue.CurrentMusic ?? _tentative;
+            }
+
+            if (_tentative == null) return;
+
             IsBusy = true;
             if (SelectedTrack != null)
             {
@@ -242,6 +252,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
                 await Task.Run(async () =>
                 {
+                    if (_tentative == null) return;
                     if (!await _downloadService.FileExists(url))
                         url = await _urlRefreshService.GetMusicTrackUrl(
                             _tentative.LanguageCode,
@@ -262,6 +273,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private void HandleRepeatChanged(MusicTrackListViewItemModel track)
     {
+        if (_tentative == null) return;
+
         _tentative.Repeat = track.Repeat;
         _tentative.TrackNumber = track.Number;
 
@@ -315,6 +328,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
             trackViewModelList.Add(musicTrackListViewItemViewModel);
 
+            if (_current == null || _tentative == null) continue;
             if (_current.MusicType != _tentative.MusicType
                 || _current.TrackNumber != track.Number
                 || (_current.MusicType != MusicType.Melodies &&

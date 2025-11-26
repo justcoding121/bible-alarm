@@ -43,6 +43,17 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         _dispatcher = dispatcher;
         _navigationService = navigationService;
 
+        // Initialize _current and _tentative from state if available
+        var currentState = _state.Value;
+        if (currentState.CurrentBibleReadingSchedule != null)
+        {
+            _current = currentState.CurrentBibleReadingSchedule;
+        }
+        if (currentState.TentativeBibleReadingSchedule != null)
+        {
+            _tentative = currentState.TentativeBibleReadingSchedule;
+        }
+
         _state.StateChanged += OnBibleReadingInitialized;
         _state.StateChanged += OnBibleReadingChanged;
 
@@ -139,6 +150,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
     private void SetSelectedTranslation()
     {
+        if (_current == null || _tentative == null) return;
         if (_current.LanguageCode != _tentative.LanguageCode) return;
         if (SelectedTranslation != null) SelectedTranslation.IsSelected = false;
 
@@ -184,9 +196,10 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
     public string PublicationCode
     {
-        get => _tentative.PublicationCode;
+        get => _tentative?.PublicationCode ?? "";
         set
         {
+            if (_tentative == null) return;
             _tentative.PublicationCode = value;
             OnPropertyChanged();
         }
@@ -232,7 +245,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
             languageVMs.Add(languageVm);
 
-            if (languageVm.Code != _tentative.LanguageCode) continue;
+            if (_tentative == null || languageVm.Code != _tentative.LanguageCode) continue;
             languageVm.IsSelected = true;
             CurrentLanguage = languageVm;
         }
@@ -260,6 +273,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             translationVMs.Add(translationVm);
             _translationVMsMapping.Add(translationVm.Code, translationVm);
 
+            if (_current == null) continue;
             if (_current.LanguageCode != languageCode
                 || _current.PublicationCode != translation.Code) continue;
             translationVm.IsSelected = true;

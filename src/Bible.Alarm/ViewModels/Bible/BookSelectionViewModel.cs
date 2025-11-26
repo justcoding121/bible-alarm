@@ -34,6 +34,17 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         _state = state;
         _dispatcher = dispatcher;
 
+        // Initialize _current and _tentative from state if available
+        var currentState = _state.Value;
+        if (currentState.CurrentBibleReadingSchedule != null)
+        {
+            _current = currentState.CurrentBibleReadingSchedule;
+        }
+        if (currentState.TentativeBibleReadingSchedule != null)
+        {
+            _tentative = currentState.TentativeBibleReadingSchedule;
+        }
+
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
@@ -46,6 +57,19 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             if (x == null) return;
             
             IsBusy = true;
+
+            // Ensure _tentative is set from state if it's null
+            if (_tentative == null)
+            {
+                _tentative = _state.Value.TentativeBibleReadingSchedule;
+            }
+
+            if (_tentative == null)
+            {
+                IsBusy = false;
+                return;
+            }
+
             await navigationService.NavigateToChapterSelectionAsync();
             _dispatcher.Dispatch(new ChapterSelectionAction(new BibleReadingSchedule
             {
@@ -102,6 +126,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private void SetSelectedBook()
     {
+        if (_current == null || _tentative == null) return;
         if (_current.LanguageCode != _tentative.LanguageCode ||
             _current.PublicationCode != _tentative.PublicationCode) return;
         if (SelectedBook != null) SelectedBook.IsSelected = false;
@@ -151,6 +176,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             bookVMs.Add(bookVm);
             _bookVMsMapping.Add(bookVm.Number, bookVm);
 
+            if (_current == null || _tentative == null) continue;
             if (_current.LanguageCode != _tentative.LanguageCode
                 || _current.PublicationCode != _tentative.PublicationCode
                 || _current.BookNumber != book.Number) continue;

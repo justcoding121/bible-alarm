@@ -25,6 +25,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         _state = state;
         _dispatcher = dispatcher;
 
+        // Initialize _current from state if available
+        if (_state.Value.CurrentMusic != null)
+        {
+            _current = _state.Value.CurrentMusic;
+        }
+
         _state.StateChanged += OnStateOnStateChanged;
 
         SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
@@ -33,6 +39,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             
             IsBusy = true;
 
+            // Ensure _current is set from state if it's null
+            if (_current == null)
+            {
+                _current = _state.Value.CurrentMusic;
+            }
+
             if (x.MusicType == MusicType.Vocals)
             {
                 await navigationService.NavigateToSongBookSelectionAsync();
@@ -40,7 +52,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                 _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
                 {
                     MusicType = MusicType.Vocals,
-                    LanguageCode = _current.LanguageCode
+                    LanguageCode = _current?.LanguageCode
                 }));
   
             }
@@ -50,7 +62,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
                 _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
                 {
-                    Repeat = _current.Repeat,
+                    Repeat = _current?.Repeat ?? false,
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
                 }));
@@ -94,6 +106,8 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     private void SetSelectedMusicType()
     {
         if (SelectedMusicType != null) SelectedMusicType.IsSelected = false;
+
+        if (_current == null) return;
 
         var musicType = MusicTypes.FirstOrDefault(y => y.MusicType == _current.MusicType);
         if (musicType == null) return;

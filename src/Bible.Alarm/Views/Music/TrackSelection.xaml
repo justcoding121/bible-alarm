@@ -102,38 +102,44 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="music:MusicTrackListViewItemModel">
                                 <Grid
-                                    Padding="5,0,5,0"
+                                    Padding="5,10,5,10"
                                     BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
-                                    HeightRequest="45"
-                                    HorizontalOptions="Fill">
+                                    MinimumHeightRequest="45"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="auto" />
                                     </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                    </Grid.RowDefinitions>
                                     <Label
                                         Grid.Column="0"
-                                        Margin="10,0,0,0"
+                                        Margin="10,0,10,0"
                                         HorizontalOptions="Fill"
                                         HorizontalTextAlignment="Start"
                                         Text="{Binding Title}"
                                         TextColor="Black"
-                                        VerticalOptions="Center"
-                                        VerticalTextAlignment="Center" />
-                                    <StackLayout
+                                        VerticalOptions="Start"
+                                        VerticalTextAlignment="Start"
+                                        LineBreakMode="WordWrap"
+                                        MaxLines="0" />
+                                    <HorizontalStackLayout
                                         Grid.Column="1"
-                                        Margin="5,0,15,0"
-                                        HorizontalOptions="Start"
-                                        Orientation="Horizontal"
-                                        VerticalOptions="Center">
+                                        Margin="10,0,15,0"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Start"
+                                        Spacing="10">
                                         <ActivityIndicator
                                             HorizontalOptions="Center"
                                             IsEnabled="True"
                                             IsRunning="{Binding IsBusy}"
                                             IsVisible="{Binding IsBusy}"
-                                            MinimumWidthRequest="40"
+                                            WidthRequest="40"
+                                            HeightRequest="40"
                                             Scale="0.5"
                                             VerticalOptions="Center"
-                                            WidthRequest="40"
                                             Color="SlateBlue">
                                             <ActivityIndicator.Scale>
                                                 <OnPlatform x:TypeArguments="x:Double">
@@ -152,23 +158,27 @@
                                             Command="{Binding ToggleRepeatCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             IsVisible="{Binding IsSelected}"
-                                            MinimumWidthRequest="40"
+                                            WidthRequest="50"
+                                            HeightRequest="40"
+                                            Padding="5,5,5,5"
                                             Text="{x:Static fn:GlyphNames.Repeat}"
                                             TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"
                                             VerticalOptions="Center"
-                                            WidthRequest="40" />
+                                            HorizontalOptions="Center" />
                                         <Button
                                             BackgroundColor="Transparent"
                                             BorderWidth="0"
                                             BorderColor="Transparent"
                                             Command="{Binding TogglePlayCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            MinimumWidthRequest="40"
+                                            WidthRequest="50"
+                                            HeightRequest="40"
+                                            Padding="5,5,5,5"
                                             Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
                                             TextColor="Gray"
                                             VerticalOptions="Center"
-                                            WidthRequest="40" />
-                                    </StackLayout>
+                                            HorizontalOptions="Center" />
+                                    </HorizontalStackLayout>
                                 </Grid>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>

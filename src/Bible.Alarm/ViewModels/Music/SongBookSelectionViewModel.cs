@@ -54,11 +54,17 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             
             IsBusy = true;
 
+            // Ensure _current is set from state if it's null
+            if (_current == null)
+            {
+                _current = _state.Value.CurrentMusic;
+            }
+
             await navigationService.NavigateToTrackSelectionAsync();
 
             _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
             {
-                Repeat = _current.Repeat,
+                Repeat = _current?.Repeat ?? false,
                 MusicType = MusicType.Vocals,
                 LanguageCode = CurrentLanguage.Code,
                 PublicationCode = x.Code
