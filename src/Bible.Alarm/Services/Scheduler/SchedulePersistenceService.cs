@@ -30,20 +30,29 @@ public class SchedulePersistenceService(
     {
         try
         {
+            _logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
+                isNewSchedule, schedule?.Id, schedule?.Name, schedule?.Music != null, schedule?.BibleReadingSchedule != null);
+
             AlarmSchedule savedSchedule = null;
 
             if (isNewSchedule)
             {
+                _logger.Debug("SaveScheduleAsync: Saving new schedule to database");
                 await Task.Run(async () =>
                 {
                     using var scope = _scopeFactory.CreateScope();
                     var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                    _logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
+                        schedule.Id, schedule.Name);
                     await scheduleDbContext.AlarmSchedules.AddAsync(schedule);
+                    _logger.Debug("SaveScheduleAsync: Calling SaveChangesAsync");
                     await scheduleDbContext.SaveChangesAsync();
+                    _logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", schedule.Id);
                     if (schedule.IsEnabled) await _alarmService.Create(schedule);
                 });
 
                 // Load the complete schedule with all includes after save
+                _logger.Debug("SaveScheduleAsync: Reloading saved schedule. ScheduleId={ScheduleId}", schedule.Id);
                 using var scope = _scopeFactory.CreateScope();
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                 savedSchedule = await scheduleDbContext.AlarmSchedules
@@ -51,7 +60,12 @@ public class SchedulePersistenceService(
                     .Include(x => x.BibleReadingSchedule)
                     .FirstAsync(x => x.Id == schedule.Id);
 
+                _logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
+                    savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
+
+                _logger.Debug("SaveScheduleAsync: Dispatching AddScheduleAction");
                 _dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
+                _logger.Information("SaveScheduleAsync: AddScheduleAction dispatched successfully");
             }
             else
             {
@@ -116,11 +130,13 @@ public class SchedulePersistenceService(
                 _dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
             }
 
+            _logger.Information("SaveScheduleAsync: Save completed successfully. ScheduleId={ScheduleId}", savedSchedule?.Id ?? schedule?.Id);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error saving schedule {ScheduleId}", schedule?.Id);
+            _logger.Error(ex, "SaveScheduleAsync: Error saving schedule. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}, Name={Name}",
+                schedule?.Id, isNewSchedule, schedule?.Name);
             return false;
         }
     }

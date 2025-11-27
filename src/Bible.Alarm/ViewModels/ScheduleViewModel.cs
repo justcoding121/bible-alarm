@@ -44,6 +44,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private int _lastScheduleId = -1;
     private bool _modelInitialized;
     private bool _isInitializingNewSchedule;
+    private bool _isSaving;
     private AlarmMusic _lastMusic;
     private BibleReadingSchedule _lastBibleReading;
 
@@ -151,42 +152,61 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         SaveCommand = new AsyncRelayCommand(async () =>
         {
-            // Show overlay immediately via state
-            _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
-            // Wait for state to update and UI to reflect the change
-            await MainThread.InvokeOnMainThreadAsync(async () =>
+            _logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
+                IsNewSchedule, _scheduleId, Name);
+
+            // Set saving flag to prevent ViewModel reset during save
+            _isSaving = true;
+            
+            try
             {
-                // Force property change notification
-                OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
-                // Wait a bit to ensure UI has rendered the overlay
-                await Task.Delay(50);
-            });
+                // Show overlay immediately via state
+                _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+                // Wait for state to update and UI to reflect the change
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    // Force property change notification
+                    OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
+                    // Wait a bit to ensure UI has rendered the overlay
+                    await Task.Delay(50);
+                });
 
-            if (IsEnabled &&
-                (DeviceInfo.Platform == DevicePlatform.iOS
-                 || DeviceInfo.Platform == DevicePlatform.WinUI)
-                && !await notificationService.CanScheduleAsync())
-                IsEnabled = false;
+                if (IsEnabled &&
+                    (DeviceInfo.Platform == DevicePlatform.iOS
+                     || DeviceInfo.Platform == DevicePlatform.WinUI)
+                    && !await notificationService.CanScheduleAsync())
+                    IsEnabled = false;
 
-            if (!IsNewSchedule)
-                if (_playbackState.Value.IsPreparingOrPlaying
-                    && _scheduleId == _playbackState.Value.CurrentScheduleId)
-                    await playbackService.StopAsync();
+                if (!IsNewSchedule)
+                    if (_playbackState.Value.IsPreparingOrPlaying
+                        && _scheduleId == _playbackState.Value.CurrentScheduleId)
+                        await playbackService.StopAsync();
 
-            var saved = await SaveAsync();
+                var saved = await SaveAsync();
 
-            if (saved)
-            {
-                await _navigationService.NavigateToHomeAsync();
-                // Note: Schedule page overlay will be hidden when Home page Appearing event fires
+                if (saved)
+                {
+                    _logger.Information("SaveCommand: Save successful, navigating to home. ScheduleId={ScheduleId}", _scheduleId);
+                    // Wait a bit to ensure the state update from AddScheduleAction has propagated
+                    // This ensures the new schedule appears in the Home page list
+                    await Task.Delay(100);
+                    await _navigationService.NavigateToHomeAsync();
+                    // Note: Schedule page overlay will be hidden when Home page Appearing event fires
+                }
+                else
+                {
+                    _logger.Error("SaveCommand: Save failed, hiding overlay. ScheduleId={ScheduleId}", _scheduleId);
+                    // Hide overlay if save failed
+                    _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                }
+
+                if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
             }
-            else
+            finally
             {
-                // Hide overlay if save failed
-                _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                // Reset saving flag after save completes
+                _isSaving = false;
             }
-
-            if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
         });
 
         DeleteCommand = new AsyncRelayCommand(async () =>
@@ -367,6 +387,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             if (currentScheduleId == _lastScheduleId && _modelInitialized) 
             {
+                // Don't update the model if we're currently saving, as this would overwrite user changes
+                if (_isSaving)
+                {
+                    _logger.Debug("OnCurrentScheduleChanged: Skipping model update during save operation. ScheduleId={ScheduleId}", currentScheduleId);
+                    return;
+                }
+                
                 // Check if the schedule in Schedules collection has been updated (e.g., from next/prev in home view)
                 var updatedSchedule = stateValue.Schedules?.FirstOrDefault(s => s.Id == currentScheduleId);
                 if (updatedSchedule != null && updatedSchedule != Model)
@@ -413,30 +440,50 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 }
             });
         }
-        else if (!_modelInitialized && !_isInitializingNewSchedule && stateValue.CurrentSchedule == null)
+        else if (stateValue.CurrentSchedule == null)
         {
-            _isInitializingNewSchedule = true;
-            MainThread.BeginInvokeOnMainThread(() => IsBusy = true); // Show busy indicator during initialization
-            Task.Run(async () =>
+            // CurrentSchedule is null - this means we're creating a new schedule
+            // Reset the ViewModel state to ensure it's properly initialized for a new schedule
+            // BUT: Don't reset if we're currently saving, as this would interfere with the save operation
+            if (_modelInitialized && !_isSaving)
             {
-                using var scope = _scopeFactory.CreateScope();
-                var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
-                await MainThread.InvokeOnMainThreadAsync(() =>
+                _logger.Debug("OnCurrentScheduleChanged: Resetting ViewModel for new schedule. Previous ScheduleId={PreviousScheduleId}",
+                    _scheduleId);
+                _modelInitialized = false;
+                _lastScheduleId = -1;
+                _scheduleId = 0;
+                IsNewSchedule = false; // Will be set to true after initialization
+            }
+            
+            if (!_modelInitialized && !_isInitializingNewSchedule)
+            {
+                _isInitializingNewSchedule = true;
+                MainThread.BeginInvokeOnMainThread(() => IsBusy = true); // Show busy indicator during initialization
+                Task.Run(async () =>
                 {
-                    var currentState = _state.Value;
-                    if (_isInitializingNewSchedule && !_modelInitialized && currentState.CurrentSchedule == null)
+                    using var scope = _scopeFactory.CreateScope();
+                    var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                    await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        SetModel(sampleSchedule);
-                        _modelInitialized = true;
-                        IsNewSchedule = true;
-                    }
+                        var currentState = _state.Value;
+                        if (_isInitializingNewSchedule && !_modelInitialized && currentState.CurrentSchedule == null)
+                        {
+                            _logger.Debug("OnCurrentScheduleChanged: Initializing new schedule. SampleSchedule.Id={SampleScheduleId}",
+                                sampleSchedule.Id);
+                            SetModel(sampleSchedule);
+                            _modelInitialized = true;
+                            IsNewSchedule = true;
+                            _logger.Information("OnCurrentScheduleChanged: New schedule initialized. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}",
+                                _scheduleId, IsNewSchedule);
+                        }
 
-                    _isInitializingNewSchedule = false;
-                    IsBusy = false; // Hide busy indicator after initialization
-                    // Note: Home page overlay will be hidden when Schedule page Appearing event fires
+                        _isInitializingNewSchedule = false;
+                        IsBusy = false; // Hide busy indicator after initialization
+                        // Note: Home page overlay will be hidden when Schedule page Appearing event fires
+                    });
                 });
-            });
+            }
         }
     }
 
@@ -556,6 +603,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private AlarmSchedule GetModel()
     {
+        _logger.Debug("GetModel: Reading ViewModel properties. ViewModel.Name={ViewModelName}, ViewModel.MusicEnabled={ViewModelMusicEnabled}, ViewModel.IsEnabled={ViewModelIsEnabled}",
+            Name, MusicEnabled, IsEnabled);
+        
         Model.Id = _scheduleId;
 
         Model.Name = Name;
@@ -567,6 +617,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         Model.NotificationEnabled = _notificationEnabled;
         Model.AlwaysPlayFromStart = AlwaysPlayFromStart;
         Model.NumberOfChaptersToRead = CurrentNumberOfChapters.Value;
+
+        _logger.Debug("GetModel: After setting Model properties. Model.Id={ModelId}, Model.Name={ModelName}, Model.MusicEnabled={ModelMusicEnabled}, Model.IsEnabled={ModelIsEnabled}, Model.DaysOfWeek={ModelDaysOfWeek}",
+            Model.Id, Model.Name, Model.MusicEnabled, Model.IsEnabled, Model.DaysOfWeek);
 
         return Model;
     }
@@ -604,7 +657,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value);
+        set
+        {
+            _logger.Debug("Name: Setting value from '{OldValue}' to '{NewValue}'", _name, value);
+            SetProperty(ref _name, value);
+        }
     }
 
     private bool _isEnabled;
@@ -642,7 +699,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public bool MusicEnabled
     {
         get => _musicEnabled;
-        set => SetProperty(ref _musicEnabled, value);
+        set
+        {
+            _logger.Debug("MusicEnabled: Setting value from {OldValue} to {NewValue}", _musicEnabled, value);
+            SetProperty(ref _musicEnabled, value);
+        }
     }
 
     private bool _notificationEnabled;
@@ -748,23 +809,62 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private async Task<bool> SaveAsync()
     {
-        if (!await Validate()) return false;
+        _logger.Information("SaveAsync: Starting save. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, ModelInitialized={ModelInitialized}",
+            IsNewSchedule, _scheduleId, Name, _modelInitialized);
+
+        if (!_modelInitialized)
+        {
+            _logger.Error("SaveAsync: Model not initialized. Cannot save.");
+            await _popUpService.ShowMessage("Schedule data is not ready. Please try again.");
+            return false;
+        }
+
+        if (Model == null)
+        {
+            _logger.Error("SaveAsync: Model is null. Cannot save.");
+            await _popUpService.ShowMessage("Schedule data is missing. Please try again.");
+            return false;
+        }
+
+        if (!IsNewSchedule && _scheduleId <= 0)
+        {
+            _logger.Error("SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}", _scheduleId);
+            await _popUpService.ShowMessage("Invalid schedule ID. Please try again.");
+            return false;
+        }
+
+        if (!await Validate())
+        {
+            _logger.Warning("SaveAsync: Validation failed");
+            return false;
+        }
 
         if (IsNewSchedule) IsEnabled = true;
 
         var model = GetModel();
+        _logger.Debug("SaveAsync: Model retrieved. Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}, MusicEnabled={MusicEnabled}",
+            model.Id, model.Name, model.Music != null, model.BibleReadingSchedule != null, model.MusicEnabled);
 
         // Don't pass music if it wasn't updated (for existing schedules)
         if (!IsNewSchedule && !_musicUpdated)
         {
             model.Music = null;
+            _logger.Debug("SaveAsync: Music set to null for existing schedule (not updated)");
         }
+
+        _logger.Information("SaveAsync: Calling SaveScheduleAsync. IsNewSchedule={IsNewSchedule}, MusicUpdated={MusicUpdated}, BibleReadingUpdated={BibleReadingUpdated}",
+            IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
 
         var saved = await _schedulePersistenceService.SaveScheduleAsync(model, IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
 
         if (saved)
         {
+            _logger.Information("SaveAsync: Save successful. ScheduleId={ScheduleId}, Model.Id={ModelId}", _scheduleId, model.Id);
             SetupMediaCache(model.Id, isUpdate: !IsNewSchedule);
+        }
+        else
+        {
+            _logger.Error("SaveAsync: Save failed. ScheduleId={ScheduleId}", _scheduleId);
         }
 
         return saved;
