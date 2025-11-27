@@ -55,7 +55,7 @@
                 HeightRequest="50"
                 MinimumHeightRequest="45"
                 MinimumWidthRequest="200"
-                Text="Exclude Now"
+                Text="EXCLUDE NOW"
                 TextColor="SlateBlue"
                 WidthRequest="200" />
             <Label
@@ -81,7 +81,7 @@
                 HeightRequest="50"
                 MinimumHeightRequest="45"
                 MinimumWidthRequest="200"
-                Text="Later"
+                Text="LATER"
                 TextColor="SlateBlue"
                 WidthRequest="200" />
             <Button
@@ -91,11 +91,14 @@
                 BackgroundColor="White"
                 Command="{Binding BatteryOptimizationDismissCommand}"
                 CornerRadius="10"
-                Style="{StaticResource MediumLabelStyle}"
-                HeightRequest="50"
-                MinimumHeightRequest="45"
+                FontSize="{StaticResource HeaderFontSize}"
+                FontAttributes="Bold"
+                HeightRequest="{OnPlatform Default='50',
+                                           WinUI='37'}"
+                MinimumHeightRequest="{OnPlatform Default='50',
+                                                  WinUI='37'}"
                 MinimumWidthRequest="200"
-                Text="Okay"
+                Text="OKAY"
                 TextColor="SlateBlue"
                 WidthRequest="200" />
         </StackLayout>

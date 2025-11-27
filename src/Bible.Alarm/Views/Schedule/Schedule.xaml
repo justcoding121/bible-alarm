@@ -45,7 +45,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding CancelCommand}"
-                        FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}"
+                        FontSize="{StaticResource HeaderFontSize}"
                         FontAttributes="Bold"
                         HeightRequest="{OnPlatform Default='50',
                                                WinUI='37'}"
@@ -62,7 +62,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding SaveCommand}"
-                        FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}"
+                        FontSize="{StaticResource HeaderFontSize}"
                         FontAttributes="Bold"
                         HeightRequest="{OnPlatform Default='50',
                                                    WinUI='37'}"
@@ -93,7 +93,7 @@
                                TextColor="Black" />
                         <TimePicker AutomationId="AlarmTimePicker"
                                     BackgroundColor="White"
-                                    FontSize="{x:Static services:FontServiceHelper.TitleFontSize}"
+                                    FontSize="{StaticResource TitleFontSize}"
                                     HorizontalOptions="Center"
                                     TextColor="SlateBlue"
                                     Time="{Binding Time, Mode=TwoWay}">
@@ -545,7 +545,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding DeleteCommand}"
-                        FontSize="{x:Static services:FontServiceHelper.LargeFontSize}"
+                        FontSize="{StaticResource HeaderFontSize}"
                         FontAttributes="Bold"
                         HeightRequest="{OnPlatform Default='50',
                                                WinUI='37'}"

@@ -10,12 +10,12 @@
     Title="Bible Alarm">
     <ContentPage.Resources>
         <Style x:Key="DotStyle" TargetType="Label">
-            <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.TitleFontSize}" />
+            <Setter Property="FontSize" Value="{StaticResource TitleFontSize}" />
             <Setter Property="HorizontalOptions" Value="Center" />
             <Setter Property="VerticalOptions" Value="Center" />
         </Style>
         <Style x:Key="DotStyleWindows" TargetType="Label">
-            <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.TitleFontSize}" />
+            <Setter Property="FontSize" Value="{StaticResource TitleFontSize}" />
             <Setter Property="HorizontalOptions" Value="Center" />
             <Setter Property="VerticalOptions" Value="Center" />
         </Style>

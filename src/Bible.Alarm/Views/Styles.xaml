@@ -2,74 +2,84 @@
 <ResourceDictionary
     x:Class="Bible.Alarm.Views.Styles"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm">
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Font size resources - set with default values, will be updated in code-behind -->
+    <x:Double x:Key="StandardFontSize">12.0</x:Double>
+    <x:Double x:Key="HeaderFontSize">18.0</x:Double>
+    <x:Double x:Key="SmallFontSize">10.0</x:Double>
+    <x:Double x:Key="MediumFontSize">14.0</x:Double>
+    <x:Double x:Key="LargeFontSize">16.0</x:Double>
+    <x:Double x:Key="TitleFontSize">20.0</x:Double>
+    <x:Double x:Key="AlarmTimeFontSize">32.0</x:Double>
+    <x:Double x:Key="AlarmMeridianFontSize">18.0</x:Double>
+    <x:Double x:Key="AlarmBellIconFontSize">80.0</x:Double>
 
     <!-- Base Label Style - Applied globally to all Labels -->
     <Style x:Key="BaseLabelStyle" TargetType="Label">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
     <!-- Header Label Style - For headers and titles -->
     <Style x:Key="HeaderLabelStyle" TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.HeaderFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource HeaderFontSize}" />
         <Setter Property="FontAttributes" Value="Bold" />
     </Style>
 
     <!-- Small Label Style -->
     <Style x:Key="SmallLabelStyle" TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.SmallFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource SmallFontSize}" />
     </Style>
 
     <!-- Medium Label Style -->
     <Style x:Key="MediumLabelStyle" TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.MediumFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource MediumFontSize}" />
     </Style>
 
     <!-- Large Label Style -->
     <Style x:Key="LargeLabelStyle" TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.LargeFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource LargeFontSize}" />
     </Style>
 
     <!-- Title Label Style -->
     <Style x:Key="TitleLabelStyle" TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.TitleFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource TitleFontSize}" />
         <Setter Property="FontAttributes" Value="Bold" />
     </Style>
 
     <!-- Base Button Style - Applied globally to all Buttons -->
     <Style x:Key="BaseButtonStyle" TargetType="Button">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
     <!-- Base Entry Style - Applied globally to all Entry controls -->
     <Style x:Key="BaseEntryStyle" TargetType="Entry">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
     <!-- Base Editor Style - Applied globally to all Editor controls -->
     <Style x:Key="BaseEditorStyle" TargetType="Editor">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
     <!-- Base Picker Style - Applied globally to all Picker controls -->
     <Style x:Key="BasePickerStyle" TargetType="Picker">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
     <!-- Base DatePicker Style - Applied globally to all DatePicker controls -->
     <Style x:Key="BaseDatePickerStyle" TargetType="DatePicker">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
     <!-- Base TimePicker Style - Applied globally to all TimePicker controls -->
     <Style x:Key="BaseTimePickerStyle" TargetType="TimePicker">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
     <!-- Base SearchBar Style - Applied globally to all SearchBar controls -->
     <Style x:Key="BaseSearchBarStyle" TargetType="SearchBar">
-        <Setter Property="FontSize" Value="{x:Static services:FontServiceHelper.StandardFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
     </Style>
 
 </ResourceDictionary>

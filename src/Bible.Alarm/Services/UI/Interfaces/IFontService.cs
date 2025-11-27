@@ -46,6 +46,11 @@ public interface IFontService
     double AlarmMeridianFontSize { get; }
 
     /// <summary>
+    /// Alarm bell icon font size (80pt base, 4x TitleFontSize) scaled by device density - for large bell icon in alarm modal
+    /// </summary>
+    double AlarmBellIconFontSize { get; }
+
+    /// <summary>
     /// Gets a scaled font size based on a base size in points
     /// </summary>
     /// <param name="baseSizeInPoints">Base font size in points</param>

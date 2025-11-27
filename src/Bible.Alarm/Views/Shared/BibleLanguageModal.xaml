@@ -53,7 +53,7 @@
                 Grid.Row="0"
                 Margin="10,2,2,2"
                 Padding="10"
-                FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}" FontAttributes="Bold"
+                FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold"
                 HeightRequest="50"
                 Text="Languages"
                 TextColor="Black"
@@ -127,13 +127,13 @@
                 BorderWidth="0"
                 BorderColor="Transparent"
                 Command="{Binding CloseModalCommand}"
-                FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}" FontAttributes="Bold"
+                FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold"
                 HeightRequest="{OnPlatform Default='50',
                                            WinUI='37'}"
                 HorizontalOptions="Fill"
                 MinimumHeightRequest="{OnPlatform Default='50',
                                                   WinUI='37'}"
-                Text="Close"
+                Text="CLOSE"
                 TextColor="SlateBlue"
                 VerticalOptions="Fill" />
         </Grid>

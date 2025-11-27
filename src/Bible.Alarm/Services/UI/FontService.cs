@@ -19,6 +19,7 @@ public class FontService : IFontService
     private readonly double _titleFontSize;
     private readonly double _alarmTimeFontSize;
     private readonly double _alarmMeridianFontSize;
+    private readonly double _alarmBellIconFontSize;
 
     public FontService()
     {
@@ -38,28 +39,39 @@ public class FontService : IFontService
         // Sizes that are noticeably larger than standard but won't push list height excessively
         const double baseAlarmTimeSize = 32.0;      // Prominent time display (alarm clock style)
         const double baseAlarmMeridianSize = 18.0;   // Smaller but still prominent AM/PM
+        const double baseAlarmBellIconSize = 80.0;   // Large bell icon (4x TitleFontSize of 20pt)
 
-        // Scale by density
-        _standardFontSize = baseStandardSize * _density;
-        _headerFontSize = baseHeaderSize * _density;
-        _smallFontSize = baseSmallSize * _density;
-        _mediumFontSize = baseMediumSize * _density;
-        _largeFontSize = baseLargeSize * _density;
-        _titleFontSize = baseTitleSize * _density;
-        
-        // For alarm fonts, use platform-specific handling
-        // On Windows, density is often 1.0, so we need to ensure sizes are actually different
+        // Platform-specific handling
+        // On Windows, density is often 1.0, so we need larger base sizes for readability
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
         {
-            // Use fixed sizes on Windows for consistent, visible differences
+            // Use larger fixed sizes on Windows for better readability on desktop
+            _standardFontSize = 14.0;  // Larger than mobile for desktop readability
+            _headerFontSize = 20.0;    // Proportionally larger
+            _smallFontSize = 12.0;     // Proportionally larger
+            _mediumFontSize = 16.0;    // Proportionally larger
+            _largeFontSize = 18.0;     // Proportionally larger
+            _titleFontSize = 22.0;     // Proportionally larger
+            
+            // Alarm fonts - fixed sizes for Windows
             _alarmTimeFontSize = 30.0;  // Fixed size for Windows
             _alarmMeridianFontSize = 16.0;  // Fixed size for Windows
+            _alarmBellIconFontSize = 80.0;  // Fixed size for Windows (4x TitleFontSize)
         }
         else
         {
             // Use density scaling on mobile platforms
+            _standardFontSize = baseStandardSize * _density;
+            _headerFontSize = baseHeaderSize * _density;
+            _smallFontSize = baseSmallSize * _density;
+            _mediumFontSize = baseMediumSize * _density;
+            _largeFontSize = baseLargeSize * _density;
+            _titleFontSize = baseTitleSize * _density;
+            
+            // Alarm fonts - use density scaling on mobile platforms
             _alarmTimeFontSize = baseAlarmTimeSize * _density;
             _alarmMeridianFontSize = baseAlarmMeridianSize * _density;
+            _alarmBellIconFontSize = baseAlarmBellIconSize * _density;
         }
     }
 
@@ -71,6 +83,7 @@ public class FontService : IFontService
     public double TitleFontSize => _titleFontSize;
     public double AlarmTimeFontSize => _alarmTimeFontSize;
     public double AlarmMeridianFontSize => _alarmMeridianFontSize;
+    public double AlarmBellIconFontSize => _alarmBellIconFontSize;
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {

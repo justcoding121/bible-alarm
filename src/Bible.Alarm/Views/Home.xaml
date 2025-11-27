@@ -44,7 +44,7 @@
                     BorderColor="Transparent"
                     Command="{Binding AddScheduleCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}"
+                    FontSize="{StaticResource HeaderFontSize}"
                     HeightRequest="{OnPlatform Default='50',
                                                WinUI='35'}"
                     HorizontalOptions="Fill"
@@ -135,14 +135,14 @@
                                         VerticalOptions="Center">
                                         <Label
                                             Padding="0"
-                                            FontSize="{x:Static services:FontServiceHelper.AlarmTimeFontSize}"
+                                            FontSize="{StaticResource AlarmTimeFontSize}"
                                             Text="{Binding TimeText}"
                                             VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
                                         <Label
                                             Margin="0"
                                             Padding="0"
-                                            FontSize="{x:Static services:FontServiceHelper.AlarmMeridianFontSize}"
+                                            FontSize="{StaticResource AlarmMeridianFontSize}"
                                             Text="{Binding MeridianText}"
                                             VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
