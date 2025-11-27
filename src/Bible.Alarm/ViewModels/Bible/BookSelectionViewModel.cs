@@ -111,7 +111,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
-            await Task.Delay(100); // Give CollectionView time to render
+            // Give CollectionView time to render
+            await Task.Delay(100);
             
             // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);

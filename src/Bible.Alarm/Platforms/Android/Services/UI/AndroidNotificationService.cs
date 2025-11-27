@@ -149,7 +149,8 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
         Bitmap bitmap;
         if (drawable.IntrinsicWidth <= 0 || drawable.IntrinsicHeight <= 0)
             bitmap = Bitmap.CreateBitmap(1, 1,
-                Bitmap.Config.Argb8888); // Single color bitmap will be created of 1x1 pixel
+                // Single color bitmap will be created of 1x1 pixel
+                Bitmap.Config.Argb8888);
         else
             bitmap = Bitmap.CreateBitmap(drawable.IntrinsicWidth, drawable.IntrinsicHeight, Bitmap.Config.Argb8888);
 

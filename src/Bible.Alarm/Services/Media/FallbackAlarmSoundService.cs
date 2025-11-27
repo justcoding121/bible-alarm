@@ -24,7 +24,8 @@ public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundServ
             var fallbackMetadata = new TrackMetadata
             {
                 PublicationCode = "Fallback",
-                TrackNumber = 1 // Set TrackNumber > 0 to make it Music type
+                // Set TrackNumber > 0 to make it Music type
+                TrackNumber = 1
             };
 
             return new AudioPlayerTrack

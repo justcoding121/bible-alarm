@@ -15,7 +15,8 @@ public partial class BootstrapPage : ContentPage, IDisposable
         InitializeComponent();
         
         // Start animated dots
-        _animationTimer = new Timer(500); // Change dot every 500ms
+        // Change dot every 500ms
+        _animationTimer = new Timer(500);
         _animationTimer.Elapsed += OnTimerElapsed;
         _animationTimer.AutoReset = true;
         _animationTimer.Start();

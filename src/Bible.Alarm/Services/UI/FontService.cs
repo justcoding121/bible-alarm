@@ -79,9 +79,12 @@ public class FontService : IFontService, INotifyPropertyChanged
         const double baseTitleSize = 20.0;
         
         // Alarm clock style sizes - balanced for visibility without being too large
-        const double baseAlarmTimeSize = 32.0;      // Prominent time display (alarm clock style)
-        const double baseAlarmMeridianSize = 18.0;   // Smaller but still prominent AM/PM
-        const double baseAlarmBellIconSize = 80.0;   // Large bell icon (4x TitleFontSize of 20pt)
+        // Prominent time display (alarm clock style)
+        const double baseAlarmTimeSize = 32.0;
+        // Smaller but still prominent AM/PM
+        const double baseAlarmMeridianSize = 18.0;
+        // Large bell icon (4x TitleFontSize of 20pt)
+        const double baseAlarmBellIconSize = 80.0;
 
         if (!hasValidDisplayInfo)
         {
@@ -93,17 +96,18 @@ public class FontService : IFontService, INotifyPropertyChanged
             {
                 // Windows desktop: Use fixed sizes for desktop readability (same as before width-in-dp change)
                 // These are larger than mobile for better desktop readability
-                _standardFontSize = 14.0;  // Larger than mobile for desktop readability
-                _headerFontSize = 20.0;    // Proportionally larger
-                _smallFontSize = 12.0;     // Proportionally larger
-                _mediumFontSize = 16.0;    // Proportionally larger
-                _largeFontSize = 18.0;     // Proportionally larger
-                _titleFontSize = 22.0;     // Proportionally larger
+                _standardFontSize = 14.0;
+                _headerFontSize = 20.0;
+                _smallFontSize = 12.0;
+                _mediumFontSize = 16.0;
+                _largeFontSize = 18.0;
+                _titleFontSize = 22.0;
                 
                 // Alarm fonts - fixed sizes for desktop
-                _alarmTimeFontSize = 30.0;  // Fixed size for desktop
-                _alarmMeridianFontSize = 16.0;  // Fixed size for desktop
-                _alarmBellIconFontSize = 80.0;  // Fixed size for desktop (4x TitleFontSize)
+                _alarmTimeFontSize = 30.0;
+                _alarmMeridianFontSize = 16.0;
+                // Fixed size for desktop (4x TitleFontSize)
+                _alarmBellIconFontSize = 80.0;
                 
                 Log.Logger.Debug("Using Windows desktop fallback fixed font sizes (display info not available)");
             }
@@ -130,14 +134,18 @@ public class FontService : IFontService, INotifyPropertyChanged
         {
             // Valid display info - use width-in-dp based scaling
             density = mainDisplayInfo.Density;
-            widthDp = mainDisplayInfo.Width / density;  // Logical dp - key to proper scaling
+            // Logical dp - key to proper scaling
+            widthDp = mainDisplayInfo.Width / density;
 
             // Determine scaling factor based on screen width in dp (density-independent pixels)
             // This approach works perfectly for phones, tablets, foldables, and resizable desktop windows
             double scale;
-            bool isPhone = widthDp < 600;      // Phone (portrait or landscape)
-            bool isTablet = widthDp >= 600 && widthDp < 960;  // Tablet or small desktop window
-            bool isDesktop = widthDp >= 960;   // Large desktop, landscape tablet in full screen
+            // Phone (portrait or landscape)
+            bool isPhone = widthDp < 600;
+            // Tablet or small desktop window
+            bool isTablet = widthDp >= 600 && widthDp < 960;
+            // Large desktop, landscape tablet in full screen
+            bool isDesktop = widthDp >= 960;
             
             if (isPhone)
             {

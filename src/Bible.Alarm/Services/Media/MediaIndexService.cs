@@ -84,7 +84,8 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                 // Try to find the most recent weekly index file
                 // Harvester runs weekly on Sundays, so we check the last few weeks
                 var time = DateTime.UtcNow;
-                var weeksToCheck = 4; // Check up to 4 weeks back to find the latest index
+                // Check up to 4 weeks back to find the latest index
+                var weeksToCheck = 4;
 
                 for (var i = 0; i < weeksToCheck; i++)
                 {

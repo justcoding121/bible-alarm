@@ -45,7 +45,8 @@ public class ScheduleStateService(
                     "Cannot schedule alarm because you've denied background apps permission. " +
                     "Please grant background apps permission for this app under system settings.", 7);
 
-            return false; // Indicates the state change was rejected
+            // Indicates the state change was rejected
+            return false;
         }
 
         // Update database and alarm service
@@ -103,7 +104,8 @@ public class ScheduleStateService(
             await _toastService.ShowScheduledNotification(updatedSchedule);
         }
 
-        return true; // Indicates the state change was successful
+        // Indicates the state change was successful
+        return true;
     }
 }
 

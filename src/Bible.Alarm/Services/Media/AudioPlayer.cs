@@ -117,7 +117,8 @@ public partial class AudioPlayer : IAudioPlayer
         });
 
         // Wait for media to open (with timeout)
-        var timeoutTask = Task.Delay(5000); // 5 second timeout
+        // 5 second timeout
+        var timeoutTask = Task.Delay(5000);
         var completedTask = await Task.WhenAny(_mediaOpenedCompletionSource.Task, timeoutTask);
         
         if (completedTask == timeoutTask)

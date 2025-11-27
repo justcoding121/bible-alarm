@@ -79,7 +79,8 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                     try
                     {
                         _currentPopup.IsOpen = false;
-                        await Task.Delay(100); // Give it time to close
+                        // Give it time to close
+                        await Task.Delay(100);
                     }
                     catch (Exception ex)
                     {
@@ -191,7 +192,8 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White),
                 HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
                 VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center,
-                MaxWidth = 400 // Limit width for better appearance
+                // Limit width for better appearance
+                MaxWidth = 400
             };
 
             // Create a Border for the toast background

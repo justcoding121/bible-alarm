@@ -20,7 +20,8 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
-            errorMessage: null); // Clear error when starting new playback
+            // Clear error when starting new playback
+            errorMessage: null);
     }
 
     [ReducerMethod]

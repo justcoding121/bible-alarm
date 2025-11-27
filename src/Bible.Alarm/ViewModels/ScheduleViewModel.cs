@@ -132,7 +132,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         // This prevents the overlay from staying visible indefinitely if something goes wrong
         _ = Task.Run(async () =>
         {
-            await Task.Delay(2000); // 2 second timeout
+            // 2 second timeout
+            await Task.Delay(2000);
             if (IsBusy && !_modelInitialized)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -452,13 +453,15 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 _modelInitialized = false;
                 _lastScheduleId = -1;
                 _scheduleId = 0;
-                IsNewSchedule = false; // Will be set to true after initialization
+                // Will be set to true after initialization
+                IsNewSchedule = false;
             }
             
             if (!_modelInitialized && !_isInitializingNewSchedule)
             {
                 _isInitializingNewSchedule = true;
-                MainThread.BeginInvokeOnMainThread(() => IsBusy = true); // Show busy indicator during initialization
+                // Show busy indicator during initialization
+                MainThread.BeginInvokeOnMainThread(() => IsBusy = true);
                 Task.Run(async () =>
                 {
                     using var scope = _scopeFactory.CreateScope();
@@ -479,7 +482,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                         }
 
                         _isInitializingNewSchedule = false;
-                        IsBusy = false; // Hide busy indicator after initialization
+                        // Hide busy indicator after initialization
+                        IsBusy = false;
                         // Note: Home page overlay will be hidden when Schedule page Appearing event fires
                     });
                 });

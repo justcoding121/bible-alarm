@@ -76,7 +76,8 @@ public class DisplayMetadataService(ILogger logger, MediaService mediaService) :
                     var releases = await _mediaService.GetVocalMusicReleases(trackMetadata.LanguageCode);
                     if (releases.TryGetValue(trackMetadata.PublicationCode, out var vocalRelease))
                     {
-                        meta.Album = vocalRelease.Name; // Description: Publication name
+                        // Description: Publication name
+                        meta.Album = vocalRelease.Name;
                     }
                     
                     var tracks = await _mediaService.GetVocalMusicTracks(
@@ -94,7 +95,8 @@ public class DisplayMetadataService(ILogger logger, MediaService mediaService) :
                     var fileMeta = await ExtractMetadataFromFileAsync(track.Uri);
                     if (!string.IsNullOrEmpty(fileMeta.Artist))
                     {
-                        meta.Artist = fileMeta.Artist; // SubTitle: Artist
+                        // SubTitle: Artist
+                        meta.Artist = fileMeta.Artist;
                     }
                     // If Album not set from database, use from file metadata
                     if (string.IsNullOrEmpty(meta.Album) && !string.IsNullOrEmpty(fileMeta.Album))

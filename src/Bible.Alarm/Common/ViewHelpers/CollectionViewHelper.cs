@@ -76,8 +76,10 @@ public static class CollectionViewHelper
 
     private static async Task WaitForCollectionViewReadyWindows(MauiCollectionView collectionView)
     {
-        const int maxAttempts = 50; // Maximum number of attempts (5 seconds total)
-        const int delayMs = 100; // Delay between attempts
+        // Maximum number of attempts (5 seconds total)
+        const int maxAttempts = 50;
+        // Delay between attempts
+        const int delayMs = 100;
         var isReady = false;
 
         for (var i = 0; i < maxAttempts; i++)

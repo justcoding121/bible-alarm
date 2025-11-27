@@ -38,10 +38,12 @@ public class DownloadService : IDownloadService
                         message.Contains("Not Found"))
                     {
                         _logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
-                        return false; // Don't handle/retry this exception
+                        // Don't handle/retry this exception
+                        return false;
                     }
                 }
-                return true; // Handle/retry other exceptions
+                // Handle/retry other exceptions
+                return true;
             })
             .WaitAndRetryAsync(
                 retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,

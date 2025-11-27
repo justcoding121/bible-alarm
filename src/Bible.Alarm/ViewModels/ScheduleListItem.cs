@@ -72,7 +72,8 @@ public class ScheduleListItem(
 
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
-        _lastKnownSchedule = Schedule; // Store initial state for comparison
+        // Store initial state for comparison
+        _lastKnownSchedule = Schedule;
 
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -201,7 +202,8 @@ public class ScheduleListItem(
     public async Task RefreshChapterNameAsync(bool force = false)
     {
         if (Schedule?.Id <= 0) return;
-        var schedule = Schedule; // Capture to avoid null reference
+        // Capture to avoid null reference
+        var schedule = Schedule;
         if (schedule == null) return;
         var scheduleId = schedule.Id;
 
@@ -234,7 +236,8 @@ public class ScheduleListItem(
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {
         if (Schedule?.Id <= 0) return;
-        var schedule = Schedule; // Capture to avoid null reference
+        // Capture to avoid null reference
+        var schedule = Schedule;
         if (schedule == null) return;
         var scheduleId = schedule.Id;
 
