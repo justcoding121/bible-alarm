@@ -107,12 +107,13 @@
                             BorderColor="Transparent"
                             Command="{Binding DismissCommand}"
                             CornerRadius="10"
-                            FontSize="{StaticResource TitleFontSize}"
+                            FontSize="{StaticResource ButtonFontSize}"
                             FontAttributes="Bold"
-                            HeightRequest="{OnPlatform Default='50',
-                                                       WinUI='37'}"
                             HorizontalOptions="Center"
                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                            MinimumHeightRequest="{OnPlatform Default='40',
+                                                       WinUI='30'}"
+                            Padding="10,8"
                             Text="DISMISS"
                             TextColor="SlateBlue"
                             VerticalOptions="Center"

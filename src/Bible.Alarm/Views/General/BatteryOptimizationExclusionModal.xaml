@@ -22,54 +22,47 @@
             VerticalOptions="Center">
             <Label
                 Margin="5"
-                HeightRequest="200"
-                HorizontalOptions="Center"
+                HorizontalOptions="Fill"
                 HorizontalTextAlignment="Center"
-                MinimumHeightRequest="200"
-                MinimumWidthRequest="200"
+                LineBreakMode="WordWrap"
                 Text="Audio may not play in background on certain android devices like OnePlus due to aggressive battery optimization. This application will not drain your device battery. We recommend to exclude this app from battery optimization."
                 TextColor="SlateBlue"
-                VerticalOptions="End"
-                VerticalTextAlignment="End"
-                WidthRequest="200" />
+                VerticalOptions="Start"
+                VerticalTextAlignment="Start" />
             <Label
                 IsVisible="{Binding CanOptimizeBattery}"
                 Margin="5"
-                HeightRequest="75"
-                HorizontalOptions="Center"
+                HorizontalOptions="Fill"
                 HorizontalTextAlignment="Center"
-                MinimumHeightRequest="200"
-                MinimumWidthRequest="200"
+                LineBreakMode="WordWrap"
                 Text="Click Exclude Now => Apps not optimized => All Apps => Bible Alarm => Off"
                 TextColor="SlateBlue"
-                VerticalOptions="End"
-                VerticalTextAlignment="End"
-                WidthRequest="200" />
+                VerticalOptions="Start"
+                VerticalTextAlignment="Start" />
             <Button
                 IsVisible="{Binding CanOptimizeBattery}"
                 Margin="5"
                 BackgroundColor="White"
                 Command="{Binding BatteryOptimizationExcludeCommand}"
                 CornerRadius="10"
-                Style="{StaticResource MediumLabelStyle}"
-                HeightRequest="50"
-                MinimumHeightRequest="45"
+                FontSize="{StaticResource ButtonFontSize}"
+                FontAttributes="Bold"
+                HorizontalOptions="Fill"
+                MinimumHeightRequest="40"
                 MinimumWidthRequest="200"
+                Padding="10,8"
                 Text="EXCLUDE NOW"
-                TextColor="SlateBlue"
-                WidthRequest="200" />
+                TextColor="SlateBlue" />
             <Label
                 IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
                 Margin="5,25,5,5"
-                HorizontalOptions="Center"
+                HorizontalOptions="Fill"
                 HorizontalTextAlignment="Center"
-                MinimumHeightRequest="200"
-                MinimumWidthRequest="200"
+                LineBreakMode="WordWrap"
                 Text="You may exclude through Android Settings => Apps => : => Special access => Optimize battery usage => Apps not optimized => All Apps => Bible Alarm => Off"
                 TextColor="SlateBlue"
-                VerticalOptions="End"
-                VerticalTextAlignment="End"
-                WidthRequest="200" />
+                VerticalOptions="Start"
+                VerticalTextAlignment="Start" />
             <Button
                 IsVisible="{Binding CanOptimizeBattery}"
                 Margin="5"
@@ -77,13 +70,14 @@
                 BackgroundColor="White"
                 Command="{Binding BatteryOptimizationDismissCommand}"
                 CornerRadius="10"
-                Style="{StaticResource MediumLabelStyle}"
-                HeightRequest="50"
-                MinimumHeightRequest="45"
+                FontSize="{StaticResource ButtonFontSize}"
+                FontAttributes="Bold"
+                HorizontalOptions="Fill"
+                MinimumHeightRequest="40"
                 MinimumWidthRequest="200"
+                Padding="10,8"
                 Text="LATER"
-                TextColor="SlateBlue"
-                WidthRequest="200" />
+                TextColor="SlateBlue" />
             <Button
                 IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
                 Margin="5"
@@ -91,16 +85,15 @@
                 BackgroundColor="White"
                 Command="{Binding BatteryOptimizationDismissCommand}"
                 CornerRadius="10"
-                FontSize="{StaticResource HeaderFontSize}"
+                FontSize="{StaticResource ButtonFontSize}"
                 FontAttributes="Bold"
-                HeightRequest="{OnPlatform Default='50',
-                                           WinUI='37'}"
-                MinimumHeightRequest="{OnPlatform Default='50',
-                                                  WinUI='37'}"
+                HorizontalOptions="Fill"
+                MinimumHeightRequest="{OnPlatform Default='40',
+                                                  WinUI='30'}"
                 MinimumWidthRequest="200"
+                Padding="10,8"
                 Text="OKAY"
-                TextColor="SlateBlue"
-                WidthRequest="200" />
+                TextColor="SlateBlue" />
         </StackLayout>
     </ContentPage.Content>
 </ContentPage>

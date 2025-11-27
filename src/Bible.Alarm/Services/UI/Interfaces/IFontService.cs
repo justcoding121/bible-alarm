@@ -16,6 +16,11 @@ public interface IFontService
     double HeaderFontSize { get; }
 
     /// <summary>
+    /// Button font size (HeaderFontSize - 1 point) for consistent button text sizing
+    /// </summary>
+    double ButtonFontSize { get; }
+
+    /// <summary>
     /// Small font size (10 points) scaled by device density
     /// </summary>
     double SmallFontSize { get; }

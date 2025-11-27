@@ -61,6 +61,12 @@ public static class FontServiceHelper
     public static double HeaderFontSize => GetFontService().HeaderFontSize;
 
     /// <summary>
+    /// Gets the button font size (HeaderFontSize - 1pt) for consistent button text sizing
+    /// Hot-reload friendly: Always returns a valid value
+    /// </summary>
+    public static double ButtonFontSize => GetFontService().ButtonFontSize;
+
+    /// <summary>
     /// Gets the small font size (10pt scaled by density)
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>

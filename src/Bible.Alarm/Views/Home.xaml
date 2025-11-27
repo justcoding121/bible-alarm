@@ -44,12 +44,11 @@
                     BorderColor="Transparent"
                     Command="{Binding AddScheduleCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="{StaticResource HeaderFontSize}"
-                    HeightRequest="{OnPlatform Default='50',
-                                               WinUI='35'}"
+                    FontSize="{StaticResource ButtonFontSize}"
                     HorizontalOptions="Fill"
-                    MinimumHeightRequest="{OnPlatform Default='50',
+                    MinimumHeightRequest="{OnPlatform Default='40',
                                                       WinUI='30'}"
+                    Padding="10,8"
                     Text="{x:Static fn:GlyphNames.Plus}"
                     TextColor="SlateBlue" />
             </StackLayout>
@@ -108,25 +107,21 @@
                                              Orientation="Vertical">
                                     <Button
                                         Margin="0"
-                                        Padding="0"
                                         BackgroundColor="{OnPlatform Default='WhiteSmoke',
                                                                      WinUI='LightGray'}"
                                         BorderWidth="0"
                                         BorderColor="Transparent"
                                         Command="{Binding PlayCommand}"
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        HeightRequest="{OnPlatform WinUI='50',
-                                                                   iOS='50'}"
                                         HorizontalOptions="Center"
-                                        MinimumHeightRequest="{OnPlatform WinUI='50',
-                                                                          iOS='50'}"
-                                        MinimumWidthRequest="{OnPlatform iOS='75',
-                                                                         WinUI='75'}"
+                                        MinimumHeightRequest="{OnPlatform WinUI='40',
+                                                                          iOS='40'}"
+                                        MinimumWidthRequest="{OnPlatform iOS='60',
+                                                                         WinUI='60'}"
+                                        Padding="10,8"
                                         Text="{x:Static fn:GlyphNames.Play}"
                                         TextColor="SlateBlue"
-                                        VerticalOptions="Center"
-                                        WidthRequest="{OnPlatform iOS='75',
-                                                                   WinUI='75'}" />
+                                        VerticalOptions="Center" />
                                     <StackLayout
                                         Margin="0"
                                         Padding="0"
@@ -149,14 +144,21 @@
                                             VerticalTextAlignment="Center" />
                                     </StackLayout>
                                 </StackLayout>
-                                <StackLayout
+                                <Grid
                                     Grid.Column="1"
                                     Margin="{OnPlatform Default='20,0,0,0',
-                                                        iOS='10,0,0,0'}"
+                                                        iOS='10,0,0,0',
+                                                        WinUI='20,0,0,0'}"
                                     HorizontalOptions="Start"
-                                    Orientation="Vertical"
                                     VerticalOptions="Fill">
-                                    <StackLayout Orientation="Horizontal">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <StackLayout Grid.Row="0" 
+                                                 Orientation="Horizontal"
+                                                 HorizontalOptions="Start">
                                         <Label
                                             Margin="5,0,0,0"
                                             FontAttributes="Bold"
@@ -200,22 +202,32 @@
                                             Text="S"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}" />
                                     </StackLayout>
-                                    <Label
-                                        VerticalOptions="Fill"
-                                        Margin="2,0,0,0"
-                                        Text="{Binding Name}"
-                                        TextColor="Black" />
-                                    <Label
-                                        VerticalOptions="Fill"
-                                        Margin="2,0,0,0"
-                                        Text="{Binding SubTitle}"
-                                        TextColor="SlateBlue" />
-                                    <StackLayout Orientation="Horizontal" HorizontalOptions="Start"
-                                                 MinimumHeightRequest="30" VerticalOptions="Fill">
+                                    <StackLayout Grid.Row="1" 
+                                                 Orientation="Vertical"
+                                                 HorizontalOptions="Start"
+                                                 VerticalOptions="Start">
+                                        <Label
+                                            Margin="2,0,0,0"
+                                            HorizontalOptions="Start"
+                                            HorizontalTextAlignment="Start"
+                                            Text="{Binding Name}"
+                                            TextColor="Black" />
+                                        <Label
+                                            Margin="2,0,0,0"
+                                            HorizontalOptions="Start"
+                                            HorizontalTextAlignment="Start"
+                                            Text="{Binding SubTitle}"
+                                            TextColor="SlateBlue" />
+                                    </StackLayout>
+                                    <StackLayout Grid.Row="2"
+                                                 Orientation="Horizontal" 
+                                                 HorizontalOptions="Start"
+                                                 Margin="2,0,0,0"
+                                                 Spacing="5"
+                                                 VerticalOptions="End">
                                         <Button
                                             CharacterSpacing="0"
                                             Padding="0"
-                                            Margin="0,0,10,0"
                                             BackgroundColor="Transparent"
                                             BorderWidth="0"
                                             BorderColor="Transparent"
@@ -224,13 +236,14 @@
                                             Style="{StaticResource MediumLabelStyle}"
                                             HorizontalOptions="Start"
                                             MinimumHeightRequest="25"
+                                            MinimumWidthRequest="30"
                                             Text="{x:Static fn:GlyphNames.Previous}"
                                             TextColor="LightGray"
-                                            VerticalOptions="Fill" />
+                                            VerticalOptions="Center"
+                                            WidthRequest="30" />
                                         <Button
                                             CharacterSpacing="0"
                                             Padding="0"
-                                            Margin="10,0,10,0"
                                             BackgroundColor="Transparent"
                                             BorderWidth="0"
                                             BorderColor="Transparent"
@@ -238,12 +251,14 @@
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             Style="{StaticResource MediumLabelStyle}"
                                             MinimumHeightRequest="25"
+                                            MinimumWidthRequest="30"
                                             HorizontalOptions="Start"
                                             Text="{x:Static fn:GlyphNames.Next}"
                                             TextColor="LightGray"
-                                            VerticalOptions="Fill" />
+                                            VerticalOptions="Center"
+                                            WidthRequest="30" />
                                     </StackLayout>
-                                </StackLayout>
+                                </Grid>
                                 <StackLayout
                                     Grid.Column="2"
                                     Margin="{OnIdiom Default={OnPlatform Default='15,0,30,0',

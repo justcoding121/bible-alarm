@@ -35,7 +35,7 @@
                 Grid.Row="0"
                 Margin="10,2,2,2"
                 BackgroundColor="White"
-                FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold"
+                FontSize="{StaticResource ButtonFontSize}" FontAttributes="Bold"
                 HeightRequest="50"
                 Text="Number of chapters to read"
                 TextColor="Black"
@@ -66,14 +66,15 @@
                     <DataTemplate x:DataType="shared:NumberOfChaptersListViewItemModel">
                         <Grid
                             BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
-                            HorizontalOptions="Fill">
+                            HorizontalOptions="Fill"
+                            Padding="0,10">
                             <Label
                                 Margin="15,0,0,0"
-                                HeightRequest="45"
                                 HorizontalOptions="Start"
                                 HorizontalTextAlignment="Start"
                                 Text="{Binding Text}"
                                 TextColor="Black"
+                                VerticalOptions="Center"
                                 VerticalTextAlignment="Center" />
                         </Grid>
                     </DataTemplate>
@@ -83,15 +84,13 @@
                 x:Name="CloseButton"
                 Grid.Row="3"
                 Margin="2"
-                Padding="0"
                 BackgroundColor="White"
                 Command="{Binding CloseModalCommand}"
-                FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold"
-                HeightRequest="{OnPlatform Default='50',
-                                           WinUI='37'}"
+                FontSize="{StaticResource ButtonFontSize}" FontAttributes="Bold"
                 HorizontalOptions="Fill"
-                MinimumHeightRequest="{OnPlatform Default='50',
-                                                  WinUI='37'}"
+                MinimumHeightRequest="{OnPlatform Default='40',
+                                                  WinUI='30'}"
+                Padding="10,8"
                 Text="CLOSE"
                 TextColor="SlateBlue"
                 VerticalOptions="Fill" />

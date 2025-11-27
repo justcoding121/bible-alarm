@@ -101,9 +101,8 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="bible:BibleBookListViewItemModel">
                             <Grid
-                                Padding="5,0,5,0"
+                                Padding="5,10,5,10"
                                 BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
-                                HeightRequest="45"
                                 HorizontalOptions="Fill">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="8*" />

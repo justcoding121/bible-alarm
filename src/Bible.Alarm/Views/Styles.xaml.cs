@@ -23,6 +23,7 @@ public partial class Styles : ResourceDictionary
         // Update resources with actual scaled values
         this["StandardFontSize"] = fontService.StandardFontSize;
         this["HeaderFontSize"] = fontService.HeaderFontSize;
+        this["ButtonFontSize"] = fontService.ButtonFontSize;
         this["SmallFontSize"] = fontService.SmallFontSize;
         this["MediumFontSize"] = fontService.MediumFontSize;
         this["LargeFontSize"] = fontService.LargeFontSize;

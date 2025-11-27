@@ -58,6 +58,7 @@ public partial class App : Application
         {
             stylesDict["StandardFontSize"] = _fontService.StandardFontSize;
             stylesDict["HeaderFontSize"] = _fontService.HeaderFontSize;
+            stylesDict["ButtonFontSize"] = _fontService.ButtonFontSize;
             stylesDict["SmallFontSize"] = _fontService.SmallFontSize;
             stylesDict["MediumFontSize"] = _fontService.MediumFontSize;
             stylesDict["LargeFontSize"] = _fontService.LargeFontSize;
@@ -70,6 +71,7 @@ public partial class App : Application
         // Also update in main Resources dictionary for any direct lookups
         Resources["StandardFontSize"] = _fontService.StandardFontSize;
         Resources["HeaderFontSize"] = _fontService.HeaderFontSize;
+        Resources["ButtonFontSize"] = _fontService.ButtonFontSize;
         Resources["SmallFontSize"] = _fontService.SmallFontSize;
         Resources["MediumFontSize"] = _fontService.MediumFontSize;
         Resources["LargeFontSize"] = _fontService.LargeFontSize;

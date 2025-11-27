@@ -45,13 +45,12 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding CancelCommand}"
-                        FontSize="{StaticResource HeaderFontSize}"
+                        FontSize="{StaticResource ButtonFontSize}"
                         FontAttributes="Bold"
-                        HeightRequest="{OnPlatform Default='50',
-                                               WinUI='37'}"
                         HorizontalOptions="Fill"
-                        MinimumHeightRequest="{OnPlatform Default='50',
-                                                      WinUI='37'}"
+                        MinimumHeightRequest="{OnPlatform Default='40',
+                                                      WinUI='30'}"
+                        Padding="10,8"
                         Text="CANCEL"
                         TextColor="SlateBlue"
                         VerticalOptions="Fill" />
@@ -62,13 +61,12 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding SaveCommand}"
-                        FontSize="{StaticResource HeaderFontSize}"
+                        FontSize="{StaticResource ButtonFontSize}"
                         FontAttributes="Bold"
-                        HeightRequest="{OnPlatform Default='50',
-                                                   WinUI='37'}"
                         HorizontalOptions="Fill"
-                        MinimumHeightRequest="{OnPlatform Default='50',
-                                                          WinUI='37'}"
+                        MinimumHeightRequest="{OnPlatform Default='40',
+                                                          WinUI='30'}"
+                        Padding="10,8"
                         Text="SAVE"
                         TextColor="SlateBlue"
                         VerticalOptions="Fill" />
@@ -540,18 +538,16 @@
                   Margin="2,2,2,10"
                   IsVisible="{Binding IsExistingSchedule}"
                   VerticalOptions="End">
-                <Button Padding="0"
+                <Button Padding="10,8"
                         BackgroundColor="White"
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding DeleteCommand}"
-                        FontSize="{StaticResource HeaderFontSize}"
+                        FontSize="{StaticResource ButtonFontSize}"
                         FontAttributes="Bold"
-                        HeightRequest="{OnPlatform Default='50',
-                                               WinUI='37'}"
                         HorizontalOptions="Fill"
-                        MinimumHeightRequest="{OnPlatform Default='50',
-                                                      WinUI='37'}"
+                        MinimumHeightRequest="{OnPlatform Default='40',
+                                                      WinUI='30'}"
                         Text="REMOVE"
                         TextColor="SlateBlue" />
             </Grid>
