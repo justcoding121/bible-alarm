@@ -24,9 +24,5 @@ public class ScheduleDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-
-//#if DEBUG
-//            optionsBuilder.UseSqlite("DataSource=schedule_migration.db");
-//#endif
     }
 }

@@ -189,12 +189,6 @@ namespace Bible.Alarm.Platforms.iOS
         {
             try
             {
-                // var userInfo = nsUserInfo.ToDictionary();
-                // var scheduleId = userInfo["ScheduleId"];
-                // show an alert
-                // var iosAlarmHandler = container.Resolve<iOSAlarmHandler>();
-                // _ = iosAlarmHandler.Handle(long.Parse(scheduleId), true);
-
                 // reset our badge
 #pragma warning disable CA1422
                 UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;

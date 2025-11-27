@@ -1,6 +1,3 @@
-// using Bible.Alarm.Views.Schedule; // Schedule is a type, not a namespace
-// using Bible.Alarm.Views.Shared; // Shared is a folder, not a namespace
-
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Platform;

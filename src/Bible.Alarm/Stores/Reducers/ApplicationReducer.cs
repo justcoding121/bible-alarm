@@ -5,6 +5,7 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
+using Serilog;
 
 namespace Bible.Alarm.Stores.Reducers;
 
@@ -27,7 +28,8 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnAddSchedule(ApplicationState state, AddScheduleAction action)
     {
-        System.Diagnostics.Debug.WriteLine($"[ApplicationReducer] OnAddSchedule: ScheduleId={action.Schedule?.Id}, Name={action.Schedule?.Name}, ExistingSchedulesCount={state.Schedules?.Count ?? 0}");
+        Log.Information("ApplicationReducer: OnAddSchedule - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
+            action.Schedule?.Id, action.Schedule?.Name, state.Schedules?.Count ?? 0);
         
         var newSchedules = new ObservableHashSet<AlarmSchedule>();
         if (state.Schedules != null)
@@ -39,7 +41,7 @@ public static class ApplicationReducer
         }
         newSchedules.Add(action.Schedule);
         
-        System.Diagnostics.Debug.WriteLine($"[ApplicationReducer] OnAddSchedule: NewSchedulesCount={newSchedules.Count}");
+        Log.Information("ApplicationReducer: OnAddSchedule - NewSchedulesCount: {NewCount}", newSchedules.Count);
         
         return new ApplicationState(
             schedules: newSchedules,
