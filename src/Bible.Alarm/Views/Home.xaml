@@ -13,6 +13,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums;assembly=Bible.Alarm.Shared"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     x:DataType="vm:HomeViewModel"
     Title="Bible Alarm"
     NavigationPage.HasNavigationBar="False">
@@ -43,8 +44,7 @@
                     BorderColor="Transparent"
                     Command="{Binding AddScheduleCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="{OnPlatform Default='18',
-                                          iOS='25'}"
+                    FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}"
                     HeightRequest="{OnPlatform Default='50',
                                                WinUI='35'}"
                     HorizontalOptions="Fill"
@@ -135,14 +135,14 @@
                                         VerticalOptions="Center">
                                         <Label
                                             Padding="0"
-                                            FontSize="30"
+                                            FontSize="{x:Static services:FontServiceHelper.TitleFontSize}"
                                             Text="{Binding TimeText}"
                                             VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
                                         <Label
                                             Margin="0"
                                             Padding="0"
-                                            FontSize="Small"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="{Binding Meridian}"
                                             VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
@@ -160,43 +160,43 @@
                                         <Label
                                             Margin="5,0,0,0"
                                             FontAttributes="Bold"
-                                            FontSize="12"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="S"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}" />
                                         <Label
                                             Margin="0,0,0,0"
                                             FontAttributes="Bold"
-                                            FontSize="12"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="M"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}" />
                                         <Label
                                             Margin="0,0,0,0"
                                             FontAttributes="Bold"
-                                            FontSize="12"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="T"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}" />
                                         <Label
                                             Margin="0,0,0,0"
                                             FontAttributes="Bold"
-                                            FontSize="12"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="W"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}" />
                                         <Label
                                             Margin="0,0,0,0"
                                             FontAttributes="Bold"
-                                            FontSize="12"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="T"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}" />
                                         <Label
                                             Margin="0,0,0,0"
                                             FontAttributes="Bold"
-                                            FontSize="12"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="F"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}" />
                                         <Label
                                             Margin="0,0,0,0"
                                             FontAttributes="Bold"
-                                            FontSize="12"
+                                            Style="{StaticResource SmallLabelStyle}"
                                             Text="S"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}" />
                                     </StackLayout>
@@ -221,8 +221,7 @@
                                             BorderColor="Transparent"
                                             Command="{Binding PreviousCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{OnPlatform Default='Medium',
-                                                                  WinUI='Micro'}"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             HorizontalOptions="Start"
                                             MinimumHeightRequest="25"
                                             Text="{x:Static fn:GlyphNames.Previous}"
@@ -237,8 +236,7 @@
                                             BorderColor="Transparent"
                                             Command="{Binding NextCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{OnPlatform Default='Medium',
-                                                                  WinUI='Micro'}"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             MinimumHeightRequest="25"
                                             HorizontalOptions="Start"
                                             Text="{x:Static fn:GlyphNames.Next}"

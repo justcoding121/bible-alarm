@@ -9,6 +9,7 @@
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums;assembly=Bible.Alarm.Shared"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
+             xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
              x:DataType="vm:ScheduleViewModel"
              NavigationPage.HasBackButton="False"
              NavigationPage.HasNavigationBar="False">
@@ -44,8 +45,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding CancelCommand}"
-                        FontSize="{OnPlatform Default='18',
-                                      WinUI='16'}"
+                        FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}"
                         FontAttributes="Bold"
                         HeightRequest="{OnPlatform Default='50',
                                                WinUI='37'}"
@@ -62,8 +62,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding SaveCommand}"
-                        FontSize="{OnPlatform Default='18',
-                                          WinUI='16'}"
+                        FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}"
                         FontAttributes="Bold"
                         HeightRequest="{OnPlatform Default='50',
                                                    WinUI='37'}"
@@ -94,7 +93,7 @@
                                TextColor="Black" />
                         <TimePicker AutomationId="AlarmTimePicker"
                                     BackgroundColor="White"
-                                    FontSize="Title"
+                                    FontSize="{x:Static services:FontServiceHelper.TitleFontSize}"
                                     HorizontalOptions="Center"
                                     TextColor="SlateBlue"
                                     Time="{Binding Time, Mode=TwoWay}">
@@ -252,7 +251,7 @@
                                         <Label
                                             Margin="10,0,10,0"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="Medium"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             HorizontalOptions="End"
                                             Text="{x:Static fn:GlyphNames.Right}"
                                             TextColor="Gray"
@@ -291,8 +290,7 @@
                                             BorderColor="Transparent"
                                             Command="{Binding PreviousBookCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             HorizontalOptions="End"
                                             Text="{x:Static fn:GlyphNames.Previous}"
                                             TextColor="Gray"
@@ -305,8 +303,7 @@
                                             BorderColor="Transparent"
                                             Command="{Binding NextBookCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             HorizontalOptions="End"
                                             Text="{x:Static fn:GlyphNames.Next}"
                                             TextColor="Gray"
@@ -345,8 +342,7 @@
                                             BorderColor="Transparent"
                                             Command="{Binding PreviousChapterCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             HorizontalOptions="End"
                                             Text="{x:Static fn:GlyphNames.Previous}"
                                             TextColor="Gray"
@@ -359,8 +355,7 @@
                                             BorderColor="Transparent"
                                             Command="{Binding NextChapterCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             HorizontalOptions="End"
                                             Text="{x:Static fn:GlyphNames.Next}"
                                             TextColor="Gray"
@@ -531,7 +526,7 @@
                                     VerticalOptions="Center" />
                                 <Label Margin="0,0,10,0"
                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                       FontSize="Medium"
+                                       Style="{StaticResource MediumLabelStyle}"
                                        HorizontalOptions="End"
                                        Text="{x:Static fn:GlyphNames.Right}"
                                        TextColor="Gray"
@@ -550,8 +545,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding DeleteCommand}"
-                        FontSize="{OnPlatform Default='16',
-                                      WinUI='14'}"
+                        FontSize="{x:Static services:FontServiceHelper.LargeFontSize}"
                         FontAttributes="Bold"
                         HeightRequest="{OnPlatform Default='50',
                                                WinUI='37'}"

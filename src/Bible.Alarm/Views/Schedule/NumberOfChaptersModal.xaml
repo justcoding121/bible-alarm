@@ -11,6 +11,7 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     x:DataType="vm:ScheduleViewModel"
     Padding="0,10,0,10"
     mc:Ignorable="d">
@@ -34,7 +35,7 @@
                 Grid.Row="0"
                 Margin="10,2,2,2"
                 BackgroundColor="White"
-                FontSize="18" FontAttributes="Bold"
+                FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}" FontAttributes="Bold"
                 HeightRequest="50"
                 Text="Number of chapters to read"
                 TextColor="Black"
@@ -85,7 +86,7 @@
                 Padding="0"
                 BackgroundColor="White"
                 Command="{Binding CloseModalCommand}"
-                FontSize="18" FontAttributes="Bold"
+                FontSize="{x:Static services:FontServiceHelper.HeaderFontSize}" FontAttributes="Bold"
                 HeightRequest="{OnPlatform Default='50',
                                            WinUI='37'}"
                 HorizontalOptions="Fill"

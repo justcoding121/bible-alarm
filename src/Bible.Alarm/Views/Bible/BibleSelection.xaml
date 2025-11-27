@@ -11,6 +11,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     x:DataType="bible:BibleSelectionViewModel"
     NavigationPage.HasBackButton="False"
     NavigationPage.HasNavigationBar="False">
@@ -71,7 +72,7 @@
                         Grid.Column="0"
                         Margin="5,0,0,0"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="Medium"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Start"
                         HorizontalTextAlignment="Start"
                         MinimumWidthRequest="50"
@@ -112,7 +113,7 @@
                                 BackgroundColor="LightGray"
                                 Command="{Binding OpenModalCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="{OnPlatform Default='Medium'}"
+                                Style="{StaticResource MediumLabelStyle}"
                                 MinimumWidthRequest="{OnPlatform Default='65'}"
                                 Text="{x:Static fn:GlyphNames.Language}"
                                 TextColor="SlateBlue"
@@ -159,7 +160,7 @@
                                         <Label
                                             Margin="0,0,10,0"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="Medium"
+                                            Style="{StaticResource MediumLabelStyle}"
                                             Text="{x:Static fn:GlyphNames.Right}"
                                             TextColor="Gray"
                                             VerticalTextAlignment="Center" />

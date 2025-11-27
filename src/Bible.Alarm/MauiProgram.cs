@@ -115,6 +115,10 @@ public static class MauiProgram
 
         var app = builder.Build();
 
+        // Initialize FontServiceHelper for XAML binding (must be done before App.xaml resources are accessed)
+        var fontService = app.Services.GetRequiredService<IFontService>();
+        FontServiceHelper.Initialize(fontService);
+
         // Initialize Fluxor store
         var store = app.Services.GetRequiredService<IStore>();
         // Store initialization happens automatically, but we ensure it's ready

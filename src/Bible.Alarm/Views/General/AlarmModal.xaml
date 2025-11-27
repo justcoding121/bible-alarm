@@ -9,6 +9,7 @@
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     x:DataType="shared:AlarmViewModal"
     BackgroundColor="White">
     <ContentPage.Resources>
@@ -38,7 +39,7 @@
                     VerticalOptions="Center"
                     Margin="20">
                     <Label
-                        FontSize="Medium"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         Text="{Binding ProgressText}" />
@@ -57,7 +58,7 @@
                     VerticalOptions="Center"
                     Margin="20">
                     <Label
-                        FontSize="Medium"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         TextColor="Red"
@@ -67,15 +68,13 @@
                     Orientation="Vertical">
                     <Label
                         Padding="10,0,10,0"
-                        FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         Text="{Binding Title}" />
                     <Label
                         Padding="10,0,10,0"
-                        FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         Text="{Binding Description}" />
@@ -91,7 +90,7 @@
                     <Label
                         Margin="5"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{OnPlatform Default='75'}"
+                        FontSize="{x:Static services:FontServiceHelper.TitleFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         Text="{x:Static fn:GlyphNames.Bell}"
@@ -108,8 +107,7 @@
                             BorderColor="Transparent"
                             Command="{Binding DismissCommand}"
                             CornerRadius="10"
-                            FontSize="{OnPlatform Default='Medium',
-                                                 iOS='Title'}"
+                            FontSize="{x:Static services:FontServiceHelper.MediumFontSize}"
                             HeightRequest="45"
                             HorizontalOptions="Center"
                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
@@ -139,8 +137,7 @@
                 <Label
                     Margin="15,0,15,0"
                     Padding="10,0,10,0"
-                    FontSize="{OnPlatform Default='Medium',
-                                          WinUI='Small'}"
+                    Style="{StaticResource MediumLabelStyle}"
                     HorizontalOptions="Center"
                     HorizontalTextAlignment="Center"
                     Text="{Binding SubTitle}" />
@@ -166,8 +163,7 @@
                     Grid.Row="0"
                     Grid.Column="0"
                     Margin="{OnPlatform Default='10,0,0,0', WinUI='10,0,0,10'}"
-                    FontSize="{OnPlatform Default='Small',
-                                          WinUI='Micro'}"
+                    Style="{StaticResource SmallLabelStyle}"
                     HorizontalOptions="Start"
                     Text="{Binding CurrentTime}"
                     TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
@@ -185,8 +181,7 @@
                     Grid.Row="0"
                     Grid.Column="2"
                     Margin="{OnPlatform Default='0,0,10,0', WinUI='0,0,10,10'}"
-                    FontSize="{OnPlatform Default='Small',
-                                          WinUI='Micro'}"
+                    Style="{StaticResource SmallLabelStyle}"
                     HorizontalOptions="End"
                     Text="{Binding EndTime}"
                     TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
@@ -213,8 +208,7 @@
                         BorderColor="Transparent"
                         Command="{Binding PreviousCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Previous}"
@@ -229,8 +223,7 @@
                         BorderColor="Transparent"
                         Command="{Binding BackwardCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Backward}"
@@ -245,8 +238,7 @@
                         BorderColor="Transparent"
                         Command="{Binding PlayCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{OnPlatform Default='Large',
-                                              WinUI='Small'}"
+                        FontSize="{x:Static services:FontServiceHelper.LargeFontSize}"
                         HorizontalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}"
                         IsVisible="{Binding PlayVisible}"
@@ -262,8 +254,7 @@
                         BorderColor="Transparent"
                         Command="{Binding PauseCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{OnPlatform Default='Large',
-                                              WinUI='Small'}"
+                        FontSize="{x:Static services:FontServiceHelper.LargeFontSize}"
                         HorizontalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}"
                         IsVisible="{Binding PauseVisible}"
@@ -279,8 +270,7 @@
                         BorderColor="Transparent"
                         Command="{Binding ForwardCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Forward}"
@@ -294,8 +284,7 @@
                         BorderColor="Transparent"
                         Command="{Binding NextCommand}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{OnPlatform Default='Medium',
-                                              WinUI='Micro'}"
+                        Style="{StaticResource MediumLabelStyle}"
                         HorizontalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}"
                         Text="{x:Static fn:GlyphNames.Next}"

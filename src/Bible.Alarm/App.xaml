@@ -3,6 +3,25 @@
 <Application
     x:Class="Bible.Alarm.App"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
-    <Application.Resources />
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Include Styles resource dictionary -->
+            <ResourceDictionary.MergedDictionaries>
+                <views:Styles />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Global base styles - apply automatically to all controls of these types -->
+            <Style TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}" />
+            <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}" />
+            <Style TargetType="Entry" BasedOn="{StaticResource BaseEntryStyle}" />
+            <Style TargetType="Editor" BasedOn="{StaticResource BaseEditorStyle}" />
+            <Style TargetType="Picker" BasedOn="{StaticResource BasePickerStyle}" />
+            <Style TargetType="DatePicker" BasedOn="{StaticResource BaseDatePickerStyle}" />
+            <Style TargetType="TimePicker" BasedOn="{StaticResource BaseTimePickerStyle}" />
+            <Style TargetType="SearchBar" BasedOn="{StaticResource BaseSearchBarStyle}" />
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>

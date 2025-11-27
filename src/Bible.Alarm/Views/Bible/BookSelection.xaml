@@ -10,6 +10,7 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     x:DataType="bible:BookSelectionViewModel"
     NavigationPage.HasBackButton="False"
     NavigationPage.HasNavigationBar="False">
@@ -72,7 +73,7 @@
                         <Label
                             Margin="5,0,0,0"
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="Medium"
+                            Style="{StaticResource MediumLabelStyle}"
                             Text="{x:Static fn:GlyphNames.Left}"
                             TextColor="Gray" />
                     </StackLayout>
@@ -125,7 +126,7 @@
                                     <Label
                                         Margin="0,0,10,0"
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        FontSize="Medium"
+                                        Style="{StaticResource MediumLabelStyle}"
                                         Text="{x:Static fn:GlyphNames.Right}"
                                         TextColor="Gray"
                                         VerticalTextAlignment="Center" />

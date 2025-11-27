@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Services.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Battery;
@@ -128,6 +129,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IDisplayMetadataService, DisplayMetadataService>();
         services.AddSingleton<IAudioPlayer, AudioPlayer>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
+        services.AddSingleton<IFontService, FontService>();
         services.AddSingleton<SchedulerService>();
         services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());
         services.AddSingleton<IMediaIndexService>(sp => sp.GetRequiredService<MediaIndexService>());
