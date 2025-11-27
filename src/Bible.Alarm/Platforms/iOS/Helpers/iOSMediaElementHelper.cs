@@ -1,6 +1,5 @@
 #nullable enable
 using CommunityToolkit.Maui.Views;
-using Foundation;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -17,25 +16,39 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 public static class iOSMediaElementHelper
 {
     /// <summary>
-    /// Processes a URI for iOS MediaElement by normalizing paths and converting to file:// format.
+    /// Processes a URI for iOS MediaElement by normalizing paths.
+    /// On iOS, MediaElement works better with plain file paths instead of file:// URIs.
     /// Note: MediaCacheService always returns cached file paths, never HTTP/HTTPS URLs.
     /// </summary>
     public static string ProcessUriForMediaElement(string uri, ILogger logger)
     {
         logger.Debug("Original track URI: {Uri}", uri);
         
-        if (!uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        // If it's already a file:// URI, convert it back to a plain path
+        if (uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
         {
-            return ProcessFilePath(uri, logger);
+            try
+            {
+                var fileUri = new Uri(uri);
+                var localPath = fileUri.LocalPath;
+                logger.Debug("Converted file:// URI to plain path: {Path}", localPath);
+                return ProcessFilePath(localPath, logger);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to convert file:// URI, using original: {Uri}", uri);
+                return ProcessFilePath(uri, logger);
+            }
         }
         else
         {
-            return ProcessFileUri(uri, logger);
+            return ProcessFilePath(uri, logger);
         }
     }
 
     /// <summary>
-    /// Processes a plain file path (not file:// URI) for iOS by normalizing and converting to file:// format.
+    /// Processes a plain file path for iOS by normalizing it.
+    /// Returns the normalized plain file path (not a file:// URI) as MediaElement on iOS works better with plain paths.
     /// </summary>
     private static string ProcessFilePath(string filePath, ILogger logger)
     {
@@ -52,7 +65,7 @@ public static class iOSMediaElementHelper
                 if (File.Exists(filePath))
                 {
                     logger.Warning("File exists at original path, using original: {Path}", filePath);
-                    return ConvertToFileUri(filePath, logger);
+                    return filePath;
                 }
                 else
                 {
@@ -61,7 +74,8 @@ public static class iOSMediaElementHelper
                 }
             }
             
-            return ConvertToFileUri(normalizedPath, logger);
+            // Return plain file path (not file:// URI) for iOS MediaElement
+            return normalizedPath;
         }
         catch (Exception ex)
         {
@@ -70,7 +84,7 @@ public static class iOSMediaElementHelper
             if (File.Exists(filePath))
             {
                 logger.Warning("Using original path as fallback: {Path}", filePath);
-                return ConvertToFileUri(filePath, logger);
+                return filePath;
             }
             else
             {
@@ -105,49 +119,6 @@ public static class iOSMediaElementHelper
         }
         
         return isAbsolute ? "/" + string.Join("/", normalizedParts) : string.Join("/", normalizedParts);
-    }
-
-    /// <summary>
-    /// Converts a file path to a file:// URI using NSUrl for iOS.
-    /// </summary>
-    private static string ConvertToFileUri(string filePath, ILogger logger)
-    {
-        var nsUrl = NSUrl.FromFilename(filePath);
-        var uri = nsUrl.AbsoluteString ?? filePath;
-        logger.Debug("Converted path to file:// URI for iOS: {Uri} (original path: {Path})", uri, filePath);
-        return uri;
-    }
-
-    /// <summary>
-    /// Processes a file:// URI for iOS by ensuring proper format and verifying file exists.
-    /// </summary>
-    private static string ProcessFileUri(string uri, ILogger logger)
-    {
-        // Ensure proper file:// URL format for iOS (file:/// for absolute paths)
-        if (!uri.StartsWith("file:///", StringComparison.OrdinalIgnoreCase))
-        {
-            uri = uri.Replace("file://", "file:///");
-            logger.Debug("Formatted file URI for iOS: {Uri}", uri);
-        }
-        
-        // Verify file exists by converting to local path
-        try
-        {
-            var fileUri = new Uri(uri);
-            var localPath = fileUri.LocalPath;
-            if (!File.Exists(localPath))
-            {
-                logger.Error("File does not exist at path: {Path}", localPath);
-                throw new FileNotFoundException($"File not found: {localPath}");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error verifying file:// URI: {Uri}", uri);
-            throw;
-        }
-        
-        return uri;
     }
 
     /// <summary>
@@ -199,12 +170,13 @@ public static class iOSMediaElementHelper
 
     /// <summary>
     /// Sets the MediaElement source and volume for iOS.
+    /// The processedUri should already be a plain file path (not a file:// URI).
     /// </summary>
     public static void SetSourceAndVolume(MediaElement mediaElement, string processedUri, ILogger logger)
     {
         mediaElement.Source = processedUri;
         mediaElement.Volume = 1.0;
-        logger.Debug("Set MediaElement Volume to 1.0 on iOS. Source: {Source}, CurrentState: {State}", 
+        logger.Debug("Set MediaElement Source and Volume on iOS. Source: {Source}, CurrentState: {State}", 
             mediaElement.Source?.ToString() ?? "null",
             mediaElement.CurrentState);
     }
