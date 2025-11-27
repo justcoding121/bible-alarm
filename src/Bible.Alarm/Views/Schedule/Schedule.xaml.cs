@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
+using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Views.Schedule;
 
@@ -9,6 +10,8 @@ public partial class Schedule : ContentPage, IDisposable
     private readonly ScheduleViewModel _viewModel;
 
     public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
+
+    private bool _hasHandledFirstLoad;
 
     public Schedule(ScheduleViewModel viewModel)
     {
@@ -27,7 +30,41 @@ public partial class Schedule : ContentPage, IDisposable
             Command = new Command(() => AnimateUtils.FlickUponTouched(BibleButton, 1500,
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
         });
+
+        // Use Loaded event which fires after the page is in the visual tree
+        // This is better than OnAppearing as it fires later in the lifecycle
+        Loaded += OnPageLoaded;
     }
+
+    private async void OnPageLoaded(object? sender, EventArgs e)
+    {
+        // Only handle once per page instance
+        if (_hasHandledFirstLoad) return;
+        _hasHandledFirstLoad = true;
+
+        // Unsubscribe to avoid multiple calls
+        Loaded -= OnPageLoaded;
+
+        // Wait a bit to ensure the page is fully rendered and visible
+        // Loaded fires after the page is in the visual tree, but we still need a small delay
+        // to ensure all UI elements are fully rendered
+        await Task.Delay(100);
+        
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            // Hide Home page overlay after Schedule page is fully rendered and visible
+            _viewModel?.HideHomePageOverlay();
+        });
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        // Reset flag when page appears again (e.g., navigating back to it)
+        _hasHandledFirstLoad = false;
+        Loaded += OnPageLoaded;
+    }
+
 
     protected override bool OnBackButtonPressed()
     {

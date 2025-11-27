@@ -127,10 +127,10 @@
                                         MaxLines="0" />
                                     <HorizontalStackLayout
                                         Grid.Column="1"
-                                        Margin="10,0,15,0"
+                                        Margin="5,0,15,0"
                                         HorizontalOptions="End"
                                         VerticalOptions="Start"
-                                        Spacing="10">
+                                        Spacing="5">
                                         <ActivityIndicator
                                             HorizontalOptions="Center"
                                             IsEnabled="True"

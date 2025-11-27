@@ -7,11 +7,13 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.ViewModels.Shared;
@@ -54,6 +56,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public ICommand PreviousChapterCommand { get; set; }
     public ICommand NextChapterCommand { get; set; }
 
+    private readonly ScheduleItemStateService _scheduleItemStateService;
+
     public ScheduleViewModel(
         ILogger logger,
         IToastService popUpService,
@@ -69,7 +73,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IServiceProvider serviceProvider,
         IState<ApplicationState> state,
         IState<PlaybackState> playbackState,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        ScheduleItemStateService scheduleItemStateService)
     {
         _logger = logger;
         _popUpService = popUpService;
@@ -78,6 +83,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _state = state;
         _playbackState = playbackState;
         _dispatcher = dispatcher;
+        _scheduleItemStateService = scheduleItemStateService;
 
         _schedulePersistenceService = schedulePersistenceService;
         var bibleNavigationService1 = bibleNavigationService;
@@ -87,7 +93,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _scheduleDisplayService = scheduleDisplayService;
         _serviceProvider = serviceProvider;
 
-        _state.StateChanged += OnCurrentScheduleChanged;
+        _state.StateChanged += OnStateChanged;
         _state.StateChanged += OnMusicChanged;
         _state.StateChanged += OnBibleReadingChanged;
 
@@ -131,6 +137,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     IsBusy = false;
+                    // Hide Home page overlay as safety fallback
+                    _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
                 });
             }
         });
@@ -143,10 +151,16 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         SaveCommand = new AsyncRelayCommand(async () =>
         {
-            // Show overlay immediately
-            IsBusy = true;
-            // Wait 50ms to ensure overlay is visible before starting operations
-            await Task.Delay(50);
+            // Show overlay immediately via state
+            _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+            // Wait for state to update and UI to reflect the change
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                // Force property change notification
+                OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
+                // Wait a bit to ensure UI has rendered the overlay
+                await Task.Delay(50);
+            });
 
             if (IsEnabled &&
                 (DeviceInfo.Platform == DevicePlatform.iOS
@@ -164,12 +178,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             if (saved)
             {
                 await _navigationService.NavigateToHomeAsync();
-                // Set IsBusy to false after navigation completes
-                IsBusy = false;
+                // Note: Schedule page overlay will be hidden when Home page Appearing event fires
             }
             else
             {
-                IsBusy = false;
+                // Hide overlay if save failed
+                _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             }
 
             if (saved && IsEnabled) await _popUpService.ShowScheduledNotification(Model);
@@ -177,16 +191,22 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         DeleteCommand = new AsyncRelayCommand(async () =>
         {
-            // Show overlay immediately
-            IsBusy = true;
-            // Wait 50ms to ensure overlay is visible before starting operations
-            await Task.Delay(50);
+            // Show overlay immediately via state
+            _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+            // Wait for state to update and UI to reflect the change
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                // Force property change notification
+                OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
+                // Wait a bit to ensure UI has rendered the overlay
+                await Task.Delay(50);
+            });
 
             // If it's a new schedule, just navigate back without deleting
             if (IsNewSchedule)
             {
                 await _navigationService.NavigateToHomeAsync();
-                IsBusy = false;
+                // Note: Schedule page overlay will be hidden when navigating back
                 return;
             }
 
@@ -198,8 +218,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             await DeleteAsync();
 
             await _navigationService.NavigateToHomeAsync();
-            // Set IsBusy to false after navigation completes
-            IsBusy = false;
+            // Note: Schedule page overlay will be hidden when navigating back
         });
 
         ToggleDayCommand = new RelayCommand<DaysOfWeek>(Toggle);
@@ -323,6 +342,20 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         });
     }
 
+    private void OnStateChanged(object sender, EventArgs e)
+    {
+        var stateValue = _state.Value;
+        
+        // Notify about overlay visibility changes
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
+        });
+        
+        // Continue with existing schedule change handling
+        OnCurrentScheduleChanged(sender, e);
+    }
+
     private void OnCurrentScheduleChanged(object sender, EventArgs e)
     {
         var stateValue = _state.Value;
@@ -368,6 +401,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                     IsBusy = false;
                     // Explicitly notify property change to ensure UI updates
                     OnPropertyChanged(nameof(IsBusy));
+                    // Note: Home page overlay will be hidden when Schedule page Appearing event fires
                 }
                 catch (Exception ex)
                 {
@@ -375,6 +409,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                     // Ensure IsBusy is set to false even if there's an error
                     IsBusy = false;
                     OnPropertyChanged(nameof(IsBusy));
+                    // Note: Home page overlay will be hidden when Schedule page Appearing event fires
                 }
             });
         }
@@ -399,6 +434,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
                     _isInitializingNewSchedule = false;
                     IsBusy = false; // Hide busy indicator after initialization
+                    // Note: Home page overlay will be hidden when Schedule page Appearing event fires
                 });
             });
         }
@@ -776,9 +812,31 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         });
     }
 
+    /// <summary>
+    /// Hides the Home page overlay. Called when the Schedule page is fully rendered and visible.
+    /// </summary>
+    public void HideHomePageOverlay()
+    {
+        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+    }
+
+    /// <summary>
+    /// Gets the overlay visibility from application state.
+    /// This property is bound to the Schedule page overlay.
+    /// </summary>
+    public bool IsSchedulePageOverlayVisible => _state.Value.IsSchedulePageOverlayVisible;
+
+    /// <summary>
+    /// Hides the Schedule page overlay. Called when navigating back to Home page.
+    /// </summary>
+    public void HideSchedulePageOverlay()
+    {
+        _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+    }
+
     public void Dispose()
     {
-        _state.StateChanged -= OnCurrentScheduleChanged;
+        _state.StateChanged -= OnStateChanged;
         _state.StateChanged -= OnMusicChanged;
         _state.StateChanged -= OnBibleReadingChanged;
     }

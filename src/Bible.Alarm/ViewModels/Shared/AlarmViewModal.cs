@@ -7,6 +7,7 @@ using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -15,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.ApplicationModel;
 using Plugin.StoreReview;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
@@ -22,6 +24,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 {
     private readonly IPlaybackService _playbackService;
     private readonly IState<PlaybackState> _playbackState;
+    private readonly IDispatcher _dispatcher;
 
     private bool _isDisposed;
     private bool _hasReceivedInitialState;
@@ -40,10 +43,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     public ICommand ForwardCommand { get; set; }
     public ICommand BackwardCommand { get; set; }
 
-    public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState)
+    public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher)
     {
         _playbackService = playbackService;
         _playbackState = playbackState;
+        _dispatcher = dispatcher;
         
         // Initialize string fields to avoid nullable warnings
         _title = "";
@@ -445,6 +449,14 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(PreparationProgress));
         });
+    }
+
+    /// <summary>
+    /// Hides the Home page overlay. Called when the Alarm Modal is fully rendered and visible.
+    /// </summary>
+    public void HideHomePageOverlay()
+    {
+        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
     }
 
     public void Dispose()

@@ -21,7 +21,7 @@
               BackgroundColor="White">
             <Grid Grid.ZIndex="1"
                   Margin="{OnPlatform iOS='0,10,0,0'}"
-                  IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                  IsVisible="{Binding IsSchedulePageOverlayVisible, Converter={StaticResource negateBooleanConverter}}"
                   RowSpacing="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
@@ -565,14 +565,14 @@
             <!-- Overlay with busy indicator -->
             <Grid Grid.ZIndex="2"
                 BackgroundColor="White"
-                IsVisible="{Binding IsBusy}"
+                IsVisible="{Binding IsSchedulePageOverlayVisible}"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill">
             <ActivityIndicator
                 HorizontalOptions="Center"
                 IsEnabled="True"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
+                IsRunning="{Binding IsSchedulePageOverlayVisible}"
+                IsVisible="{Binding IsSchedulePageOverlayVisible}"
                 Scale="0.5"
                 VerticalOptions="Center"
                 Color="SlateBlue">

@@ -26,8 +26,12 @@ public class WindowSetupService(IServiceProvider serviceProvider)
         // Set window size preferences (matching stable code)
         window.Width = 400;
         window.Height = 700;
+#if !DEBUG
+        // Set minimum dimensions only in release mode
+        // In debug mode, allow free resizing for testing
         window.MinimumWidth = 400;
         window.MinimumHeight = 700;
+#endif
 #endif
 
         return window;

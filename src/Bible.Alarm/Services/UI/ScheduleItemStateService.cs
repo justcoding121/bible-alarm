@@ -37,8 +37,8 @@ public class ScheduleItemStateService(ILogger logger)
                             scheduleItem.IsBusy = false;
                         }
                         
-                        // Also hide the Home page overlay
-                        homeViewModel.IsBusy = false;
+                        // Note: Home page overlay is now managed via Fluxor state (SetHomePageOverlayAction)
+                        // and is hidden by AlarmModalService after the modal is shown
                     }
                 }
             }
@@ -46,6 +46,44 @@ public class ScheduleItemStateService(ILogger logger)
         catch (Exception ex)
         {
             _logger.Warning(ex, "Could not set IsBusy to false for schedule {ScheduleId}", scheduleId);
+        }
+    }
+
+    /// <summary>
+    /// Hides the Home page overlay. This is called after the Schedule page is fully loaded and displayed.
+    /// </summary>
+    public void HideHomePageOverlay()
+    {
+        try
+        {
+            // Try to get the current page and find HomeViewModel
+            var app = Application.Current;
+            if (app?.Windows.Count > 0)
+            {
+                var mainPage = app.Windows[0].Page;
+                if (mainPage is NavigationPage navPage)
+                {
+                    // Access NavigationStack through INavigation interface
+                    var navigation = navPage.Navigation;
+                    if (navigation != null)
+                    {
+                        // Search through the navigation stack to find Home page
+                        foreach (var page in navigation.NavigationStack)
+                        {
+                            if (page is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
+                            {
+                                // Hide the Home page overlay
+                                homeViewModel.IsBusy = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Could not hide Home page overlay");
         }
     }
 }

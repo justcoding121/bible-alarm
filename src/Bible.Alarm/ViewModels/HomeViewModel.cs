@@ -52,10 +52,18 @@ public class HomeViewModel : ObservableObject, IDisposable
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
-            // Show overlay immediately
-            IsBusy = true;
-            // Wait 50ms to ensure overlay is visible before navigating
-            await Task.Delay(50);
+            // Show overlay immediately via state
+            _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
+            
+            // Wait for state to update and UI to reflect the change
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                // Force property change notification
+                OnPropertyChanged(nameof(IsHomePageOverlayVisible));
+                // Wait longer to ensure UI has fully rendered the overlay before navigation
+                await Task.Delay(150);
+            });
+            
             await navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(null));
         });
@@ -64,10 +72,17 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             if (x == null || x.Schedule == null) return;
             
-            // Show overlay immediately
-            IsBusy = true;
-            // Wait 50ms to ensure overlay is visible before navigating
-            await Task.Delay(50);
+            // Show overlay immediately via state
+            _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
+            
+            // Wait for state to update and UI to reflect the change
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                // Force property change notification
+                OnPropertyChanged(nameof(IsHomePageOverlayVisible));
+                // Wait longer to ensure UI has fully rendered the overlay before navigation
+                await Task.Delay(150);
+            });
             
             x.Schedule.IsEnabled = x.IsEnabled;
             // Start navigation immediately (don't await yet)
@@ -76,8 +91,7 @@ public class HomeViewModel : ObservableObject, IDisposable
             _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
             // Wait for navigation to complete
             await navigationTask;
-            // Reset IsBusy after navigation completes
-            IsBusy = false;
+            // Don't hide overlay here - it will be hidden by ScheduleViewModel after navigation completes
         });
 
         _state.StateChanged += OnStateChanged;
@@ -172,14 +186,14 @@ public class HomeViewModel : ObservableObject, IDisposable
                 {
                     existingViewModel.OnPlayStarted = () =>
                     {
-                        IsBusy = true;
+                        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                     };
                 }
                 if (existingViewModel.OnPlaybackStarted == null)
                 {
                     existingViewModel.OnPlaybackStarted = () =>
                     {
-                        IsBusy = false;
+                        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
                     };
                 }
             }
@@ -190,11 +204,11 @@ public class HomeViewModel : ObservableObject, IDisposable
                 // Set callbacks to show/hide overlay when play is pressed/started
                 viewModel.OnPlayStarted = () =>
                 {
-                    IsBusy = true;
+                    _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                 };
                 viewModel.OnPlaybackStarted = () =>
                 {
-                    IsBusy = false;
+                    _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
                 };
                 _scheduleViewModels[schedule.Id] = viewModel;
                 schedulesToAdd.Add(viewModel);
@@ -252,6 +266,20 @@ public class HomeViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the overlay visibility from application state.
+    /// This property is bound to the Home page overlay.
+    /// </summary>
+    public bool IsHomePageOverlayVisible => _state.Value.IsHomePageOverlayVisible;
+
+    /// <summary>
+    /// Hides the Schedule page overlay. Called when navigating back to Home page.
+    /// </summary>
+    public void HideSchedulePageOverlay()
+    {
+        _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+    }
+
 
     private bool _loaded;
 
@@ -278,13 +306,17 @@ public class HomeViewModel : ObservableObject, IDisposable
     private void OnStateChanged(object sender, EventArgs e)
     {
         var stateValue = _state.Value;
-        if (stateValue.Schedules == null) return;
         
         _ = MainThread.InvokeOnMainThreadAsync(() =>
         {
-
-            UpdateScheduleViewModels(stateValue.Schedules);
-            IsBusy = false;
+            // Always notify about overlay visibility changes
+            OnPropertyChanged(nameof(IsHomePageOverlayVisible));
+            
+            if (stateValue.Schedules != null)
+            {
+                UpdateScheduleViewModels(stateValue.Schedules);
+                IsBusy = false;
+            }
         });
     }
 

@@ -19,7 +19,9 @@ public static class ApplicationReducer
             currentMusic: null,
             tentativeMusic: null,
             currentBibleReadingSchedule: null,
-            tentativeBibleReadingSchedule: null);
+            tentativeBibleReadingSchedule: null,
+            isHomePageOverlayVisible: false,
+            isSchedulePageOverlayVisible: false);
     }
 
     [ReducerMethod]
@@ -41,7 +43,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -65,7 +69,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -101,7 +107,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -113,13 +121,16 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
     public static ApplicationState OnBack(ApplicationState state, BackAction action)
     {
         action.CurrentViewModel?.Dispose();
+        // Preserve overlay state on back navigation
         return state;
     }
 
@@ -132,7 +143,9 @@ public static class ApplicationReducer
             currentMusic: action.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -144,7 +157,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: action.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -156,7 +171,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: action.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -168,7 +185,9 @@ public static class ApplicationReducer
             currentMusic: action.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -180,7 +199,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: action.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: action.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: action.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -192,7 +213,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: action.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: action.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -204,7 +227,9 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: action.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: action.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
@@ -216,7 +241,37 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: action.CurrentBibleReadingSchedule,
-            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule);
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
+
+    [ReducerMethod]
+    public static ApplicationState OnSetHomePageOverlay(ApplicationState state, SetHomePageOverlayAction action)
+    {
+        return new ApplicationState(
+            schedules: state.Schedules,
+            currentSchedule: state.CurrentSchedule,
+            currentMusic: state.CurrentMusic,
+            tentativeMusic: state.TentativeMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: action.IsVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
+
+    [ReducerMethod]
+    public static ApplicationState OnSetSchedulePageOverlay(ApplicationState state, SetSchedulePageOverlayAction action)
+    {
+        return new ApplicationState(
+            schedules: state.Schedules,
+            currentSchedule: state.CurrentSchedule,
+            currentMusic: state.CurrentMusic,
+            tentativeMusic: state.TentativeMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: action.IsVisible);
     }
 }
 

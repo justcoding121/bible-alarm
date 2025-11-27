@@ -17,9 +17,14 @@ public class ApplicationState
     public BibleReadingSchedule CurrentBibleReadingSchedule { get; set; }
     public BibleReadingSchedule TentativeBibleReadingSchedule { get; set; }
 
+    public bool IsHomePageOverlayVisible { get; set; }
+    public bool IsSchedulePageOverlayVisible { get; set; }
+
     public ApplicationState()
     {
         Schedules = [];
+        IsHomePageOverlayVisible = false;
+        IsSchedulePageOverlayVisible = false;
     }
 
     public ApplicationState(
@@ -28,7 +33,9 @@ public class ApplicationState
         AlarmMusic currentMusic,
         AlarmMusic tentativeMusic,
         BibleReadingSchedule currentBibleReadingSchedule,
-        BibleReadingSchedule tentativeBibleReadingSchedule)
+        BibleReadingSchedule tentativeBibleReadingSchedule,
+        bool isHomePageOverlayVisible = false,
+        bool isSchedulePageOverlayVisible = false)
     {
         Schedules = schedules ?? [];
         CurrentSchedule = currentSchedule;
@@ -36,5 +43,7 @@ public class ApplicationState
         TentativeMusic = tentativeMusic;
         CurrentBibleReadingSchedule = currentBibleReadingSchedule;
         TentativeBibleReadingSchedule = tentativeBibleReadingSchedule;
+        IsHomePageOverlayVisible = isHomePageOverlayVisible;
+        IsSchedulePageOverlayVisible = isSchedulePageOverlayVisible;
     }
 }

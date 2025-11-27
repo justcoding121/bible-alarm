@@ -7,6 +7,7 @@ namespace Bible.Alarm.Views;
 public partial class Home : ContentPage, IDisposable
 {
     private bool _isDisposed;
+    private bool _hasHandledFirstLoad;
     private readonly HomeViewModel _viewModel;
 
     public Home(HomeViewModel vm)
@@ -14,6 +15,25 @@ public partial class Home : ContentPage, IDisposable
         InitializeComponent();
         BindingContext = vm;
         _viewModel = vm;
+
+        // Use Loaded event which fires after the page is in the visual tree
+        Loaded += OnPageLoaded;
+    }
+
+    private async void OnPageLoaded(object? sender, EventArgs e)
+    {
+        // Only handle once per page instance
+        if (_hasHandledFirstLoad) return;
+        _hasHandledFirstLoad = true;
+
+        // Unsubscribe to avoid multiple calls
+        Loaded -= OnPageLoaded;
+
+        // Wait a bit to ensure the page is fully rendered and visible
+        await Task.Delay(100);
+        
+        // Hide Schedule page overlay after Home page is fully rendered and visible
+        _viewModel?.HideSchedulePageOverlay();
     }
 
     private void OnScheduleItemTapped(object? sender, TappedEventArgs e)
@@ -83,6 +103,14 @@ public partial class Home : ContentPage, IDisposable
         }
 
         return false;
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        // Reset flag when page appears again (e.g., navigating back to it)
+        _hasHandledFirstLoad = false;
+        Loaded += OnPageLoaded;
     }
 
     protected override bool OnBackButtonPressed()

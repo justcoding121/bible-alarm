@@ -1,8 +1,10 @@
 #nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions;
 using Fluxor;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.UI;
 
@@ -10,12 +12,14 @@ public class AlarmModalService(
     ILogger logger,
     INavigationService navigationService,
     IState<PlaybackState> playbackState,
-    ScheduleItemStateService scheduleItemStateService)
+    ScheduleItemStateService scheduleItemStateService,
+    IDispatcher dispatcher)
 {
     private readonly ILogger _logger = logger;
     private readonly INavigationService _navigationService = navigationService;
     private readonly IState<PlaybackState> _playbackState = playbackState;
     private readonly ScheduleItemStateService _scheduleItemStateService = scheduleItemStateService;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private bool _isModalOpen;
 
     public void SubscribeToPlaybackStateChanges()
@@ -40,6 +44,7 @@ public class AlarmModalService(
                     
                     // Set IsBusy to false for the schedule item after modal is shown
                     _scheduleItemStateService.SetScheduleItemBusyToFalse(_playbackState.Value.CurrentScheduleId);
+                    // Note: Home page overlay will be hidden when Alarm Modal Appearing event fires
                 }
                 catch (Exception ex)
                 {
