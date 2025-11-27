@@ -72,9 +72,9 @@
                                 x:Name="ScheduleItemGrid"
                                 Margin="{OnPlatform Default='0,20,0,20',
                                                      WinUI='0,20,0,20'}"
+                                Padding="5,10,5,10"
                                 ColumnSpacing="{OnPlatform iOS='0'}"
                                 HorizontalOptions="Fill"
-                                HeightRequest="{OnPlatform iOS='175'}"
                                 VerticalOptions="Center">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer 

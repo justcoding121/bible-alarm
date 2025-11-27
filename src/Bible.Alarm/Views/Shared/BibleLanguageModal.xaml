@@ -106,9 +106,9 @@
                         <Grid
                             BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
                             HorizontalOptions="Fill"
-                            Padding="0,10">
+                            Padding="5,10,5,10">
                             <Label
-                                Margin="20,0,0,0"
+                                Margin="10,0,0,0"
                                 HorizontalOptions="Start"
                                 HorizontalTextAlignment="Start"
                                 Text="{Binding Name}"

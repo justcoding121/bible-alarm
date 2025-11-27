@@ -117,7 +117,7 @@
                             Text="DISMISS"
                             TextColor="SlateBlue"
                             VerticalOptions="Center"
-                            WidthRequest="200" />
+                            MinimumWidthRequest="200" />
                         <ActivityIndicator
                             IsRunning="{Binding IsBusy}"
                             IsVisible="{Binding IsBusy}"

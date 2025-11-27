@@ -201,7 +201,6 @@
                                    MinimumWidthRequest="200"
                                    Text="{Binding Name, Mode=TwoWay}"
                                    VerticalOptions="Center"
-                                   WidthRequest="200"
                                    BackgroundColor="Transparent" />
                         </StackLayout>
                         <Border Margin="3,2,3,2"
