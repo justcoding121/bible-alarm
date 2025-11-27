@@ -66,6 +66,7 @@ public class ScheduleListItem(
         OnPropertyChanged(nameof(Hour));
         OnPropertyChanged(nameof(Minute));
         OnPropertyChanged(nameof(Meridian));
+        OnPropertyChanged(nameof(MeridianText));
         OnPropertyChanged(nameof(DaysOfWeek));
         OnPropertyChanged(nameof(IsEnabled));
 
@@ -169,6 +170,8 @@ public class ScheduleListItem(
     public string Minute => Schedule?.Minute.ToString("D2") ?? "00";
 
     public Meridian Meridian => Schedule?.Meridian ?? Meridian.Am;
+
+    public string MeridianText => Meridian.ToString().ToUpperInvariant();
 
     public ScheduleListItem This => this;
 

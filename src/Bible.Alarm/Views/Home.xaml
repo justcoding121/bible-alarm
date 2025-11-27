@@ -135,15 +135,15 @@
                                         VerticalOptions="Center">
                                         <Label
                                             Padding="0"
-                                            FontSize="{x:Static services:FontServiceHelper.TitleFontSize}"
+                                            FontSize="{x:Static services:FontServiceHelper.AlarmTimeFontSize}"
                                             Text="{Binding TimeText}"
                                             VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
                                         <Label
                                             Margin="0"
                                             Padding="0"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="{Binding Meridian}"
+                                            FontSize="{x:Static services:FontServiceHelper.AlarmMeridianFontSize}"
+                                            Text="{Binding MeridianText}"
                                             VerticalOptions="Center"
                                             TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
                                             VerticalTextAlignment="Center" />

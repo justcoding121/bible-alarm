@@ -49,5 +49,15 @@ public static class FontServiceHelper
     /// Gets the title font size (20pt scaled by density)
     /// </summary>
     public static double TitleFontSize => _fontService?.TitleFontSize ?? 20.0;
+
+    /// <summary>
+    /// Gets the alarm time font size (32pt base) - for prominent time display in alarm clock style
+    /// </summary>
+    public static double AlarmTimeFontSize => _fontService?.AlarmTimeFontSize ?? 32.0;
+
+    /// <summary>
+    /// Gets the alarm meridian font size (18pt base) - for AM/PM display in alarm clock style
+    /// </summary>
+    public static double AlarmMeridianFontSize => _fontService?.AlarmMeridianFontSize ?? 18.0;
 }
 

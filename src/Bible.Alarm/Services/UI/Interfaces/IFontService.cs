@@ -36,6 +36,16 @@ public interface IFontService
     double TitleFontSize { get; }
 
     /// <summary>
+    /// Alarm time font size (32pt base) scaled by device density - for prominent time display in alarm clock style
+    /// </summary>
+    double AlarmTimeFontSize { get; }
+
+    /// <summary>
+    /// Alarm meridian font size (18pt base) scaled by device density - for AM/PM display in alarm clock style
+    /// </summary>
+    double AlarmMeridianFontSize { get; }
+
+    /// <summary>
     /// Gets a scaled font size based on a base size in points
     /// </summary>
     /// <param name="baseSizeInPoints">Base font size in points</param>

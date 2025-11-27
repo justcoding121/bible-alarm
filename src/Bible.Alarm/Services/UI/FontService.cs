@@ -17,6 +17,8 @@ public class FontService : IFontService
     private readonly double _mediumFontSize;
     private readonly double _largeFontSize;
     private readonly double _titleFontSize;
+    private readonly double _alarmTimeFontSize;
+    private readonly double _alarmMeridianFontSize;
 
     public FontService()
     {
@@ -31,6 +33,11 @@ public class FontService : IFontService
         const double baseMediumSize = 14.0;
         const double baseLargeSize = 16.0;
         const double baseTitleSize = 20.0;
+        
+        // Alarm clock style sizes - balanced for visibility without being too large
+        // Sizes that are noticeably larger than standard but won't push list height excessively
+        const double baseAlarmTimeSize = 32.0;      // Prominent time display (alarm clock style)
+        const double baseAlarmMeridianSize = 18.0;   // Smaller but still prominent AM/PM
 
         // Scale by density
         _standardFontSize = baseStandardSize * _density;
@@ -39,6 +46,21 @@ public class FontService : IFontService
         _mediumFontSize = baseMediumSize * _density;
         _largeFontSize = baseLargeSize * _density;
         _titleFontSize = baseTitleSize * _density;
+        
+        // For alarm fonts, use platform-specific handling
+        // On Windows, density is often 1.0, so we need to ensure sizes are actually different
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            // Use fixed sizes on Windows for consistent, visible differences
+            _alarmTimeFontSize = 30.0;  // Fixed size for Windows
+            _alarmMeridianFontSize = 16.0;  // Fixed size for Windows
+        }
+        else
+        {
+            // Use density scaling on mobile platforms
+            _alarmTimeFontSize = baseAlarmTimeSize * _density;
+            _alarmMeridianFontSize = baseAlarmMeridianSize * _density;
+        }
     }
 
     public double StandardFontSize => _standardFontSize;
@@ -47,6 +69,8 @@ public class FontService : IFontService
     public double MediumFontSize => _mediumFontSize;
     public double LargeFontSize => _largeFontSize;
     public double TitleFontSize => _titleFontSize;
+    public double AlarmTimeFontSize => _alarmTimeFontSize;
+    public double AlarmMeridianFontSize => _alarmMeridianFontSize;
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {
