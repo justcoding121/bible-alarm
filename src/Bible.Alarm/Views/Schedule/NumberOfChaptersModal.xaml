@@ -13,7 +13,7 @@
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     x:DataType="vm:ScheduleViewModel"
-    Padding="0,10,0,10"
+    Padding="0"
     mc:Ignorable="d">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -85,8 +85,11 @@
                 Grid.Row="3"
                 Margin="2"
                 BackgroundColor="White"
+                BorderWidth="0"
+                BorderColor="Transparent"
                 Command="{Binding CloseModalCommand}"
-                FontSize="{StaticResource ButtonFontSize}" FontAttributes="Bold"
+                FontSize="{StaticResource ButtonFontSize}"
+                FontAttributes="Bold"
                 HorizontalOptions="Fill"
                 MinimumHeightRequest="{OnPlatform Default='40',
                                                   WinUI='30'}"

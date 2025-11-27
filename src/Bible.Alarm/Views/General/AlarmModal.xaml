@@ -98,26 +98,22 @@
                         VerticalOptions="Center" />
                     <Grid>
                         <Button
-                            Margin="5"
+                            Margin="2"
                             AutomationId="AlarmDismissButton"
-                            BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                         iOS='WhiteSmoke',
-                                                         WinUI='WhiteSmoke'}"
+                            BackgroundColor="White"
                             BorderWidth="0"
                             BorderColor="Transparent"
                             Command="{Binding DismissCommand}"
-                            CornerRadius="10"
                             FontSize="{StaticResource ButtonFontSize}"
                             FontAttributes="Bold"
-                            HorizontalOptions="Center"
+                            HorizontalOptions="Fill"
                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                             MinimumHeightRequest="{OnPlatform Default='40',
                                                        WinUI='30'}"
                             Padding="10,8"
                             Text="DISMISS"
                             TextColor="SlateBlue"
-                            VerticalOptions="Center"
-                            MinimumWidthRequest="200" />
+                            VerticalOptions="Fill" />
                         <ActivityIndicator
                             IsRunning="{Binding IsBusy}"
                             IsVisible="{Binding IsBusy}"

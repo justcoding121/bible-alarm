@@ -63,8 +63,7 @@
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" 
-                                       ItemSpacing="{OnPlatform Default='0',
-                                                                 WinUI='20'}" />
+                                       ItemSpacing="0" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItem">

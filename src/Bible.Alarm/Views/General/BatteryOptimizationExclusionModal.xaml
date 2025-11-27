@@ -41,18 +41,20 @@
                 VerticalTextAlignment="Start" />
             <Button
                 IsVisible="{Binding CanOptimizeBattery}"
-                Margin="5"
+                Margin="2"
                 BackgroundColor="White"
+                BorderWidth="0"
+                BorderColor="Transparent"
                 Command="{Binding BatteryOptimizationExcludeCommand}"
-                CornerRadius="10"
                 FontSize="{StaticResource ButtonFontSize}"
                 FontAttributes="Bold"
                 HorizontalOptions="Fill"
-                MinimumHeightRequest="40"
-                MinimumWidthRequest="200"
+                MinimumHeightRequest="{OnPlatform Default='40',
+                                                  WinUI='30'}"
                 Padding="10,8"
                 Text="EXCLUDE NOW"
-                TextColor="SlateBlue" />
+                TextColor="SlateBlue"
+                VerticalOptions="Fill" />
             <Label
                 IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
                 Margin="5,25,5,5"
@@ -65,35 +67,38 @@
                 VerticalTextAlignment="Start" />
             <Button
                 IsVisible="{Binding CanOptimizeBattery}"
-                Margin="5"
+                Margin="2"
                 AutomationId="BatteryOptimizationDismissButton"
                 BackgroundColor="White"
+                BorderWidth="0"
+                BorderColor="Transparent"
                 Command="{Binding BatteryOptimizationDismissCommand}"
-                CornerRadius="10"
-                FontSize="{StaticResource ButtonFontSize}"
-                FontAttributes="Bold"
-                HorizontalOptions="Fill"
-                MinimumHeightRequest="40"
-                MinimumWidthRequest="200"
-                Padding="10,8"
-                Text="LATER"
-                TextColor="SlateBlue" />
-            <Button
-                IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
-                Margin="5"
-                AutomationId="BatteryOptimizationDismissButton"
-                BackgroundColor="White"
-                Command="{Binding BatteryOptimizationDismissCommand}"
-                CornerRadius="10"
                 FontSize="{StaticResource ButtonFontSize}"
                 FontAttributes="Bold"
                 HorizontalOptions="Fill"
                 MinimumHeightRequest="{OnPlatform Default='40',
                                                   WinUI='30'}"
-                MinimumWidthRequest="200"
+                Padding="10,8"
+                Text="LATER"
+                TextColor="SlateBlue"
+                VerticalOptions="Fill" />
+            <Button
+                IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
+                Margin="2"
+                AutomationId="BatteryOptimizationDismissButton"
+                BackgroundColor="White"
+                BorderWidth="0"
+                BorderColor="Transparent"
+                Command="{Binding BatteryOptimizationDismissCommand}"
+                FontSize="{StaticResource ButtonFontSize}"
+                FontAttributes="Bold"
+                HorizontalOptions="Fill"
+                MinimumHeightRequest="{OnPlatform Default='40',
+                                                  WinUI='30'}"
                 Padding="10,8"
                 Text="OKAY"
-                TextColor="SlateBlue" />
+                TextColor="SlateBlue"
+                VerticalOptions="Fill" />
         </StackLayout>
     </ContentPage.Content>
 </ContentPage>
