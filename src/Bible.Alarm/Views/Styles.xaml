@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
     <!-- Font size resources - set with default values, will be updated in code-behind -->
+    <!-- These are updated automatically when screen size/orientation changes -->
     <x:Double x:Key="StandardFontSize">12.0</x:Double>
     <x:Double x:Key="HeaderFontSize">18.0</x:Double>
     <x:Double x:Key="ButtonFontSize">17.0</x:Double>

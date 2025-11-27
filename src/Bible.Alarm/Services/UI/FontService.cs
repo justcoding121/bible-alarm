@@ -1,33 +1,75 @@
 #nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
 using Microsoft.Maui.ApplicationModel;
+using System.ComponentModel;
+using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
 /// <summary>
 /// Service for managing scalable font sizes based on device metrics.
-/// Uses DeviceDisplay.MainDisplayInfo.Density to scale font sizes appropriately.
+/// Uses screen width in density-independent pixels (dp) to determine device category,
+/// then applies density scaling with appropriate caps for optimal readability.
+/// Automatically recalculates when screen size/orientation changes.
 /// </summary>
-public class FontService : IFontService
+public class FontService : IFontService, INotifyPropertyChanged
 {
-    private readonly double _density;
-    private readonly double _standardFontSize;
-    private readonly double _headerFontSize;
-    private readonly double _buttonFontSize;
-    private readonly double _smallFontSize;
-    private readonly double _mediumFontSize;
-    private readonly double _largeFontSize;
-    private readonly double _titleFontSize;
-    private readonly double _alarmTimeFontSize;
-    private readonly double _alarmMeridianFontSize;
-    private readonly double _alarmBellIconFontSize;
+    private double _standardFontSize;
+    private double _headerFontSize;
+    private double _buttonFontSize;
+    private double _smallFontSize;
+    private double _mediumFontSize;
+    private double _largeFontSize;
+    private double _titleFontSize;
+    private double _alarmTimeFontSize;
+    private double _alarmMeridianFontSize;
+    private double _alarmBellIconFontSize;
 
     public FontService()
     {
-        // Get device density for scaling
+        // Listen for screen size/orientation changes
+        DeviceDisplay.MainDisplayInfoChanged += OnDisplayInfoChanged;
+        
+#if DEBUG
+        // Enable Hot Reload support - font sizes will update when XAML changes
+        try
+        {
+            var hotReloadType = Type.GetType("Microsoft.Maui.HotReload.MauiHotReloadHelper, Microsoft.Maui.Controls");
+            if (hotReloadType != null)
+            {
+                var registerMethod = hotReloadType.GetMethod("Register", new[] { typeof(object), typeof(object) });
+                registerMethod?.Invoke(null, new[] { this, this });
+            }
+        }
+        catch (Exception ex)
+        {
+            // Hot Reload helper not available - continue without it
+            Log.Logger.Debug(ex, "Hot Reload helper not available, continuing without it");
+        }
+#endif
+        
+        // Initial calculation
+        Recalculate();
+    }
+    
+    private void OnDisplayInfoChanged(object? sender, DisplayInfoChangedEventArgs e)
+    {
+        Recalculate();
+    }
+    
+    private void Recalculate()
+    {
         var mainDisplayInfo = DeviceDisplay.MainDisplayInfo;
-        _density = mainDisplayInfo.Density;
-
+        
+        // Handle case where display info is invalid (common on Windows during startup)
+        // Check if we have valid display information
+        bool hasValidDisplayInfo = mainDisplayInfo.Width > 0 && 
+                                   mainDisplayInfo.Height > 0 && 
+                                   mainDisplayInfo.Density > 0;
+        
+        double density;
+        double widthDp;
+        
         // Base sizes in points (standard practice: 12pt base)
         const double baseStandardSize = 12.0;
         const double baseHeaderSize = 18.0;
@@ -37,81 +79,118 @@ public class FontService : IFontService
         const double baseTitleSize = 20.0;
         
         // Alarm clock style sizes - balanced for visibility without being too large
-        // Sizes that are noticeably larger than standard but won't push list height excessively
         const double baseAlarmTimeSize = 32.0;      // Prominent time display (alarm clock style)
         const double baseAlarmMeridianSize = 18.0;   // Smaller but still prominent AM/PM
         const double baseAlarmBellIconSize = 80.0;   // Large bell icon (4x TitleFontSize of 20pt)
 
-        // Platform and device type specific handling
-        // Use DeviceInfo.Idiom to distinguish between Phone, Tablet, and Desktop
-        var deviceIdiom = DeviceInfo.Idiom;
-        var platform = DeviceInfo.Platform;
-        
-        if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
+        if (!hasValidDisplayInfo)
         {
-            // Desktop/Windows: Use larger fixed sizes for better readability on desktop
-            _standardFontSize = 14.0;  // Larger than mobile for desktop readability
-            _headerFontSize = 20.0;    // Proportionally larger
-            _smallFontSize = 12.0;     // Proportionally larger
-            _mediumFontSize = 16.0;    // Proportionally larger
-            _largeFontSize = 18.0;     // Proportionally larger
-            _titleFontSize = 22.0;     // Proportionally larger
+            // Fallback to Windows-specific fixed sizes or platform detection
+            var platform = DeviceInfo.Platform;
+            var deviceIdiom = DeviceInfo.Idiom;
             
-            // Alarm fonts - fixed sizes for desktop
-            _alarmTimeFontSize = 30.0;  // Fixed size for desktop
-            _alarmMeridianFontSize = 16.0;  // Fixed size for desktop
-            _alarmBellIconFontSize = 80.0;  // Fixed size for desktop (4x TitleFontSize)
-        }
-        else if (deviceIdiom == DeviceIdiom.Tablet)
-        {
-            // Tablet: Use moderate scaling - tablets have larger screens but still mobile-like density
-            // Allow slightly more scaling than phones since tablets have more screen real estate
-            double tabletScalingFactor = Math.Min(_density, 1.8);  // Cap scaling at 1.8x for tablets
-            
-            _standardFontSize = baseStandardSize * tabletScalingFactor;
-            _headerFontSize = baseHeaderSize * tabletScalingFactor;
-            _smallFontSize = baseSmallSize * tabletScalingFactor;
-            _mediumFontSize = baseMediumSize * tabletScalingFactor;
-            _largeFontSize = baseLargeSize * tabletScalingFactor;
-            _titleFontSize = baseTitleSize * tabletScalingFactor;
-            
-            // Alarm fonts - use moderate scaling for tablets
-            const double maxAlarmTimeSize = 45.0;  // Cap at 45pt for tablets (slightly larger than phones)
-            const double maxAlarmMeridianSize = 24.0;  // Cap at 24pt for tablets
-            const double maxAlarmBellIconSize = 110.0;  // Cap at 110pt for tablets
-            
-            _alarmTimeFontSize = Math.Min(baseAlarmTimeSize * tabletScalingFactor, maxAlarmTimeSize);
-            _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * tabletScalingFactor, maxAlarmMeridianSize);
-            _alarmBellIconFontSize = Math.Min(baseAlarmBellIconSize * tabletScalingFactor, maxAlarmBellIconSize);
+            if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
+            {
+                // Windows desktop: Use fixed sizes for desktop readability (same as before width-in-dp change)
+                // These are larger than mobile for better desktop readability
+                _standardFontSize = 14.0;  // Larger than mobile for desktop readability
+                _headerFontSize = 20.0;    // Proportionally larger
+                _smallFontSize = 12.0;     // Proportionally larger
+                _mediumFontSize = 16.0;    // Proportionally larger
+                _largeFontSize = 18.0;     // Proportionally larger
+                _titleFontSize = 22.0;     // Proportionally larger
+                
+                // Alarm fonts - fixed sizes for desktop
+                _alarmTimeFontSize = 30.0;  // Fixed size for desktop
+                _alarmMeridianFontSize = 16.0;  // Fixed size for desktop
+                _alarmBellIconFontSize = 80.0;  // Fixed size for desktop (4x TitleFontSize)
+                
+                Log.Logger.Debug("Using Windows desktop fallback fixed font sizes (display info not available)");
+            }
+            else
+            {
+                // Other platforms: Use base sizes directly (no scaling when display info is invalid)
+                // This is a fallback - when display info becomes available, it will recalculate
+                _standardFontSize = baseStandardSize;
+                _headerFontSize = baseHeaderSize;
+                _smallFontSize = baseSmallSize;
+                _mediumFontSize = baseMediumSize;
+                _largeFontSize = baseLargeSize;
+                _titleFontSize = baseTitleSize;
+                
+                // Alarm fonts - use base sizes with reasonable caps
+                _alarmTimeFontSize = Math.Min(baseAlarmTimeSize, 40.0);
+                _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, 22.0);
+                _alarmBellIconFontSize = Math.Min(baseAlarmBellIconSize, 100.0);
+                
+                Log.Logger.Warning("Invalid display info detected on non-Windows platform, using base font sizes as fallback");
+            }
         }
         else
         {
-            // Phone: Use conservative scaling - phones have smaller screens and high density
-            // On phones, density is often 2.0-3.0, which makes fonts too large
-            // Use a scaling factor that's more reasonable for phone screens
-            double phoneScalingFactor = Math.Min(_density, 1.5);  // Cap scaling at 1.5x for phones
+            // Valid display info - use width-in-dp based scaling
+            density = mainDisplayInfo.Density;
+            widthDp = mainDisplayInfo.Width / density;  // Logical dp - key to proper scaling
+
+            // Determine scaling factor based on screen width in dp (density-independent pixels)
+            // This approach works perfectly for phones, tablets, foldables, and resizable desktop windows
+            double scale;
+            bool isPhone = widthDp < 600;      // Phone (portrait or landscape)
+            bool isTablet = widthDp >= 600 && widthDp < 960;  // Tablet or small desktop window
+            bool isDesktop = widthDp >= 960;   // Large desktop, landscape tablet in full screen
             
-            _standardFontSize = baseStandardSize * phoneScalingFactor;
-            _headerFontSize = baseHeaderSize * phoneScalingFactor;
-            _smallFontSize = baseSmallSize * phoneScalingFactor;
-            _mediumFontSize = baseMediumSize * phoneScalingFactor;
-            _largeFontSize = baseLargeSize * phoneScalingFactor;
-            _titleFontSize = baseTitleSize * phoneScalingFactor;
+            if (isPhone)
+            {
+                // Phone: Conservative scaling for smaller screens
+                scale = Math.Min(density, 1.5);
+            }
+            else if (isTablet)
+            {
+                // Tablet: Moderate scaling - more screen real estate
+                scale = Math.Min(density, 1.8);
+            }
+            else
+            {
+                // Desktop: Allow more scaling for large screens, but still cap it
+                // On real desktop, use slightly larger base or allow more density scaling
+                scale = Math.Min(density, 2.2);
+            }
             
-            // Alarm fonts - use reduced scaling on phones to prevent them from being too large
-            const double maxAlarmTimeSize = 40.0;  // Cap at 40pt for phones
-            const double maxAlarmMeridianSize = 22.0;  // Cap at 22pt for phones
-            const double maxAlarmBellIconSize = 100.0;  // Cap at 100pt for phones
+            // Calculate font sizes with appropriate caps
+            // Standard fonts
+            _standardFontSize = Math.Min(baseStandardSize * scale, 17.0);
+            _headerFontSize = Math.Min(baseHeaderSize * scale, 26.0);
+            _smallFontSize = Math.Min(baseSmallSize * scale, 14.0);
+            _mediumFontSize = Math.Min(baseMediumSize * scale, 19.0);
+            _largeFontSize = Math.Min(baseLargeSize * scale, 22.0);
+            _titleFontSize = Math.Min(baseTitleSize * scale, 30.0);
             
-            _alarmTimeFontSize = Math.Min(baseAlarmTimeSize * phoneScalingFactor, maxAlarmTimeSize);
-            _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * phoneScalingFactor, maxAlarmMeridianSize);
-            _alarmBellIconFontSize = Math.Min(baseAlarmBellIconSize * phoneScalingFactor, maxAlarmBellIconSize);
+            // Alarm fonts - different caps based on screen size
+            double maxAlarmTimeSize = isPhone ? 40.0 : 50.0;
+            double maxAlarmMeridianSize = isPhone ? 22.0 : 28.0;
+            double maxAlarmBellIconSize = isPhone ? 100.0 : 130.0;
+            
+            _alarmTimeFontSize = Math.Min(baseAlarmTimeSize * scale, maxAlarmTimeSize);
+            _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * scale, maxAlarmMeridianSize);
+            _alarmBellIconFontSize = Math.Min(baseAlarmBellIconSize * scale, maxAlarmBellIconSize);
         }
         
-        // Button font size is 1 point smaller than HeaderFontSize on all platforms
+        // Button font size is 1 point smaller than HeaderFontSize
         _buttonFontSize = _headerFontSize - 1.0;
+        
+        // Notify all bindings that font sizes have changed
+        RaiseAllPropertiesChanged();
     }
+    
+    private void RaiseAllPropertiesChanged()
+    {
+        // Notify that all properties changed - forces all bindings to re-evaluate
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
+    }
+    
+    public event PropertyChangedEventHandler? PropertyChanged;
 
+    // Properties (not fields) so bindings work correctly and PropertyChanged can fire
     public double StandardFontSize => _standardFontSize;
     public double HeaderFontSize => _headerFontSize;
     public double ButtonFontSize => _buttonFontSize;
@@ -125,7 +204,12 @@ public class FontService : IFontService
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {
-        return baseSizeInPoints * _density;
+        var mainDisplayInfo = DeviceDisplay.MainDisplayInfo;
+        
+        // Handle invalid display info
+        double density = mainDisplayInfo.Density > 0 ? mainDisplayInfo.Density : 1.0;
+        
+        return baseSizeInPoints * Math.Min(density, 2.0);
     }
 }
 

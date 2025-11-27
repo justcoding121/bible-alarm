@@ -38,6 +38,16 @@ public partial class App : Application
         // Set font size resources for hot reload compatibility
         // Using StaticResource instead of x:Static allows hot reload to work
         SetFontSizeResources();
+        
+        // Subscribe to font size changes (e.g., when screen rotates or window resizes)
+        if (_fontService is System.ComponentModel.INotifyPropertyChanged notifyPropertyChanged)
+        {
+            notifyPropertyChanged.PropertyChanged += (sender, e) =>
+            {
+                // Update resources when font sizes change
+                SetFontSizeResources();
+            };
+        }
 
         // Set up global exception handlers
         _exceptionHandlingService.SetupGlobalExceptionHandlers();
