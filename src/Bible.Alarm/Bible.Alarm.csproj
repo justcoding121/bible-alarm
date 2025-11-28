@@ -83,7 +83,13 @@
 
 	<!-- Fonts -->
 	<ItemGroup>
-		<MauiFont Include="Resources\Fonts\FontAwesome5Free_Solid_900.otf" />
+		<!-- Font Awesome 7 fonts - shared across all platforms -->
+		<MauiFont Include="Platforms\Windows\Assets\Fonts\fa-brands-400.otf" />
+		<MauiFont Include="Platforms\Windows\Assets\Fonts\fa-regular-400.otf" />
+		<MauiFont Include="Platforms\Windows\Assets\Fonts\fa-solid-900.otf" />
+		<MauiFont Include="Resources\Fonts\fa-solid-900.otf" />
+		<MauiFont Include="Resources\Fonts\fa-regular-400.otf" />
+		<MauiFont Include="Resources\Fonts\fa-brands-400.otf" />
 	</ItemGroup>
 
 	<!-- Embedded Resources -->
@@ -134,6 +140,11 @@
 		<PropertyGroup>
 			<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
 		</PropertyGroup>
+		<ItemGroup>
+		  <None Remove="Platforms\Windows\Assets\Fonts\fa-brands-400.otf" />
+		  <None Remove="Platforms\Windows\Assets\Fonts\fa-regular-400.otf" />
+		  <None Remove="Platforms\Windows\Assets\Fonts\fa-solid-900.otf" />
+		</ItemGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->
 	<ItemGroup>
@@ -164,7 +175,9 @@
 		<BundleResource Include="Platforms\iOS\Resources\**" />
 		<BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
 		<BundleResource Include="Resources\cool_alarm_tone_notification_sound.mp3" />
-		<BundleResource Include="Resources\Fonts\FontAwesome5Free_Solid_900.otf" />
+		<BundleResource Include="Resources\Fonts\fa-solid-900.otf" />
+		<BundleResource Include="Resources\Fonts\fa-regular-400.otf" />
+		<BundleResource Include="Resources\Fonts\fa-brands-400.otf" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-windows'))">

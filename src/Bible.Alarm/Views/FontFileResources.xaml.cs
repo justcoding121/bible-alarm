@@ -38,21 +38,24 @@ public partial class FontFileResources : ResourceDictionary
             // Use MAUI's DeviceInfo for platform detection
             if (DeviceInfo.Platform == DevicePlatform.WinUI)
             {
+                // Windows: Use the alias registered in MauiProgram.cs
+                // The font is registered as "FontAwesomeSolid" in ConfigureFonts
                 return "FontAwesomeSolid";
             }
 
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
-                // iOS: Try using just the font family name from the font file
-                // The font family name inside the OTF file is "Font Awesome 5 Free Solid"
-                return "Font Awesome 5 Free Solid";
+                // iOS: Use the font family name from the Font Awesome 7 font file
+                // The font family name inside the OTF file is "Font Awesome 7 Free Solid"
+                return "Font Awesome 7 Free Solid";
             }
 
             if (DeviceInfo.Platform == DevicePlatform.Android)
             {
                 // Android needs the font family name from the font file, not the alias
                 // Format: filename#FontFamilyName (the font family name inside the OTF file)
-                return "FontAwesome5Free_Solid_900.otf#Font Awesome 5 Free Solid";
+                // This format is critical for Android reliability
+                return "fa-solid-900.otf#Font Awesome 7 Free Solid";
             }
             
             // Fallback: try to get from ResourceDictionary

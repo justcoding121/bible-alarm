@@ -114,10 +114,18 @@ public static class MauiProgram
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);
+                
+                // Font Awesome 7 fonts (use aliases for easy reference)
 #if WINDOWS
-                fonts.AddFont("Platforms/Windows/Assets/Fonts/Font Awesome 5 Free-Solid-900.otf", "FontAwesomeSolid");
+                // Windows requires fonts in Platforms/Windows/Assets/Fonts/ for proper packaging
+                fonts.AddFont("Platforms/Windows/Assets/Fonts/fa-solid-900.otf", "FontAwesomeSolid");
+                fonts.AddFont("Platforms/Windows/Assets/Fonts/fa-regular-400.otf", "FontAwesomeRegular");
+                fonts.AddFont("Platforms/Windows/Assets/Fonts/fa-brands-400.otf", "FontAwesomeBrands");
 #else
-                fonts.AddFont("Resources/Fonts/FontAwesome5Free_Solid_900.otf", "FontAwesomeSolid");
+                // Android and iOS use shared fonts from Resources/Fonts/
+                fonts.AddFont("Resources/Fonts/fa-solid-900.otf", "FontAwesomeSolid");
+                fonts.AddFont("Resources/Fonts/fa-regular-400.otf", "FontAwesomeRegular");
+                fonts.AddFont("Resources/Fonts/fa-brands-400.otf", "FontAwesomeBrands");
 #endif
             });
 
