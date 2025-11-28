@@ -60,8 +60,8 @@
 		<PackageReference Include="Quartz" Version="3.15.1" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-		<PackageReference Include="Syncfusion.Maui.Core" Version="27.1.48" />
-		<PackageReference Include="Syncfusion.Maui.Buttons" Version="27.1.48" />
+		<PackageReference Include="Syncfusion.Maui.Core" Version="31.2.15" />
+		<PackageReference Include="Syncfusion.Maui.Buttons" Version="31.2.15" />
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 
