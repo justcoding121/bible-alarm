@@ -8,6 +8,8 @@
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:models="clr-namespace:Bible.Alarm.Models"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+    xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons"
+    xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
@@ -267,18 +269,10 @@
                                     HorizontalOptions="End"
                                     Orientation="Vertical"
                                     VerticalOptions="Center">
-                                    <Border
+                                    <shared:PlatformSwitch
                                         HorizontalOptions="End"
-                                        VerticalOptions="Center"
-                                        WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
-                                        ClipToBounds="True">
-                                        <Switch
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Center"
-                                            IsToggled="{Binding IsEnabled, Mode=TwoWay}"
-                                            Scale="{OnPlatform Default='1',
-                                                               iOS='1'}" />
-                                    </Border>
+                                        IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                        Scale="1" />
                                 </StackLayout>
                             </Grid>
                     </DataTemplate>

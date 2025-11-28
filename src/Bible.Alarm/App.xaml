@@ -5,7 +5,8 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
-    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm">
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons">
     <Application.Resources>
         <ResourceDictionary>
             <!-- Include Styles resource dictionary -->

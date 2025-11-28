@@ -8,6 +8,8 @@
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums;assembly=Bible.Alarm.Shared"
+             xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons"
+             xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
              xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
              x:DataType="vm:ScheduleViewModel"
@@ -446,21 +448,11 @@
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
-                                <Border
-                                    Margin="{OnPlatform Default='0,0,15,0',
-                                                        WinUI='0,0,15,0'}"
+                                <shared:PlatformSwitch
+                                    Margin="0,0,15,0"
                                     HorizontalOptions="End"
-                                    VerticalOptions="Center"
-                                    WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
-                                    ClipToBounds="True">
-                                    <Switch
-                                        HorizontalOptions="End"
-                                        IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
-                                        Scale="{OnPlatform Android='1.25',
-                                                           iOS='1',
-                                                           WinUI='1'}"
-                                        VerticalOptions="Center" />
-                                </Border>
+                                    IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
+                                    Scale="{OnPlatform Android='1.25', iOS='1', Default='1'}" />
                             </StackLayout>
                             </Grid>
                             <Grid x:Name="ShowNotificationButton"
@@ -497,21 +489,11 @@
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
-                                <Border
-                                    Margin="{OnPlatform Default='0,0,15,0',
-                                                        WinUI='0,0,15,0'}"
+                                <shared:PlatformSwitch
+                                    Margin="0,0,15,0"
                                     HorizontalOptions="End"
-                                    VerticalOptions="Center"
-                                    WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
-                                    ClipToBounds="True">
-                                    <Switch
-                                        HorizontalOptions="End"
-                                        IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
-                                        Scale="{OnPlatform Default='1.25',
-                                                           iOS='1',
-                                                           WinUI='1'}"
-                                        VerticalOptions="Center" />
-                                </Border>
+                                    IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
+                                    Scale="{OnPlatform Android='1.25', iOS='1', Default='1'}" />
                             </StackLayout>
                                 </Grid>
                             </StackLayout>
@@ -556,21 +538,11 @@
                                          Orientation="Horizontal"
                                          Spacing="0"
                                          VerticalOptions="Center">
-                                <Border
-                                    Margin="{OnPlatform Default='0,0,5,0',
-                                                        WinUI='0,0,5,0'}"
+                                <shared:PlatformSwitch
+                                    Margin="0,0,5,0"
                                     HorizontalOptions="Start"
-                                    VerticalOptions="Center"
-                                    WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
-                                    ClipToBounds="True">
-                                    <Switch
-                                        HorizontalOptions="Start"
-                                        IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
-                                        Scale="{OnPlatform Default='1.25',
-                                                           iOS='1',
-                                                           WinUI='1'}"
-                                        VerticalOptions="Center" />
-                                </Border>
+                                    IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
+                                    Scale="{OnPlatform Android='1.25', iOS='1', Default='1'}" />
                                 <Label Margin="0,0,10,0"
                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                        Style="{StaticResource MediumLabelStyle}"

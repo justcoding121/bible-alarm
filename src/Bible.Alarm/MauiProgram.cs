@@ -33,6 +33,8 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using CommunityToolkit.Maui;
+using Syncfusion.Licensing;
+using Syncfusion.Maui.Core.Hosting;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -75,6 +77,14 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        // Register Syncfusion license key (must be done before any Syncfusion controls are used)
+        // License key is embedded at build time from SYNCFUSION_LICENSE_KEY environment variable.
+        // The AppSettings class is generated during build with the embedded license key.
+        if (!string.IsNullOrEmpty(AppSettings.SyncfusionLicenseKey))
+        {
+            SyncfusionLicenseProvider.RegisterLicense(AppSettings.SyncfusionLicenseKey);
+        }
+
 #if WINDOWS
         // Initialize Serilog for Windows before registering services
         // This ensures Log.Logger is properly configured before services try to use it
@@ -100,6 +110,7 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
+            .ConfigureSyncfusionCore()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);
@@ -217,8 +228,8 @@ public static class MauiProgram
 #if ANDROID
             // Android bootstrap initialization
             // Try Platform.CurrentActivity first, fallback to AndroidApplication.Context
-            var context = Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
-            var application = Platform.CurrentActivity?.Application ?? Android.App.Application.Context as Android.App.Application;
+            var context = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
+            var application = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.Application ?? Android.App.Application.Context as Android.App.Application;
 
             if (context != null)
             {

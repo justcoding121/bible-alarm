@@ -7,6 +7,11 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>latest</LangVersion>
+		
+		<!-- Syncfusion License Key: Read from environment variable SYNCFUSION_LICENSE_KEY during build -->
+		<!-- MSBuild automatically reads environment variables, so SYNCFUSION_LICENSE_KEY from Windows env will be available -->
+		<!-- The license key is embedded at build time for all platforms -->
+		<SyncfusionLicenseKey Condition="'$(SyncfusionLicenseKey)' == ''">$(SYNCFUSION_LICENSE_KEY)</SyncfusionLicenseKey>
 
 		<!-- Display Version -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -55,6 +60,8 @@
 		<PackageReference Include="Quartz" Version="3.15.1" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+		<PackageReference Include="Syncfusion.Maui.Core" Version="27.1.48" />
+		<PackageReference Include="Syncfusion.Maui.Buttons" Version="27.1.48" />
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 
@@ -109,18 +116,18 @@
 			<HotReloadAutoRestart>true</HotReloadAutoRestart>
 		</PropertyGroup>
 		
-		<!-- Enable Hot Reload for Android (Debug only) - Must be before EnableDefaultXamlItems -->
+		<!-- Disable Hot Reload for Android (Debug only) - Must be before EnableDefaultXamlItems -->
 		<PropertyGroup Condition="'$(Configuration)' == 'Debug' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
 			<XamlDebuggingInformation>True</XamlDebuggingInformation>
-			<EnableHotReload>true</EnableHotReload>
-			<HotReloadAutoRestart>true</HotReloadAutoRestart>
+			<EnableHotReload>false</EnableHotReload>
+			<HotReloadAutoRestart>false</HotReloadAutoRestart>
 		</PropertyGroup>
 		
-		<!-- Enable Hot Reload for iOS (Debug only) - Must be before EnableDefaultXamlItems -->
+		<!-- Disable Hot Reload for iOS (Debug only) - Must be before EnableDefaultXamlItems -->
 		<PropertyGroup Condition="'$(Configuration)' == 'Debug' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 			<XamlDebuggingInformation>True</XamlDebuggingInformation>
-			<EnableHotReload>true</EnableHotReload>
-			<HotReloadAutoRestart>true</HotReloadAutoRestart>
+			<EnableHotReload>false</EnableHotReload>
+			<HotReloadAutoRestart>false</HotReloadAutoRestart>
 		</PropertyGroup>
 	
 		<!-- Disable duplicate XAML compilation - We explicitly include XAML files above -->
@@ -140,6 +147,21 @@
 			<Visible>false</Visible>
 		</Compile>
 	</ItemGroup>
+	
+	<!-- Replace license key placeholder in AppSettings.cs with actual key from environment variable -->
+	<Target Name="ReplaceLicenseKey" BeforeTargets="BeforeBuild" Condition="'$(SyncfusionLicenseKey)' != ''">
+		<PropertyGroup>
+			<_AppSettingsFile>$(MSBuildProjectDirectory)\AppSettings.cs</_AppSettingsFile>
+			<_LicenseKey>$(SyncfusionLicenseKey)</_LicenseKey>
+		</PropertyGroup>
+		<ReadLinesFromFile File="$(_AppSettingsFile)">
+			<Output TaskParameter="Lines" ItemName="AppSettingsLines" />
+		</ReadLinesFromFile>
+		<ItemGroup>
+			<AppSettingsLinesReplaced Include="@(AppSettingsLines->Replace('{{SYNCFUSION_LICENSE_KEY}}', '$(_LicenseKey)'))" />
+		</ItemGroup>
+		<WriteLinesToFile File="$(_AppSettingsFile)" Lines="@(AppSettingsLinesReplaced)" Overwrite="true" />
+	</Target>
 
 	<!-- Platform-specific resources -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
