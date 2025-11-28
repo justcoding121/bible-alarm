@@ -95,6 +95,10 @@
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
                 SelectionMode="Single">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" 
+                                       ItemSpacing="4" />
+                </CollectionView.ItemsLayout>
                 <CollectionView.Behaviors>
                     <behaviours:EventToCommandBehavior
                         Command="{Binding SelectLanguageCommand}"

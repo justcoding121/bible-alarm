@@ -115,11 +115,13 @@
                                         Command="{Binding PlayCommand}"
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                         HorizontalOptions="Center"
-                                        MinimumHeightRequest="{OnPlatform WinUI='40',
-                                                                          iOS='40'}"
-                                        MinimumWidthRequest="{OnPlatform iOS='60',
-                                                                         WinUI='60'}"
-                                        Padding="10,8"
+                                        MinimumHeightRequest="{OnPlatform iOS='50',
+                                                                          WinUI='50',
+                                                                          Default='50'}"
+                                        MinimumWidthRequest="{OnPlatform iOS='75',
+                                                                         WinUI='75',
+                                                                         Default='75'}"
+                                        Padding="0"
                                         Text="{x:Static fn:GlyphNames.Play}"
                                         TextColor="SlateBlue"
                                         VerticalOptions="Center" />
@@ -262,10 +264,10 @@
                                 </Grid>
                                 <StackLayout
                                     Grid.Column="2"
-                                    Margin="{OnIdiom Default={OnPlatform Default='15,0,30,0',
+                                    Margin="{OnIdiom Default={OnPlatform Default='15,0,15,0',
                                                                          iOS='5,0,10,0',
                                                                          WinUI='5,0,10,0'},
-                                                     Tablet={OnPlatform Default='15,0,50,0'}}"
+                                                     Tablet={OnPlatform Default='15,0,20,0'}}"
                                     HorizontalOptions="End"
                                     Orientation="Vertical"
                                     VerticalOptions="Center">

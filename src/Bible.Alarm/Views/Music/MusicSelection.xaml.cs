@@ -7,6 +7,7 @@ public partial class MusicSelection : ContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly MusicSelectionViewModel _viewModel;
+    private bool _isClearingSelection;
 
     public MusicSelectionViewModel ViewModel => BindingContext as MusicSelectionViewModel;
 
@@ -22,8 +23,30 @@ public partial class MusicSelection : ContentPage, IDisposable
                 ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
         });
 
-        // Note: We don't clear selection here because this page navigates away when an item is selected
-        // The page will be disposed, so clearing selection is unnecessary and can interfere with navigation on iOS
+        // Clear selection after SelectionChanged fires to allow command to execute first
+        musicTypesCollectionView.SelectionChanged += (sender, e) =>
+        {
+            // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
+            if (_isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
+            {
+                return;
+            }
+            
+            // Clear selection after a short delay to allow command to execute
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (!_isDisposed && musicTypesCollectionView != null)
+                    {
+                        _isClearingSelection = true;
+                        musicTypesCollectionView.SelectedItem = null;
+                        _isClearingSelection = false;
+                    }
+                });
+            });
+        };
     }
 
     protected override bool OnBackButtonPressed()

@@ -318,7 +318,7 @@ public class NavigationService(
         }
         
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal);
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
     public async Task OpenAlarmModalAsync()

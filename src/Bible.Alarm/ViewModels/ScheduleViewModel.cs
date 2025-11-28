@@ -47,6 +47,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private bool _isSaving;
     private AlarmMusic _lastMusic;
     private BibleReadingSchedule _lastBibleReading;
+    private bool _isScrolledToBottom;
 
     public ICommand BatteryOptimizationExcludeCommand { get; private set; }
     public ICommand BatteryOptimizationDismissCommand { get; private set; }
@@ -766,6 +767,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             IsExistingSchedule = !value;
             SetProperty(ref _isNewSchedule, value);
         }
+    }
+
+    public bool IsScrolledToBottom
+    {
+        get => _isScrolledToBottom;
+        set => SetProperty(ref _isScrolledToBottom, value);
     }
 
     public bool IsExistingSchedule

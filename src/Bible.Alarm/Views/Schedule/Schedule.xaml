@@ -555,26 +555,38 @@
                         </Grid>
                         </Border>
 
+                        <Grid Margin="5,10,5,5"
+                              IsVisible="{Binding IsExistingSchedule}"
+                              VerticalOptions="End">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding DeleteCommand}" />
+                            </Grid.GestureRecognizers>
+                            <Border BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                                 WinUI='LightGray'}"
+                                    StrokeThickness="0"
+                                    Padding="10,8"
+                                    HorizontalOptions="Fill"
+                                    MinimumHeightRequest="{OnPlatform Default='40',
+                                                                  WinUI='30'}">
+                                <StackLayout Orientation="Horizontal"
+                                             HorizontalOptions="Center"
+                                             Spacing="8"
+                                             VerticalOptions="Center">
+                                    <Label Text="DELETE"
+                                           FontSize="{StaticResource ButtonFontSize}"
+                                           FontAttributes="Bold"
+                                           TextColor="SlateBlue"
+                                           VerticalOptions="Center" />
+                                    <Label FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                           FontSize="{StaticResource ButtonFontSize}"
+                                           Text="{x:Static fn:GlyphNames.Trash}"
+                                           TextColor="SlateBlue"
+                                           VerticalOptions="Center" />
+                                </StackLayout>
+                            </Border>
+                        </Grid>
                     </StackLayout>
                 </ScrollView>
-            <Grid Grid.Row="2"
-                  Margin="5,10,5,5"
-                  IsVisible="{Binding IsExistingSchedule}"
-                  VerticalOptions="End">
-                <Button Padding="10,8"
-                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                     WinUI='LightGray'}"
-                        BorderWidth="0"
-                        BorderColor="Transparent"
-                        Command="{Binding DeleteCommand}"
-                        FontSize="{StaticResource ButtonFontSize}"
-                        FontAttributes="Bold"
-                        HorizontalOptions="Fill"
-                        MinimumHeightRequest="{OnPlatform Default='40',
-                                                      WinUI='30'}"
-                        Text="REMOVE"
-                        TextColor="SlateBlue" />
-            </Grid>
             </Grid>
             <!-- Overlay with busy indicator -->
             <Grid Grid.ZIndex="2"

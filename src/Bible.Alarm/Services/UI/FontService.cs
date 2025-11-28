@@ -61,17 +61,23 @@ public class FontService : IFontService, INotifyPropertyChanged
         const double baseTitleSize = 20.0;
         
         // Alarm clock style sizes - balanced for visibility without being too large
+        // Platform-specific adjustments
+        var platform = DeviceInfo.Platform;
+        bool isAndroid = platform == DevicePlatform.Android;
+        
+        // Android-specific reduction factor for alarm fonts (reduce by ~25%)
+        double androidAlarmReduction = isAndroid ? 0.75 : 1.0;
+        
         // Prominent time display (alarm clock style)
-        const double baseAlarmTimeSize = 32.0;
+        double baseAlarmTimeSize = 32.0 * androidAlarmReduction;
         // Smaller but still prominent AM/PM
-        const double baseAlarmMeridianSize = 18.0;
+        double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
         // Large bell icon (4x TitleFontSize of 20pt)
         const double baseAlarmBellIconSize = 80.0;
 
         if (!hasValidDisplayInfo)
         {
             // Fallback to Windows-specific fixed sizes or platform detection
-            var platform = DeviceInfo.Platform;
             var deviceIdiom = DeviceInfo.Idiom;
             
             if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
@@ -104,9 +110,11 @@ public class FontService : IFontService, INotifyPropertyChanged
                 _largeFontSize = baseLargeSize;
                 _titleFontSize = baseTitleSize;
                 
-                // Alarm fonts - use base sizes with reasonable caps
-                _alarmTimeFontSize = Math.Min(baseAlarmTimeSize, 40.0);
-                _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, 22.0);
+                // Alarm fonts - use base sizes with reasonable caps (Android gets smaller)
+                double fallbackMaxTime = isAndroid ? 30.0 : 40.0;
+                double fallbackMaxMeridian = isAndroid ? 16.0 : 22.0;
+                _alarmTimeFontSize = Math.Min(baseAlarmTimeSize, fallbackMaxTime);
+                _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, fallbackMaxMeridian);
                 _alarmBellIconFontSize = Math.Min(baseAlarmBellIconSize, 100.0);
                 
                 Log.Logger.Warning("Invalid display info detected on non-Windows platform, using base font sizes as fallback");
@@ -153,9 +161,14 @@ public class FontService : IFontService, INotifyPropertyChanged
             _largeFontSize = Math.Min(baseLargeSize * scale, 22.0);
             _titleFontSize = Math.Min(baseTitleSize * scale, 30.0);
             
-            // Alarm fonts - different caps based on screen size
-            double maxAlarmTimeSize = isPhone ? 40.0 : 50.0;
-            double maxAlarmMeridianSize = isPhone ? 22.0 : 28.0;
+            // Alarm fonts - different caps based on screen size and platform
+            // Android gets smaller max caps
+            double maxAlarmTimeSize = isPhone 
+                ? (isAndroid ? 30.0 : 40.0) 
+                : (isAndroid ? 38.0 : 50.0);
+            double maxAlarmMeridianSize = isPhone 
+                ? (isAndroid ? 16.0 : 22.0) 
+                : (isAndroid ? 21.0 : 28.0);
             double maxAlarmBellIconSize = isPhone ? 100.0 : 130.0;
             
             _alarmTimeFontSize = Math.Min(baseAlarmTimeSize * scale, maxAlarmTimeSize);

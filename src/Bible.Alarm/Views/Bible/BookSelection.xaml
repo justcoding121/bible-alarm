@@ -92,6 +92,10 @@
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Books}"
                     SelectionMode="Single">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" 
+                                           ItemSpacing="4" />
+                    </CollectionView.ItemsLayout>
                     <CollectionView.Behaviors>
                         <behaviours:EventToCommandBehavior
                             Command="{Binding ChapterSelectionCommand}"
