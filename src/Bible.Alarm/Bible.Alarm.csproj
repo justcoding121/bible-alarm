@@ -148,20 +148,11 @@
 		</Compile>
 	</ItemGroup>
 	
-	<!-- Replace license key placeholder in AppSettings.cs with actual key from environment variable -->
-	<Target Name="ReplaceLicenseKey" BeforeTargets="BeforeBuild" Condition="'$(SyncfusionLicenseKey)' != ''">
-		<PropertyGroup>
-			<_AppSettingsFile>$(MSBuildProjectDirectory)\AppSettings.cs</_AppSettingsFile>
-			<_LicenseKey>$(SyncfusionLicenseKey)</_LicenseKey>
-		</PropertyGroup>
-		<ReadLinesFromFile File="$(_AppSettingsFile)">
-			<Output TaskParameter="Lines" ItemName="AppSettingsLines" />
-		</ReadLinesFromFile>
-		<ItemGroup>
-			<AppSettingsLinesReplaced Include="@(AppSettingsLines->Replace('{{SYNCFUSION_LICENSE_KEY}}', '$(_LicenseKey)'))" />
-		</ItemGroup>
-		<WriteLinesToFile File="$(_AppSettingsFile)" Lines="@(AppSettingsLinesReplaced)" Overwrite="true" />
-	</Target>
+	<!-- Pre-build task: Replace license key placeholder in AppSettings.cs -->
+	<PropertyGroup>
+		<!-- Use PowerShell script only on Windows (Windows image used for deployment builds) -->
+		<PreBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/replace-license-key.ps1"</PreBuildEvent>
+	</PropertyGroup>
 
 	<!-- Platform-specific resources -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
