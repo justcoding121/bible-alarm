@@ -1,4 +1,5 @@
-﻿using Bible.Alarm.ViewModels.Shared;
+﻿#nullable enable
+using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.General;
@@ -9,7 +10,7 @@ public partial class AlarmModal : ContentPage, IDisposable
     private bool _hasHandledFirstLoad;
     private readonly AlarmViewModal _viewModel;
 
-    public AlarmViewModal ViewModel => BindingContext as AlarmViewModal;
+    public AlarmViewModal? ViewModel => BindingContext as AlarmViewModal;
 
     public AlarmModal(AlarmViewModal viewModel)
     {
@@ -47,7 +48,7 @@ public partial class AlarmModal : ContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        ViewModel.DismissCommand.Execute(null);
+        ViewModel?.DismissCommand.Execute(null);
         return true;
     }
 

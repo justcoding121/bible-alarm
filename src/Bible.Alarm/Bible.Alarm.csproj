@@ -102,16 +102,30 @@
 		<None Include="Platforms\Windows\**\*" />
 	</ItemGroup>
 	
-		<!-- Disable duplicate XAML compilation -->
-		<PropertyGroup>
-			<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
-		</PropertyGroup>
-		
-		<!-- Enable Hot Reload for Windows -->
-		<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<!-- Enable Hot Reload for Windows (Debug only) - Must be before EnableDefaultXamlItems -->
+		<PropertyGroup Condition="'$(Configuration)' == 'Debug' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
 			<XamlDebuggingInformation>True</XamlDebuggingInformation>
 			<EnableHotReload>true</EnableHotReload>
-			<HotReloadAutoRestart>false</HotReloadAutoRestart>
+			<HotReloadAutoRestart>true</HotReloadAutoRestart>
+		</PropertyGroup>
+		
+		<!-- Enable Hot Reload for Android (Debug only) - Must be before EnableDefaultXamlItems -->
+		<PropertyGroup Condition="'$(Configuration)' == 'Debug' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+			<XamlDebuggingInformation>True</XamlDebuggingInformation>
+			<EnableHotReload>true</EnableHotReload>
+			<HotReloadAutoRestart>true</HotReloadAutoRestart>
+		</PropertyGroup>
+		
+		<!-- Enable Hot Reload for iOS (Debug only) - Must be before EnableDefaultXamlItems -->
+		<PropertyGroup Condition="'$(Configuration)' == 'Debug' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+			<XamlDebuggingInformation>True</XamlDebuggingInformation>
+			<EnableHotReload>true</EnableHotReload>
+			<HotReloadAutoRestart>true</HotReloadAutoRestart>
+		</PropertyGroup>
+	
+		<!-- Disable duplicate XAML compilation - We explicitly include XAML files above -->
+		<PropertyGroup>
+			<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
 		</PropertyGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->

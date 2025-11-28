@@ -1,3 +1,4 @@
+#nullable enable
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
 using Microsoft.Maui.ApplicationModel;
@@ -9,7 +10,7 @@ public partial class Schedule : ContentPage, IDisposable
     private bool _isDisposed;
     private readonly ScheduleViewModel _viewModel;
 
-    public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
+    public ScheduleViewModel? ViewModel => BindingContext as ScheduleViewModel;
 
     private bool _hasHandledFirstLoad;
 
@@ -19,21 +20,34 @@ public partial class Schedule : ContentPage, IDisposable
         BindingContext = viewModel;
         _viewModel = viewModel;
 
-        MusicButton.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(() => AnimateUtils.FlickUponTouched(MusicButton, 1500,
-                ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
-        });
-
-        BibleButton.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(() => AnimateUtils.FlickUponTouched(BibleButton, 1500,
-                ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
-        });
-
-        // Use Loaded event which fires after the page is in the visual tree
-        // This is better than OnAppearing as it fires later in the lifecycle
+        // Setup gesture recognizers after page is loaded to support hot reload
         Loaded += OnPageLoaded;
+        Loaded += SetupGestureRecognizers;
+    }
+
+    private void SetupGestureRecognizers(object? sender, EventArgs e)
+    {
+        // Only setup once per page instance
+        if (MusicButton?.GestureRecognizers.Count == 0)
+        {
+            MusicButton?.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(() => AnimateUtils.FlickUponTouched(MusicButton, 1500,
+                    ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
+            });
+        }
+
+        if (BibleButton?.GestureRecognizers.Count == 0)
+        {
+            BibleButton?.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(() => AnimateUtils.FlickUponTouched(BibleButton, 1500,
+                    ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
+            });
+        }
+
+        // Unsubscribe after setup
+        Loaded -= SetupGestureRecognizers;
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)
@@ -68,7 +82,7 @@ public partial class Schedule : ContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        ViewModel.CancelCommand.Execute(null);
+        ViewModel?.CancelCommand.Execute(null);
         return true;
     }
 

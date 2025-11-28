@@ -39,8 +39,10 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0"
-                        Margin="2,2,0,2"
+                        Margin="3,3,0,3"
                         AutomationId="CancelButton"
+                        BackgroundColor="{OnPlatform Android='WhiteSmoke',
+                                                     WinUI='WhiteSmoke'}"
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding CancelCommand}"
@@ -54,8 +56,10 @@
                         TextColor="SlateBlue"
                         VerticalOptions="Fill" />
                 <Button Grid.Column="1"
-                        Margin="0,2,2,2"
+                        Margin="3,3,3,3"
                         AutomationId="SaveButton"
+                        BackgroundColor="{OnPlatform Android='WhiteSmoke',
+                                                     WinUI='WhiteSmoke'}"
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding SaveCommand}"
@@ -532,11 +536,12 @@
                     </StackLayout>
                 </ScrollView>
             <Grid Grid.Row="2"
-                  Margin="2,2,2,10"
+                  Margin="3,3,3,5"
                   IsVisible="{Binding IsExistingSchedule}"
                   VerticalOptions="End">
                 <Button Padding="10,8"
-                        BackgroundColor="White"
+                        BackgroundColor="{OnPlatform Android='WhiteSmoke',
+                                                     WinUI='WhiteSmoke'}"
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding DeleteCommand}"

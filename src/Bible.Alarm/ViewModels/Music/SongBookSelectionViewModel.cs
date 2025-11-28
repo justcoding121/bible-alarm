@@ -25,11 +25,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private readonly IDispatcher _dispatcher;
     private readonly INavigationService _navigationService;
 
-    private AlarmMusic _current;
-    private AlarmMusic _tentative;
+    private AlarmMusic? _current;
+    private AlarmMusic? _tentative;
     private bool _initComplete;
-    private AlarmMusic _lastCurrent;
-    private AlarmMusic _lastTentative;
+    private AlarmMusic? _lastCurrent;
+    private AlarmMusic? _lastTentative;
     private PropertyChangedEventHandler? _propertyChangedHandler;
 
     public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
@@ -67,7 +67,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             {
                 Repeat = _current?.Repeat ?? false,
                 MusicType = MusicType.Vocals,
-                LanguageCode = CurrentLanguage.Code,
+                LanguageCode = CurrentLanguage?.Code ?? string.Empty,
                 PublicationCode = x.Code
             }));
 
@@ -110,7 +110,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             if (CurrentLanguage != null) CurrentLanguage.IsSelected = false;
 
             CurrentLanguage = x;
-            CurrentLanguage.IsSelected = true;
+            CurrentLanguage!.IsSelected = true;
 
             // Close the modal immediately after language selection
             await _navigationService.PopModalAsync();
@@ -122,7 +122,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         });
     }
 
-    private void OnMusicChanged(object sender, EventArgs e)
+    private void OnMusicChanged(object? sender, EventArgs e)
     {
         var stateValue = _state.Value;
         if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null ||
@@ -136,7 +136,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         MainThread.BeginInvokeOnMainThread(SetSelectedSongBook);
     }
 
-    private void OnMusicInitialized(object o, EventArgs eventArgs)
+    private void OnMusicInitialized(object? o, EventArgs eventArgs)
     {
         if (_initComplete) return;
         var stateValue = _state.Value;
@@ -161,13 +161,13 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private void SetSelectedSongBook()
     {
-        if (_current == null || _current.LanguageCode != _tentative.LanguageCode) return;
-        if (SelectedSongBook != null) SelectedSongBook.IsSelected = false;
+        if (_current == null || _tentative == null || _current.LanguageCode != _tentative.LanguageCode) return;
+        if (SelectedSongBook != null) SelectedSongBook!.IsSelected = false;
 
         if (!_songBookVMsMapping.TryGetValue(_current.PublicationCode, out var songBook)) return;
         
         SelectedSongBook = songBook;
-        SelectedSongBook.IsSelected = true;
+        SelectedSongBook!.IsSelected = true;
     }
 
     public ICommand BackCommand { get; set; }
@@ -184,31 +184,31 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         set => SetProperty(ref _isBusy, value);
     }
 
-    private ObservableCollection<PublicationListViewItemModel> _songBooks;
+    private ObservableCollection<PublicationListViewItemModel>? _songBooks;
 
     public ObservableCollection<PublicationListViewItemModel> SongBooks
     {
-        get => _songBooks;
+        get => _songBooks ??= new ObservableCollection<PublicationListViewItemModel>();
         set => SetProperty(ref _songBooks, value);
     }
 
-    private ObservableCollection<LanguageListViewItemModel> _languages;
+    private ObservableCollection<LanguageListViewItemModel>? _languages;
 
     public ObservableCollection<LanguageListViewItemModel> Languages
     {
-        get => _languages;
+        get => _languages ??= new ObservableCollection<LanguageListViewItemModel>();
         set => SetProperty(ref _languages, value);
     }
 
-    private LanguageListViewItemModel _currentLanguage;
+    private LanguageListViewItemModel? _currentLanguage;
 
-    public LanguageListViewItemModel CurrentLanguage
+    public LanguageListViewItemModel? CurrentLanguage
     {
         get => _currentLanguage;
         set => SetProperty(ref _currentLanguage, value);
     }
 
-    private string _languageSearchTerm;
+    private string _languageSearchTerm = string.Empty;
 
     public string LanguageSearchTerm
     {
@@ -216,12 +216,13 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         set => SetProperty(ref _languageSearchTerm, value);
     }
 
-    public PublicationListViewItemModel SelectedSongBook { get; set; }
+    public PublicationListViewItemModel? SelectedSongBook { get; set; }
 
-    public object SelectedItem => CurrentLanguage;
+    public object? SelectedItem => CurrentLanguage;
 
     private async Task Initialize()
     {
+        if (_tentative == null) return;
         var languageCode = _tentative.LanguageCode;
 
         if (languageCode == null)
@@ -245,7 +246,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         PropertyChanged += _propertyChangedHandler;
     }
 
-    private async Task PopulateLanguages(string searchTerm = null)
+    private async Task PopulateLanguages(string? searchTerm = null)
     {
         var languages = await _mediaService.GetVocalMusicLanguages();
         var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
@@ -259,7 +260,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
             languageVMs.Add(languageVm);
 
-            if (languageVm.Code != _tentative.LanguageCode) continue;
+            if (_tentative == null || languageVm.Code != _tentative.LanguageCode) continue;
             languageVm.IsSelected = true;
             CurrentLanguage = languageVm;
         }

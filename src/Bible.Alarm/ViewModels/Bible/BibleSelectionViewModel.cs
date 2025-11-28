@@ -24,11 +24,11 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     private readonly IDispatcher _dispatcher;
     private readonly INavigationService _navigationService;
 
-    private BibleReadingSchedule _current;
-    private BibleReadingSchedule _tentative;
+    private BibleReadingSchedule? _current;
+    private BibleReadingSchedule? _tentative;
     private bool _initComplete;
-    private BibleReadingSchedule _lastCurrent;
-    private BibleReadingSchedule _lastTentative;
+    private BibleReadingSchedule? _lastCurrent;
+    private BibleReadingSchedule? _lastTentative;
     private PropertyChangedEventHandler? _propertyChangedHandler;
 
     public ICommand BackCommand { get; set; }
@@ -67,7 +67,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             dispatcher.Dispatch(new BookSelectionAction(new BibleReadingSchedule
             {
                 PublicationCode = x.Code,
-                LanguageCode = CurrentLanguage.Code
+                LanguageCode = CurrentLanguage?.Code ?? string.Empty
             }));
             IsBusy = false;
         });
@@ -101,7 +101,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
             if (CurrentLanguage != null) CurrentLanguage.IsSelected = false;
 
             CurrentLanguage = x;
-            CurrentLanguage.IsSelected = true;
+            CurrentLanguage!.IsSelected = true;
 
             // Close the modal immediately after language selection
             await _navigationService.PopModalAsync();
@@ -113,7 +113,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         });
     }
 
-    private void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
     {
         if (_initComplete) return;
         var stateValue = _state.Value;
@@ -136,7 +136,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         });
     }
 
-    private void OnBibleReadingChanged(object sender, EventArgs e)
+    private void OnBibleReadingChanged(object? sender, EventArgs e)
     {
         var stateValue = _state.Value;
         if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null 
@@ -159,30 +159,30 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         if (!_translationVMsMapping.TryGetValue(_current.PublicationCode, out var translation)) return;
         
         SelectedTranslation = translation;
-        SelectedTranslation.IsSelected = true;
+        SelectedTranslation!.IsSelected = true;
     }
 
-    private ObservableCollection<PublicationListViewItemModel> _translations;
+    private ObservableCollection<PublicationListViewItemModel>? _translations;
 
     public ObservableCollection<PublicationListViewItemModel> Translations
     {
-        get => _translations;
+        get => _translations ??= new ObservableCollection<PublicationListViewItemModel>();
         set => SetProperty(ref _translations, value);
     }
 
-    private ObservableCollection<LanguageListViewItemModel> _languages;
+    private ObservableCollection<LanguageListViewItemModel>? _languages;
 
     public ObservableCollection<LanguageListViewItemModel> Languages
     {
-        get => _languages;
+        get => _languages ??= new ObservableCollection<LanguageListViewItemModel>();
         set => SetProperty(ref _languages, value);
     }
 
-    public PublicationListViewItemModel SelectedTranslation { get; set; }
+    public PublicationListViewItemModel? SelectedTranslation { get; set; }
 
-    private LanguageListViewItemModel _currentLanguage;
+    private LanguageListViewItemModel? _currentLanguage;
 
-    public LanguageListViewItemModel CurrentLanguage
+    public LanguageListViewItemModel? CurrentLanguage
     {
         get => _currentLanguage;
         set => SetProperty(ref _currentLanguage, value);
@@ -207,7 +207,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         }
     }
 
-    private string _languageSearchTerm;
+    private string _languageSearchTerm = string.Empty;
 
     public string LanguageSearchTerm
     {
@@ -215,7 +215,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         set => SetProperty(ref _languageSearchTerm, value);
     }
 
-    public object SelectedItem => CurrentLanguage;
+    public object? SelectedItem => CurrentLanguage;
 
     private async Task Initialize(string languageCode)
     {
@@ -233,7 +233,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         PropertyChanged += _propertyChangedHandler;
     }
 
-    private async Task PopulateLanguages(string searchTerm = null)
+    private async Task PopulateLanguages(string? searchTerm = null)
     {
         var languages = await _mediaService.GetBibleLanguages();
         var languageVMs = new ObservableCollection<LanguageListViewItemModel>();

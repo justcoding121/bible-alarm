@@ -101,6 +101,7 @@
                             Margin="5"
                             AutomationId="AlarmDismissButton"
                             BackgroundColor="{OnPlatform iOS='WhiteSmoke',
+                                                         Android='WhiteSmoke',
                                                          WinUI='WhiteSmoke'}"
                             BorderWidth="0"
                             BorderColor="Transparent"

@@ -8,7 +8,6 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Services.UI;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Battery;
