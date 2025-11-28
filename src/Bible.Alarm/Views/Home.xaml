@@ -161,43 +161,43 @@
                                                  Orientation="Horizontal"
                                                  HorizontalOptions="Start">
                                         <Label
-                                            Margin="5,0,0,0"
+                                            Margin="5,0,2,0"
                                             FontAttributes="Bold"
                                             Style="{StaticResource SmallLabelStyle}"
                                             Text="S"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}" />
                                         <Label
-                                            Margin="0,0,0,0"
+                                            Margin="2,0,2,0"
                                             FontAttributes="Bold"
                                             Style="{StaticResource SmallLabelStyle}"
                                             Text="M"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}" />
                                         <Label
-                                            Margin="0,0,0,0"
+                                            Margin="2,0,2,0"
                                             FontAttributes="Bold"
                                             Style="{StaticResource SmallLabelStyle}"
                                             Text="T"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}" />
                                         <Label
-                                            Margin="0,0,0,0"
+                                            Margin="2,0,2,0"
                                             FontAttributes="Bold"
                                             Style="{StaticResource SmallLabelStyle}"
                                             Text="W"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}" />
                                         <Label
-                                            Margin="0,0,0,0"
+                                            Margin="2,0,2,0"
                                             FontAttributes="Bold"
                                             Style="{StaticResource SmallLabelStyle}"
                                             Text="T"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}" />
                                         <Label
-                                            Margin="0,0,0,0"
+                                            Margin="2,0,2,0"
                                             FontAttributes="Bold"
                                             Style="{StaticResource SmallLabelStyle}"
                                             Text="F"
                                             TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}" />
                                         <Label
-                                            Margin="0,0,0,0"
+                                            Margin="2,0,0,0"
                                             FontAttributes="Bold"
                                             Style="{StaticResource SmallLabelStyle}"
                                             Text="S"

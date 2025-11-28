@@ -452,7 +452,7 @@
                                     Margin="0,0,15,0"
                                     HorizontalOptions="End"
                                     IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
-                                    Scale="{OnPlatform Android='1.25', iOS='1', Default='1'}" />
+                                    Scale="{OnPlatform Android='1', Default='1'}" />
                             </StackLayout>
                             </Grid>
                             <Grid x:Name="ShowNotificationButton"
@@ -493,7 +493,7 @@
                                     Margin="0,0,15,0"
                                     HorizontalOptions="End"
                                     IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
-                                    Scale="{OnPlatform Android='1.25', iOS='1', Default='1'}" />
+                                    Scale="{OnPlatform Android='1', Default='1'}" />
                             </StackLayout>
                                 </Grid>
                             </StackLayout>
@@ -542,7 +542,7 @@
                                     Margin="0,0,5,0"
                                     HorizontalOptions="Start"
                                     IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
-                                    Scale="{OnPlatform Android='1.25', iOS='1', Default='1'}" />
+                                    Scale="{OnPlatform Android='1', Default='1'}" />
                                 <Label Margin="0,0,10,0"
                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                        Style="{StaticResource MediumLabelStyle}"
