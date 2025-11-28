@@ -135,6 +135,9 @@ public class ScheduleListItem(
     {
         try
         {
+            // Immediately notify UI that This property changed so day button colors update instantly
+            OnPropertyChanged(nameof(This));
+            
             var success = await scheduleStateService.UpdateScheduleEnabledStateAsync(ScheduleId, newValue);
             
             if (!success)
@@ -143,11 +146,14 @@ public class ScheduleListItem(
                 {
                     _isEnabled = !newValue;
                     OnPropertyChanged(nameof(IsEnabled));
+                    OnPropertyChanged(nameof(This));
                 });
             }
             else
             {
                 RaisePropertiesChangedEvent();
+                // Ensure This is also notified for immediate UI update
+                OnPropertyChanged(nameof(This));
             }
         }
         catch (Exception ex)
@@ -158,6 +164,7 @@ public class ScheduleListItem(
             {
                 _isEnabled = !newValue;
                 OnPropertyChanged(nameof(IsEnabled));
+                OnPropertyChanged(nameof(This));
             });
         }
     }

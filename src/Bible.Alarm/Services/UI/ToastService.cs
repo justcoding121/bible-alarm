@@ -14,9 +14,9 @@ public abstract class ToastService : IToastService
 
         if (timeSpan.Days > 0)
             await ShowMessage(
-                $"Alarm set for {timeSpan.Days} days, {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
+                $"Reminder set for {timeSpan.Days} days, {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
         else
-            await ShowMessage($"Alarm set for {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
+            await ShowMessage($"Reminder set for {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
     }
 
     public void Dispose()

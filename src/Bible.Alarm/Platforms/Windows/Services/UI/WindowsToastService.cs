@@ -339,6 +339,11 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                         popup.IsOpen = false;
                     }
                 }
+                catch (System.Runtime.InteropServices.COMException ex)
+                {
+                    // Popup may be disposed or in invalid state - this is expected during cleanup
+                    Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
+                }
                 catch (Exception ex)
                 {
                     Log.Warning(ex, "Exception occurred while closing popup in ShowFlyoutAsync finally block");
@@ -383,6 +388,11 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 popup.Child = null;
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                // Popup may be disposed or in invalid state - this is expected during cleanup
+                Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
             }
             catch (Exception ex)
             {

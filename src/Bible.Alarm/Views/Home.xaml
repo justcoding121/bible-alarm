@@ -36,8 +36,8 @@
             </Grid.RowDefinitions>
             <StackLayout Grid.Row="0">
                 <Button
-                    Margin="{OnPlatform Default='2',
-                                        iOS='2,25,2,2'}"
+                    Margin="{OnPlatform Default='5,5,5,10',
+                                        iOS='5,25,5,10'}"
                     AutomationId="AddScheduleButton"
                     BackgroundColor="{OnPlatform Default='WhiteSmoke', WinUI='LightGray'}"
                     BorderWidth="0"
@@ -267,13 +267,18 @@
                                     HorizontalOptions="End"
                                     Orientation="Vertical"
                                     VerticalOptions="Center">
-                                    <Switch
-                                        Margin="{OnPlatform WinUI='0,0,-100,0'}"
+                                    <Border
                                         HorizontalOptions="End"
                                         VerticalOptions="Center"
-                                        IsToggled="{Binding IsEnabled, Mode=TwoWay}"
-                                        Scale="{OnPlatform Default='1',
-                                                           iOS='1'}" />
+                                        WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
+                                        ClipToBounds="True">
+                                        <Switch
+                                            HorizontalOptions="End"
+                                            VerticalOptions="Center"
+                                            IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                            Scale="{OnPlatform Default='1',
+                                                               iOS='1'}" />
+                                    </Border>
                                 </StackLayout>
                             </Grid>
                     </DataTemplate>

@@ -30,8 +30,8 @@
                     <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
             <Grid Grid.Row="0"
-                  Margin="{OnPlatform Default='0',
-                                    iOS='0,25,0,0'}"
+                  Margin="{OnPlatform Default='5,5,5,10',
+                                    iOS='5,25,5,10'}"
                   ColumnSpacing="0"
                   RowSpacing="0">
                 <Grid.ColumnDefinitions>
@@ -39,10 +39,10 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0"
-                        Margin="3,3,0,3"
+                        Margin="0,3,3,3"
                         AutomationId="CancelButton"
-                        BackgroundColor="{OnPlatform Android='WhiteSmoke',
-                                                     WinUI='WhiteSmoke'}"
+                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                     WinUI='LightGray'}"
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding CancelCommand}"
@@ -56,10 +56,10 @@
                         TextColor="SlateBlue"
                         VerticalOptions="Fill" />
                 <Button Grid.Column="1"
-                        Margin="3,3,3,3"
+                        Margin="3,3,0,3"
                         AutomationId="SaveButton"
-                        BackgroundColor="{OnPlatform Android='WhiteSmoke',
-                                                     WinUI='WhiteSmoke'}"
+                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                     WinUI='LightGray'}"
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding SaveCommand}"
@@ -74,9 +74,11 @@
                         VerticalOptions="Fill" />
             </Grid>
             <ScrollView Grid.Row="1"
-                        Margin="0">
+                        Margin="0,0,0,0">
                     <StackLayout HorizontalOptions="Fill"
-                                 Orientation="Vertical">
+                                 Orientation="Vertical"
+                                 Spacing="10"
+                                 Margin="10,0">
                         <StackLayout.Resources>
                             <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
                             <enums:DaysOfWeek x:Key="Monday">Monday</enums:DaysOfWeek>
@@ -86,27 +88,23 @@
                             <enums:DaysOfWeek x:Key="Friday">Friday</enums:DaysOfWeek>
                             <enums:DaysOfWeek x:Key="Saturday">Saturday</enums:DaysOfWeek>
                         </StackLayout.Resources>
-                        <Label Margin="0,10,0,3"
-                               HorizontalOptions="Fill"
-                               HorizontalTextAlignment="Center"
-                               Text="Alarm Time"
-                               TextColor="Black" />
                         <TimePicker AutomationId="AlarmTimePicker"
                                     BackgroundColor="White"
                                     FontSize="{StaticResource TitleFontSize}"
                                     HorizontalOptions="Center"
+                                    Margin="0"
                                     TextColor="SlateBlue"
                                     Time="{Binding Time, Mode=TwoWay}">
                             <TimePicker.Format>hh:mm tt</TimePicker.Format>
                         </TimePicker>
-                        <StackLayout Margin="0,5,0,5"
+                        <StackLayout Margin="0"
                                      HorizontalOptions="Center"
                                      Orientation="Horizontal">
                             <Button Margin="5,0,0,0"
                                     Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                    BorderWidth="1"
+                                    BorderWidth="2"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
@@ -118,7 +116,7 @@
                                     Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                    BorderWidth="1"
+                                    BorderWidth="2"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
@@ -130,7 +128,7 @@
                                     Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                    BorderWidth="1"
+                                    BorderWidth="2"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
@@ -142,7 +140,7 @@
                                     Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                    BorderWidth="1"
+                                    BorderWidth="2"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
@@ -154,7 +152,7 @@
                                     Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                    BorderWidth="1"
+                                    BorderWidth="2"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
@@ -166,7 +164,7 @@
                                     Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                    BorderWidth="1"
+                                    BorderWidth="2"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
@@ -178,7 +176,7 @@
                                     Padding="0"
                                     BackgroundColor="White"
                                     BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                    BorderWidth="1"
+                                    BorderWidth="2"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
@@ -188,24 +186,28 @@
                                     HeightRequest="35" />
                         </StackLayout>
                         <StackLayout
-                            Margin="{OnPlatform Default='0,5,0,5',
-                                                iOS='0,15,0,5',
-                                                WinUI='0,15,0,5'}"
+                            Margin="0"
                             HorizontalOptions="Center"
                             Orientation="Horizontal">
-                            <Label Margin="0,0,5,0"
-                                   BackgroundColor="White"
-                                   Text="Name:"
-                                   TextColor="Black"
-                                   VerticalOptions="Center" />
-                            <Entry HorizontalOptions="Center"
-                                   MaxLength="30"
-                                   MinimumWidthRequest="200"
-                                   Text="{Binding Name, Mode=TwoWay}"
-                                   VerticalOptions="Center"
-                                   BackgroundColor="Transparent" />
+                            <Border
+                                StrokeThickness="1"
+                                Stroke="LightGray"
+                                BackgroundColor="White"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="5" />
+                                </Border.StrokeShape>
+                                <Entry
+                                    Margin="8,4"
+                                    MaxLength="30"
+                                    MinimumWidthRequest="200"
+                                    Placeholder="Schedule Name"
+                                    Text="{Binding Name, Mode=TwoWay}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
                         </StackLayout>
-                        <Border Margin="3,2,3,2"
+                        <Border Margin="0"
                                Padding="0"
                                StrokeThickness="1"
                                Stroke="LightGray"
@@ -214,7 +216,8 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="10" />
                             </Border.StrokeShape>
-                            <StackLayout Orientation="Vertical">
+                            <StackLayout Orientation="Vertical"
+                                         Spacing="0">
                                 <Grid x:Name="BibleButton"
                                       Margin="5,5,5,5"
                                       BackgroundColor="WhiteSmoke"
@@ -363,10 +366,17 @@
                                 </Grid>
                             </StackLayout>
                         </Border>
-                        <StackLayout Margin="5,5,5,0"
-                                     Spacing="0">
+                        <Border Margin="0"
+                               Padding="0"
+                               StrokeThickness="1"
+                               Stroke="LightGray"
+                               BackgroundColor="WhiteSmoke"
+                               HorizontalOptions="Fill">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
                             <Grid x:Name="ChaptersButton"
-                                  Margin="5,0,5,0"
+                                  Margin="5,5,5,5"
                                   BackgroundColor="WhiteSmoke"
                                   HorizontalOptions="Fill"
                                   VerticalOptions="Fill">
@@ -395,22 +405,34 @@
                                    TextColor="SlateBlue"
                                    VerticalOptions="Center" />
                             </Grid>
-                            <Grid x:Name="AlwaysPlayFromStartButton"
-                                  Margin="5,0,5,0"
-                                  BackgroundColor="WhiteSmoke"
-                                  HorizontalOptions="Fill"
-                                  VerticalOptions="Fill">
-                            <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding ToggleAlwaysPlayFromStartCommand}"
-                                                      NumberOfTapsRequired="1" />
-                            </Grid.GestureRecognizers>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="7*" />
-                                <ColumnDefinition Width="3*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="auto" />
-                            </Grid.RowDefinitions>
+                        </Border>
+                        <Border Margin="0"
+                               Padding="0"
+                               StrokeThickness="1"
+                               Stroke="LightGray"
+                               BackgroundColor="WhiteSmoke"
+                               HorizontalOptions="Fill">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <StackLayout Orientation="Vertical"
+                                         Spacing="0">
+                                <Grid x:Name="AlwaysPlayFromStartButton"
+                                      Margin="5,5,5,5"
+                                      BackgroundColor="WhiteSmoke"
+                                      HorizontalOptions="Fill"
+                                      VerticalOptions="Fill">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleAlwaysPlayFromStartCommand}"
+                                                          NumberOfTapsRequired="1" />
+                                </Grid.GestureRecognizers>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="7*" />
+                                    <ColumnDefinition Width="3*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="auto" />
+                                </Grid.RowDefinitions>
                             <Label Grid.Column="0"
                                    Margin="5,0,0,0"
                                    Padding="10"
@@ -424,16 +446,21 @@
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
-                                <Switch
+                                <Border
                                     Margin="{OnPlatform Default='0,0,15,0',
-                                                        WinUI='0,0,-95,0'}"
-                                    HeightRequest="30"
+                                                        WinUI='0,0,15,0'}"
                                     HorizontalOptions="End"
-                                    IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
-                                    Scale="{OnPlatform Android='1.25',
-                                                       iOS='1',
-                                                       WinUI='1'}"
-                                    VerticalOptions="Center" />
+                                    VerticalOptions="Center"
+                                    WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
+                                    ClipToBounds="True">
+                                    <Switch
+                                        HorizontalOptions="End"
+                                        IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
+                                        Scale="{OnPlatform Android='1.25',
+                                                           iOS='1',
+                                                           WinUI='1'}"
+                                        VerticalOptions="Center" />
+                                </Border>
                             </StackLayout>
                             </Grid>
                             <Grid x:Name="ShowNotificationButton"
@@ -470,28 +497,42 @@
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
                                          VerticalOptions="Center">
-                                <Switch
+                                <Border
                                     Margin="{OnPlatform Default='0,0,15,0',
-                                                        WinUI='0,0,-95,0'}"
-                                    HeightRequest="30"
+                                                        WinUI='0,0,15,0'}"
                                     HorizontalOptions="End"
-                                    IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
-                                    Scale="{OnPlatform Default='1.25',
-                                                       iOS='1',
-                                                       WinUI='1'}"
-                                    VerticalOptions="Center" />
+                                    VerticalOptions="Center"
+                                    WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
+                                    ClipToBounds="True">
+                                    <Switch
+                                        HorizontalOptions="End"
+                                        IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
+                                        Scale="{OnPlatform Default='1.25',
+                                                           iOS='1',
+                                                           WinUI='1'}"
+                                        VerticalOptions="Center" />
+                                </Border>
                             </StackLayout>
-                            </Grid>
-                        </StackLayout>
-                        <Grid x:Name="MusicButton"
-                              Padding="5,0,5,0"
-                              Margin="{OnPlatform Default='5,0,5,30'}"
-                              BackgroundColor="WhiteSmoke"
-                              HorizontalOptions="Fill"
-                              VerticalOptions="Fill">
+                                </Grid>
+                            </StackLayout>
+                        </Border>
+                        <Border Margin="0"
+                               Padding="0"
+                               StrokeThickness="1"
+                               Stroke="LightGray"
+                               BackgroundColor="WhiteSmoke"
+                               HorizontalOptions="Fill">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Grid x:Name="MusicButton"
+                                  Margin="5,5,5,5"
+                                  BackgroundColor="WhiteSmoke"
+                                  HorizontalOptions="Fill"
+                                  VerticalOptions="Fill">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="6*" />
-                                <ColumnDefinition Width="4*" />
+                                <ColumnDefinition Width="5*" />
+                                <ColumnDefinition Width="5*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="auto" />
@@ -506,42 +547,51 @@
                                    HorizontalOptions="Fill"
                                    HorizontalTextAlignment="Start"
                                    TextColor="Black"
-                                   VerticalOptions="Center">
+                                   VerticalOptions="Center"
+                                   VerticalTextAlignment="Center">
                                 Play a music track before Bible audio
                             </Label>
                             <StackLayout Grid.Column="1"
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
+                                         Spacing="0"
                                          VerticalOptions="Center">
-                                <Switch
-                                    Margin="{OnPlatform Default='0,0,15,0',
-                                                        WinUI='0,0,-95,0'}"
-                                    HeightRequest="30"
-                                    HorizontalOptions="End"
-                                    IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
-                                    Scale="{OnPlatform Default='1.25',
-                                                       iOS='1',
-                                                       WinUI='1'}"
-                                    VerticalOptions="Center" />
+                                <Border
+                                    Margin="{OnPlatform Default='0,0,5,0',
+                                                        WinUI='0,0,5,0'}"
+                                    HorizontalOptions="Start"
+                                    VerticalOptions="Center"
+                                    WidthRequest="{OnPlatform Default='-1', WinUI='50'}"
+                                    ClipToBounds="True">
+                                    <Switch
+                                        HorizontalOptions="Start"
+                                        IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
+                                        Scale="{OnPlatform Default='1.25',
+                                                           iOS='1',
+                                                           WinUI='1'}"
+                                        VerticalOptions="Center" />
+                                </Border>
                                 <Label Margin="0,0,10,0"
                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                        Style="{StaticResource MediumLabelStyle}"
                                        HorizontalOptions="End"
                                        Text="{x:Static fn:GlyphNames.Right}"
                                        TextColor="Gray"
-                                       VerticalOptions="Center" />
+                                       VerticalOptions="Center"
+                                       VerticalTextAlignment="Center" />
                             </StackLayout>
                         </Grid>
+                        </Border>
 
                     </StackLayout>
                 </ScrollView>
             <Grid Grid.Row="2"
-                  Margin="3,3,3,5"
+                  Margin="5,10,5,5"
                   IsVisible="{Binding IsExistingSchedule}"
                   VerticalOptions="End">
                 <Button Padding="10,8"
-                        BackgroundColor="{OnPlatform Android='WhiteSmoke',
-                                                     WinUI='WhiteSmoke'}"
+                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
+                                                     WinUI='LightGray'}"
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding DeleteCommand}"

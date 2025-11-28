@@ -82,7 +82,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
                 if (toastService != null)
                 {
                     await toastService.ShowMessage(
-                        "Cannot schedule alarm. Please enable 'Alarms & reminders' permission in system settings.", 
+                        "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.", 
                         7);
                 }
             }

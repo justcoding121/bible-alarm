@@ -38,11 +38,11 @@ public class ScheduleStateService(
         {
             if (DeviceInfo.Platform == DevicePlatform.iOS)
                 await _toastService.ShowMessage(
-                    "Cannot schedule alarm because you've disabled notifications. " +
+                    "Cannot schedule reminder because you've disabled notifications. " +
                     "Please enable notification for this app under system settings.", 7);
             else
                 await _toastService.ShowMessage(
-                    "Cannot schedule alarm because you've denied background apps permission. " +
+                    "Cannot schedule reminder because you've denied background apps permission. " +
                     "Please grant background apps permission for this app under system settings.", 7);
 
             // Indicates the state change was rejected
@@ -80,7 +80,7 @@ public class ScheduleStateService(
                 if (DeviceInfo.Platform == DevicePlatform.Android)
                 {
                     await _toastService.ShowMessage(
-                        "Cannot schedule alarm. Please enable 'Alarms & reminders' permission in system settings.", 
+                        "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.", 
                         7);
                 }
                 

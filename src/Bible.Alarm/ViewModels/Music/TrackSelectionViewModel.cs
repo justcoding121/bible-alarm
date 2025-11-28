@@ -288,7 +288,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             Repeat = _tentative.Repeat
         }));
 
-        if (track.Repeat) _toastService.ShowMessage("Alarm will always repeat this track.");
+        if (track.Repeat) _toastService.ShowMessage("Reminder will always repeat this track.");
     }
 
     private async void OnPlayServiceStopped()
