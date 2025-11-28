@@ -111,6 +111,7 @@
 		<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
 			<XamlDebuggingInformation>True</XamlDebuggingInformation>
 			<EnableHotReload>true</EnableHotReload>
+			<HotReloadAutoRestart>false</HotReloadAutoRestart>
 		</PropertyGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->

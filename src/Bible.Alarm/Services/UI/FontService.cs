@@ -30,24 +30,6 @@ public class FontService : IFontService, INotifyPropertyChanged
         // Listen for screen size/orientation changes
         DeviceDisplay.MainDisplayInfoChanged += OnDisplayInfoChanged;
         
-#if DEBUG
-        // Enable Hot Reload support - font sizes will update when XAML changes
-        try
-        {
-            var hotReloadType = Type.GetType("Microsoft.Maui.HotReload.MauiHotReloadHelper, Microsoft.Maui.Controls");
-            if (hotReloadType != null)
-            {
-                var registerMethod = hotReloadType.GetMethod("Register", new[] { typeof(object), typeof(object) });
-                registerMethod?.Invoke(null, new[] { this, this });
-            }
-        }
-        catch (Exception ex)
-        {
-            // Hot Reload helper not available - continue without it
-            Log.Logger.Debug(ex, "Hot Reload helper not available, continuing without it");
-        }
-#endif
-        
         // Initial calculation
         Recalculate();
     }
@@ -144,8 +126,6 @@ public class FontService : IFontService, INotifyPropertyChanged
             bool isPhone = widthDp < 600;
             // Tablet or small desktop window
             bool isTablet = widthDp >= 600 && widthDp < 960;
-            // Large desktop, landscape tablet in full screen
-            bool isDesktop = widthDp >= 960;
             
             if (isPhone)
             {

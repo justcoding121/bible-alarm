@@ -4,6 +4,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Views;
 using Microsoft.Maui.ApplicationModel;
 using System.Linq;
+using Serilog;
 
 namespace Bible.Alarm;
 
@@ -36,16 +37,23 @@ public partial class App : Application
         InitializeComponent();
 
         // Set font size resources for hot reload compatibility
-        // Using StaticResource instead of x:Static allows hot reload to work
+        // Using DynamicResource allows hot reload to work without restarting
         SetFontSizeResources();
         
-        // Subscribe to font size changes (e.g., when screen rotates or window resizes)
+        // Subscribe to font size changes for display changes (rotation/resize)
+        // PropertyChanged with empty string only fires on actual display changes (via Recalculate())
+        // This does NOT fire during Hot Reload, so it's safe to update resources here
         if (_fontService is System.ComponentModel.INotifyPropertyChanged notifyPropertyChanged)
         {
             notifyPropertyChanged.PropertyChanged += (sender, e) =>
             {
-                // Update resources when font sizes change
-                SetFontSizeResources();
+                // Empty PropertyName means all properties changed = display change (rotation/resize)
+                // This only happens when FontService.Recalculate() is called, which only happens
+                // on DeviceDisplay.MainDisplayInfoChanged, NOT during Hot Reload
+                if (string.IsNullOrEmpty(e.PropertyName))
+                {
+                    SetFontSizeResources();
+                }
             };
         }
 
@@ -61,34 +69,43 @@ public partial class App : Application
 
     private void SetFontSizeResources()
     {
-        // Set font size resources as StaticResource values for hot reload compatibility
-        // Update the merged Styles dictionary where the resources are actually defined
-        var stylesDict = Resources.MergedDictionaries.OfType<Views.Styles>().FirstOrDefault();
-        if (stylesDict != null)
+        try
         {
-            stylesDict["StandardFontSize"] = _fontService.StandardFontSize;
-            stylesDict["HeaderFontSize"] = _fontService.HeaderFontSize;
-            stylesDict["ButtonFontSize"] = _fontService.ButtonFontSize;
-            stylesDict["SmallFontSize"] = _fontService.SmallFontSize;
-            stylesDict["MediumFontSize"] = _fontService.MediumFontSize;
-            stylesDict["LargeFontSize"] = _fontService.LargeFontSize;
-            stylesDict["TitleFontSize"] = _fontService.TitleFontSize;
-            stylesDict["AlarmTimeFontSize"] = _fontService.AlarmTimeFontSize;
-            stylesDict["AlarmMeridianFontSize"] = _fontService.AlarmMeridianFontSize;
-            stylesDict["AlarmBellIconFontSize"] = _fontService.AlarmBellIconFontSize;
+            // Set font size resources as DynamicResource values for hot reload compatibility
+            // Update the merged Styles dictionary where the resources are actually defined
+            var stylesDict = Resources.MergedDictionaries.OfType<Views.Styles>().FirstOrDefault();
+            if (stylesDict != null)
+            {
+                stylesDict["StandardFontSize"] = _fontService.StandardFontSize;
+                stylesDict["HeaderFontSize"] = _fontService.HeaderFontSize;
+                stylesDict["ButtonFontSize"] = _fontService.ButtonFontSize;
+                stylesDict["SmallFontSize"] = _fontService.SmallFontSize;
+                stylesDict["MediumFontSize"] = _fontService.MediumFontSize;
+                stylesDict["LargeFontSize"] = _fontService.LargeFontSize;
+                stylesDict["TitleFontSize"] = _fontService.TitleFontSize;
+                stylesDict["AlarmTimeFontSize"] = _fontService.AlarmTimeFontSize;
+                stylesDict["AlarmMeridianFontSize"] = _fontService.AlarmMeridianFontSize;
+                stylesDict["AlarmBellIconFontSize"] = _fontService.AlarmBellIconFontSize;
+            }
+            
+            // Also update in main Resources dictionary for any direct lookups
+            Resources["StandardFontSize"] = _fontService.StandardFontSize;
+            Resources["HeaderFontSize"] = _fontService.HeaderFontSize;
+            Resources["ButtonFontSize"] = _fontService.ButtonFontSize;
+            Resources["SmallFontSize"] = _fontService.SmallFontSize;
+            Resources["MediumFontSize"] = _fontService.MediumFontSize;
+            Resources["LargeFontSize"] = _fontService.LargeFontSize;
+            Resources["TitleFontSize"] = _fontService.TitleFontSize;
+            Resources["AlarmTimeFontSize"] = _fontService.AlarmTimeFontSize;
+            Resources["AlarmMeridianFontSize"] = _fontService.AlarmMeridianFontSize;
+            Resources["AlarmBellIconFontSize"] = _fontService.AlarmBellIconFontSize;
         }
-        
-        // Also update in main Resources dictionary for any direct lookups
-        Resources["StandardFontSize"] = _fontService.StandardFontSize;
-        Resources["HeaderFontSize"] = _fontService.HeaderFontSize;
-        Resources["ButtonFontSize"] = _fontService.ButtonFontSize;
-        Resources["SmallFontSize"] = _fontService.SmallFontSize;
-        Resources["MediumFontSize"] = _fontService.MediumFontSize;
-        Resources["LargeFontSize"] = _fontService.LargeFontSize;
-        Resources["TitleFontSize"] = _fontService.TitleFontSize;
-        Resources["AlarmTimeFontSize"] = _fontService.AlarmTimeFontSize;
-        Resources["AlarmMeridianFontSize"] = _fontService.AlarmMeridianFontSize;
-        Resources["AlarmBellIconFontSize"] = _fontService.AlarmBellIconFontSize;
+        catch (Exception ex)
+        {
+            // Log errors during resource updates (may occur during Hot Reload)
+            // DynamicResource bindings will handle updates automatically
+            Log.Logger.Debug(ex, "Error updating font size resources, continuing without update");
+        }
     }
 
     protected override Window CreateWindow(IActivationState? activationState)

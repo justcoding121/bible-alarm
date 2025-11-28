@@ -123,7 +123,6 @@
                 x:Name="CloseButton"
                 Grid.Row="4"
                 Margin="2"
-                BackgroundColor="White"
                 BorderWidth="0"
                 BorderColor="Transparent"
                 Command="{Binding CloseModalCommand}"
