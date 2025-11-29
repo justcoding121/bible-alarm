@@ -1,6 +1,7 @@
 ﻿using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Serilog;
@@ -14,7 +15,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     private Context _context;
     private Intent _intent;
-    private AndroidAlarmHandler _alarmHandler;
+    private IAndroidAlarmHandler _alarmHandler;
 
     private static readonly SemaphoreSlim Lock = new(1);
 
@@ -56,8 +57,12 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
             var scheduleId = intent.GetStringExtra("ScheduleId");
             var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
 
-            _alarmHandler = ServiceProviderManager.GetService<AndroidAlarmHandler>();
-            _alarmHandler.Disposed += OnDisposed;
+            _alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
+            // Subscribe to Disposed event if the handler implements it
+            if (_alarmHandler is AndroidAlarmHandler concreteHandler)
+            {
+                concreteHandler.Disposed += OnDisposed;
+            }
             await _alarmHandler.HandleAsync(int.Parse(scheduleId), isAlarm);
         }
         catch (Exception e)
@@ -83,7 +88,10 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
     {
         if (_disposed) return;
 
-        if (_alarmHandler != null) _alarmHandler.Disposed -= OnDisposed;
+        if (_alarmHandler is AndroidAlarmHandler concreteHandler)
+        {
+            concreteHandler.Disposed -= OnDisposed;
+        }
 
         _context?.StopService(_intent);
 

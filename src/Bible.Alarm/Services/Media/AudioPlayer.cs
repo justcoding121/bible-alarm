@@ -333,16 +333,6 @@ public partial class AudioPlayer : IAudioPlayer
 
     private void OnPositionChanged(object? sender, EventArgs e)
     {
-        var position = CurrentPosition;
-        var duration = Duration;
-        var actualPosition = _mediaElement.Position;
-        var actualDuration = _mediaElement.Duration;
-        _logger.Debug("MediaElement position changed. Position: {Position}, Duration: {Duration}, Status: {Status}, ActualPosition: {ActualPosition}, ActualDuration: {ActualDuration}", 
-            position?.ToString() ?? "null", 
-            duration.ToString(), 
-            Status,
-            actualPosition.ToString(),
-            actualDuration.ToString());
         SendPositionUpdate();
     }
 
@@ -351,18 +341,6 @@ public partial class AudioPlayer : IAudioPlayer
         // Check position on main thread since MediaElement properties must be accessed on UI thread
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var position = CurrentPosition;
-            var duration = Duration;
-            var actualPosition = _mediaElement.Position;
-            var actualDuration = _mediaElement.Duration;
-            var currentState = _mediaElement.CurrentState;
-            _logger.Debug("Position timer elapsed. Position: {Position}, Duration: {Duration}, Status: {Status}, ActualPosition: {ActualPosition}, ActualDuration: {ActualDuration}, CurrentState: {CurrentState}", 
-                position?.ToString() ?? "null", 
-                duration.ToString(), 
-                Status,
-                actualPosition.ToString(),
-                actualDuration.ToString(),
-                currentState);
             SendPositionUpdate();
         });
     }
