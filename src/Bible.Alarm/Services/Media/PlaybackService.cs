@@ -22,6 +22,9 @@ public class PlaybackService : IPlaybackService
     private readonly IFallbackAlarmSoundService _fallbackAlarmSoundService;
     private readonly IDispatcher _dispatcher;
     private readonly INotificationService _notificationService;
+#if ANDROID
+    private readonly IAndroidPlayerNotificationService? _androidPlayerNotificationService;
+#endif
 
     private List<AudioPlayerTrack>? _playlist;
     private int _currentTrackIndex = -1;
@@ -59,7 +62,11 @@ public class PlaybackService : IPlaybackService
         IPlaylistService playlistService,
         IFallbackAlarmSoundService fallbackAlarmSoundService,
         IDispatcher dispatcher,
-        INotificationService notificationService)
+        INotificationService notificationService
+#if ANDROID
+        , IAndroidPlayerNotificationService? androidPlayerNotificationService = null
+#endif
+        )
     {
         _logger = logger;
         _audioPlayer = audioPlayer;
@@ -68,6 +75,16 @@ public class PlaybackService : IPlaybackService
         _fallbackAlarmSoundService = fallbackAlarmSoundService;
         _dispatcher = dispatcher;
         _notificationService = notificationService;
+#if ANDROID
+        _androidPlayerNotificationService = androidPlayerNotificationService;
+        
+        // Subscribe to Next/Previous button press events from system controls
+        if (_androidPlayerNotificationService != null)
+        {
+            _androidPlayerNotificationService.NextButtonPressed += OnNextButtonPressed;
+            _androidPlayerNotificationService.PreviousButtonPressed += OnPreviousButtonPressed;
+        }
+#endif
 
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
@@ -209,6 +226,28 @@ public class PlaybackService : IPlaybackService
         // Dispatch Fluxor action
         _dispatcher.Dispatch(new PlaybackNavigationChangedAction(canPlayNext, canPlayPrevious));
     }
+
+#if ANDROID
+    /// <summary>
+    /// Handles Next button press from system media controls (notification/lockscreen).
+    /// Calls PlayNextAsync() to match the alarm modal's Next button behavior.
+    /// </summary>
+    private async void OnNextButtonPressed(object? sender, EventArgs e)
+    {
+        _logger.Debug("Next button pressed from system controls - calling PlayNextAsync");
+        await PlayNextAsync();
+    }
+
+    /// <summary>
+    /// Handles Previous button press from system media controls (notification/lockscreen).
+    /// Calls PlayPreviousAsync() to match the alarm modal's Previous button behavior.
+    /// </summary>
+    private async void OnPreviousButtonPressed(object? sender, EventArgs e)
+    {
+        _logger.Debug("Previous button pressed from system controls - calling PlayPreviousAsync");
+        await PlayPreviousAsync();
+    }
+#endif
 
     public async Task SeekForwardAsync()
     {

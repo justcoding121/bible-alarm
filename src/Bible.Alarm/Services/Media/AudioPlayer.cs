@@ -27,7 +27,7 @@ public partial class AudioPlayer : IAudioPlayer
     private readonly IDispatcher _dispatcher;
     private readonly System.Timers.Timer? _positionTimer;
 #if ANDROID
-    private readonly IAndroidNextButtonService? _androidNextButtonService;
+    private readonly IAndroidPlayerNotificationService? _androidPlayerNotificationService;
 #endif
 
     private AudioPlayerTrack? _currentTrack;
@@ -76,7 +76,7 @@ public partial class AudioPlayer : IAudioPlayer
 
     public AudioPlayer(ILogger logger, INavigationService navigationService, IDisplayMetadataService displayMetadataService, IDispatcher dispatcher
 #if ANDROID
-        , IAndroidNextButtonService? androidNextButtonService = null
+        , IAndroidPlayerNotificationService? androidPlayerNotificationService = null
 #endif
         )
     {
@@ -85,7 +85,7 @@ public partial class AudioPlayer : IAudioPlayer
         _displayMetadataService = displayMetadataService;
         _dispatcher = dispatcher;
 #if ANDROID
-        _androidNextButtonService = androidNextButtonService;
+        _androidPlayerNotificationService = androidPlayerNotificationService;
 #endif
 
         _mediaElement.StateChanged += OnStateChanged;
@@ -128,7 +128,7 @@ public partial class AudioPlayer : IAudioPlayer
             _mediaElement.Source = MediaSource.FromUri(track.Uri);
             
             // Now set the real (multi-item) queue via ExoPlayer to enable Next button
-            _androidNextButtonService?.SetSourceWithDummyQueue(track.Uri);
+            _androidPlayerNotificationService?.SetSourceWithDummyQueue(track.Uri);
 #else
             _mediaElement.Source = track.Uri;
 #endif
