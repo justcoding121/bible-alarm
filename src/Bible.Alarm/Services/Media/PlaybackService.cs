@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
+using Bible.Alarm.Common.Interfaces.UI;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -20,6 +21,7 @@ public class PlaybackService : IPlaybackService
     private readonly IPlaylistService _playlistService;
     private readonly IFallbackAlarmSoundService _fallbackAlarmSoundService;
     private readonly IDispatcher _dispatcher;
+    private readonly INotificationService _notificationService;
 
     private List<AudioPlayerTrack>? _playlist;
     private int _currentTrackIndex = -1;
@@ -56,7 +58,8 @@ public class PlaybackService : IPlaybackService
         IPreparePlaybackService preparePlaybackService,
         IPlaylistService playlistService,
         IFallbackAlarmSoundService fallbackAlarmSoundService,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        INotificationService notificationService)
     {
         _logger = logger;
         _audioPlayer = audioPlayer;
@@ -64,6 +67,7 @@ public class PlaybackService : IPlaybackService
         _playlistService = playlistService;
         _fallbackAlarmSoundService = fallbackAlarmSoundService;
         _dispatcher = dispatcher;
+        _notificationService = notificationService;
 
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
@@ -520,16 +524,36 @@ public class PlaybackService : IPlaybackService
 
     private async Task HandlePlaybackFailureAsync()
     {
-        if (_isAlarm)
+        // Reset player and playlist service
+        await ResetAsync();
+        
+        if (_isAlarm && _currentScheduleId.HasValue)
         {
-            // For alarms, play fallback sound instead of showing error
-            // Modal stays open (IsPreparingOrPlaying remains true) to allow fallback playback
-            await PlayFallbackAlarmSoundAsync();
+            // For alarms, dispatch error message so alarm modal shows the error
+            _dispatcher.Dispatch(new PlaybackErrorAction
+            {
+                ErrorMessage = "Media playback failed. Playing fallback alarm sound."
+            });
+            
+            // Show alarm notification and try to play fallback sound
+            try
+            {
+                await _notificationService.ShowNotificationAsync(_currentScheduleId.Value);
+                await PlayFallbackAlarmSoundAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error showing alarm notification or playing fallback alarm sound");
+                // Update error message if fallback also fails
+                _dispatcher.Dispatch(new PlaybackErrorAction
+                {
+                    ErrorMessage = "Media playback failed. Check your internet connection."
+                });
+            }
         }
         else
         {
-            // For non-alarms, show error message in UI but keep modal open
-            // User can dismiss manually or retry
+            // For non-alarms, show error message in UI
             _dispatcher.Dispatch(new PlaybackErrorAction
             {
                 ErrorMessage = "Media download failed. Check your internet connection."
@@ -537,9 +561,6 @@ public class PlaybackService : IPlaybackService
             
             // Also show toast for immediate feedback
             WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed. Check your internet connection."));
-            
-            // Don't call ResetAsync - keep playback state active so modal stays open
-            // User can dismiss manually or retry playback
         }
     }
 

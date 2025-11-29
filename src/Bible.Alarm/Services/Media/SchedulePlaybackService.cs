@@ -29,7 +29,8 @@ public class SchedulePlaybackService(
         try
         {
             await playbackService.PrepareAndPlayAsync(scheduleId, false);
-            await notificationService.ShowNotificationAsync(scheduleId);
+            // Note: ShowNotificationAsync is not called here because it triggers AlarmRingerReceiver
+            // which would cause duplicate playback. Notifications are only shown when alarms actually fire.
         }
         catch (Exception e)
         {

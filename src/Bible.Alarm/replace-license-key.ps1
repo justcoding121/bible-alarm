@@ -16,6 +16,13 @@ if (-not (Test-Path $SourceFile)) {
 # Read the file content
 $Content = Get-Content $SourceFile -Raw
 
+# Check if placeholder exists
+$Placeholder = '{{SYNCFUSION_LICENSE_KEY}}'
+if ($Content -notmatch [regex]::Escape($Placeholder)) {
+    Write-Host "License key placeholder not found in AppSettings.cs. Skipping replacement."
+    exit 0
+}
+
 # Replace the placeholder
 $Content = $Content -replace '\{\{SYNCFUSION_LICENSE_KEY\}\}', $LicenseKey
 

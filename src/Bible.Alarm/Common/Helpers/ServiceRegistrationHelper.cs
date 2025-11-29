@@ -156,6 +156,9 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAudioPreviewer>(sp => new AndroidAudioPreviewer(
             sp.GetRequiredService<MediaPlayer>(), 
             sp.GetRequiredService<ILogger>()));
+        services.AddSingleton<IAndroidNextButtonService>(sp => new AndroidNextButtonService(
+            sp.GetRequiredService<INavigationService>().GetMediaElement(),
+            sp.GetRequiredService<ILogger>()));
 #elif IOS
         services.AddSingleton<INotificationService, iOSNotificationService>();
         services.AddSingleton<IToastService, iOSToastService>();

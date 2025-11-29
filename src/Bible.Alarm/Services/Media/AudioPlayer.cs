@@ -26,6 +26,9 @@ public partial class AudioPlayer : IAudioPlayer
     private readonly IDisplayMetadataService _displayMetadataService;
     private readonly IDispatcher _dispatcher;
     private readonly System.Timers.Timer? _positionTimer;
+#if ANDROID
+    private readonly IAndroidNextButtonService? _androidNextButtonService;
+#endif
 
     private AudioPlayerTrack? _currentTrack;
     private TaskCompletionSource<bool>? _mediaOpenedCompletionSource;
@@ -71,12 +74,19 @@ public partial class AudioPlayer : IAudioPlayer
     public event EventHandler<EventArgs>? MediaEnded;
     public event EventHandler<EventArgs>? MediaFailed;
 
-    public AudioPlayer(ILogger logger, INavigationService navigationService, IDisplayMetadataService displayMetadataService, IDispatcher dispatcher)
+    public AudioPlayer(ILogger logger, INavigationService navigationService, IDisplayMetadataService displayMetadataService, IDispatcher dispatcher
+#if ANDROID
+        , IAndroidNextButtonService? androidNextButtonService = null
+#endif
+        )
     {
         _logger = logger;
         _mediaElement = navigationService.GetMediaElement();
         _displayMetadataService = displayMetadataService;
         _dispatcher = dispatcher;
+#if ANDROID
+        _androidNextButtonService = androidNextButtonService;
+#endif
 
         _mediaElement.StateChanged += OnStateChanged;
         _mediaElement.MediaEnded += OnMediaEnded;
@@ -111,6 +121,14 @@ public partial class AudioPlayer : IAudioPlayer
 #if IOS
             var processedUri = iOSMediaElementHelper.ProcessUriForMediaElement(track.Uri, _logger);
             iOSMediaElementHelper.SetSourceAndVolume(_mediaElement, processedUri, _logger);
+#elif ANDROID
+            // CRITICAL: We MUST set a valid Source on MediaElement itself
+            // even when using ExoPlayer directly for the queue.
+            // Otherwise MediaElement stays in State.None forever.
+            _mediaElement.Source = MediaSource.FromUri(track.Uri);
+            
+            // Now set the real (multi-item) queue via ExoPlayer to enable Next button
+            _androidNextButtonService?.SetSourceWithDummyQueue(track.Uri);
 #else
             _mediaElement.Source = track.Uri;
 #endif
@@ -411,6 +429,7 @@ public partial class AudioPlayer : IAudioPlayer
     {
         return MainThread.InvokeOnMainThreadAsync(() => _mediaElement.SeekTo(position));
     }
+
 
     /// <summary>
     /// Safely stops the MediaElement by checking its state first.
