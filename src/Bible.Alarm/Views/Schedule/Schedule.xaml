@@ -403,7 +403,7 @@
                             <Label Grid.Column="1"
                                    Margin="0,0,5,0"
                                    HorizontalOptions="End"
-                                   Text="{Binding CurrentNumberOfChapters.Text}"
+                                   Text="{Binding CurrentNumberOfChaptersText}"
                                    TextColor="SlateBlue"
                                    VerticalOptions="Center" />
                             </Grid>

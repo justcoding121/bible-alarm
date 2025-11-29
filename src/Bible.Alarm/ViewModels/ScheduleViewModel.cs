@@ -293,6 +293,17 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             CurrentNumberOfChapters = x;
             CurrentNumberOfChapters.IsSelected = true;
+            
+            // Update the model immediately so the UI reflects the change
+            if (Model != null && CurrentNumberOfChapters != null)
+            {
+                Model.NumberOfChaptersToRead = CurrentNumberOfChapters.Value;
+            }
+            
+            // Explicitly notify property changes to ensure UI binding updates
+            // The setter already notifies CurrentNumberOfChaptersText, but we'll do it again to be sure
+            OnPropertyChanged(nameof(CurrentNumberOfChapters));
+            OnPropertyChanged(nameof(CurrentNumberOfChaptersText));
 
             await _navigationService.PopModalAsync();
         });
@@ -583,18 +594,39 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public NumberOfChaptersListViewItemModel CurrentNumberOfChapters
     {
         get => _currentNumberOfChapters;
-        set => SetProperty(ref _currentNumberOfChapters, value);
+        set
+        {
+            if (SetProperty(ref _currentNumberOfChapters, value))
+            {
+                // Notify that the Text property (computed from CurrentNumberOfChapters) has changed
+                OnPropertyChanged(nameof(CurrentNumberOfChaptersText));
+            }
+        }
     }
+    
+    /// <summary>
+    /// Computed property for binding to the number of chapters text in the UI.
+    /// This ensures the UI updates when CurrentNumberOfChapters changes.
+    /// </summary>
+    public string CurrentNumberOfChaptersText => CurrentNumberOfChapters?.Text ?? string.Empty;
 
     private void PopulateNumberOfChaptersListView(AlarmSchedule model)
     {
+        // Preserve the current selection if user has made one (to prevent SetModel from overwriting user's choice)
+        var preservedSelection = CurrentNumberOfChapters?.Value;
+        
         var chapterVMs = new ObservableCollection<NumberOfChaptersListViewItemModel>();
 
         for (var i = 1; i <= 21; i++)
         {
             var chaptersVm = new NumberOfChaptersListViewItemModel(i);
 
-            if (model.NumberOfChaptersToRead == i)
+            // If user has made a selection, use that; otherwise use the model's value
+            var shouldSelect = preservedSelection.HasValue 
+                ? preservedSelection.Value == i 
+                : model.NumberOfChaptersToRead == i;
+
+            if (shouldSelect)
             {
                 chaptersVm.IsSelected = true;
                 CurrentNumberOfChapters = chaptersVm;
@@ -621,7 +653,20 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         Model.MusicEnabled = MusicEnabled;
         Model.NotificationEnabled = _notificationEnabled;
         Model.AlwaysPlayFromStart = AlwaysPlayFromStart;
-        Model.NumberOfChaptersToRead = CurrentNumberOfChapters.Value;
+        
+        // Use CurrentNumberOfChapters.Value if available, otherwise keep the Model's existing value
+        // This ensures we always save the currently selected value, even if SetModel() was called and reset it
+        if (CurrentNumberOfChapters != null)
+        {
+            var newValue = CurrentNumberOfChapters.Value;
+            Model.NumberOfChaptersToRead = newValue;
+            _logger.Debug("GetModel: Setting NumberOfChaptersToRead from CurrentNumberOfChapters.Value = {Value} (Model had {OldValue})", 
+                newValue, Model.NumberOfChaptersToRead);
+        }
+        else
+        {
+            _logger.Warning("GetModel: CurrentNumberOfChapters is null, keeping existing Model.NumberOfChaptersToRead = {Value}", Model.NumberOfChaptersToRead);
+        }
 
         _logger.Debug("GetModel: After setting Model properties. Model.Id={ModelId}, Model.Name={ModelName}, Model.MusicEnabled={ModelMusicEnabled}, Model.IsEnabled={ModelIsEnabled}, Model.DaysOfWeek={ModelDaysOfWeek}",
             Model.Id, Model.Name, Model.MusicEnabled, Model.IsEnabled, Model.DaysOfWeek);
