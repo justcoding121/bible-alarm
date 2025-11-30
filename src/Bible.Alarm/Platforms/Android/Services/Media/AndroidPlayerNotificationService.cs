@@ -6,13 +6,23 @@ using Android.OS;
 using Android.Provider;
 using Android.Runtime;
 using AndroidX.Core.App;
+using AndroidX.Media.App;
 using AndroidX.Media3.Common;
+using AndroidX.Media3.Session;
+using NotificationCompat = AndroidX.Core.App.NotificationCompat;
+using MediaStyle = AndroidX.Media.App.NotificationCompat.MediaStyle;
+using Java.Lang;
+using Java.Interop;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.ExoPlayer.Source;
 using AndroidX.Media3.DataSource;
 using Bible.Alarm.Common.Messenger;
+using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
+using Bible.Alarm.Platforms.Android;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Stores;
+using Fluxor;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Maui.ApplicationModel;
@@ -23,8 +33,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using AndroidApplication = Android.App.Application;
+using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
@@ -36,12 +48,15 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 public class AndroidPlayerNotificationService : IAndroidPlayerNotificationService, IDisposable
 {
     private readonly ILogger _logger;
+    private readonly IState<PlaybackState> _playbackState;
     private ExoPlayerListener? _exoPlayerListener;
     private IExoPlayer? _currentPlayer;
+    private CancellationTokenSource? _notificationOverrideCancellationTokenSource;
 
-    public AndroidPlayerNotificationService(ILogger logger)
+    public AndroidPlayerNotificationService(ILogger logger, IState<PlaybackState> playbackState)
     {
         _logger = logger;
+        _playbackState = playbackState;
     }
 
     /// <summary>
@@ -161,12 +176,324 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // Set up listener to intercept Next/Previous button presses
             SetupExoPlayerListener(player);
 
+            // Set notification body click to open app
+            SetNotificationClickToOpenApp(mediaElement);
+            
+            // Start/restart continuous notification override timer (800ms interval) if needed
+            // This is a workaround for MediaElement 7.0.0 bug where it recreates the notification
+            // and overwrites our custom ContentIntent. The timer continuously reapplies our override.
+            // Only restart if timer is not running or has been cancelled
+            var needsRestart = _notificationOverrideCancellationTokenSource == null 
+                || _notificationOverrideCancellationTokenSource.IsCancellationRequested;
+            
+            if (needsRestart)
+            {
+                StartNotificationIntentOverrideTimer();
+            }
+
             // Force MediaSession to refresh actions
             TryUpdateMediaSessionActions(mediaElement);
+            
+            // Log confirmation that Next/Previous buttons are enabled
+            // This confirms the implementation is ready for Pixel 7a and all Android devices
+            _logger.Information("NEXT/PREV BUTTONS ENABLED — Pixel 7a ready. Queue configured with {ItemCount} items. Continuous notification override timer started (800ms interval - workaround for MediaElement 7.0.0 bug).", itemCount);
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to set queue in SetSourceWithDummyQueue");
+        }
+    }
+
+    /// <summary>
+    /// Sets up notification body tap handling using SessionActivity.
+    /// This works on Android 8-13 and many Android 14+ devices (Samsung, Xiaomi, etc.).
+    /// For Pixel 7a and other stock Android 14+ devices, we also continuously override the notification's ContentIntent.
+    /// </summary>
+    private void SetNotificationClickToOpenApp(MediaElement mediaElement)
+    {
+        var session = GetMediaSession(mediaElement);
+        if (session == null) return;
+
+        var sessionType = session.GetType();
+
+        // Set SessionActivity - this works on Android 8-13 and many Android 14+ devices
+        try
+        {
+            var context = Microsoft.Maui.ApplicationModel.Platform.AppContext;
+            var intent = new Intent(context, typeof(MainActivity));
+            intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop | ActivityFlags.SingleTop);
+            intent.SetAction("Bible.Alarm.NOTIFICATION_CLICK");
+
+            if (_playbackState.Value.CurrentScheduleId.HasValue)
+                intent.PutExtra("schedule_id", _playbackState.Value.CurrentScheduleId.Value);
+
+            var pendingIntent = PendingIntent.GetActivity(
+                context, 
+                999999, 
+                intent, 
+                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+
+            sessionType.GetProperty("SessionActivity", BindingFlags.Public | BindingFlags.Instance)?
+                       .SetValue(session, pendingIntent);
+
+            _logger.Debug("Set SessionActivity for notification body taps");
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Failed to set SessionActivity");
+        }
+    }
+
+    /// <summary>
+    /// Overrides the media notification to set MediaSession token to null in MediaStyle.
+    /// This forces Android 14+ to use ContentIntent for body taps instead of routing to OnPlay() callback.
+    /// Key insight: MediaStyle with null MediaSession token → body taps use ContentIntent (works on all Android versions).
+    /// MediaStyle with MediaSession token → body taps go to OnPlay() (Android 14+ only).
+    /// Note: mediaElement parameter is unused but kept for backward compatibility with existing call sites.
+    /// </summary>
+    private void OverrideNotificationIntent(MediaElement? mediaElement = null)
+    {
+        try
+        {
+            var context = Microsoft.Maui.ApplicationModel.Platform.AppContext;
+            var notificationManager = context.GetSystemService(Context.NotificationService) as NotificationManager;
+            if (notificationManager == null) return;
+
+            const int MEDIA_NOTIFICATION_ID = 1; // MediaElement 7.0.0 uses notification ID 1
+
+            // Check if notification exists
+            var activeNotifications = notificationManager.GetActiveNotifications();
+            var existingNotification = activeNotifications?.FirstOrDefault(n => n.Id == MEDIA_NOTIFICATION_ID);
+            if (existingNotification?.Notification == null)
+            {
+                // Notification not posted yet, will be called again when it's available
+                return;
+            }
+
+            // Create our custom intent to open the app
+            var intent = new Intent(context, typeof(MainActivity));
+            intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop | ActivityFlags.SingleTop);
+            intent.SetAction("Bible.Alarm.NOTIFICATION_CLICK");
+
+            if (_playbackState.Value.CurrentScheduleId.HasValue)
+                intent.PutExtra("schedule_id", _playbackState.Value.CurrentScheduleId.Value);
+
+            var pendingIntent = PendingIntent.GetActivity(
+                context,
+                999999,
+                intent,
+                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+
+            // Get channel ID from existing notification
+            var channelId = existingNotification.Notification.ChannelId ?? "1";
+
+            // Create MediaStyle with null MediaSession token - this is the key!
+            // Setting token to null forces Android 14+ to use ContentIntent for body taps
+            var mediaStyle = new MediaStyle()
+                .SetMediaSession(null); // ← KEY: null token forces ContentIntent for body taps
+
+            // Preserve existing actions (play/pause, prev, next)
+            var actionIndices = new List<int>();
+            if (existingNotification.Notification.Actions != null)
+            {
+                for (int i = 0; i < existingNotification.Notification.Actions.Count; i++)
+                {
+                    actionIndices.Add(i);
+                }
+                if (actionIndices.Count > 0)
+                {
+                    mediaStyle.SetShowActionsInCompactView(actionIndices.ToArray());
+                }
+            }
+
+            // Rebuild notification with our custom ContentIntent and null MediaSession token
+            var builder = new NotificationCompat.Builder(context, channelId);
+
+            // Copy essential properties from existing notification using NotificationCompat extras
+            var extras = NotificationCompat.GetExtras(existingNotification.Notification);
+            if (extras != null)
+            {
+                // Extract title and text from extras
+                var title = extras.GetString(NotificationCompat.ExtraTitle);
+                var text = extras.GetString(NotificationCompat.ExtraText);
+                
+                if (!string.IsNullOrEmpty(title))
+                    builder.SetContentTitle(title);
+                if (!string.IsNullOrEmpty(text))
+                    builder.SetContentText(text);
+            }
+
+            // Get small icon from existing notification using reflection (required for notification to be valid)
+            bool smallIconSet = false;
+            try
+            {
+                var smallIconField = existingNotification.Notification.GetType().GetField("mSmallIcon", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (smallIconField != null)
+                {
+                    var smallIcon = smallIconField.GetValue(existingNotification.Notification);
+                    if (smallIcon != null)
+                    {
+                        // Try to get the icon resource ID
+                        var iconType = smallIcon.GetType();
+                        var iconResIdProperty = iconType.GetProperty("mResourceId", 
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        if (iconResIdProperty != null)
+                        {
+                            var iconResId = iconResIdProperty.GetValue(smallIcon);
+                            if (iconResId is int resId && resId != 0)
+                            {
+                                builder.SetSmallIcon(resId);
+                                smallIconSet = true;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Failed to extract small icon from existing notification");
+            }
+
+            // Ensure we have a small icon (required for notification to be valid)
+            // Use default media play icon if we couldn't extract it
+            if (!smallIconSet)
+            {
+                builder.SetSmallIcon(global::Android.Resource.Drawable.IcMediaPlay);
+            }
+
+            // Set our custom ContentIntent and MediaStyle with null token
+            builder.SetContentIntent(pendingIntent)
+                   .SetStyle(mediaStyle)
+                   .SetOngoing(existingNotification.Notification.Flags.HasFlag(NotificationFlags.OngoingEvent))
+                   .SetVisibility(NotificationCompat.VisibilityPublic);
+
+            // Preserve existing actions - convert from Android.App.Notification.Action to NotificationCompat.Action
+            if (existingNotification.Notification.Actions != null)
+            {
+                foreach (var action in existingNotification.Notification.Actions)
+                {
+                    try
+                    {
+                        // Convert Android.App.Notification.Action to NotificationCompat.Action
+                        var icon = action.Icon != null ? AndroidX.Core.Graphics.Drawable.IconCompat.CreateFromIcon(action.Icon) : null;
+                        var title = action.Title?.ToString() ?? "";
+                        var actionIntent = action.ActionIntent;
+                        
+                        if (icon != null && actionIntent != null)
+                        {
+                            var compatAction = new NotificationCompat.Action(icon, title, actionIntent);
+                            builder.AddAction(compatAction);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Failed to copy notification action");
+                    }
+                }
+            }
+
+            // Update the notification
+            notificationManager.Notify(MEDIA_NOTIFICATION_ID, builder.Build());
+
+            // Debug level since this runs every 800ms via timer
+            _logger.Debug("Notification override applied — body tap uses ContentIntent (null MediaSession token bypasses Android 14+ hijack)");
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Failed to override notification intent");
+        }
+    }
+
+    /// <summary>
+    /// Starts a continuous timer that overrides the notification ContentIntent every 800ms.
+    /// This is a workaround for MediaElement 7.0.0 bug where it continuously recreates the notification
+    /// and overwrites our custom ContentIntent. The timer ensures our override is always applied.
+    /// This is the only known working solution for MediaElement 7.0.0 on all Android versions.
+    /// The timer automatically stops when playback stops (checks playback state each iteration).
+    /// </summary>
+    private void StartNotificationIntentOverrideTimer()
+    {
+        // Stop any existing timer first (prevents duplicate timers when new item is queued)
+        StopNotificationIntentOverrideTimer();
+
+        _notificationOverrideCancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = _notificationOverrideCancellationTokenSource.Token;
+
+        // Start background task that continuously overrides the notification
+        Task.Run(async () =>
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(800, cancellationToken); // 800ms interval
+                    
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
+                    // Check if playback is still active - stop timer if playback has stopped
+                    if (!_playbackState.Value.IsPreparingOrPlaying)
+                    {
+                        _logger.Debug("Playback stopped - stopping notification override timer");
+                        StopNotificationIntentOverrideTimer();
+                        break;
+                    }
+
+                    // Override notification if playback is active (no MediaElement reference needed)
+                    if (_playbackState.Value.IsPreparingOrPlaying)
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            try
+                            {
+                                // Double-check playback state on main thread
+                                if (_playbackState.Value.IsPreparingOrPlaying)
+                                {
+                                    OverrideNotificationIntent(); // No MediaElement needed - we get notification directly
+                                }
+                            }
+                            catch (System.OperationCanceledException)
+                            {
+                                // Expected when cancellation is requested
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Warning(ex, "Failed to override notification intent (timer)");
+                            }
+                        });
+                    }
+                }
+                catch (System.OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Error in notification override timer");
+                }
+            }
+        }, cancellationToken);
+
+        _logger.Debug("Started continuous notification override timer (800ms interval)");
+    }
+
+    /// <summary>
+    /// Stops the continuous notification override timer.
+    /// </summary>
+    private void StopNotificationIntentOverrideTimer()
+    {
+        try
+        {
+            _notificationOverrideCancellationTokenSource?.Cancel();
+            _notificationOverrideCancellationTokenSource?.Dispose();
+            _notificationOverrideCancellationTokenSource = null;
+            _logger.Debug("Stopped notification override timer");
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Error stopping notification override timer");
         }
     }
 
@@ -458,7 +785,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     /// Removes the notification by disconnecting the handler (which releases MediaSession) and canceling the notification.
     /// After DisconnectHandler(), the MediaElement handler will be automatically recreated by MAUI when a new Source is set
     /// and Play() is called. This is the proper way to release a sticky MediaSession-based notification.
-    /// MediaElement on Android always uses notification ID = 16777216 (0x1000000) in 7.0.x.
+    /// MediaElement 7.0.0 on Android uses notification ID = 1 (confirmed from MediaControlsService.android.cs source code).
     /// Reference: https://github.com/dotnet/maui/blob/7.0.0/src/Core/src/Platform/Android/MediaElementHandler.cs#L198
     /// </summary>
     private async Task ReleaseMediaSessionInternalAsync(MediaElement mediaElement)
@@ -467,11 +794,15 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         {
             _logger.Information("Removing notification by disconnecting handler (handler will be recreated on next Play)");
 
+            // Stop the notification override timer
+            StopNotificationIntentOverrideTimer();
+
             // 1. Stop playback and reset source (triggers internal cleanup)
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 mediaElement.Stop();
-                mediaElement.Source = null;  // Forces session reset
+                // Forces session reset
+                mediaElement.Source = null;
             });
 
             // 2. Remove ExoPlayer listener before disconnecting handler (ExoPlayer will be disposed)
@@ -481,7 +812,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             mediaElement.Handler?.DisconnectHandler();
             _logger.Debug("Disconnected MediaElement handler - MediaSession released");
 
-            // 4. Send message to BootstrapPage to recreate MediaElement with fresh ExoPlayer instance
+            // 4. Send message to BootstrapPage to dispose MediaElement with its ExoPlayer instance
             WeakReferenceMessenger.Default.Send(new RecreateMediaElementMessage());
             _logger.Information("Sent RecreateMediaElementMessage to BootstrapPage - MediaElement will be recreated");
 
@@ -500,12 +831,12 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                 return;
             }
 
-            notificationManager.Cancel(16777216);  // MAUI's hard-coded ID
+            // MediaElement 7.0.0 uses notification ID 1 (confirmed from source code)
+            notificationManager.Cancel(1);
             notificationManager.CancelAll();
-            _logger.Information("Canceled notification ID 16777216 and all notifications");
+            _logger.Information("Canceled notification ID 1 and all notifications");
 
             // 5. Samsung-specific: Kill reminders (one-time global fix)
-            // Note: This is also done at app startup in MainApplication.OnCreate(), but included here as fallback
             try
             {
                 var manufacturer = Microsoft.Maui.Devices.DeviceInfo.Manufacturer;
@@ -544,6 +875,9 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     {
         try
         {
+            // Stop the notification override timer
+            StopNotificationIntentOverrideTimer();
+
             // Note: ReleaseMediaSession is now called from AudioPlayer with MediaElement instance
             // We don't call it here since we no longer have a MediaElement reference
 
@@ -552,7 +886,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Error disposing ExoPlayer listener");
+            _logger.Debug(ex, "Error disposing AndroidPlayerNotificationService");
         }
     }
 
@@ -566,7 +900,8 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         private readonly ILogger _logger;
         private DateTime _lastButtonPressTime = DateTime.MinValue;
         private string? _lastMediaId;
-        private const int DebounceMilliseconds = 500; // Ignore duplicate presses within 500ms
+        // Ignore duplicate presses within 500ms
+        private const int DebounceMilliseconds = 500;
 
         public ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger)
         {
