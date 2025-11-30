@@ -577,11 +577,6 @@
                                            FontAttributes="Bold"
                                            TextColor="SlateBlue"
                                            VerticalOptions="Center" />
-                                    <Label FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                           FontSize="{StaticResource ButtonFontSize}"
-                                           Text="{x:Static fn:GlyphNames.Trash}"
-                                           TextColor="SlateBlue"
-                                           VerticalOptions="Center" />
                                 </StackLayout>
                             </Border>
                         </Grid>

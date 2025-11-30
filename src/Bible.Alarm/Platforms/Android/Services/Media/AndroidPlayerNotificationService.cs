@@ -19,6 +19,7 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Handlers;
 using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -365,11 +366,19 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     /// <summary>
     /// Sets up the ExoPlayer listener to intercept Next/Previous button presses from system controls.
     /// Uses reflection to call AddListener with IPlayerListener parameter.
+    /// Always removes any existing listener before adding a new one to prevent duplicate listeners.
     /// </summary>
     private void SetupExoPlayerListener(IExoPlayer player)
     {
         try
         {
+            // Always remove the old listener first, regardless of whether it's the same player or different
+            // This prevents duplicate listeners when SetSourceWithDummyQueue is called multiple times
+            if (_exoPlayerListener != null && _currentPlayer != null)
+            {
+                RemoveExoPlayerListener();
+            }
+            
             // Create and add new listener
             _currentPlayer = player;
             _exoPlayerListener = new ExoPlayerListener(this, _logger);
@@ -555,6 +564,9 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     {
         private readonly AndroidPlayerNotificationService _parent;
         private readonly ILogger _logger;
+        private DateTime _lastButtonPressTime = DateTime.MinValue;
+        private string? _lastMediaId;
+        private const int DebounceMilliseconds = 500; // Ignore duplicate presses within 500ms
 
         public ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger)
         {
@@ -570,6 +582,18 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             if (reason == MediaItemTransitionReasonManual && mediaItem != null)
             {
                 var mediaId = mediaItem.MediaId;
+                var now = DateTime.UtcNow;
+                
+                // Debounce: ignore duplicate presses within the debounce window
+                if (_lastMediaId == mediaId && 
+                    (now - _lastButtonPressTime).TotalMilliseconds < DebounceMilliseconds)
+                {
+                    _logger.Debug("Ignoring duplicate button press for {MediaId} (debounced)", mediaId);
+                    return;
+                }
+                
+                _lastButtonPressTime = now;
+                _lastMediaId = mediaId;
                 
                 if (mediaId == "bible_alarm_next_dummy")
                 {
@@ -581,7 +605,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                 {
                     _logger.Information("PREVIOUS BUTTON PRESSED — BLOCKING DUMMY TRACK");
                     // Fire the event first
-                            _parent.OnPreviousButtonPressed();
+                    _parent.OnPreviousButtonPressed();
                 }
             }
         }

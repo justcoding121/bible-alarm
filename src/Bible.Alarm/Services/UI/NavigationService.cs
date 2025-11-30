@@ -11,6 +11,8 @@ using Bible.Alarm.Views.Shared;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Polly;
+using Polly.Retry;
 using Serilog;
 using System.Reflection;
 
@@ -23,6 +25,28 @@ public class NavigationService(
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly ILogger _logger = logger;
+    
+    // Polly retry policy for waiting for windows to be available
+    private AsyncRetryPolicy<int> WindowWaitRetryPolicy => Policy
+        .HandleResult<int>(count => count == 0)
+        .WaitAndRetryAsync(
+            retryCount: 30,
+            sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
+            onRetry: (result, timeSpan, retryCount, context) =>
+            {
+                _logger?.Debug($"Waiting for window to be added to Application. Current count: {result.Result} (attempt {retryCount}/30)");
+            });
+    
+    // Polly retry policy for getting navigation
+    private AsyncRetryPolicy NavigationRetryPolicy => Policy
+        .Handle<InvalidOperationException>()
+        .WaitAndRetryAsync(
+            retryCount: 30,
+            sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
+            onRetry: (exception, timeSpan, retryCount, context) =>
+            {
+                _logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}/30). Error: {exception.Message}");
+            });
    
     private INavigation GetNavigation()
     {
@@ -121,12 +145,12 @@ public class NavigationService(
         throw new InvalidOperationException(finalErrorMsg);
     }
 
-    private async Task<INavigation> GetNavigationAsync(int maxRetries = 30, int delayMs = 200)
+    private async Task<INavigation> GetNavigationAsync()
     {
         // Ensure we're on the main thread when accessing UI elements
         if (!MainThread.IsMainThread)
         {
-            return await MainThread.InvokeOnMainThreadAsync(async () => await GetNavigationAsync(maxRetries, delayMs));
+            return await MainThread.InvokeOnMainThreadAsync(async () => await GetNavigationAsync());
         }
 
         var app = Application.Current;
@@ -135,52 +159,28 @@ public class NavigationService(
             throw new InvalidOperationException("Application.Current is null. Cannot get INavigation.");
         }
 
-        // First, wait for at least one window to be available
-        int initialWindowCount = app.Windows.Count;
-        int retriesForWindow = 0;
-        while (app.Windows.Count == 0 && retriesForWindow < maxRetries)
+        // First, wait for at least one window to be available using Polly
+        int windowCount = await WindowWaitRetryPolicy.ExecuteAsync(() =>
         {
-            _logger?.Debug($"Waiting for window to be added to Application. Current count: {app.Windows.Count} (attempt {retriesForWindow + 1}/{maxRetries})");
-            await Task.Delay(delayMs);
-            retriesForWindow++;
+            return Task.FromResult(app.Windows.Count);
+        });
+
+        if (windowCount == 0)
+        {
+            throw new InvalidOperationException("No windows available after retries. Application may not be fully initialized.");
         }
 
-        if (app.Windows.Count == 0)
+        _logger?.Debug($"Window found. Now attempting to get navigation (window count: {windowCount})");
+
+        // Now try to get navigation using Polly
+        var navigation = await NavigationRetryPolicy.ExecuteAsync(() =>
         {
-            throw new InvalidOperationException($"No windows available after {maxRetries} retries. Application may not be fully initialized.");
-        }
+            var nav = GetNavigation();
+            return Task.FromResult(nav);
+        });
 
-        _logger?.Debug($"Window found. Now attempting to get navigation (window count: {app.Windows.Count})");
-
-        // Now try to get navigation
-        for (int i = 0; i < maxRetries; i++)
-        {
-            try
-            {
-                var navigation = GetNavigation();
-                if (i > 0 || retriesForWindow > 0)
-                {
-                    _logger?.Information($"Navigation obtained after {retriesForWindow} window waits and {i} navigation retries");
-                }
-                return navigation;
-            }
-            catch (InvalidOperationException ex)
-            {
-                if (i < maxRetries - 1)
-                {
-                    _logger?.Debug($"Navigation not available yet, retrying in {delayMs}ms (attempt {i + 1}/{maxRetries}). Error: {ex.Message}");
-                    await Task.Delay(delayMs);
-                }
-                else
-                {
-                    _logger?.Error(ex, $"Failed to get INavigation after {maxRetries} retries");
-                    throw;
-                }
-            }
-        }
-
-        // Should never reach here, but compiler needs it
-        throw new InvalidOperationException("Failed to get INavigation after retries");
+        _logger?.Debug("Navigation obtained successfully");
+        return navigation;
     }
 
     public async Task NavigateToHomeAsync()
