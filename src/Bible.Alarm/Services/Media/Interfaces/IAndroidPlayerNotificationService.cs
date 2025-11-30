@@ -13,7 +13,9 @@ public interface IAndroidPlayerNotificationService
     /// </summary>
     /// <param name="mediaElement">The MediaElement instance to use</param>
     /// <param name="uri">The URI of the current track</param>
-    void SetSourceWithDummyQueue(CommunityToolkit.Maui.Views.MediaElement mediaElement, string uri);
+    /// <param name="isFirstTrack">True if this is the first track in the playlist (no previous button needed)</param>
+    /// <param name="isLastTrack">True if this is the last track in the playlist (no next button needed)</param>
+    void SetSourceWithDummyQueue(CommunityToolkit.Maui.Views.MediaElement mediaElement, string uri, bool isFirstTrack = false, bool isLastTrack = false);
 
     /// <summary>
     /// Releases the MediaSession to hide the media notification.

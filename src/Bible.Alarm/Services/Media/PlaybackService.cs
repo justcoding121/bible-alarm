@@ -369,7 +369,11 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             track.Uri, 
             track.PlayItem?.Url ?? "Unknown");
         
-        await _audioPlayer.PrepareAsync(track);
+        // Determine if this is the first or last track
+        var isFirstTrack = _currentTrackIndex == 0;
+        var isLastTrack = _playlist != null && _currentTrackIndex == _playlist.Count - 1;
+        
+        await _audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
         
         // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
         // Wait for the media to be in a ready state (not None or Failed)

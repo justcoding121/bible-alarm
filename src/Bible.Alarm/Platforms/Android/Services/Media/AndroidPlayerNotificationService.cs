@@ -19,6 +19,7 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Handlers;
 using Serilog;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -44,11 +45,16 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
 
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer using ConcatenatingMediaSource to enable both Next and Previous buttons.
-    /// Uses three distinct MediaItems (dummy previous, current, dummy next) with different MediaIds and URI fragments pointing to the same file.
+    /// Uses distinct MediaItems (dummy previous, current, dummy next) with different MediaIds and URI fragments pointing to the same file.
     /// This creates a proper multi-item timeline that MediaSessionConnector recognizes,
     /// unlike duplicate MediaItems which ExoPlayer may deduplicate.
+    /// Only creates dummy items when needed (previous dummy only if not first track, next dummy only if not last track).
     /// </summary>
-    public void SetSourceWithDummyQueue(MediaElement mediaElement, string uri)
+    /// <param name="mediaElement">The MediaElement instance to use</param>
+    /// <param name="uri">The URI of the current track</param>
+    /// <param name="isFirstTrack">True if this is the first track (no previous dummy needed)</param>
+    /// <param name="isLastTrack">True if this is the last track (no next dummy needed)</param>
+    public void SetSourceWithDummyQueue(MediaElement mediaElement, string uri, bool isFirstTrack = false, bool isLastTrack = false)
     {
         try
         {
@@ -67,36 +73,48 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // Parse the URI
             var androidUri = global::Android.Net.Uri.Parse(uri);
 
-            // Dummy previous item with distinct URI (add fragment) and ID
-            var dummyPreviousUri = androidUri.BuildUpon().Fragment("previous").Build();
-            var dummyPreviousItem = new MediaItem.Builder()
-                .SetUri(dummyPreviousUri)
-                .SetMediaId("bible_alarm_previous_dummy")
-                .Build();
+            // Build list of sources based on track position
+            var sources = new List<IMediaSource>();
 
-            // Create current item
+            // Create current item (always needed)
             var currentItem = new MediaItem.Builder()
                 .SetUri(androidUri)
                 .SetMediaId("bible_alarm_current")
                 .Build();
-
-            // Dummy next item with distinct URI (add fragment) and ID
-            var dummyNextUri = androidUri.BuildUpon().Fragment("next").Build();
-            var dummyNextItem = new MediaItem.Builder()
-                .SetUri(dummyNextUri)
-                .SetMediaId("bible_alarm_next_dummy")
-                .Build();
-
-            // Create ProgressiveMediaSource for each item
-            var source1 = new ProgressiveMediaSource.Factory(dataSourceFactory)
-                .CreateMediaSource(dummyPreviousItem);
-            var source2 = new ProgressiveMediaSource.Factory(dataSourceFactory)
+            var currentSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                 .CreateMediaSource(currentItem);
-            var source3 = new ProgressiveMediaSource.Factory(dataSourceFactory)
-                .CreateMediaSource(dummyNextItem);
 
-            // Create ConcatenatingMediaSource with all three sources: [dummy_previous, current, dummy_next]
-            var concatenatingSource = new ConcatenatingMediaSource(source1, source2, source3);
+            // Add previous dummy only if not first track
+            if (!isFirstTrack)
+            {
+                var dummyPreviousUri = androidUri.BuildUpon().Fragment("previous").Build();
+                var dummyPreviousItem = new MediaItem.Builder()
+                    .SetUri(dummyPreviousUri)
+                    .SetMediaId("bible_alarm_previous_dummy")
+                    .Build();
+                var previousSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+                    .CreateMediaSource(dummyPreviousItem);
+                sources.Add(previousSource);
+            }
+
+            // Add current item
+            sources.Add(currentSource);
+
+            // Add next dummy only if not last track
+            if (!isLastTrack)
+            {
+                var dummyNextUri = androidUri.BuildUpon().Fragment("next").Build();
+                var dummyNextItem = new MediaItem.Builder()
+                    .SetUri(dummyNextUri)
+                    .SetMediaId("bible_alarm_next_dummy")
+                    .Build();
+                var nextSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+                    .CreateMediaSource(dummyNextItem);
+                sources.Add(nextSource);
+            }
+
+            // Create ConcatenatingMediaSource with the needed sources
+            var concatenatingSource = new ConcatenatingMediaSource(sources.ToArray());
 
             // Set the concatenating source on the player
             player.SetMediaSource(concatenatingSource);
@@ -105,12 +123,20 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // This is what makes MediaSessionConnector see HasNextMediaItem and HasPreviousMediaItem = true
             player.Prepare();
             
-            // Seek to the middle item (current) - index 1 in the queue [0=dummy_previous, 1=current, 2=dummy_next]
-            player.SeekTo(1, 0);
+            // Seek to the current item index
+            // If previous dummy exists, current is at index 1, otherwise at index 0
+            var currentItemIndex = isFirstTrack ? 0 : 1;
+            player.SeekTo(currentItemIndex, 0);
             
             // Do NOT call player.Play() here - let the normal Play() flow handle it
 
-            _logger.Information("Set ConcatenatingMediaSource queue with three items — Next and Previous buttons will appear.");
+            var itemCount = sources.Count;
+            var itemsDescription = isFirstTrack && isLastTrack ? "current only" :
+                                   isFirstTrack ? "current + next dummy" :
+                                   isLastTrack ? "previous dummy + current" :
+                                   "previous dummy + current + next dummy";
+            _logger.Information("Set ConcatenatingMediaSource queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.", 
+                itemCount, itemsDescription);
             
             // Verify HasNextMediaItem and HasPreviousMediaItem are true
             if (player.HasNextMediaItem)
@@ -285,24 +311,65 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     }
 
     /// <summary>
+    /// Removes the ExoPlayer listener and cleans up references.
+    /// Should be called before DisconnectHandler() to avoid accessing disposed ExoPlayer.
+    /// </summary>
+    private void RemoveExoPlayerListener()
+    {
+        try
+        {
+            if (_exoPlayerListener != null && _currentPlayer != null)
+            {
+                try
+                {
+                    var removeMethod = _currentPlayer.GetType().GetMethod("RemoveListener", new[] { typeof(IPlayerListener) });
+                    if (removeMethod != null)
+                    {
+                        removeMethod.Invoke(_currentPlayer, new object[] { _exoPlayerListener });
+                        _logger.Debug("Removed ExoPlayer listener from player");
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Player is already disposed - this is expected when handler is disconnected
+                    _logger.Debug("ExoPlayer is already disposed, skipping RemoveListener call");
+                }
+                catch (Exception ex)
+                {
+                    // Other exceptions during removal - log but continue
+                    _logger.Debug(ex, "Error removing listener from player (may be disposed)");
+                }
+                
+                // Dispose the listener
+                try
+                {
+                    _exoPlayerListener.Dispose();
+                    _logger.Debug("Disposed ExoPlayer listener");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Error disposing listener");
+                }
+                
+                _exoPlayerListener = null;
+            }
+            
+            _currentPlayer = null;
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Error in RemoveExoPlayerListener");
+        }
+    }
+
+    /// <summary>
     /// Sets up the ExoPlayer listener to intercept Next/Previous button presses from system controls.
-    /// Uses reflection to call AddListener/RemoveListener with IPlayerListener parameter.
+    /// Uses reflection to call AddListener with IPlayerListener parameter.
     /// </summary>
     private void SetupExoPlayerListener(IExoPlayer player)
     {
         try
         {
-            // Clean up old listener
-            if (_exoPlayerListener != null && _currentPlayer != null)
-            {
-                var removeMethod = _currentPlayer.GetType().GetMethod("RemoveListener", new[] { typeof(IPlayerListener) });
-                if (removeMethod != null)
-                {
-                    removeMethod.Invoke(_currentPlayer, new object[] { _exoPlayerListener });
-                }
-                _exoPlayerListener.Dispose();
-            }
-
             // Create and add new listener
             _currentPlayer = player;
             _exoPlayerListener = new ExoPlayerListener(this, _logger);
@@ -398,15 +465,18 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                 mediaElement.Source = null;  // Forces session reset
             });
 
-            // 2. Disconnect handler - this properly releases the MediaSession and removes the sticky notification
+            // 2. Remove ExoPlayer listener before disconnecting handler (ExoPlayer will be disposed)
+            RemoveExoPlayerListener();
+            
+            // 3. Disconnect handler - this properly releases the MediaSession and removes the sticky notification
             mediaElement.Handler?.DisconnectHandler();
             _logger.Debug("Disconnected MediaElement handler - MediaSession released");
 
-            // 3. Send message to BootstrapPage to recreate MediaElement with fresh ExoPlayer instance
+            // 4. Send message to BootstrapPage to recreate MediaElement with fresh ExoPlayer instance
             WeakReferenceMessenger.Default.Send(new RecreateMediaElementMessage());
             _logger.Information("Sent RecreateMediaElementMessage to BootstrapPage - MediaElement will be recreated");
 
-            // 4. Cancel the hard-coded notification ID + all (extra safety to ensure notification is gone)
+            // 5. Cancel the hard-coded notification ID + all (extra safety to ensure notification is gone)
             var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
             if (activity == null)
             {
@@ -461,132 +531,6 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         }
     }
 
-
-    /// <summary>
-    /// Permanently deletes the Media3 notification channel to prevent the system from re-creating it.
-    /// This is only available on Android 8.0 (API 26) and above where notification channels exist.
-    /// </summary>
-    private void KillMedia3ChannelPermanently()
-    {
-        if (OperatingSystem.IsAndroidVersionAtLeast(26))
-        {
-            try
-            {
-                var appContext = Microsoft.Maui.ApplicationModel.Platform.AppContext;
-                if (appContext == null)
-                {
-                    _logger.Debug("Platform.AppContext is null, cannot delete notification channel");
-                    return;
-                }
-
-                var notificationManager = appContext.GetSystemService(Context.NotificationService) as NotificationManager;
-                
-                if (notificationManager != null)
-                {
-                    notificationManager.DeleteNotificationChannel("media_session");
-                    _logger.Information("Deleted Media3 notification channel 'media_session'");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Channel already deleted, doesn't exist, or permission issue - not critical
-                _logger.Debug(ex, "Could not delete Media3 notification channel (may already be deleted)");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the MediaManager from MediaElement via reflection.
-    /// </summary>
-    private object? GetMediaManager(MediaElement mediaElement)
-    {
-        try
-        {
-            var handler = mediaElement.Handler;
-            if (handler == null)
-            {
-                _logger.Debug("MediaElement handler is null");
-                return null;
-            }
-
-            var handlerType = handler.GetType();
-            _logger.Debug("Handler type: {HandlerType}", handlerType.FullName);
-            
-            var mediaManagerProperty = handlerType.GetProperty("MediaManager", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-            if (mediaManagerProperty == null)
-            {
-                _logger.Debug("MediaManager property not found in handler type: {HandlerType}", handlerType.Name);
-                return null;
-            }
-
-            var mediaManager = mediaManagerProperty.GetValue(handler);
-            if (mediaManager == null)
-            {
-                _logger.Debug("MediaManager property exists but is null");
-            }
-            else
-            {
-                _logger.Debug("MediaManager retrieved successfully: {Type}", mediaManager.GetType().FullName);
-            }
-            
-            return mediaManager;
-        }
-        catch (Exception ex)
-        {
-            _logger.Debug(ex, "Failed to get MediaManager via reflection");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Force-kill the notification the official Microsoft-approved way for MediaElement 7.0.0+.
-    /// MediaElement on Android always uses notification ID = 16777216 (0x1000000) in 7.0.x.
-    /// This is the only method that works reliably with Maui MediaElement 7.0.x.
-    /// Reference: https://github.com/dotnet/maui/blob/7.0.0/src/Core/src/Platform/Android/MediaElementHandler.cs#L198
-    /// </summary>
-    private void TryCancelNotificationManually()
-    {
-        try
-        {
-            _logger.Information("Attempting to cancel media notification using Microsoft-approved method (ID: 16777216)");
-            
-            // Get NotificationManager from the current activity
-            var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
-            if (activity == null)
-            {
-                _logger.Warning("CurrentActivity is null, cannot cancel notification");
-                return;
-            }
-
-            var notificationManager = activity.GetSystemService(global::Android.Content.Context.NotificationService) as global::Android.App.NotificationManager;
-            
-            if (notificationManager == null)
-            {
-                _logger.Warning("Could not get Android NotificationManager");
-                return;
-            }
-
-            // MediaElement on Android always uses notification ID = 16777216 (0x1000000) in 7.0.x
-            const int MediaElementNotificationId = 16777216; // 0x1000000
-            
-            // Cancel with the hard-coded ID
-            notificationManager.Cancel(MediaElementNotificationId);
-            _logger.Information("Canceled notification with MediaElement ID: {Id}", MediaElementNotificationId);
-            
-            // Extra paranoia – also cancel the built-in media session tag
-            notificationManager.Cancel("media_session_tag", MediaElementNotificationId);
-            _logger.Debug("Also attempted to cancel with tag 'media_session_tag' and ID: {Id}", MediaElementNotificationId);
-            
-            // And cancel everything just in case (nuclear option)
-            notificationManager.CancelAll();
-            _logger.Debug("Called CancelAll() as final cleanup");
-        }
-        catch (Exception ex)
-        {
-            _logger.Warning(ex, "Error in TryCancelNotificationManually (Microsoft-approved method)");
-        }
-    }
-
     public void Dispose()
     {
         try
@@ -594,24 +538,8 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // Note: ReleaseMediaSession is now called from AudioPlayer with MediaElement instance
             // We don't call it here since we no longer have a MediaElement reference
 
-            if (_exoPlayerListener != null && _currentPlayer != null)
-            {
-                try
-                {
-                    var removeMethod = _currentPlayer.GetType().GetMethod("RemoveListener", new[] { typeof(IPlayerListener) });
-                    if (removeMethod != null)
-                    {
-                        removeMethod.Invoke(_currentPlayer, new object[] { _exoPlayerListener });
-                    }
-                    _exoPlayerListener.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Debug(ex, "Error removing listener during dispose");
-                }
-                _exoPlayerListener = null;
-                _currentPlayer = null;
-            }
+            // Remove listener using the same method used during handler disconnect
+            RemoveExoPlayerListener();
         }
         catch (Exception ex)
         {

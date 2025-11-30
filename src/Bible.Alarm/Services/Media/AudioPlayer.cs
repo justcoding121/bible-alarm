@@ -100,7 +100,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         _positionTimer.AutoReset = true;
     }
 
-    public async Task PrepareAsync(AudioPlayerTrack track)
+    public async Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false)
     {
         ArgumentNullException.ThrowIfNull(track);
         if (string.IsNullOrEmpty(track.Uri))
@@ -149,8 +149,8 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             _mediaElement.Source = MediaSource.FromUri(track.Uri);
             
             // Now set the real (multi-item) queue via ExoPlayer to enable Next button
-            // Pass MediaElement to the service
-            _androidPlayerNotificationService?.SetSourceWithDummyQueue(_mediaElement, track.Uri);
+            // Pass MediaElement to the service with flags indicating track position
+            _androidPlayerNotificationService?.SetSourceWithDummyQueue(_mediaElement, track.Uri, isFirstTrack, isLastTrack);
 #else
             _mediaElement.Source = track.Uri;
 #endif
