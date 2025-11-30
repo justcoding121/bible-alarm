@@ -10,10 +10,11 @@ using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
 using Bible.Alarm.Common.Interfaces.UI;
+using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PlaybackService : IPlaybackService
+public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>
 {
     private readonly ILogger _logger;
     private readonly IAudioPlayer _audioPlayer;
@@ -22,9 +23,6 @@ public class PlaybackService : IPlaybackService
     private readonly IFallbackAlarmSoundService _fallbackAlarmSoundService;
     private readonly IDispatcher _dispatcher;
     private readonly INotificationService _notificationService;
-#if ANDROID
-    private readonly IAndroidPlayerNotificationService? _androidPlayerNotificationService;
-#endif
 
     private List<AudioPlayerTrack>? _playlist;
     private int _currentTrackIndex = -1;
@@ -63,9 +61,6 @@ public class PlaybackService : IPlaybackService
         IFallbackAlarmSoundService fallbackAlarmSoundService,
         IDispatcher dispatcher,
         INotificationService notificationService
-#if ANDROID
-        , IAndroidPlayerNotificationService? androidPlayerNotificationService = null
-#endif
         )
     {
         _logger = logger;
@@ -75,16 +70,10 @@ public class PlaybackService : IPlaybackService
         _fallbackAlarmSoundService = fallbackAlarmSoundService;
         _dispatcher = dispatcher;
         _notificationService = notificationService;
-#if ANDROID
-        _androidPlayerNotificationService = androidPlayerNotificationService;
-        
-        // Subscribe to Next/Previous button press events from system controls
-        if (_androidPlayerNotificationService != null)
-        {
-            _androidPlayerNotificationService.NextButtonPressed += OnNextButtonPressed;
-            _androidPlayerNotificationService.PreviousButtonPressed += OnPreviousButtonPressed;
-        }
-#endif
+
+        // Register for Next/Previous button press messages from Android system controls
+        WeakReferenceMessenger.Default.Register<NextButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Register<PreviousButtonPressedMessage>(this);
 
         _audioPlayer.MediaEnded += OnMediaEnded;
         _audioPlayer.MediaFailed += OnMediaFailed;
@@ -227,27 +216,43 @@ public class PlaybackService : IPlaybackService
         _dispatcher.Dispatch(new PlaybackNavigationChangedAction(canPlayNext, canPlayPrevious));
     }
 
-#if ANDROID
     /// <summary>
-    /// Handles Next button press from system media controls (notification/lockscreen).
-    /// Calls PlayNextAsync() to match the alarm modal's Next button behavior.
+    /// Handles Next button press message from Android system media controls (notification/lockscreen).
+    /// Calls PlayNextAsync() on UI thread with a delay to let MediaSession finish processing.
     /// </summary>
-    private async void OnNextButtonPressed(object? sender, EventArgs e)
+    public void Receive(NextButtonPressedMessage message)
     {
         _logger.Debug("Next button pressed from system controls - calling PlayNextAsync");
-        await PlayNextAsync();
+        // Add delay to let MediaSession finish processing the button press
+        // This prevents IllegalStateException when ExoPlayer is transitioning
+        Task.Run(async () =>
+        {
+            await Task.Delay(150); // Delay to let MediaSession finish
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await PlayNextAsync();
+            });
+        });
     }
 
     /// <summary>
-    /// Handles Previous button press from system media controls (notification/lockscreen).
-    /// Calls PlayPreviousAsync() to match the alarm modal's Previous button behavior.
+    /// Handles Previous button press message from Android system media controls (notification/lockscreen).
+    /// Calls PlayPreviousAsync() on UI thread with a delay to let MediaSession finish processing.
     /// </summary>
-    private async void OnPreviousButtonPressed(object? sender, EventArgs e)
+    public void Receive(PreviousButtonPressedMessage message)
     {
         _logger.Debug("Previous button pressed from system controls - calling PlayPreviousAsync");
-        await PlayPreviousAsync();
+        // Add delay to let MediaSession finish processing the button press
+        // This prevents IllegalStateException when ExoPlayer is transitioning
+        Task.Run(async () =>
+        {
+            await Task.Delay(150); // Delay to let MediaSession finish
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await PlayPreviousAsync();
+            });
+        });
     }
-#endif
 
     public async Task SeekForwardAsync()
     {
@@ -298,6 +303,7 @@ public class PlaybackService : IPlaybackService
 
     public async Task StopAsync()
     {
+        _logger.Information("StopAsync called - stopping alarm completely");
         await _audioPlayer.StopAsync();
         await MarkCurrentTrackAsPlayedAsync();
         
@@ -316,6 +322,7 @@ public class PlaybackService : IPlaybackService
     {
         _progressSaveTimer?.Stop();
         await _audioPlayer.ResetAsync();
+        
         ResetState();
         
         // Dispatch playback stopped action
@@ -653,6 +660,10 @@ public class PlaybackService : IPlaybackService
         // Unsubscribe from AudioPlayer events
         _audioPlayer.MediaEnded -= OnMediaEnded;
         _audioPlayer.MediaFailed -= OnMediaFailed;
+        
+        // Unregister from messages
+        WeakReferenceMessenger.Default.Unregister<NextButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
         
         _audioPlayer.Dispose();
     }

@@ -34,3 +34,25 @@ public class PlaybackPreparationProgressMessage
     public int LoadedTracks { get; init; }
     public int TotalTracks { get; init; }
 }
+
+/// <summary>
+/// Message sent when the Next button is pressed in Android system media controls.
+/// </summary>
+public class NextButtonPressedMessage
+{
+}
+
+/// <summary>
+/// Message sent when the Previous button is pressed in Android system media controls.
+/// </summary>
+public class PreviousButtonPressedMessage
+{
+}
+
+/// <summary>
+/// Message sent to MediaElementService to recreate the MediaElement after MediaSession release.
+/// This ensures a fresh ExoPlayer instance is created, ready for new playlists.
+/// </summary>
+public class RecreateMediaElementMessage
+{
+}

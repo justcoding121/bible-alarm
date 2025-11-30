@@ -126,6 +126,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleSelectionService, ScheduleSelectionService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
         services.AddSingleton<IDisplayMetadataService, DisplayMetadataService>();
+        services.AddSingleton<IMediaElementService, MediaElementService>();
         services.AddSingleton<IAudioPlayer, AudioPlayer>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<IFontService, FontService>();

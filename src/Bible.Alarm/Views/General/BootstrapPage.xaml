@@ -23,11 +23,14 @@
     <ContentPage.Content>
         <Grid>
             <!-- Hidden MediaElement for audio playback (always in visual tree) -->
-            <media:MediaElement x:Name="MediaPlayer" 
-                          IsVisible="False" 
-                          ShouldAutoPlay="False" 
-                          ShouldLoopPlayback="False" 
-                          ShouldShowPlaybackControls="False" />
+            <!-- Wrapped in ContentView to allow easy replacement after MediaSession release -->
+            <ContentView x:Name="MediaElementContainer">
+                <media:MediaElement x:Name="MediaPlayer" 
+                              IsVisible="False" 
+                              ShouldAutoPlay="False" 
+                              ShouldLoopPlayback="False" 
+                              ShouldShowPlaybackControls="False" />
+            </ContentView>
             <StackLayout
                 HorizontalOptions="Center"
                 Orientation="Vertical"

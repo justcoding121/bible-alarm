@@ -1,3 +1,6 @@
+using CommunityToolkit.Maui.Views;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
@@ -10,17 +13,22 @@ public partial class BootstrapPage : ContentPage, IDisposable
     private readonly Timer _animationTimer;
     private int _currentDot;
 
+    /// <summary>
+    /// Gets the MediaElementContainer ContentView. Used by NavigationService to add MediaElement when it's recreated.
+    /// </summary>
+    public ContentView MediaElementContainerInstance => MediaElementContainer;
+
     public BootstrapPage()
     {
         InitializeComponent();
-        
+
         // Start animated dots
         // Change dot every 500ms
         _animationTimer = new Timer(500);
         _animationTimer.Elapsed += OnTimerElapsed;
         _animationTimer.AutoReset = true;
         _animationTimer.Start();
-        
+
         // Initialize first dot
         UpdateDots();
     }
@@ -41,7 +49,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
         Dot1.Opacity = 0.3;
         Dot2.Opacity = 0.3;
         Dot3.Opacity = 0.3;
-        
+
         // Highlight current dot
         switch (_currentDot)
         {

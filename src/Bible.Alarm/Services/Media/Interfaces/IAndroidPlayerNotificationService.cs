@@ -2,26 +2,24 @@
 namespace Bible.Alarm.Services.Media.Interfaces;
 
 /// <summary>
-/// Android-specific service for enabling the Next button in system media controls
+/// Android-specific service for enabling the Next and Previous buttons in system media controls
 /// by creating a multi-item queue in ExoPlayer.
 /// </summary>
 public interface IAndroidPlayerNotificationService
 {
     /// <summary>
-    /// Sets a multi-item queue via ExoPlayer to enable the Next button in system controls.
-    /// Uses ConcatenatingMediaSource with a dummy item to create a proper multi-item timeline.
+    /// Sets a multi-item queue via ExoPlayer to enable the Next and Previous buttons in system controls.
+    /// Uses ConcatenatingMediaSource with dummy items to create a proper multi-item timeline.
     /// </summary>
+    /// <param name="mediaElement">The MediaElement instance to use</param>
     /// <param name="uri">The URI of the current track</param>
-    void SetSourceWithDummyQueue(string uri);
+    void SetSourceWithDummyQueue(CommunityToolkit.Maui.Views.MediaElement mediaElement, string uri);
 
     /// <summary>
-    /// Event fired when the Next button is pressed in system media controls.
+    /// Releases the MediaSession to hide the media notification.
+    /// Should be called when playback stops.
     /// </summary>
-    event EventHandler? NextButtonPressed;
-
-    /// <summary>
-    /// Event fired when the Previous button is pressed in system media controls.
-    /// </summary>
-    event EventHandler? PreviousButtonPressed;
+    /// <param name="mediaElement">The MediaElement instance to release</param>
+    void ReleaseMediaSession(CommunityToolkit.Maui.Views.MediaElement mediaElement);
 }
 

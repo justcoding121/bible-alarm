@@ -18,6 +18,11 @@ public interface INavigationService
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
     Task PopModalAsync();
     Task PopAsync();
-    MediaElement GetMediaElement();
+    
+    /// <summary>
+    /// Gets the BootstrapPage from the navigation stack.
+    /// </summary>
+    /// <returns>The BootstrapPage instance, or null if not found</returns>
+    Views.General.BootstrapPage? GetBootstrapPage();
 }
 
