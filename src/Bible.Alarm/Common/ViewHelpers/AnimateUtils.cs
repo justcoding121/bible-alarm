@@ -24,7 +24,8 @@ public class AnimateUtils
         
         // Default to White if BackgroundColor is not set
         var originalColor = view.BackgroundColor ?? Colors.White;
-        var pressedColor = Color.FromArgb("#E0E0E0"); // Light gray for pressed state
+        // Light gray for pressed state
+        var pressedColor = Color.FromArgb("#E0E0E0");
         
         // Animate to pressed state
         view.Animate("touchPress", new Animation(v =>

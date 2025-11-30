@@ -227,7 +227,8 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         // This prevents IllegalStateException when ExoPlayer is transitioning
         Task.Run(async () =>
         {
-            await Task.Delay(150); // Delay to let MediaSession finish
+            // Delay to let MediaSession finish
+            await Task.Delay(150);
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await PlayNextAsync();
@@ -246,7 +247,8 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         // This prevents IllegalStateException when ExoPlayer is transitioning
         Task.Run(async () =>
         {
-            await Task.Delay(150); // Delay to let MediaSession finish
+            // Delay to let MediaSession finish
+            await Task.Delay(150);
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await PlayPreviousAsync();

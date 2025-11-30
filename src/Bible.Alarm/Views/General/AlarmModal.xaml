@@ -111,13 +111,11 @@
                             HeightRequest="{OnPlatform Default='45',
                                                        WinUI='37'}"
                             HorizontalOptions="Center"
-                            HorizontalTextAlignment="Center"
                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                             Padding="40,0"
                             Text="DISMISS"
                             TextColor="SlateBlue"
-                            VerticalOptions="Center"
-                            VerticalTextAlignment="Center" />
+                            VerticalOptions="Center" />
                         <ActivityIndicator
                             IsRunning="{Binding IsBusy}"
                             IsVisible="{Binding IsBusy}"

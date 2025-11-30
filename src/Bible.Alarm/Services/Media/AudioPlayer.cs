@@ -34,7 +34,8 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
     private TaskCompletionSource<bool>? _mediaOpenedCompletionSource;
     private bool _isResetting = false;
     private TimeSpan _lastDuration = TimeSpan.Zero;
-    private MediaElement? _mediaElement; // MediaElement instance - populated in PrepareAsync
+    // MediaElement instance - populated in PrepareAsync
+    private MediaElement? _mediaElement;
 
     public TimeSpan? CurrentPosition => _mediaElement?.Position;
     public TimeSpan Duration => _mediaElement?.Duration ?? TimeSpan.Zero;
@@ -442,7 +443,8 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             // This is the ONLY place where we call ReleaseMediaSession - only on final stop, not during track changes
             // Add a small delay to ensure MediaElement has fully stopped before releasing
             _logger.Information("Resetting playback - calling ReleaseMediaSession to remove notification");
-            await Task.Delay(100); // Small delay to let MediaElement finish stopping
+            // Small delay to let MediaElement finish stopping
+            await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (_mediaElement != null)
@@ -531,7 +533,8 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         {
             _logger.Information("Received RecreateMediaElementMessage - unsubscribing from old MediaElement");
             UnsubscribeFromMediaElement(_mediaElement);
-            _mediaElement = null; // Clear reference since MediaElement is being recreated
+            // Clear reference since MediaElement is being recreated
+            _mediaElement = null;
         }
     }
 

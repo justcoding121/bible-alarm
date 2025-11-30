@@ -21,7 +21,8 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
 {
     private readonly INavigationService _navigationService;
     private readonly ILogger _logger;
-    private readonly object _lockObject = new object(); // Local lock for this service
+    // Local lock for this service
+    private readonly object _lockObject = new object();
 
     public MediaElementService(INavigationService navigationService, ILogger logger)
     {

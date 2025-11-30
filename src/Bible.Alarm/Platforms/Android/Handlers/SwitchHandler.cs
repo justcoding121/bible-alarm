@@ -26,10 +26,12 @@ public class SwitchHandler : Microsoft.Maui.Handlers.SwitchHandler
         var primaryColor = global::Android.Graphics.Color.Argb(255, 72, 61, 139);
         
         // Gray color for knob when off and track
-        var grayColor = global::Android.Graphics.Color.Argb(255, 158, 158, 158); // Medium gray
+        // Medium gray
+        var grayColor = global::Android.Graphics.Color.Argb(255, 158, 158, 158);
         
         // Create a more visible version for the track when on (60% opacity for better visibility)
-        var trackOnColor = global::Android.Graphics.Color.Argb(153, 72, 61, 139); // Primary color with 60% opacity
+        // Primary color with 60% opacity
+        var trackOnColor = global::Android.Graphics.Color.Argb(153, 72, 61, 139);
         
         // Create color state lists for smooth transitions
         // StateChecked = 16842914 (from Android.Resource.Attribute.StateChecked)
@@ -68,7 +70,8 @@ public class SwitchHandler : Microsoft.Maui.Handlers.SwitchHandler
             // Create a new drawable without stroke/border
             var gradientDrawable = new global::Android.Graphics.Drawables.GradientDrawable();
             gradientDrawable.SetShape(global::Android.Graphics.Drawables.ShapeType.Rectangle);
-            gradientDrawable.SetCornerRadius(switchCompat.Context.Resources.DisplayMetrics.Density * 12); // Rounded corners
+            // Rounded corners
+            gradientDrawable.SetCornerRadius(switchCompat.Context.Resources.DisplayMetrics.Density * 12);
             gradientDrawable.SetColor(global::Android.Graphics.Color.Transparent);
             switchCompat.TrackDrawable = gradientDrawable;
         }
