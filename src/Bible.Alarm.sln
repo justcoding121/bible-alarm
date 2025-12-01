@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11205.157 d18.0
+VisualStudioVersion = 18.0.11205.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".tools", ".tools", "{8BBDFD16-37FB-4C4C-AA4F-525913416EBE}"
 EndProject
@@ -9,11 +9,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm", "Bible.Alarm\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.Shared", "Bible.Alarm.Shared\Bible.Alarm.Shared.csproj", "{034F9129-8C3C-A7B5-65AB-7122B3C70D55}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommunityToolkit.Maui.MediaElement", "..\libraries\CommunityToolkit.Maui.MediaElement\CommunityToolkit.Maui.MediaElement.csproj", "{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.AudioLinksHarvestor", "..\.tools\Bible.Alarm.AudioLinksHarvestor\Bible.Alarm.AudioLinksHarvestor.csproj", "{2573B1CF-096C-6C9B-D3A0-A38D0910E8BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.VersionPatcher", "..\.tools\Bible.Alarm.VersionPatcher\Bible.Alarm.VersionPatcher.csproj", "{4659DF73-6481-81A7-FF14-9837F2428071}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.VersionPatcher.Tests", "..\.tools\Bible.Alarm.VersionPatcher.Tests\Bible.Alarm.VersionPatcher.Tests.csproj", "{6CC2120F-832B-F17B-4058-C37CD4F91B76}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libraries", "libraries", "{5D9CF483-35B1-4802-A8CD-4B1B19DAE66B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -90,6 +94,34 @@ Global
 		{034F9129-8C3C-A7B5-65AB-7122B3C70D55}.Release|x64.Build.0 = Release|Any CPU
 		{034F9129-8C3C-A7B5-65AB-7122B3C70D55}.Release|x86.ActiveCfg = Release|Any CPU
 		{034F9129-8C3C-A7B5-65AB-7122B3C70D55}.Release|x86.Build.0 = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|ARM.Build.0 = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|x64.Build.0 = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Debug|x86.Build.0 = Debug|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|ARM.ActiveCfg = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|ARM.Build.0 = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|ARM64.Build.0 = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|iPhone.Build.0 = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|x64.ActiveCfg = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|x64.Build.0 = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|x86.ActiveCfg = Release|Any CPU
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F}.Release|x86.Build.0 = Release|Any CPU
 		{2573B1CF-096C-6C9B-D3A0-A38D0910E8BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2573B1CF-096C-6C9B-D3A0-A38D0910E8BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2573B1CF-096C-6C9B-D3A0-A38D0910E8BA}.Debug|ARM.ActiveCfg = Debug|Any CPU
@@ -179,6 +211,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{75E91A35-8263-4FC2-B8B3-30CCA6A81F2F} = {5D9CF483-35B1-4802-A8CD-4B1B19DAE66B}
 		{2573B1CF-096C-6C9B-D3A0-A38D0910E8BA} = {8BBDFD16-37FB-4C4C-AA4F-525913416EBE}
 		{4659DF73-6481-81A7-FF14-9837F2428071} = {8BBDFD16-37FB-4C4C-AA4F-525913416EBE}
 		{6CC2120F-832B-F17B-4058-C37CD4F91B76} = {8BBDFD16-37FB-4C4C-AA4F-525913416EBE}

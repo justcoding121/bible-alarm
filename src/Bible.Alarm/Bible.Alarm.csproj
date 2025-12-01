@@ -48,7 +48,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="7.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.11" />
@@ -67,6 +66,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
+		<ProjectReference Include="..\..\libraries\CommunityToolkit.Maui.MediaElement\CommunityToolkit.Maui.MediaElement.csproj" />
 	</ItemGroup>
 
 

@@ -1,0 +1,94 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net10.0-android;net10.0-ios</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+    <SingleProject>true</SingleProject>
+    <UseMaui>true</UseMaui>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+    
+
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>CommunityToolkit.Maui</RootNamespace>
+    <AndroidGenerateResourceDesigner>false</AndroidGenerateResourceDesigner>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GitInfoReportImportance>high</GitInfoReportImportance>
+    <PackageId>CommunityToolkit.Maui.MediaElement</PackageId>
+    <Summary>MediaElement is a view for playing video and audio in your .NET MAUI app.</Summary>
+    <Authors>Microsoft</Authors>
+    <Owners>Microsoft</Owners>
+    <NeutralLanguage>en</NeutralLanguage>
+    <Product>CommunityToolkit.Maui (net10.0)</Product>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/CommunityToolkit/Maui</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/CommunityToolkit/Maui</RepositoryUrl>
+    <PackageReleaseNotes>See https://github.com/CommunityToolkit/Maui/releases</PackageReleaseNotes>
+    <DefineConstants>$(DefineConstants);</DefineConstants>
+    <UseFullSemVerForNuGet>false</UseFullSemVerForNuGet>
+    <Title>.NET MAUI MediaElement</Title>
+    <Description>MediaElement is a view for playing video and audio in your .NET MAUI app.</Description>
+    <PackageIcon>icon.png</PackageIcon>
+    <Product>$(AssemblyName) ($(TargetFramework))</Product>
+    <Version>1.0.0-pre1</Version>
+    <PackageVersion>$(Version)$(VersionSuffix)</PackageVersion>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageTags>dotnet,maui,toolkit,kit,communitytoolkit,dotnetcommunitytoolkit,mediaelement,mediaplayer,audio,video</PackageTags>
+    <Configurations>Debug;Release</Configurations>
+    <NoWarn>$(NoWarn);CS1591;CA1422</NoWarn>
+  </PropertyGroup>
+
+  <!-- Removed analyzer references - not needed for local build -->
+
+  <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer" Version="1.8.0" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.Common" Version="1.8.0" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.UI" Version="1.8.0" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Rtsp" Version="1.8.0" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Hls" Version="1.8.0" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Dash" Version="1.8.0" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.Session" Version="1.8.0" />
+
+    <!--include the textureview.xml needed for creating textureview in android-->
+    <Folder Include="Platforms\Android\Resources\layout\" />
+    <AndroidResource Include="Platforms\Android\Resources\layout\textureview.xml" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.11" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" Condition=" '$(Configuration)'=='Release' " PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="ResourceDictionary.windows.xaml">
+      <LogicalName>ResourceDictionary.windows.xaml</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Exclude platform-specific files for unsupported platforms -->
+  <ItemGroup>
+    <!-- Exclude macOS files when not building for macOS -->
+    <Compile Remove="**\*.macios.cs" Condition="!$(TargetFramework.Contains('-maccatalyst'))" />
+    <!-- Exclude Tizen files -->
+    <Compile Remove="**\*.tizen.cs" />
+    <!-- Exclude Windows files when not building for Windows -->
+    <Compile Remove="**\*.windows.cs" Condition="!$(TargetFramework.Contains('-windows'))" />
+    <!-- Exclude iOS files when not building for iOS -->
+    <Compile Remove="**\*.ios.cs" Condition="!$(TargetFramework.Contains('-ios'))" />
+    <!-- Exclude Android files when not building for Android -->
+    <Compile Remove="**\*.android.cs" Condition="!$(TargetFramework.Contains('-android'))" />
+    <!-- Exclude net.cs file when building for platform-specific targets (android, ios, windows) -->
+    <Compile Remove="**\*.net.cs" Condition="$(TargetFramework.Contains('-android')) OR $(TargetFramework.Contains('-ios')) OR $(TargetFramework.Contains('-windows'))" />
+  </ItemGroup>
+  
+</Project>
