@@ -8,16 +8,20 @@ using System.Linq;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public sealed partial class WindowsNotificationService(WindowsAlarmHandler windowsAlarmHandler) : INotificationService
+    public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider) : INotificationService
     {
-        private readonly WindowsAlarmHandler _windowsAlarmHandler = windowsAlarmHandler;
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
 
         public async Task ShowNotificationAsync(int scheduleId)
         {
-            await _windowsAlarmHandler.HandleAsync(scheduleId, true);
+            // Resolve WindowsAlarmHandler lazily to break circular dependency
+            // WindowsNotificationService -> WindowsAlarmHandler -> IPlaybackService -> INotificationService
+            var windowsAlarmHandler = _serviceProvider.GetRequiredService<WindowsAlarmHandler>();
+            await windowsAlarmHandler.HandleAsync(scheduleId, true);
         }
 
         public Task ScheduleNotificationAsync(AlarmSchedule schedule,
@@ -174,15 +178,24 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
         private static ToastNotifier? GetToastNotifier()
         {
-            var notifier = TryCreateNotifierWithoutParameters();
-            if (notifier is not null) return notifier;
+            try
+            {
+                var notifier = TryCreateNotifierWithoutParameters();
+                if (notifier is not null) return notifier;
 
-            notifier = TryCreateNotifierWithAumid();
-            if (notifier is not null) return notifier;
+                notifier = TryCreateNotifierWithAumid();
+                if (notifier is not null) return notifier;
 
-            Serilog.Log.Error(
-                "Unable to create toast notifier. Scheduled notifications will not work. " +
-                "This is common in debug mode. Try running the app from an installed package instead of Visual Studio.");
+                Serilog.Log.Warning(
+                    "Unable to create toast notifier. Scheduled notifications will not work. " +
+                    "This is common in debug mode or when the app is not properly registered for notifications. " +
+                    "Try running the app from an installed package instead of Visual Studio.");
+            }
+            catch (Exception ex)
+            {
+                // Catch any unexpected exceptions during notifier creation
+                Serilog.Log.Warning(ex, "Unexpected error creating toast notifier. Scheduled notifications will not work.");
+            }
             
             return null;
         }
@@ -202,11 +215,17 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             }
             catch (System.Runtime.InteropServices.COMException ex) when (ex.HResult == unchecked((int)0x80070490))
             {
-                Serilog.Log.Warning("Failed to create toast notifier without parameters (0x80070490). Trying with AUMID...");
+                // 0x80070490 = Element not found - common in debug mode or when app is not registered for notifications
+                Serilog.Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                // Catch any other COM exceptions
+                Serilog.Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
             }
             catch (Exception ex)
             {
-                Serilog.Log.Warning(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}", ex.HResult);
+                Serilog.Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
             }
             return null;
         }
