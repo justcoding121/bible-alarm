@@ -213,7 +213,8 @@ public class NavigationService(
             while (navigation.NavigationStack.Count > 1 && navigation.NavigationStack.LastOrDefault() != existingHome)
             {
                 var page = navigation.NavigationStack.LastOrDefault();
-                await navigation.PopAsync(animated: false);
+                // Keep animation enabled for navigation back
+                await navigation.PopAsync(animated: true);
                 if (page != existingHome && page is IDisposable disposable)
                 {
                     disposable.Dispose();
@@ -226,7 +227,8 @@ public class NavigationService(
             while (navigation.NavigationStack.Count > 1)
             {
                 var page = navigation.NavigationStack.LastOrDefault();
-                await navigation.PopAsync(animated: false);
+                // Keep animation enabled for navigation back
+                await navigation.PopAsync(animated: true);
                 if (page is IDisposable disposable)
                 {
                     disposable.Dispose();
@@ -298,7 +300,8 @@ public class NavigationService(
         var navigation = await GetNavigationAsync();
         var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal);
+        // Disable animation for instant appearance
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
     public async Task OpenLanguageModalAsync(object bindingContext)
@@ -347,7 +350,8 @@ public class NavigationService(
                 NavigationPage.SetHasNavigationBar(modal, false);
 
                 // Push modal directly - wrapping in NavigationPage on Windows causes display issues
-                await navigation.PushModalAsync(modal);
+                // Disable animation for instant appearance
+                await navigation.PushModalAsync(modal, animated: false);
             }
             catch (Exception ex)
             {
@@ -362,7 +366,8 @@ public class NavigationService(
         var navigation = await GetNavigationAsync();
         var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal);
+        // Disable animation for instant appearance
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
     public async Task PopModalAsync()
@@ -371,7 +376,8 @@ public class NavigationService(
         if (navigation.ModalStack.Count > 0)
         {
             var modal = navigation.ModalStack.LastOrDefault();
-            await navigation.PopModalAsync();
+            // Keep animation enabled for modal dismissal
+            await navigation.PopModalAsync(animated: true);
 
             // Dispose the modal - handle both direct modals and wrapped modals
             if (modal is NavigationPage navPage && navPage.CurrentPage is IDisposable disposablePage)
@@ -391,7 +397,8 @@ public class NavigationService(
         if (navigation.NavigationStack.Count > 1)
         {
             var page = navigation.NavigationStack.LastOrDefault();
-            await navigation.PopAsync();
+            // Keep animation enabled for navigation back
+            await navigation.PopAsync(animated: true);
             if (page is IDisposable disposable)
             {
                 disposable.Dispose();
@@ -409,8 +416,8 @@ public class NavigationService(
         // Set navigation bar setting
         NavigationPage.SetHasNavigationBar(page, hasNavigationBar);
 
-        // Push the fresh page first
-        await navigation.PushAsync(page);
+        // Push the fresh page first - keep animation enabled
+        await navigation.PushAsync(page, animated: true);
     }
 
     public BootstrapPage? GetBootstrapPage()
