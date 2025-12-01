@@ -93,17 +93,23 @@ sealed partial class MediaControlsService : Service
 
 		notificationBuilder.SetStyle(style);
 
-		// This bypasses view interception and ensures notification body taps work for Android 14+
-		var sessionActivityPendingIntent = Core.Views.MediaManager.SessionActivityPendingIntent;
-		if (sessionActivityPendingIntent != null)
-		{
-			notificationBuilder.SetContentIntent(sessionActivityPendingIntent);
-		}
-
 		NotificationManagerCompat.From(Platform.AppContext)?.Notify(1, notificationBuilder.Build());
 	}
 
-	[MemberNotNull(nameof(playerNotificationManager))]
+    static PendingIntent CreateActivityPendingIntent()
+    {
+        var packageName = Platform.AppContext.PackageName ?? throw new InvalidOperationException("PackageName cannot be null");
+        var packageManager = Platform.AppContext.PackageManager ?? throw new InvalidOperationException("PackageManager cannot be null");
+        var launchIntent = packageManager.GetLaunchIntentForPackage(packageName) ?? throw new InvalidOperationException("Launch intent cannot be null");
+
+        launchIntent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop);
+
+        var flags = PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable;
+        return PendingIntent.GetActivity(Platform.AppContext, 0, launchIntent, flags)
+               ?? throw new InvalidOperationException("PendingIntent cannot be null");
+    }
+
+    [MemberNotNull(nameof(playerNotificationManager))]
 	public void SetLegacyNotifications(in MediaSession session, in PlatformMediaElement mediaElement)
 	{
 		ArgumentNullException.ThrowIfNull(session);
@@ -168,12 +174,14 @@ sealed partial class MediaControlsService : Service
 		NotificationManager ??= GetSystemService(NotificationService) as NotificationManager ?? throw new InvalidOperationException($"{nameof(NotificationManager)} cannot be null");
 		notificationBuilder ??= new NotificationCompat.Builder(Platform.AppContext, "1");
 
-		notificationBuilder.SetSmallIcon(Resource.Drawable.media3_notification_small_icon);
+        var pendingIntent = CreateActivityPendingIntent();
+        notificationBuilder.SetSmallIcon(Resource.Drawable.media3_notification_small_icon);
 		notificationBuilder.SetAutoCancel(false);
 		notificationBuilder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
 		notificationBuilder.SetVisibility(NotificationCompat.VisibilityPublic);
+        notificationBuilder.SetContentIntent(pendingIntent);
 
-		CreateNotificationChannel(NotificationManager);
+        CreateNotificationChannel(NotificationManager);
 
 		if (OperatingSystem.IsAndroidVersionAtLeast(29))
 		{
