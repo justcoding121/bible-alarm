@@ -51,7 +51,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     private IExoPlayer? _currentPlayer;
 
     /// <summary>
-    /// Sets a multi-item queue via ExoPlayer using ConcatenatingMediaSource to enable both Next and Previous buttons.
+    /// Sets a multi-item queue via ExoPlayer using SetMediaSources to enable both Next and Previous buttons.
     /// Uses distinct MediaItems (dummy previous, current, dummy next) with different MediaIds and URI fragments pointing to the same file.
     /// This creates a proper multi-item timeline that MediaSessionConnector recognizes,
     /// unlike duplicate MediaItems which ExoPlayer may deduplicate.
@@ -113,39 +113,9 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             // Add previous dummy only if not first track
             if (!isFirstTrack)
             {
-                var uriBuilder = androidUri.BuildUpon();
-                if (uriBuilder == null)
-                {
-                    logger.Error("Failed to create URI builder for dummy previous URI");
-                    return;
-                }
-                // False positive: uriBuilder is checked for null above
-#pragma warning disable CS8602
-                var dummyPreviousUri = uriBuilder.Fragment("previous")?.Build();
-#pragma warning restore CS8602
-                if (dummyPreviousUri == null)
-                {
-                    logger.Error("Failed to create dummy previous URI");
-                    return;
-                }
-                // False positive: new MediaItem.Builder() cannot return null
-#pragma warning disable CS8602
-                var dummyPreviousItemBuilder = new MediaItem.Builder();
-                var dummyPreviousItem = dummyPreviousItemBuilder
-                    .SetUri(dummyPreviousUri)
-                    .SetMediaId("bible_alarm_previous_dummy")
-                    .Build();
-#pragma warning restore CS8602
-                if (dummyPreviousItem == null)
-                {
-                    logger.Error("Failed to build MediaItem for dummy previous item");
-                    return;
-                }
-                var previousSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
-                    .CreateMediaSource(dummyPreviousItem);
+                var previousSource = CreateDummyMediaSource(androidUri, "previous", "bible_alarm_previous_dummy", dataSourceFactory);
                 if (previousSource == null)
                 {
-                    logger.Error("Failed to create MediaSource for dummy previous item");
                     return;
                 }
                 sources.Add(previousSource);
@@ -157,52 +127,18 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             // Add next dummy only if not last track
             if (!isLastTrack)
             {
-                var uriBuilder = androidUri.BuildUpon();
-                if (uriBuilder == null)
-                {
-                    logger.Error("Failed to create URI builder for dummy next URI");
-                    return;
-                }
-                // False positive: uriBuilder is checked for null above
-#pragma warning disable CS8602
-                var dummyNextUri = uriBuilder.Fragment("next")?.Build();
-#pragma warning restore CS8602
-                if (dummyNextUri == null)
-                {
-                    logger.Error("Failed to create dummy next URI");
-                    return;
-                }
-                // False positive: new MediaItem.Builder() cannot return null
-#pragma warning disable CS8602
-                var dummyNextItemBuilder = new MediaItem.Builder();
-                var dummyNextItem = dummyNextItemBuilder
-                    .SetUri(dummyNextUri)
-                    .SetMediaId("bible_alarm_next_dummy")
-                    .Build();
-#pragma warning restore CS8602
-                if (dummyNextItem == null)
-                {
-                    logger.Error("Failed to build MediaItem for dummy next item");
-                    return;
-                }
-                var nextSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
-                    .CreateMediaSource(dummyNextItem);
+                var nextSource = CreateDummyMediaSource(androidUri, "next", "bible_alarm_next_dummy", dataSourceFactory);
                 if (nextSource == null)
                 {
-                    logger.Error("Failed to create MediaSource for dummy next item");
                     return;
                 }
                 sources.Add(nextSource);
             }
 
-            // Create ConcatenatingMediaSource with the needed sources
-            // ConcatenatingMediaSource is obsolete but still required for this implementation
-#pragma warning disable CS0618
-            var concatenatingSource = new ConcatenatingMediaSource([.. sources]);
-#pragma warning restore CS0618
-
-            // Set the concatenating source on the player
-            player.SetMediaSource(concatenatingSource);
+            // Set media sources directly on the player
+            // SetMediaSources internally creates a ConcatenatingMediaSource, so behavior is the same
+            // but this is the newer, simpler API for static playlists
+            player.SetMediaSources([.. sources]);
 
             // CRITICAL: Call Prepare() AFTER setting the source to trigger TimelineChanged event
             // This is what makes MediaSessionConnector see HasNextMediaItem and HasPreviousMediaItem = true
@@ -220,7 +156,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                                    isFirstTrack ? "current + next dummy" :
                                    isLastTrack ? "previous dummy + current" :
                                    "previous dummy + current + next dummy";
-            logger.Information("Set ConcatenatingMediaSource queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.",
+            logger.Information("Set media queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.",
                 itemCount, itemsDescription);
 
             // Verify HasNextMediaItem and HasPreviousMediaItem are true
@@ -230,7 +166,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             }
             else
             {
-                logger.Debug("Player HasNextMediaItem is still false after setting ConcatenatingMediaSource");
+                logger.Debug("Player HasNextMediaItem is still false after setting media sources");
             }
 
             // Check for HasPreviousMediaItem property via reflection
@@ -254,6 +190,62 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         {
             logger.Error(ex, "Failed to set queue in SetSourceWithDummyQueue");
         }
+    }
+
+    /// <summary>
+    /// Creates a dummy media source with a fragment identifier for creating a multi-item queue.
+    /// </summary>
+    /// <param name="androidUri">The base Android URI</param>
+    /// <param name="fragment">The fragment identifier and item type name (e.g., "previous" or "next")</param>
+    /// <param name="mediaId">The media ID for the dummy item</param>
+    /// <param name="dataSourceFactory">The data source factory for creating the media source</param>
+    /// <returns>The created IMediaSource, or null if creation failed</returns>
+    private IMediaSource? CreateDummyMediaSource(
+        global::Android.Net.Uri androidUri,
+        string fragment,
+        string mediaId,
+        DefaultDataSource.Factory dataSourceFactory)
+    {
+        var uriBuilder = androidUri.BuildUpon();
+        if (uriBuilder == null)
+        {
+            logger.Error("Failed to create URI builder for dummy {Fragment} URI", fragment);
+            return null;
+        }
+
+        // False positive: uriBuilder is checked for null above
+#pragma warning disable CS8602
+        var dummyUri = uriBuilder.Fragment(fragment)?.Build();
+#pragma warning restore CS8602
+        if (dummyUri == null)
+        {
+            logger.Error("Failed to create dummy {Fragment} URI", fragment);
+            return null;
+        }
+
+        // False positive: new MediaItem.Builder() cannot return null
+#pragma warning disable CS8602
+        var dummyItemBuilder = new MediaItem.Builder();
+        var dummyItem = dummyItemBuilder
+            .SetUri(dummyUri)
+            .SetMediaId(mediaId)
+            .Build();
+#pragma warning restore CS8602
+        if (dummyItem == null)
+        {
+            logger.Error("Failed to build MediaItem for dummy {Fragment} item", fragment);
+            return null;
+        }
+
+        var source = new ProgressiveMediaSource.Factory(dataSourceFactory)
+            .CreateMediaSource(dummyItem);
+        if (source == null)
+        {
+            logger.Error("Failed to create MediaSource for dummy {Fragment} item", fragment);
+            return null;
+        }
+
+        return source;
     }
 
     /// <summary>

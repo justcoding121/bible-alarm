@@ -9,7 +9,7 @@ public interface IAndroidPlayerNotificationService
 {
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer to enable the Next and Previous buttons in system controls.
-    /// Uses ConcatenatingMediaSource with dummy items to create a proper multi-item timeline.
+    /// Uses SetMediaSources with dummy items to create a proper multi-item timeline.
     /// </summary>
     /// <param name="mediaElement">The MediaElement instance to use</param>
     /// <param name="uri">The URI of the current track</param>
