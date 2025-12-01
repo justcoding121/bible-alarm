@@ -203,16 +203,16 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
 
             // Set the concatenating source on the player
             player.SetMediaSource(concatenatingSource);
-            
+
             // CRITICAL: Call Prepare() AFTER setting the source to trigger TimelineChanged event
             // This is what makes MediaSessionConnector see HasNextMediaItem and HasPreviousMediaItem = true
             player.Prepare();
-            
+
             // Seek to the current item index
             // If previous dummy exists, current is at index 1, otherwise at index 0
             var currentItemIndex = isFirstTrack ? 0 : 1;
             player.SeekTo(currentItemIndex, 0);
-            
+
             // Do NOT call player.Play() here - let the normal Play() flow handle it
 
             var itemCount = sources.Count;
@@ -220,9 +220,9 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                                    isFirstTrack ? "current + next dummy" :
                                    isLastTrack ? "previous dummy + current" :
                                    "previous dummy + current + next dummy";
-            logger.Information("Set ConcatenatingMediaSource queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.", 
+            logger.Information("Set ConcatenatingMediaSource queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.",
                 itemCount, itemsDescription);
-            
+
             // Verify HasNextMediaItem and HasPreviousMediaItem are true
             if (player.HasNextMediaItem)
             {
@@ -232,7 +232,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             {
                 logger.Debug("Player HasNextMediaItem is still false after setting ConcatenatingMediaSource");
             }
-            
+
             // Check for HasPreviousMediaItem property via reflection
             var playerType = player.GetType();
             var hasPreviousProperty = playerType.GetProperty("HasPreviousMediaItem", BindingFlags.Public | BindingFlags.Instance);
@@ -379,7 +379,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                     // Other exceptions during removal - log but continue
                     logger.Debug(ex, "Error removing listener from player (may be disposed)");
                 }
-                
+
                 // Dispose the listener
                 try
                 {
@@ -390,10 +390,10 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                 {
                     logger.Debug(ex, "Error disposing listener");
                 }
-                
+
                 _exoPlayerListener = null;
             }
-            
+
             _currentPlayer = null;
         }
         catch (Exception ex)
@@ -417,11 +417,11 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             {
                 RemoveExoPlayerListener();
             }
-            
+
             // Create and add new listener
             _currentPlayer = player;
             _exoPlayerListener = new ExoPlayerListener(this, logger);
-            
+
             // Use reflection to call AddListener with IPlayerListener parameter
             var addMethod = player.GetType().GetMethod("AddListener", [typeof(IPlayerListener)]);
             if (addMethod != null)
@@ -471,7 +471,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         try
         {
             logger.Information("ReleaseMediaSession called - attempting to remove notification");
-            
+
             // Ensure we're on the main thread
             if (!MainThread.IsMainThread)
             {
@@ -516,7 +516,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
 
             // 2. Remove ExoPlayer listener before disconnecting handler (ExoPlayer will be disposed)
             RemoveExoPlayerListener();
-            
+
             // 3. Disconnect handler - this properly releases the MediaSession and removes the sticky notification
             mediaElement.Handler?.DisconnectHandler();
             logger.Debug("Disconnected MediaElement handler - MediaSession released");
@@ -607,38 +607,70 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         // Ignore duplicate presses within 500ms
         private const int DebounceMilliseconds = 500;
 
+        /// <summary>
+        /// Checks if the media transition should be processed or debounced.
+        /// Returns true if the transition should be processed, false if it should be debounced.
+        /// </summary>
+        private bool ShouldProcessMediaTransition(string? mediaId, string transitionType)
+        {
+            // If mediaId is null, we can't debounce it, so process it
+            if (mediaId == null)
+            {
+                return true;
+            }
+
+            var now = DateTime.UtcNow;
+
+            // Debounce: ignore duplicate transitions within the debounce window
+            if (_lastMediaId == mediaId &&
+                (now - _lastButtonPressTime).TotalMilliseconds < DebounceMilliseconds)
+            {
+                logger.Debug("Ignoring duplicate {TransitionType} for {MediaId} (debounced)", transitionType, mediaId);
+                return false;
+            }
+
+            _lastButtonPressTime = now;
+            _lastMediaId = mediaId;
+            return true;
+        }
+
         public void OnMediaItemTransition(MediaItem? mediaItem, int reason)
         {
-            // MediaItemTransitionReasonManual = 2 (user manually pressed Next/Previous)
+            const int AutomaticTransitionReason = 1;
             const int MediaItemTransitionReasonManual = 2;
-            
-            if (reason == MediaItemTransitionReasonManual && mediaItem != null)
+
+            if (mediaItem != null)
             {
                 var mediaId = mediaItem.MediaId;
-                var now = DateTime.UtcNow;
-                
-                // Debounce: ignore duplicate presses within the debounce window
-                if (_lastMediaId == mediaId && 
-                    (now - _lastButtonPressTime).TotalMilliseconds < DebounceMilliseconds)
+
+                if (reason == MediaItemTransitionReasonManual)
                 {
-                    logger.Debug("Ignoring duplicate button press for {MediaId} (debounced)", mediaId);
-                    return;
+                    if (!ShouldProcessMediaTransition(mediaId, "button press"))
+                    {
+                        return;
+                    }
+
+                    if (mediaId == "bible_alarm_next_dummy")
+                    {
+                        logger.Information("NEXT BUTTON PRESSED — BLOCKING DUMMY TRACK");
+                        parent.OnNextButtonPressed();
+                    }
+                    else if (mediaId == "bible_alarm_previous_dummy")
+                    {
+                        logger.Information("PREVIOUS BUTTON PRESSED — BLOCKING DUMMY TRACK");
+                        parent.OnPreviousButtonPressed();
+                    }
                 }
-                
-                _lastButtonPressTime = now;
-                _lastMediaId = mediaId;
-                
-                if (mediaId == "bible_alarm_next_dummy")
+                else if (reason == AutomaticTransitionReason
+                         && mediaId == "bible_alarm_next_dummy")
                 {
-                    logger.Information("NEXT BUTTON PRESSED — BLOCKING DUMMY TRACK");
-                    // Fire the event first
-                    parent.OnNextButtonPressed();       
-                }
-                else if (mediaId == "bible_alarm_previous_dummy")
-                {
-                    logger.Information("PREVIOUS BUTTON PRESSED — BLOCKING DUMMY TRACK");
-                    // Fire the event first
-                    parent.OnPreviousButtonPressed();
+                    if (!ShouldProcessMediaTransition(mediaId, "automatic transition"))
+                    {
+                        return;
+                    }
+
+                    logger.Information("AUTOMATIC TRANSITION - BLOCKING DUMMY NEXT TRACK");
+                    parent.OnNextButtonPressed();
                 }
             }
         }
