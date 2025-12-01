@@ -1,6 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Android.App;
 using Android.Content;
+using Android.Content.PM;
+using Android.Util;
 using Android.Views;
 using Android.Widget;
 using AndroidX.Media3.Common;
@@ -21,6 +24,7 @@ namespace CommunityToolkit.Maui.Core.Views;
 
 public partial class MediaManager : Java.Lang.Object, IPlayerListener
 {
+	const string Tag = "MediaManager";
 	const int bufferState = 2;
 	const int readyState = 3;
 	const int endedState = 4;
@@ -36,6 +40,14 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	MediaSession? session;
 	MediaItem.Builder? mediaItem;
 	BoundServiceConnection? connection;
+
+	// Store sessionActivityPendingIntent for notification contentIntent fallback (Android 14+)
+	static PendingIntent? _sessionActivityPendingIntent;
+
+	/// <summary>
+	/// Gets the session activity PendingIntent for notification contentIntent fallback (Android 14+ Pixel 7a fix).
+	/// </summary>
+	public static PendingIntent? SessionActivityPendingIntent => _sessionActivityPendingIntent;
 
 	/// <summary>
 	/// The platform native counterpart of <see cref="MediaElement"/>.
@@ -173,6 +185,35 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 
 		var mediaSession = new MediaSession.Builder(Platform.AppContext, Player);
 		mediaSession.SetId(Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..8]);
+
+		// Set session activity PendingIntent to bring app to foreground when notification body is tapped (Android 14+)
+		// This is the recommended approach for Android 14+ notification body taps
+		// Uses explicit Intent targeting MainActivity with CLEAR_TOP | SINGLE_TOP flags for 100% reliability
+		try
+		{
+			var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity
+					   ?? throw new InvalidOperationException("CurrentActivity is null - this should never happen");
+
+			var sessionIntent = new Intent(activity, activity.GetType())
+				.AddFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop)
+				.SetAction(Intent.ActionMain)
+				.AddCategory(Intent.CategoryLauncher);
+
+			var sessionActivityPendingIntent = PendingIntent.GetActivity(
+				activity,  // ⚠️ CRITICAL: Use the Activity, NOT AppContext
+				0,
+				sessionIntent,
+				PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent);
+
+			mediaSession.SetSessionActivity(sessionActivityPendingIntent);
+
+			// Store for notification contentIntent fallback (Android 14+ Pixel 7a fix)
+			_sessionActivityPendingIntent = sessionActivityPendingIntent;
+		}
+		catch (Exception ex)
+		{
+			Android.Util.Log.Error(Tag, $"Failed to set session activity: {ex}");
+		}
 
 		session ??= mediaSession.Build() ?? throw new InvalidOperationException("Session cannot be null");
 		ArgumentNullException.ThrowIfNull(session.Id);

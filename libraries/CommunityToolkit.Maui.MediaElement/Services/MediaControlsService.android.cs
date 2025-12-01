@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.Versioning;
 using Android.App;
 using Android.Content;
@@ -90,6 +92,14 @@ sealed partial class MediaControlsService : Service
 		}
 
 		notificationBuilder.SetStyle(style);
+
+		// This bypasses view interception and ensures notification body taps work for Android 14+
+		var sessionActivityPendingIntent = Core.Views.MediaManager.SessionActivityPendingIntent;
+		if (sessionActivityPendingIntent != null)
+		{
+			notificationBuilder.SetContentIntent(sessionActivityPendingIntent);
+		}
+
 		NotificationManagerCompat.From(Platform.AppContext)?.Notify(1, notificationBuilder.Build());
 	}
 
