@@ -45,18 +45,10 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// by creating a multi-item queue in ExoPlayer using ConcatenatingMediaSource.
 /// Uses three items: dummy previous, current, and dummy next to enable both navigation buttons.
 /// </summary>
-public class AndroidPlayerNotificationService : IAndroidPlayerNotificationService, IDisposable
+public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNotificationService, IDisposable
 {
-    private readonly ILogger _logger;
-    private readonly IState<PlaybackState> _playbackState;
     private ExoPlayerListener? _exoPlayerListener;
     private IExoPlayer? _currentPlayer;
-
-    public AndroidPlayerNotificationService(ILogger logger, IState<PlaybackState> playbackState)
-    {
-        _logger = logger;
-        _playbackState = playbackState;
-    }
 
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer using ConcatenatingMediaSource to enable both Next and Previous buttons.
@@ -77,7 +69,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             var player = GetExoPlayer(mediaElement) as IExoPlayer;
             if (player == null)
             {
-                _logger.Error("Failed to get ExoPlayer instance");
+                logger.Error("Failed to get ExoPlayer instance");
                 return;
             }
 
@@ -89,7 +81,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             var androidUri = global::Android.Net.Uri.Parse(uri);
             if (androidUri == null)
             {
-                _logger.Error("Failed to parse URI: {Uri}", uri);
+                logger.Error("Failed to parse URI: {Uri}", uri);
                 return;
             }
 
@@ -107,14 +99,14 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
 #pragma warning restore CS8602
             if (currentItem == null)
             {
-                _logger.Error("Failed to build MediaItem for current item");
+                logger.Error("Failed to build MediaItem for current item");
                 return;
             }
             var currentSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                 .CreateMediaSource(currentItem);
             if (currentSource == null)
             {
-                _logger.Error("Failed to create MediaSource for current item");
+                logger.Error("Failed to create MediaSource for current item");
                 return;
             }
 
@@ -124,7 +116,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                 var uriBuilder = androidUri.BuildUpon();
                 if (uriBuilder == null)
                 {
-                    _logger.Error("Failed to create URI builder for dummy previous URI");
+                    logger.Error("Failed to create URI builder for dummy previous URI");
                     return;
                 }
                 // False positive: uriBuilder is checked for null above
@@ -133,7 +125,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
 #pragma warning restore CS8602
                 if (dummyPreviousUri == null)
                 {
-                    _logger.Error("Failed to create dummy previous URI");
+                    logger.Error("Failed to create dummy previous URI");
                     return;
                 }
                 // False positive: new MediaItem.Builder() cannot return null
@@ -146,14 +138,14 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
 #pragma warning restore CS8602
                 if (dummyPreviousItem == null)
                 {
-                    _logger.Error("Failed to build MediaItem for dummy previous item");
+                    logger.Error("Failed to build MediaItem for dummy previous item");
                     return;
                 }
                 var previousSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                     .CreateMediaSource(dummyPreviousItem);
                 if (previousSource == null)
                 {
-                    _logger.Error("Failed to create MediaSource for dummy previous item");
+                    logger.Error("Failed to create MediaSource for dummy previous item");
                     return;
                 }
                 sources.Add(previousSource);
@@ -168,7 +160,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                 var uriBuilder = androidUri.BuildUpon();
                 if (uriBuilder == null)
                 {
-                    _logger.Error("Failed to create URI builder for dummy next URI");
+                    logger.Error("Failed to create URI builder for dummy next URI");
                     return;
                 }
                 // False positive: uriBuilder is checked for null above
@@ -177,7 +169,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
 #pragma warning restore CS8602
                 if (dummyNextUri == null)
                 {
-                    _logger.Error("Failed to create dummy next URI");
+                    logger.Error("Failed to create dummy next URI");
                     return;
                 }
                 // False positive: new MediaItem.Builder() cannot return null
@@ -190,14 +182,14 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
 #pragma warning restore CS8602
                 if (dummyNextItem == null)
                 {
-                    _logger.Error("Failed to build MediaItem for dummy next item");
+                    logger.Error("Failed to build MediaItem for dummy next item");
                     return;
                 }
                 var nextSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                     .CreateMediaSource(dummyNextItem);
                 if (nextSource == null)
                 {
-                    _logger.Error("Failed to create MediaSource for dummy next item");
+                    logger.Error("Failed to create MediaSource for dummy next item");
                     return;
                 }
                 sources.Add(nextSource);
@@ -206,7 +198,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // Create ConcatenatingMediaSource with the needed sources
             // ConcatenatingMediaSource is obsolete but still required for this implementation
 #pragma warning disable CS0618
-            var concatenatingSource = new ConcatenatingMediaSource(sources.ToArray());
+            var concatenatingSource = new ConcatenatingMediaSource([.. sources]);
 #pragma warning restore CS0618
 
             // Set the concatenating source on the player
@@ -228,17 +220,17 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                                    isFirstTrack ? "current + next dummy" :
                                    isLastTrack ? "previous dummy + current" :
                                    "previous dummy + current + next dummy";
-            _logger.Information("Set ConcatenatingMediaSource queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.", 
+            logger.Information("Set ConcatenatingMediaSource queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.", 
                 itemCount, itemsDescription);
             
             // Verify HasNextMediaItem and HasPreviousMediaItem are true
             if (player.HasNextMediaItem)
             {
-                _logger.Debug("Player HasNextMediaItem: {HasNext}", player.HasNextMediaItem);
+                logger.Debug("Player HasNextMediaItem: {HasNext}", player.HasNextMediaItem);
             }
             else
             {
-                _logger.Debug("Player HasNextMediaItem is still false after setting ConcatenatingMediaSource");
+                logger.Debug("Player HasNextMediaItem is still false after setting ConcatenatingMediaSource");
             }
             
             // Check for HasPreviousMediaItem property via reflection
@@ -247,7 +239,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             if (hasPreviousProperty != null)
             {
                 var hasPrevious = hasPreviousProperty.GetValue(player);
-                _logger.Debug("Player HasPreviousMediaItem: {HasPrevious}", hasPrevious);
+                logger.Debug("Player HasPreviousMediaItem: {HasPrevious}", hasPrevious);
             }
 
             // Set up listener to intercept Next/Previous button presses
@@ -256,11 +248,11 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // Log confirmation that Next/Previous buttons are enabled
             // This confirms the implementation is ready for Pixel 7a and all Android devices
             // MediaSession.SetSessionActivity() is configured in MediaManager to handle notification body taps on Android 14+
-            _logger.Information("NEXT/PREV BUTTONS ENABLED — Pixel 7a ready. Queue configured with {ItemCount} items. MediaSession.SetSessionActivity() configured for notification body taps.", itemCount);
+            logger.Information("NEXT/PREV BUTTONS ENABLED — Pixel 7a ready. Queue configured with {ItemCount} items. MediaSession.SetSessionActivity() configured for notification body taps.", itemCount);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Failed to set queue in SetSourceWithDummyQueue");
+            logger.Error(ex, "Failed to set queue in SetSourceWithDummyQueue");
         }
     }
 
@@ -282,14 +274,14 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             var playerProperty = session.GetType().GetProperty("Player", BindingFlags.Public | BindingFlags.Instance);
             if (playerProperty == null)
             {
-                _logger.Debug("Player property not found in session");
+                logger.Debug("Player property not found in session");
                 return null;
             }
 
             var player = playerProperty.GetValue(session);
             if (player == null)
             {
-                _logger.Debug("Player is null");
+                logger.Debug("Player is null");
                 return null;
             }
 
@@ -297,7 +289,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Failed to get ExoPlayer via reflection");
+            logger.Warning(ex, "Failed to get ExoPlayer via reflection");
             return null;
         }
     }
@@ -314,7 +306,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             var handler = mediaElement.Handler;
             if (handler == null)
             {
-                _logger.Debug("MediaElement handler is null");
+                logger.Debug("MediaElement handler is null");
                 return null;
             }
 
@@ -323,14 +315,14 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             var mediaManagerProperty = handlerType.GetProperty("MediaManager", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
             if (mediaManagerProperty == null)
             {
-                _logger.Debug("MediaManager property not found in handler type: {HandlerType}", handlerType.Name);
+                logger.Debug("MediaManager property not found in handler type: {HandlerType}", handlerType.Name);
                 return null;
             }
 
             var mediaManager = mediaManagerProperty.GetValue(handler);
             if (mediaManager == null)
             {
-                _logger.Debug("MediaManager is null");
+                logger.Debug("MediaManager is null");
                 return null;
             }
 
@@ -338,14 +330,14 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             var sessionField = mediaManager.GetType().GetField("session", BindingFlags.NonPublic | BindingFlags.Instance);
             if (sessionField == null)
             {
-                _logger.Debug("session field not found in MediaManager");
+                logger.Debug("session field not found in MediaManager");
                 return null;
             }
 
             var session = sessionField.GetValue(mediaManager);
             if (session == null)
             {
-                _logger.Debug("session is null");
+                logger.Debug("session is null");
                 return null;
             }
 
@@ -353,7 +345,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Failed to get MediaSession via reflection");
+            logger.Debug(ex, "Failed to get MediaSession via reflection");
             return null;
         }
     }
@@ -370,33 +362,33 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             {
                 try
                 {
-                    var removeMethod = _currentPlayer.GetType().GetMethod("RemoveListener", new[] { typeof(IPlayerListener) });
+                    var removeMethod = _currentPlayer.GetType().GetMethod("RemoveListener", [typeof(IPlayerListener)]);
                     if (removeMethod != null)
                     {
-                        removeMethod.Invoke(_currentPlayer, new object[] { _exoPlayerListener });
-                        _logger.Debug("Removed ExoPlayer listener from player");
+                        removeMethod.Invoke(_currentPlayer, [_exoPlayerListener]);
+                        logger.Debug("Removed ExoPlayer listener from player");
                     }
                 }
                 catch (ObjectDisposedException)
                 {
                     // Player is already disposed - this is expected when handler is disconnected
-                    _logger.Debug("ExoPlayer is already disposed, skipping RemoveListener call");
+                    logger.Debug("ExoPlayer is already disposed, skipping RemoveListener call");
                 }
                 catch (Exception ex)
                 {
                     // Other exceptions during removal - log but continue
-                    _logger.Debug(ex, "Error removing listener from player (may be disposed)");
+                    logger.Debug(ex, "Error removing listener from player (may be disposed)");
                 }
                 
                 // Dispose the listener
                 try
                 {
                     _exoPlayerListener.Dispose();
-                    _logger.Debug("Disposed ExoPlayer listener");
+                    logger.Debug("Disposed ExoPlayer listener");
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "Error disposing listener");
+                    logger.Debug(ex, "Error disposing listener");
                 }
                 
                 _exoPlayerListener = null;
@@ -406,7 +398,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Error in RemoveExoPlayerListener");
+            logger.Debug(ex, "Error in RemoveExoPlayerListener");
         }
     }
 
@@ -428,23 +420,23 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             
             // Create and add new listener
             _currentPlayer = player;
-            _exoPlayerListener = new ExoPlayerListener(this, _logger);
+            _exoPlayerListener = new ExoPlayerListener(this, logger);
             
             // Use reflection to call AddListener with IPlayerListener parameter
-            var addMethod = player.GetType().GetMethod("AddListener", new[] { typeof(IPlayerListener) });
+            var addMethod = player.GetType().GetMethod("AddListener", [typeof(IPlayerListener)]);
             if (addMethod != null)
             {
-                addMethod.Invoke(player, new object[] { _exoPlayerListener });
-                _logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
+                addMethod.Invoke(player, [_exoPlayerListener]);
+                logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
             }
             else
             {
-                _logger.Warning("AddListener method not found on IExoPlayer");
+                logger.Warning("AddListener method not found on IExoPlayer");
             }
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Failed to set up ExoPlayer listener");
+            logger.Warning(ex, "Failed to set up ExoPlayer listener");
         }
     }
 
@@ -478,7 +470,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     {
         try
         {
-            _logger.Information("ReleaseMediaSession called - attempting to remove notification");
+            logger.Information("ReleaseMediaSession called - attempting to remove notification");
             
             // Ensure we're on the main thread
             if (!MainThread.IsMainThread)
@@ -497,7 +489,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error in ReleaseMediaSession");
+            logger.Error(ex, "Error in ReleaseMediaSession");
         }
     }
 
@@ -512,7 +504,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     {
         try
         {
-            _logger.Information("Removing notification by disconnecting handler (handler will be recreated on next Play)");
+            logger.Information("Removing notification by disconnecting handler (handler will be recreated on next Play)");
 
             // 1. Stop playback and reset source (triggers internal cleanup)
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -527,31 +519,31 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             
             // 3. Disconnect handler - this properly releases the MediaSession and removes the sticky notification
             mediaElement.Handler?.DisconnectHandler();
-            _logger.Debug("Disconnected MediaElement handler - MediaSession released");
+            logger.Debug("Disconnected MediaElement handler - MediaSession released");
 
             // 4. Send message to BootstrapPage to dispose MediaElement with its ExoPlayer instance
             WeakReferenceMessenger.Default.Send(new RecreateMediaElementMessage());
-            _logger.Information("Sent RecreateMediaElementMessage to BootstrapPage - MediaElement will be recreated");
+            logger.Information("Sent RecreateMediaElementMessage to BootstrapPage - MediaElement will be recreated");
 
             // 5. Cancel the hard-coded notification ID + all (extra safety to ensure notification is gone)
             var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
             if (activity == null)
             {
-                _logger.Warning("CurrentActivity is null, cannot cancel notification");
+                logger.Warning("CurrentActivity is null, cannot cancel notification");
                 return;
             }
 
             var notificationManager = activity.GetSystemService(Context.NotificationService) as NotificationManager;
             if (notificationManager == null)
             {
-                _logger.Warning("Could not get Android NotificationManager");
+                logger.Warning("Could not get Android NotificationManager");
                 return;
             }
 
             // MediaElement 7.0.0 uses notification ID 1 (confirmed from source code)
             notificationManager.Cancel(1);
             notificationManager.CancelAll();
-            _logger.Information("Canceled notification ID 1 and all notifications");
+            logger.Information("Canceled notification ID 1 and all notifications");
 
             // 5. Samsung-specific: Kill reminders (one-time global fix)
             try
@@ -565,11 +557,11 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                         Settings.Global.PutInt(
                             appContext.ContentResolver,
                             "notification_reminders_enabled", 0);
-                        _logger.Debug("Disabled Samsung notification reminders");
+                        logger.Debug("Disabled Samsung notification reminders");
                     }
                     else
                     {
-                        _logger.Debug("Platform.AppContext is null, skipping Samsung reminder disable");
+                        logger.Debug("Platform.AppContext is null, skipping Samsung reminder disable");
                     }
                 }
             }
@@ -577,14 +569,14 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             {
                 // No permission needed on most Samsungs, ignore silently
                 // Also catch any issues with DeviceInfo.Manufacturer access
-                _logger.Debug(ex, "Could not disable Samsung notification reminders (may not have permission or setting may not exist)");
+                logger.Debug(ex, "Could not disable Samsung notification reminders (may not have permission or setting may not exist)");
             }
 
-            _logger.Information("Notification removed - handler will be automatically recreated when MediaElement is used again");
+            logger.Information("Notification removed - handler will be automatically recreated when MediaElement is used again");
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error removing notification");
+            logger.Error(ex, "Error removing notification");
         }
     }
 
@@ -600,7 +592,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Error disposing AndroidPlayerNotificationService");
+            logger.Debug(ex, "Error disposing AndroidPlayerNotificationService");
         }
     }
 
@@ -608,20 +600,12 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
     /// ExoPlayer listener that intercepts Next/Previous button presses from system controls.
     /// Implements IPlayerListener interface (7.0.0 compatible).
     /// </summary>
-    private class ExoPlayerListener : Java.Lang.Object, IPlayerListener
+    private class ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger) : Java.Lang.Object, IPlayerListener
     {
-        private readonly AndroidPlayerNotificationService _parent;
-        private readonly ILogger _logger;
         private DateTime _lastButtonPressTime = DateTime.MinValue;
         private string? _lastMediaId;
         // Ignore duplicate presses within 500ms
         private const int DebounceMilliseconds = 500;
-
-        public ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger)
-        {
-            _parent = parent;
-            _logger = logger;
-        }
 
         public void OnMediaItemTransition(MediaItem? mediaItem, int reason)
         {
@@ -637,7 +621,7 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                 if (_lastMediaId == mediaId && 
                     (now - _lastButtonPressTime).TotalMilliseconds < DebounceMilliseconds)
                 {
-                    _logger.Debug("Ignoring duplicate button press for {MediaId} (debounced)", mediaId);
+                    logger.Debug("Ignoring duplicate button press for {MediaId} (debounced)", mediaId);
                     return;
                 }
                 
@@ -646,15 +630,15 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
                 
                 if (mediaId == "bible_alarm_next_dummy")
                 {
-                    _logger.Information("NEXT BUTTON PRESSED — BLOCKING DUMMY TRACK");
+                    logger.Information("NEXT BUTTON PRESSED — BLOCKING DUMMY TRACK");
                     // Fire the event first
-                    _parent.OnNextButtonPressed();       
+                    parent.OnNextButtonPressed();       
                 }
                 else if (mediaId == "bible_alarm_previous_dummy")
                 {
-                    _logger.Information("PREVIOUS BUTTON PRESSED — BLOCKING DUMMY TRACK");
+                    logger.Information("PREVIOUS BUTTON PRESSED — BLOCKING DUMMY TRACK");
                     // Fire the event first
-                    _parent.OnPreviousButtonPressed();
+                    parent.OnPreviousButtonPressed();
                 }
             }
         }

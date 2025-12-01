@@ -42,7 +42,7 @@ public abstract class StorageService : IStorageService
     {
         if (!await DirectoryExists(path)) return [];
 
-        return Directory.GetFiles(path).ToList();
+        return [.. Directory.GetFiles(path)];
     }
 
     public Task<string> ReadFile(string path)

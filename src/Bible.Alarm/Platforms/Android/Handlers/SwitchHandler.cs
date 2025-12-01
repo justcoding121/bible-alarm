@@ -36,26 +36,24 @@ public class SwitchHandler : Microsoft.Maui.Handlers.SwitchHandler
         // Create color state lists for smooth transitions
         // StateChecked = 16842914 (from Android.Resource.Attribute.StateChecked)
         var trackColorStates = new ColorStateList(
-            new int[][] 
-            {
+            [
                 // StateChecked
-                new int[] { 16842914 },
+                [16842914],
                 // -StateChecked
-                new int[] { -16842914 }
-            },
-            new int[] { trackOnColor, grayColor }
+                [-16842914]
+            ],
+            [trackOnColor, grayColor]
         );
         
         // Thumb (knob): Gray when off, Slate blue when on
         var thumbColorStates = new ColorStateList(
-            new int[][] 
-            {
+            [
                 // StateChecked
-                new int[] { 16842914 },
+                [16842914],
                 // -StateChecked
-                new int[] { -16842914 }
-            },
-            new int[] { primaryColor, grayColor }
+                [-16842914]
+            ],
+            [primaryColor, grayColor]
         );
         
         // Apply the color state lists

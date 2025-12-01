@@ -100,7 +100,7 @@ public static class iOSMediaElementHelper
     private static string NormalizeFilePath(string path)
     {
         var isAbsolute = path.StartsWith("/");
-        var pathParts = path.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+        var pathParts = path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
         var normalizedParts = new List<string>();
         
         foreach (var part in pathParts)

@@ -105,7 +105,7 @@ namespace Bible.Alarm.AudioLinksHarvestor
                         musicHarvester.HarvestMusicMelodyLinks(isTestRun)
                     };
 
-                    await Task.WhenAll(bibleTasks.Concat(musicTasks).ToArray());
+                    await Task.WhenAll([.. bibleTasks, .. musicTasks]);
                 }
 
                 WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);

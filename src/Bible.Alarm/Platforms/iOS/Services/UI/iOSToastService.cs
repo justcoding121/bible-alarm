@@ -55,13 +55,13 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                 
                 // Position at bottom center
                 toastView.TranslatesAutoresizingMaskIntoConstraints = false;
-                NSLayoutConstraint.ActivateConstraints(new[]
-                {
+                NSLayoutConstraint.ActivateConstraints(
+                [
                     toastView.CenterXAnchor.ConstraintEqualTo(containerView.CenterXAnchor),
                     toastView.BottomAnchor.ConstraintEqualTo(containerView.SafeAreaLayoutGuide.BottomAnchor, -50),
                     toastView.LeadingAnchor.ConstraintGreaterThanOrEqualTo(containerView.LeadingAnchor, 20),
                     toastView.TrailingAnchor.ConstraintLessThanOrEqualTo(containerView.TrailingAnchor, -20)
-                });
+                ]);
                 
                 // Animate in
                 toastView.Alpha = 0;
@@ -107,13 +107,13 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             
             containerView.AddSubview(label);
             label.TranslatesAutoresizingMaskIntoConstraints = false;
-            NSLayoutConstraint.ActivateConstraints(new[]
-            {
+            NSLayoutConstraint.ActivateConstraints(
+            [
                 label.TopAnchor.ConstraintEqualTo(containerView.TopAnchor, 12),
                 label.BottomAnchor.ConstraintEqualTo(containerView.BottomAnchor, -12),
                 label.LeadingAnchor.ConstraintEqualTo(containerView.LeadingAnchor, 16),
                 label.TrailingAnchor.ConstraintEqualTo(containerView.TrailingAnchor, -16)
-            });
+            ]);
             
             return containerView;
         }
