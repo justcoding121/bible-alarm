@@ -22,15 +22,9 @@
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid>
-            <!-- Hidden MediaElement for audio playback (always in visual tree) -->
-            <!-- Wrapped in ContentView to allow easy replacement after MediaSession release -->
-            <ContentView x:Name="MediaElementContainer">
-                <media:MediaElement x:Name="MediaPlayer" 
-                              IsVisible="False" 
-                              ShouldAutoPlay="False" 
-                              ShouldLoopPlayback="False" 
-                              ShouldShowPlaybackControls="False" />
-            </ContentView>
+            <!-- MediaElement container - MediaElement will be created on demand via MediaElementService -->
+            <!-- This prevents the service from starting and showing notification on app launch -->
+            <ContentView x:Name="MediaElementContainer" />
             <StackLayout
                 HorizontalOptions="Center"
                 Orientation="Vertical"
