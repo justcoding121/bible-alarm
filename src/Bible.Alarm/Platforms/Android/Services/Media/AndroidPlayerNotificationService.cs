@@ -89,14 +89,10 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             var sources = new List<IMediaSource>();
 
             // Create current item (always needed)
-            // False positive: new MediaItem.Builder() cannot return null
-#pragma warning disable CS8602
             var currentItemBuilder = new MediaItem.Builder();
-            var currentItem = currentItemBuilder
-                .SetUri(androidUri)
-                .SetMediaId("bible_alarm_current")
-                .Build();
-#pragma warning restore CS8602
+            currentItemBuilder.SetUri(androidUri!);
+            currentItemBuilder.SetMediaId("bible_alarm_current");
+            var currentItem = currentItemBuilder.Build();
             if (currentItem == null)
             {
                 logger.Error("Failed to build MediaItem for current item");
@@ -213,24 +209,17 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             return null;
         }
 
-        // False positive: uriBuilder is checked for null above
-#pragma warning disable CS8602
-        var dummyUri = uriBuilder.Fragment(fragment)?.Build();
-#pragma warning restore CS8602
+        var dummyUri = uriBuilder!.Fragment(fragment)?.Build();
         if (dummyUri == null)
         {
             logger.Error("Failed to create dummy {Fragment} URI", fragment);
             return null;
         }
 
-        // False positive: new MediaItem.Builder() cannot return null
-#pragma warning disable CS8602
         var dummyItemBuilder = new MediaItem.Builder();
-        var dummyItem = dummyItemBuilder
-            .SetUri(dummyUri)
-            .SetMediaId(mediaId)
-            .Build();
-#pragma warning restore CS8602
+        dummyItemBuilder.SetUri(dummyUri!);
+        dummyItemBuilder.SetMediaId(mediaId);
+        var dummyItem = dummyItemBuilder.Build();
         if (dummyItem == null)
         {
             logger.Error("Failed to build MediaItem for dummy {Fragment} item", fragment);
@@ -693,4 +682,3 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         public void OnEvents(IExoPlayer player, object events) { }
     }
 }
-
