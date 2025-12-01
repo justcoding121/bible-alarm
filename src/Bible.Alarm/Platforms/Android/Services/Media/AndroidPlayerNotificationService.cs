@@ -175,9 +175,6 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // Set up listener to intercept Next/Previous button presses
             SetupExoPlayerListener(player);
 
-            // Force MediaSession to refresh actions
-            TryUpdateMediaSessionActions(mediaElement);
-            
             // Log confirmation that Next/Previous buttons are enabled
             // This confirms the implementation is ready for Pixel 7a and all Android devices
             // MediaSession.SetSessionActivity() is configured in MediaManager to handle notification body taps on Android 14+
@@ -186,74 +183,6 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to set queue in SetSourceWithDummyQueue");
-        }
-    }
-
-    /// <summary>
-    /// Brings the app to the foreground when notification is tapped.
-    /// </summary>
-    private void BringAppToForeground()
-    {
-        try
-        {
-            var context = Microsoft.Maui.ApplicationModel.Platform.AppContext;
-            var intent = new Intent(context, typeof(MainActivity));
-            intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop | ActivityFlags.SingleTop);
-            intent.SetAction("Bible.Alarm.NOTIFICATION_TAP");
-            
-            context.StartActivity(intent);
-            
-            _logger.Debug("Brought app to foreground via NotificationTapAction");
-        }
-        catch (Exception ex)
-        {
-            _logger.Warning(ex, "Failed to bring app to foreground from notification tap");
-        }
-    }
-    /// <summary>
-    /// Updates MediaSession to refresh actions after setting dummy queue.
-    /// In Media3, actions are typically derived from Player state, but we may need to invalidate the session.
-    /// </summary>
-    private void TryUpdateMediaSessionActions(MediaElement mediaElement)
-    {
-        try
-        {
-            var session = GetMediaSession(mediaElement);
-            if (session == null)
-            {
-                return;
-            }
-
-            var sessionType = session.GetType();
-            
-            // Try to invalidate the session to refresh actions
-            var invalidateMethod = sessionType.GetMethod("Invalidate", BindingFlags.Public | BindingFlags.Instance);
-            if (invalidateMethod != null)
-            {
-                invalidateMethod.Invoke(session, null);
-                _logger.Debug("Invalidated MediaSession to refresh actions");
-                return;
-            }
-
-            // Alternative: Try to get the player and check if it has HasNextMediaItem
-            // If the player reports HasNextMediaItem=true, the session should show Next button
-            var player = GetExoPlayer(mediaElement);
-            if (player != null)
-            {
-                var playerType = player.GetType();
-                var hasNextProperty = playerType.GetProperty("HasNextMediaItem", BindingFlags.Public | BindingFlags.Instance);
-                if (hasNextProperty != null)
-                {
-                    var hasNext = hasNextProperty.GetValue(player);
-                    _logger.Debug("Player HasNextMediaItem: {HasNext}", hasNext);
-                }
-            }
-
-            _logger.Debug("Could not invalidate MediaSession, actions should update automatically from Player state");
-        }
-        catch (Exception ex)
-        {
-            _logger.Debug(ex, "Failed to update MediaSession actions");
         }
     }
 
