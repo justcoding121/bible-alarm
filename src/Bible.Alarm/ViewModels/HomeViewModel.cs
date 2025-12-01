@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -171,8 +172,12 @@ public class HomeViewModel : ObservableObject, IDisposable
         // Initialize Schedules if null
         Schedules ??= [];
 
-        // Process each schedule from the state
-        foreach (var schedule in schedules)
+        // Create a snapshot of the schedules collection to avoid "Collection was modified" exception
+        // This can happen when state changes occur rapidly (e.g., track transitions)
+        var schedulesSnapshot = schedules.ToList();
+
+        // Process each schedule from the snapshot
+        foreach (var schedule in schedulesSnapshot)
         {
             currentViewModelIds.Add(schedule.Id);
             
@@ -233,8 +238,11 @@ public class HomeViewModel : ObservableObject, IDisposable
             // Create new collection only when items are added/removed
             var newSchedules = new ObservableHashSet<ScheduleListItem>();
             
+            // Create a snapshot of current Schedules to avoid "Collection was modified" exception
+            var currentSchedulesSnapshot = Schedules.ToList();
+            
             // Add all existing items that aren't being removed
-            foreach (var item in Schedules)
+            foreach (var item in currentSchedulesSnapshot)
             {
                 if (item.ScheduleId > 0 && !schedulesToRemove.Contains(item.ScheduleId))
                 {
