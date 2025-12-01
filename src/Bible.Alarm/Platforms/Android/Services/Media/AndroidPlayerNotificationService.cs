@@ -565,11 +565,16 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                     }
                 }
             }
+            catch (SecurityException)
+            {
+                // WRITE_SECURE_SETTINGS permission is not available to regular apps
+                // This is expected and can be safely ignored
+                logger.Debug("Could not disable Samsung notification reminders - WRITE_SECURE_SETTINGS permission not available (this is expected)");
+            }
             catch (Exception ex)
             {
-                // No permission needed on most Samsungs, ignore silently
-                // Also catch any issues with DeviceInfo.Manufacturer access
-                logger.Debug(ex, "Could not disable Samsung notification reminders (may not have permission or setting may not exist)");
+                // Catch any other exceptions (e.g., DeviceInfo.Manufacturer access issues)
+                logger.Debug(ex, "Could not disable Samsung notification reminders (setting may not exist)");
             }
 
             logger.Information("Notification removed - handler will be automatically recreated when MediaElement is used again");

@@ -110,10 +110,14 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         // Get MediaElement from service if it's null, or if it was recreated
         var newMediaElement = _mediaElementService.GetMediaElement();
         
-        // If MediaElement already exists and is different, unsubscribe from the old one
-        if (_mediaElement != null && _mediaElement != newMediaElement)
+        // Always unsubscribe from current MediaElement before subscribing again
+        // This prevents duplicate event handlers if PrepareAsync is called multiple times
+        if (_mediaElement != null)
         {
-            _logger.Information("MediaElement instance changed - unsubscribing from old instance");
+            if (_mediaElement != newMediaElement)
+            {
+                _logger.Information("MediaElement instance changed - unsubscribing from old instance");
+            }
             UnsubscribeFromMediaElement(_mediaElement);
         }
         
