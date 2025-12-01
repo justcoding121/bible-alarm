@@ -37,9 +37,11 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
             try
             {
-#pragma warning disable CA1422 // Validate platform compatibility
+                // Validate platform compatibility
+#pragma warning disable CA1422
                 var window = UIApplication.SharedApplication.KeyWindow;
-#pragma warning restore CA1422 // Validate platform compatibility
+                // Validate platform compatibility
+#pragma warning restore CA1422
                 if (window?.RootViewController?.View == null)
                 {
                     return;

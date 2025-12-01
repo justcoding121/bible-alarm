@@ -131,7 +131,8 @@ public static class PlaybackReducer
     {
         return new PlaybackState(
             currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying, // Keep modal open to show error
+            // Keep modal open to show error
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
             canPlayNext: state.CanPlayNext,
             canPlayPrevious: state.CanPlayPrevious,
             status: state.Status,

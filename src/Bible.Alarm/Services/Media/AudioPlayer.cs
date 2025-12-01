@@ -354,7 +354,8 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             MediaElementState.Stopped => PlayStatus.Stopped,
             MediaElementState.Buffering => PlayStatus.Loading,
             MediaElementState.Failed => PlayStatus.Failed,
-            MediaElementState.None => PlayStatus.Stopped, // None is equivalent to Stopped
+            // None is equivalent to Stopped
+            MediaElementState.None => PlayStatus.Stopped,
             _ => PlayStatus.Stopped
         };
 

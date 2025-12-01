@@ -27,14 +27,18 @@ public class MauiMediaElement : CoordinatorLayout
 	bool isSystemBarVisible;
 	bool isFullScreen;
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-#pragma warning disable IDE0060 // Remove unused parameter
+	// Non-nullable field is uninitialized. Consider declaring as nullable.
+#pragma warning disable CS8618
+	// Remove unused parameter
+#pragma warning disable IDE0060
 	public MauiMediaElement(nint ptr, JniHandleOwnership jni) : base(Platform.AppContext)
 	{
 		//Fixes no constructor found exception: https://github.com/CommunityToolkit/Maui/pull/1692#issuecomment-1955099758
 	}
-#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-#pragma warning restore IDE0060 // Remove unused parameter
+	// Non-nullable field is uninitialized. Consider declaring as nullable.
+#pragma warning restore CS8618
+	// Remove unused parameter
+#pragma warning restore IDE0060
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class.

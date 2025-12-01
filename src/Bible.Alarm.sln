@@ -18,6 +18,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bible.Alarm.VersionPatcher.Tests", "..\.tools\Bible.Alarm.VersionPatcher.Tests\Bible.Alarm.VersionPatcher.Tests.csproj", "{6CC2120F-832B-F17B-4058-C37CD4F91B76}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libraries", "libraries", "{5D9CF483-35B1-4802-A8CD-4B1B19DAE66B}"
+	ProjectSection(SolutionItems) = preProject
+		..\libraries\README.md = ..\libraries\README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

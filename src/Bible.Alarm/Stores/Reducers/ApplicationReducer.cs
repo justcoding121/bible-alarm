@@ -45,7 +45,8 @@ public static class ApplicationReducer
         
         return new ApplicationState(
             schedules: newSchedules,
-            currentSchedule: action.Schedule, // Set CurrentSchedule to the newly added schedule
+            // Set CurrentSchedule to the newly added schedule
+            currentSchedule: action.Schedule,
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
@@ -108,7 +109,8 @@ public static class ApplicationReducer
         }
         
         return new ApplicationState(
-            schedules: state.Schedules, // Reuse the same collection reference
+            // Reuse the same collection reference
+            schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule?.Id == action.Schedule.Id ? action.Schedule : state.CurrentSchedule,
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,

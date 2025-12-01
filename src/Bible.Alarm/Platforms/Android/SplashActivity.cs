@@ -31,7 +31,8 @@ public class SplashActivity : AppCompatActivity
             }
             else
             {
-#pragma warning disable CS0618 // Type or member is obsolete
+                // Type or member is obsolete
+#pragma warning disable CS0618
                 try
                 {
                     if (Window?.DecorView != null)
@@ -45,7 +46,8 @@ public class SplashActivity : AppCompatActivity
                 {
                     Logger.Debug(ex, "Exception occurred while setting SystemUiVisibility on older Android version. This is expected and can be ignored.");
                 }
-#pragma warning restore CS0618 // Type or member is obsolete
+                // Type or member is obsolete
+#pragma warning restore CS0618
             }
 
             if (Window != null)

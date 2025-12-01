@@ -138,7 +138,8 @@ public static class AppConstants
         /// Media index update check interval in days (weekly = 7 days)
         /// The harvester runs weekly on Sundays, so we check weekly to match the update frequency
         /// </summary>
-        public const int MediaIndexUpdateCheckDays = 7; // Weekly
+        // Weekly
+        public const int MediaIndexUpdateCheckDays = 7;
         
         /// <summary>
         /// Download retry attempts

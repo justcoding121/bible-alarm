@@ -125,7 +125,8 @@ public class NavigationService(
         }
 
         // Fallback to MainPage (obsolete but may be needed)
-#pragma warning disable CS0618 // Type or member is obsolete
+        // Type or member is obsolete
+#pragma warning disable CS0618
         if (app.MainPage is NavigationPage mainNavPage)
         {
             _logger?.Debug("Found NavigationPage in MainPage");

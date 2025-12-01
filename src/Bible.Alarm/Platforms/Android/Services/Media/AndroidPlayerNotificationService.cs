@@ -83,32 +83,79 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
 
             // Get Android context for DataSourceFactory
             var context = global::Android.App.Application.Context;
-            var dataSourceFactory = new DefaultDataSourceFactory(context);
+            var dataSourceFactory = new DefaultDataSource.Factory(context);
 
             // Parse the URI
             var androidUri = global::Android.Net.Uri.Parse(uri);
+            if (androidUri == null)
+            {
+                _logger.Error("Failed to parse URI: {Uri}", uri);
+                return;
+            }
 
             // Build list of sources based on track position
             var sources = new List<IMediaSource>();
 
             // Create current item (always needed)
-            var currentItem = new MediaItem.Builder()
+            // False positive: new MediaItem.Builder() cannot return null
+#pragma warning disable CS8602
+            var currentItemBuilder = new MediaItem.Builder();
+            var currentItem = currentItemBuilder
                 .SetUri(androidUri)
                 .SetMediaId("bible_alarm_current")
                 .Build();
+#pragma warning restore CS8602
+            if (currentItem == null)
+            {
+                _logger.Error("Failed to build MediaItem for current item");
+                return;
+            }
             var currentSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                 .CreateMediaSource(currentItem);
+            if (currentSource == null)
+            {
+                _logger.Error("Failed to create MediaSource for current item");
+                return;
+            }
 
             // Add previous dummy only if not first track
             if (!isFirstTrack)
             {
-                var dummyPreviousUri = androidUri.BuildUpon().Fragment("previous").Build();
-                var dummyPreviousItem = new MediaItem.Builder()
+                var uriBuilder = androidUri.BuildUpon();
+                if (uriBuilder == null)
+                {
+                    _logger.Error("Failed to create URI builder for dummy previous URI");
+                    return;
+                }
+                // False positive: uriBuilder is checked for null above
+#pragma warning disable CS8602
+                var dummyPreviousUri = uriBuilder.Fragment("previous")?.Build();
+#pragma warning restore CS8602
+                if (dummyPreviousUri == null)
+                {
+                    _logger.Error("Failed to create dummy previous URI");
+                    return;
+                }
+                // False positive: new MediaItem.Builder() cannot return null
+#pragma warning disable CS8602
+                var dummyPreviousItemBuilder = new MediaItem.Builder();
+                var dummyPreviousItem = dummyPreviousItemBuilder
                     .SetUri(dummyPreviousUri)
                     .SetMediaId("bible_alarm_previous_dummy")
                     .Build();
+#pragma warning restore CS8602
+                if (dummyPreviousItem == null)
+                {
+                    _logger.Error("Failed to build MediaItem for dummy previous item");
+                    return;
+                }
                 var previousSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                     .CreateMediaSource(dummyPreviousItem);
+                if (previousSource == null)
+                {
+                    _logger.Error("Failed to create MediaSource for dummy previous item");
+                    return;
+                }
                 sources.Add(previousSource);
             }
 
@@ -118,18 +165,49 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
             // Add next dummy only if not last track
             if (!isLastTrack)
             {
-                var dummyNextUri = androidUri.BuildUpon().Fragment("next").Build();
-                var dummyNextItem = new MediaItem.Builder()
+                var uriBuilder = androidUri.BuildUpon();
+                if (uriBuilder == null)
+                {
+                    _logger.Error("Failed to create URI builder for dummy next URI");
+                    return;
+                }
+                // False positive: uriBuilder is checked for null above
+#pragma warning disable CS8602
+                var dummyNextUri = uriBuilder.Fragment("next")?.Build();
+#pragma warning restore CS8602
+                if (dummyNextUri == null)
+                {
+                    _logger.Error("Failed to create dummy next URI");
+                    return;
+                }
+                // False positive: new MediaItem.Builder() cannot return null
+#pragma warning disable CS8602
+                var dummyNextItemBuilder = new MediaItem.Builder();
+                var dummyNextItem = dummyNextItemBuilder
                     .SetUri(dummyNextUri)
                     .SetMediaId("bible_alarm_next_dummy")
                     .Build();
+#pragma warning restore CS8602
+                if (dummyNextItem == null)
+                {
+                    _logger.Error("Failed to build MediaItem for dummy next item");
+                    return;
+                }
                 var nextSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                     .CreateMediaSource(dummyNextItem);
+                if (nextSource == null)
+                {
+                    _logger.Error("Failed to create MediaSource for dummy next item");
+                    return;
+                }
                 sources.Add(nextSource);
             }
 
             // Create ConcatenatingMediaSource with the needed sources
+            // ConcatenatingMediaSource is obsolete but still required for this implementation
+#pragma warning disable CS0618
             var concatenatingSource = new ConcatenatingMediaSource(sources.ToArray());
+#pragma warning restore CS0618
 
             // Set the concatenating source on the player
             player.SetMediaSource(concatenatingSource);
@@ -587,18 +665,18 @@ public class AndroidPlayerNotificationService : IAndroidPlayerNotificationServic
         public void OnIsPlayingChanged(bool isPlaying) { }
         public void OnRepeatModeChanged(int repeatMode) { }
         public void OnShuffleModeEnabledChanged(bool shuffleModeEnabled) { }
-        public void OnPlayerError(PlaybackException error) { }
-        public void OnPlaybackParametersChanged(PlaybackParameters playbackParameters) { }
+        public void OnPlayerError(PlaybackException? error) { }
+        public void OnPlaybackParametersChanged(PlaybackParameters? playbackParameters) { }
         public void OnSeekBackIncrementChanged(long seekBackIncrementMs) { }
         public void OnSeekForwardIncrementChanged(long seekForwardIncrementMs) { }
-        public void OnAudioAttributesChanged(AudioAttributes audioAttributes) { }
+        public void OnAudioAttributesChanged(AudioAttributes? audioAttributes) { }
         public void OnAudioSessionIdChanged(int audioSessionId) { }
         public void OnVolumeChanged(float volume) { }
         public void OnSkipSilenceEnabledChanged(bool skipSilenceEnabled) { }
-        public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo deviceInfo) { }
+        public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo? deviceInfo) { }
         public void OnDeviceVolumeChanged(int volume, bool muted) { }
-        public void OnTimelineChanged(Timeline timeline, int reason) { }
-        public void OnTracksChanged(Tracks tracks) { }
+        public void OnTimelineChanged(Timeline? timeline, int reason) { }
+        public void OnTracksChanged(Tracks? tracks) { }
         public void OnEvents(IExoPlayer player, object events) { }
     }
 }

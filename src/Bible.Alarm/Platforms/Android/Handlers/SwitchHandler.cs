@@ -38,8 +38,10 @@ public class SwitchHandler : Microsoft.Maui.Handlers.SwitchHandler
         var trackColorStates = new ColorStateList(
             new int[][] 
             {
-                new int[] { 16842914 }, // StateChecked
-                new int[] { -16842914 } // -StateChecked
+                // StateChecked
+                new int[] { 16842914 },
+                // -StateChecked
+                new int[] { -16842914 }
             },
             new int[] { trackOnColor, grayColor }
         );
@@ -48,8 +50,10 @@ public class SwitchHandler : Microsoft.Maui.Handlers.SwitchHandler
         var thumbColorStates = new ColorStateList(
             new int[][] 
             {
-                new int[] { 16842914 }, // StateChecked
-                new int[] { -16842914 } // -StateChecked
+                // StateChecked
+                new int[] { 16842914 },
+                // -StateChecked
+                new int[] { -16842914 }
             },
             new int[] { primaryColor, grayColor }
         );
