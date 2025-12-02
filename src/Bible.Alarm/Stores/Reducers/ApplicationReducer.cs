@@ -281,5 +281,21 @@ public static class ApplicationReducer
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: action.IsVisible);
     }
+
+    [ReducerMethod]
+    public static ApplicationState OnResetScheduleState(ApplicationState state, ResetScheduleStateAction action)
+    {
+        // Reset all schedule-related state when navigating back to home
+        // This ensures only one schedule is in state at any time
+        return new ApplicationState(
+            schedules: state.Schedules,
+            currentSchedule: null,
+            currentMusic: null,
+            tentativeMusic: null,
+            currentBibleReadingSchedule: null,
+            tentativeBibleReadingSchedule: null,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
 }
 

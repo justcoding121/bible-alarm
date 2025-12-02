@@ -65,6 +65,9 @@ public class HomeViewModel : ObservableObject, IDisposable
                 await Task.Delay(150);
             });
             
+            // Reset schedule state before creating a new schedule
+            // This ensures only one schedule is in state at any time
+            _dispatcher.Dispatch(new ResetScheduleStateAction());
             await navigationService.NavigateToScheduleAsync();
             _dispatcher.Dispatch(new ViewScheduleAction(null));
         });
@@ -286,6 +289,15 @@ public class HomeViewModel : ObservableObject, IDisposable
     public void HideSchedulePageOverlay()
     {
         _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+    }
+
+    /// <summary>
+    /// Resets all schedule-related state when navigating back to home.
+    /// This ensures only one schedule is in state at any time.
+    /// </summary>
+    public void ResetScheduleState()
+    {
+        _dispatcher.Dispatch(new ResetScheduleStateAction());
     }
 
 

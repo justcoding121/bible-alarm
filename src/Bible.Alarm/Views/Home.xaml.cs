@@ -123,6 +123,9 @@ public partial class Home : ContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        // Reset schedule state when navigating back to home
+        // This ensures only one schedule is in state at any time
+        _viewModel?.ResetScheduleState();
         // Reset flag when page appears again (e.g., navigating back to it)
         _hasHandledFirstLoad = false;
         Loaded += OnPageLoaded;
