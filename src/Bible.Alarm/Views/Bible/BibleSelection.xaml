@@ -43,19 +43,6 @@
                     Size="24" />
             </ToolbarItem.IconImageSource>
         </ToolbarItem>
-        <!-- Spacer ToolbarItem to add right margin -->
-        <ToolbarItem
-            Order="Primary"
-            Priority="1"
-            IsEnabled="False">
-            <ToolbarItem.IconImageSource>
-                <FontImageSource
-                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    Glyph=" "
-                    Color="Transparent"
-                    Size="8" />
-            </ToolbarItem.IconImageSource>
-        </ToolbarItem>
     </ContentPage.ToolbarItems>
     <ContentPage.Content>
         <Grid x:Name="MainContentGrid" BackgroundColor="{StaticResource BackgroundColor}">

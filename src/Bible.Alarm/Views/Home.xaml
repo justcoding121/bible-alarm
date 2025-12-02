@@ -362,13 +362,14 @@
                                     <!-- Windows-specific delete button -->
                                     <Button
                                             Margin="0,0,0,8"
+                                            Padding="8,0"
                                             BackgroundColor="#FF3B30"
                                             CornerRadius="20"
                                             Command="{Binding DeleteCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="14"
                                             HeightRequest="32"
-                                            WidthRequest="32"
+                                            MinimumWidthRequest="40"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Center"
                                             Text="{x:Static fn:GlyphNames.Trash}"
