@@ -549,24 +549,62 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     {
         if (Model == null) return;
         var stateValue = _state.Value;
-        if (stateValue.CurrentBibleReadingSchedule == null ||
-            stateValue.CurrentBibleReadingSchedule == _lastBibleReading ||
-            stateValue.CurrentBibleReadingSchedule == BibleReadingSchedule) return;
-        BibleReadingSchedule = stateValue.CurrentBibleReadingSchedule;
-        _lastBibleReading = stateValue.CurrentBibleReadingSchedule;
-        _bibleReadingUpdated = true;
-        RefreshChapterName();
+        if (stateValue.CurrentBibleReadingSchedule == null) return;
+        
+        // Check if the bible reading actually changed by comparing properties
+        var newBibleReading = stateValue.CurrentBibleReadingSchedule;
+        var hasChanged = _lastBibleReading == null || 
+                        BibleReadingSchedule == null ||
+                        _lastBibleReading.LanguageCode != newBibleReading.LanguageCode ||
+                        _lastBibleReading.PublicationCode != newBibleReading.PublicationCode ||
+                        _lastBibleReading.BookNumber != newBibleReading.BookNumber ||
+                        _lastBibleReading.ChapterNumber != newBibleReading.ChapterNumber ||
+                        (BibleReadingSchedule != null && 
+                         (BibleReadingSchedule.BookNumber != newBibleReading.BookNumber ||
+                          BibleReadingSchedule.ChapterNumber != newBibleReading.ChapterNumber));
+        
+        if (!hasChanged) return;
+        
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            BibleReadingSchedule = newBibleReading;
+            _lastBibleReading = newBibleReading;
+            _bibleReadingUpdated = true;
+            RefreshChapterName();
+            OnPropertyChanged(nameof(BibleReadingSchedule));
+            OnPropertyChanged(nameof(BibleReadingTitleText));
+        });
     }
 
     private void OnMusicChanged(object sender, EventArgs e)
     {
         if (Model == null) return;
         var stateValue = _state.Value;
-        if (stateValue.CurrentMusic == null || stateValue.CurrentMusic == _lastMusic ||
-            stateValue.CurrentMusic == Music) return;
-        Music = stateValue.CurrentMusic;
-        _lastMusic = stateValue.CurrentMusic;
-        _musicUpdated = true;
+        if (stateValue.CurrentMusic == null) return;
+        
+        // Check if the music actually changed by comparing properties
+        var newMusic = stateValue.CurrentMusic;
+        var hasChanged = _lastMusic == null || 
+                        Music == null ||
+                        _lastMusic.LanguageCode != newMusic.LanguageCode ||
+                        _lastMusic.PublicationCode != newMusic.PublicationCode ||
+                        _lastMusic.MusicType != newMusic.MusicType ||
+                        _lastMusic.TrackNumber != newMusic.TrackNumber ||
+                        (Music != null && 
+                         (Music.TrackNumber != newMusic.TrackNumber ||
+                          Music.MusicType != newMusic.MusicType ||
+                          Music.LanguageCode != newMusic.LanguageCode ||
+                          Music.PublicationCode != newMusic.PublicationCode));
+        
+        if (!hasChanged) return;
+        
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            Music = newMusic;
+            _lastMusic = newMusic;
+            _musicUpdated = true;
+            OnPropertyChanged(nameof(Music));
+        });
     }
 
     private bool _canOptimizeBattery;

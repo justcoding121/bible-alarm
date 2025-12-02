@@ -13,8 +13,7 @@
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:ChapterSelectionViewModel"
-    NavigationPage.HasBackButton="False"
-    NavigationPage.HasNavigationBar="False">
+    Title="Select Chapter">
     <ContentPage.Resources>
         <converters:PlayStatusIconConverter x:Key="playStatusIconConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -55,92 +54,15 @@
                 Margin="0"
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                
-                <!-- Enhanced Header - Edge to Edge -->
-                <Border
-                    Grid.Row="0"
-                    Margin="0"
-                    BackgroundColor="{StaticResource CardBackgroundColor}"
-                    StrokeThickness="0"
-                    Padding="0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="0,0,20,20" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="{StaticResource CardShadowColor}"
-                                Offset="0,4"
-                                Opacity="0.1"
-                                Radius="8" />
-                    </Border.Shadow>
-                    <Grid
-                        HorizontalOptions="Fill"
-                        Padding="{OnPlatform Default='0,0,0,0', iOS='0,44,0,0', Android='0,24,0,0'}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="56" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        
-                        <!-- Back Button -->
-                        <Border
-                            Grid.Column="0"
-                            Grid.Row="0"
-                            Margin="15,0,0,0"
-                            BackgroundColor="Transparent"
-                            HeightRequest="44"
-                            HorizontalOptions="Start"
-                            StrokeThickness="0"
-                            VerticalOptions="Center"
-                            WidthRequest="44">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="22" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
-                            </Border.GestureRecognizers>
-                            <Label
-                                x:Name="BackButton"
-                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="20"
-                                HorizontalOptions="Center"
-                                HorizontalTextAlignment="Center"
-                                Text="{x:Static fn:GlyphNames.Left}"
-                                TextColor="{StaticResource PrimaryColor}"
-                                VerticalOptions="Center"
-                                VerticalTextAlignment="Center" />
-                        </Border>
-                        
-                        <!-- Title -->
-                        <Label
-                            Grid.Column="1"
-                            Grid.Row="0"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            HorizontalOptions="Fill"
-                            HorizontalTextAlignment="Start"
-                            Margin="15,0,15,0"
-                            TextColor="{StaticResource TextPrimaryColor}"
-                            VerticalOptions="Center"
-                            VerticalTextAlignment="Center" />
-                    </Grid>
-                </Border>
-                
                 <!-- Enhanced Collection View -->
                 <CollectionView
                     x:Name="chapterCollectionView"
-                    Grid.Row="1"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Chapters}"
-                    SelectionMode="Single">
+                    SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
                             <LinearItemsLayout.ItemSpacing>
@@ -151,12 +73,6 @@
                             </LinearItemsLayout.ItemSpacing>
                         </LinearItemsLayout>
                     </CollectionView.ItemsLayout>
-                    <CollectionView.Behaviors>
-                        <behaviours:EventToCommandBehavior
-                            Command="{Binding SetChapterCommand}"
-                            EventArgsConverter="{StaticResource itemTappedConverter}"
-                            EventName="SelectionChanged" />
-                    </CollectionView.Behaviors>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="bible:BibleChapterListViewItemModel">
                             <Grid Margin="16,0">
@@ -177,6 +93,9 @@
                                         Padding="20,18"
                                         ColumnSpacing="12"
                                         MinimumHeightRequest="56">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type bible:ChapterSelectionViewModel}}, Path=SetChapterCommand}" CommandParameter="{Binding .}" />
+                                        </Grid.GestureRecognizers>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -188,6 +107,7 @@
                                             FontSize="16"
                                             HorizontalOptions="Fill"
                                             HorizontalTextAlignment="Start"
+                                            InputTransparent="True"
                                             LineBreakMode="TailTruncation"
                                             Text="{Binding Title}"
                                             TextColor="{StaticResource TextPrimaryColor}"

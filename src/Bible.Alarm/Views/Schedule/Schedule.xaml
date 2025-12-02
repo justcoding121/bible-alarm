@@ -20,6 +20,7 @@
         <converters:DayColorConverter x:Key="dayColorConverter" />
         <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <Color x:Key="TextSecondaryColor">#6C757D</Color>
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid AutomationId="SchedulePage"
@@ -688,33 +689,50 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         
                                         <Label Grid.Column="0"
                                                FontSize="16"
                                                FontAttributes="Bold"
+                                               HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
                                                Text="Current schedule"
                                                TextColor="Black"
-                                               VerticalOptions="Center" />
-                                        <StackLayout Grid.Column="1"
-                                                     HorizontalOptions="End"
-                                                     Orientation="Horizontal"
-                                                     VerticalOptions="Center">
-                                            <Label FontSize="16"
-                                                   HorizontalTextAlignment="End"
-                                                   Text="{Binding BibleReadingTitleText}"
-                                                   TextColor="SlateBlue" />
+                                               VerticalOptions="Center"
+                                               VerticalTextAlignment="Center" />
+                                        <Label Grid.Column="1"
+                                               FontSize="16"
+                                               HorizontalOptions="End"
+                                               HorizontalTextAlignment="End"
+                                               Margin="0,0,8,0"
+                                               Text="{Binding BibleReadingTitleText}"
+                                               TextColor="SlateBlue"
+                                               VerticalOptions="Center"
+                                               VerticalTextAlignment="Center" />
+                                        <!-- Arrow Indicator matching list view items -->
+                                        <Border
+                                            Grid.Column="2"
+                                            BackgroundColor="#E0E0E0"
+                                            HeightRequest="32"
+                                            HorizontalOptions="End"
+                                            StrokeThickness="0"
+                                            VerticalOptions="Center"
+                                            WidthRequest="32">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="16" />
+                                            </Border.StrokeShape>
                                             <Label
-                                                Margin="8,0,0,0"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                Style="{StaticResource MediumLabelStyle}"
-                                                FontSize="16"
-                                                HorizontalOptions="End"
+                                                FontSize="14"
+                                                HorizontalOptions="Center"
+                                                HorizontalTextAlignment="Center"
+                                                InputTransparent="True"
                                                 Text="{x:Static fn:GlyphNames.Right}"
-                                                TextColor="SlateBlue"
-                                                VerticalOptions="Center" />
-                                        </StackLayout>
+                                                TextColor="#333333"
+                                                VerticalOptions="Center"
+                                                VerticalTextAlignment="Center" />
+                                        </Border>
                                     </Grid>
                                 </Grid>
                                 <Grid x:Name="BibleBookButton"
@@ -948,21 +966,35 @@
                             <StackLayout Grid.Column="1"
                                          HorizontalOptions="End"
                                          Orientation="Horizontal"
-                                         Spacing="0"
+                                         Spacing="8"
                                          VerticalOptions="Center">
                                 <shared:PlatformSwitch
-                                    Margin="0,0,5,0"
+                                    Margin="0,0,0,0"
                                     HorizontalOptions="Start"
                                     IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
                                     Scale="{OnPlatform Android='1', Default='1'}" />
-                                <Label Margin="0,0,10,0"
-                                       FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                       Style="{StaticResource MediumLabelStyle}"
-                                       HorizontalOptions="End"
-                                       Text="{x:Static fn:GlyphNames.Right}"
-                                       TextColor="SlateBlue"
-                                       VerticalOptions="Center"
-                                       VerticalTextAlignment="Center" />
+                                <!-- Arrow Indicator matching list view items -->
+                                <Border
+                                    BackgroundColor="#E0E0E0"
+                                    HeightRequest="32"
+                                    HorizontalOptions="End"
+                                    StrokeThickness="0"
+                                    VerticalOptions="Center"
+                                    WidthRequest="32">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Label
+                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                        FontSize="14"
+                                        HorizontalOptions="Center"
+                                        HorizontalTextAlignment="Center"
+                                        InputTransparent="True"
+                                        Text="{x:Static fn:GlyphNames.Right}"
+                                        TextColor="#333333"
+                                        VerticalOptions="Center"
+                                        VerticalTextAlignment="Center" />
+                                </Border>
                             </StackLayout>
                         </Grid>
                         </Border>

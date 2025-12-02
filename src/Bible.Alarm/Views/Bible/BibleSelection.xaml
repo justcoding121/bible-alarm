@@ -14,8 +14,7 @@
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:BibleSelectionViewModel"
-    NavigationPage.HasBackButton="False"
-    NavigationPage.HasNavigationBar="False">
+    Title="Select Translation">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
@@ -31,8 +30,35 @@
         <Color x:Key="TextSecondaryColor">#6C757D</Color>
         <Color x:Key="DividerColor">#E9ECEF</Color>
     </ContentPage.Resources>
+    <ContentPage.ToolbarItems>
+        <ToolbarItem
+            Order="Primary"
+            Priority="0"
+            Command="{Binding OpenModalCommand}">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    Glyph="{x:Static fn:GlyphNames.Language}"
+                    Color="{StaticResource PrimaryColor}"
+                    Size="24" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <!-- Spacer ToolbarItem to add right margin -->
+        <ToolbarItem
+            Order="Primary"
+            Priority="1"
+            IsEnabled="False">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    Glyph=" "
+                    Color="Transparent"
+                    Size="8" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+    </ContentPage.ToolbarItems>
     <ContentPage.Content>
-        <Grid BackgroundColor="{StaticResource BackgroundColor}">
+        <Grid x:Name="MainContentGrid" BackgroundColor="{StaticResource BackgroundColor}">
             <ActivityIndicator
                 Grid.Row="0"
                 HorizontalOptions="Center"
@@ -57,119 +83,9 @@
                 Margin="0"
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                
-                <!-- Enhanced Header - Edge to Edge -->
-                <Border
-                    Grid.Row="0"
-                    Margin="0"
-                    BackgroundColor="{StaticResource CardBackgroundColor}"
-                    StrokeThickness="0"
-                    Padding="0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="0,0,20,20" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="{StaticResource CardShadowColor}"
-                                Offset="0,4"
-                                Opacity="0.1"
-                                Radius="8" />
-                    </Border.Shadow>
-                    <Grid
-                        HorizontalOptions="Fill"
-                        Padding="{OnPlatform Default='0,0,0,0', iOS='0,44,0,0', Android='0,24,0,0'}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="56" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        
-                        <!-- Back Button with Modern Styling -->
-                        <Border
-                            Grid.Column="0"
-                            Grid.Row="0"
-                            Margin="15,0,0,0"
-                            BackgroundColor="Transparent"
-                            HeightRequest="44"
-                            HorizontalOptions="Start"
-                            StrokeThickness="0"
-                            VerticalOptions="Center"
-                            WidthRequest="44">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="22" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
-                            </Border.GestureRecognizers>
-                            <Label
-                                x:Name="BackButton"
-                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="20"
-                                HorizontalOptions="Center"
-                                HorizontalTextAlignment="Center"
-                                Text="{x:Static fn:GlyphNames.Left}"
-                                TextColor="{StaticResource PrimaryColor}"
-                                VerticalOptions="Center"
-                                VerticalTextAlignment="Center" />
-                        </Border>
-                        
-                        <!-- Language Selector with Enhanced Styling -->
-                        <Border
-                            Grid.Column="2"
-                            Grid.Row="0"
-                            Margin="0,0,15,0"
-                            BackgroundColor="#F0F0F0"
-                            HeightRequest="40"
-                            HorizontalOptions="End"
-                            StrokeThickness="0"
-                            VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding OpenModalCommand}" NumberOfTapsRequired="1" />
-                            </Border.GestureRecognizers>
-                            <Grid
-                                Padding="12,0"
-                                ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Label
-                                    Grid.Column="0"
-                                    FontSize="16"
-                                    HorizontalOptions="End"
-                                    HorizontalTextAlignment="End"
-                                    Text="{Binding Path=CurrentLanguage.Name, Mode=OneWay}"
-                                    TextColor="{StaticResource PrimaryColor}"
-                                    VerticalOptions="Center"
-                                    VerticalTextAlignment="Center" />
-                                <Label
-                                    Grid.Column="1"
-                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                    FontSize="16"
-                                    HorizontalOptions="Center"
-                                    HorizontalTextAlignment="Center"
-                                    Text="{x:Static fn:GlyphNames.Language}"
-                                    TextColor="{StaticResource PrimaryColor}"
-                                    VerticalOptions="Center"
-                                    VerticalTextAlignment="Center" />
-                            </Grid>
-                        </Border>
-                    </Grid>
-                </Border>
-                
                 <!-- Enhanced Collection View with Card Layout -->
                 <CollectionView
                     x:Name="translationsCollectionView"
-                    Grid.Row="1"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"

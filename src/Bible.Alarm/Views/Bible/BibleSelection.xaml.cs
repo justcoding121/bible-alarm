@@ -1,5 +1,7 @@
+#nullable enable
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
+using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -15,12 +17,6 @@ public partial class BibleSelection : ContentPage, IDisposable
         InitializeComponent();
         BindingContext = viewModel;
         _viewModel = viewModel;
-
-        BackButton.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(() => AnimateUtils.FlickUponTouched(BackButton, 1500,
-                ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
-        });
 
         // Note: We don't clear selection here because this page navigates away when an item is selected
         // The page will be disposed, so clearing selection is unnecessary and can interfere with navigation on iOS

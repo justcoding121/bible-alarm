@@ -17,12 +17,6 @@ public partial class MusicSelection : ContentPage, IDisposable
         BindingContext = viewModel;
         _viewModel = viewModel;
 
-        BackButton.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(() => AnimateUtils.FlickUponTouched(BackButton, 1500,
-                ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
-        });
-
         // Clear selection after SelectionChanged fires to allow command to execute first
         musicTypesCollectionView.SelectionChanged += (sender, e) =>
         {

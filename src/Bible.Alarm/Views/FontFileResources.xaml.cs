@@ -114,4 +114,5 @@ public class GlyphNames
     public static string Forward = "\uf04e";
     public static string Backward = "\uf04a";
     public static string Trash = "\uf2ed";
+    public static string InfoCircle = "\uf05a"; // Font Awesome circle-info icon
 }

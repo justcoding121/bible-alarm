@@ -14,8 +14,8 @@ public class WindowSetupService(IServiceProvider serviceProvider)
         var bootstrapPage = _serviceProvider.GetRequiredService<BootstrapPage>();
         var navigationPage = new NavigationPage(bootstrapPage)
         {
-            BarBackgroundColor = Colors.Transparent,
-            BarTextColor = Colors.White
+            BarBackgroundColor = Colors.White,
+            BarTextColor = Color.FromArgb("#6A5ACD") // Primary color for consistent branding
         };
 
         NavigationPage.SetHasNavigationBar(bootstrapPage, false);

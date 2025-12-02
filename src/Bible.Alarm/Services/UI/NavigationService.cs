@@ -26,16 +26,7 @@ public class NavigationService(
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly ILogger _logger = logger;
     
-    // Polly retry policy for waiting for windows to be available
-    private AsyncRetryPolicy<int> WindowWaitRetryPolicy => Policy
-        .HandleResult<int>(count => count == 0)
-        .WaitAndRetryAsync(
-            retryCount: 30,
-            sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
-            onRetry: (result, timeSpan, retryCount, context) =>
-            {
-                _logger?.Debug($"Waiting for window to be added to Application. Current count: {result.Result} (attempt {retryCount}/30)");
-            });
+    // Note: WindowWaitRetryPolicy removed - using infinite retry loop instead
     
     // Polly retry policy for getting navigation
     private AsyncRetryPolicy NavigationRetryPolicy => Policy
@@ -160,15 +151,18 @@ public class NavigationService(
             throw new InvalidOperationException("Application.Current is null. Cannot get INavigation.");
         }
 
-        // First, wait for at least one window to be available using Polly
-        int windowCount = await WindowWaitRetryPolicy.ExecuteAsync(() =>
+        // Wait for at least one window to be available - retry forever
+        int windowCount = 0;
+        int attemptCount = 0;
+        while (windowCount == 0)
         {
-            return Task.FromResult(app.Windows.Count);
-        });
-
-        if (windowCount == 0)
-        {
-            throw new InvalidOperationException("No windows available after retries. Application may not be fully initialized.");
+            windowCount = app.Windows.Count;
+            if (windowCount == 0)
+            {
+                attemptCount++;
+                _logger?.Debug($"Waiting for window to be added to Application. Current count: 0 (attempt {attemptCount})");
+                await Task.Delay(200); // Wait 200ms before retrying
+            }
         }
 
         _logger?.Debug($"Window found. Now attempting to get navigation (window count: {windowCount})");
@@ -276,37 +270,37 @@ public class NavigationService(
     public async Task NavigateToMusicSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<MusicSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: false);
+        await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToSongBookSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<SongBookSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: false);
+        await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToTrackSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<TrackSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: false);
+        await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToBibleSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<BibleSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: false);
+        await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToBookSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<BookSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: false);
+        await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToChapterSelectionAsync()
     {
         var page = _serviceProvider.GetRequiredService<ChapterSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: false);
+        await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
@@ -427,8 +421,9 @@ public class NavigationService(
     {
         var navigation = await GetNavigationAsync();
 
-        // Set navigation bar setting
+        // Set navigation bar settings
         NavigationPage.SetHasNavigationBar(page, hasNavigationBar);
+        NavigationPage.SetHasBackButton(page, hasNavigationBar); // Enable back button when navigation bar is enabled
 
         // Push the fresh page first - keep animation enabled
         await navigation.PushAsync(page, animated: true);
