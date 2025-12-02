@@ -17,11 +17,12 @@
              NavigationPage.HasNavigationBar="False">
     <ContentPage.Resources>
         <converters:DayColorConverter x:Key="dayColorConverter" />
+        <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid AutomationId="SchedulePage"
-              BackgroundColor="White">
+              BackgroundColor="#F5F5F5">
             <Grid Grid.ZIndex="1"
                   Margin="{OnPlatform iOS='0,10,0,0'}"
                   IsVisible="{Binding IsSchedulePageOverlayVisible, Converter={StaticResource negateBooleanConverter}}"
@@ -40,40 +41,106 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0"
-                        Margin="0,3,3,3"
-                        AutomationId="CancelButton"
-                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                     WinUI='LightGray'}"
-                        BorderWidth="0"
-                        BorderColor="Transparent"
-                        Command="{Binding CancelCommand}"
-                        FontSize="{StaticResource ButtonFontSize}"
-                        FontAttributes="Bold"
-                        HorizontalOptions="Fill"
-                        MinimumHeightRequest="{OnPlatform Default='40',
-                                                      WinUI='30'}"
-                        Padding="10,8"
-                        Text="CANCEL"
-                        TextColor="SlateBlue"
-                        VerticalOptions="Fill" />
-                <Button Grid.Column="1"
-                        Margin="3,3,0,3"
-                        AutomationId="SaveButton"
-                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                     WinUI='LightGray'}"
-                        BorderWidth="0"
-                        BorderColor="Transparent"
-                        Command="{Binding SaveCommand}"
-                        FontSize="{StaticResource ButtonFontSize}"
-                        FontAttributes="Bold"
-                        HorizontalOptions="Fill"
-                        MinimumHeightRequest="{OnPlatform Default='40',
-                                                          WinUI='30'}"
-                        Padding="10,8"
-                        Text="SAVE"
-                        TextColor="SlateBlue"
-                        VerticalOptions="Fill" />
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="WinUI">
+                            <Button Grid.Column="0"
+                                    Margin="0,3,3,3"
+                                    AutomationId="CancelButton"
+                                    BackgroundColor="#E0E0E0"
+                                    CornerRadius="8"
+                                    Command="{Binding CancelCommand}"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="45"
+                                    Padding="10,10"
+                                    Text="CANCEL"
+                                    TextColor="#666666"
+                                    VerticalOptions="Fill">
+                                <Button.Shadow>
+                                    <Shadow Brush="#20000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.2" />
+                                </Button.Shadow>
+                            </Button>
+                        </On>
+                        <On Platform="Default">
+                            <buttons:SfButton Grid.Column="0"
+                                    Margin="0,3,3,3"
+                                    AutomationId="CancelButton"
+                                    Background="#E0E0E0"
+                                    CornerRadius="8"
+                                    Command="{Binding CancelCommand}"
+                                    FontSize="{StaticResource ButtonFontSize}"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="45"
+                                    Padding="10,8"
+                                    Text="CANCEL"
+                                    TextColor="#666666"
+                                    VerticalOptions="Fill">
+                                <buttons:SfButton.Shadow>
+                                    <Shadow Brush="#20000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.2" />
+                                </buttons:SfButton.Shadow>
+                            </buttons:SfButton>
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="WinUI">
+                            <Button Grid.Column="1"
+                                    Margin="3,3,0,3"
+                                    AutomationId="SaveButton"
+                                    BackgroundColor="#6A5ACD"
+                                    CornerRadius="8"
+                                    Command="{Binding SaveCommand}"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="45"
+                                    Padding="10,10"
+                                    Text="SAVE"
+                                    TextColor="White"
+                                    VerticalOptions="Fill">
+                                <Button.Shadow>
+                                    <Shadow Brush="#40000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.3" />
+                                </Button.Shadow>
+                            </Button>
+                        </On>
+                        <On Platform="Default">
+                            <buttons:SfButton Grid.Column="1"
+                                    Margin="3,3,0,3"
+                                    AutomationId="SaveButton"
+                                    Background="#6A5ACD"
+                                    CornerRadius="8"
+                                    Command="{Binding SaveCommand}"
+                                    FontSize="{StaticResource ButtonFontSize}"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="45"
+                                    Padding="10,8"
+                                    Text="SAVE"
+                                    TextColor="White"
+                                    VerticalOptions="Fill">
+                                <buttons:SfButton.Shadow>
+                                    <Shadow Brush="#40000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.3" />
+                                </buttons:SfButton.Shadow>
+                            </buttons:SfButton>
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
             </Grid>
             <ScrollView Grid.Row="1"
                         Margin="0,0,0,0">
@@ -91,7 +158,7 @@
                             <enums:DaysOfWeek x:Key="Saturday">Saturday</enums:DaysOfWeek>
                         </StackLayout.Resources>
                         <TimePicker AutomationId="AlarmTimePicker"
-                                    BackgroundColor="White"
+                                    BackgroundColor="Transparent"
                                     FontSize="{StaticResource TitleFontSize}"
                                     HorizontalOptions="Center"
                                     Margin="0"
@@ -99,130 +166,237 @@
                                     Time="{Binding Time, Mode=TwoWay}">
                             <TimePicker.Format>hh:mm tt</TimePicker.Format>
                         </TimePicker>
-                        <StackLayout Margin="0"
-                                     HorizontalOptions="Center"
-                                     Orientation="Horizontal">
-                            <Button Margin="5,0,0,0"
-                                    Padding="0"
-                                    BackgroundColor="White"
-                                    BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                    BorderWidth="2"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Sunday}"
-                                    FontAttributes="Bold"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                    WidthRequest="35"
-                                    HeightRequest="35" />
-                            <Button Margin="2,0,0,0"
-                                    Padding="0"
-                                    BackgroundColor="White"
-                                    BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                    BorderWidth="2"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Monday}"
-                                    FontAttributes="Bold"
-                                    Text="M"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                    WidthRequest="35"
-                                    HeightRequest="35" />
-                            <Button Margin="2,0,0,0"
-                                    Padding="0"
-                                    BackgroundColor="White"
-                                    BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                    BorderWidth="2"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Tuesday}"
-                                    FontAttributes="Bold"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                    WidthRequest="35"
-                                    HeightRequest="35" />
-                            <Button Margin="2,0,0,0"
-                                    Padding="0"
-                                    BackgroundColor="White"
-                                    BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                    BorderWidth="2"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Wednesday}"
-                                    FontAttributes="Bold"
-                                    Text="W"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                    WidthRequest="35"
-                                    HeightRequest="35" />
-                            <Button Margin="2,0,0,0"
-                                    Padding="0"
-                                    BackgroundColor="White"
-                                    BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                    BorderWidth="2"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Thursday}"
-                                    FontAttributes="Bold"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                    WidthRequest="35"
-                                    HeightRequest="35" />
-                            <Button Margin="2,0,0,0"
-                                    Padding="0"
-                                    BackgroundColor="White"
-                                    BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                    BorderWidth="2"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Friday}"
-                                    FontAttributes="Bold"
-                                    Text="F"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                    WidthRequest="35"
-                                    HeightRequest="35" />
-                            <Button Margin="2,0,0,0"
-                                    Padding="0"
-                                    BackgroundColor="White"
-                                    BorderColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                    BorderWidth="2"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Saturday}"
-                                    FontAttributes="Bold"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                    WidthRequest="35"
-                                    HeightRequest="35" />
-                        </StackLayout>
+                        <Grid Margin="0"
+                              HorizontalOptions="Fill"
+                              ColumnSpacing="4"
+                              RowSpacing="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6,6,6,6"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
+                                <Border.BackgroundColor>
+                                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Sunday}">
+                                        <Binding Path="DaysOfWeek" />
+                                        <Binding Path="IsEnabled" />
+                                    </MultiBinding>
+                                </Border.BackgroundColor>
+                                <buttons:SfButton
+                                        Padding="0"
+                                        Background="Transparent"
+                                        Command="{Binding ToggleDayCommand}"
+                                        CommandParameter="{StaticResource Sunday}"
+                                        FontAttributes="Bold"
+                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
+                                        Text="S"
+                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill" />
+                            </Border>
+                            <Border Grid.Column="1"
+                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6,6,6,6"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
+                                <Border.BackgroundColor>
+                                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Monday}">
+                                        <Binding Path="DaysOfWeek" />
+                                        <Binding Path="IsEnabled" />
+                                    </MultiBinding>
+                                </Border.BackgroundColor>
+                                <buttons:SfButton
+                                        Padding="0"
+                                        Background="Transparent"
+                                        Command="{Binding ToggleDayCommand}"
+                                        CommandParameter="{StaticResource Monday}"
+                                        FontAttributes="Bold"
+                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
+                                        Text="M"
+                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill" />
+                            </Border>
+                            <Border Grid.Column="2"
+                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6,6,6,6"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
+                                <Border.BackgroundColor>
+                                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Tuesday}">
+                                        <Binding Path="DaysOfWeek" />
+                                        <Binding Path="IsEnabled" />
+                                    </MultiBinding>
+                                </Border.BackgroundColor>
+                                <buttons:SfButton
+                                        Padding="0"
+                                        Background="Transparent"
+                                        Command="{Binding ToggleDayCommand}"
+                                        CommandParameter="{StaticResource Tuesday}"
+                                        FontAttributes="Bold"
+                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
+                                        Text="T"
+                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill" />
+                            </Border>
+                            <Border Grid.Column="3"
+                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6,6,6,6"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
+                                <Border.BackgroundColor>
+                                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Wednesday}">
+                                        <Binding Path="DaysOfWeek" />
+                                        <Binding Path="IsEnabled" />
+                                    </MultiBinding>
+                                </Border.BackgroundColor>
+                                <buttons:SfButton
+                                        Padding="0"
+                                        Background="Transparent"
+                                        Command="{Binding ToggleDayCommand}"
+                                        CommandParameter="{StaticResource Wednesday}"
+                                        FontAttributes="Bold"
+                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
+                                        Text="W"
+                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill" />
+                            </Border>
+                            <Border Grid.Column="4"
+                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6,6,6,6"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
+                                <Border.BackgroundColor>
+                                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Thursday}">
+                                        <Binding Path="DaysOfWeek" />
+                                        <Binding Path="IsEnabled" />
+                                    </MultiBinding>
+                                </Border.BackgroundColor>
+                                <buttons:SfButton
+                                        Padding="0"
+                                        Background="Transparent"
+                                        Command="{Binding ToggleDayCommand}"
+                                        CommandParameter="{StaticResource Thursday}"
+                                        FontAttributes="Bold"
+                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
+                                        Text="T"
+                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill" />
+                            </Border>
+                            <Border Grid.Column="5"
+                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6,6,6,6"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
+                                <Border.BackgroundColor>
+                                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Friday}">
+                                        <Binding Path="DaysOfWeek" />
+                                        <Binding Path="IsEnabled" />
+                                    </MultiBinding>
+                                </Border.BackgroundColor>
+                                <buttons:SfButton
+                                        Padding="0"
+                                        Background="Transparent"
+                                        Command="{Binding ToggleDayCommand}"
+                                        CommandParameter="{StaticResource Friday}"
+                                        FontAttributes="Bold"
+                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
+                                        Text="F"
+                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill" />
+                            </Border>
+                            <Border Grid.Column="6"
+                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6,6,6,6"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
+                                <Border.BackgroundColor>
+                                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Saturday}">
+                                        <Binding Path="DaysOfWeek" />
+                                        <Binding Path="IsEnabled" />
+                                    </MultiBinding>
+                                </Border.BackgroundColor>
+                                <buttons:SfButton
+                                        Padding="0"
+                                        Background="Transparent"
+                                        Command="{Binding ToggleDayCommand}"
+                                        CommandParameter="{StaticResource Saturday}"
+                                        FontAttributes="Bold"
+                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
+                                        Text="S"
+                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill" />
+                            </Border>
+                        </Grid>
                         <StackLayout
                             Margin="0"
                             HorizontalOptions="Center"
                             Orientation="Horizontal">
                             <Border
                                 StrokeThickness="1"
-                                Stroke="LightGray"
+                                Stroke="#E0E0E0"
                                 BackgroundColor="White"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="5" />
+                                    <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <Shadow Brush="#20000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.1" />
+                                </Border.Shadow>
                                 <Entry
-                                    Margin="8,4"
+                                    Margin="12,8"
                                     MaxLength="30"
                                     MinimumWidthRequest="200"
                                     Placeholder="Schedule Name"
                                     Text="{Binding Name, Mode=TwoWay}"
-                                    BackgroundColor="Transparent" />
+                                    BackgroundColor="Transparent"
+                                    TextColor="#1A1A1A" />
                             </Border>
                         </StackLayout>
                         <Border Margin="0"
                                Padding="0"
-                               StrokeThickness="1"
-                               Stroke="LightGray"
-                               BackgroundColor="WhiteSmoke"
+                               StrokeThickness="2"
+                               Stroke="#6A5ACD"
+                               BackgroundColor="White"
                                HorizontalOptions="Fill">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
+                                <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#20000000" 
+                                        Offset="0,2" 
+                                        Radius="8" 
+                                        Opacity="0.2" />
+                            </Border.Shadow>
                             <StackLayout Orientation="Vertical"
                                          Spacing="0">
                                 <Grid x:Name="BibleButton"
-                                      Margin="5,5,5,5"
-                                      BackgroundColor="WhiteSmoke"
+                                      Margin="8,8,8,8"
+                                      BackgroundColor="#F8F8F8"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
                                     <Grid.ColumnDefinitions>
@@ -239,7 +413,9 @@
 
                                     <Label Grid.Column="0"
                                            Margin="5,0,0,0"
-                                           Padding="10"
+                                           Padding="10,10"
+                                           FontSize="{StaticResource StandardFontSize}"
+                                           FontAttributes="Bold"
                                            HorizontalTextAlignment="Start"
                                            Text="Current schedule"
                                            TextColor="Black"
@@ -249,6 +425,8 @@
                                                  Orientation="Horizontal"
                                                  VerticalOptions="Center">
                                         <Label Margin="5,0,0,0"
+                                               Padding="0,10"
+                                               FontSize="{StaticResource StandardFontSize}"
                                                HorizontalTextAlignment="End"
                                                Text="{Binding BibleReadingTitleText}"
                                                TextColor="SlateBlue" />
@@ -256,15 +434,16 @@
                                             Margin="10,0,10,0"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             Style="{StaticResource MediumLabelStyle}"
+                                            FontSize="{StaticResource StandardFontSize}"
                                             HorizontalOptions="End"
                                             Text="{x:Static fn:GlyphNames.Right}"
-                                            TextColor="Gray"
+                                            TextColor="SlateBlue"
                                             VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
                                 <Grid x:Name="BibleBookButton"
-                                      Margin="5,5,5,5"
-                                      BackgroundColor="WhiteSmoke"
+                                      Margin="8,6,8,6"
+                                      BackgroundColor="Transparent"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
                                     <Grid.ColumnDefinitions>
@@ -277,7 +456,7 @@
 
                                     <Label Grid.Column="0"
                                            Margin="5,0,0,0"
-                                           Padding="10"
+                                           Padding="8"
                                            HorizontalTextAlignment="Start"
                                            Text="Book"
                                            TextColor="Black"
@@ -285,38 +464,39 @@
                                     <StackLayout Grid.Column="1"
                                                  HorizontalOptions="End"
                                                  Orientation="Horizontal"
+                                                 Spacing="8"
                                                  VerticalOptions="Center">
-                                        <Button
-                                            Margin="10,0,10,0"
+                                        <buttons:SfButton
                                             Padding="0"
-                                            BackgroundColor="Transparent"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
+                                            Background="#F5F5F5"
+                                            CornerRadius="6"
                                             Command="{Binding PreviousBookCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
+                                            FontSize="20"
+                                            HeightRequest="36"
+                                            WidthRequest="36"
                                             HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Previous}"
-                                            TextColor="Gray"
+                                            Text="{x:Static fn:GlyphNames.Left}"
+                                            TextColor="#333333"
                                             VerticalOptions="Center" />
-                                        <Button
-                                            Margin="10,0,15,0"
+                                        <buttons:SfButton
                                             Padding="0"
-                                            BackgroundColor="Transparent"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
+                                            Background="#F5F5F5"
+                                            CornerRadius="6"
                                             Command="{Binding NextBookCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
+                                            FontSize="20"
+                                            HeightRequest="36"
+                                            WidthRequest="36"
                                             HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Next}"
-                                            TextColor="Gray"
+                                            Text="{x:Static fn:GlyphNames.Right}"
+                                            TextColor="#333333"
                                             VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
                                 <Grid x:Name="BibleChapterButton"
-                                      Margin="5,5,5,5"
-                                      BackgroundColor="WhiteSmoke"
+                                      Margin="8,8,8,8"
+                                      BackgroundColor="Transparent"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
                                     <Grid.ColumnDefinitions>
@@ -337,32 +517,33 @@
                                     <StackLayout Grid.Column="1"
                                                  HorizontalOptions="End"
                                                  Orientation="Horizontal"
+                                                 Spacing="8"
                                                  VerticalOptions="Center">
-                                        <Button
-                                            Margin="10,0,10,0"
+                                        <buttons:SfButton
                                             Padding="0"
-                                            BackgroundColor="Transparent"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
+                                            Background="#F5F5F5"
+                                            CornerRadius="6"
                                             Command="{Binding PreviousChapterCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
+                                            FontSize="20"
+                                            HeightRequest="36"
+                                            WidthRequest="36"
                                             HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Previous}"
-                                            TextColor="Gray"
+                                            Text="{x:Static fn:GlyphNames.Left}"
+                                            TextColor="#333333"
                                             VerticalOptions="Center" />
-                                        <Button
-                                            Margin="10,0,15,0"
+                                        <buttons:SfButton
                                             Padding="0"
-                                            BackgroundColor="Transparent"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
+                                            Background="#F5F5F5"
+                                            CornerRadius="6"
                                             Command="{Binding NextChapterCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
+                                            FontSize="20"
+                                            HeightRequest="36"
+                                            WidthRequest="36"
                                             HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Next}"
-                                            TextColor="Gray"
+                                            Text="{x:Static fn:GlyphNames.Right}"
+                                            TextColor="#333333"
                                             VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
@@ -370,146 +551,21 @@
                         </Border>
                         <Border Margin="0"
                                Padding="0"
-                               StrokeThickness="1"
-                               Stroke="LightGray"
-                               BackgroundColor="WhiteSmoke"
+                               StrokeThickness="0"
+                               BackgroundColor="White"
                                HorizontalOptions="Fill">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
+                                <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
-                            <Grid x:Name="ChaptersButton"
-                                  Margin="5,5,5,5"
-                                  BackgroundColor="WhiteSmoke"
-                                  HorizontalOptions="Fill"
-                                  VerticalOptions="Fill">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="7*" />
-                                <ColumnDefinition Width="3*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding OpenModalCommand}"
-                                                      NumberOfTapsRequired="1" />
-                            </Grid.GestureRecognizers>
-                            <Label Grid.Column="0"
-                                   Margin="5,0,0,0"
-                                   Padding="10"
-                                   HorizontalTextAlignment="Start"
-                                   Text="Number of chapters to play"
-                                   TextColor="Black"
-                                   VerticalOptions="Center" />
-                            <Label Grid.Column="1"
-                                   Margin="0,0,5,0"
-                                   HorizontalOptions="End"
-                                   Text="{Binding CurrentNumberOfChaptersText}"
-                                   TextColor="SlateBlue"
-                                   VerticalOptions="Center" />
-                            </Grid>
-                        </Border>
-                        <Border Margin="0"
-                               Padding="0"
-                               StrokeThickness="1"
-                               Stroke="LightGray"
-                               BackgroundColor="WhiteSmoke"
-                               HorizontalOptions="Fill">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
-                            </Border.StrokeShape>
-                            <StackLayout Orientation="Vertical"
-                                         Spacing="0">
-                                <Grid x:Name="AlwaysPlayFromStartButton"
-                                      Margin="5,5,5,5"
-                                      BackgroundColor="WhiteSmoke"
-                                      HorizontalOptions="Fill"
-                                      VerticalOptions="Fill">
-                                <Grid.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding ToggleAlwaysPlayFromStartCommand}"
-                                                          NumberOfTapsRequired="1" />
-                                </Grid.GestureRecognizers>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="7*" />
-                                    <ColumnDefinition Width="3*" />
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto" />
-                                </Grid.RowDefinitions>
-                            <Label Grid.Column="0"
-                                   Margin="5,0,0,0"
-                                   Padding="10"
-                                   HorizontalOptions="Fill"
-                                   HorizontalTextAlignment="Start"
-                                   TextColor="Black"
-                                   VerticalOptions="Center">
-                                Resume unfinished chapters from the beginning
-                            </Label>
-                            <StackLayout Grid.Column="1"
-                                         HorizontalOptions="End"
-                                         Orientation="Horizontal"
-                                         VerticalOptions="Center">
-                                <shared:PlatformSwitch
-                                    Margin="0,0,15,0"
-                                    HorizontalOptions="End"
-                                    IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
-                                    Scale="{OnPlatform Android='1', Default='1'}" />
-                            </StackLayout>
-                            </Grid>
-                            <Grid x:Name="ShowNotificationButton"
-                                  Margin="5,0,5,0"
-                                  BackgroundColor="WhiteSmoke"
-                                  HorizontalOptions="Fill"
-                                  VerticalOptions="Fill">
-                            <Grid.IsVisible>
-                                <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                                    <On Platform="Android" Value="true" />
-                                </OnPlatform>
-                            </Grid.IsVisible>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="6*" />
-                                <ColumnDefinition Width="4*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding NotificationEnabledCommand}"
-                                                      NumberOfTapsRequired="1" />
-                            </Grid.GestureRecognizers>
-                            <Label Grid.Column="0"
-                                   Margin="5,0,0,0"
-                                   Padding="10"
-                                   HorizontalOptions="Fill"
-                                   HorizontalTextAlignment="Start"
-                                   TextColor="Black"
-                                   VerticalOptions="Center">
-                                Play only when I tap on alarm notification
-                            </Label>
-                            <StackLayout Grid.Column="1"
-                                         HorizontalOptions="End"
-                                         Orientation="Horizontal"
-                                         VerticalOptions="Center">
-                                <shared:PlatformSwitch
-                                    Margin="0,0,15,0"
-                                    HorizontalOptions="End"
-                                    IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
-                                    Scale="{OnPlatform Android='1', Default='1'}" />
-                            </StackLayout>
-                                </Grid>
-                            </StackLayout>
-                        </Border>
-                        <Border Margin="0"
-                               Padding="0"
-                               StrokeThickness="1"
-                               Stroke="LightGray"
-                               BackgroundColor="WhiteSmoke"
-                               HorizontalOptions="Fill">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
-                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#20000000" 
+                                        Offset="0,2" 
+                                        Radius="8" 
+                                        Opacity="0.15" />
+                            </Border.Shadow>
                             <Grid x:Name="MusicButton"
-                                  Margin="5,5,5,5"
-                                  BackgroundColor="WhiteSmoke"
+                                  Margin="8,8,8,8"
+                                  BackgroundColor="#F8F8F8"
                                   HorizontalOptions="Fill"
                                   VerticalOptions="Fill">
                             <Grid.ColumnDefinitions>
@@ -548,38 +604,186 @@
                                        Style="{StaticResource MediumLabelStyle}"
                                        HorizontalOptions="End"
                                        Text="{x:Static fn:GlyphNames.Right}"
-                                       TextColor="Gray"
+                                       TextColor="SlateBlue"
                                        VerticalOptions="Center"
                                        VerticalTextAlignment="Center" />
                             </StackLayout>
                         </Grid>
                         </Border>
-
-                        <Grid Margin="5,10,5,5"
-                              IsVisible="{Binding IsExistingSchedule}"
-                              VerticalOptions="End">
-                            <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding DeleteCommand}" />
-                            </Grid.GestureRecognizers>
-                            <Border BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                                 WinUI='LightGray'}"
-                                    StrokeThickness="0"
-                                    Padding="10,8"
-                                    HorizontalOptions="Fill"
-                                    MinimumHeightRequest="{OnPlatform Default='40',
-                                                                  WinUI='30'}">
-                                <StackLayout Orientation="Horizontal"
-                                             HorizontalOptions="Center"
-                                             Spacing="8"
-                                             VerticalOptions="Center">
-                                    <Label Text="DELETE"
-                                           FontSize="{StaticResource ButtonFontSize}"
-                                           FontAttributes="Bold"
+                        <Border Margin="0"
+                               Padding="0"
+                               StrokeThickness="0"
+                               BackgroundColor="White"
+                               HorizontalOptions="Fill">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#20000000" 
+                                        Offset="0,2" 
+                                        Radius="8" 
+                                        Opacity="0.15" />
+                            </Border.Shadow>
+                            <StackLayout Orientation="Vertical"
+                                         Spacing="0">
+                                <Grid x:Name="ChaptersButton"
+                                      Margin="8,8,8,8"
+                                      BackgroundColor="Transparent"
+                                      HorizontalOptions="Fill"
+                                      VerticalOptions="Fill">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="7*" />
+                                        <ColumnDefinition Width="3*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding OpenModalCommand}"
+                                                              NumberOfTapsRequired="1" />
+                                    </Grid.GestureRecognizers>
+                                    <Label Grid.Column="0"
+                                           Margin="5,0,0,0"
+                                           Padding="10"
+                                           HorizontalTextAlignment="Start"
+                                           Text="Number of chapters to play"
+                                           TextColor="Black"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="1"
+                                           Margin="0,0,5,0"
+                                           HorizontalOptions="End"
+                                           Text="{Binding CurrentNumberOfChaptersText}"
                                            TextColor="SlateBlue"
                                            VerticalOptions="Center" />
-                                </StackLayout>
-                            </Border>
-                        </Grid>
+                                </Grid>
+                                <Grid x:Name="AlwaysPlayFromStartButton"
+                                      Margin="8,0,8,8"
+                                      BackgroundColor="Transparent"
+                                      HorizontalOptions="Fill"
+                                      VerticalOptions="Fill">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding ToggleAlwaysPlayFromStartCommand}"
+                                                              NumberOfTapsRequired="1" />
+                                    </Grid.GestureRecognizers>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="7*" />
+                                        <ColumnDefinition Width="3*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                    </Grid.RowDefinitions>
+                                    <Label Grid.Column="0"
+                                           Margin="5,0,0,0"
+                                           Padding="10"
+                                           HorizontalOptions="Fill"
+                                           HorizontalTextAlignment="Start"
+                                           TextColor="Black"
+                                           VerticalOptions="Center">
+                                        Resume unfinished chapters from the beginning
+                                    </Label>
+                                    <StackLayout Grid.Column="1"
+                                                 HorizontalOptions="End"
+                                                 Orientation="Horizontal"
+                                                 VerticalOptions="Center">
+                                        <shared:PlatformSwitch
+                                            Margin="0,0,15,0"
+                                            HorizontalOptions="End"
+                                            IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
+                                            Scale="{OnPlatform Android='1', Default='1'}" />
+                                    </StackLayout>
+                                </Grid>
+                                <Grid x:Name="ShowNotificationButton"
+                                      Margin="8,0,8,8"
+                                      BackgroundColor="Transparent"
+                                      HorizontalOptions="Fill"
+                                      VerticalOptions="Fill">
+                                    <Grid.IsVisible>
+                                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                                            <On Platform="Android" Value="true" />
+                                        </OnPlatform>
+                                    </Grid.IsVisible>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="6*" />
+                                        <ColumnDefinition Width="4*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding NotificationEnabledCommand}"
+                                                              NumberOfTapsRequired="1" />
+                                    </Grid.GestureRecognizers>
+                                    <Label Grid.Column="0"
+                                           Margin="5,0,0,0"
+                                           Padding="10"
+                                           HorizontalOptions="Fill"
+                                           HorizontalTextAlignment="Start"
+                                           TextColor="Black"
+                                           VerticalOptions="Center">
+                                        Play only when I tap on alarm notification
+                                    </Label>
+                                    <StackLayout Grid.Column="1"
+                                                 HorizontalOptions="End"
+                                                 Orientation="Horizontal"
+                                                 VerticalOptions="Center">
+                                        <shared:PlatformSwitch
+                                            Margin="0,0,15,0"
+                                            HorizontalOptions="End"
+                                            IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
+                                            Scale="{OnPlatform Android='1', Default='1'}" />
+                                    </StackLayout>
+                                </Grid>
+                            </StackLayout>
+                        </Border>
+
+                        <OnPlatform x:TypeArguments="View">
+                            <OnPlatform.Platforms>
+                                <On Platform="WinUI">
+                                    <Button Margin="0,10,0,5"
+                                          IsVisible="{Binding IsExistingSchedule}"
+                                          VerticalOptions="End"
+                                          BackgroundColor="#FF3B30"
+                                          CornerRadius="8"
+                                          Command="{Binding DeleteCommand}"
+                                          FontSize="17"
+                                          FontAttributes="Bold"
+                                          HorizontalOptions="Fill"
+                                          HeightRequest="45"
+                                          Padding="10,10"
+                                          Text="DELETE"
+                                          TextColor="White">
+                                        <Button.Shadow>
+                                            <Shadow Brush="#40000000" 
+                                                    Offset="0,2" 
+                                                    Radius="4" 
+                                                    Opacity="0.3" />
+                                        </Button.Shadow>
+                                    </Button>
+                                </On>
+                                <On Platform="Default">
+                                    <buttons:SfButton Margin="0,10,0,5"
+                                          IsVisible="{Binding IsExistingSchedule}"
+                                          VerticalOptions="End"
+                                          Background="#FF3B30"
+                                          CornerRadius="8"
+                                          Command="{Binding DeleteCommand}"
+                                          FontSize="{StaticResource ButtonFontSize}"
+                                          FontAttributes="Bold"
+                                          HorizontalOptions="Fill"
+                                          HeightRequest="45"
+                                          Padding="10,8"
+                                          Text="DELETE"
+                                          TextColor="White">
+                                        <buttons:SfButton.Shadow>
+                                            <Shadow Brush="#40000000" 
+                                                    Offset="0,2" 
+                                                    Radius="4" 
+                                                    Opacity="0.3" />
+                                        </buttons:SfButton.Shadow>
+                                    </buttons:SfButton>
+                                </On>
+                            </OnPlatform.Platforms>
+                        </OnPlatform>
                     </StackLayout>
                 </ScrollView>
             </Grid>

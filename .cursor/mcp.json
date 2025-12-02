@@ -1,0 +1,15 @@
+﻿{
+  "mcpServers": {
+    "syncfusion-maui-assistant": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@syncfusion/maui-assistant@latest"
+      ],
+      "env": {
+        "Syncfusion_API_Key": "${env:SYNCFUSION_API_KEY}"
+      }
+    }
+  }
+}

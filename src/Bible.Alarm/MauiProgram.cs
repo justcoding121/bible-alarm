@@ -111,6 +111,13 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkitMediaElement()
             .ConfigureSyncfusionCore()
+#if ANDROID
+            .ConfigureMauiHandlers(handlers =>
+            {
+                handlers.AddHandler<Microsoft.Maui.Controls.Entry, Bible.Alarm.Platforms.Android.Handlers.EntryHandler>();
+                handlers.AddHandler<Microsoft.Maui.Controls.TimePicker, Bible.Alarm.Platforms.Android.Handlers.TimePickerHandler>();
+            })
+#endif
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);

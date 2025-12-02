@@ -8,6 +8,7 @@ using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels;
@@ -285,21 +286,57 @@ public class ScheduleListItem(
             }
         }
 
+        // Store old values before updating
+        var oldDaysOfWeek = Schedule?.DaysOfWeek ?? 0;
+        var oldIsEnabled = _isEnabled;
+        var oldName = Schedule?.Name ?? string.Empty;
+        var oldHour = Schedule?.Hour ?? 0;
+        var oldMinute = Schedule?.Minute ?? 0;
+        
+        // Update the schedule reference
+        Schedule = updatedSchedule;
+        _lastKnownSchedule = updatedSchedule;
+        
+        // Check if properties changed by comparing old values with new values
+        var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
+        var isEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled;
+        var nameChanged = oldName != updatedSchedule.Name;
+        var timeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute;
+
         if (trackChanged)
         {
-            // Update local schedule reference
-            Schedule = updatedSchedule;
-            _lastKnownSchedule = updatedSchedule;
-            
             // Refresh the chapter name display
             RefreshChapterName();
         }
-        else
+
+        // Always update _isEnabled to match the schedule
+        _isEnabled = updatedSchedule.IsEnabled;
+
+        // Notify property changes for updated properties on main thread
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Still update the reference even if track didn't change (for other property updates)
-            Schedule = updatedSchedule;
-            _lastKnownSchedule = updatedSchedule;
-        }
+            // Always notify DaysOfWeek and This when schedule is updated to ensure UI refreshes
+            // This is critical for day indicator updates on the home page
+            OnPropertyChanged(nameof(DaysOfWeek));
+            OnPropertyChanged(nameof(This)); // Also notify This for day indicator bindings
+            
+            if (isEnabledChanged)
+            {
+                OnPropertyChanged(nameof(IsEnabled));
+            }
+            if (nameChanged)
+            {
+                OnPropertyChanged(nameof(Name));
+            }
+            if (timeChanged)
+            {
+                OnPropertyChanged(nameof(TimeText));
+                OnPropertyChanged(nameof(Hour));
+                OnPropertyChanged(nameof(Minute));
+                OnPropertyChanged(nameof(Meridian));
+                OnPropertyChanged(nameof(MeridianText));
+            }
+        });
     }
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
