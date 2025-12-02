@@ -46,6 +46,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Platforms.iOS.Services.Media;
+using Bible.Alarm.Platforms.iOS.Handlers;
 #endif
 
 #if ANDROID
@@ -116,6 +117,11 @@ public static class MauiProgram
             {
                 handlers.AddHandler<Microsoft.Maui.Controls.Entry, Bible.Alarm.Platforms.Android.Handlers.EntryHandler>();
                 handlers.AddHandler<Microsoft.Maui.Controls.TimePicker, Bible.Alarm.Platforms.Android.Handlers.TimePickerHandler>();
+            })
+#elif IOS
+            .ConfigureMauiHandlers(handlers =>
+            {
+                handlers.AddHandler<Microsoft.Maui.Controls.SearchBar, SearchBarHandler>();
             })
 #endif
             .ConfigureFonts(fonts =>

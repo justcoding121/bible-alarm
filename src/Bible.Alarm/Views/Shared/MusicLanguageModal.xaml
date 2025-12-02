@@ -85,12 +85,34 @@
             </Border>
             
             <!-- Enhanced Search Bar -->
+            <!-- iOS: SearchBar without Border wrapper to avoid double-border effect -->
+            <SearchBar
+                Grid.Row="1"
+                Margin="16,8,16,0"
+                BackgroundColor="{StaticResource CardBackgroundColor}"
+                HeightRequest="50"
+                HorizontalOptions="Fill"
+                HorizontalTextAlignment="Start"
+                MinimumHeightRequest="50"
+                Placeholder="Search languages"
+                Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
+                TextColor="{StaticResource TextPrimaryColor}"
+                IsVisible="{OnPlatform iOS='True', Default='False'}">
+                <SearchBar.CancelButtonColor>
+                    <OnPlatform x:TypeArguments="Color">
+                        <On Platform="iOS" Value="Transparent" />
+                        <On Platform="Default" Value="{StaticResource TextPrimaryColor}" />
+                    </OnPlatform>
+                </SearchBar.CancelButtonColor>
+            </SearchBar>
+            <!-- Non-iOS: SearchBar with Border wrapper for styling -->
             <Border
                 Grid.Row="1"
                 Margin="16,8,16,0"
                 BackgroundColor="{StaticResource CardBackgroundColor}"
                 StrokeThickness="0"
-                Padding="0">
+                Padding="0"
+                IsVisible="{OnPlatform iOS='False', Default='True'}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="12" />
                 </Border.StrokeShape>
@@ -109,7 +131,14 @@
                     MinimumHeightRequest="50"
                     Placeholder="Search languages"
                     Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                    TextColor="{StaticResource TextPrimaryColor}" />
+                    TextColor="{StaticResource TextPrimaryColor}">
+                    <SearchBar.CancelButtonColor>
+                        <OnPlatform x:TypeArguments="Color">
+                            <On Platform="iOS" Value="Transparent" />
+                            <On Platform="Default" Value="{StaticResource TextPrimaryColor}" />
+                        </OnPlatform>
+                    </SearchBar.CancelButtonColor>
+                </SearchBar>
             </Border>
             
             <!-- Enhanced Collection View -->

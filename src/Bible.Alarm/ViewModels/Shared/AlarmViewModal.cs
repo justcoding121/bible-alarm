@@ -221,6 +221,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     private ImageSource? _artworkSource;
     private bool _isArtworkLoading;
     private byte[]? _artworkBytes; // Keep bytes in memory for stream-based images
+    private string? _lastArtworkUrl; // Track last artwork URL to avoid unnecessary updates
 
     public ImageSource? ArtworkSource
     {
@@ -491,11 +492,30 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     private void UpdateArtwork(string? artworkUrl)
     {
-        ClearArtwork();
+        // Avoid unnecessary updates if URL hasn't changed
+        if (_lastArtworkUrl == artworkUrl)
+        {
+            return;
+        }
+
+        var previousUrl = _lastArtworkUrl;
+        _lastArtworkUrl = artworkUrl;
         
         if (string.IsNullOrEmpty(artworkUrl))
         {
+            // Only clear if we currently have artwork displayed
+            if (_artworkSource != null)
+            {
+                ClearArtwork();
+            }
             return;
+        }
+
+        // Only clear existing artwork if we're switching to a different artwork
+        // Don't clear if we're loading artwork for the first time (to avoid showing bell icon briefly)
+        if (_artworkSource != null && !string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
+        {
+            ClearArtwork();
         }
 
         IsArtworkLoading = true;
@@ -529,6 +549,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         ArtworkSource = null;
         _artworkBytes = null;
         IsArtworkLoading = false;
+        _lastArtworkUrl = null; // Reset so we can reload if needed
     }
 
     private bool TryLoadFromUri(string artworkUrl)
