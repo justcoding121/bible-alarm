@@ -2,6 +2,7 @@
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Common.ViewHelpers;
 using Microsoft.Maui.Controls;
+using Syncfusion.Maui.Buttons;
 
 namespace Bible.Alarm.Views;
 
@@ -39,13 +40,14 @@ public partial class Home : ContentPage, IDisposable
 
     private void OnScheduleItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is not Grid grid || grid.BindingContext is not ScheduleListItem item)
+        View? container = sender as View;
+        if (container == null || container.BindingContext is not ScheduleListItem item)
         {
             return;
         }
 
-        // Get the tap position relative to the Grid
-        var tapPosition = e.GetPosition(grid);
+        // Get the tap position relative to the container
+        var tapPosition = e.GetPosition(container);
         if (!tapPosition.HasValue)
         {
             // If we can't get position, navigate (fallback behavior)
@@ -54,7 +56,7 @@ public partial class Home : ContentPage, IDisposable
         }
 
         // Check if the tap position is within any Button or Switch bounds
-        if (IsTapOnInteractiveControl(grid, tapPosition.Value))
+        if (IsTapOnInteractiveControl(container, tapPosition.Value))
         {
             // Tap was on a button or switch - don't navigate
             return;
@@ -66,9 +68,9 @@ public partial class Home : ContentPage, IDisposable
 
     private bool IsTapOnInteractiveControl(View view, Point tapPosition)
     {
-        // Check if this view itself is a Button or Switch and contains the tap
+        // Check if this view itself is a Button, SfButton, or Switch and contains the tap
         // Bounds are relative to the parent, and tapPosition is in the same coordinate space
-        if ((view is Button || view is Switch))
+        if ((view is Button || view is SfButton || view is Switch))
         {
             var bounds = view.Bounds;
             if (bounds.Contains(tapPosition))

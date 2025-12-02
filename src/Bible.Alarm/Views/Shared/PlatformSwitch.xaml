@@ -33,10 +33,17 @@
                 </buttons:SfSwitch>
             </On>
             <On Platform="iOS">
-                <Switch
+                <buttons:SfSwitch
                     x:Name="iOSSwitch"
                     VerticalOptions="Center"
-                    HorizontalOptions="{Binding HorizontalOptions, Source={RelativeSource AncestorType={x:Type ContentView}}}" />
+                    Scale="{Binding Scale, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+                    HorizontalOptions="{Binding HorizontalOptions, Source={RelativeSource AncestorType={x:Type ContentView}}}">
+                    <buttons:SfSwitch.SwitchSettings>
+                        <buttons:SwitchSettings 
+                            ThumbBackground="#483D8B"
+                            TrackBackground="#9E9E9E" />
+                    </buttons:SfSwitch.SwitchSettings>
+                </buttons:SfSwitch>
             </On>
         </OnPlatform.Platforms>
     </OnPlatform>

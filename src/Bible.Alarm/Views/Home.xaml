@@ -21,11 +21,13 @@
     NavigationPage.HasNavigationBar="False">
     <ContentPage.Resources>
         <converters:DayColorConverter x:Key="dayColorConverter" />
+        <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
+        <converters:DayOpacityConverter x:Key="dayOpacityConverter" />
         <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
-    <Grid AutomationId="HomePage" BackgroundColor="White">
+    <Grid AutomationId="HomePage" BackgroundColor="#F5F5F5">
         <Grid
             Grid.Row="0"
             Margin="{OnPlatform iOS='0,10,0,0'}"
@@ -36,28 +38,35 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <StackLayout Grid.Row="0">
-                <Button
-                    Margin="{OnPlatform Default='5,5,5,10',
-                                        iOS='5,25,5,10'}"
+            <StackLayout Grid.Row="0" Padding="16,12">
+                <buttons:SfButton
+                    Margin="{OnPlatform Default='0,0,0,16',
+                                        iOS='0,0,0,16'}"
                     AutomationId="AddScheduleButton"
-                    BackgroundColor="{OnPlatform Default='WhiteSmoke', WinUI='LightGray'}"
-                    BorderWidth="0"
-                    BorderColor="Transparent"
+                    Background="#6A5ACD"
+                    CornerRadius="12"
                     Command="{Binding AddScheduleCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="{StaticResource ButtonFontSize}"
+                    FontSize="20"
                     HorizontalOptions="Fill"
-                    MinimumHeightRequest="{OnPlatform Default='40',
-                                                      WinUI='30'}"
-                    Padding="10,8"
+                    HeightRequest="{OnPlatform Default='50',
+                                               WinUI='45',
+                                               iOS='50'}"
+                    Padding="0"
                     Text="{x:Static fn:GlyphNames.Plus}"
-                    TextColor="SlateBlue" />
+                    TextColor="White">
+                    <buttons:SfButton.Shadow>
+                        <Shadow Brush="#40000000" 
+                                Offset="0,2" 
+                                Radius="4" 
+                                Opacity="0.3" />
+                    </buttons:SfButton.Shadow>
+                </buttons:SfButton>
             </StackLayout>
             <CollectionView
                 x:Name="SchedulesCollectionView"
                 Grid.Row="1"
-                BackgroundColor="White"
+                BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"
@@ -65,21 +74,50 @@
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" 
-                                       ItemSpacing="0" />
+                                       ItemSpacing="16" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItem">
-                            <Grid
-                                x:Name="ScheduleItemGrid"
-                                Margin="{OnPlatform Default='0,20,0,20',
-                                                     WinUI='0,20,0,20'}"
-                                Padding="5,10,5,10"
-                                ColumnSpacing="{OnPlatform iOS='0'}"
-                                HorizontalOptions="Fill"
-                                VerticalOptions="Center">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem
+                                            BackgroundColor="#FF3B30"
+                                            Command="{Binding DeleteCommand}">
+                                        <SwipeItem.IconImageSource>
+                                            <FontImageSource
+                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                    Glyph="{x:Static fn:GlyphNames.Trash}"
+                                                    Color="White"
+                                                    Size="20" />
+                                        </SwipeItem.IconImageSource>
+                                    </SwipeItem>
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Grid>
+                                <Border
+                                        x:Name="ScheduleItemBorder"
+                                        Margin="{OnPlatform Default='16,0,16,0',
+                                                             WinUI='16,0,16,0',
+                                                             iOS='16,0,16,0'}"
+                                        Padding="16,16,16,16"
+                                        BackgroundColor="White"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 12,12,12,12">
+                                    <Border.Shadow>
+                                        <Shadow Brush="#20000000" 
+                                                    Offset="0,2" 
+                                                    Radius="8" 
+                                                    Opacity="0.15" />
+                                    </Border.Shadow>
+                                    <Grid
+                                            x:Name="ScheduleItemGrid"
+                                    ColumnSpacing="{OnPlatform iOS='0'}"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Center">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer 
-                                        Tapped="OnScheduleItemTapped" />
+                                            Tapped="OnScheduleItemTapped" />
                                 </Grid.GestureRecognizers>
                                 <Grid.Resources>
                                     <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
@@ -93,190 +131,265 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="auto" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="{OnPlatform WinUI='50', Default='auto'}" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="auto" />
                                 </Grid.RowDefinitions>
                                 <StackLayout VerticalOptions="Center"
-                                             Grid.Column="0"
-                                             Margin="{OnIdiom Default={OnPlatform Default='10,3,0,0',
-                                                                         iOS='10,3,0,0',
-                                                                         WinUI='30,3,0,0'},
-                                                     Tablet={OnPlatform Default='30,3,0,0'}}"
-                                             Padding="0"
-                                             Orientation="Vertical">
-                                    <Button
-                                        Margin="0"
-                                        BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                                     WinUI='LightGray'}"
-                                        BorderWidth="0"
-                                        BorderColor="Transparent"
-                                        Command="{Binding PlayCommand}"
-                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        HorizontalOptions="Center"
-                                        MinimumHeightRequest="{OnPlatform iOS='50',
-                                                                          WinUI='50',
-                                                                          Default='50'}"
-                                        MinimumWidthRequest="{OnPlatform iOS='75',
-                                                                         WinUI='75',
-                                                                         Default='75'}"
-                                        Padding="0"
-                                        Text="{x:Static fn:GlyphNames.Play}"
-                                        TextColor="SlateBlue"
-                                        VerticalOptions="Center" />
-                                    <StackLayout
-                                        Margin="0"
-                                        Padding="0"
-                                        HorizontalOptions="Start"
-                                        Orientation="Horizontal"
-                                        VerticalOptions="Center">
-                                        <Label
+                                                 Grid.Column="0"
+                                                 Margin="{OnIdiom Default={OnPlatform Default='0,0,12,0',
+                                                                         iOS='0,0,12,0',
+                                                                         WinUI='0,0,12,0'},
+                                                     Tablet={OnPlatform Default='0,0,12,0'}}"
+                                                 Padding="0"
+                                                 Orientation="Vertical">
+                                    <buttons:SfButton
+                                            Margin="0,0,0,8"
+                                            Background="#6A5ACD"
+                                            CornerRadius="10"
+                                            Command="{Binding PlayCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            HorizontalOptions="Center"
+                                            HeightRequest="{OnPlatform iOS='56',
+                                                                      WinUI='48',
+                                                                      Default='56'}"
+                                            WidthRequest="{OnPlatform iOS='56',
+                                                                     WinUI='48',
+                                                                     Default='56'}"
                                             Padding="0"
-                                            FontSize="{StaticResource AlarmTimeFontSize}"
-                                            Text="{Binding TimeText}"
-                                            VerticalOptions="Center"
-                                            TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
-                                        <Label
+                                            Text="{x:Static fn:GlyphNames.Play}"
+                                            TextColor="White"
+                                            VerticalOptions="Center">
+                                        <buttons:SfButton.Shadow>
+                                            <Shadow Brush="#40000000" 
+                                                        Offset="0,2" 
+                                                        Radius="4" 
+                                                        Opacity="0.25" />
+                                        </buttons:SfButton.Shadow>
+                                    </buttons:SfButton>
+                                    <StackLayout
                                             Margin="0"
                                             Padding="0"
-                                            FontSize="{StaticResource AlarmMeridianFontSize}"
-                                            Text="{Binding MeridianText}"
+                                            HorizontalOptions="Center"
+                                            Orientation="Horizontal"
                                             VerticalOptions="Center"
-                                            TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
-                                            VerticalTextAlignment="Center" />
+                                            Spacing="2">
+                                        <Label
+                                                Padding="0"
+                                                FontSize="{StaticResource AlarmTimeFontSize}"
+                                                FontAttributes="Bold"
+                                                Text="{Binding TimeText}"
+                                                VerticalOptions="Center"
+                                                TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
+                                        <Label
+                                                Margin="0"
+                                                Padding="0"
+                                                FontSize="{StaticResource AlarmMeridianFontSize}"
+                                                Text="{Binding MeridianText}"
+                                                VerticalOptions="Center"
+                                                TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                                VerticalTextAlignment="Center" />
                                     </StackLayout>
                                 </StackLayout>
                                 <Grid
-                                    Grid.Column="1"
-                                    Margin="{OnPlatform Default='20,0,0,0',
-                                                        iOS='10,0,0,0',
-                                                        WinUI='20,0,0,0'}"
-                                    HorizontalOptions="Start"
-                                    VerticalOptions="Fill">
+                                        Grid.Column="1"
+                                        Margin="{OnPlatform Default='0,0,12,0',
+                                                            iOS='0,0,12,0',
+                                                            WinUI='0,0,8,0'}"
+                                        HorizontalOptions="Start"
+                                        VerticalOptions="Fill">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
                                     <StackLayout Grid.Row="0" 
-                                                 Orientation="Horizontal"
-                                                 HorizontalOptions="Start">
-                                        <Label
-                                            Margin="5,0,2,0"
-                                            FontAttributes="Bold"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="S"
-                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}" />
-                                        <Label
-                                            Margin="2,0,2,0"
-                                            FontAttributes="Bold"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="M"
-                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}" />
-                                        <Label
-                                            Margin="2,0,2,0"
-                                            FontAttributes="Bold"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="T"
-                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}" />
-                                        <Label
-                                            Margin="2,0,2,0"
-                                            FontAttributes="Bold"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="W"
-                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}" />
-                                        <Label
-                                            Margin="2,0,2,0"
-                                            FontAttributes="Bold"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="T"
-                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}" />
-                                        <Label
-                                            Margin="2,0,2,0"
-                                            FontAttributes="Bold"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="F"
-                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}" />
-                                        <Label
-                                            Margin="2,0,0,0"
-                                            FontAttributes="Bold"
-                                            Style="{StaticResource SmallLabelStyle}"
-                                            Text="S"
-                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}" />
+                                                     Orientation="Horizontal"
+                                                     HorizontalOptions="Start"
+                                                     Spacing="{OnPlatform WinUI='3', Default='4'}"
+                                                     Margin="0,0,0,8">
+                                        <Border
+                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Sunday}}"
+                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                            <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    Text="S"
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}" />
+                                        </Border>
+                                        <Border
+                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Monday}}"
+                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                            <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    Text="M"
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}" />
+                                        </Border>
+                                        <Border
+                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Tuesday}}"
+                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                            <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    Text="T"
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}" />
+                                        </Border>
+                                        <Border
+                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Wednesday}}"
+                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                            <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    Text="W"
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}" />
+                                        </Border>
+                                        <Border
+                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Thursday}}"
+                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                            <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    Text="T"
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}" />
+                                        </Border>
+                                        <Border
+                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Friday}}"
+                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                            <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    Text="F"
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}" />
+                                        </Border>
+                                        <Border
+                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Saturday}}"
+                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                            <Label
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    Text="S"
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}" />
+                                        </Border>
                                     </StackLayout>
                                     <StackLayout Grid.Row="1" 
-                                                 Orientation="Vertical"
-                                                 HorizontalOptions="Start"
-                                                 VerticalOptions="Start">
+                                                     Orientation="Vertical"
+                                                     HorizontalOptions="Start"
+                                                     VerticalOptions="Start"
+                                                     Spacing="4">
                                         <Label
-                                            Margin="2,0,0,0"
-                                            HorizontalOptions="Start"
-                                            HorizontalTextAlignment="Start"
-                                            Text="{Binding Name}"
-                                            TextColor="Black" />
+                                                Margin="0,0,0,4"
+                                                HorizontalOptions="Start"
+                                                HorizontalTextAlignment="Start"
+                                                FontSize="16"
+                                                FontAttributes="Bold"
+                                                Text="{Binding Name}"
+                                                TextColor="#1A1A1A" />
                                         <Label
-                                            Margin="2,0,0,0"
-                                            HorizontalOptions="Start"
-                                            HorizontalTextAlignment="Start"
-                                            Text="{Binding SubTitle}"
-                                            TextColor="SlateBlue" />
+                                                Margin="0"
+                                                HorizontalOptions="Start"
+                                                HorizontalTextAlignment="Start"
+                                                FontSize="14"
+                                                Text="{Binding SubTitle}"
+                                                TextColor="#6A5ACD" />
                                     </StackLayout>
                                     <StackLayout Grid.Row="2"
-                                                 Orientation="Horizontal" 
-                                                 HorizontalOptions="Start"
-                                                 Margin="2,0,0,0"
-                                                 Spacing="5"
-                                                 VerticalOptions="End">
-                                        <Button
-                                            CharacterSpacing="0"
-                                            Padding="0"
-                                            BackgroundColor="Transparent"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
-                                            Command="{Binding PreviousCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
-                                            HorizontalOptions="Start"
-                                            MinimumHeightRequest="25"
-                                            MinimumWidthRequest="30"
-                                            Text="{x:Static fn:GlyphNames.Previous}"
-                                            TextColor="LightGray"
-                                            VerticalOptions="Center"
-                                            WidthRequest="30" />
-                                        <Button
-                                            CharacterSpacing="0"
-                                            Padding="0"
-                                            BackgroundColor="Transparent"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
-                                            Command="{Binding NextCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
-                                            MinimumHeightRequest="25"
-                                            MinimumWidthRequest="30"
-                                            HorizontalOptions="Start"
-                                            Text="{x:Static fn:GlyphNames.Next}"
-                                            TextColor="LightGray"
-                                            VerticalOptions="Center"
-                                            WidthRequest="30" />
+                                                     Grid.Column="0"
+                                                     Orientation="Horizontal" 
+                                                     HorizontalOptions="Start"
+                                                     Margin="0,8,0,0"
+                                                     Spacing="8"
+                                                     VerticalOptions="End">
+                                        <buttons:SfButton
+                                                Padding="0"
+                                                Background="#F5F5F5"
+                                                CornerRadius="6"
+                                                Command="{Binding PreviousCommand}"
+                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                FontSize="20"
+                                                HorizontalOptions="Start"
+                                                HeightRequest="36"
+                                                WidthRequest="36"
+                                                Text="{x:Static fn:GlyphNames.Left}"
+                                                TextColor="#333333"
+                                                VerticalOptions="Center" />
+                                        <buttons:SfButton
+                                                Padding="0"
+                                                Background="#F5F5F5"
+                                                CornerRadius="6"
+                                                Command="{Binding NextCommand}"
+                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                FontSize="20"
+                                                HeightRequest="36"
+                                                WidthRequest="36"
+                                                HorizontalOptions="Start"
+                                                Text="{x:Static fn:GlyphNames.Right}"
+                                                TextColor="#333333"
+                                                VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
                                 <StackLayout
-                                    Grid.Column="2"
-                                    Margin="{OnIdiom Default={OnPlatform Default='15,0,15,0',
-                                                                         iOS='5,0,10,0',
-                                                                         WinUI='5,0,10,0'},
-                                                     Tablet={OnPlatform Default='15,0,20,0'}}"
-                                    HorizontalOptions="End"
-                                    Orientation="Vertical"
-                                    VerticalOptions="Center">
-                                    <shared:PlatformSwitch
+                                        Grid.Column="2"
+                                        Margin="0"
                                         HorizontalOptions="End"
-                                        IsToggled="{Binding IsEnabled, Mode=TwoWay}"
-                                        Scale="1" />
+                                        Orientation="Vertical"
+                                        VerticalOptions="Center">
+                                    <!-- Windows-specific delete button -->
+                                    <buttons:SfButton
+                                            Margin="0,0,0,8"
+                                            Background="#FF3B30"
+                                            CornerRadius="20"
+                                            Command="{Binding DeleteCommand}"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="14"
+                                            HeightRequest="32"
+                                            WidthRequest="32"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            Text="{x:Static fn:GlyphNames.Trash}"
+                                            TextColor="White"
+                                            IsVisible="{OnPlatform WinUI='True', Default='False'}">
+                                        <buttons:SfButton.Shadow>
+                                            <Shadow Brush="#40000000" 
+                                                    Offset="0,2" 
+                                                    Radius="4" 
+                                                    Opacity="0.3" />
+                                        </buttons:SfButton.Shadow>
+                                    </buttons:SfButton>
+                                    <shared:PlatformSwitch
+                                            HorizontalOptions="End"
+                                            IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                            Scale="1" />
                                 </StackLayout>
                             </Grid>
+                            </Border>
+                            </Grid>
+                        </SwipeView>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
@@ -284,11 +397,12 @@
         <!-- Overlay with busy indicator -->
         <Grid
             Grid.Row="0"
-            BackgroundColor="White"
+            BackgroundColor="#F5F5F5"
             IsVisible="{Binding IsHomePageOverlayVisible}"
             HorizontalOptions="Fill"
             VerticalOptions="Fill"
-            Grid.ZIndex="2">
+            Grid.ZIndex="2"
+            Opacity="0.95">
             <ActivityIndicator
                 HorizontalOptions="Center"
                 IsEnabled="True"
@@ -296,7 +410,7 @@
                 IsVisible="{Binding IsHomePageOverlayVisible}"
                 Scale="0.5"
                 VerticalOptions="Center"
-                Color="SlateBlue">
+                Color="#6A5ACD">
                 <ActivityIndicator.Scale>
                     <OnPlatform x:TypeArguments="system:Double">
                         <OnPlatform.Platforms>

@@ -18,6 +18,7 @@ public class ScheduleListItem(
     IScheduleDisplayService displayService,
     IScheduleStateService scheduleStateService,
     IPlaylistService playlistService,
+    ISchedulePersistenceService schedulePersistenceService,
     IState<ApplicationState> applicationState,
     IState<PlaybackState> playbackState)
     : ObservableObject, IComparable, IDisposable
@@ -109,6 +110,14 @@ public class ScheduleListItem(
                 await RefreshChapterNameAsync(true);
             }
         });
+
+        DeleteCommand = new AsyncRelayCommand(async () =>
+        {
+            if (Schedule?.Id > 0)
+            {
+                await schedulePersistenceService.DeleteScheduleAsync(Schedule.Id);
+            }
+        });
     }
 
     public int ScheduleId => Schedule?.Id ?? 0;
@@ -187,6 +196,7 @@ public class ScheduleListItem(
 
     public ICommand PreviousCommand { get; set; } = null!;
     public ICommand NextCommand { get; set; } = null!;
+    public ICommand DeleteCommand { get; private set; } = null!;
 
     public bool IsBusy
     {

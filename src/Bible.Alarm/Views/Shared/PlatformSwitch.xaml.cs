@@ -40,10 +40,10 @@ public partial class PlatformSwitch : ContentView
             {
                 platformSwitch.AndroidSwitch.IsOn = isToggled;
             }
-            // Update iOS native Switch
+            // Update iOS SfSwitch
             if (platformSwitch.iOSSwitch != null)
             {
-                platformSwitch.iOSSwitch.IsToggled = isToggled;
+                platformSwitch.iOSSwitch.IsOn = isToggled;
             }
         }
     }
@@ -64,7 +64,7 @@ public partial class PlatformSwitch : ContentView
         }
         if (iOSSwitch != null)
         {
-            iOSSwitch.Toggled += (s, e) => IsToggled = e.Value;
+            iOSSwitch.StateChanged += (s, e) => IsToggled = iOSSwitch.IsOn ?? false;
         }
     }
 
@@ -72,14 +72,17 @@ public partial class PlatformSwitch : ContentView
     {
         base.OnPropertyChanged(propertyName);
         
-        // Sync Scale property to child controls (only for Android SfSwitch)
+        // Sync Scale property to child controls (for Android and iOS SfSwitch)
         if (propertyName == nameof(Scale))
         {
             if (AndroidSwitch != null)
             {
                 AndroidSwitch.Scale = Scale;
             }
-            // iOS native Switch doesn't support Scale property
+            if (iOSSwitch != null)
+            {
+                iOSSwitch.Scale = Scale;
+            }
         }
         
         // Sync HorizontalOptions property to child controls
