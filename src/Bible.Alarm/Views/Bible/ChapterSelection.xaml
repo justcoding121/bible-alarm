@@ -11,6 +11,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:ChapterSelectionViewModel"
     NavigationPage.HasBackButton="False"
     NavigationPage.HasNavigationBar="False">
@@ -19,9 +20,17 @@
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        
+        <!-- Modern Color Resources -->
+        <Color x:Key="PrimaryColor">#6A5ACD</Color>
+        <Color x:Key="BackgroundColor">#F8F9FA</Color>
+        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
+        <Color x:Key="CardShadowColor">#E0E0E0</Color>
+        <Color x:Key="TextPrimaryColor">#212529</Color>
+        <Color x:Key="TextSecondaryColor">#6C757D</Color>
     </ContentPage.Resources>
     <ContentPage.Content>
-        <Grid BackgroundColor="White">
+        <Grid BackgroundColor="{StaticResource BackgroundColor}">
             <ActivityIndicator
                 Grid.Row="0"
                 HorizontalOptions="Center"
@@ -30,7 +39,7 @@
                 IsVisible="{Binding IsBusy}"
                 Scale="0.5"
                 VerticalOptions="Center"
-                Color="SlateBlue">
+                Color="{StaticResource PrimaryColor}">
                 <ActivityIndicator.Scale>
                     <OnPlatform x:TypeArguments="x:Double">
                         <OnPlatform.Platforms>
@@ -43,56 +52,105 @@
             </ActivityIndicator>
             <Grid
                 Grid.Row="0"
-                Margin="{OnPlatform iOS='0,10,0,0'}"
+                Margin="0"
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Grid
-                    x:Name="BackButton"
+                
+                <!-- Enhanced Header - Edge to Edge -->
+                <Border
                     Grid.Row="0"
-                    Margin="{OnPlatform Default='0',
-                                        iOS='0,18,0,0'}"
-                    BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                 iOS='White'}"
-                    HeightRequest="50"
-                    HorizontalOptions="Fill"
-                    MinimumHeightRequest="50">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="8*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
-                    </Grid.GestureRecognizers>
-                    <StackLayout
-                        Grid.Column="0"
-                        HorizontalOptions="Start"
-                        VerticalOptions="Center">
-                        <Label
-                            Margin="5,0,0,0"
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            Style="{StaticResource MediumLabelStyle}"
-                            Text="{x:Static fn:GlyphNames.Left}"
-                            TextColor="Gray" />
-                    </StackLayout>
-                    <Label
-                        Grid.Column="1"
+                    Margin="0"
+                    BackgroundColor="{StaticResource CardBackgroundColor}"
+                    StrokeThickness="0"
+                    Padding="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="0,0,20,20" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="{StaticResource CardShadowColor}"
+                                Offset="0,4"
+                                Opacity="0.1"
+                                Radius="8" />
+                    </Border.Shadow>
+                    <Grid
                         HorizontalOptions="Fill"
-                        HorizontalTextAlignment="Start"
-                        TextColor="Black"
-                        VerticalOptions="Center" />
-                </Grid>
+                        Padding="{OnPlatform Default='0,0,0,0', iOS='0,44,0,0', Android='0,24,0,0'}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="56" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Back Button -->
+                        <Border
+                            Grid.Column="0"
+                            Grid.Row="0"
+                            Margin="15,0,0,0"
+                            BackgroundColor="Transparent"
+                            HeightRequest="44"
+                            HorizontalOptions="Start"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            WidthRequest="44">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="22" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
+                            </Border.GestureRecognizers>
+                            <Label
+                                x:Name="BackButton"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="20"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                Text="{x:Static fn:GlyphNames.Left}"
+                                TextColor="{StaticResource PrimaryColor}"
+                                VerticalOptions="Center"
+                                VerticalTextAlignment="Center" />
+                        </Border>
+                        
+                        <!-- Title -->
+                        <Label
+                            Grid.Column="1"
+                            Grid.Row="0"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Fill"
+                            HorizontalTextAlignment="Start"
+                            Margin="15,0,15,0"
+                            TextColor="{StaticResource TextPrimaryColor}"
+                            VerticalOptions="Center"
+                            VerticalTextAlignment="Center" />
+                    </Grid>
+                </Border>
+                
+                <!-- Enhanced Collection View -->
                 <CollectionView
                     x:Name="chapterCollectionView"
                     Grid.Row="1"
-                    BackgroundColor="White"
+                    Margin="0,8,0,0"
+                    BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Chapters}"
                     SelectionMode="Single">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical">
+                            <LinearItemsLayout.ItemSpacing>
+                                <OnPlatform x:TypeArguments="x:Double">
+                                    <On Platform="WinUI" Value="4" />
+                                    <On Platform="Default" Value="8" />
+                                </OnPlatform>
+                            </LinearItemsLayout.ItemSpacing>
+                        </LinearItemsLayout>
+                    </CollectionView.ItemsLayout>
                     <CollectionView.Behaviors>
                         <behaviours:EventToCommandBehavior
                             Command="{Binding SetChapterCommand}"
@@ -101,64 +159,95 @@
                     </CollectionView.Behaviors>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="bible:BibleChapterListViewItemModel">
-                                <Grid
-                                    Padding="5,10,5,10"
+                            <Grid Margin="16,0">
+                                <Border
                                     BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
-                                    HorizontalOptions="Fill">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label
-                                        Grid.Column="0"
-                                        Margin="10,0,0,0"
-                                        HorizontalOptions="Fill"
-                                        HorizontalTextAlignment="Start"
-                                        Text="{Binding Title}"
-                                        TextColor="Black"
-                                        VerticalOptions="Center"
-                                        VerticalTextAlignment="Center" />
-                                    <StackLayout
-                                        Grid.Column="1"
-                                        Margin="5,0,15,0"
-                                        HorizontalOptions="Start"
-                                        Orientation="Horizontal"
-                                        VerticalOptions="Center">
-                                        <ActivityIndicator
-                                            HorizontalOptions="Center"
-                                            IsEnabled="True"
-                                            IsRunning="{Binding IsBusy}"
-                                            IsVisible="{Binding IsBusy}"
-                                            MinimumWidthRequest="45"
-                                            Scale="0.5"
+                                    StrokeThickness="0"
+                                    Padding="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.Shadow>
+                                        <Shadow Brush="{StaticResource CardShadowColor}"
+                                                Offset="0,2"
+                                                Opacity="0.08"
+                                                Radius="4" />
+                                    </Border.Shadow>
+                                    <Grid
+                                        Padding="20,18"
+                                        ColumnSpacing="12"
+                                        MinimumHeightRequest="56">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Chapter Title -->
+                                        <Label
+                                            Grid.Column="0"
+                                            FontSize="16"
+                                            HorizontalOptions="Fill"
+                                            HorizontalTextAlignment="Start"
+                                            LineBreakMode="TailTruncation"
+                                            Text="{Binding Title}"
+                                            TextColor="{StaticResource TextPrimaryColor}"
                                             VerticalOptions="Center"
-                                            WidthRequest="45"
-                                            Color="SlateBlue">
-                                            <ActivityIndicator.Scale>
-                                                <OnPlatform x:TypeArguments="x:Double">
-                                                    <OnPlatform.Platforms>
-                                                        <On Platform="iOS" Value="1.0" />
-                                                        <On Platform="Android" Value="0.5" />
-                                                        <On Platform="Win" Value="1.0" />
-                                                    </OnPlatform.Platforms>
-                                                </OnPlatform>
-                                            </ActivityIndicator.Scale>
-                                        </ActivityIndicator>
-                                        <Button
-                                            BackgroundColor="Transparent"
-                                            BorderWidth="0"
-                                            BorderColor="Transparent"
-                                            Command="{Binding TogglePlayCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{StaticResource StandardFontSize}"
-                                            HorizontalOptions="Start"
-                                            MinimumWidthRequest="45"
-                                            Padding="0"
-                                            Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
-                                            TextColor="Gray"
-                                            VerticalOptions="Center" />
-                                    </StackLayout>
-                                </Grid>
+                                            VerticalTextAlignment="Center" />
+                                        
+                                        <!-- Play Controls -->
+                                        <HorizontalStackLayout
+                                            Grid.Column="1"
+                                            Spacing="8"
+                                            HorizontalOptions="End"
+                                            VerticalOptions="Center">
+                                            <ActivityIndicator
+                                                HorizontalOptions="Center"
+                                                IsEnabled="True"
+                                                IsRunning="{Binding IsBusy}"
+                                                IsVisible="{Binding IsBusy}"
+                                                MinimumWidthRequest="32"
+                                                Scale="0.5"
+                                                VerticalOptions="Center"
+                                                WidthRequest="32"
+                                                Color="{StaticResource PrimaryColor}">
+                                                <ActivityIndicator.Scale>
+                                                    <OnPlatform x:TypeArguments="x:Double">
+                                                        <OnPlatform.Platforms>
+                                                            <On Platform="iOS" Value="1.0" />
+                                                            <On Platform="Android" Value="0.5" />
+                                                            <On Platform="Win" Value="1.0" />
+                                                        </OnPlatform.Platforms>
+                                                    </OnPlatform>
+                                                </ActivityIndicator.Scale>
+                                            </ActivityIndicator>
+                                            <Border
+                                                BackgroundColor="#F5F5F5"
+                                                HeightRequest="36"
+                                                HorizontalOptions="End"
+                                                StrokeThickness="0"
+                                                VerticalOptions="Center"
+                                                WidthRequest="36">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="18" />
+                                                </Border.StrokeShape>
+                                                <Button
+                                                    BackgroundColor="Transparent"
+                                                    BorderWidth="0"
+                                                    BorderColor="Transparent"
+                                                    Command="{Binding TogglePlayCommand}"
+                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                    FontSize="16"
+                                                    HorizontalOptions="Center"
+                                                    MinimumWidthRequest="36"
+                                                    Padding="0"
+                                                    Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
+                                                    TextColor="{StaticResource TextSecondaryColor}"
+                                                    VerticalOptions="Center" />
+                                            </Border>
+                                        </HorizontalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>

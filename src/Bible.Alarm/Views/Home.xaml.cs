@@ -3,6 +3,8 @@ using Bible.Alarm.ViewModels;
 using Bible.Alarm.Common.ViewHelpers;
 using Microsoft.Maui.Controls;
 using Syncfusion.Maui.Buttons;
+using Serilog;
+using static Serilog.Log;
 
 namespace Bible.Alarm.Views;
 
@@ -14,12 +16,22 @@ public partial class Home : ContentPage, IDisposable
 
     public Home(HomeViewModel vm)
     {
+        var constructorStartTime = DateTime.UtcNow;
+        try { Log.Information("[PERF] Home page: Constructor started at {StartTime}", constructorStartTime); } catch { }
+        
+        var initComponentStartTime = DateTime.UtcNow;
         InitializeComponent();
+        var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
+        try { Log.Information("[PERF] Home page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed); } catch { }
+        
         BindingContext = vm;
         _viewModel = vm;
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
+        
+        var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
+        try { Log.Information("[PERF] Home page: Constructor completed in {ElapsedMs}ms", constructorElapsed); } catch { }
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)

@@ -25,7 +25,7 @@
         <Grid AutomationId="SchedulePage"
               BackgroundColor="#F5F5F5">
             <Grid Grid.ZIndex="1"
-                  Margin="{OnPlatform iOS='0,10,0,0'}"
+                  Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
                   IsVisible="{Binding IsSchedulePageOverlayVisible, Converter={StaticResource negateBooleanConverter}}"
                   RowSpacing="0">
                 <Grid.RowDefinitions>
@@ -673,81 +673,93 @@
                             <StackLayout Orientation="Vertical"
                                          Spacing="0">
                                 <Grid x:Name="BibleButton"
-                                      Margin="8,8,8,8"
+                                      Margin="16,8"
                                       BackgroundColor="#F8F8F8"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="auto" />
-                                    </Grid.RowDefinitions>
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding SelectBibleCommand}"
                                                               NumberOfTapsRequired="1" />
                                     </Grid.GestureRecognizers>
 
-                                    <Label Grid.Column="0"
-                                           Margin="5,0,0,0"
-                                           Padding="10,10"
-                                           FontSize="{StaticResource StandardFontSize}"
-                                           FontAttributes="Bold"
-                                           HorizontalTextAlignment="Start"
-                                           Text="Current schedule"
-                                           TextColor="Black"
-                                           VerticalOptions="Center" />
-                                    <StackLayout Grid.Column="1"
-                                                 HorizontalOptions="End"
-                                                 Orientation="Horizontal"
-                                                 VerticalOptions="Center">
-                                        <Label Margin="5,0,0,0"
-                                               Padding="0,10"
-                                               FontSize="{StaticResource StandardFontSize}"
-                                               HorizontalTextAlignment="End"
-                                               Text="{Binding BibleReadingTitleText}"
-                                               TextColor="SlateBlue" />
-                                        <Label
-                                            Margin="10,0,10,0"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
-                                            FontSize="{StaticResource StandardFontSize}"
-                                            HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Right}"
-                                            TextColor="SlateBlue"
-                                            VerticalOptions="Center" />
-                                    </StackLayout>
+                                    <Grid Padding="20,18"
+                                          MinimumHeightRequest="56"
+                                          ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <Label Grid.Column="0"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               HorizontalTextAlignment="Start"
+                                               Text="Current schedule"
+                                               TextColor="Black"
+                                               VerticalOptions="Center" />
+                                        <StackLayout Grid.Column="1"
+                                                     HorizontalOptions="End"
+                                                     Orientation="Horizontal"
+                                                     VerticalOptions="Center">
+                                            <Label FontSize="16"
+                                                   HorizontalTextAlignment="End"
+                                                   Text="{Binding BibleReadingTitleText}"
+                                                   TextColor="SlateBlue" />
+                                            <Label
+                                                Margin="8,0,0,0"
+                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                Style="{StaticResource MediumLabelStyle}"
+                                                FontSize="16"
+                                                HorizontalOptions="End"
+                                                Text="{x:Static fn:GlyphNames.Right}"
+                                                TextColor="SlateBlue"
+                                                VerticalOptions="Center" />
+                                        </StackLayout>
+                                    </Grid>
                                 </Grid>
                                 <Grid x:Name="BibleBookButton"
-                                      Margin="8,6,8,6"
+                                      Margin="16,0"
                                       BackgroundColor="Transparent"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="auto" />
-                                    </Grid.RowDefinitions>
-
-                                    <Label Grid.Column="0"
-                                           Margin="5,0,0,0"
-                                           Padding="8"
-                                           HorizontalTextAlignment="Start"
-                                           Text="Book"
-                                           TextColor="Black"
-                                           VerticalOptions="Center" />
-                                    <StackLayout Grid.Column="1"
-                                                 HorizontalOptions="End"
-                                                 Orientation="Horizontal"
-                                                 Spacing="8"
-                                                 VerticalOptions="Center">
-                                        <OnPlatform x:TypeArguments="View">
-                                            <OnPlatform.Platforms>
-                                                <On Platform="iOS">
-                                                    <Button Padding="0"
+                                    <Grid Padding="20,18"
+                                          MinimumHeightRequest="56"
+                                          ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <Label Grid.Column="0"
+                                               FontSize="16"
+                                               HorizontalTextAlignment="Start"
+                                               Text="Book"
+                                               TextColor="Black"
+                                               VerticalOptions="Center" />
+                                        <StackLayout Grid.Column="1"
+                                                     HorizontalOptions="End"
+                                                     Orientation="Horizontal"
+                                                     Spacing="8"
+                                                     VerticalOptions="Center">
+                                            <OnPlatform x:TypeArguments="View">
+                                                <OnPlatform.Platforms>
+                                                    <On Platform="iOS">
+                                                        <Button Padding="0"
+                                                                BackgroundColor="#F5F5F5"
+                                                                CornerRadius="6"
+                                                                Command="{Binding PreviousBookCommand}"
+                                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                                FontSize="20"
+                                                                HeightRequest="36"
+                                                                WidthRequest="36"
+                                                                HorizontalOptions="End"
+                                                                Text="{x:Static fn:GlyphNames.Left}"
+                                                                TextColor="#333333"
+                                                                VerticalOptions="Center" />
+                                                    </On>
+                                                    <On Platform="Default">
+                                                        <Button
+                                                            Padding="0"
                                                             BackgroundColor="#F5F5F5"
                                                             CornerRadius="6"
                                                             Command="{Binding PreviousBookCommand}"
@@ -759,28 +771,28 @@
                                                             Text="{x:Static fn:GlyphNames.Left}"
                                                             TextColor="#333333"
                                                             VerticalOptions="Center" />
-                                                </On>
-                                                <On Platform="Default">
-                                                    <Button
-                                                        Padding="0"
-                                                        BackgroundColor="#F5F5F5"
-                                                        CornerRadius="6"
-                                                        Command="{Binding PreviousBookCommand}"
-                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                        FontSize="20"
-                                                        HeightRequest="36"
-                                                        WidthRequest="36"
-                                                        HorizontalOptions="End"
-                                                        Text="{x:Static fn:GlyphNames.Left}"
-                                                        TextColor="#333333"
-                                                        VerticalOptions="Center" />
-                                                </On>
-                                            </OnPlatform.Platforms>
-                                        </OnPlatform>
-                                        <OnPlatform x:TypeArguments="View">
-                                            <OnPlatform.Platforms>
-                                                <On Platform="iOS">
-                                                    <Button Padding="0"
+                                                    </On>
+                                                </OnPlatform.Platforms>
+                                            </OnPlatform>
+                                            <OnPlatform x:TypeArguments="View">
+                                                <OnPlatform.Platforms>
+                                                    <On Platform="iOS">
+                                                        <Button Padding="0"
+                                                                BackgroundColor="#F5F5F5"
+                                                                CornerRadius="6"
+                                                                Command="{Binding NextBookCommand}"
+                                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                                FontSize="20"
+                                                                HeightRequest="36"
+                                                                WidthRequest="36"
+                                                                HorizontalOptions="End"
+                                                                Text="{x:Static fn:GlyphNames.Right}"
+                                                                TextColor="#333333"
+                                                                VerticalOptions="Center" />
+                                                    </On>
+                                                    <On Platform="Default">
+                                                        <Button
+                                                            Padding="0"
                                                             BackgroundColor="#F5F5F5"
                                                             CornerRadius="6"
                                                             Command="{Binding NextBookCommand}"
@@ -792,55 +804,55 @@
                                                             Text="{x:Static fn:GlyphNames.Right}"
                                                             TextColor="#333333"
                                                             VerticalOptions="Center" />
-                                                </On>
-                                                <On Platform="Default">
-                                                    <Button
-                                                        Padding="0"
-                                                        BackgroundColor="#F5F5F5"
-                                                        CornerRadius="6"
-                                                        Command="{Binding NextBookCommand}"
-                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                        FontSize="20"
-                                                        HeightRequest="36"
-                                                        WidthRequest="36"
-                                                        HorizontalOptions="End"
-                                                        Text="{x:Static fn:GlyphNames.Right}"
-                                                        TextColor="#333333"
-                                                        VerticalOptions="Center" />
-                                                </On>
-                                            </OnPlatform.Platforms>
-                                        </OnPlatform>
-                                    </StackLayout>
+                                                    </On>
+                                                </OnPlatform.Platforms>
+                                            </OnPlatform>
+                                        </StackLayout>
+                                    </Grid>
                                 </Grid>
                                 <Grid x:Name="BibleChapterButton"
-                                      Margin="8,8,8,8"
+                                      Margin="16,0"
                                       BackgroundColor="Transparent"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="auto" />
-                                    </Grid.RowDefinitions>
-
-                                    <Label Grid.Column="0"
-                                           Margin="5,0,0,0"
-                                           Padding="10"
-                                           HorizontalTextAlignment="Start"
-                                           Text="Chapter"
-                                           TextColor="Black"
-                                           VerticalOptions="Center" />
-                                    <StackLayout Grid.Column="1"
-                                                 HorizontalOptions="End"
-                                                 Orientation="Horizontal"
-                                                 Spacing="8"
-                                                 VerticalOptions="Center">
-                                        <OnPlatform x:TypeArguments="View">
-                                            <OnPlatform.Platforms>
-                                                <On Platform="iOS">
-                                                    <Button Padding="0"
+                                    <Grid Padding="20,18"
+                                          MinimumHeightRequest="56"
+                                          ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <Label Grid.Column="0"
+                                               FontSize="16"
+                                               HorizontalTextAlignment="Start"
+                                               Text="Chapter"
+                                               TextColor="Black"
+                                               VerticalOptions="Center" />
+                                        <StackLayout Grid.Column="1"
+                                                     HorizontalOptions="End"
+                                                     Orientation="Horizontal"
+                                                     Spacing="8"
+                                                     VerticalOptions="Center">
+                                            <OnPlatform x:TypeArguments="View">
+                                                <OnPlatform.Platforms>
+                                                    <On Platform="iOS">
+                                                        <Button Padding="0"
+                                                                BackgroundColor="#F5F5F5"
+                                                                CornerRadius="6"
+                                                                Command="{Binding PreviousChapterCommand}"
+                                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                                FontSize="20"
+                                                                HeightRequest="36"
+                                                                WidthRequest="36"
+                                                                HorizontalOptions="End"
+                                                                Text="{x:Static fn:GlyphNames.Left}"
+                                                                TextColor="#333333"
+                                                                VerticalOptions="Center" />
+                                                    </On>
+                                                    <On Platform="Default">
+                                                        <Button
+                                                            Padding="0"
                                                             BackgroundColor="#F5F5F5"
                                                             CornerRadius="6"
                                                             Command="{Binding PreviousChapterCommand}"
@@ -852,28 +864,28 @@
                                                             Text="{x:Static fn:GlyphNames.Left}"
                                                             TextColor="#333333"
                                                             VerticalOptions="Center" />
-                                                </On>
-                                                <On Platform="Default">
-                                                    <Button
-                                                        Padding="0"
-                                                        BackgroundColor="#F5F5F5"
-                                                        CornerRadius="6"
-                                                        Command="{Binding PreviousChapterCommand}"
-                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                        FontSize="20"
-                                                        HeightRequest="36"
-                                                        WidthRequest="36"
-                                                        HorizontalOptions="End"
-                                                        Text="{x:Static fn:GlyphNames.Left}"
-                                                        TextColor="#333333"
-                                                        VerticalOptions="Center" />
-                                                </On>
-                                            </OnPlatform.Platforms>
-                                        </OnPlatform>
-                                        <OnPlatform x:TypeArguments="View">
-                                            <OnPlatform.Platforms>
-                                                <On Platform="iOS">
-                                                    <Button Padding="0"
+                                                    </On>
+                                                </OnPlatform.Platforms>
+                                            </OnPlatform>
+                                            <OnPlatform x:TypeArguments="View">
+                                                <OnPlatform.Platforms>
+                                                    <On Platform="iOS">
+                                                        <Button Padding="0"
+                                                                BackgroundColor="#F5F5F5"
+                                                                CornerRadius="6"
+                                                                Command="{Binding NextChapterCommand}"
+                                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                                FontSize="20"
+                                                                HeightRequest="36"
+                                                                WidthRequest="36"
+                                                                HorizontalOptions="End"
+                                                                Text="{x:Static fn:GlyphNames.Right}"
+                                                                TextColor="#333333"
+                                                                VerticalOptions="Center" />
+                                                    </On>
+                                                    <On Platform="Default">
+                                                        <Button
+                                                            Padding="0"
                                                             BackgroundColor="#F5F5F5"
                                                             CornerRadius="6"
                                                             Command="{Binding NextChapterCommand}"
@@ -885,25 +897,11 @@
                                                             Text="{x:Static fn:GlyphNames.Right}"
                                                             TextColor="#333333"
                                                             VerticalOptions="Center" />
-                                                </On>
-                                                <On Platform="Default">
-                                                    <Button
-                                                        Padding="0"
-                                                        BackgroundColor="#F5F5F5"
-                                                        CornerRadius="6"
-                                                        Command="{Binding NextChapterCommand}"
-                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                        FontSize="20"
-                                                        HeightRequest="36"
-                                                        WidthRequest="36"
-                                                        HorizontalOptions="End"
-                                                        Text="{x:Static fn:GlyphNames.Right}"
-                                                        TextColor="#333333"
-                                                        VerticalOptions="Center" />
-                                                </On>
-                                            </OnPlatform.Platforms>
-                                        </OnPlatform>
-                                    </StackLayout>
+                                                    </On>
+                                                </OnPlatform.Platforms>
+                                            </OnPlatform>
+                                        </StackLayout>
+                                    </Grid>
                                 </Grid>
                             </StackLayout>
                         </Border>

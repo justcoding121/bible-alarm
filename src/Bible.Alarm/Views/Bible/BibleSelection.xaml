@@ -12,6 +12,7 @@
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:BibleSelectionViewModel"
     NavigationPage.HasBackButton="False"
     NavigationPage.HasNavigationBar="False">
@@ -19,9 +20,19 @@
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        
+        <!-- Modern Color Resources -->
+        <Color x:Key="PrimaryColor">#6A5ACD</Color>
+        <Color x:Key="PrimaryLightColor">#9370DB</Color>
+        <Color x:Key="BackgroundColor">#F8F9FA</Color>
+        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
+        <Color x:Key="CardShadowColor">#E0E0E0</Color>
+        <Color x:Key="TextPrimaryColor">#212529</Color>
+        <Color x:Key="TextSecondaryColor">#6C757D</Color>
+        <Color x:Key="DividerColor">#E9ECEF</Color>
     </ContentPage.Resources>
     <ContentPage.Content>
-        <Grid BackgroundColor="White">
+        <Grid BackgroundColor="{StaticResource BackgroundColor}">
             <ActivityIndicator
                 Grid.Row="0"
                 HorizontalOptions="Center"
@@ -30,7 +41,7 @@
                 IsVisible="{Binding IsBusy}"
                 Scale="0.5"
                 VerticalOptions="Center"
-                Color="SlateBlue">
+                Color="{StaticResource PrimaryColor}">
                 <ActivityIndicator.Scale>
                     <OnPlatform x:TypeArguments="x:Double">
                         <OnPlatform.Platforms>
@@ -43,128 +54,203 @@
             </ActivityIndicator>
             <Grid
                 Grid.Row="0"
-                Margin="{OnPlatform iOS='0,15,0,0'}"
+                Margin="0"
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid
+                
+                <!-- Enhanced Header - Edge to Edge -->
+                <Border
                     Grid.Row="0"
-                    Margin="{OnPlatform Default='0',
-                                        iOS='0,18,0,0'}"
-                    BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                                 iOS='White'}"
-                    HeightRequest="50"
-                    HorizontalOptions="Fill"
-                    MinimumHeightRequest="50">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Label
-                        x:Name="BackButton"
-                        Grid.Column="0"
-                        Margin="5,0,0,0"
-                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        Style="{StaticResource MediumLabelStyle}"
-                        HorizontalOptions="Start"
-                        HorizontalTextAlignment="Start"
-                        MinimumWidthRequest="50"
-                        Text="{x:Static fn:GlyphNames.Left}"
-                        TextColor="SlateBlue"
-                        VerticalOptions="Fill"
-                        VerticalTextAlignment="Center">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
-                        </Label.GestureRecognizers>
-                    </Label>
+                    Margin="0"
+                    BackgroundColor="{StaticResource CardBackgroundColor}"
+                    StrokeThickness="0"
+                    Padding="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="0,0,20,20" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="{StaticResource CardShadowColor}"
+                                Offset="0,4"
+                                Opacity="0.1"
+                                Radius="8" />
+                    </Border.Shadow>
                     <Grid
-                        Grid.Column="2"
-                        Margin="0,1,1,1"
-                        HorizontalOptions="End"
-                        VerticalOptions="Fill">
+                        HorizontalOptions="Fill"
+                        Padding="{OnPlatform Default='0,0,0,0', iOS='0,44,0,0', Android='0,24,0,0'}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="56" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding OpenModalCommand}" NumberOfTapsRequired="1" />
-                        </Grid.GestureRecognizers>
-                        <StackLayout
+                        
+                        <!-- Back Button with Modern Styling -->
+                        <Border
                             Grid.Column="0"
-                            HorizontalOptions="End"
-                            Orientation="Horizontal"
-                            VerticalOptions="Fill">
+                            Grid.Row="0"
+                            Margin="15,0,0,0"
+                            BackgroundColor="Transparent"
+                            HeightRequest="44"
+                            HorizontalOptions="Start"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            WidthRequest="44">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="22" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding BackCommand}" NumberOfTapsRequired="1" />
+                            </Border.GestureRecognizers>
                             <Label
-                                Margin="5,0,2,0"
-                                HorizontalOptions="End"
-                                HorizontalTextAlignment="End"
-                                Text="{Binding Path=CurrentLanguage.Name, Mode=OneWay}"
-                                TextColor="SlateBlue"
-                                VerticalOptions="Fill"
-                                VerticalTextAlignment="Center" />
-                            <Button
-                                Margin="3"
-                                BackgroundColor="LightGray"
-                                Command="{Binding OpenModalCommand}"
+                                x:Name="BackButton"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                Style="{StaticResource MediumLabelStyle}"
-                                MinimumWidthRequest="{OnPlatform Default='65'}"
-                                Text="{x:Static fn:GlyphNames.Language}"
-                                TextColor="SlateBlue"
-                                WidthRequest="{OnPlatform Default='65'}" />
-                        </StackLayout>
+                                FontSize="20"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                Text="{x:Static fn:GlyphNames.Left}"
+                                TextColor="{StaticResource PrimaryColor}"
+                                VerticalOptions="Center"
+                                VerticalTextAlignment="Center" />
+                        </Border>
+                        
+                        <!-- Language Selector with Enhanced Styling -->
+                        <Border
+                            Grid.Column="2"
+                            Grid.Row="0"
+                            Margin="0,0,15,0"
+                            BackgroundColor="#F0F0F0"
+                            HeightRequest="40"
+                            HorizontalOptions="End"
+                            StrokeThickness="0"
+                            VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="20" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding OpenModalCommand}" NumberOfTapsRequired="1" />
+                            </Border.GestureRecognizers>
+                            <Grid
+                                Padding="12,0"
+                                ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Label
+                                    Grid.Column="0"
+                                    FontSize="16"
+                                    HorizontalOptions="End"
+                                    HorizontalTextAlignment="End"
+                                    Text="{Binding Path=CurrentLanguage.Name, Mode=OneWay}"
+                                    TextColor="{StaticResource PrimaryColor}"
+                                    VerticalOptions="Center"
+                                    VerticalTextAlignment="Center" />
+                                <Label
+                                    Grid.Column="1"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="16"
+                                    HorizontalOptions="Center"
+                                    HorizontalTextAlignment="Center"
+                                    Text="{x:Static fn:GlyphNames.Language}"
+                                    TextColor="{StaticResource PrimaryColor}"
+                                    VerticalOptions="Center"
+                                    VerticalTextAlignment="Center" />
+                            </Grid>
+                        </Border>
                     </Grid>
-                </Grid>
+                </Border>
+                
+                <!-- Enhanced Collection View with Card Layout -->
                 <CollectionView
                     x:Name="translationsCollectionView"
                     Grid.Row="1"
-                    BackgroundColor="White"
+                    Margin="0,8,0,0"
+                    BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Translations}"
                     SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical">
+                            <LinearItemsLayout.ItemSpacing>
+                                <OnPlatform x:TypeArguments="x:Double">
+                                    <On Platform="WinUI" Value="4" />
+                                    <On Platform="Default" Value="8" />
+                                </OnPlatform>
+                            </LinearItemsLayout.ItemSpacing>
+                        </LinearItemsLayout>
+                    </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="shared:PublicationListViewItemModel">
-                                <Grid
-                                    Padding="5,10,5,10"
+                            <Grid Margin="16,0">
+                                <Border
                                     BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
-                                    HorizontalOptions="Fill">
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type bible:BibleSelectionViewModel}}, Path=BookSelectionCommand}" CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="8*" />
-                                        <ColumnDefinition Width="2*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label
-                                        Grid.Column="0"
-                                        Margin="10,0,0,0"
-                                        HorizontalOptions="Fill"
-                                        HorizontalTextAlignment="Start"
-                                        Text="{Binding Name}"
-                                        TextColor="Black"
-                                        VerticalOptions="Center"
-                                        VerticalTextAlignment="Center" />
-                                    <StackLayout
-                                        Grid.Column="1"
-                                        Margin="5,0,0,0"
-                                        HorizontalOptions="End"
-                                        VerticalOptions="Center">
+                                    StrokeThickness="0"
+                                    Padding="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.Shadow>
+                                        <Shadow Brush="{StaticResource CardShadowColor}"
+                                                Offset="0,2"
+                                                Opacity="0.08"
+                                                Radius="4" />
+                                    </Border.Shadow>
+                                    <Grid
+                                        Padding="20,18"
+                                        ColumnSpacing="12"
+                                        MinimumHeightRequest="56">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type bible:BibleSelectionViewModel}}, Path=BookSelectionCommand}" CommandParameter="{Binding .}" />
+                                        </Grid.GestureRecognizers>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Bible Translation Name -->
                                         <Label
-                                            Margin="0,0,10,0"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            Style="{StaticResource MediumLabelStyle}"
-                                            Text="{x:Static fn:GlyphNames.Right}"
-                                            TextColor="Gray"
+                                            Grid.Column="0"
+                                            FontSize="16"
+                                            HorizontalOptions="Fill"
+                                            HorizontalTextAlignment="Start"
+                                            LineBreakMode="TailTruncation"
+                                            Text="{Binding Name}"
+                                            TextColor="{StaticResource TextPrimaryColor}"
+                                            VerticalOptions="Center"
                                             VerticalTextAlignment="Center" />
-                                    </StackLayout>
-                                </Grid>
+                                        
+                                        <!-- Arrow Indicator -->
+                                        <Border
+                                            Grid.Column="1"
+                                            BackgroundColor="#F5F5F5"
+                                            HeightRequest="32"
+                                            HorizontalOptions="End"
+                                            StrokeThickness="0"
+                                            VerticalOptions="Center"
+                                            WidthRequest="32">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="16" />
+                                            </Border.StrokeShape>
+                                            <Label
+                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                FontSize="14"
+                                                HorizontalOptions="Center"
+                                                HorizontalTextAlignment="Center"
+                                                Text="{x:Static fn:GlyphNames.Right}"
+                                                TextColor="{StaticResource TextSecondaryColor}"
+                                                VerticalOptions="Center"
+                                                VerticalTextAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>

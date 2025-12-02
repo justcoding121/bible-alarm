@@ -10,35 +10,44 @@
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:BibleSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        
+        <!-- Modern Color Resources -->
+        <Color x:Key="PrimaryColor">#6A5ACD</Color>
+        <Color x:Key="BackgroundColor">#F8F9FA</Color>
+        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
+        <Color x:Key="CardShadowColor">#E0E0E0</Color>
+        <Color x:Key="TextPrimaryColor">#212529</Color>
+        <Color x:Key="TextSecondaryColor">#6C757D</Color>
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
-            Margin="{OnPlatform iOS='0,25,0,0'}"
-            BackgroundColor="White"
+            Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
+            BackgroundColor="{StaticResource BackgroundColor}"
             ColumnSpacing="0"
             RowSpacing="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
-                <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
+            
             <ActivityIndicator
                 Grid.Row="0"
-                Grid.RowSpan="5"
+                Grid.RowSpan="4"
                 HorizontalOptions="Center"
                 IsEnabled="True"
                 IsRunning="{Binding IsBusy}"
                 IsVisible="{Binding IsBusy}"
                 VerticalOptions="Center"
-                Color="SlateBlue">
+                Color="{StaticResource PrimaryColor}">
                 <ActivityIndicator.Scale>
                     <OnPlatform x:TypeArguments="x:Double">
                         <OnPlatform.Platforms>
@@ -49,45 +58,66 @@
                     </OnPlatform>
                 </ActivityIndicator.Scale>
             </ActivityIndicator>
-            <Label
+            
+            <!-- Enhanced Header -->
+            <Border
                 Grid.Row="0"
-                Margin="10,2,2,2"
-                Padding="10"
-                FontSize="{StaticResource ButtonFontSize}" FontAttributes="Bold"
-                HeightRequest="50"
-                Text="Languages"
-                TextColor="Black"
-                VerticalOptions="Fill"
-                VerticalTextAlignment="Center" />
-            <BoxView
+                BackgroundColor="{StaticResource CardBackgroundColor}"
+                StrokeThickness="0"
+                Padding="20,16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0,0,20,20" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource CardShadowColor}"
+                            Offset="0,4"
+                            Opacity="0.1"
+                            Radius="8" />
+                </Border.Shadow>
+                <Label
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    HeightRequest="56"
+                    Text="Languages"
+                    TextColor="{StaticResource TextPrimaryColor}"
+                    VerticalOptions="Fill"
+                    VerticalTextAlignment="Center" />
+            </Border>
+            
+            <!-- Enhanced Search Bar -->
+            <Border
                 Grid.Row="1"
-                HeightRequest="1"
-                HorizontalOptions="Fill" />
-            <Grid
-                Grid.Row="2"
-                Margin="2"
-                BackgroundColor="White"
-                HorizontalOptions="Fill">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+                Margin="16,8,16,0"
+                BackgroundColor="{StaticResource CardBackgroundColor}"
+                StrokeThickness="0"
+                Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource CardShadowColor}"
+                            Offset="0,2"
+                            Opacity="0.08"
+                            Radius="4" />
+                </Border.Shadow>
                 <SearchBar
-                    Grid.Column="0"
-                    Margin="5,0,5,0"
-                    BackgroundColor="White"
+                    Margin="8"
+                    BackgroundColor="Transparent"
                     HeightRequest="50"
                     HorizontalOptions="Fill"
                     HorizontalTextAlignment="Start"
                     MinimumHeightRequest="50"
                     Placeholder="Search languages"
                     Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                    TextColor="Black" />
-
-            </Grid>
+                    TextColor="{StaticResource TextPrimaryColor}" />
+            </Border>
+            
+            <!-- Enhanced Collection View -->
             <CollectionView
                 x:Name="LanguageCollectionView"
-                Grid.Row="3"
-                BackgroundColor="White"
+                Grid.Row="2"
+                Margin="0,8,0,0"
+                BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
@@ -96,8 +126,14 @@
                 MinimumWidthRequest="250"
                 SelectionMode="Single">
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" 
-                                       ItemSpacing="4" />
+                    <LinearItemsLayout Orientation="Vertical">
+                        <LinearItemsLayout.ItemSpacing>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="WinUI" Value="4" />
+                                <On Platform="Default" Value="8" />
+                            </OnPlatform>
+                        </LinearItemsLayout.ItemSpacing>
+                    </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.Behaviors>
                     <behaviours:EventToCommandBehavior
@@ -107,40 +143,71 @@
                 </CollectionView.Behaviors>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="shared:LanguageListViewItemModel">
-                        <Grid
-                            BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
-                            HorizontalOptions="Fill"
-                            Padding="5,10,5,10">
-                            <Label
-                                Margin="10,0,0,0"
-                                HorizontalOptions="Start"
-                                HorizontalTextAlignment="Start"
-                                Text="{Binding Name}"
-                                TextColor="Black"
-                                VerticalOptions="Center"
-                                VerticalTextAlignment="Center" />
+                        <Grid Margin="16,0">
+                            <Border
+                                BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
+                                StrokeThickness="0"
+                                Padding="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <Shadow Brush="{StaticResource CardShadowColor}"
+                                            Offset="0,2"
+                                            Opacity="0.08"
+                                            Radius="4" />
+                                </Border.Shadow>
+                                <Grid
+                                    Padding="20,18"
+                                    HorizontalOptions="Fill"
+                                    MinimumHeightRequest="56">
+                                    <Label
+                                        FontSize="16"
+                                        HorizontalOptions="Start"
+                                        HorizontalTextAlignment="Start"
+                                        Text="{Binding Name}"
+                                        TextColor="{StaticResource TextPrimaryColor}"
+                                        VerticalOptions="Center"
+                                        VerticalTextAlignment="Center" />
+                                </Grid>
+                            </Border>
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-            <Button
-                x:Name="CloseButton"
-                Grid.Row="4"
-                Margin="2"
-                BackgroundColor="{OnPlatform Default='WhiteSmoke',
-                                             WinUI='LightGray'}"
-                BorderWidth="0"
-                BorderColor="Transparent"
-                Command="{Binding CloseModalCommand}"
-                FontSize="{StaticResource ButtonFontSize}" FontAttributes="Bold"
-                HorizontalOptions="Fill"
-                MinimumHeightRequest="{OnPlatform Default='40',
-                                                  WinUI='30'}"
-                Padding="10,8"
-                Text="CLOSE"
-                TextColor="SlateBlue"
-                VerticalOptions="Fill" />
+            
+            <!-- Enhanced Close Button -->
+            <Border
+                Grid.Row="3"
+                Margin="16,8,16,16"
+                BackgroundColor="{StaticResource CardBackgroundColor}"
+                StrokeThickness="0"
+                Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource CardShadowColor}"
+                            Offset="0,2"
+                            Opacity="0.1"
+                            Radius="4" />
+                </Border.Shadow>
+                <Button
+                    x:Name="CloseButton"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    BorderColor="Transparent"
+                    Command="{Binding CloseModalCommand}"
+                    CornerRadius="12"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HorizontalOptions="Fill"
+                    HeightRequest="50"
+                    Padding="20,0"
+                    Text="CLOSE"
+                    TextColor="{StaticResource PrimaryColor}"
+                    VerticalOptions="Fill" />
+            </Border>
         </Grid>
     </ContentPage.Content>
 </ContentPage>
-
