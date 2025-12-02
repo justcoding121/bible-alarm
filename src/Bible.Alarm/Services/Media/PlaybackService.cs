@@ -303,6 +303,25 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         await _audioPlayer.SeekToAsync(newPosition);
     }
 
+    public async Task SeekToAsync(TimeSpan position)
+    {
+        if (!IsPreparingOrPlayingInternal)
+            return;
+
+        // Clamp position to valid range (0 to duration)
+        var duration = _audioPlayer.Duration;
+        if (duration.TotalSeconds > 0 && position > duration)
+        {
+            position = duration;
+        }
+        if (position < TimeSpan.Zero)
+        {
+            position = TimeSpan.Zero;
+        }
+
+        await _audioPlayer.SeekToAsync(position);
+    }
+
     public async Task StopAsync()
     {
         _logger.Information("StopAsync called - stopping alarm completely");

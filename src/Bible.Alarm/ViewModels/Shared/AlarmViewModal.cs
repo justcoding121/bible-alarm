@@ -33,7 +33,15 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     private string? _previousTrackTitle;
     private string? _previousTrackArtist;
     private string? _previousTrackAlbum;
+    private string? _previousArtworkUrl;
     private TimeSpan _currentDuration = TimeSpan.Zero;
+    private bool _isUserInteracting; // True when user is dragging or tapping the slider
+    private double? _targetSeekProgress; // Track where user wants to seek to
+
+    /// <summary>
+    /// Public property to allow code-behind to check if user is interacting
+    /// </summary>
+    public bool IsUserInteracting => _isUserInteracting;
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
@@ -44,6 +52,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     public ICommand NextCommand { get; set; }
     public ICommand ForwardCommand { get; set; }
     public ICommand BackwardCommand { get; set; }
+    public ICommand SeekCommand { get; set; }
 
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher)
     {
@@ -158,6 +167,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         BackwardCommand = new AsyncRelayCommand(async () =>
         {
             await _playbackService.SeekBackwardAsync();
+        });
+
+        SeekCommand = new AsyncRelayCommand<TimeSpan>(async (position) =>
+        {
+            await _playbackService.SeekToAsync(position);
         });
 
         // Initialize properties with default values
@@ -288,7 +302,117 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     public double Progress
     {
         get => _progress;
-        set => SetProperty(ref _progress, value);
+        set
+        {
+            // Only update if user is not interacting (to prevent feedback loops)
+            if (!_isUserInteracting)
+            {
+                // Only update if value actually changed (reduces unnecessary UI work)
+                if (Math.Abs(_progress - value) > 0.0001) // Small threshold to avoid floating point noise
+                {
+                    SetProperty(ref _progress, value);
+                }
+            }
+        }
+    }
+
+    public TimeSpan Duration => _currentDuration;
+
+    /// <summary>
+    /// Called when user taps on the slider
+    /// </summary>
+    public void OnSliderTapped(double targetValue)
+    {
+        _logger?.Debug("[Slider] Tap detected - TargetValue: {TargetValue}", targetValue);
+        
+        if (!AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
+        {
+            return;
+        }
+
+        // Clamp value to valid range (0.0 to 1.0)
+        var progress = Math.Max(0.0, Math.Min(1.0, targetValue));
+        _targetSeekProgress = progress;
+        
+        // Update visual position directly (bypass Progress setter to avoid feedback loop)
+        _isUserInteracting = true;
+        _progress = progress;
+        OnPropertyChanged(nameof(Progress));
+        
+        // Perform seek immediately for tap
+        PerformSeek();
+    }
+
+    /// <summary>
+    /// Called when user starts dragging the slider
+    /// </summary>
+    public void OnSliderDragStarted()
+    {
+        _isUserInteracting = true;
+        _logger?.Debug("[Slider] Drag started");
+    }
+
+    /// <summary>
+    /// Called when user releases the slider after dragging
+    /// </summary>
+    public void OnSliderDragCompleted(double finalValue)
+    {
+        _logger?.Debug("[Slider] Drag completed - FinalValue: {FinalValue}", finalValue);
+        
+        if (!AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
+        {
+            _isUserInteracting = false;
+            return;
+        }
+        
+        // Update target and perform seek immediately
+        var progress = Math.Max(0.0, Math.Min(1.0, finalValue));
+        _targetSeekProgress = progress;
+        
+        // Update visual position (bypass Progress setter to avoid feedback loop)
+        _progress = progress;
+        OnPropertyChanged(nameof(Progress));
+        
+        PerformSeek();
+    }
+
+    /// <summary>
+    /// Performs the actual seek operation to the target position
+    /// </summary>
+    private void PerformSeek()
+    {
+        if (!_targetSeekProgress.HasValue || !AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
+        {
+            _isUserInteracting = false;
+            _targetSeekProgress = null;
+            return;
+        }
+
+        try
+        {
+            var seekPosition = TimeSpan.FromSeconds(_currentDuration.TotalSeconds * _targetSeekProgress.Value);
+            _logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}", 
+                seekPosition, _targetSeekProgress.Value);
+            
+            if (SeekCommand != null && SeekCommand.CanExecute(seekPosition))
+            {
+                SeekCommand.Execute(seekPosition);
+            }
+            
+            // Reset interaction flag after delay to allow seek to complete
+            Task.Delay(500).ContinueWith(_ =>
+            {
+                _isUserInteracting = false;
+                _targetSeekProgress = null;
+                _logger?.Debug("[Slider] User interaction ended");
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error(ex, "[Slider] Error performing seek");
+            _isUserInteracting = false;
+            _targetSeekProgress = null;
+        }
     }
 
     private bool _nextEnabled;
@@ -417,8 +541,20 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             SubTitle = currentArtist;
             Description = currentAlbum;
             
-            // Update artwork
-            UpdateArtwork(state.ArtworkUrl);
+            // Update artwork - force update if track changed, even if URL appears the same
+            // (artwork may be saved to same cache file path but content is different)
+            var artworkUrl = state.ArtworkUrl;
+            var shouldForceUpdate = trackChanged || (_previousArtworkUrl != artworkUrl);
+            if (shouldForceUpdate)
+            {
+                _previousArtworkUrl = artworkUrl;
+                // Reset last artwork URL to force reload even if URL is the same
+                if (trackChanged)
+                {
+                    _lastArtworkUrl = null;
+                }
+                UpdateArtwork(artworkUrl);
+            }
             
             // Update duration (from Fluxor state, only changes when track changes)
             var duration = state.Duration;
@@ -445,7 +581,33 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     public void Receive(PlaybackPositionChangedMessage message)
     {
-        // Handle high-frequency position updates via messaging
+        // Ignore position updates while user is interacting with slider
+        if (_isUserInteracting)
+        {
+            // Check if position matches target (seek completed)
+            if (message.CurrentPosition.HasValue && _targetSeekProgress.HasValue && _currentDuration.TotalSeconds > 0)
+            {
+                var actualProgress = message.CurrentPosition.Value.TotalSeconds / _currentDuration.TotalSeconds;
+                var progressDiff = Math.Abs(actualProgress - _targetSeekProgress.Value);
+                
+                // If position matches target (within 2%), allow updates to resume
+                if (progressDiff < 0.02)
+                {
+                    _isUserInteracting = false;
+                    _targetSeekProgress = null;
+                    // Continue to process update below
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                return;
+            }
+        }
+            
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (message.CurrentPosition.HasValue)
@@ -456,7 +618,12 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 // Update progress based on current position and duration
                 if (_currentDuration.TotalSeconds > 0)
                 {
-                    Progress = position.TotalSeconds / _currentDuration.TotalSeconds;
+                    var newProgress = position.TotalSeconds / _currentDuration.TotalSeconds;
+                    // Only update if change is significant (reduces unnecessary UI updates)
+                    if (Math.Abs(newProgress - _progress) > 0.001) // 0.1% threshold
+                    {
+                        Progress = newProgress;
+                    }
                 }
                 else
                 {
@@ -682,6 +849,8 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             _playbackState.StateChanged -= OnPlaybackStateChanged;
             WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
             WeakReferenceMessenger.Default.Unregister<PlaybackPreparationProgressMessage>(this);
+            
+            
             _isDisposed = true;
         }
     }

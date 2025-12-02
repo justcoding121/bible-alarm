@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
+using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Views.General;
 
@@ -50,6 +51,44 @@ public partial class AlarmModal : ContentPage, IDisposable
     {
         ViewModel?.DismissCommand.Execute(null);
         return true;
+    }
+
+    private bool _isDragging = false;
+
+    private void OnSliderValueChanged(object? sender, ValueChangedEventArgs e)
+    {
+        if (ViewModel == null)
+            return;
+
+        // Ignore programmatic updates (from binding)
+        if (!ViewModel.IsUserInteracting)
+        {
+            return;
+        }
+
+        // If user is dragging, ignore ValueChanged (drag will be handled by DragCompleted)
+        if (_isDragging)
+        {
+            return;
+        }
+
+        // This is a tap (ValueChanged without drag) - handle it
+        ViewModel.OnSliderTapped(e.NewValue);
+    }
+
+    private void OnSliderDragStarted(object? sender, EventArgs e)
+    {
+        _isDragging = true;
+        ViewModel?.OnSliderDragStarted();
+    }
+
+    private void OnSliderDragCompleted(object? sender, EventArgs e)
+    {
+        _isDragging = false;
+        if (sender is Slider slider && ViewModel != null)
+        {
+            ViewModel.OnSliderDragCompleted(slider.Value);
+        }
     }
 
     public void Dispose()

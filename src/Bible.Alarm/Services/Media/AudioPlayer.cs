@@ -25,7 +25,6 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
     private readonly IMediaElementService _mediaElementService;
     private readonly IDisplayMetadataService _displayMetadataService;
     private readonly IDispatcher _dispatcher;
-    private readonly System.Timers.Timer? _positionTimer;
 #if ANDROID
     private readonly IAndroidPlayerNotificationService? _androidPlayerNotificationService;
 #endif
@@ -34,6 +33,8 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
     private TaskCompletionSource<bool>? _mediaOpenedCompletionSource;
     private bool _isResetting = false;
     private TimeSpan _lastDuration = TimeSpan.Zero;
+    private bool _isSeeking = false;
+    private PlayStatus _statusBeforeSeek = PlayStatus.Stopped;
     // MediaElement instance - populated in PrepareAsync
     private MediaElement? _mediaElement;
 
@@ -95,10 +96,6 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
 
         // Register for RecreateMediaElementMessage to unsubscribe when MediaElement is recreated
         WeakReferenceMessenger.Default.Register<RecreateMediaElementMessage>(this);
-
-        _positionTimer = new System.Timers.Timer(500);
-        _positionTimer.Elapsed += OnPositionTimerElapsed;
-        _positionTimer.AutoReset = true;
     }
 
     public async Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false)
@@ -130,6 +127,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         _mediaElement.MediaFailed += OnMediaFailed;
         _mediaElement.MediaOpened += OnMediaOpened;
         _mediaElement.PositionChanged += OnPositionChanged;
+        _mediaElement.SeekCompleted += OnSeekCompleted;
 
         await SafeStopMediaElementAsync(clearSource: false);
 
@@ -383,49 +381,48 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
                 _logger.Debug("Ignoring state change to {NewState} because Source is null, forcing Status to Stopped", e.NewState);
                 Status = PlayStatus.Stopped;
                 SendStatusMessage();
-                _positionTimer?.Stop();
                 return;
             }
         }
 
-        Status = e.NewState switch
+        // During seeking, preserve the previous status to prevent flickering
+        // MediaElement may transition to Buffering during seek, but we want to keep showing
+        // the correct play/pause button state
+        if (_isSeeking && e.NewState == MediaElementState.Buffering)
         {
-            MediaElementState.Playing => PlayStatus.Playing,
-            MediaElementState.Paused => PlayStatus.Paused,
-            MediaElementState.Stopped => PlayStatus.Stopped,
-            MediaElementState.Buffering => PlayStatus.Loading,
-            MediaElementState.Failed => PlayStatus.Failed,
-            // None is equivalent to Stopped
-            MediaElementState.None => PlayStatus.Stopped,
-            _ => PlayStatus.Stopped
-        };
-
-        SendStatusMessage();
-
-        if (Status == PlayStatus.Playing)
-        {
-            _logger.Debug("Status changed to Playing, starting position timer. CurrentState: {CurrentState}", e.NewState);
-            _positionTimer?.Start();
+            // Preserve the status we had before seeking started
+            Status = _statusBeforeSeek;
+            _logger.Debug("Ignoring Buffering state change during seek, preserving status: {Status}", Status);
         }
         else
         {
-            _logger.Debug("Status changed to {Status}, stopping position timer. CurrentState: {CurrentState}", Status, e.NewState);
-            _positionTimer?.Stop();
+            Status = e.NewState switch
+            {
+                MediaElementState.Playing => PlayStatus.Playing,
+                MediaElementState.Paused => PlayStatus.Paused,
+                MediaElementState.Stopped => PlayStatus.Stopped,
+                MediaElementState.Buffering => PlayStatus.Loading,
+                MediaElementState.Failed => PlayStatus.Failed,
+                // None is equivalent to Stopped
+                MediaElementState.None => PlayStatus.Stopped,
+                _ => PlayStatus.Stopped
+            };
         }
+
+        SendStatusMessage();
     }
 
     private void OnPositionChanged(object? sender, EventArgs e)
     {
-        SendPositionUpdate();
-    }
-
-    private void OnPositionTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
-    {
-        // Check position on main thread since MediaElement properties must be accessed on UI thread
-        MainThread.BeginInvokeOnMainThread(() =>
+        // MediaElement's PositionChanged event fires when position updates
+        // MediaElement has its own internal timer (200ms) that triggers this event
+        // Removed verbose logging to reduce CPU usage - only log if seeking
+        if (_isSeeking)
         {
-            SendPositionUpdate();
-        });
+            _logger.Debug("[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}", 
+                CurrentPosition?.ToString() ?? "null");
+        }
+        SendPositionUpdate();
     }
 
     private void SendStatusMessage()
@@ -475,7 +472,6 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             // Ensure status is reset to Stopped
             Status = PlayStatus.Stopped;
             _currentTrack = null;
-            _positionTimer?.Stop();
             _mediaOpenedCompletionSource?.TrySetCanceled();
             _mediaOpenedCompletionSource = null;
             SendStatusMessage();
@@ -510,7 +506,31 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
 
     public Task SeekToAsync(TimeSpan position)
     {
-        return MainThread.InvokeOnMainThreadAsync(() => _mediaElement?.SeekTo(position));
+        // Track that we're seeking to prevent state flickering during seek
+        _isSeeking = true;
+        _statusBeforeSeek = Status;
+        
+        _logger.Debug("[AudioPlayer] SeekToAsync called - Position: {Position}, StatusBeforeSeek: {Status}, Setting _isSeeking = true", 
+            position, _statusBeforeSeek);
+        
+        return MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _logger.Debug("[AudioPlayer] About to call MediaElement.SeekTo({Position})", position);
+            _mediaElement?.SeekTo(position);
+            _logger.Debug("[AudioPlayer] MediaElement.SeekTo() called. _isSeeking will be reset in OnSeekCompleted");
+            // Note: _isSeeking will be reset in OnSeekCompleted when seek actually finishes
+        });
+    }
+
+    private void OnSeekCompleted(object? sender, EventArgs e)
+    {
+        // Seek has completed - reset the seeking flag
+        // This allows position updates to resume and status changes to be processed normally
+        var currentPosition = CurrentPosition;
+        _logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false", 
+            currentPosition?.ToString() ?? "null");
+        _isSeeking = false;
+        _logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates. _isSeeking: {IsSeeking}", _isSeeking);
     }
 
 
@@ -549,13 +569,6 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<RecreateMediaElementMessage>(this);
 
-        if (_positionTimer != null)
-        {
-            _positionTimer.Elapsed -= OnPositionTimerElapsed;
-            _positionTimer.Stop();
-            _positionTimer.Dispose();
-        }
-
         // Unsubscribe from current MediaElement if it exists
         if (_mediaElement != null)
         {
@@ -592,6 +605,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             mediaElement.MediaEnded -= OnMediaEnded;
             mediaElement.MediaFailed -= OnMediaFailed;
             mediaElement.PositionChanged -= OnPositionChanged;
+            mediaElement.SeekCompleted -= OnSeekCompleted;
             _logger.Debug("Unsubscribed from MediaElement events");
         }
         catch (Exception ex)

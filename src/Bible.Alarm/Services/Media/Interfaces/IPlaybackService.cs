@@ -8,6 +8,7 @@ public interface IPlaybackService
     Task PlayNextAsync();
     Task SeekForwardAsync();
     Task SeekBackwardAsync();
+    Task SeekToAsync(TimeSpan position);
 
     Task PrepareAndPlayAsync(int scheduleId, bool isAlarm);
     Task StopAsync();

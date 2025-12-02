@@ -10,22 +10,52 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
-    x:DataType="shared:AlarmViewModal"
-    BackgroundColor="#F8F9FA">
+    x:DataType="shared:AlarmViewModal">
     <ContentPage.Resources>
         <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:IsNullConverter x:Key="isNullConverter" />
         <converters:IsNotNullConverter x:Key="isNotNullConverter" />
         
-        <!-- Modern Color Resources -->
+        <!-- Modern Color Resources - System Theme Aware -->
         <forms:Color x:Key="SlateBlue">#6A5ACD</forms:Color>
         <Color x:Key="PrimaryColor">#6A5ACD</Color>
-        <Color x:Key="BackgroundColor">#F8F9FA</Color>
-        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
-        <Color x:Key="CardShadowColor">#E0E0E0</Color>
-        <Color x:Key="TextPrimaryColor">#212529</Color>
-        <Color x:Key="TextSecondaryColor">#6C757D</Color>
+        <OnPlatform x:Key="BackgroundColor" x:TypeArguments="Color">
+            <On Platform="iOS" Value="#F8F9FA" />
+            <On Platform="Android" Value="#F8F9FA" />
+            <On Platform="WinUI" Value="#F8F9FA" />
+        </OnPlatform>
+        <OnPlatform x:Key="CardBackgroundColor" x:TypeArguments="Color">
+            <On Platform="iOS" Value="#FFFFFF" />
+            <On Platform="Android" Value="#FFFFFF" />
+            <On Platform="WinUI" Value="#FFFFFF" />
+        </OnPlatform>
+        <OnPlatform x:Key="CardShadowColor" x:TypeArguments="Color">
+            <On Platform="iOS" Value="#E0E0E0" />
+            <On Platform="Android" Value="#E0E0E0" />
+            <On Platform="WinUI" Value="#E0E0E0" />
+        </OnPlatform>
+        <OnPlatform x:Key="TextPrimaryColor" x:TypeArguments="Color">
+            <On Platform="iOS" Value="#212529" />
+            <On Platform="Android" Value="#212529" />
+            <On Platform="WinUI" Value="#212529" />
+        </OnPlatform>
+        <OnPlatform x:Key="TextSecondaryColor" x:TypeArguments="Color">
+            <On Platform="iOS" Value="#6C757D" />
+            <On Platform="Android" Value="#6C757D" />
+            <On Platform="WinUI" Value="#6C757D" />
+        </OnPlatform>
+        <OnPlatform x:Key="ControlBackgroundColor" x:TypeArguments="Color">
+            <On Platform="iOS" Value="#F5F5F5" />
+            <On Platform="Android" Value="#F5F5F5" />
+            <On Platform="WinUI" Value="#F5F5F5" />
+        </OnPlatform>
+        <OnPlatform x:Key="ProgressBarBackgroundColor" x:TypeArguments="Color">
+            <On Platform="iOS" Value="#E9ECEF" />
+            <On Platform="Android" Value="#E9ECEF" />
+            <On Platform="WinUI" Value="#E9ECEF" />
+        </OnPlatform>
+        <Color x:Key="WhiteColor">#FFFFFF</Color>
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="{StaticResource BackgroundColor}">
@@ -34,161 +64,118 @@
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             
-            <FlexLayout
+            <!-- Main Content Area -->
+            <ScrollView
                 Grid.Row="0"
-                AlignItems="Center"
-                Direction="Column"
-                HorizontalOptions="Center"
-                JustifyContent="SpaceEvenly"
-                Padding="20">
-                
-                <!-- Progress indicator when preparing tracks -->
-                <Border
-                    IsVisible="{Binding IsPreparing}"
-                    BackgroundColor="{StaticResource CardBackgroundColor}"
-                    StrokeThickness="0"
-                    Padding="24">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="{StaticResource CardShadowColor}"
-                                Offset="0,4"
-                                Opacity="0.1"
-                                Radius="8" />
-                    </Border.Shadow>
-                    <StackLayout
-                        Orientation="Vertical"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center"
-                        Spacing="12">
+                VerticalScrollBarVisibility="Never">
+                <StackLayout
+                    Padding="24,40,24,24"
+                    Spacing="32"
+                    VerticalOptions="Center">
+                    
+                    <!-- Progress indicator when preparing tracks -->
+                    <Border
+                        IsVisible="{Binding IsPreparing}"
+                        BackgroundColor="{StaticResource CardBackgroundColor}"
+                        StrokeThickness="0"
+                        Padding="24,20">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <StackLayout
+                            Orientation="Vertical"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            Spacing="12">
+                            <Label
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                Text="{Binding ProgressText}"
+                                TextColor="{StaticResource TextPrimaryColor}" />
+                            <ProgressBar
+                                Margin="10,5"
+                                MinimumWidthRequest="200"
+                                Progress="{Binding PreparationProgress}"
+                                ProgressColor="{StaticResource PrimaryColor}" />
+                        </StackLayout>
+                    </Border>
+                    
+                    <!-- Error message when playback fails -->
+                    <Border
+                        IsVisible="{Binding HasError}"
+                        BackgroundColor="#2A1A1A"
+                        StrokeThickness="1"
+                        Stroke="#4A2A2A"
+                        Padding="24,20">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
                         <Label
                             FontSize="16"
                             FontAttributes="Bold"
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
-                            Text="{Binding ProgressText}"
-                            TextColor="{StaticResource TextPrimaryColor}" />
-                        <ProgressBar
-                            Margin="10,5"
-                            MinimumWidthRequest="200"
-                            Progress="{Binding PreparationProgress}"
-                            ProgressColor="{StaticResource PrimaryColor}" />
-                    </StackLayout>
-                </Border>
-                
-                <!-- Error message when playback fails -->
-                <Border
-                    IsVisible="{Binding HasError}"
-                    BackgroundColor="#FFF5F5"
-                    StrokeThickness="1"
-                    Stroke="#FFE0E0"
-                    Padding="24">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="{StaticResource CardShadowColor}"
-                                Offset="0,4"
-                                Opacity="0.1"
-                                Radius="8" />
-                    </Border.Shadow>
-                    <Label
-                        FontSize="16"
-                        FontAttributes="Bold"
+                            TextColor="#FF6B6B"
+                            Text="{Binding ErrorMessage}"
+                            LineBreakMode="WordWrap" />
+                    </Border>
+                    
+                    <!-- Main Music Player Content -->
+                    <StackLayout
+                        AutomationId="AlarmModal"
+                        IsVisible="{Binding IsPreparing, Converter={StaticResource negateBooleanConverter}}"
+                        Spacing="32"
                         HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"
-                        TextColor="#DC3545"
-                        Text="{Binding ErrorMessage}"
-                        LineBreakMode="WordWrap" />
-                </Border>
-                
-                <!-- Main Content Card -->
-                <Border
-                    BackgroundColor="{StaticResource CardBackgroundColor}"
-                    StrokeThickness="0"
-                    Padding="32">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="24" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="{StaticResource CardShadowColor}"
-                                Offset="0,8"
-                                Opacity="0.15"
-                                Radius="16" />
-                    </Border.Shadow>
-                    <StackLayout 
-                        Orientation="Vertical"
-                        Spacing="20">
-                        <StackLayout Orientation="Vertical" Spacing="8">
-                            <Label
-                                FontSize="20"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Center"
-                                HorizontalTextAlignment="Center"
-                                Text="{Binding Title}"
-                                TextColor="{StaticResource TextPrimaryColor}" />
-                            <Label
-                                FontSize="16"
-                                HorizontalOptions="Center"
-                                HorizontalTextAlignment="Center"
-                                Text="{Binding Description}"
-                                TextColor="{StaticResource TextSecondaryColor}"
-                                LineBreakMode="WordWrap" />
-                        </StackLayout>
+                        VerticalOptions="Center">
                         
-                        <StackLayout
-                            AutomationId="AlarmModal"
+                        <!-- Album Artwork -->
+                        <Grid
                             HorizontalOptions="Center"
-                            Orientation="Vertical"
-                            VerticalOptions="Center"
-                            Spacing="20">
-                            <StackLayout.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding DismissCommand}" NumberOfTapsRequired="1" />
-                            </StackLayout.GestureRecognizers>
-                            
+                            VerticalOptions="Center">
                             <!-- Activity Indicator for loading artwork -->
                             <ActivityIndicator
                                 IsVisible="{Binding IsArtworkLoading}"
                                 IsRunning="{Binding IsArtworkLoading}"
                                 Color="{StaticResource PrimaryColor}"
-                                HeightRequest="160"
-                                WidthRequest="160"
+                                HeightRequest="280"
+                                WidthRequest="280"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center" />
                             
                             <!-- Album Artwork or Bell Icon -->
                             <Border
                                 IsVisible="{Binding IsArtworkLoading, Converter={StaticResource negateBooleanConverter}}"
-                                BackgroundColor="#F0F0FF"
-                                HeightRequest="160"
-                                WidthRequest="160"
+                                BackgroundColor="{StaticResource ControlBackgroundColor}"
+                                HeightRequest="280"
+                                WidthRequest="280"
                                 StrokeThickness="0"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
+                                    <RoundRectangle CornerRadius="0" />
                                 </Border.StrokeShape>
                                 <Border.Shadow>
                                     <Shadow Brush="{StaticResource CardShadowColor}"
-                                            Offset="0,4"
+                                            Offset="0,8"
                                             Opacity="0.2"
-                                            Radius="8" />
+                                            Radius="20" />
                                 </Border.Shadow>
                                 <Grid>
-                                    <!-- Album Artwork Image - only show when artwork is ready -->
+                                    <!-- Album Artwork Image -->
                                     <Image
                                         Aspect="AspectFill"
-                                        HeightRequest="160"
+                                        HeightRequest="280"
                                         HorizontalOptions="Fill"
                                         IsVisible="{Binding HasArtwork}"
                                         Source="{Binding ArtworkSource}"
                                         VerticalOptions="Fill"
-                                        WidthRequest="160" />
-                                    <!-- Fallback Bell Icon when no artwork or artwork is loading -->
+                                        WidthRequest="280" />
+                                    <!-- Fallback Bell Icon when no artwork -->
                                     <Label
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        FontSize="60"
+                                        FontSize="80"
                                         HorizontalOptions="Center"
                                         HorizontalTextAlignment="Center"
                                         IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
@@ -197,84 +184,100 @@
                                         VerticalOptions="Center" />
                                 </Grid>
                             </Border>
-                            
-                            <!-- Dismiss Button -->
-                            <Grid>
-                                <Button
-                                    AutomationId="AlarmDismissButton"
-                                    BackgroundColor="{StaticResource PrimaryColor}"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding DismissCommand}"
-                                    CornerRadius="12"
-                                    FontSize="16"
-                                    FontAttributes="Bold"
-                                    HeightRequest="{OnPlatform Default='50',
-                                                               WinUI='42'}"
-                                    HorizontalOptions="Center"
-                                    IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
-                                    Padding="40,0"
-                                    Text="DISMISS"
-                                    TextColor="White"
-                                    VerticalOptions="Center">
-                                    <Button.Shadow>
-                                        <Shadow Brush="{StaticResource CardShadowColor}"
-                                                Offset="0,4"
-                                                Opacity="0.2"
-                                                Radius="8" />
-                                    </Button.Shadow>
-                                </Button>
-                                <ActivityIndicator
-                                    IsRunning="{Binding IsBusy}"
-                                    IsVisible="{Binding IsBusy}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    WidthRequest="30"
-                                    HeightRequest="30"
-                                    Color="{StaticResource PrimaryColor}" />
-                            </Grid>
-                        </StackLayout>
+                        </Grid>
                         
-                        <Label
-                            FontSize="14"
-                            HorizontalOptions="Center"
-                            HorizontalTextAlignment="Center"
-                            Text="{Binding SubTitle}"
-                            TextColor="{StaticResource TextSecondaryColor}"
-                            LineBreakMode="WordWrap" />
+                        <!-- Track Metadata -->
+                        <StackLayout
+                            Spacing="8"
+                            HorizontalOptions="Center">
+                            <Label
+                                FontSize="24"
+                                FontAttributes="Bold"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                Text="{Binding Title}"
+                                TextColor="{StaticResource TextPrimaryColor}"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="2" />
+                            <Label
+                                FontSize="18"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                Text="{Binding SubTitle}"
+                                TextColor="{StaticResource TextSecondaryColor}"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="1" />
+                            <Label
+                                FontSize="14"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                Text="{Binding Description}"
+                                TextColor="{StaticResource TextSecondaryColor}"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="1" />
+                        </StackLayout>
                     </StackLayout>
-                </Border>
-            </FlexLayout>
+                </StackLayout>
+            </ScrollView>
             
-            <!-- Enhanced Media Controls -->
+            <!-- Bottom Controls Panel -->
             <Border
                 Grid.Row="1"
-                Margin="16,8,16,20"
                 BackgroundColor="{StaticResource CardBackgroundColor}"
                 StrokeThickness="0"
-                Padding="16,12">
+                Padding="0">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="16" />
+                    <RoundRectangle CornerRadius="24,24,0,0" />
                 </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="{StaticResource CardShadowColor}"
-                            Offset="0,4"
-                            Opacity="0.15"
-                            Radius="8" />
-                </Border.Shadow>
                 <Grid
-                    IsEnabled="{Binding AreControlsEnabled}"
-                    RowSpacing="12"
-                    VerticalOptions="End">
+                    Padding="24,20,24,32"
+                    RowSpacing="20"
+                    IsEnabled="{Binding AreControlsEnabled}">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     
+                    <!-- Stop Button -->
+                    <Border
+                        Grid.Row="0"
+                        AutomationId="AlarmDismissButton"
+                        BackgroundColor="#FF3B30"
+                        HeightRequest="48"
+                        WidthRequest="48"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        Margin="0,0,0,16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="24" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#FF3B30"
+                                    Offset="0,4"
+                                    Opacity="0.4"
+                                    Radius="8" />
+                        </Border.Shadow>
+                        <Button
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
+                            Command="{Binding DismissCommand}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="20"
+                            HorizontalOptions="Center"
+                            Text="{x:Static fn:GlyphNames.Stop}"
+                            TextColor="White"
+                            VerticalOptions="Center" />
+                    </Border>
+                    
                     <!-- Progress Bar Row -->
                     <Grid
-                        Grid.Row="0"
-                        ColumnSpacing="8">
+                        Grid.Row="1"
+                        ColumnSpacing="12"
+                        VerticalOptions="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -283,30 +286,39 @@
                         <Label
                             Grid.Column="0"
                             FontSize="12"
+                            FontAttributes="Bold"
                             HorizontalOptions="Start"
                             Text="{Binding CurrentTime}"
-                            TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
+                            TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextSecondaryColor}}"
                             VerticalOptions="Center" />
-                        <ProgressBar
+                        <Slider
                             Grid.Column="1"
                             HorizontalOptions="Fill"
+                            VerticalOptions="Center"
+                            Minimum="0"
+                            Maximum="1"
                             IsEnabled="{Binding AreControlsEnabled}"
-                            Progress="{Binding Progress}"
-                            ProgressColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
-                            VerticalOptions="Center" />
+                            Value="{Binding Progress}"
+                            ValueChanged="OnSliderValueChanged"
+                            DragStarted="OnSliderDragStarted"
+                            DragCompleted="OnSliderDragCompleted"
+                            ThumbColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource PrimaryColor}}"
+                            MinimumTrackColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource PrimaryColor}}"
+                            MaximumTrackColor="{StaticResource ProgressBarBackgroundColor}" />
                         <Label
                             Grid.Column="2"
                             FontSize="12"
+                            FontAttributes="Bold"
                             HorizontalOptions="End"
                             Text="{Binding EndTime}"
-                            TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
+                            TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextSecondaryColor}}"
                             VerticalOptions="Center" />
                     </Grid>
                     
-                    <!-- Control Buttons Row -->
+                    <!-- Main Control Buttons Row -->
                     <Grid
-                        Grid.Row="1"
-                        ColumnSpacing="8"
+                        Grid.Row="2"
+                        ColumnSpacing="16"
                         HorizontalOptions="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -316,16 +328,17 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         
+                        <!-- Previous Track -->
                         <Border
                             Grid.Column="0"
-                            BackgroundColor="#F5F5F5"
-                            HeightRequest="44"
-                            WidthRequest="44"
+                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            HeightRequest="48"
+                            WidthRequest="48"
                             StrokeThickness="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="22" />
+                                <RoundRectangle CornerRadius="24" />
                             </Border.StrokeShape>
                             <Button
                                 Padding="0"
@@ -334,24 +347,25 @@
                                 BorderColor="Transparent"
                                 Command="{Binding PreviousCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="18"
+                                FontSize="20"
                                 HorizontalOptions="Center"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Previous}"
-                                TextColor="{Binding PreviousEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
+                                TextColor="{Binding PreviousEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
                                 VerticalOptions="Center" />
                         </Border>
                         
+                        <!-- Backward (Seek Back) -->
                         <Border
                             Grid.Column="1"
-                            BackgroundColor="#F5F5F5"
-                            HeightRequest="44"
-                            WidthRequest="44"
+                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            HeightRequest="48"
+                            WidthRequest="48"
                             StrokeThickness="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="22" />
+                                <RoundRectangle CornerRadius="24" />
                             </Border.StrokeShape>
                             <Button
                                 Padding="0"
@@ -364,21 +378,28 @@
                                 HorizontalOptions="Center"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Backward}"
-                                TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
+                                TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
                                 VerticalOptions="Center" />
                         </Border>
                         
+                        <!-- Play/Pause Button (Primary) -->
                         <Border
                             Grid.Column="2"
-                            BackgroundColor="{StaticResource PrimaryColor}"
-                            HeightRequest="56"
-                            WidthRequest="56"
+                            BackgroundColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource PrimaryColor}}"
+                            HeightRequest="64"
+                            WidthRequest="64"
                             StrokeThickness="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="28" />
+                                <RoundRectangle CornerRadius="32" />
                             </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#6A5ACD"
+                                        Offset="0,4"
+                                        Opacity="0.4"
+                                        Radius="12" />
+                            </Border.Shadow>
                             <Grid>
                                 <Button
                                     Padding="0"
@@ -387,12 +408,12 @@
                                     BorderColor="Transparent"
                                     Command="{Binding PlayCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                    FontSize="24"
+                                    FontSize="28"
                                     HorizontalOptions="Center"
                                     IsEnabled="{Binding AreControlsEnabled}"
                                     IsVisible="{Binding PlayVisible}"
                                     Text="{x:Static fn:GlyphNames.Play}"
-                                    TextColor="White"
+                                    TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource WhiteColor}}"
                                     VerticalOptions="Center" />
                                 <Button
                                     Padding="0"
@@ -401,26 +422,27 @@
                                     BorderColor="Transparent"
                                     Command="{Binding PauseCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                    FontSize="24"
+                                    FontSize="28"
                                     HorizontalOptions="Center"
                                     IsEnabled="{Binding AreControlsEnabled}"
                                     IsVisible="{Binding PauseVisible}"
                                     Text="{x:Static fn:GlyphNames.Pause}"
-                                    TextColor="White"
+                                    TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource WhiteColor}}"
                                     VerticalOptions="Center" />
                             </Grid>
                         </Border>
                         
+                        <!-- Forward (Seek Forward) -->
                         <Border
                             Grid.Column="3"
-                            BackgroundColor="#F5F5F5"
-                            HeightRequest="44"
-                            WidthRequest="44"
+                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            HeightRequest="48"
+                            WidthRequest="48"
                             StrokeThickness="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="22" />
+                                <RoundRectangle CornerRadius="24" />
                             </Border.StrokeShape>
                             <Button
                                 Padding="0"
@@ -433,20 +455,21 @@
                                 HorizontalOptions="Center"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Forward}"
-                                TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
+                                TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
                                 VerticalOptions="Center" />
                         </Border>
                         
+                        <!-- Next Track -->
                         <Border
                             Grid.Column="4"
-                            BackgroundColor="#F5F5F5"
-                            HeightRequest="44"
-                            WidthRequest="44"
+                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            HeightRequest="48"
+                            WidthRequest="48"
                             StrokeThickness="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="22" />
+                                <RoundRectangle CornerRadius="24" />
                             </Border.StrokeShape>
                             <Button
                                 Padding="0"
@@ -455,11 +478,11 @@
                                 BorderColor="Transparent"
                                 Command="{Binding NextCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="18"
+                                FontSize="20"
                                 HorizontalOptions="Center"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Next}"
-                                TextColor="{Binding NextEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource SlateBlue}}"
+                                TextColor="{Binding NextEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
                                 VerticalOptions="Center" />
                         </Border>
                     </Grid>
