@@ -15,6 +15,8 @@
     <ContentPage.Resources>
         <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <converters:IsNullConverter x:Key="isNullConverter" />
+        <converters:IsNotNullConverter x:Key="isNotNullConverter" />
         
         <!-- Modern Color Resources -->
         <forms:Color x:Key="SlateBlue">#6A5ACD</forms:Color>
@@ -145,25 +147,55 @@
                                 <TapGestureRecognizer Command="{Binding DismissCommand}" NumberOfTapsRequired="1" />
                             </StackLayout.GestureRecognizers>
                             
-                            <!-- Bell Icon -->
+                            <!-- Activity Indicator for loading artwork -->
+                            <ActivityIndicator
+                                IsVisible="{Binding IsArtworkLoading}"
+                                IsRunning="{Binding IsArtworkLoading}"
+                                Color="{StaticResource PrimaryColor}"
+                                HeightRequest="160"
+                                WidthRequest="160"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                            
+                            <!-- Album Artwork or Bell Icon -->
                             <Border
+                                IsVisible="{Binding IsArtworkLoading, Converter={StaticResource negateBooleanConverter}}"
                                 BackgroundColor="#F0F0FF"
-                                HeightRequest="80"
-                                WidthRequest="80"
+                                HeightRequest="160"
+                                WidthRequest="160"
                                 StrokeThickness="0"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="40" />
+                                    <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
-                                <Label
-                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                    FontSize="40"
-                                    HorizontalOptions="Center"
-                                    HorizontalTextAlignment="Center"
-                                    Text="{x:Static fn:GlyphNames.Bell}"
-                                    TextColor="{StaticResource PrimaryColor}"
-                                    VerticalOptions="Center" />
+                                <Border.Shadow>
+                                    <Shadow Brush="{StaticResource CardShadowColor}"
+                                            Offset="0,4"
+                                            Opacity="0.2"
+                                            Radius="8" />
+                                </Border.Shadow>
+                                <Grid>
+                                    <!-- Album Artwork Image - only show when artwork is ready -->
+                                    <Image
+                                        Aspect="AspectFill"
+                                        HeightRequest="160"
+                                        HorizontalOptions="Fill"
+                                        IsVisible="{Binding HasArtwork}"
+                                        Source="{Binding ArtworkSource}"
+                                        VerticalOptions="Fill"
+                                        WidthRequest="160" />
+                                    <!-- Fallback Bell Icon when no artwork or artwork is loading -->
+                                    <Label
+                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                        FontSize="60"
+                                        HorizontalOptions="Center"
+                                        HorizontalTextAlignment="Center"
+                                        IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
+                                        Text="{x:Static fn:GlyphNames.Bell}"
+                                        TextColor="{StaticResource PrimaryColor}"
+                                        VerticalOptions="Center" />
+                                </Grid>
                             </Border>
                             
                             <!-- Dismiss Button -->
@@ -347,34 +379,36 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="28" />
                             </Border.StrokeShape>
-                            <Button
-                                Padding="0"
-                                BackgroundColor="Transparent"
-                                BorderWidth="0"
-                                BorderColor="Transparent"
-                                Command="{Binding PlayCommand}"
-                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="24"
-                                HorizontalOptions="Center"
-                                IsEnabled="{Binding AreControlsEnabled}"
-                                IsVisible="{Binding PlayVisible}"
-                                Text="{x:Static fn:GlyphNames.Play}"
-                                TextColor="White"
-                                VerticalOptions="Center" />
-                            <Button
-                                Padding="0"
-                                BackgroundColor="Transparent"
-                                BorderWidth="0"
-                                BorderColor="Transparent"
-                                Command="{Binding PauseCommand}"
-                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="24"
-                                HorizontalOptions="Center"
-                                IsEnabled="{Binding AreControlsEnabled}"
-                                IsVisible="{Binding PauseVisible}"
-                                Text="{x:Static fn:GlyphNames.Pause}"
-                                TextColor="White"
-                                VerticalOptions="Center" />
+                            <Grid>
+                                <Button
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
+                                    Command="{Binding PlayCommand}"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="24"
+                                    HorizontalOptions="Center"
+                                    IsEnabled="{Binding AreControlsEnabled}"
+                                    IsVisible="{Binding PlayVisible}"
+                                    Text="{x:Static fn:GlyphNames.Play}"
+                                    TextColor="White"
+                                    VerticalOptions="Center" />
+                                <Button
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
+                                    Command="{Binding PauseCommand}"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="24"
+                                    HorizontalOptions="Center"
+                                    IsEnabled="{Binding AreControlsEnabled}"
+                                    IsVisible="{Binding PauseVisible}"
+                                    Text="{x:Static fn:GlyphNames.Pause}"
+                                    TextColor="White"
+                                    VerticalOptions="Center" />
+                            </Grid>
                         </Border>
                         
                         <Border

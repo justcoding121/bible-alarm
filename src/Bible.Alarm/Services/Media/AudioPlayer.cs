@@ -261,14 +261,40 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
 
     private void SendMetadataMessage(MetaData meta)
     {
+        // If we have artwork bytes, save them to a file and use that path
+        string? artworkUrl = meta.ArtworkUrl;
+        if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0 && string.IsNullOrEmpty(artworkUrl))
+        {
+            try
+            {
+                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
+                System.IO.File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                artworkUrl = artworkPath;
+                _logger.Debug($"Saved artwork to {artworkPath}, size: {meta.ArtworkBytes.Length} bytes");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Failed to save artwork to file");
+            }
+        }
+        
         // Dispatch Fluxor action
         _dispatcher.Dispatch(new PlaybackMetadataChangedAction
         {
             Title = meta.Title,
             Artist = meta.Artist,
             Album = meta.Album,
-            ArtworkUrl = meta.ArtworkUrl
+            ArtworkUrl = artworkUrl
         });
+        
+        if (!string.IsNullOrEmpty(artworkUrl))
+        {
+            _logger.Debug($"Dispatched metadata with ArtworkUrl: {artworkUrl}");
+        }
+        else
+        {
+            _logger.Debug("Dispatched metadata without ArtworkUrl");
+        }
     }
 
     private void SendPositionUpdate()

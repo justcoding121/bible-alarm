@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 #endif
 using System.Runtime.InteropServices;
+using System.Collections;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 
@@ -21,66 +22,59 @@ public static class CollectionViewHelper
 
         try
         {
-            // Wait for the CollectionView to be loaded
-            if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            // Wait for the CollectionView to be ready on all platforms
+            var isReady = await WaitForCollectionViewReadyAsync(collectionView, item);
+            
+            if (!isReady)
             {
-                // On Windows, wait longer and check if the visual tree is ready
-                await WaitForCollectionViewReadyWindows(collectionView);
-            }
-            else
-            {
-                // On other platforms, a shorter delay is usually sufficient
-                await Task.Delay(200);
+                Log.Logger.Debug("CollectionView not ready for scrolling or item not found in ItemsSource");
+                return;
             }
 
-            // Check if CollectionView is still valid and has items
-            if (collectionView.ItemsSource != null)
-            {
-                // Additional verification on Windows before attempting scroll
-                var canScroll = true;
+            // Additional verification on Windows before attempting scroll
+            var canScroll = true;
 #if WINDOWS
-                if (DeviceInfo.Platform == DevicePlatform.WinUI)
-                {
-                    canScroll = await CanSafelyScrollWindows(collectionView);
-                }
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            {
+                canScroll = await CanSafelyScrollWindows(collectionView);
+            }
 #endif
-                
-                if (canScroll)
+            
+            if (canScroll)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    try
                     {
-                        try
-                        {
-                            collectionView.ScrollTo(item, position: position, animate: animated);
-                        }
-                        catch (COMException ex)
-                        {
-                            // Visual tree/ScrollViewer not ready yet, ignore the error
-                            Log.Logger.Debug(ex, "COMException while scrolling CollectionView - visual tree not ready yet");
-                        }
-                        catch (Exception ex)
-                        {
-                            // Other errors, ignore
-                            Log.Logger.Debug(ex, "Exception while scrolling CollectionView");
-                        }
-                    });
-                }
+                        collectionView.ScrollTo(item, position: position, animate: animated);
+                        Log.Logger.Debug("Successfully scrolled to item in CollectionView");
+                    }
+                    catch (COMException ex)
+                    {
+                        // Visual tree/ScrollViewer not ready yet, ignore the error
+                        Log.Logger.Debug(ex, "COMException while scrolling CollectionView - visual tree not ready yet");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Other errors, log but don't throw
+                        Log.Logger.Debug(ex, "Exception while scrolling CollectionView: {Message}", ex.Message);
+                    }
+                });
             }
         }
         catch (Exception ex)
         {
             // Ignore errors - scrolling is not critical
-            Log.Logger.Debug(ex, "Exception in ScrollToWhenReadyAsync - scrolling is not critical");
+            Log.Logger.Debug(ex, "Exception in ScrollToWhenReadyAsync - scrolling is not critical: {Message}", ex.Message);
         }
     }
 
-    private static async Task WaitForCollectionViewReadyWindows(MauiCollectionView collectionView)
+    private static async Task<bool> WaitForCollectionViewReadyAsync(MauiCollectionView collectionView, object item)
     {
         // Maximum number of attempts (5 seconds total)
         const int maxAttempts = 50;
         // Delay between attempts
         const int delayMs = 100;
-        var isReady = false;
 
         for (var i = 0; i < maxAttempts; i++)
         {
@@ -92,31 +86,44 @@ public static class CollectionViewHelper
                 if (collectionView.ItemsSource == null)
                     continue;
 
+                // Check if ItemsSource has any items
+                if (!HasItems(collectionView.ItemsSource))
+                    continue;
+
                 // Check if handler is available
                 if (collectionView.Handler == null)
                     continue;
 
+                // Verify item exists in ItemsSource
+                if (!ItemExistsInSource(collectionView.ItemsSource, item))
+                    continue;
+
 #if WINDOWS
-                // Check if the native control is loaded
-                if (collectionView.Handler.PlatformView is FrameworkElement frameworkElement)
+                if (DeviceInfo.Platform == DevicePlatform.WinUI)
                 {
-                    // Check if IsLoaded property is true (safer than accessing visual tree)
-                    if (frameworkElement.IsLoaded)
+                    // Check if the native control is loaded
+                    if (collectionView.Handler.PlatformView is FrameworkElement frameworkElement)
                     {
-                        // Wait longer for the ScrollViewer to be ready
-                        // The ScrollViewer is what needs to be ready for scrolling to work
-                        await Task.Delay(500);
-                        isReady = true;
-                        break;
+                        // Check if IsLoaded property is true (safer than accessing visual tree)
+                        if (frameworkElement.IsLoaded)
+                        {
+                            // Wait longer for the ScrollViewer to be ready
+                            await Task.Delay(300);
+                            return true;
+                        }
                     }
                 }
-#else
-                // On other platforms, if handler exists, we're likely ready
-                if (collectionView.Handler.PlatformView != null)
-                {
-                    return;
-                }
+                else
 #endif
+                {
+                    // On other platforms, if handler exists and item is found, we're ready
+                    if (collectionView.Handler.PlatformView != null)
+                    {
+                        // Additional small delay to ensure rendering is complete
+                        await Task.Delay(200);
+                        return true;
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -125,12 +132,71 @@ public static class CollectionViewHelper
             }
         }
 
-        // Additional wait to ensure ScrollViewer is ready
-        if (isReady)
-        {
-            await Task.Delay(300);
-        }
+        return false;
     }
+
+    private static bool HasItems(object itemsSource)
+    {
+        if (itemsSource == null)
+            return false;
+
+        try
+        {
+            // Handle ICollection for count
+            if (itemsSource is ICollection collection)
+            {
+                return collection.Count > 0;
+            }
+
+            // Handle IEnumerable - check if it has any items
+            if (itemsSource is IEnumerable enumerable)
+            {
+                foreach (var _ in enumerable)
+                {
+                    return true; // At least one item exists
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "Exception while checking if ItemsSource has items");
+            return false;
+        }
+
+        return false;
+    }
+
+    private static bool ItemExistsInSource(object itemsSource, object item)
+    {
+        if (itemsSource == null || item == null)
+            return false;
+
+        try
+        {
+            // Handle IEnumerable collections
+            if (itemsSource is IEnumerable enumerable)
+            {
+                foreach (var sourceItem in enumerable)
+                {
+                    // Use reference equality first (fastest)
+                    if (ReferenceEquals(sourceItem, item))
+                        return true;
+                    
+                    // Use Equals for value comparison
+                    if (sourceItem?.Equals(item) == true)
+                        return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "Exception while checking if item exists in ItemsSource");
+            return false;
+        }
+
+        return false;
+    }
+
 
 #if WINDOWS
     private static async Task<bool> CanSafelyScrollWindows(MauiCollectionView collectionView)

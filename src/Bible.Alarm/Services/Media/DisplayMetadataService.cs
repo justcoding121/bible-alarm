@@ -56,6 +56,21 @@ public class DisplayMetadataService(ILogger logger, MediaService mediaService) :
                 {
                     meta.Title = $"Book {trackMetadata.BookNumber} Chapter {trackMetadata.ChapterNumber}";
                 }
+                
+                // Try to extract artwork from Bible audio files as well
+                try
+                {
+                    var fileMeta = await ExtractMetadataFromFileAsync(track.Uri);
+                    if (fileMeta.ArtworkBytes != null && fileMeta.ArtworkBytes.Length > 0)
+                    {
+                        meta.ArtworkBytes = fileMeta.ArtworkBytes;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Ignore file metadata extraction errors
+                    _logger.Debug(ex, "Error extracting artwork from Bible file, ignoring");
+                }
             }
             else
             {
@@ -170,14 +185,44 @@ public class DisplayMetadataService(ILogger logger, MediaService mediaService) :
                     Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
                 };
 
-                // Extract artwork if available
+                // Extract artwork if available - find the largest picture
                 if (tag.Pictures != null && tag.Pictures.Length > 0)
                 {
-                    var picture = tag.Pictures[0];
-                    if (picture?.Data?.Data != null)
+                    TagLib.IPicture? largestPicture = null;
+                    int largestSize = 0;
+                    
+                    _logger.Debug($"Found {tag.Pictures.Length} picture(s) in {uri}");
+                    
+                    // Find the picture with the largest data size
+                    foreach (TagLib.IPicture picture in tag.Pictures)
                     {
-                        meta.ArtworkBytes = picture.Data.Data;
+                        if (picture != null && picture.Data != null && picture.Data.Data != null)
+                        {
+                            var size = picture.Data.Data.Length;
+                            _logger.Debug($"  Picture Size={size} bytes");
+                            
+                            // Select the largest picture
+                            if (largestPicture == null || size > largestSize)
+                            {
+                                largestPicture = picture;
+                                largestSize = size;
+                            }
+                        }
                     }
+                    
+                    if (largestPicture != null && largestPicture.Data != null && largestPicture.Data.Data != null)
+                    {
+                        meta.ArtworkBytes = largestPicture.Data.Data;
+                        _logger.Information($"Extracted artwork from {uri}: Size={largestSize} bytes");
+                    }
+                    else
+                    {
+                        _logger.Debug($"No valid artwork found in {uri} (checked {tag.Pictures.Length} pictures)");
+                    }
+                }
+                else
+                {
+                    _logger.Debug($"No pictures found in {uri}");
                 }
 
                 return meta;

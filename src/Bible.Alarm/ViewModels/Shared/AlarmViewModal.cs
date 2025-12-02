@@ -1,4 +1,5 @@
 #nullable enable
+using System.IO;
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -22,6 +23,7 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
 {
+    private readonly ILogger _logger;
     private readonly IPlaybackService _playbackService;
     private readonly IState<PlaybackState> _playbackState;
     private readonly IDispatcher _dispatcher;
@@ -45,6 +47,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher)
     {
+        _logger = logger;
         _playbackService = playbackService;
         _playbackState = playbackState;
         _dispatcher = dispatcher;
@@ -215,6 +218,38 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         set => SetProperty(ref _description, value);
     }
 
+    private ImageSource? _artworkSource;
+    private bool _isArtworkLoading;
+    private byte[]? _artworkBytes; // Keep bytes in memory for stream-based images
+
+    public ImageSource? ArtworkSource
+    {
+        get => _artworkSource;
+        private set
+        {
+            if (SetProperty(ref _artworkSource, value))
+            {
+                // Update loading state when artwork source changes
+                IsArtworkLoading = false;
+                OnPropertyChanged(nameof(HasArtwork));
+            }
+        }
+    }
+
+    public bool IsArtworkLoading
+    {
+        get => _isArtworkLoading;
+        private set
+        {
+            if (SetProperty(ref _isArtworkLoading, value))
+            {
+                OnPropertyChanged(nameof(HasArtwork));
+            }
+        }
+    }
+
+    public bool HasArtwork => ArtworkSource != null && !IsArtworkLoading;
+
     private bool _playVisible;
 
     public bool PlayVisible
@@ -381,6 +416,9 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             SubTitle = currentArtist;
             Description = currentAlbum;
             
+            // Update artwork
+            UpdateArtwork(state.ArtworkUrl);
+            
             // Update duration (from Fluxor state, only changes when track changes)
             var duration = state.Duration;
             _currentDuration = duration;
@@ -449,6 +487,163 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(PreparationProgress));
         });
+    }
+
+    private void UpdateArtwork(string? artworkUrl)
+    {
+        ClearArtwork();
+        
+        if (string.IsNullOrEmpty(artworkUrl))
+        {
+            return;
+        }
+
+        IsArtworkLoading = true;
+
+        try
+        {
+            if (TryLoadFromUri(artworkUrl))
+            {
+                return;
+            }
+
+            var filePath = ResolveFilePath(artworkUrl);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                LoadFromFile(filePath);
+            }
+            else
+            {
+                ClearArtwork();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Error updating artwork from URL: {ArtworkUrl}", artworkUrl);
+            ClearArtwork();
+        }
+    }
+
+    private void ClearArtwork()
+    {
+        ArtworkSource = null;
+        _artworkBytes = null;
+        IsArtworkLoading = false;
+    }
+
+    private bool TryLoadFromUri(string artworkUrl)
+    {
+        if (!Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) || 
+            (uri.Scheme != "http" && uri.Scheme != "https"))
+        {
+            return false;
+        }
+
+        ArtworkSource = ImageSource.FromUri(uri);
+        IsArtworkLoading = false;
+        return true;
+    }
+
+    private string? ResolveFilePath(string artworkUrl)
+    {
+        // Handle file:// URIs
+        if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                return new Uri(artworkUrl).LocalPath;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
+                return null;
+            }
+        }
+
+        // Handle direct file paths
+        if (Path.IsPathRooted(artworkUrl))
+        {
+            return artworkUrl;
+        }
+
+        return null;
+    }
+
+    private void LoadFromFile(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            ClearArtwork();
+            return;
+        }
+
+        var fileInfo = new FileInfo(filePath);
+        if (fileInfo.Length == 0)
+        {
+            ClearArtwork();
+            return;
+        }
+
+        if (DeviceInfo.Platform == DevicePlatform.Android)
+        {
+            LoadFromFileAndroid(filePath);
+        }
+        else
+        {
+            LoadFromFileOtherPlatforms(filePath);
+        }
+    }
+
+    private void LoadFromFileAndroid(string filePath)
+    {
+        try
+        {
+            _artworkBytes = File.ReadAllBytes(filePath);
+            if (_artworkBytes == null || _artworkBytes.Length == 0)
+            {
+                ClearArtwork();
+                return;
+            }
+
+            // Store bytes in field to keep them alive, create new stream each time
+            var bytes = _artworkBytes; // Capture for lambda
+            ArtworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
+            IsArtworkLoading = false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Failed to create ImageSource from stream for Android, trying FromFile fallback: {FilePath}", filePath);
+            _artworkBytes = null;
+            LoadFromFileFallback(filePath);
+        }
+    }
+
+    private void LoadFromFileOtherPlatforms(string filePath)
+    {
+        try
+        {
+            ArtworkSource = ImageSource.FromFile(filePath);
+            IsArtworkLoading = false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Failed to create ImageSource from file for artwork: {FilePath}", filePath);
+            ClearArtwork();
+        }
+    }
+
+    private void LoadFromFileFallback(string filePath)
+    {
+        try
+        {
+            ArtworkSource = ImageSource.FromFile(filePath);
+            IsArtworkLoading = false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Failed to create ImageSource from file for artwork (fallback): {FilePath}", filePath);
+            ClearArtwork();
+        }
     }
 
     /// <summary>
