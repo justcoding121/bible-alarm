@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reflection;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 
@@ -23,26 +22,19 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
         {
             daysOfWeek = days;
         }
+        else if (value is ScheduleViewModel scheduleViewModel)
+        {
+            // Direct type check for ScheduleViewModel (no reflection needed)
+            daysOfWeek = scheduleViewModel.DaysOfWeek;
+            isEnabled = scheduleViewModel.IsEnabled;
+        }
         else
         {
-            // Try to get DaysOfWeek property via reflection (for ScheduleViewModel)
-            var daysProperty = value.GetType().GetProperty("DaysOfWeek");
-            if (daysProperty != null && daysProperty.GetValue(value) is DaysOfWeek daysValue)
-            {
-                daysOfWeek = daysValue;
-                var enabledProperty = value.GetType().GetProperty("IsEnabled");
-                if (enabledProperty != null && enabledProperty.GetValue(value) is bool enabledValue)
-                {
-                    isEnabled = enabledValue;
-                }
-            }
-            else
-            {
-                return Color.FromArgb("#D0D0D0");
-            }
+            return Color.FromArgb("#D0D0D0");
         }
 
-        var isDayEnabled = (daysOfWeek & (DaysOfWeek)parameter) == (DaysOfWeek)parameter;
+        var dayParameter = ParseDayParameter(parameter);
+        var isDayEnabled = (daysOfWeek & dayParameter) == dayParameter;
 
         if (isEnabled)
         {
@@ -63,7 +55,8 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
         if (values[0] is not DaysOfWeek daysOfWeek) return Color.FromArgb("#D0D0D0");
         if (values[1] is not bool isEnabled) return Color.FromArgb("#D0D0D0");
 
-        var isDayEnabled = (daysOfWeek & (DaysOfWeek)parameter) == (DaysOfWeek)parameter;
+        var dayParameter = ParseDayParameter(parameter);
+        var isDayEnabled = (daysOfWeek & dayParameter) == dayParameter;
 
         // When alarm is enabled: dark background for enabled days, darker for disabled days
         // When alarm is disabled: same colors - enabled days get blue, disabled days get gray
@@ -78,6 +71,19 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
+    }
+
+    private static DaysOfWeek ParseDayParameter(object parameter)
+    {
+        if (parameter == null) return (DaysOfWeek)0;
+        
+        if (parameter is DaysOfWeek day)
+            return day;
+        
+        if (parameter is string dayString && Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay))
+            return parsedDay;
+        
+        return (DaysOfWeek)0;
     }
 }
 

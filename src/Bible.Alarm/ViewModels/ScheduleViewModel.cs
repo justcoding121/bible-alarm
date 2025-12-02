@@ -78,7 +78,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IDispatcher dispatcher,
         ScheduleItemStateService scheduleItemStateService)
     {
+        var constructorStartTime = DateTime.UtcNow;
         _logger = logger;
+        _logger.Information("[PERF] ScheduleViewModel: Constructor started at {StartTime}", constructorStartTime);
         _popUpService = popUpService;
         _scopeFactory = scopeFactory;
 
@@ -105,17 +107,22 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         // Check if schedule is already in state (e.g., if state changed before this ViewModel was created)
         // This ensures we load the schedule immediately if it's already available
         // Check synchronously first, then also set up a delayed check as fallback
+        var checkStateStartTime = DateTime.UtcNow;
         var currentState = _state.Value;
+        var checkStateElapsed = (DateTime.UtcNow - checkStateStartTime).TotalMilliseconds;
+        _logger.Information("[PERF] ScheduleViewModel: State check took {ElapsedMs}ms, CurrentSchedule={HasSchedule}", checkStateElapsed, currentState.CurrentSchedule != null);
         
         if (currentState.CurrentSchedule != null)
         {
             // Schedule is already in state, trigger the handler immediately on main thread
+            _logger.Information("[PERF] ScheduleViewModel: Schedule already in state, triggering OnCurrentScheduleChanged");
             MainThread.BeginInvokeOnMainThread(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
         }
         else
         {
             // Schedule not in state yet, set up a delayed check as fallback
             // This handles the case where the action is dispatched but state hasn't updated yet
+            _logger.Information("[PERF] ScheduleViewModel: Schedule not in state, setting up delayed check");
             _ = Task.Run(async () =>
             {
                 // Wait a bit for the state to update after action dispatch
@@ -124,10 +131,14 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 if (delayedState.CurrentSchedule != null && !_modelInitialized)
                 {
                     // Schedule is now in state, trigger the handler
+                    _logger.Information("[PERF] ScheduleViewModel: Schedule found after delay, triggering OnCurrentScheduleChanged");
                     await MainThread.InvokeOnMainThreadAsync(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
                 }
             });
         }
+        
+        var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
+        _logger.Information("[PERF] ScheduleViewModel: Constructor completed in {ElapsedMs}ms", constructorElapsed);
         
         // Safety fallback: ensure IsBusy is set to false after a maximum delay
         // This prevents the overlay from staying visible indefinitely if something goes wrong
@@ -243,7 +254,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             // Note: Schedule page overlay will be hidden when navigating back
         });
 
-        ToggleDayCommand = new RelayCommand<DaysOfWeek>(Toggle);
+        ToggleDayCommand = new RelayCommand<object>(ToggleDay);
 
         ToggleAlwaysPlayFromStartCommand = new RelayCommand(() => AlwaysPlayFromStart = !AlwaysPlayFromStart);
 
@@ -391,12 +402,17 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private void OnCurrentScheduleChanged(object sender, EventArgs e)
     {
+        var handlerStartTime = DateTime.UtcNow;
+        _logger.Information("[PERF] OnCurrentScheduleChanged: Handler started at {StartTime}", handlerStartTime);
+        
         var stateValue = _state.Value;
 
         // Handle when CurrentSchedule is set (new or existing schedule)
         if (stateValue.CurrentSchedule != null)
         {
             var currentScheduleId = stateValue.CurrentSchedule.Id;
+            _logger.Information("[PERF] OnCurrentScheduleChanged: Processing schedule Id={ScheduleId}, LastScheduleId={LastScheduleId}, ModelInitialized={ModelInitialized}", 
+                currentScheduleId, _lastScheduleId, _modelInitialized);
 
             if (currentScheduleId == _lastScheduleId && _modelInitialized) 
             {
@@ -426,21 +442,34 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             var currentSchedule = stateValue.CurrentSchedule;
             _lastScheduleId = currentScheduleId;
+            
+            var isNew = currentSchedule.Id <= 0;
+            _logger.Information("[PERF] OnCurrentScheduleChanged: IsNew={IsNew}, invoking on main thread", isNew);
 
             _ = MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 try
                 {
+                    var mainThreadStartTime = DateTime.UtcNow;
+                    _logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler started at {StartTime}", mainThreadStartTime);
+                    
                     // IsBusy is already true from constructor, no need to set it again
-                    var isNew = currentSchedule.Id <= 0;
                     IsNewSchedule = isNew;
+                    
+                    var setModelStartTime = DateTime.UtcNow;
                     SetModel(currentSchedule);
+                    var setModelElapsed = (DateTime.UtcNow - setModelStartTime).TotalMilliseconds;
+                    _logger.Information("[PERF] OnCurrentScheduleChanged: SetModel took {ElapsedMs}ms", setModelElapsed);
+                    
                     _modelInitialized = true;
                     // Small delay to ensure UI has rendered the content before hiding overlay
                     await Task.Delay(100);
                     IsBusy = false;
                     // Explicitly notify property change to ensure UI updates
                     OnPropertyChanged(nameof(IsBusy));
+                    
+                    var mainThreadElapsed = (DateTime.UtcNow - mainThreadStartTime).TotalMilliseconds;
+                    _logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler completed in {ElapsedMs}ms", mainThreadElapsed);
                     // Note: Home page overlay will be hidden when Schedule page Appearing event fires
                 }
                 catch (Exception ex)
@@ -472,13 +501,21 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             if (!_modelInitialized && !_isInitializingNewSchedule)
             {
                 _isInitializingNewSchedule = true;
+                _logger.Information("[PERF] OnCurrentScheduleChanged: Starting new schedule initialization");
                 // Show busy indicator during initialization
                 MainThread.BeginInvokeOnMainThread(() => IsBusy = true);
                 Task.Run(async () =>
                 {
+                    var getSampleStartTime = DateTime.UtcNow;
+                    _logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule started at {StartTime}", getSampleStartTime);
+                    
                     using var scope = _scopeFactory.CreateScope();
                     var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
                     var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                    
+                    var getSampleElapsed = (DateTime.UtcNow - getSampleStartTime).TotalMilliseconds;
+                    _logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule completed in {ElapsedMs}ms", getSampleElapsed);
+                    
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
                         var currentState = _state.Value;
@@ -486,7 +523,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                         {
                             _logger.Debug("OnCurrentScheduleChanged: Initializing new schedule. SampleSchedule.Id={SampleScheduleId}",
                                 sampleSchedule.Id);
+                            
+                            var setModelStartTime = DateTime.UtcNow;
                             SetModel(sampleSchedule);
+                            var setModelElapsed = (DateTime.UtcNow - setModelStartTime).TotalMilliseconds;
+                            _logger.Information("[PERF] OnCurrentScheduleChanged: SetModel for new schedule took {ElapsedMs}ms", setModelElapsed);
+                            
                             _modelInitialized = true;
                             IsNewSchedule = true;
                             _logger.Information("OnCurrentScheduleChanged: New schedule initialized. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}",
@@ -826,8 +868,23 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _isExistingSchedule, value);
     }
 
-    private void Toggle(DaysOfWeek day)
+    private void ToggleDay(object parameter)
     {
+        DaysOfWeek day;
+        
+        if (parameter is DaysOfWeek dayEnum)
+        {
+            day = dayEnum;
+        }
+        else if (parameter is string dayString && Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay))
+        {
+            day = parsedDay;
+        }
+        else
+        {
+            return; // Invalid parameter
+        }
+        
         if ((DaysOfWeek & day) == day)
             DaysOfWeek &= ~day;
         else

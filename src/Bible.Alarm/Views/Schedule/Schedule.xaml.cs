@@ -2,6 +2,8 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
 using Microsoft.Maui.ApplicationModel;
+using Serilog;
+using static Serilog.Log;
 
 namespace Bible.Alarm.Views.Schedule;
 
@@ -16,13 +18,23 @@ public partial class Schedule : ContentPage, IDisposable
 
     public Schedule(ScheduleViewModel viewModel)
     {
+        var constructorStartTime = DateTime.UtcNow;
+        try { Log.Information("[PERF] Schedule page: Constructor started at {StartTime}", constructorStartTime); } catch { }
+        
+        var initComponentStartTime = DateTime.UtcNow;
         InitializeComponent();
+        var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
+        try { Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed); } catch { }
+        
         BindingContext = viewModel;
         _viewModel = viewModel;
 
         // Setup gesture recognizers after page is loaded to support hot reload
         Loaded += OnPageLoaded;
         Loaded += SetupGestureRecognizers;
+        
+        var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
+        try { Log.Information("[PERF] Schedule page: Constructor completed in {ElapsedMs}ms", constructorElapsed); } catch { }
     }
 
     private void SetupGestureRecognizers(object? sender, EventArgs e)

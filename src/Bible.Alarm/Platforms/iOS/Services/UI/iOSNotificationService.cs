@@ -2,6 +2,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.iOS.Extensions;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using UserNotifications;
 
@@ -26,7 +27,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             var time = schedule.NextFireDate();
             var daysOfWeek = schedule.DaysOfWeek;
 
-            await Task.Delay(0).ContinueWith(_ =>
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var @params = new Dictionary<string, string>
                 {
@@ -56,12 +57,12 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                         }
                     });
                 }
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+            });
         }
 
         public async Task RemoveAsync(int scheduleId)
         {
-            await Task.Delay(0).ContinueWith(_ =>
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
 
@@ -77,12 +78,12 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                         }
                     }
                 }
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+            });
         }
 
         public async Task<bool> IsScheduledAsync(int scheduleId)
         {
-            return await Task.Delay(0).ContinueWith(_ =>
+            return await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
 
@@ -99,12 +100,12 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                 }
 
                 return false;
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+            });
         }
 
         public async Task<bool> CanScheduleAsync()
         {
-            return await Task.Delay(0).ContinueWith(_ =>
+            return await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var taskCompletionSource = new TaskCompletionSource<bool>();
 
@@ -115,7 +116,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                 });
 
                 return taskCompletionSource.Task.Result;
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+            });
         }
 
         public void Dispose()

@@ -6,20 +6,37 @@ namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
 public class DayColorConverter : IValueConverter
 {
+    private static DaysOfWeek ParseDayParameter(object parameter)
+    {
+        if (parameter == null) return (DaysOfWeek)0;
+        
+        if (parameter is DaysOfWeek day)
+            return day;
+        
+        if (parameter is string dayString && Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay))
+            return parsedDay;
+        
+        return (DaysOfWeek)0;
+    }
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is null) return Colors.White;
 
+        var dayParameter = ParseDayParameter(parameter);
+
         if (value is DaysOfWeek)
         {
-            var isEnabled = ((DaysOfWeek)value & (DaysOfWeek)parameter) == (DaysOfWeek)parameter;
+            var isEnabled = ((DaysOfWeek)value & dayParameter) == dayParameter;
             return isEnabled ? Colors.White : Color.FromArgb("#666666");
         }
         else
         {
             var schedule = value as ScheduleListItem;
+            
+            if (schedule == null) return Colors.White;
 
-            var isEnabled = (schedule.DaysOfWeek & (DaysOfWeek)parameter) == (DaysOfWeek)parameter;
+            var isEnabled = (schedule.DaysOfWeek & dayParameter) == dayParameter;
 
         if (schedule.IsEnabled)
         {

@@ -100,6 +100,9 @@ public class AlarmSchedule : IComparable
 
     public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, MediaDbContext mediaDbContext)
     {
+        var startTime = DateTime.UtcNow;
+        Serilog.Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
+        
         var sample = new AlarmSchedule
         {
             IsEnabled = false,
@@ -123,13 +126,17 @@ public class AlarmSchedule : IComparable
             }
         };
 
+        var bibleQueryStartTime = DateTime.UtcNow;
         var bible = await mediaDbContext
             .BibleTranslations
+            .AsNoTracking()
             .Include(x => x.Books)
             .Where(x => x.Code == sample.BibleReadingSchedule.PublicationCode
                         && x.Language.Code
                         == sample.BibleReadingSchedule.LanguageCode)
             .FirstOrDefaultAsync();
+        var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;
+        Serilog.Log.Information("[PERF] GetSampleSchedule: Bible query took {ElapsedMs}ms", bibleQueryElapsed);
 
         if (bible == null)
             throw new InvalidOperationException("Bible translation not found for sample schedule");
@@ -144,18 +151,25 @@ public class AlarmSchedule : IComparable
         if (sample.Music == null)
             throw new InvalidOperationException("Music is null in sample schedule");
         
+        var musicQueryStartTime = DateTime.UtcNow;
         var music = await mediaDbContext
             .MelodyMusic
+            .AsNoTracking()
             .Include(x => x.Tracks)
             .Where(x => x.Code
                         == sample.Music.PublicationCode)
             .FirstOrDefaultAsync();
+        var musicQueryElapsed = (DateTime.UtcNow - musicQueryStartTime).TotalMilliseconds;
+        Serilog.Log.Information("[PERF] GetSampleSchedule: Music query took {ElapsedMs}ms", musicQueryElapsed);
 
         if (music == null)
             throw new InvalidOperationException("Melody music not found for sample schedule");
 
         var track = music.Tracks[rnd.Next() % music.Tracks.Count];
         sample.Music.TrackNumber = track.Number;
+
+        var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        Serilog.Log.Information("[PERF] GetSampleSchedule: Completed in {ElapsedMs}ms", totalElapsed);
 
         return sample;
     }

@@ -249,14 +249,28 @@ public class NavigationService(
 
     public async Task NavigateToScheduleAsync()
     {
+        var startTime = DateTime.UtcNow;
+        _logger.Information("[PERF] NavigateToScheduleAsync: Starting navigation at {StartTime}", startTime);
+        
+        var pageStartTime = DateTime.UtcNow;
         var page = _serviceProvider.GetRequiredService<Schedule>();
+        var pageElapsed = (DateTime.UtcNow - pageStartTime).TotalMilliseconds;
+        _logger.Information("[PERF] NavigateToScheduleAsync: Page service resolution took {ElapsedMs}ms", pageElapsed);
+        
+        var navStartTime = DateTime.UtcNow;
         var navigation = await GetNavigationAsync();
+        var navElapsed = (DateTime.UtcNow - navStartTime).TotalMilliseconds;
+        _logger.Information("[PERF] NavigateToScheduleAsync: GetNavigationAsync took {ElapsedMs}ms", navElapsed);
 
         // Set navigation bar setting
         NavigationPage.SetHasNavigationBar(page, false);
 
         // Push the page without animation for instant navigation
+        var pushStartTime = DateTime.UtcNow;
         await navigation.PushAsync(page, animated: false);
+        var pushElapsed = (DateTime.UtcNow - pushStartTime).TotalMilliseconds;
+        var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.Information("[PERF] NavigateToScheduleAsync: PushAsync took {ElapsedMs}ms, Total navigation took {TotalMs}ms", pushElapsed, totalElapsed);
     }
 
     public async Task NavigateToMusicSelectionAsync()

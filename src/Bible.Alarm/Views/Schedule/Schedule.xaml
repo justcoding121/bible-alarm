@@ -3,6 +3,7 @@
 <ContentPage x:Class="Bible.Alarm.Views.Schedule.Schedule"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
              xmlns:models="clr-namespace:Bible.Alarm.Models"
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
@@ -66,11 +67,57 @@
                                 </Button.Shadow>
                             </Button>
                         </On>
-                        <On Platform="Default">
-                            <buttons:SfButton Grid.Column="0"
+                        <On Platform="iOS">
+                            <Button Grid.Column="0"
                                     Margin="0,3,3,3"
                                     AutomationId="CancelButton"
-                                    Background="#E0E0E0"
+                                    BackgroundColor="#E0E0E0"
+                                    CornerRadius="8"
+                                    Command="{Binding CancelCommand}"
+                                    FontSize="{StaticResource ButtonFontSize}"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="50"
+                                    Padding="10,12"
+                                    Text="CANCEL"
+                                    TextColor="#666666"
+                                    VerticalOptions="Fill">
+                                <Button.Shadow>
+                                    <Shadow Brush="#20000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.2" />
+                                </Button.Shadow>
+                            </Button>
+                        </On>
+                        <On Platform="Android">
+                            <Button Grid.Column="0"
+                                    Margin="0,3,3,3"
+                                    AutomationId="CancelButton"
+                                    BackgroundColor="#E0E0E0"
+                                    CornerRadius="8"
+                                    Command="{Binding CancelCommand}"
+                                    FontSize="{StaticResource ButtonFontSize}"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="45"
+                                    Padding="10,6,10,10"
+                                    Text="CANCEL"
+                                    TextColor="#666666"
+                                    VerticalOptions="Center">
+                                <Button.Shadow>
+                                    <Shadow Brush="#20000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.2" />
+                                </Button.Shadow>
+                            </Button>
+                        </On>
+                        <On Platform="Default">
+                            <Button Grid.Column="0"
+                                    Margin="0,3,3,3"
+                                    AutomationId="CancelButton"
+                                    BackgroundColor="#E0E0E0"
                                     CornerRadius="8"
                                     Command="{Binding CancelCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -81,13 +128,13 @@
                                     Text="CANCEL"
                                     TextColor="#666666"
                                     VerticalOptions="Fill">
-                                <buttons:SfButton.Shadow>
+                                <Button.Shadow>
                                     <Shadow Brush="#20000000" 
                                             Offset="0,2" 
                                             Radius="4" 
                                             Opacity="0.2" />
-                                </buttons:SfButton.Shadow>
-                            </buttons:SfButton>
+                                </Button.Shadow>
+                            </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -116,11 +163,57 @@
                                 </Button.Shadow>
                             </Button>
                         </On>
-                        <On Platform="Default">
-                            <buttons:SfButton Grid.Column="1"
+                        <On Platform="iOS">
+                            <Button Grid.Column="1"
                                     Margin="3,3,0,3"
                                     AutomationId="SaveButton"
-                                    Background="#6A5ACD"
+                                    BackgroundColor="#6A5ACD"
+                                    CornerRadius="8"
+                                    Command="{Binding SaveCommand}"
+                                    FontSize="{StaticResource ButtonFontSize}"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="50"
+                                    Padding="10,12"
+                                    Text="SAVE"
+                                    TextColor="White"
+                                    VerticalOptions="Fill">
+                                <Button.Shadow>
+                                    <Shadow Brush="#40000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.3" />
+                                </Button.Shadow>
+                            </Button>
+                        </On>
+                        <On Platform="Android">
+                            <Button Grid.Column="1"
+                                    Margin="3,3,0,3"
+                                    AutomationId="SaveButton"
+                                    BackgroundColor="#6A5ACD"
+                                    CornerRadius="8"
+                                    Command="{Binding SaveCommand}"
+                                    FontSize="{StaticResource ButtonFontSize}"
+                                    FontAttributes="Bold"
+                                    HorizontalOptions="Fill"
+                                    HeightRequest="45"
+                                    Padding="10,6,10,10"
+                                    Text="SAVE"
+                                    TextColor="White"
+                                    VerticalOptions="Center">
+                                <Button.Shadow>
+                                    <Shadow Brush="#40000000" 
+                                            Offset="0,2" 
+                                            Radius="4" 
+                                            Opacity="0.3" />
+                                </Button.Shadow>
+                            </Button>
+                        </On>
+                        <On Platform="Default">
+                            <Button Grid.Column="1"
+                                    Margin="3,3,0,3"
+                                    AutomationId="SaveButton"
+                                    BackgroundColor="#6A5ACD"
                                     CornerRadius="8"
                                     Command="{Binding SaveCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -131,13 +224,13 @@
                                     Text="SAVE"
                                     TextColor="White"
                                     VerticalOptions="Fill">
-                                <buttons:SfButton.Shadow>
+                                <Button.Shadow>
                                     <Shadow Brush="#40000000" 
                                             Offset="0,2" 
                                             Radius="4" 
                                             Opacity="0.3" />
-                                </buttons:SfButton.Shadow>
-                            </buttons:SfButton>
+                                </Button.Shadow>
+                            </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -149,25 +242,42 @@
                                  Spacing="10"
                                  Margin="10,0">
                         <StackLayout.Resources>
-                            <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
-                            <enums:DaysOfWeek x:Key="Monday">Monday</enums:DaysOfWeek>
-                            <enums:DaysOfWeek x:Key="Tuesday">Tuesday</enums:DaysOfWeek>
-                            <enums:DaysOfWeek x:Key="Wednesday">Wednesday</enums:DaysOfWeek>
-                            <enums:DaysOfWeek x:Key="Thursday">Thursday</enums:DaysOfWeek>
-                            <enums:DaysOfWeek x:Key="Friday">Friday</enums:DaysOfWeek>
-                            <enums:DaysOfWeek x:Key="Saturday">Saturday</enums:DaysOfWeek>
+                            <x:String x:Key="Sunday">Sunday</x:String>
+                            <x:String x:Key="Monday">Monday</x:String>
+                            <x:String x:Key="Tuesday">Tuesday</x:String>
+                            <x:String x:Key="Wednesday">Wednesday</x:String>
+                            <x:String x:Key="Thursday">Thursday</x:String>
+                            <x:String x:Key="Friday">Friday</x:String>
+                            <x:String x:Key="Saturday">Saturday</x:String>
                         </StackLayout.Resources>
-                        <TimePicker AutomationId="AlarmTimePicker"
-                                    BackgroundColor="Transparent"
-                                    FontSize="{StaticResource TitleFontSize}"
-                                    HorizontalOptions="Center"
-                                    Margin="0"
-                                    TextColor="SlateBlue"
-                                    Time="{Binding Time, Mode=TwoWay}">
-                            <TimePicker.Format>hh:mm tt</TimePicker.Format>
-                        </TimePicker>
-                        <Grid Margin="0"
-                              HorizontalOptions="Fill"
+                        <OnPlatform x:TypeArguments="View">
+                            <OnPlatform.Platforms>
+                                <On Platform="iOS">
+                                    <TimePicker AutomationId="AlarmTimePicker"
+                                                BackgroundColor="Transparent"
+                                                TextColor="Black"
+                                                FontSize="{StaticResource TitleFontSize}"
+                                                HorizontalOptions="Center"
+                                                Margin="0"
+                                                Time="{Binding Time, Mode=TwoWay}"
+                                                ios:TimePicker.UpdateMode="WhenFinished" />
+                                </On>
+                                <On Platform="Default">
+                                    <TimePicker AutomationId="AlarmTimePicker"
+                                                BackgroundColor="Transparent"
+                                                FontSize="{StaticResource TitleFontSize}"
+                                                HorizontalOptions="Center"
+                                                Margin="0"
+                                                TextColor="SlateBlue"
+                                                Time="{Binding Time, Mode=TwoWay}">
+                                        <TimePicker.Format>hh:mm tt</TimePicker.Format>
+                                    </TimePicker>
+                                </On>
+                            </OnPlatform.Platforms>
+                        </OnPlatform>
+                        <Grid Margin="8,0"
+                              HorizontalOptions="Center"
+                              MaximumWidthRequest="{OnPlatform Android='350', iOS='350', WinUI='350', Default='350'}"
                               ColumnSpacing="4"
                               RowSpacing="0">
                             <Grid.ColumnDefinitions>
@@ -180,172 +290,340 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0"
-                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6,6,6,6"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
                                 <Border.BackgroundColor>
                                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Sunday}">
                                         <Binding Path="DaysOfWeek" />
                                         <Binding Path="IsEnabled" />
                                     </MultiBinding>
                                 </Border.BackgroundColor>
-                                <buttons:SfButton
-                                        Padding="0"
-                                        Background="Transparent"
-                                        Command="{Binding ToggleDayCommand}"
-                                        CommandParameter="{StaticResource Sunday}"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
-                                        Text="S"
-                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill" />
+                                <OnPlatform x:TypeArguments="View">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS">
+                                            <Button Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Sunday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="13"
+                                                    Text="S"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                        <On Platform="Default">
+                                            <Button
+                                                    Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Sunday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                                    Text="S"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
                             </Border>
                             <Border Grid.Column="1"
-                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6,6,6,6"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
                                 <Border.BackgroundColor>
                                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Monday}">
                                         <Binding Path="DaysOfWeek" />
                                         <Binding Path="IsEnabled" />
                                     </MultiBinding>
                                 </Border.BackgroundColor>
-                                <buttons:SfButton
-                                        Padding="0"
-                                        Background="Transparent"
-                                        Command="{Binding ToggleDayCommand}"
-                                        CommandParameter="{StaticResource Monday}"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
-                                        Text="M"
-                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill" />
+                                <OnPlatform x:TypeArguments="View">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS">
+                                            <Button Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Monday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="13"
+                                                    Text="M"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                        <On Platform="Default">
+                                            <Button
+                                                    Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Monday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                                    Text="M"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
                             </Border>
                             <Border Grid.Column="2"
-                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6,6,6,6"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
                                 <Border.BackgroundColor>
                                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Tuesday}">
                                         <Binding Path="DaysOfWeek" />
                                         <Binding Path="IsEnabled" />
                                     </MultiBinding>
                                 </Border.BackgroundColor>
-                                <buttons:SfButton
-                                        Padding="0"
-                                        Background="Transparent"
-                                        Command="{Binding ToggleDayCommand}"
-                                        CommandParameter="{StaticResource Tuesday}"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
-                                        Text="T"
-                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill" />
+                                <OnPlatform x:TypeArguments="View">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS">
+                                            <Button Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Tuesday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="13"
+                                                    Text="T"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                        <On Platform="Default">
+                                            <Button
+                                                    Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Tuesday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                                    Text="T"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
                             </Border>
                             <Border Grid.Column="3"
-                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6,6,6,6"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
                                 <Border.BackgroundColor>
                                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Wednesday}">
                                         <Binding Path="DaysOfWeek" />
                                         <Binding Path="IsEnabled" />
                                     </MultiBinding>
                                 </Border.BackgroundColor>
-                                <buttons:SfButton
-                                        Padding="0"
-                                        Background="Transparent"
-                                        Command="{Binding ToggleDayCommand}"
-                                        CommandParameter="{StaticResource Wednesday}"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
-                                        Text="W"
-                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill" />
+                                <OnPlatform x:TypeArguments="View">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS">
+                                            <Button Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Wednesday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="13"
+                                                    Text="W"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                        <On Platform="Default">
+                                            <Button
+                                                    Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Wednesday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                                    Text="W"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
                             </Border>
                             <Border Grid.Column="4"
-                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6,6,6,6"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
                                 <Border.BackgroundColor>
                                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Thursday}">
                                         <Binding Path="DaysOfWeek" />
                                         <Binding Path="IsEnabled" />
                                     </MultiBinding>
                                 </Border.BackgroundColor>
-                                <buttons:SfButton
-                                        Padding="0"
-                                        Background="Transparent"
-                                        Command="{Binding ToggleDayCommand}"
-                                        CommandParameter="{StaticResource Thursday}"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
-                                        Text="T"
-                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill" />
+                                <OnPlatform x:TypeArguments="View">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS">
+                                            <Button Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Thursday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="13"
+                                                    Text="T"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                        <On Platform="Default">
+                                            <Button
+                                                    Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Thursday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                                    Text="T"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
                             </Border>
                             <Border Grid.Column="5"
-                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6,6,6,6"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
                                 <Border.BackgroundColor>
                                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Friday}">
                                         <Binding Path="DaysOfWeek" />
                                         <Binding Path="IsEnabled" />
                                     </MultiBinding>
                                 </Border.BackgroundColor>
-                                <buttons:SfButton
-                                        Padding="0"
-                                        Background="Transparent"
-                                        Command="{Binding ToggleDayCommand}"
-                                        CommandParameter="{StaticResource Friday}"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
-                                        Text="F"
-                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill" />
+                                <OnPlatform x:TypeArguments="View">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS">
+                                            <Button Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Friday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="13"
+                                                    Text="F"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                        <On Platform="Default">
+                                            <Button
+                                                    Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Friday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                                    Text="F"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
                             </Border>
                             <Border Grid.Column="6"
-                                    Padding="{OnPlatform Android='4,3', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6,6,6,6"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
                                 <Border.BackgroundColor>
                                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Saturday}">
                                         <Binding Path="DaysOfWeek" />
                                         <Binding Path="IsEnabled" />
                                     </MultiBinding>
                                 </Border.BackgroundColor>
-                                <buttons:SfButton
-                                        Padding="0"
-                                        Background="Transparent"
-                                        Command="{Binding ToggleDayCommand}"
-                                        CommandParameter="{StaticResource Saturday}"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform Android='12', iOS='13', WinUI='13', Default='13'}"
-                                        Text="S"
-                                        TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill" />
+                                <OnPlatform x:TypeArguments="View">
+                                    <OnPlatform.Platforms>
+                                        <On Platform="iOS">
+                                            <Button Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Saturday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="13"
+                                                    Text="S"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                        <On Platform="Default">
+                                            <Button
+                                                    Padding="0"
+                                                    BackgroundColor="Transparent"
+                                                    Command="{Binding ToggleDayCommand}"
+                                                    CommandParameter="{StaticResource Saturday}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                                    Text="S"
+                                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                        </On>
+                                    </OnPlatform.Platforms>
+                                </OnPlatform>
                             </Border>
                         </Grid>
                         <StackLayout
@@ -466,32 +744,72 @@
                                                  Orientation="Horizontal"
                                                  Spacing="8"
                                                  VerticalOptions="Center">
-                                        <buttons:SfButton
-                                            Padding="0"
-                                            Background="#F5F5F5"
-                                            CornerRadius="6"
-                                            Command="{Binding PreviousBookCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="20"
-                                            HeightRequest="36"
-                                            WidthRequest="36"
-                                            HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Left}"
-                                            TextColor="#333333"
-                                            VerticalOptions="Center" />
-                                        <buttons:SfButton
-                                            Padding="0"
-                                            Background="#F5F5F5"
-                                            CornerRadius="6"
-                                            Command="{Binding NextBookCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="20"
-                                            HeightRequest="36"
-                                            WidthRequest="36"
-                                            HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Right}"
-                                            TextColor="#333333"
-                                            VerticalOptions="Center" />
+                                        <OnPlatform x:TypeArguments="View">
+                                            <OnPlatform.Platforms>
+                                                <On Platform="iOS">
+                                                    <Button Padding="0"
+                                                            BackgroundColor="#F5F5F5"
+                                                            CornerRadius="6"
+                                                            Command="{Binding PreviousBookCommand}"
+                                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                            FontSize="20"
+                                                            HeightRequest="36"
+                                                            WidthRequest="36"
+                                                            HorizontalOptions="End"
+                                                            Text="{x:Static fn:GlyphNames.Left}"
+                                                            TextColor="#333333"
+                                                            VerticalOptions="Center" />
+                                                </On>
+                                                <On Platform="Default">
+                                                    <Button
+                                                        Padding="0"
+                                                        BackgroundColor="#F5F5F5"
+                                                        CornerRadius="6"
+                                                        Command="{Binding PreviousBookCommand}"
+                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                        FontSize="20"
+                                                        HeightRequest="36"
+                                                        WidthRequest="36"
+                                                        HorizontalOptions="End"
+                                                        Text="{x:Static fn:GlyphNames.Left}"
+                                                        TextColor="#333333"
+                                                        VerticalOptions="Center" />
+                                                </On>
+                                            </OnPlatform.Platforms>
+                                        </OnPlatform>
+                                        <OnPlatform x:TypeArguments="View">
+                                            <OnPlatform.Platforms>
+                                                <On Platform="iOS">
+                                                    <Button Padding="0"
+                                                            BackgroundColor="#F5F5F5"
+                                                            CornerRadius="6"
+                                                            Command="{Binding NextBookCommand}"
+                                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                            FontSize="20"
+                                                            HeightRequest="36"
+                                                            WidthRequest="36"
+                                                            HorizontalOptions="End"
+                                                            Text="{x:Static fn:GlyphNames.Right}"
+                                                            TextColor="#333333"
+                                                            VerticalOptions="Center" />
+                                                </On>
+                                                <On Platform="Default">
+                                                    <Button
+                                                        Padding="0"
+                                                        BackgroundColor="#F5F5F5"
+                                                        CornerRadius="6"
+                                                        Command="{Binding NextBookCommand}"
+                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                        FontSize="20"
+                                                        HeightRequest="36"
+                                                        WidthRequest="36"
+                                                        HorizontalOptions="End"
+                                                        Text="{x:Static fn:GlyphNames.Right}"
+                                                        TextColor="#333333"
+                                                        VerticalOptions="Center" />
+                                                </On>
+                                            </OnPlatform.Platforms>
+                                        </OnPlatform>
                                     </StackLayout>
                                 </Grid>
                                 <Grid x:Name="BibleChapterButton"
@@ -519,32 +837,72 @@
                                                  Orientation="Horizontal"
                                                  Spacing="8"
                                                  VerticalOptions="Center">
-                                        <buttons:SfButton
-                                            Padding="0"
-                                            Background="#F5F5F5"
-                                            CornerRadius="6"
-                                            Command="{Binding PreviousChapterCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="20"
-                                            HeightRequest="36"
-                                            WidthRequest="36"
-                                            HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Left}"
-                                            TextColor="#333333"
-                                            VerticalOptions="Center" />
-                                        <buttons:SfButton
-                                            Padding="0"
-                                            Background="#F5F5F5"
-                                            CornerRadius="6"
-                                            Command="{Binding NextChapterCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="20"
-                                            HeightRequest="36"
-                                            WidthRequest="36"
-                                            HorizontalOptions="End"
-                                            Text="{x:Static fn:GlyphNames.Right}"
-                                            TextColor="#333333"
-                                            VerticalOptions="Center" />
+                                        <OnPlatform x:TypeArguments="View">
+                                            <OnPlatform.Platforms>
+                                                <On Platform="iOS">
+                                                    <Button Padding="0"
+                                                            BackgroundColor="#F5F5F5"
+                                                            CornerRadius="6"
+                                                            Command="{Binding PreviousChapterCommand}"
+                                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                            FontSize="20"
+                                                            HeightRequest="36"
+                                                            WidthRequest="36"
+                                                            HorizontalOptions="End"
+                                                            Text="{x:Static fn:GlyphNames.Left}"
+                                                            TextColor="#333333"
+                                                            VerticalOptions="Center" />
+                                                </On>
+                                                <On Platform="Default">
+                                                    <Button
+                                                        Padding="0"
+                                                        BackgroundColor="#F5F5F5"
+                                                        CornerRadius="6"
+                                                        Command="{Binding PreviousChapterCommand}"
+                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                        FontSize="20"
+                                                        HeightRequest="36"
+                                                        WidthRequest="36"
+                                                        HorizontalOptions="End"
+                                                        Text="{x:Static fn:GlyphNames.Left}"
+                                                        TextColor="#333333"
+                                                        VerticalOptions="Center" />
+                                                </On>
+                                            </OnPlatform.Platforms>
+                                        </OnPlatform>
+                                        <OnPlatform x:TypeArguments="View">
+                                            <OnPlatform.Platforms>
+                                                <On Platform="iOS">
+                                                    <Button Padding="0"
+                                                            BackgroundColor="#F5F5F5"
+                                                            CornerRadius="6"
+                                                            Command="{Binding NextChapterCommand}"
+                                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                            FontSize="20"
+                                                            HeightRequest="36"
+                                                            WidthRequest="36"
+                                                            HorizontalOptions="End"
+                                                            Text="{x:Static fn:GlyphNames.Right}"
+                                                            TextColor="#333333"
+                                                            VerticalOptions="Center" />
+                                                </On>
+                                                <On Platform="Default">
+                                                    <Button
+                                                        Padding="0"
+                                                        BackgroundColor="#F5F5F5"
+                                                        CornerRadius="6"
+                                                        Command="{Binding NextChapterCommand}"
+                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                        FontSize="20"
+                                                        HeightRequest="36"
+                                                        WidthRequest="36"
+                                                        HorizontalOptions="End"
+                                                        Text="{x:Static fn:GlyphNames.Right}"
+                                                        TextColor="#333333"
+                                                        VerticalOptions="Center" />
+                                                </On>
+                                            </OnPlatform.Platforms>
+                                        </OnPlatform>
                                     </StackLayout>
                                 </Grid>
                             </StackLayout>
@@ -760,11 +1118,55 @@
                                         </Button.Shadow>
                                     </Button>
                                 </On>
-                                <On Platform="Default">
-                                    <buttons:SfButton Margin="0,10,0,5"
+                                <On Platform="iOS">
+                                    <Button Margin="0,10,0,5"
                                           IsVisible="{Binding IsExistingSchedule}"
                                           VerticalOptions="End"
-                                          Background="#FF3B30"
+                                          BackgroundColor="#FF3B30"
+                                          CornerRadius="8"
+                                          Command="{Binding DeleteCommand}"
+                                          FontSize="{StaticResource ButtonFontSize}"
+                                          FontAttributes="Bold"
+                                          HorizontalOptions="Fill"
+                                          HeightRequest="50"
+                                          Padding="10,12"
+                                          Text="DELETE"
+                                          TextColor="White">
+                                        <Button.Shadow>
+                                            <Shadow Brush="#40000000" 
+                                                    Offset="0,2" 
+                                                    Radius="4" 
+                                                    Opacity="0.3" />
+                                        </Button.Shadow>
+                                    </Button>
+                                </On>
+                                <On Platform="Android">
+                                    <Button Margin="0,10,0,5"
+                                          IsVisible="{Binding IsExistingSchedule}"
+                                          VerticalOptions="End"
+                                          BackgroundColor="#FF3B30"
+                                          CornerRadius="8"
+                                          Command="{Binding DeleteCommand}"
+                                          FontSize="{StaticResource ButtonFontSize}"
+                                          FontAttributes="Bold"
+                                          HorizontalOptions="Fill"
+                                          HeightRequest="45"
+                                          Padding="10,6,10,10"
+                                          Text="DELETE"
+                                          TextColor="White">
+                                        <Button.Shadow>
+                                            <Shadow Brush="#40000000" 
+                                                    Offset="0,2" 
+                                                    Radius="4" 
+                                                    Opacity="0.3" />
+                                        </Button.Shadow>
+                                    </Button>
+                                </On>
+                                <On Platform="Default">
+                                    <Button Margin="0,10,0,5"
+                                          IsVisible="{Binding IsExistingSchedule}"
+                                          VerticalOptions="End"
+                                          BackgroundColor="#FF3B30"
                                           CornerRadius="8"
                                           Command="{Binding DeleteCommand}"
                                           FontSize="{StaticResource ButtonFontSize}"
@@ -774,13 +1176,13 @@
                                           Padding="10,8"
                                           Text="DELETE"
                                           TextColor="White">
-                                        <buttons:SfButton.Shadow>
+                                        <Button.Shadow>
                                             <Shadow Brush="#40000000" 
                                                     Offset="0,2" 
                                                     Radius="4" 
                                                     Opacity="0.3" />
-                                        </buttons:SfButton.Shadow>
-                                    </buttons:SfButton>
+                                        </Button.Shadow>
+                                    </Button>
                                 </On>
                             </OnPlatform.Platforms>
                         </OnPlatform>
