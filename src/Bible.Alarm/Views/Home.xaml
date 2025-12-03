@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage
+<views:BaseContentPage
     x:Class="Bible.Alarm.Views.Home"
     x:Name="HomePage"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
@@ -26,8 +27,9 @@
         <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <!-- Theme-aware colors are inherited from BaseContentPage and available via StaticResource -->
     </ContentPage.Resources>
-    <Grid AutomationId="HomePage" BackgroundColor="#F5F5F5">
+    <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}">
         <Grid
             Grid.Row="0"
             Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
@@ -43,7 +45,7 @@
                     Margin="{OnPlatform Default='0,0,0,16',
                                         iOS='0,0,0,16'}"
                     AutomationId="AddScheduleButton"
-                    BackgroundColor="#6A5ACD"
+                    BackgroundColor="{StaticResource PrimaryColor}"
                     CornerRadius="12"
                     Command="{Binding AddScheduleCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -82,7 +84,7 @@
                             <SwipeView.RightItems>
                                 <SwipeItems>
                                     <SwipeItem
-                                            BackgroundColor="#FF3B30"
+                                            BackgroundColor="{StaticResource ErrorColor}"
                                             Command="{Binding DeleteCommand}">
                                         <SwipeItem.IconImageSource>
                                             <FontImageSource
@@ -101,7 +103,7 @@
                                                              WinUI='16,0,16,0',
                                                              iOS='16,0,16,0'}"
                                         Padding="16,16,16,16"
-                                        BackgroundColor="White"
+                                        BackgroundColor="{DynamicResource CardBackgroundColor}"
                                         StrokeThickness="0"
                                         StrokeShape="RoundRectangle 12,12,12,12">
                                     <Border.Shadow>
@@ -146,7 +148,7 @@
                                                  Orientation="Vertical">
                                     <Button
                                             Margin="0,0,0,8"
-                                            BackgroundColor="#6A5ACD"
+                                            BackgroundColor="{StaticResource PrimaryColor}"
                                             CornerRadius="10"
                                             Command="{Binding PlayCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -309,14 +311,14 @@
                                                 FontSize="16"
                                                 FontAttributes="Bold"
                                                 Text="{Binding Name}"
-                                                TextColor="#1A1A1A" />
+                                                TextColor="{DynamicResource TextPrimaryColor}" />
                                         <Label
                                                 Margin="0"
                                                 HorizontalOptions="Start"
                                                 HorizontalTextAlignment="Start"
                                                 FontSize="14"
                                                 Text="{Binding SubTitle}"
-                                                TextColor="#6A5ACD" />
+                                                TextColor="{DynamicResource PrimaryTextColor}" />
                                     </StackLayout>
                                     <StackLayout Grid.Row="2"
                                                      Grid.Column="0"
@@ -327,7 +329,7 @@
                                                      VerticalOptions="End">
                                         <Button
                                                 Padding="0"
-                                                BackgroundColor="#F5F5F5"
+                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                 CornerRadius="6"
                                                 Command="{Binding PreviousCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -336,11 +338,11 @@
                                                 HeightRequest="36"
                                                 WidthRequest="36"
                                                 Text="{x:Static fn:GlyphNames.Left}"
-                                                TextColor="#333333"
+                                                TextColor="{DynamicResource TextSecondaryColor}"
                                                 VerticalOptions="Center" />
                                         <Button
                                                 Padding="0"
-                                                BackgroundColor="#F5F5F5"
+                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                 CornerRadius="6"
                                                 Command="{Binding NextCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -349,7 +351,7 @@
                                                 WidthRequest="36"
                                                 HorizontalOptions="Start"
                                                 Text="{x:Static fn:GlyphNames.Right}"
-                                                TextColor="#333333"
+                                                TextColor="{DynamicResource TextSecondaryColor}"
                                                 VerticalOptions="Center" />
                                     </StackLayout>
                                 </Grid>
@@ -363,7 +365,7 @@
                                     <Button
                                             Margin="0,0,0,8"
                                             Padding="8,0"
-                                            BackgroundColor="#FF3B30"
+                                            BackgroundColor="{StaticResource ErrorColor}"
                                             CornerRadius="20"
                                             Command="{Binding DeleteCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -398,7 +400,7 @@
         <!-- Overlay with busy indicator -->
         <Grid
             Grid.Row="0"
-            BackgroundColor="#F5F5F5"
+            BackgroundColor="{DynamicResource PageBackgroundColor}"
             IsVisible="{Binding IsHomePageOverlayVisible}"
             HorizontalOptions="Fill"
             VerticalOptions="Fill"
@@ -424,4 +426,4 @@
             </ActivityIndicator>
         </Grid>
     </Grid>
-</ContentPage>
+</views:BaseContentPage>

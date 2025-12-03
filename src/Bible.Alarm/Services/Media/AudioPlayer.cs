@@ -443,7 +443,26 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
 
     public Task StopAsync()
     {
-        return MainThread.InvokeOnMainThreadAsync(() => _mediaElement?.Stop());
+        return MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (_mediaElement == null) return;
+            
+            try
+            {
+                _mediaElement.Stop();
+            }
+            catch (InvalidOperationException ex)
+            {
+                // On iOS, Stop() internally tries to seek to zero, which can fail if the player isn't ready
+                // Log and continue - the player will be in a stopped state anyway
+                _logger.Debug(ex, "Stop() failed because player isn't ready to seek, but player should be stopped");
+            }
+            catch (Exception ex)
+            {
+                // Catch any other exceptions
+                _logger.Warning(ex, "Exception occurred while stopping MediaElement");
+            }
+        });
     }
 
     public async Task ResetAsync()
@@ -537,6 +556,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
     /// <summary>
     /// Safely stops the MediaElement by checking its state first.
     /// On Android, calling Stop() when in IDLE or ERROR states causes errors.
+    /// On iOS, Stop() internally tries to seek which can fail if the player isn't ready.
     /// </summary>
     /// <param name="clearSource">If true, clears the Source property after stopping. If false, only clears Source for invalid states.</param>
     private Task SafeStopMediaElementAsync(bool clearSource = true)
@@ -552,7 +572,21 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
                 currentState == MediaElementState.Paused ||
                 currentState == MediaElementState.Buffering)
             {
-                _mediaElement.Stop();
+                try
+                {
+                    _mediaElement.Stop();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // On iOS, Stop() internally tries to seek to zero, which can fail if the player isn't ready
+                    // Log and continue - the player will be in a stopped state anyway
+                    _logger.Debug(ex, "Stop() failed because player isn't ready to seek, but player should be stopped");
+                }
+                catch (Exception ex)
+                {
+                    // Catch any other exceptions
+                    _logger.Warning(ex, "Exception occurred while stopping MediaElement in SafeStopMediaElementAsync");
+                }
             }
 
             // Clear source if requested, or if in an invalid state (like Failed)

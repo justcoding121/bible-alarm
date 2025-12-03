@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage
+<views:BaseContentPage
     x:Class="Bible.Alarm.Views.General.BatteryOptimizationExclusionModal"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:d="http://schemas.microsoft.com/dotnet/2021/maui/design"
@@ -14,26 +15,19 @@
     mc:Ignorable="d">
     <ContentPage.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        
-        <!-- Modern Color Resources -->
-        <Color x:Key="PrimaryColor">#6A5ACD</Color>
-        <Color x:Key="BackgroundColor">#F8F9FA</Color>
-        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
-        <Color x:Key="CardShadowColor">#E0E0E0</Color>
-        <Color x:Key="TextPrimaryColor">#212529</Color>
-        <Color x:Key="TextSecondaryColor">#6C757D</Color>
+        <!-- Theme-aware colors are inherited from BaseContentPage -->
     </ContentPage.Resources>
     <ContentPage.Content>
-        <Grid BackgroundColor="{StaticResource BackgroundColor}" Padding="20">
+        <Grid BackgroundColor="{DynamicResource BackgroundColor}" Padding="20">
             <Border
-                BackgroundColor="{StaticResource CardBackgroundColor}"
+                BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
                 Padding="24">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="20" />
                 </Border.StrokeShape>
                 <Border.Shadow>
-                    <Shadow Brush="{StaticResource CardShadowColor}"
+                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                             Offset="0,8"
                             Opacity="0.15"
                             Radius="16" />
@@ -52,7 +46,7 @@
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         Text="{x:Static fn:GlyphNames.InfoCircle}"
-                        TextColor="{StaticResource PrimaryColor}"
+                        TextColor="{DynamicResource PrimaryTextColor}"
                         VerticalOptions="Center" />
                     
                     <!-- Main Message -->
@@ -62,7 +56,7 @@
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
                         Text="Audio may not play in background on certain android devices like OnePlus due to aggressive battery optimization. This application will not drain your device battery. We recommend to exclude this app from battery optimization."
-                        TextColor="{StaticResource TextPrimaryColor}"
+                        TextColor="{DynamicResource TextPrimaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
                     
@@ -74,7 +68,7 @@
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
                         Text="Click Exclude Now => Apps not optimized => All Apps => Bible Alarm => Off"
-                        TextColor="{StaticResource TextSecondaryColor}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
                     
@@ -86,7 +80,7 @@
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
                         Text="You may exclude through Android Settings => Apps => : => Special access => Optimize battery usage => Apps not optimized => All Apps => Bible Alarm => Off"
-                        TextColor="{StaticResource TextSecondaryColor}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
                     
@@ -108,7 +102,7 @@
                             TextColor="White"
                             VerticalOptions="Fill">
                             <Button.Shadow>
-                                <Shadow Brush="{StaticResource CardShadowColor}"
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                                         Offset="0,4"
                                         Opacity="0.2"
                                         Radius="8" />
@@ -118,7 +112,7 @@
                         <Button
                             IsVisible="{Binding CanOptimizeBattery}"
                             AutomationId="BatteryOptimizationDismissButton"
-                            BackgroundColor="#F5F5F5"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             BorderWidth="0"
                             BorderColor="Transparent"
                             Command="{Binding BatteryOptimizationDismissCommand}"
@@ -129,10 +123,10 @@
                             HeightRequest="50"
                             Padding="20,0"
                             Text="LATER"
-                            TextColor="{StaticResource PrimaryColor}"
+                            TextColor="{DynamicResource PrimaryTextColor}"
                             VerticalOptions="Fill">
                             <Button.Shadow>
-                                <Shadow Brush="{StaticResource CardShadowColor}"
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                                         Offset="0,2"
                                         Opacity="0.1"
                                         Radius="4" />
@@ -142,7 +136,7 @@
                         <Button
                             IsVisible="{Binding CanOptimizeBattery, Converter={StaticResource negateBooleanConverter}}"
                             AutomationId="BatteryOptimizationDismissButton"
-                            BackgroundColor="#F5F5F5"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             BorderWidth="0"
                             BorderColor="Transparent"
                             Command="{Binding BatteryOptimizationDismissCommand}"
@@ -153,10 +147,10 @@
                             HeightRequest="50"
                             Padding="20,0"
                             Text="OKAY"
-                            TextColor="{StaticResource PrimaryColor}"
+                            TextColor="{DynamicResource PrimaryTextColor}"
                             VerticalOptions="Fill">
                             <Button.Shadow>
-                                <Shadow Brush="{StaticResource CardShadowColor}"
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                                         Offset="0,2"
                                         Opacity="0.1"
                                         Radius="4" />
@@ -167,4 +161,5 @@
             </Border>
         </Grid>
     </ContentPage.Content>
-</ContentPage>
+</views:BaseContentPage>
+

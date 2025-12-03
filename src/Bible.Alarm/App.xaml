@@ -13,6 +13,18 @@
             <ResourceDictionary.MergedDictionaries>
                 <views:Styles />
             </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Global Static Color Resources -->
+            <Color x:Key="PrimaryColor">#6A5ACD</Color>
+            <Color x:Key="PrimaryLightColor">#9370DB</Color>
+            <Color x:Key="ErrorColor">#FF3B30</Color>
+            <Color x:Key="SuccessColor">#34C759</Color>
+            
+            <!-- 
+            Note: AppThemeBinding cannot be defined as resources in Application.Resources.
+            Theme-aware colors are set programmatically in App.xaml.cs based on current theme.
+            Pages use {DynamicResource} to reference these keys for automatic theme updates.
+            -->
 
             <!-- Global base styles - apply automatically to all controls of these types -->
             <Style TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}" />

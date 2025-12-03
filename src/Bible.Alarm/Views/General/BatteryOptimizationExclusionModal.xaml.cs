@@ -2,7 +2,7 @@
 
 namespace Bible.Alarm.Views.General;
 
-public partial class BatteryOptimizationExclusionModal : ContentPage, IDisposable
+public partial class BatteryOptimizationExclusionModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
 

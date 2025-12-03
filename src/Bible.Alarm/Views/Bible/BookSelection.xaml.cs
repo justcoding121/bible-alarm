@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels.Bible;
 
 namespace Bible.Alarm.Views.Bible;
 
-public partial class BookSelection : ContentPage, IDisposable
+public partial class BookSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly BookSelectionViewModel _viewModel;

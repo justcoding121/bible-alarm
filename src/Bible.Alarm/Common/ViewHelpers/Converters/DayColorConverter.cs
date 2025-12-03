@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 
@@ -28,7 +29,7 @@ public class DayColorConverter : IValueConverter
         if (value is DaysOfWeek)
         {
             var isEnabled = ((DaysOfWeek)value & dayParameter) == dayParameter;
-            return isEnabled ? Colors.White : Color.FromArgb("#666666");
+            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
         }
         else
         {
@@ -41,12 +42,12 @@ public class DayColorConverter : IValueConverter
         if (schedule.IsEnabled)
         {
             // When alarm is enabled: light text on dark background for enabled days, darker text for disabled days
-            return isEnabled ? Colors.White : Color.FromArgb("#666666");
+            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
         }
         else
         {
             // When alarm is disabled: flip the colors - enabled days get white text (on blue), disabled days get darker text (on gray)
-            return isEnabled ? Colors.White : Color.FromArgb("#666666"); // White for enabled days, darker text for disabled days
+            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText; // White for enabled days, darker text for disabled days
         }
         }
     }

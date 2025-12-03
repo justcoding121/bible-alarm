@@ -1,4 +1,5 @@
 using System.Globalization;
+using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 
@@ -35,7 +36,7 @@ public class DayShadowConverter : IValueConverter
         {
             return new Shadow
             {
-                Brush = Color.FromArgb("#40000000"),
+                Brush = ThemeColors.Animation.Shadow,
                 Offset = new Point(0F, 2F),
                 Radius = 4F,
                 Opacity = 0.3F

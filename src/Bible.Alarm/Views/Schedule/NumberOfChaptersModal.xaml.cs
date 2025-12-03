@@ -5,7 +5,7 @@ using Bible.Alarm.Common.ViewHelpers;
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class NumberOfChaptersModal : ContentPage, IDisposable
+public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private bool _isClearingSelection;

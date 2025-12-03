@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme - follows Material 3 dark theme -->
+    <style name="MainTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="colorPrimary">#6B46C1</item>
+        <item name="colorPrimaryDark">#512BD4</item>
+        <item name="colorAccent">#6B46C1</item>
+    </style>
+    
+</resources>
+

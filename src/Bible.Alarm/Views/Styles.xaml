@@ -17,6 +17,12 @@
     <x:Double x:Key="AlarmMeridianFontSize">18.0</x:Double>
     <x:Double x:Key="AlarmBellIconFontSize">80.0</x:Double>
 
+    <!-- Color Resources (static - theme-aware colors are defined per-page) -->
+    <Color x:Key="PrimaryColor">#6A5ACD</Color>
+    <Color x:Key="PrimaryColorDark">#512BD4</Color>
+    <Color x:Key="ErrorColor">#FF3B30</Color>
+    <Color x:Key="SuccessColor">#34C759</Color>
+
     <!-- Base Label Style - Applied globally to all Labels -->
     <Style x:Key="BaseLabelStyle" TargetType="Label">
         <Setter Property="FontSize" Value="{DynamicResource StandardFontSize}" />
@@ -85,4 +91,5 @@
     </Style>
 
 </ResourceDictionary>
+
 

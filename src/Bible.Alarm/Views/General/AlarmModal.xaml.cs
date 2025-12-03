@@ -5,7 +5,7 @@ using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Views.General;
 
-public partial class AlarmModal : ContentPage, IDisposable
+public partial class AlarmModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private bool _hasHandledFirstLoad;

@@ -5,7 +5,7 @@ using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Views.Bible;
 
-public partial class BibleSelection : ContentPage, IDisposable
+public partial class BibleSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly BibleSelectionViewModel _viewModel;

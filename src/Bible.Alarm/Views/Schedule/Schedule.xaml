@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage x:Class="Bible.Alarm.Views.Schedule.Schedule"
+<views:BaseContentPage x:Class="Bible.Alarm.Views.Schedule.Schedule"
+             xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
@@ -20,11 +21,11 @@
         <converters:DayColorConverter x:Key="dayColorConverter" />
         <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <Color x:Key="TextSecondaryColor">#6C757D</Color>
+        <!-- Theme-aware colors are inherited from BaseContentPage -->
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid AutomationId="SchedulePage"
-              BackgroundColor="#F5F5F5">
+              BackgroundColor="{DynamicResource PageBackgroundColor}">
             <Grid Grid.ZIndex="1"
                   Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
                   IsVisible="{Binding IsSchedulePageOverlayVisible, Converter={StaticResource negateBooleanConverter}}"
@@ -49,7 +50,7 @@
                             <Button Grid.Column="0"
                                     Margin="0,3,3,3"
                                     AutomationId="CancelButton"
-                                    BackgroundColor="#E0E0E0"
+                                    BackgroundColor="{DynamicResource DividerColor}"
                                     CornerRadius="8"
                                     Command="{Binding CancelCommand}"
                                     FontSize="17"
@@ -58,7 +59,7 @@
                                     HeightRequest="45"
                                     Padding="10,10"
                                     Text="CANCEL"
-                                    TextColor="#666666"
+                                    TextColor="{DynamicResource TextSecondaryColor}"
                                     VerticalOptions="Fill">
                                 <Button.Shadow>
                                     <Shadow Brush="#20000000" 
@@ -72,7 +73,7 @@
                             <Button Grid.Column="0"
                                     Margin="0,3,3,3"
                                     AutomationId="CancelButton"
-                                    BackgroundColor="#E0E0E0"
+                                    BackgroundColor="{DynamicResource DividerColor}"
                                     CornerRadius="8"
                                     Command="{Binding CancelCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -81,7 +82,7 @@
                                     HeightRequest="50"
                                     Padding="10,12"
                                     Text="CANCEL"
-                                    TextColor="#666666"
+                                    TextColor="{DynamicResource TextSecondaryColor}"
                                     VerticalOptions="Fill">
                                 <Button.Shadow>
                                     <Shadow Brush="#20000000" 
@@ -95,7 +96,7 @@
                             <Button Grid.Column="0"
                                     Margin="0,3,3,3"
                                     AutomationId="CancelButton"
-                                    BackgroundColor="#E0E0E0"
+                                    BackgroundColor="{DynamicResource DividerColor}"
                                     CornerRadius="8"
                                     Command="{Binding CancelCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -104,7 +105,7 @@
                                     HeightRequest="45"
                                     Padding="10,6,10,10"
                                     Text="CANCEL"
-                                    TextColor="#666666"
+                                    TextColor="{DynamicResource TextSecondaryColor}"
                                     VerticalOptions="Center">
                                 <Button.Shadow>
                                     <Shadow Brush="#20000000" 
@@ -118,7 +119,7 @@
                             <Button Grid.Column="0"
                                     Margin="0,3,3,3"
                                     AutomationId="CancelButton"
-                                    BackgroundColor="#E0E0E0"
+                                    BackgroundColor="{DynamicResource DividerColor}"
                                     CornerRadius="8"
                                     Command="{Binding CancelCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -127,7 +128,7 @@
                                     HeightRequest="45"
                                     Padding="10,8"
                                     Text="CANCEL"
-                                    TextColor="#666666"
+                                    TextColor="{DynamicResource TextSecondaryColor}"
                                     VerticalOptions="Fill">
                                 <Button.Shadow>
                                     <Shadow Brush="#20000000" 
@@ -145,7 +146,7 @@
                             <Button Grid.Column="1"
                                     Margin="3,3,0,3"
                                     AutomationId="SaveButton"
-                                    BackgroundColor="#6A5ACD"
+                                    BackgroundColor="{StaticResource PrimaryColor}"
                                     CornerRadius="8"
                                     Command="{Binding SaveCommand}"
                                     FontSize="17"
@@ -168,7 +169,7 @@
                             <Button Grid.Column="1"
                                     Margin="3,3,0,3"
                                     AutomationId="SaveButton"
-                                    BackgroundColor="#6A5ACD"
+                                    BackgroundColor="{StaticResource PrimaryColor}"
                                     CornerRadius="8"
                                     Command="{Binding SaveCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -191,7 +192,7 @@
                             <Button Grid.Column="1"
                                     Margin="3,3,0,3"
                                     AutomationId="SaveButton"
-                                    BackgroundColor="#6A5ACD"
+                                    BackgroundColor="{StaticResource PrimaryColor}"
                                     CornerRadius="8"
                                     Command="{Binding SaveCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -214,7 +215,7 @@
                             <Button Grid.Column="1"
                                     Margin="3,3,0,3"
                                     AutomationId="SaveButton"
-                                    BackgroundColor="#6A5ACD"
+                                    BackgroundColor="{StaticResource PrimaryColor}"
                                     CornerRadius="8"
                                     Command="{Binding SaveCommand}"
                                     FontSize="{StaticResource ButtonFontSize}"
@@ -256,7 +257,7 @@
                                 <On Platform="iOS">
                                     <TimePicker AutomationId="AlarmTimePicker"
                                                 BackgroundColor="Transparent"
-                                                TextColor="Black"
+                                                TextColor="{DynamicResource TextPrimaryColor}"
                                                 FontSize="{StaticResource TitleFontSize}"
                                                 HorizontalOptions="Center"
                                                 Margin="0"
@@ -269,7 +270,7 @@
                                                 FontSize="{StaticResource TitleFontSize}"
                                                 HorizontalOptions="Center"
                                                 Margin="0"
-                                                TextColor="SlateBlue"
+                                                TextColor="{DynamicResource PrimaryTextColor}"
                                                 Time="{Binding Time, Mode=TwoWay}">
                                         <TimePicker.Format>hh:mm tt</TimePicker.Format>
                                     </TimePicker>
@@ -633,8 +634,8 @@
                             Orientation="Horizontal">
                             <Border
                                 StrokeThickness="1"
-                                Stroke="#E0E0E0"
-                                BackgroundColor="White"
+                                Stroke="{DynamicResource DividerColor}"
+                                BackgroundColor="{DynamicResource CardBackgroundColor}"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center">
                                 <Border.StrokeShape>
@@ -653,14 +654,14 @@
                                     Placeholder="Schedule Name"
                                     Text="{Binding Name, Mode=TwoWay}"
                                     BackgroundColor="Transparent"
-                                    TextColor="#1A1A1A" />
+                                    TextColor="{DynamicResource TextPrimaryColor}" />
                             </Border>
                         </StackLayout>
                         <Border Margin="0"
                                Padding="0"
                                StrokeThickness="2"
-                               Stroke="#6A5ACD"
-                               BackgroundColor="White"
+                               Stroke="{StaticResource PrimaryColor}"
+                               BackgroundColor="{DynamicResource CardBackgroundColor}"
                                HorizontalOptions="Fill">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="12" />
@@ -675,7 +676,7 @@
                                          Spacing="0">
                                 <Grid x:Name="BibleButton"
                                       Margin="16,8"
-                                      BackgroundColor="#F8F8F8"
+                                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
                                     <Grid.GestureRecognizers>
@@ -698,7 +699,7 @@
                                                HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
                                                Text="Current schedule"
-                                               TextColor="Black"
+                                               TextColor="{DynamicResource TextPrimaryColor}"
                                                VerticalOptions="Center"
                                                VerticalTextAlignment="Center" />
                                         <Label Grid.Column="1"
@@ -707,13 +708,13 @@
                                                HorizontalTextAlignment="End"
                                                Margin="0,0,8,0"
                                                Text="{Binding BibleReadingTitleText}"
-                                               TextColor="SlateBlue"
+                                               TextColor="{DynamicResource PrimaryTextColor}"
                                                VerticalOptions="Center"
                                                VerticalTextAlignment="Center" />
                                         <!-- Arrow Indicator matching list view items -->
                                         <Border
                                             Grid.Column="2"
-                                            BackgroundColor="#E0E0E0"
+                                            BackgroundColor="{DynamicResource DividerColor}"
                                             HeightRequest="32"
                                             HorizontalOptions="End"
                                             StrokeThickness="0"
@@ -729,7 +730,7 @@
                                                 HorizontalTextAlignment="Center"
                                                 InputTransparent="True"
                                                 Text="{x:Static fn:GlyphNames.Right}"
-                                                TextColor="#333333"
+                                                TextColor="{DynamicResource TextSecondaryColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
                                         </Border>
@@ -752,7 +753,7 @@
                                                FontSize="16"
                                                HorizontalTextAlignment="Start"
                                                Text="Book"
-                                               TextColor="Black"
+                                               TextColor="{DynamicResource TextPrimaryColor}"
                                                VerticalOptions="Center" />
                                         <StackLayout Grid.Column="1"
                                                      HorizontalOptions="End"
@@ -763,7 +764,7 @@
                                                 <OnPlatform.Platforms>
                                                     <On Platform="iOS">
                                                         <Button Padding="0"
-                                                                BackgroundColor="#F5F5F5"
+                                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                                 CornerRadius="6"
                                                                 Command="{Binding PreviousBookCommand}"
                                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -772,13 +773,13 @@
                                                                 WidthRequest="36"
                                                                 HorizontalOptions="End"
                                                                 Text="{x:Static fn:GlyphNames.Left}"
-                                                                TextColor="#333333"
+                                                                TextColor="{DynamicResource TextSecondaryColor}"
                                                                 VerticalOptions="Center" />
                                                     </On>
                                                     <On Platform="Default">
                                                         <Button
                                                             Padding="0"
-                                                            BackgroundColor="#F5F5F5"
+                                                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                             CornerRadius="6"
                                                             Command="{Binding PreviousBookCommand}"
                                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -787,7 +788,7 @@
                                                             WidthRequest="36"
                                                             HorizontalOptions="End"
                                                             Text="{x:Static fn:GlyphNames.Left}"
-                                                            TextColor="#333333"
+                                                            TextColor="{DynamicResource TextSecondaryColor}"
                                                             VerticalOptions="Center" />
                                                     </On>
                                                 </OnPlatform.Platforms>
@@ -796,7 +797,7 @@
                                                 <OnPlatform.Platforms>
                                                     <On Platform="iOS">
                                                         <Button Padding="0"
-                                                                BackgroundColor="#F5F5F5"
+                                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                                 CornerRadius="6"
                                                                 Command="{Binding NextBookCommand}"
                                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -805,13 +806,13 @@
                                                                 WidthRequest="36"
                                                                 HorizontalOptions="End"
                                                                 Text="{x:Static fn:GlyphNames.Right}"
-                                                                TextColor="#333333"
+                                                                TextColor="{DynamicResource TextSecondaryColor}"
                                                                 VerticalOptions="Center" />
                                                     </On>
                                                     <On Platform="Default">
                                                         <Button
                                                             Padding="0"
-                                                            BackgroundColor="#F5F5F5"
+                                                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                             CornerRadius="6"
                                                             Command="{Binding NextBookCommand}"
                                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -820,7 +821,7 @@
                                                             WidthRequest="36"
                                                             HorizontalOptions="End"
                                                             Text="{x:Static fn:GlyphNames.Right}"
-                                                            TextColor="#333333"
+                                                            TextColor="{DynamicResource TextSecondaryColor}"
                                                             VerticalOptions="Center" />
                                                     </On>
                                                 </OnPlatform.Platforms>
@@ -845,7 +846,7 @@
                                                FontSize="16"
                                                HorizontalTextAlignment="Start"
                                                Text="Chapter"
-                                               TextColor="Black"
+                                               TextColor="{DynamicResource TextPrimaryColor}"
                                                VerticalOptions="Center" />
                                         <StackLayout Grid.Column="1"
                                                      HorizontalOptions="End"
@@ -856,7 +857,7 @@
                                                 <OnPlatform.Platforms>
                                                     <On Platform="iOS">
                                                         <Button Padding="0"
-                                                                BackgroundColor="#F5F5F5"
+                                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                                 CornerRadius="6"
                                                                 Command="{Binding PreviousChapterCommand}"
                                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -865,13 +866,13 @@
                                                                 WidthRequest="36"
                                                                 HorizontalOptions="End"
                                                                 Text="{x:Static fn:GlyphNames.Left}"
-                                                                TextColor="#333333"
+                                                                TextColor="{DynamicResource TextSecondaryColor}"
                                                                 VerticalOptions="Center" />
                                                     </On>
                                                     <On Platform="Default">
                                                         <Button
                                                             Padding="0"
-                                                            BackgroundColor="#F5F5F5"
+                                                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                             CornerRadius="6"
                                                             Command="{Binding PreviousChapterCommand}"
                                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -880,7 +881,7 @@
                                                             WidthRequest="36"
                                                             HorizontalOptions="End"
                                                             Text="{x:Static fn:GlyphNames.Left}"
-                                                            TextColor="#333333"
+                                                            TextColor="{DynamicResource TextSecondaryColor}"
                                                             VerticalOptions="Center" />
                                                     </On>
                                                 </OnPlatform.Platforms>
@@ -889,7 +890,7 @@
                                                 <OnPlatform.Platforms>
                                                     <On Platform="iOS">
                                                         <Button Padding="0"
-                                                                BackgroundColor="#F5F5F5"
+                                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                                 CornerRadius="6"
                                                                 Command="{Binding NextChapterCommand}"
                                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -898,13 +899,13 @@
                                                                 WidthRequest="36"
                                                                 HorizontalOptions="End"
                                                                 Text="{x:Static fn:GlyphNames.Right}"
-                                                                TextColor="#333333"
+                                                                TextColor="{DynamicResource TextSecondaryColor}"
                                                                 VerticalOptions="Center" />
                                                     </On>
                                                     <On Platform="Default">
                                                         <Button
                                                             Padding="0"
-                                                            BackgroundColor="#F5F5F5"
+                                                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                             CornerRadius="6"
                                                             Command="{Binding NextChapterCommand}"
                                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -913,7 +914,7 @@
                                                             WidthRequest="36"
                                                             HorizontalOptions="End"
                                                             Text="{x:Static fn:GlyphNames.Right}"
-                                                            TextColor="#333333"
+                                                            TextColor="{DynamicResource TextSecondaryColor}"
                                                             VerticalOptions="Center" />
                                                     </On>
                                                 </OnPlatform.Platforms>
@@ -926,20 +927,20 @@
                         <Border Margin="0"
                                Padding="0"
                                StrokeThickness="0"
-                               BackgroundColor="White"
+                               BackgroundColor="{DynamicResource CardBackgroundColor}"
                                HorizontalOptions="Fill">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#20000000" 
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}" 
                                         Offset="0,2" 
                                         Radius="8" 
                                         Opacity="0.15" />
                             </Border.Shadow>
                             <Grid x:Name="MusicButton"
                                   Margin="8,8,8,8"
-                                  BackgroundColor="#F8F8F8"
+                                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                   HorizontalOptions="Fill"
                                   VerticalOptions="Fill">
                             <Grid.ColumnDefinitions>
@@ -958,7 +959,7 @@
                                    Padding="10"
                                    HorizontalOptions="Fill"
                                    HorizontalTextAlignment="Start"
-                                   TextColor="Black"
+                                   TextColor="{DynamicResource TextPrimaryColor}"
                                    VerticalOptions="Center"
                                    VerticalTextAlignment="Center">
                                 Play a music track before Bible audio
@@ -975,7 +976,7 @@
                                     Scale="{OnPlatform Android='1', Default='1'}" />
                                 <!-- Arrow Indicator matching list view items -->
                                 <Border
-                                    BackgroundColor="#E0E0E0"
+                                    BackgroundColor="{DynamicResource DividerColor}"
                                     HeightRequest="32"
                                     HorizontalOptions="End"
                                     StrokeThickness="0"
@@ -991,7 +992,7 @@
                                         HorizontalTextAlignment="Center"
                                         InputTransparent="True"
                                         Text="{x:Static fn:GlyphNames.Right}"
-                                        TextColor="#333333"
+                                        TextColor="{DynamicResource TextSecondaryColor}"
                                         VerticalOptions="Center"
                                         VerticalTextAlignment="Center" />
                                 </Border>
@@ -1001,13 +1002,13 @@
                         <Border Margin="0"
                                Padding="0"
                                StrokeThickness="0"
-                               BackgroundColor="White"
+                               BackgroundColor="{DynamicResource CardBackgroundColor}"
                                HorizontalOptions="Fill">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#20000000" 
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}" 
                                         Offset="0,2" 
                                         Radius="8" 
                                         Opacity="0.15" />
@@ -1035,13 +1036,13 @@
                                            Padding="10"
                                            HorizontalTextAlignment="Start"
                                            Text="Number of chapters to play"
-                                           TextColor="Black"
+                                           TextColor="{DynamicResource TextPrimaryColor}"
                                            VerticalOptions="Center" />
                                     <Label Grid.Column="1"
                                            Margin="0,0,5,0"
                                            HorizontalOptions="End"
                                            Text="{Binding CurrentNumberOfChaptersText}"
-                                           TextColor="SlateBlue"
+                                           TextColor="{DynamicResource PrimaryTextColor}"
                                            VerticalOptions="Center" />
                                 </Grid>
                                 <Grid x:Name="AlwaysPlayFromStartButton"
@@ -1065,7 +1066,7 @@
                                            Padding="10"
                                            HorizontalOptions="Fill"
                                            HorizontalTextAlignment="Start"
-                                           TextColor="Black"
+                                           TextColor="{DynamicResource TextPrimaryColor}"
                                            VerticalOptions="Center">
                                         Resume unfinished chapters from the beginning
                                     </Label>
@@ -1106,7 +1107,7 @@
                                            Padding="10"
                                            HorizontalOptions="Fill"
                                            HorizontalTextAlignment="Start"
-                                           TextColor="Black"
+                                           TextColor="{DynamicResource TextPrimaryColor}"
                                            VerticalOptions="Center">
                                         Play only when I tap on alarm notification
                                     </Label>
@@ -1130,7 +1131,7 @@
                                     <Button Margin="0,10,0,5"
                                           IsVisible="{Binding IsExistingSchedule}"
                                           VerticalOptions="End"
-                                          BackgroundColor="#FF3B30"
+                                          BackgroundColor="{StaticResource ErrorColor}"
                                           CornerRadius="8"
                                           Command="{Binding DeleteCommand}"
                                           FontSize="17"
@@ -1152,7 +1153,7 @@
                                     <Button Margin="0,10,0,5"
                                           IsVisible="{Binding IsExistingSchedule}"
                                           VerticalOptions="End"
-                                          BackgroundColor="#FF3B30"
+                                          BackgroundColor="{StaticResource ErrorColor}"
                                           CornerRadius="8"
                                           Command="{Binding DeleteCommand}"
                                           FontSize="{StaticResource ButtonFontSize}"
@@ -1174,7 +1175,7 @@
                                     <Button Margin="0,10,0,5"
                                           IsVisible="{Binding IsExistingSchedule}"
                                           VerticalOptions="End"
-                                          BackgroundColor="#FF3B30"
+                                          BackgroundColor="{StaticResource ErrorColor}"
                                           CornerRadius="8"
                                           Command="{Binding DeleteCommand}"
                                           FontSize="{StaticResource ButtonFontSize}"
@@ -1196,7 +1197,7 @@
                                     <Button Margin="0,10,0,5"
                                           IsVisible="{Binding IsExistingSchedule}"
                                           VerticalOptions="End"
-                                          BackgroundColor="#FF3B30"
+                                          BackgroundColor="{StaticResource ErrorColor}"
                                           CornerRadius="8"
                                           Command="{Binding DeleteCommand}"
                                           FontSize="{StaticResource ButtonFontSize}"
@@ -1221,7 +1222,7 @@
             </Grid>
             <!-- Overlay with busy indicator -->
             <Grid Grid.ZIndex="2"
-                BackgroundColor="White"
+                BackgroundColor="{DynamicResource CardBackgroundColor}"
                 IsVisible="{Binding IsSchedulePageOverlayVisible}"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill">
@@ -1246,4 +1247,4 @@
             </Grid>
         </Grid>
     </ContentPage.Content>
-</ContentPage>
+</views:BaseContentPage>

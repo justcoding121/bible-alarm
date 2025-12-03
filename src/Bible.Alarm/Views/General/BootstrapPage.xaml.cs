@@ -1,3 +1,4 @@
+using Bible.Alarm.Common;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
@@ -21,6 +22,16 @@ public partial class BootstrapPage : ContentPage, IDisposable
     public BootstrapPage()
     {
         InitializeComponent();
+
+        // Set theme-aware background color
+        this.SetAppThemeColor(ContentPage.BackgroundColorProperty, ThemeColors.Bootstrap.LightBackground, ThemeColors.Bootstrap.DarkBackground);
+        
+        // Set theme-aware text colors for dots
+        var lightColor = ThemeColors.Primary.SlateBlue;
+        var darkColor = ThemeColors.Primary.LightPurpleForDark;
+        Dot1.SetAppThemeColor(Label.TextColorProperty, lightColor, darkColor);
+        Dot2.SetAppThemeColor(Label.TextColorProperty, lightColor, darkColor);
+        Dot3.SetAppThemeColor(Label.TextColorProperty, lightColor, darkColor);
 
         // Start animated dots
         // Change dot every 500ms

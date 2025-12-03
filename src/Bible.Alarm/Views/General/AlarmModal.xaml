@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage
+<views:BaseContentPage
     x:Class="Bible.Alarm.Views.General.AlarmModal"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:forms="http://schemas.microsoft.com/dotnet/2021/maui/design"
@@ -10,55 +11,50 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
     x:DataType="shared:AlarmViewModal">
     <ContentPage.Resources>
-        <converters:IsEnabledColorConverter x:Key="isEnabledConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:IsNullConverter x:Key="isNullConverter" />
         <converters:IsNotNullConverter x:Key="isNotNullConverter" />
-        
-        <!-- Modern Color Resources - System Theme Aware -->
+        <!-- Theme-aware colors are inherited from BaseContentPage -->
         <forms:Color x:Key="SlateBlue">#6A5ACD</forms:Color>
-        <Color x:Key="PrimaryColor">#6A5ACD</Color>
-        <OnPlatform x:Key="BackgroundColor" x:TypeArguments="Color">
-            <On Platform="iOS" Value="#F8F9FA" />
-            <On Platform="Android" Value="#F8F9FA" />
-            <On Platform="WinUI" Value="#F8F9FA" />
-        </OnPlatform>
-        <OnPlatform x:Key="CardBackgroundColor" x:TypeArguments="Color">
-            <On Platform="iOS" Value="#FFFFFF" />
-            <On Platform="Android" Value="#FFFFFF" />
-            <On Platform="WinUI" Value="#FFFFFF" />
-        </OnPlatform>
-        <OnPlatform x:Key="CardShadowColor" x:TypeArguments="Color">
-            <On Platform="iOS" Value="#E0E0E0" />
-            <On Platform="Android" Value="#E0E0E0" />
-            <On Platform="WinUI" Value="#E0E0E0" />
-        </OnPlatform>
-        <OnPlatform x:Key="TextPrimaryColor" x:TypeArguments="Color">
-            <On Platform="iOS" Value="#212529" />
-            <On Platform="Android" Value="#212529" />
-            <On Platform="WinUI" Value="#212529" />
-        </OnPlatform>
-        <OnPlatform x:Key="TextSecondaryColor" x:TypeArguments="Color">
-            <On Platform="iOS" Value="#6C757D" />
-            <On Platform="Android" Value="#6C757D" />
-            <On Platform="WinUI" Value="#6C757D" />
-        </OnPlatform>
-        <OnPlatform x:Key="ControlBackgroundColor" x:TypeArguments="Color">
-            <On Platform="iOS" Value="#F5F5F5" />
-            <On Platform="Android" Value="#F5F5F5" />
-            <On Platform="WinUI" Value="#F5F5F5" />
-        </OnPlatform>
-        <OnPlatform x:Key="ProgressBarBackgroundColor" x:TypeArguments="Color">
-            <On Platform="iOS" Value="#E9ECEF" />
-            <On Platform="Android" Value="#E9ECEF" />
-            <On Platform="WinUI" Value="#E9ECEF" />
-        </OnPlatform>
         <Color x:Key="WhiteColor">#FFFFFF</Color>
+        
+        <!-- Style for enabled/disabled label text color -->
+        <Style x:Key="ControlLabelTextColorStyle" TargetType="Label">
+            <Setter Property="TextColor" Value="{DynamicResource TextSecondaryColor}" />
+            <Style.Triggers>
+                <DataTrigger TargetType="Label" Binding="{Binding AreControlsEnabled}" Value="False">
+                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Style for enabled/disabled slider colors -->
+        <Style x:Key="ControlSliderStyle" TargetType="Slider">
+            <Setter Property="ThumbColor" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="MinimumTrackColor" Value="{DynamicResource PrimaryColor}" />
+            <Style.Triggers>
+                <DataTrigger TargetType="Slider" Binding="{Binding AreControlsEnabled}" Value="False">
+                    <Setter Property="ThumbColor" Value="{DynamicResource DisabledTextColor}" />
+                    <Setter Property="MinimumTrackColor" Value="{DynamicResource DisabledTextColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Style for enabled/disabled border background color (for play/pause button) -->
+        <Style x:Key="PlayPauseBorderStyle" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{DynamicResource PrimaryColor}" />
+            <Style.Triggers>
+                <DataTrigger TargetType="Border" Binding="{Binding AreControlsEnabled}" Value="False">
+                    <Setter Property="BackgroundColor" Value="{DynamicResource DisabledTextColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </ContentPage.Resources>
     <ContentPage.Content>
-        <Grid HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="{StaticResource BackgroundColor}">
+        <Grid HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="{DynamicResource BackgroundColor}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
@@ -76,7 +72,7 @@
                     <!-- Progress indicator when preparing tracks -->
                     <Border
                         IsVisible="{Binding IsPreparing}"
-                        BackgroundColor="{StaticResource CardBackgroundColor}"
+                        BackgroundColor="{DynamicResource CardBackgroundColor}"
                         StrokeThickness="0"
                         Padding="24,20">
                         <Border.StrokeShape>
@@ -93,19 +89,36 @@
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding ProgressText}"
-                                TextColor="{StaticResource TextPrimaryColor}" />
+                                TextColor="{DynamicResource TextPrimaryColor}" />
                             <ProgressBar
                                 Margin="10,5"
                                 MinimumWidthRequest="200"
                                 Progress="{Binding PreparationProgress}"
                                 ProgressColor="{StaticResource PrimaryColor}" />
+                            <!-- Busy Indicator below progress bar -->
+                            <Grid
+                                IsVisible="{Binding IsPreparing}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                HeightRequest="40"
+                                WidthRequest="40"
+                                Margin="0,8,0,0">
+                                <core:SfBusyIndicator
+                                    IsRunning="{Binding IsPreparing}"
+                                    AnimationType="DoubleCircle"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill"
+                                    HeightRequest="40"
+                                    WidthRequest="40"
+                                    IndicatorColor="{StaticResource PrimaryColor}" />
+                            </Grid>
                         </StackLayout>
                     </Border>
                     
                     <!-- Error message when playback fails -->
                     <Border
                         IsVisible="{Binding HasError}"
-                        BackgroundColor="#2A1A1A"
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
                         StrokeThickness="1"
                         Stroke="#4A2A2A"
                         Padding="24,20">
@@ -147,7 +160,7 @@
                             <!-- Album Artwork or Bell Icon -->
                             <Border
                                 IsVisible="{Binding IsArtworkLoading, Converter={StaticResource negateBooleanConverter}}"
-                                BackgroundColor="{StaticResource ControlBackgroundColor}"
+                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                 HeightRequest="280"
                                 WidthRequest="280"
                                 StrokeThickness="0"
@@ -157,7 +170,7 @@
                                     <RoundRectangle CornerRadius="0" />
                                 </Border.StrokeShape>
                                 <Border.Shadow>
-                                    <Shadow Brush="{StaticResource CardShadowColor}"
+                                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                                             Offset="0,8"
                                             Opacity="0.2"
                                             Radius="20" />
@@ -180,7 +193,7 @@
                                         HorizontalTextAlignment="Center"
                                         IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
                                         Text="{x:Static fn:GlyphNames.Bell}"
-                                        TextColor="{StaticResource PrimaryColor}"
+                                        TextColor="{DynamicResource PrimaryTextColor}"
                                         VerticalOptions="Center" />
                                 </Grid>
                             </Border>
@@ -196,7 +209,7 @@
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding Title}"
-                                TextColor="{StaticResource TextPrimaryColor}"
+                                TextColor="{DynamicResource TextPrimaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="2" />
                             <Label
@@ -204,7 +217,7 @@
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding SubTitle}"
-                                TextColor="{StaticResource TextSecondaryColor}"
+                                TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="1" />
                             <Label
@@ -212,7 +225,7 @@
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding Description}"
-                                TextColor="{StaticResource TextSecondaryColor}"
+                                TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="1" />
                         </StackLayout>
@@ -223,7 +236,7 @@
             <!-- Bottom Controls Panel -->
             <Border
                 Grid.Row="1"
-                BackgroundColor="{StaticResource CardBackgroundColor}"
+                BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
                 Padding="0">
                 <Border.StrokeShape>
@@ -243,7 +256,7 @@
                     <Border
                         Grid.Row="0"
                         AutomationId="AlarmDismissButton"
-                        BackgroundColor="#FF3B30"
+                        BackgroundColor="{StaticResource ErrorColor}"
                         HeightRequest="48"
                         WidthRequest="48"
                         StrokeThickness="0"
@@ -289,7 +302,7 @@
                             FontAttributes="Bold"
                             HorizontalOptions="Start"
                             Text="{Binding CurrentTime}"
-                            TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextSecondaryColor}}"
+                            Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />
                         <Slider
                             Grid.Column="1"
@@ -302,16 +315,15 @@
                             ValueChanged="OnSliderValueChanged"
                             DragStarted="OnSliderDragStarted"
                             DragCompleted="OnSliderDragCompleted"
-                            ThumbColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource PrimaryColor}}"
-                            MinimumTrackColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource PrimaryColor}}"
-                            MaximumTrackColor="{StaticResource ProgressBarBackgroundColor}" />
+                            Style="{StaticResource ControlSliderStyle}"
+                            MaximumTrackColor="{DynamicResource ProgressBarBackgroundColor}" />
                         <Label
                             Grid.Column="2"
                             FontSize="12"
                             FontAttributes="Bold"
                             HorizontalOptions="End"
                             Text="{Binding EndTime}"
-                            TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextSecondaryColor}}"
+                            Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />
                     </Grid>
                     
@@ -331,7 +343,7 @@
                         <!-- Previous Track -->
                         <Border
                             Grid.Column="0"
-                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HeightRequest="48"
                             WidthRequest="48"
                             StrokeThickness="0"
@@ -349,16 +361,24 @@
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="20"
                                 HorizontalOptions="Center"
-                                IsEnabled="{Binding AreControlsEnabled}"
+                                IsEnabled="{Binding PreviousEnabled}"
                                 Text="{x:Static fn:GlyphNames.Previous}"
-                                TextColor="{Binding PreviousEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center">
+                                <Button.Triggers>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                    </Trigger>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                        <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                    </Trigger>
+                                </Button.Triggers>
+                            </Button>
                         </Border>
                         
                         <!-- Backward (Seek Back) -->
                         <Border
                             Grid.Column="1"
-                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HeightRequest="48"
                             WidthRequest="48"
                             StrokeThickness="0"
@@ -378,14 +398,22 @@
                                 HorizontalOptions="Center"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Backward}"
-                                TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center">
+                                <Button.Triggers>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                    </Trigger>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                        <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                    </Trigger>
+                                </Button.Triggers>
+                            </Button>
                         </Border>
                         
                         <!-- Play/Pause Button (Primary) -->
                         <Border
                             Grid.Column="2"
-                            BackgroundColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource PrimaryColor}}"
+                            Style="{StaticResource PlayPauseBorderStyle}"
                             HeightRequest="64"
                             WidthRequest="64"
                             StrokeThickness="0"
@@ -413,8 +441,16 @@
                                     IsEnabled="{Binding AreControlsEnabled}"
                                     IsVisible="{Binding PlayVisible}"
                                     Text="{x:Static fn:GlyphNames.Play}"
-                                    TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource WhiteColor}}"
-                                    VerticalOptions="Center" />
+                                    VerticalOptions="Center">
+                                    <Button.Triggers>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                        </Trigger>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource WhiteColor}" />
+                                        </Trigger>
+                                    </Button.Triggers>
+                                </Button>
                                 <Button
                                     Padding="0"
                                     BackgroundColor="Transparent"
@@ -427,15 +463,23 @@
                                     IsEnabled="{Binding AreControlsEnabled}"
                                     IsVisible="{Binding PauseVisible}"
                                     Text="{x:Static fn:GlyphNames.Pause}"
-                                    TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource WhiteColor}}"
-                                    VerticalOptions="Center" />
+                                    VerticalOptions="Center">
+                                    <Button.Triggers>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                        </Trigger>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource WhiteColor}" />
+                                        </Trigger>
+                                    </Button.Triggers>
+                                </Button>
                             </Grid>
                         </Border>
                         
                         <!-- Forward (Seek Forward) -->
                         <Border
                             Grid.Column="3"
-                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HeightRequest="48"
                             WidthRequest="48"
                             StrokeThickness="0"
@@ -455,14 +499,22 @@
                                 HorizontalOptions="Center"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Forward}"
-                                TextColor="{Binding AreControlsEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center">
+                                <Button.Triggers>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                    </Trigger>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                        <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                    </Trigger>
+                                </Button.Triggers>
+                            </Button>
                         </Border>
                         
                         <!-- Next Track -->
                         <Border
                             Grid.Column="4"
-                            BackgroundColor="{StaticResource ControlBackgroundColor}"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HeightRequest="48"
                             WidthRequest="48"
                             StrokeThickness="0"
@@ -480,14 +532,23 @@
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="20"
                                 HorizontalOptions="Center"
-                                IsEnabled="{Binding AreControlsEnabled}"
+                                IsEnabled="{Binding NextEnabled}"
                                 Text="{x:Static fn:GlyphNames.Next}"
-                                TextColor="{Binding NextEnabled, Converter={StaticResource isEnabledConverter}, ConverterParameter={StaticResource TextPrimaryColor}}"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center">
+                                <Button.Triggers>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                    </Trigger>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                        <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                    </Trigger>
+                                </Button.Triggers>
+                            </Button>
                         </Border>
                     </Grid>
                 </Grid>
             </Border>
         </Grid>
     </ContentPage.Content>
-</ContentPage>
+</views:BaseContentPage>
+

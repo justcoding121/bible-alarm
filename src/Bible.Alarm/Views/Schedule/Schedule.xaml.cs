@@ -7,7 +7,7 @@ using static Serilog.Log;
 
 namespace Bible.Alarm.Views.Schedule;
 
-public partial class Schedule : ContentPage, IDisposable
+public partial class Schedule : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly ScheduleViewModel _viewModel;

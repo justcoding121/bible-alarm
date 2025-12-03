@@ -1,4 +1,5 @@
 using System.Globalization;
+using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 
@@ -8,7 +9,7 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is null) return Color.FromArgb("#D0D0D0");
+        if (value is null) return ThemeColors.Day.DefaultBackground;
 
         DaysOfWeek daysOfWeek;
         bool isEnabled = true; // Default to enabled for ScheduleViewModel
@@ -30,7 +31,7 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
         }
         else
         {
-            return Color.FromArgb("#D0D0D0");
+            return ThemeColors.Day.DefaultBackground;
         }
 
         var dayParameter = ParseDayParameter(parameter);
@@ -39,28 +40,28 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
         if (isEnabled)
         {
             // When alarm is enabled: dark background for enabled days, darker for disabled days
-            return isDayEnabled ? Color.FromArgb("#6A5ACD") : Color.FromArgb("#C0C0C0"); // SlateBlue for enabled, darker gray for disabled
+            return isDayEnabled ? ThemeColors.Day.EnabledBackground : ThemeColors.Day.DisabledBackground;
         }
         else
         {
             // When alarm is disabled: flip the colors - enabled days get blue, disabled days get gray
-            return isDayEnabled ? Color.FromArgb("#6A5ACD") : Color.FromArgb("#C0C0C0"); // SlateBlue for enabled days, gray for disabled days
+            return isDayEnabled ? ThemeColors.Day.EnabledBackground : ThemeColors.Day.DisabledBackground;
         }
     }
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values == null || values.Length < 2) return Color.FromArgb("#D0D0D0");
+        if (values == null || values.Length < 2) return ThemeColors.Day.DefaultBackground;
         
-        if (values[0] is not DaysOfWeek daysOfWeek) return Color.FromArgb("#D0D0D0");
-        if (values[1] is not bool isEnabled) return Color.FromArgb("#D0D0D0");
+        if (values[0] is not DaysOfWeek daysOfWeek) return ThemeColors.Day.DefaultBackground;
+        if (values[1] is not bool isEnabled) return ThemeColors.Day.DefaultBackground;
 
         var dayParameter = ParseDayParameter(parameter);
         var isDayEnabled = (daysOfWeek & dayParameter) == dayParameter;
 
         // When alarm is enabled: dark background for enabled days, darker for disabled days
         // When alarm is disabled: same colors - enabled days get blue, disabled days get gray
-        return isDayEnabled ? Color.FromArgb("#6A5ACD") : Color.FromArgb("#C0C0C0"); // SlateBlue for enabled, gray for disabled
+        return isDayEnabled ? ThemeColors.Day.EnabledBackground : ThemeColors.Day.DisabledBackground;
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

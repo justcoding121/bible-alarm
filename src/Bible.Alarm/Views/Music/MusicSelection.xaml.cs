@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels.Music;
 
 namespace Bible.Alarm.Views.Music;
 
-public partial class MusicSelection : ContentPage, IDisposable
+public partial class MusicSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly MusicSelectionViewModel _viewModel;

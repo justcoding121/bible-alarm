@@ -1,4 +1,6 @@
-﻿namespace Bible.Alarm.Common.ViewHelpers;
+﻿using Bible.Alarm.Common;
+
+namespace Bible.Alarm.Common.ViewHelpers;
 
 public class AnimateUtils
 {
@@ -25,7 +27,7 @@ public class AnimateUtils
         // Default to White if BackgroundColor is not set
         var originalColor = view.BackgroundColor ?? Colors.White;
         // Light gray for pressed state
-        var pressedColor = Color.FromArgb("#E0E0E0");
+        var pressedColor = ThemeColors.Animation.PressedBackground;
         
         // Animate to pressed state
         view.Animate("touchPress", new Animation(v =>

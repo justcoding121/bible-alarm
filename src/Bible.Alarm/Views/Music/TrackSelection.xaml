@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage
+<views:BaseContentPage
     x:Class="Bible.Alarm.Views.Music.TrackSelection"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
@@ -17,20 +18,22 @@
     <ContentPage.Resources>
         <converters:PlayStatusIconConverter x:Key="playStatusIconConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
-        <converters:IsSelectedColorConverter x:Key="isSelectedColorConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:RepeatColorConverter x:Key="repeatColorConverter" />
+        <!-- Theme-aware colors are inherited from BaseContentPage -->
         
-        <!-- Modern Color Resources -->
-        <Color x:Key="PrimaryColor">#6A5ACD</Color>
-        <Color x:Key="BackgroundColor">#F8F9FA</Color>
-        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
-        <Color x:Key="CardShadowColor">#E0E0E0</Color>
-        <Color x:Key="TextPrimaryColor">#212529</Color>
-        <Color x:Key="TextSecondaryColor">#6C757D</Color>
+        <!-- Style for selected/unselected item background using DynamicResource -->
+        <Style x:Key="TrackItemBorderStyle" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
+            <Style.Triggers>
+                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </ContentPage.Resources>
     <ContentPage.Content>
-        <Grid BackgroundColor="{StaticResource BackgroundColor}">
+        <Grid BackgroundColor="{DynamicResource BackgroundColor}">
             <ActivityIndicator
                 Grid.Row="0"
                 HorizontalOptions="Center"
@@ -78,14 +81,14 @@
                         <DataTemplate x:DataType="music:MusicTrackListViewItemModel">
                             <Grid Margin="16,0">
                                 <Border
-                                    BackgroundColor="{Binding IsSelected, Converter={StaticResource isSelectedColorConverter}}"
+                                    Style="{StaticResource TrackItemBorderStyle}"
                                     StrokeThickness="0"
                                     Padding="0">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="12" />
                                     </Border.StrokeShape>
                                     <Border.Shadow>
-                                        <Shadow Brush="{StaticResource CardShadowColor}"
+                                        <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                                                 Offset="0,2"
                                                 Opacity="0.08"
                                                 Radius="4" />
@@ -112,7 +115,7 @@
                                             LineBreakMode="WordWrap"
                                             MaxLines="2"
                                             Text="{Binding Title}"
-                                            TextColor="{StaticResource TextPrimaryColor}"
+                                            TextColor="{DynamicResource TextPrimaryColor}"
                                             VerticalOptions="Center"
                                             VerticalTextAlignment="Center" />
                                         
@@ -144,7 +147,7 @@
                                             </ActivityIndicator>
                                             <Border
                                                 IsVisible="{Binding IsSelected}"
-                                                BackgroundColor="#F5F5F5"
+                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                 HeightRequest="36"
                                                 HorizontalOptions="End"
                                                 StrokeThickness="0"
@@ -168,7 +171,7 @@
                                                     HorizontalOptions="Center" />
                                             </Border>
                                             <Border
-                                                BackgroundColor="#F5F5F5"
+                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                 HeightRequest="36"
                                                 HorizontalOptions="End"
                                                 StrokeThickness="0"
@@ -187,7 +190,7 @@
                                                     MinimumWidthRequest="36"
                                                     Padding="0"
                                                     Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
-                                                    TextColor="{StaticResource TextSecondaryColor}"
+                                                    TextColor="{DynamicResource TextSecondaryColor}"
                                                     VerticalOptions="Center"
                                                     HorizontalOptions="Center" />
                                             </Border>
@@ -201,4 +204,5 @@
             </Grid>
         </Grid>
     </ContentPage.Content>
-</ContentPage>
+</views:BaseContentPage>
+

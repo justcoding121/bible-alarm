@@ -8,7 +8,7 @@ using static Serilog.Log;
 
 namespace Bible.Alarm.Views;
 
-public partial class Home : ContentPage, IDisposable
+public partial class Home : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private bool _hasHandledFirstLoad;
