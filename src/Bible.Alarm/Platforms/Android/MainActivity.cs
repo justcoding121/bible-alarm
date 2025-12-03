@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Android;
 
-[Activity(Theme = "@style/MainTheme", LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+[Activity(Label = "Bible Alarm", Theme = "@style/MainTheme", LaunchMode = LaunchMode.SingleTop, MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
     private static readonly ILogger Logger = Log.ForContext<MainActivity>();
@@ -25,8 +25,10 @@ public class MainActivity : MauiAppCompatActivity
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
 
-        // BootstrapHelper is already initialized in SplashActivity
-        // No need to call it again here for foreground scenarios
+        // Initialize MAUI app if not already initialized
+        MauiAppHolder.CreateAndStore();
+        // Run bootstrapper for foreground scenarios
+        MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: true);
 
         // Handle incoming intents (e.g., from notifications)
         HandleIncomingIntent();

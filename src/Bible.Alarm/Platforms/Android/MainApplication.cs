@@ -12,7 +12,7 @@ namespace Bible.Alarm.Platforms.Android
         base.OnCreate();
         // Note: CreateMauiApp() is called automatically by MAUI framework
         // No need to call CreateAndStore here - it will be called when CreateMauiApp() is invoked
-        // SplashActivity will handle the bootstrap initialization
+        // MainActivity will handle the bootstrap initialization
     }
 
     protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore();

@@ -76,9 +76,34 @@
 		<AndroidProguardConfiguration Include="proguard.cfg" />
 	</ItemGroup>
 
-	<!-- App Icon (MauiIcon) -->
+	<!-- App Icon (MauiIcon) - Modern SVG approach for .NET 10.0 with Light/Dark mode support -->
 	<ItemGroup>
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" />
+		<!-- Light Mode Icon (default) -->
+		<MauiIcon Include="Resources\AppIcon\appicon.svg"
+		          ForegroundFile="Resources\AppIcon\appiconfg.svg"
+		          Color="#512BD4"
+		          BaseSize="512,512"
+		          ForegroundScale="0.72" />
+		<!-- Dark Mode Icon (for platforms that support theme-aware icons) -->
+		<MauiIcon Include="Resources\AppIcon\appicon-dark.svg"
+		          ForegroundFile="Resources\AppIcon\appiconfg-dark.svg"
+		          Color="#E8E0FF"
+		          BaseSize="512,512"
+		          ForegroundScale="0.72"
+		          Condition="false" />
+	</ItemGroup>
+	
+	<!-- Splash Screen (MauiSplashScreen) - Modern SVG approach for .NET 10.0 with Light/Dark mode support -->
+	<ItemGroup>
+		<!-- Light Mode Splash (default) -->
+		<MauiSplashScreen Include="Resources\Splash\splash.svg"
+		                  Color="#512BD4"
+		                  BaseSize="256,256" />
+		<!-- Dark Mode Splash (for platforms that support theme-aware splash screens) -->
+		<MauiSplashScreen Include="Resources\Splash\splash-dark.svg"
+		                  Color="#E8E0FF"
+		                  BaseSize="256,256"
+		                  Condition="false" />
 	</ItemGroup>
 
 	<!-- Fonts -->
