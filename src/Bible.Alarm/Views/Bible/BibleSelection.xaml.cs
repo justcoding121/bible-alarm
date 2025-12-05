@@ -20,6 +20,25 @@ public partial class BibleSelection : BaseContentPage, IDisposable
 
         // Note: We don't clear selection here because this page navigates away when an item is selected
         // The page will be disposed, so clearing selection is unnecessary and can interfere with navigation on iOS
+
+        Appearing += OnAppearing;
+    }
+
+    private async void OnAppearing(object sender, EventArgs e)
+    {
+        Appearing -= OnAppearing;
+        
+        // List is hard-coded, so no need to wait for data loading
+        // Just wait a moment for CollectionView to render, then scroll
+        if (ViewModel != null)
+        {
+            await Task.Delay(200);
+            
+            if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)
+            {
+                await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false);
+            }
+        }
     }
 
     protected override bool OnBackButtonPressed()

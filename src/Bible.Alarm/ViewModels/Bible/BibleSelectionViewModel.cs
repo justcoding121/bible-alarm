@@ -57,6 +57,12 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
         _state.StateChanged += OnBibleReadingInitialized;
         _state.StateChanged += OnBibleReadingChanged;
+        
+        // Check current state immediately in case state is already set (e.g., when navigating from schedule page)
+        if (currentState.CurrentBibleReadingSchedule != null && currentState.TentativeBibleReadingSchedule != null)
+        {
+            OnBibleReadingInitialized(null, EventArgs.Empty);
+        }
 
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
@@ -188,7 +194,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         set => SetProperty(ref _currentLanguage, value);
     }
 
-    private bool _isBusy;
+    private bool _isBusy = true; // Start as true to show busy indicator immediately
 
     public bool IsBusy
     {
@@ -227,7 +233,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         {
             if (e.PropertyName == "LanguageSearchTerm")
             {
-                _ = PopulateLanguages(LanguageSearchTerm);
+                _ = PopulateLanguages(LanguageSearchTerm?.Trim());
             }
         };
         PropertyChanged += _propertyChangedHandler;
@@ -238,9 +244,12 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         var languages = await _mediaService.GetBibleLanguages();
         var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
 
+        // Trim the search term before using it
+        var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+
         foreach (var language in languages.Select(x => x.Value)
-                     .Where(x => searchTerm == null
-                                 || x.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                     .Where(x => trimmedSearchTerm == null
+                                 || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
                      .OrderBy(x => x.Name))
         {
             var languageVm = new LanguageListViewItemModel(language);

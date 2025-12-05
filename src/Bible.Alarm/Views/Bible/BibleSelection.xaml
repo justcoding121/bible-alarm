@@ -15,10 +15,10 @@
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:BibleSelectionViewModel"
-    Title="Select Translation">
+    Title="Select Translation"
+    BackgroundColor="{DynamicResource BackgroundColor}">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
-        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <!-- Theme-aware colors are inherited from BaseContentPage -->
         
         <!-- Style for selected/unselected item background using DynamicResource -->
@@ -47,29 +47,9 @@
     </ContentPage.ToolbarItems>
     <ContentPage.Content>
         <Grid x:Name="MainContentGrid" BackgroundColor="{DynamicResource BackgroundColor}">
-            <ActivityIndicator
-                Grid.Row="0"
-                HorizontalOptions="Center"
-                IsEnabled="True"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
-                Scale="0.5"
-                VerticalOptions="Center"
-                Color="{StaticResource PrimaryColor}">
-                <ActivityIndicator.Scale>
-                    <OnPlatform x:TypeArguments="x:Double">
-                        <OnPlatform.Platforms>
-                            <On Platform="iOS" Value="4.0" />
-                            <On Platform="Android" Value="1.0" />
-                            <On Platform="Win" Value="1.0" />
-                        </OnPlatform.Platforms>
-                    </OnPlatform>
-                </ActivityIndicator.Scale>
-            </ActivityIndicator>
-            <Grid
-                Grid.Row="0"
+            <!-- MAIN LIST -->
+            <Grid x:Name="MainContentList"
                 Margin="0"
-                IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
                 <!-- Enhanced Collection View with Card Layout -->
                 <CollectionView

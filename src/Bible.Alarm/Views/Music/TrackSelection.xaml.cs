@@ -29,12 +29,19 @@ public partial class TrackSelection : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
         
-        // Wait for the page to be fully loaded before attempting to scroll
-        await Task.Delay(300);
-        
-        if (ViewModel?.SelectedTrack != null && trackCollectionView != null)
+        // Wait for the page to be fully loaded and data to be ready before attempting to scroll
+        if (ViewModel != null)
         {
-            await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack);
+            // Wait for IsBusy to become false (data loaded) using Polly retry policy
+            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy);
+            
+            // Small additional delay to ensure CollectionView is rendered
+            await Task.Delay(200);
+            
+            if (ViewModel.SelectedTrack != null && trackCollectionView != null)
+            {
+                await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack);
+            }
         }
     }
 

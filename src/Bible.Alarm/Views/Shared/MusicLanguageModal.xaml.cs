@@ -48,9 +48,19 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
         
-        if (ViewModel?.SelectedItem != null && LanguageCollectionView != null)
+        // Wait for the page to be fully loaded and data to be ready before attempting to scroll
+        if (ViewModel != null)
         {
-            await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem);
+            // Wait for IsBusy to become false (data loaded) using Polly retry policy
+            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy);
+            
+            // Small additional delay to ensure CollectionView is rendered
+            await Task.Delay(200);
+            
+            if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
+            {
+                await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem);
+            }
         }
     }
 

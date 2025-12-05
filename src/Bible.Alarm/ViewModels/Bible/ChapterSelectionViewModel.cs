@@ -135,7 +135,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     public BibleChapterListViewItemModel? SelectedChapter { get; set; }
 
-    private bool _isBusy;
+    private bool _isBusy = true; // Start as true to show busy indicator immediately
 
     public bool IsBusy
     {

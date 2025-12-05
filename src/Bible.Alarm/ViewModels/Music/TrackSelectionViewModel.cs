@@ -149,7 +149,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand SetTrackCommand { get; set; }
 
-    private bool _isBusy;
+    private bool _isBusy = true; // Start as true to show busy indicator immediately
 
     public bool IsBusy
     {

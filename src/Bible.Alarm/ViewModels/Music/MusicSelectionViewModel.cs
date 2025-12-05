@@ -117,7 +117,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         SelectedMusicType.IsSelected = true;
     }
 
-    private bool _isBusy;
+    private bool _isBusy = true; // Start as true to show busy indicator immediately
 
     public bool IsBusy
     {

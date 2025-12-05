@@ -41,6 +41,25 @@ public partial class MusicSelection : BaseContentPage, IDisposable
                 });
             });
         };
+
+        Appearing += OnAppearing;
+    }
+
+    private async void OnAppearing(object sender, EventArgs e)
+    {
+        Appearing -= OnAppearing;
+        
+        // List is hard-coded, so no need to wait for data loading
+        // Just wait a moment for CollectionView to render, then scroll
+        if (ViewModel != null)
+        {
+            await Task.Delay(200);
+            
+            if (ViewModel.SelectedMusicType != null && musicTypesCollectionView != null)
+            {
+                await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false);
+            }
+        }
     }
 
     protected override bool OnBackButtonPressed()

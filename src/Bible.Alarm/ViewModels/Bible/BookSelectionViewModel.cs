@@ -109,12 +109,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
             
-            // CollectionView needs a moment to render before hiding the busy indicator
-            // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
-            // Give CollectionView time to render
-            await Task.Delay(100);
-            
-            // Set IsBusy to false after collection is assigned and rendered
+            // Set IsBusy to false after collection is assigned - the busy overlay will hide instantly
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
     }
@@ -140,7 +135,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     public BibleBookListViewItemModel SelectedBook { get; set; }
 
-    private bool _isBusy;
+    private bool _isBusy = true; // Start as true to show busy indicator immediately
 
     public bool IsBusy
     {

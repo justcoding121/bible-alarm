@@ -240,7 +240,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         {
             if (e.PropertyName == "LanguageSearchTerm")
             {
-                _ = PopulateLanguages(LanguageSearchTerm);
+                _ = PopulateLanguages(LanguageSearchTerm?.Trim());
             }
         };
         PropertyChanged += _propertyChangedHandler;
@@ -251,9 +251,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         var languages = await _mediaService.GetVocalMusicLanguages();
         var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
 
+        // Trim the search term before using it
+        var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+
         foreach (var language in languages.Select(x => x.Value)
-                     .Where(x => searchTerm == null
-                                 || x.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                     .Where(x => trimmedSearchTerm == null
+                                 || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
                      .OrderBy(x => x.Name))
         {
             var languageVm = new LanguageListViewItemModel(language);

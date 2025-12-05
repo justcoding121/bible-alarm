@@ -4,6 +4,8 @@ using Microsoft.UI.Xaml.Controls;
 #endif
 using System.Runtime.InteropServices;
 using System.Collections;
+using Polly;
+using Polly.Retry;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 
@@ -15,7 +17,7 @@ public static class CollectionViewHelper
     /// Waits for the CollectionView to be ready and then scrolls to the specified item.
     /// On Windows, this waits for the visual tree to be fully loaded before scrolling.
     /// </summary>
-    public static async Task ScrollToWhenReadyAsync(MauiCollectionView collectionView, object item, ScrollToPosition position = ScrollToPosition.Center, bool animated = true)
+    public static async Task ScrollToWhenReadyAsync(MauiCollectionView collectionView, object item, ScrollToPosition position = ScrollToPosition.Center, bool animated = false)
     {
         if (collectionView == null || item == null)
             return;
@@ -224,5 +226,64 @@ public static class CollectionViewHelper
         return false;
     }
 #endif
+
+    /// <summary>
+    /// Waits for a ViewModel's IsBusy property to become false using Polly retry policy.
+    /// This is useful for ensuring data is loaded before attempting to scroll to an item.
+    /// </summary>
+    /// <param name="isBusyGetter">Function that returns the current IsBusy value</param>
+    /// <param name="maxWaitSeconds">Maximum time to wait in seconds (default: 5 seconds)</param>
+    /// <param name="delayMs">Delay between checks in milliseconds (default: 100ms)</param>
+    /// <returns>True if IsBusy became false within the timeout, false otherwise</returns>
+    public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 5, int delayMs = 100)
+    {
+        if (isBusyGetter == null)
+            return false;
+
+        // Check immediately first - if not busy, return immediately
+        if (!isBusyGetter())
+            return true;
+
+        var maxRetries = (maxWaitSeconds * 1000) / delayMs;
+        
+        // Use Polly to retry checking the condition until it becomes false
+        var retryPolicy = Policy
+            .Handle<InvalidOperationException>() // Throw when still busy, retry
+            .WaitAndRetryAsync(
+                retryCount: maxRetries,
+                sleepDurationProvider: _ => TimeSpan.FromMilliseconds(delayMs),
+                onRetry: (exception, timeSpan, retryCount, context) =>
+                {
+                    Log.Logger.Debug("Waiting for IsBusy to become false (attempt {RetryCount}/{MaxRetries})", 
+                        retryCount, maxRetries);
+                });
+
+        try
+        {
+            await retryPolicy.ExecuteAsync(async () =>
+            {
+                // Small delay before checking to avoid tight loop
+                await Task.Delay(10);
+                if (isBusyGetter())
+                {
+                    throw new InvalidOperationException("Still busy");
+                }
+            });
+
+            return true; // Successfully waited for IsBusy to become false
+        }
+        catch (InvalidOperationException)
+        {
+            // Exhausted retries - still busy after max wait time
+            // Polly throws the last handled exception when retries are exhausted
+            Log.Logger.Debug("Timeout waiting for IsBusy to become false");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "Exception while waiting for IsBusy to become false");
+            return false;
+        }
+    }
 }
 

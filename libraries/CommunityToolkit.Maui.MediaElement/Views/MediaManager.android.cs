@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Android.App;
 using Android.Content;
@@ -725,6 +725,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 
 	#region PlayerListener implementation method stubs
 	public void OnAudioAttributesChanged(AudioAttributes? audioAttributes) { }
+	public void OnAudioSessionIdChanged(int audioSessionId) { }
 	public void OnAvailableCommandsChanged(PlayerCommands? player) { }
 	public void OnCues(CueGroup? cues) { }
 	public void OnDeviceInfoChanged(DeviceInfo? deviceInfo) { }
