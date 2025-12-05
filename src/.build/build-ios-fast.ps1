@@ -19,7 +19,7 @@ dotnet build ../Bible.Alarm/Bible.Alarm.csproj `
   --property:MtouchAot=false `
   --property:MtouchArch=ARM64 `
   --property:MtouchSdkVersion=latest `
-  --property:MtouchMinimumOSVersion=15.0 `
+  --property:MtouchMinimumOSVersion=12.2 `
   --property:MtouchEnableBitcode=false `
   --property:MtouchEnableIncrementalBuilds=true `
   --property:MtouchFastDev=true `

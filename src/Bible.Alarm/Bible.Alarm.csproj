@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
@@ -18,7 +18,9 @@
 		<ApplicationVersion>1</ApplicationVersion>
 
 		<!-- Android-specific -->
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
+		<!-- For .NET MAUI 10, minimum supported OS version is Android 5.0 (API 21) -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<AndroidMinSdkVersion Condition="'$(TargetFramework)' == 'net10.0-android'">21</AndroidMinSdkVersion>
 		<AndroidSdkVersion Condition="'$(TargetFramework)' == 'net10.0-android'">36</AndroidSdkVersion>
 		<AndroidTargetFramework Condition="'$(TargetFramework)' == 'net10.0-android'">v14.0</AndroidTargetFramework>
 		<AndroidPackageFormat Condition="'$(TargetFramework)' == 'net10.0-android'">apk</AndroidPackageFormat>
@@ -27,10 +29,12 @@
 		<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>
 
 		<!-- iOS-specific -->
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+		<!-- For .NET MAUI 10, minimum supported OS version is iOS 12.2+ for stability -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">12.2</SupportedOSPlatformVersion>
 
 		<!-- Windows-specific -->
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
+		<!-- For .NET MAUI 10, minimum supported OS version is Windows 10 version 1809 (10.0.17763.0) with WinUI 3 -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<UseWinUI>true</UseWinUI>
 		<WindowsTargetPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</WindowsTargetPlatformVersion>
 		<!-- Allow unsafe blocks for WinRT interop (required for CsWinRT1030) -->
