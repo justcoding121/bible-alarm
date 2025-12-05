@@ -155,7 +155,8 @@ public static class CollectionViewHelper
             {
                 foreach (var _ in enumerable)
                 {
-                    return true; // At least one item exists
+                    // At least one item exists
+                    return true;
                 }
             }
         }
@@ -270,13 +271,14 @@ public static class CollectionViewHelper
                 }
             });
 
-            return true; // Successfully waited for IsBusy to become false
+            // Successfully waited for IsBusy to become false
+            return true;
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
             // Exhausted retries - still busy after max wait time
             // Polly throws the last handled exception when retries are exhausted
-            Log.Logger.Debug("Timeout waiting for IsBusy to become false");
+            Log.Logger.Debug(ex, "Timeout waiting for IsBusy to become false");
             return false;
         }
         catch (Exception ex)

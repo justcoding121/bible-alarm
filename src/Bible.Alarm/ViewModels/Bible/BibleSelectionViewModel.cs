@@ -194,7 +194,8 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         set => SetProperty(ref _currentLanguage, value);
     }
 
-    private bool _isBusy = true; // Start as true to show busy indicator immediately
+    // Start as true to show busy indicator immediately
+    private bool _isBusy = true;
 
     public bool IsBusy
     {

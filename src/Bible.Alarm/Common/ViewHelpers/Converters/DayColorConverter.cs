@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
@@ -47,7 +47,8 @@ public class DayColorConverter : IValueConverter
         else
         {
             // When alarm is disabled: flip the colors - enabled days get white text (on blue), disabled days get darker text (on gray)
-            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText; // White for enabled days, darker text for disabled days
+            // White for enabled days, darker text for disabled days
+            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
         }
         }
     }

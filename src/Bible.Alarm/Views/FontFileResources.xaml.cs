@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Bible.Alarm.Common;
 
 namespace Bible.Alarm.Views;
@@ -114,5 +114,6 @@ public class GlyphNames
     public static string Forward = "\uf04e";
     public static string Backward = "\uf04a";
     public static string Trash = "\uf2ed";
-    public static string InfoCircle = "\uf05a"; // Font Awesome circle-info icon
+    // Font Awesome circle-info icon
+    public static string InfoCircle = "\uf05a";
 }

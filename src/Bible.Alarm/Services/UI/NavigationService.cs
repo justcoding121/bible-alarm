@@ -161,7 +161,8 @@ public class NavigationService(
             {
                 attemptCount++;
                 _logger?.Debug($"Waiting for window to be added to Application. Current count: 0 (attempt {attemptCount})");
-                await Task.Delay(200); // Wait 200ms before retrying
+                // Wait 200ms before retrying
+                await Task.Delay(200);
             }
         }
 
@@ -423,7 +424,8 @@ public class NavigationService(
 
         // Set navigation bar settings
         NavigationPage.SetHasNavigationBar(page, hasNavigationBar);
-        NavigationPage.SetHasBackButton(page, hasNavigationBar); // Enable back button when navigation bar is enabled
+        // Enable back button when navigation bar is enabled
+        NavigationPage.SetHasBackButton(page, hasNavigationBar);
 
         // Push the fresh page first - keep animation enabled
         await navigation.PushAsync(page, animated: true);

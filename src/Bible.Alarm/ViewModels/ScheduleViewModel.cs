@@ -920,7 +920,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         }
         else
         {
-            return; // Invalid parameter
+            // Invalid parameter
+            return;
         }
         
         if ((DaysOfWeek & day) == day)

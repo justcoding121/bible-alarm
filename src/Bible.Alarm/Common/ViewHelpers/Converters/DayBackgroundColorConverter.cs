@@ -12,7 +12,8 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
         if (value is null) return ThemeColors.Day.DefaultBackground;
 
         DaysOfWeek daysOfWeek;
-        bool isEnabled = true; // Default to enabled for ScheduleViewModel
+        // Default to enabled for ScheduleViewModel
+        bool isEnabled = true;
 
         if (value is ScheduleListItem schedule)
         {

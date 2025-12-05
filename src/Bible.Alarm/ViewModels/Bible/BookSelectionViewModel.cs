@@ -135,7 +135,8 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     public BibleBookListViewItemModel SelectedBook { get; set; }
 
-    private bool _isBusy = true; // Start as true to show busy indicator immediately
+    // Start as true to show busy indicator immediately
+    private bool _isBusy = true;
 
     public bool IsBusy
     {

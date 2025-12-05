@@ -135,7 +135,8 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     public BibleChapterListViewItemModel? SelectedChapter { get; set; }
 
-    private bool _isBusy = true; // Start as true to show busy indicator immediately
+    // Start as true to show busy indicator immediately
+    private bool _isBusy = true;
 
     public bool IsBusy
     {
@@ -248,8 +249,9 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
                     await _playService.Play(url);
                 });
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Error(ex, "Error playing chapter preview");
                 _currentlyPlaying?.Play = false;
                 await _toastService.ShowMessage("Media download failed. Check your internet connection.");
             }

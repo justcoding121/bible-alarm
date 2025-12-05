@@ -351,10 +351,10 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                         logger.Debug("Removed ExoPlayer listener from player");
                     }
                 }
-                catch (ObjectDisposedException)
+                catch (ObjectDisposedException ex)
                 {
                     // Player is already disposed - this is expected when handler is disconnected
-                    logger.Debug("ExoPlayer is already disposed, skipping RemoveListener call");
+                    logger.Debug(ex, "ExoPlayer is already disposed, skipping RemoveListener call");
                 }
                 catch (Exception ex)
                 {

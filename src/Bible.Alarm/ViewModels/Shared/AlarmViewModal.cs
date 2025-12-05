@@ -35,8 +35,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     private string? _previousTrackAlbum;
     private string? _previousArtworkUrl;
     private TimeSpan _currentDuration = TimeSpan.Zero;
-    private bool _isUserInteracting; // True when user is dragging or tapping the slider
-    private double? _targetSeekProgress; // Track where user wants to seek to
+    // True when user is dragging or tapping the slider
+    private bool _isUserInteracting;
+    // Track where user wants to seek to
+    private double? _targetSeekProgress;
 
     /// <summary>
     /// Public property to allow code-behind to check if user is interacting
@@ -234,8 +236,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     private ImageSource? _artworkSource;
     private bool _isArtworkLoading;
-    private byte[]? _artworkBytes; // Keep bytes in memory for stream-based images
-    private string? _lastArtworkUrl; // Track last artwork URL to avoid unnecessary updates
+    // Keep bytes in memory for stream-based images
+    private byte[]? _artworkBytes;
+    // Track last artwork URL to avoid unnecessary updates
+    private string? _lastArtworkUrl;
 
     public ImageSource? ArtworkSource
     {
@@ -794,7 +798,8 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             }
 
             // Store bytes in field to keep them alive, create new stream each time
-            var bytes = _artworkBytes; // Capture for lambda
+            // Capture for lambda
+            var bytes = _artworkBytes;
             ArtworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
             IsArtworkLoading = false;
         }

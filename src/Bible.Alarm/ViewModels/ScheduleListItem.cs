@@ -318,7 +318,8 @@ public class ScheduleListItem(
             // Always notify DaysOfWeek and This when schedule is updated to ensure UI refreshes
             // This is critical for day indicator updates on the home page
             OnPropertyChanged(nameof(DaysOfWeek));
-            OnPropertyChanged(nameof(This)); // Also notify This for day indicator bindings
+            // Also notify This for day indicator bindings
+            OnPropertyChanged(nameof(This));
             
             if (isEnabledChanged)
             {

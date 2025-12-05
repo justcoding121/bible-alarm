@@ -113,7 +113,8 @@ public static class ThemeColors
     {
         public static Color EnabledText => Colors.White;
         public static Color DisabledText => Color.FromArgb("#666666");
-        public static Color EnabledBackground => Color.FromArgb("#6A5ACD"); // SlateBlue
+        // SlateBlue
+        public static Color EnabledBackground => Color.FromArgb("#6A5ACD");
         public static Color DisabledBackground => Color.FromArgb("#C0C0C0");
         public static Color DefaultBackground => Color.FromArgb("#D0D0D0");
     }

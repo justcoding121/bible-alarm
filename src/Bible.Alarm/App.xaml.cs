@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -38,7 +38,8 @@ public partial class App : Application
         InitializeComponent();
 
         // Set app to follow system theme preference (light/dark)
-        UserAppTheme = AppTheme.Unspecified; // Follows system theme
+        // Follows system theme
+        UserAppTheme = AppTheme.Unspecified;
         
         // Initialize theme-aware color resources at application level
         // These are set programmatically as Color values (not AppThemeBinding)
