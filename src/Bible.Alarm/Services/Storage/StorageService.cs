@@ -5,7 +5,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Storage;
 
-public abstract class StorageService : IStorageService
+public abstract class StorageService : IStorageService, IDisposable
 {
     public abstract string StorageRoot { get; }
     public abstract string CacheRoot { get; }

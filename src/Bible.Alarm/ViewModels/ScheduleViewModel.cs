@@ -58,7 +58,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public ICommand PreviousChapterCommand { get; set; }
     public ICommand NextChapterCommand { get; set; }
 
-    private readonly ScheduleItemStateService _scheduleItemStateService;
+    private readonly IScheduleItemStateService _scheduleItemStateService;
 
     public ScheduleViewModel(
         ILogger logger,
@@ -76,7 +76,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IState<ApplicationState> state,
         IState<PlaybackState> playbackState,
         IDispatcher dispatcher,
-        ScheduleItemStateService scheduleItemStateService)
+        IScheduleItemStateService scheduleItemStateService)
     {
         var constructorStartTime = DateTime.UtcNow;
         _logger = logger;

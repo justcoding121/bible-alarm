@@ -3,7 +3,7 @@ using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.Services.Media.Interfaces;
 
-public interface IMediaUrlRefreshService
+public interface IMediaUrlRefreshService : IDisposable
 {
     Task<string?> RefreshUrlAsync(TrackMetadata trackMetadata);
     

@@ -21,13 +21,15 @@ namespace Bible.Alarm.Services.Media;
 public class PlaylistService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
-    MediaService mediaService,
+    IMediaService mediaService,
     IDispatcher dispatcher)
-    : IPlaylistService
+    : IPlaylistService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _isDisposed;
 
     public async Task<int> GetRelavantScheduleToPlay()
     {
@@ -36,20 +38,20 @@ public class PlaylistService(
         var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         
         var lastSchedule =
-            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId);
+            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, _cancellationTokenSource.Token);
 
         AlarmSchedule schedule = null;
 
         if (!string.IsNullOrEmpty(lastSchedule?.Value))
-            schedule = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == long.Parse(lastSchedule.Value));
+            schedule = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == long.Parse(lastSchedule.Value), _cancellationTokenSource.Token);
 
-        if (schedule == null) schedule = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync();
+        if (schedule == null) schedule = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(_cancellationTokenSource.Token);
 
         if (schedule == null)
         {
             schedule = await AlarmSchedule.GetSampleSchedule(false, mediaDbContext);
             scheduleDbContext.Add(schedule);
-            await scheduleDbContext.SaveChangesAsync();
+            await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
         }
 
         return schedule.Id;
@@ -61,7 +63,7 @@ public class PlaylistService(
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         
         var lastSchedule =
-            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId);
+            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, _cancellationTokenSource.Token);
 
         if (lastSchedule == null)
         {
@@ -70,7 +72,7 @@ public class PlaylistService(
         }
 
         lastSchedule.Value = scheduleId.ToString();
-        await scheduleDbContext.SaveChangesAsync();
+        await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
     }
 
     public async Task MarkTrackAsPlayed(TrackMetadata trackMetadata)
@@ -83,7 +85,7 @@ public class PlaylistService(
         var schedule = await scheduleDbContext.AlarmSchedules
             .Include(x => x.Music)
             .Include(x => x.BibleReadingSchedule)
-            .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
+            .FirstAsync(x => x.Id == trackMetadata.ScheduleId, _cancellationTokenSource.Token);
 
         if (trackMetadata.PlayType == PlayType.Music)
         {
@@ -110,7 +112,7 @@ public class PlaylistService(
             bibleReadingSchedule.FinishedDuration = trackMetadata.FinishedDuration;
         }
 
-        await scheduleDbContext.SaveChangesAsync();
+        await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
 
         if (trackChanged)
         {
@@ -119,7 +121,7 @@ public class PlaylistService(
             var updatedSchedule = await scheduleDbContext.AlarmSchedules
                 .Include(x => x.BibleReadingSchedule)
                 .Include(x => x.Music)
-                .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
+                .FirstAsync(x => x.Id == trackMetadata.ScheduleId, _cancellationTokenSource.Token);
             
             // Update the Fluxor store to trigger state change and UI refresh
             // ScheduleListItem now subscribes to ApplicationState changes instead of TrackChangedMessage
@@ -138,7 +140,7 @@ public class PlaylistService(
             var schedule = await scheduleDbContext.AlarmSchedules
                 .Include(x => x.Music)
                 .Include(x => x.BibleReadingSchedule)
-                .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
+                .FirstAsync(x => x.Id == trackMetadata.ScheduleId, _cancellationTokenSource.Token);
 
             if (trackMetadata.PlayType == PlayType.Music)
             {
@@ -165,13 +167,13 @@ public class PlaylistService(
                 bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
             }
 
-            await scheduleDbContext.SaveChangesAsync();
+            await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
             
             // Reload the schedule with all includes to get the updated data
             updatedSchedule = await scheduleDbContext.AlarmSchedules
                 .Include(x => x.BibleReadingSchedule)
                 .Include(x => x.Music)
-                .FirstAsync(x => x.Id == trackMetadata.ScheduleId);
+                .FirstAsync(x => x.Id == trackMetadata.ScheduleId, _cancellationTokenSource.Token);
         }
         
         // Update the Fluxor store to trigger state change and UI refresh
@@ -191,7 +193,7 @@ public class PlaylistService(
             .AsNoTracking()
             .Include(x => x.Music)
             .Include(x => x.BibleReadingSchedule)
-            .FirstOrDefaultAsync(x => x.Id == scheduleId);
+            .FirstOrDefaultAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
 
         if (schedule == null) throw new ArgumentException($"Invalid schedule Id {scheduleId}");
 
@@ -239,7 +241,7 @@ public class PlaylistService(
             .AsNoTracking()
             .Include(x => x.Music)
             .Include(x => x.BibleReadingSchedule)
-            .FirstOrDefaultAsync(x => x.Id == scheduleId);
+            .FirstOrDefaultAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
 
         if (schedule == null) throw new ArgumentException($"Invalid schedule Id {scheduleId}");
 
@@ -372,7 +374,7 @@ public class PlaylistService(
             
             var schedule = await scheduleDbContext.AlarmSchedules
                 .Include(x => x.BibleReadingSchedule)
-                .FirstOrDefaultAsync(x => x.Id == scheduleId);
+                .FirstOrDefaultAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
 
             if (schedule == null) throw new ArgumentException($"Invalid schedule Id {scheduleId}");
 
@@ -392,13 +394,13 @@ public class PlaylistService(
             bibleReadingSchedule.ChapterNumber = previous.Value.Number;
             bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
 
-            await scheduleDbContext.SaveChangesAsync();
+            await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
             
             // Reload the schedule with all includes to get the updated data
             updatedSchedule = await scheduleDbContext.AlarmSchedules
                 .Include(x => x.BibleReadingSchedule)
                 .Include(x => x.Music)
-                .FirstAsync(x => x.Id == scheduleId);
+                .FirstAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
         }
         
         // Update the Fluxor store to trigger state change and UI refresh
@@ -557,7 +559,7 @@ public class PlaylistService(
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         
         var schedule = await scheduleDbContext.AlarmSchedules
-            .FirstOrDefaultAsync(x => x.Id == scheduleId);
+            .FirstOrDefaultAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
 
         if (schedule == null)
             return false;
@@ -568,8 +570,27 @@ public class PlaylistService(
 
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
-        // mediaService (MediaService) is a singleton and should not be disposed here
-        // as it is managed by the DI container
+        // mediaService (MediaService), IServiceScopeFactory, and IDispatcher are singletons
+        // and should not be disposed here as they are managed by the DI container
     }
 }

@@ -235,8 +235,9 @@ public static class CollectionViewHelper
     /// <param name="isBusyGetter">Function that returns the current IsBusy value</param>
     /// <param name="maxWaitSeconds">Maximum time to wait in seconds (default: 5 seconds)</param>
     /// <param name="delayMs">Delay between checks in milliseconds (default: 100ms)</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the wait operation</param>
     /// <returns>True if IsBusy became false within the timeout, false otherwise</returns>
-    public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 5, int delayMs = 100)
+    public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 5, int delayMs = 100, CancellationToken cancellationToken = default)
     {
         if (isBusyGetter == null)
             return false;
@@ -261,15 +262,15 @@ public static class CollectionViewHelper
 
         try
         {
-            await retryPolicy.ExecuteAsync(async () =>
+            await retryPolicy.ExecuteAsync(async (ct) =>
             {
                 // Small delay before checking to avoid tight loop
-                await Task.Delay(10);
+                await Task.Delay(10, ct);
                 if (isBusyGetter())
                 {
                     throw new InvalidOperationException("Still busy");
                 }
-            });
+            }, cancellationToken);
 
             // Successfully waited for IsBusy to become false
             return true;

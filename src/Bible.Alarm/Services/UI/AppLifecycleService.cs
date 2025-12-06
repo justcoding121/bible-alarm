@@ -1,15 +1,17 @@
 #nullable enable
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider)
+public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private bool _isDisposed;
 
     public void OnStart()
     {
@@ -23,7 +25,7 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
             {
                 await Task.Delay(1000);
 
-                var mediaIndexService = _serviceProvider.GetRequiredService<MediaIndexService>();
+                var mediaIndexService = _serviceProvider.GetRequiredService<IMediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
 
 #if WINDOWS
@@ -55,7 +57,7 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
             {
                 await Task.Delay(1000);
 
-                var mediaIndexService = _serviceProvider.GetRequiredService<MediaIndexService>();
+                var mediaIndexService = _serviceProvider.GetRequiredService<IMediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
 
 #if WINDOWS
@@ -70,6 +72,19 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
                 _logger.Error(e, "An error happened inside OnResume task.");
             }
         });
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // No event handlers to unsubscribe, but dispose any non-singleton injected services if needed
+        // All injected services are singletons, so no disposal needed
     }
 }
 

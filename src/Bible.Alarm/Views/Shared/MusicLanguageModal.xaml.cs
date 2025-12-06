@@ -1,12 +1,14 @@
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Views;
+using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
 
 public partial class MusicLanguageModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
     public IListViewModel ViewModel => BindingContext as IListViewModel;
 
@@ -52,7 +54,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         if (ViewModel != null)
         {
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy);
+            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
             
             // Small additional delay to ensure CollectionView is rendered
             await Task.Delay(200);
@@ -68,7 +70,21 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     {
         if (!_isDisposed)
         {
+            // Cancel and dispose cancellation token source
+            try
+            {
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore errors during cancellation/disposal
+                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+            }
+            
             // This modal uses parent page view model, so do NOT dispose it
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

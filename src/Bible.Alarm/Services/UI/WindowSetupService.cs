@@ -1,28 +1,29 @@
 #nullable enable
+using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.General;
-using Microsoft.Maui.Controls;
 using Microsoft.Maui.ApplicationModel;
-using Bible.Alarm.Common;
+using Microsoft.Maui.Controls;
+using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class WindowSetupService(IServiceProvider serviceProvider)
+public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalService alarmModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
 {
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
     private static NavigationPage? _mainNavPage;
+    private static readonly ILogger Logger = Log.ForContext<WindowSetupService>();
+    private bool _isDisposed;
 
     public Window CreateWindow(IActivationState? activationState)
     {
-        var bootstrapPage = _serviceProvider.GetRequiredService<BootstrapPage>();
-        
-        var navigationPage = new NavigationPage(bootstrapPage);
-        
+        // Get NavigationPage from service provider (registered as singleton)
+        var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
+
         // Initialize centralized navigation bar color management
         Initialize(navigationPage);
-        
-        // NavigationPage background will adapt to theme via BootstrapPage
-        NavigationPage.SetHasNavigationBar(bootstrapPage, false);
 
         var window = new Window(navigationPage);
 
@@ -39,9 +40,15 @@ public class WindowSetupService(IServiceProvider serviceProvider)
 #endif
 #endif
 
+        navigationService.ClearCache();
+
+        Task.Run(async () => await CommonBootstrapHelper.VerifyServices(true));
+
+        alarmModalService.SubscribeToPlaybackStateChanges();
+
         return window;
     }
-    
+
     /// <summary>
     /// Initializes centralized navigation bar color management.
     /// This ensures the navigation bar updates automatically when the theme changes.
@@ -69,7 +76,7 @@ public class WindowSetupService(IServiceProvider serviceProvider)
     public static void UpdateNavigationBarColors()
     {
         if (_mainNavPage == null) return;
-        
+
         try
         {
             // Read from Application resources - these are updated by App.xaml.cs on theme change
@@ -84,7 +91,7 @@ public class WindowSetupService(IServiceProvider serviceProvider)
                 var theme = ThemeColors.GetCurrentTheme();
                 _mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
             }
-            
+
             if (Application.Current?.Resources.TryGetValue("PrimaryTextColor", out var primaryTextColor) == true &&
                 primaryTextColor is Color primaryText)
             {
@@ -97,12 +104,62 @@ public class WindowSetupService(IServiceProvider serviceProvider)
                 _mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Fallback to theme colors if resource lookup fails
+            Logger.Warning(ex, "Error updating navigation bar colors, using fallback theme colors");
             var theme = ThemeColors.GetCurrentTheme();
             _mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
             _mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+
+        // Unsubscribe from theme changes
+        if (Application.Current != null)
+        {
+            Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
+        }
+    }
+
+    public void TearDown()
+    {
+        alarmModalService.UnsubscribeToPlaybackStateChanges();
+        navigationService.PopAllModalsAndPages();
+
+        // Clear static reference to NavigationPage to prevent memory leaks
+        // The old NavigationPage will be garbage collected once all references are cleared
+        _mainNavPage = null;
+
+        var playbackService = serviceProvider.GetService<IPlaybackService>();
+
+        if (playbackService != null)
+        {
+            Logger.Information("MainActivity.OnDestroy - Calling player dismiss action");
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await playbackService.StopAsync();
+                    Logger.Information("MainActivity.OnDestroy - Player dismiss action completed");
+
+                    // Dispose MauiApp after StopAsync completes
+                    Logger.Information("MainActivity.OnDestroy - MauiApp disposed");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error in StopAsync or disposal");
+                }
+            });
         }
     }
 }

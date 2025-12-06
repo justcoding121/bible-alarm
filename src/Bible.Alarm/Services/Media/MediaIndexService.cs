@@ -202,10 +202,21 @@ public class MediaIndexService : IMediaIndexService, IDisposable
         await _storageService.SaveFile(IndexRoot, "version.dat", _versionFinder.GetVersionName());
     }
 
+    private bool _isDisposed;
+    
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
         _lock.Dispose();
-        // Note: _storageService (IStorageService) is a singleton
-        // and should not be disposed here as it is managed by the DI container
+        
+        // Note: _storageService (IStorageService), _versionFinder (IVersionFinder), 
+        // and _downloadService (IDownloadService) are singletons
+        // and should not be disposed here as they are managed by the DI container
     }
 }

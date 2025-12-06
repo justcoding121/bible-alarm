@@ -7,10 +7,11 @@ namespace Bible.Alarm.Services.Media;
 public class BibleNavigationService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IBibleNavigationService
+    : IBibleNavigationService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private bool _isDisposed;
 
     public async Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule)
     {
@@ -120,6 +121,19 @@ public class BibleNavigationService(
             _logger.Error(ex, "Error moving to next chapter");
             return false;
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // IServiceScopeFactory is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }
 

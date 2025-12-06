@@ -9,10 +9,11 @@ using TagLib;
 
 namespace Bible.Alarm.Services.Media;
 
-public class DisplayMetadataService(ILogger logger, MediaService mediaService) : IDisplayMetadataService
+public class DisplayMetadataService(ILogger logger, IMediaService mediaService) : IDisplayMetadataService, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly MediaService _mediaService = mediaService;
+    private readonly IMediaService _mediaService = mediaService;
+    private bool _isDisposed;
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -239,6 +240,19 @@ public class DisplayMetadataService(ILogger logger, MediaService mediaService) :
                 };
             }
         });
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

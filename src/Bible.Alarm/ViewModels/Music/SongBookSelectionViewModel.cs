@@ -5,7 +5,7 @@ using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
@@ -20,7 +20,7 @@ namespace Bible.Alarm.ViewModels.Music;
 
 public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
-    private readonly MediaService _mediaService;
+    private readonly IMediaService _mediaService;
     private readonly IState<ApplicationState> _state;
     private readonly IDispatcher _dispatcher;
     private readonly INavigationService _navigationService;
@@ -32,7 +32,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private AlarmMusic? _lastTentative;
     private PropertyChangedEventHandler? _propertyChangedHandler;
 
-    public SongBookSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
+    public SongBookSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
         _mediaService = mediaService;
         _state = state;

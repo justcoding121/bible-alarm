@@ -9,10 +9,12 @@ namespace Bible.Alarm.Services.Database;
 public class ScheduleMigrationService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IScheduleMigrationService
+    : IScheduleMigrationService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _isDisposed;
 
     public async Task MigrateBibleGatewaySchedulesAsync()
     {
@@ -29,7 +31,7 @@ public class ScheduleMigrationService(
             var alarmSchedules = await scheduleDbContext.AlarmSchedules
                 .Include(x => x.BibleReadingSchedule)
                 .Where(x => x.BibleReadingSchedule != null)
-                .ToListAsync();
+                .ToListAsync(_cancellationTokenSource.Token);
 
             //bible gateway is not supported anymore due to copyright issues
             var toRemove = alarmSchedules.Where(x =>
@@ -43,7 +45,7 @@ public class ScheduleMigrationService(
                     item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                 }
 
-                await scheduleDbContext.SaveChangesAsync();
+                await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
                 _logger.Information("Migrated {Count} Bible Gateway schedules to default publication code", toRemove.Count);
             }
         }
@@ -51,6 +53,31 @@ public class ScheduleMigrationService(
         {
             _logger.Error(e, "An error happened while migrating Bible Gateway schedules.");
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // IServiceScopeFactory is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }
 

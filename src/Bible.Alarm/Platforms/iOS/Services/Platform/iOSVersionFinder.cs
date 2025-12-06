@@ -3,8 +3,9 @@ using Foundation;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Platform
 {
-    public class iOSVersionFinder : IVersionFinder
+    public class iOSVersionFinder : IVersionFinder, IDisposable
     {
+        private bool _isDisposed;
         private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
         public static iOSVersionFinder Default => new iOSVersionFinder();
 
@@ -16,6 +17,18 @@ namespace Bible.Alarm.Platforms.iOS.Services.Platform
         private static string VersionName()
         {
             return "iOS " + (NSString)NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"];
+        }
+        
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+            
+            _isDisposed = true;
+            
+            // No resources to dispose
         }
     }
 }

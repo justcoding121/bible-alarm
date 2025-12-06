@@ -22,14 +22,16 @@ public class MediaCacheService(
     IDownloadService downloadService,
     IPlaylistService mediaPlayService,
     IServiceScopeFactory scopeFactory,
-    MediaService mediaService,
+    IMediaService mediaService,
     INetworkStatusService networkStatusService,
     IMediaUrlRefreshService urlRefreshService)
-    : IMediaCacheService
+    : IMediaCacheService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IMediaUrlRefreshService _urlRefreshService = urlRefreshService;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _isDisposed;
 
     // Use StorageRoot instead of CacheRoot to ensure media cache is in a permanent location
     // that the OS won't delete. We manage the cache ourselves.
@@ -199,7 +201,7 @@ public class MediaCacheService(
         var schedules = await dbContext
             .AlarmSchedules
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(_cancellationTokenSource.Token);
 
         var filePathsToDelete = await GetUnusedCacheFilesAsync(schedules);
         await DeleteFilesAsync(filePathsToDelete);
@@ -267,9 +269,28 @@ public class MediaCacheService(
 
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
         // storageService, downloadService, mediaPlayService, networkStatusService, 
-        // and mediaService are singletons and should not be disposed here
-        // as they are managed by the DI container
+        // mediaService, urlRefreshService, and IServiceScopeFactory are singletons
+        // and should not be disposed here as they are managed by the DI container
     }
 }

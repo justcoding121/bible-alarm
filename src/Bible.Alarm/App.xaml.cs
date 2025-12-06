@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Views;
 using Microsoft.Maui.ApplicationModel;
@@ -11,27 +10,24 @@ namespace Bible.Alarm;
 
 public partial class App : Application
 {
-    private readonly ExceptionHandlingService _exceptionHandlingService;
-    private readonly WindowSetupService _windowSetupService;
-    private readonly AppLifecycleService _appLifecycleService;
-    private readonly AlarmModalService _alarmModalService;
-    private readonly MessageHandlingService _messageHandlingService;
+    private readonly IExceptionHandlingService _exceptionHandlingService;
+    private readonly IWindowSetupService _windowSetupService;
+    private readonly IAppLifecycleService _appLifecycleService;
+    private readonly IMessageHandlingService _messageHandlingService;
     private readonly IFontService _fontService;
 
     public static bool IsInForeground { get; set; }
 
     public App(
-        ExceptionHandlingService exceptionHandlingService,
-        WindowSetupService windowSetupService,
-        AppLifecycleService appLifecycleService,
-        AlarmModalService alarmModalService,
-        MessageHandlingService messageHandlingService,
+        IExceptionHandlingService exceptionHandlingService,
+        IWindowSetupService windowSetupService,
+        IAppLifecycleService appLifecycleService,
+        IMessageHandlingService messageHandlingService,
         IFontService fontService)
     {
         _exceptionHandlingService = exceptionHandlingService;
         _windowSetupService = windowSetupService;
         _appLifecycleService = appLifecycleService;
-        _alarmModalService = alarmModalService;
         _messageHandlingService = messageHandlingService;
         _fontService = fontService;
         
@@ -74,10 +70,7 @@ public partial class App : Application
         _exceptionHandlingService.SetupGlobalExceptionHandlers();
 
         // Register message handlers
-        _messageHandlingService.RegisterMessageHandlers();
-        
-        // Subscribe to PlaybackState changes to reactively show/hide alarm modal
-        _alarmModalService.SubscribeToPlaybackStateChanges();
+        _messageHandlingService.RegisterMessageHandlers();      
     }
 
 
@@ -136,7 +129,7 @@ public partial class App : Application
     protected override void OnSleep()
     {
         base.OnSleep();
-        AppLifecycleService.OnSleep();
+        Services.UI.AppLifecycleService.OnSleep();
     }
 
     protected override void OnResume()
@@ -197,7 +190,7 @@ public partial class App : Application
         
         // Navigation bar colors are updated automatically by WindowSetupService
         // which listens to RequestedThemeChanged
-        WindowSetupService.UpdateNavigationBarColors();
+        Services.UI.WindowSetupService.UpdateNavigationBarColors();
     }
 
 }

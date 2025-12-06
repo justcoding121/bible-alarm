@@ -1,22 +1,23 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.iOS.Extensions;
-using Bible.Alarm.Platforms.iOS.Services.Handlers;
+using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using UserNotifications;
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI
 {
-    public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
+    public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService, IDisposable
     {
+        private bool _isDisposed;
         private readonly ILogger _logger = logger;
         private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
         public async Task ShowNotificationAsync(int scheduleId)
         {
             using var scope = _scopeFactory.CreateScope();
-            var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<iOSAlarmHandler>();
+            var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IiOSAlarmHandler>();
             await iosAlarmHandler.HandleAsync(scheduleId, true);
         }
 
@@ -121,6 +122,28 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
         public void Dispose()
         {
+            if (_isDisposed)
+            {
+                return;
+            }
+            
+            _isDisposed = true;
+            
+            // IServiceScopeFactory is a singleton, so don't dispose it
+            // No event handlers to unsubscribe
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // IServiceScopeFactory is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }

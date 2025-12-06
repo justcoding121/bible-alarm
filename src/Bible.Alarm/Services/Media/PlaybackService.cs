@@ -14,7 +14,7 @@ using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>
+public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IDisposable
 {
     private readonly ILogger _logger;
     private readonly IAudioPlayer _audioPlayer;
@@ -325,6 +325,10 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     public async Task StopAsync()
     {
         _logger.Information("StopAsync called - stopping alarm completely");
+        
+        // Stop progress timer first to prevent it from trying to save progress after ServiceProvider is disposed
+        _progressSaveTimer?.Stop();
+        
         await _audioPlayer.StopAsync();
         await MarkCurrentTrackAsPlayedAsync();
         
@@ -690,7 +694,9 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         WeakReferenceMessenger.Default.Unregister<NextButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
         
-        _audioPlayer.Dispose();
+        // All injected services (_audioPlayer, _preparePlaybackService, _playlistService, 
+        // _fallbackAlarmSoundService, _dispatcher, _notificationService) are singletons, 
+        // so don't dispose them
     }
 }
 

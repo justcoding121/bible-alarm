@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Views;
+using Bible.Alarm.Views;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Common.ViewHelpers;
 
@@ -59,6 +59,8 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         if (!_isDisposed)
         {
             // This modal uses parent page view model, so do NOT dispose it
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

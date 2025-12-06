@@ -5,7 +5,7 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 /// Android-specific service for enabling the Next and Previous buttons in system media controls
 /// by creating a multi-item queue in ExoPlayer.
 /// </summary>
-public interface IAndroidPlayerNotificationService
+public interface IAndroidPlayerNotificationService : IDisposable
 {
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer to enable the Next and Previous buttons in system controls.

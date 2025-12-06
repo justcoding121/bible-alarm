@@ -1,3 +1,13 @@
+using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Services.UI.Interfaces;
+using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
+using Serilog;
+using System.Linq;
+
 namespace Bible.Alarm.Common;
 
 /// <summary>
@@ -7,8 +17,10 @@ namespace Bible.Alarm.Common;
 /// </summary>
 public static class MauiAppHolder
 {
-    private static readonly Lock Lock = new();
+    private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
     private static MauiApp app;
+    // Use Log.Logger directly for static classes (can't use ForContext<T> with static types)
+    private static readonly ILogger Logger = Log.Logger;
 
     public static MauiApp App
     {
@@ -26,15 +38,23 @@ public static class MauiAppHolder
 
     public static MauiApp CreateAndStore()
     {
-        lock (Lock)
+        Lock.Wait();
+        try
         {
+            // If app exists, verify it's not disposed by checking if service provider is accessible
             if (app != null)
             {
                 return app;
             }
 
+            // Create new app instance
+            Logger.Information("MauiAppHolder.CreateAndStore - Creating new MauiApp instance");
             app = MauiProgram.CreateMauiApp();
             return app;
+        }
+        finally
+        {
+            Lock.Release();
         }
     }
 

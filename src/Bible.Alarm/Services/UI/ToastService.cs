@@ -3,7 +3,7 @@ using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.UI;
 
-public abstract class ToastService : IToastService
+public abstract class ToastService : IToastService, IDisposable
 {
     public abstract Task ShowMessage(string message, int seconds = 2);
 

@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
+using Serilog;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -8,6 +9,7 @@ public partial class BookSelection : BaseContentPage, IDisposable
     private bool _isDisposed;
     private readonly BookSelectionViewModel _viewModel;
     private readonly TaskScheduler _taskScheduler;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
     public BookSelectionViewModel ViewModel => BindingContext as BookSelectionViewModel;
 
@@ -32,7 +34,7 @@ public partial class BookSelection : BaseContentPage, IDisposable
         if (ViewModel != null)
         {
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy);
+            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
             
             // Small additional delay to ensure CollectionView is rendered
             await Task.Delay(200);
@@ -54,11 +56,25 @@ public partial class BookSelection : BaseContentPage, IDisposable
     {
         if (!_isDisposed)
         {
+            // Cancel and dispose cancellation token source
+            try
+            {
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore errors during cancellation/disposal
+                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+            }
+            
             // ViewModel was injected via constructor, so dispose it
             if (_viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

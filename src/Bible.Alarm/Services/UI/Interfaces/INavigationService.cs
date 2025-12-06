@@ -3,7 +3,7 @@ using CommunityToolkit.Maui.Views;
 
 namespace Bible.Alarm.Services.UI.Interfaces;
 
-public interface INavigationService
+public interface INavigationService : IDisposable
 {
     Task NavigateToHomeAsync();
     Task NavigateToScheduleAsync();
@@ -25,5 +25,11 @@ public interface INavigationService
     /// </summary>
     /// <returns>The BootstrapPage instance, or null if not found</returns>
     Views.General.BootstrapPage? GetBootstrapPage();
+    
+    /// <summary>
+    /// Pops all modals and pages from the navigation stack, disposing them if they implement IDisposable.
+    /// </summary>
+    void PopAllModalsAndPages();
+    void ClearCache();
 }
 

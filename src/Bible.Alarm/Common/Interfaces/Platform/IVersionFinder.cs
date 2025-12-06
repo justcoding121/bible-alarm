@@ -1,6 +1,6 @@
-﻿namespace Bible.Alarm.Common.Interfaces.Platform;
+namespace Bible.Alarm.Common.Interfaces.Platform;
 
-public interface IVersionFinder
+public interface IVersionFinder : IDisposable
 {
     string GetVersionName();
 }

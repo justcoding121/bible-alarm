@@ -8,11 +8,13 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class DownloadService : IDownloadService
+public class DownloadService : IDownloadService, IDisposable
 {
     private readonly HttpMessageHandler _handler;
     private readonly int _timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
     private readonly ILogger _logger;
+    private readonly CancellationTokenSource _cancellationTokenSource;
+    private bool _isDisposed;
 
     // User-Agent string to identify the app and prevent 403 errors from servers that block requests without proper User-Agent
     private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
@@ -23,6 +25,7 @@ public class DownloadService : IDownloadService
     {
         _handler = handler;
         _logger = logger;
+        _cancellationTokenSource = new CancellationTokenSource();
         
         _downloadRetryPolicy = Policy<byte[]>
             .Handle<Exception>(ex => 
@@ -74,7 +77,7 @@ public class DownloadService : IDownloadService
 
     public async Task<byte[]> DownloadAsync(string url, string alternativeUrl = null)
     {
-        return await _downloadRetryPolicy.ExecuteAsync(async () =>
+        return await _downloadRetryPolicy.ExecuteAsync(async (ct) =>
         {
             try
             {
@@ -83,9 +86,9 @@ public class DownloadService : IDownloadService
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
                 
                 using var client = new HttpClient(_handler, false);
-                using var response = await client.SendAsync(request);
+                using var response = await client.SendAsync(request, ct);
                 response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsByteArrayAsync();
+                return await response.Content.ReadAsByteArrayAsync(ct);
             }
             catch (Exception ex)
             {
@@ -106,9 +109,9 @@ public class DownloadService : IDownloadService
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
                     
                     using var client = new HttpClient(_handler, false);
-                    using var response = await client.SendAsync(request);
+                    using var response = await client.SendAsync(request, ct);
                     response.EnsureSuccessStatusCode();
-                    return await response.Content.ReadAsByteArrayAsync();
+                    return await response.Content.ReadAsByteArrayAsync(ct);
                 }
                 catch (Exception altEx)
                 {
@@ -116,18 +119,12 @@ public class DownloadService : IDownloadService
                     throw;
                 }
             }
-        });
-    }
-
-
-    public void Dispose()
-    {
-        _handler.Dispose();
+        }, _cancellationTokenSource.Token);
     }
 
     public async Task<bool> FileExists(string url)
     {
-        return await _fileExistsRetryPolicy.ExecuteAsync(async () =>
+        return await _fileExistsRetryPolicy.ExecuteAsync(async (ct) =>
         {
             using var client = new HttpClient(_handler, false)
             {
@@ -140,7 +137,7 @@ public class DownloadService : IDownloadService
                 request.Headers.UserAgent.ParseAdd(UserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
                 
-                var result = await client.SendAsync(request);
+                var result = await client.SendAsync(request, ct);
                 var statusCode = result.StatusCode;
 
                 if (statusCode == HttpStatusCode.OK) return true;
@@ -154,7 +151,7 @@ public class DownloadService : IDownloadService
                 request.Headers.UserAgent.ParseAdd(UserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
                 
-                var result = await client.SendAsync(request);
+                var result = await client.SendAsync(request, ct);
                 var statusCode = result.StatusCode;
 
                 if (statusCode is HttpStatusCode.Accepted or HttpStatusCode.OK)
@@ -167,6 +164,31 @@ public class DownloadService : IDownloadService
                 _logger.Warning(ex, "HEAD request failed for URL: {Url}, falling back to GET request", url);
                 return await getRequest();
             }
-        });
+        }, _cancellationTokenSource.Token);
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // HttpMessageHandler is registered as a singleton and should not be disposed here
+        // It will be disposed by MauiAppHolder.Dispose()
     }
 }

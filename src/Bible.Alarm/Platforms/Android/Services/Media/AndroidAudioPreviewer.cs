@@ -96,7 +96,7 @@ public class AndroidAudioPreviewer(MediaPlayer player, ILogger logger) : Object,
         catch (Exception ex)
         {
             // Ignore errors during disposal - player might already be in an invalid state
-            _logger.Debug(ex, "Error stopping or resetting MediaPlayer during disposal, player may already be disposed");
+            _logger.Warning(ex, "Error stopping or resetting MediaPlayer during disposal, player may already be disposed");
         }
         finally
         {

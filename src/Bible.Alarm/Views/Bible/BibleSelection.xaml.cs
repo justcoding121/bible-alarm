@@ -56,6 +56,8 @@ public partial class BibleSelection : BaseContentPage, IDisposable
             {
                 disposable.Dispose();
             }
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

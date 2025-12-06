@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Services.Battery.Interfaces;
 
-public interface IBatteryOptimizationService
+public interface IBatteryOptimizationService : IDisposable
 {
     Task MarkModalAsShownAsync();
     Task<bool> ShouldShowModalAsync();

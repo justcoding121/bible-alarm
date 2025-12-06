@@ -12,8 +12,9 @@ namespace Bible.Alarm.Services.UI;
 /// then applies density scaling with appropriate caps for optimal readability.
 /// Automatically recalculates when screen size/orientation changes.
 /// </summary>
-public class FontService : IFontService, INotifyPropertyChanged
+public class FontService : IFontService, INotifyPropertyChanged, IDisposable
 {
+    private bool _isDisposed;
     private double _standardFontSize;
     private double _headerFontSize;
     private double _buttonFontSize;
@@ -190,6 +191,21 @@ public class FontService : IFontService, INotifyPropertyChanged
     }
     
     public event PropertyChangedEventHandler? PropertyChanged;
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Unsubscribe from display info changes
+        DeviceDisplay.MainDisplayInfoChanged -= OnDisplayInfoChanged;
+        
+        // No injected services to dispose (this service has no dependencies)
+    }
 
     // Properties (not fields) so bindings work correctly and PropertyChanged can fire
     public double StandardFontSize => _standardFontSize;

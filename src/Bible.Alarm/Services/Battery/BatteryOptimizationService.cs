@@ -11,11 +11,13 @@ public class BatteryOptimizationService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IBatteryOptimizationManager batteryOptimizationManager)
-    : IBatteryOptimizationService
+    : IBatteryOptimizationService, IDisposable
 {
+    private bool _isDisposed;
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IBatteryOptimizationManager _batteryOptimizationManager = batteryOptimizationManager;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
     public async Task MarkModalAsShownAsync()
     {
@@ -25,15 +27,15 @@ public class BatteryOptimizationService(
             var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
             
             if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                    x.Key == "AndroidBatteryOptimizationExclusionPromptShown"))
+                    x.Key == "AndroidBatteryOptimizationExclusionPromptShown", _cancellationTokenSource.Token))
             {
                 await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
                 {
                     Key = "AndroidBatteryOptimizationExclusionPromptShown",
                     Value = "True"
-                });
+                }, _cancellationTokenSource.Token);
 
-                await scheduleDbContext.SaveChangesAsync();
+                await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
             }
         }
         catch (Exception ex)
@@ -49,7 +51,7 @@ public class BatteryOptimizationService(
             using var scope = _scopeFactory.CreateScope();
             var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
             return !await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == "AndroidBatteryOptimizationExclusionPromptShown");
+                x.Key == "AndroidBatteryOptimizationExclusionPromptShown", _cancellationTokenSource.Token);
         }
         catch (Exception ex)
         {
@@ -66,6 +68,31 @@ public class BatteryOptimizationService(
     public bool CanShowOptimizeActivity()
     {
         return _batteryOptimizationManager?.CanShowOptimizeActivity() ?? false;
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

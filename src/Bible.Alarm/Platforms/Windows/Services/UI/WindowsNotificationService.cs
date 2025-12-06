@@ -3,7 +3,7 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Windows.Helpers;
-using Bible.Alarm.Platforms.Windows.Services.Handlers;
+using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using System.Linq;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
@@ -12,15 +12,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider) : INotificationService
+    public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider) : INotificationService, IDisposable
     {
+        private bool _isDisposed;
         private readonly IServiceProvider _serviceProvider = serviceProvider;
 
         public async Task ShowNotificationAsync(int scheduleId)
         {
             // Resolve WindowsAlarmHandler lazily to break circular dependency
             // WindowsNotificationService -> WindowsAlarmHandler -> IPlaybackService -> INotificationService
-            var windowsAlarmHandler = _serviceProvider.GetRequiredService<WindowsAlarmHandler>();
+            var windowsAlarmHandler = _serviceProvider.GetRequiredService<IWindowsAlarmHandler>();
             await windowsAlarmHandler.HandleAsync(scheduleId, true);
         }
 
@@ -289,7 +290,28 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
         public void Dispose()
         {
-            GC.SuppressFinalize(this);
+            if (_isDisposed)
+            {
+                return;
+            }
+            
+            _isDisposed = true;
+            
+            // IServiceProvider is a singleton, so don't dispose it
+            // No event handlers to unsubscribe
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // IServiceProvider is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }

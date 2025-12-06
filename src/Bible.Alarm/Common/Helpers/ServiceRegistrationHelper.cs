@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Platform;
@@ -41,6 +42,7 @@ using AVFoundation;
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
+using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Platforms.iOS.Services.Media;
 #endif
@@ -58,6 +60,7 @@ using Bible.Alarm.Platforms.Android.Services.Storage;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.UI;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
+using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.Media;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
@@ -90,7 +93,7 @@ public static class ServiceRegistrationHelper
 
         // Register UI components
         RegisterUiComponents(services);
-    }
+        }
 
     private static void RegisterCommonServices(IServiceCollection services)
     {
@@ -102,8 +105,8 @@ public static class ServiceRegistrationHelper
 
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
-        services.AddSingleton<MediaIndexService>();
-        services.AddSingleton<MediaService>();
+        services.AddSingleton<IMediaIndexService, MediaIndexService>();
+        services.AddSingleton<IMediaService, MediaService>();
         services.AddSingleton<IMediaCacheService, MediaCacheService>();
         services.AddSingleton<IMediaUrlRefreshService, MediaUrlRefreshService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();
@@ -117,12 +120,12 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
-        services.AddSingleton<ScheduleItemStateService>();
-        services.AddSingleton<ExceptionHandlingService>();
-        services.AddSingleton<WindowSetupService>();
-        services.AddSingleton<AppLifecycleService>();
-        services.AddSingleton<AlarmModalService>();
-        services.AddSingleton<MessageHandlingService>();
+        services.AddSingleton<IScheduleItemStateService, ScheduleItemStateService>();
+        services.AddSingleton<IExceptionHandlingService, ExceptionHandlingService>();
+        services.AddSingleton<IWindowSetupService, WindowSetupService>();
+        services.AddSingleton<IAppLifecycleService, AppLifecycleService>();
+        services.AddSingleton<IAlarmModalService, AlarmModalService>();
+        services.AddSingleton<IMessageHandlingService, MessageHandlingService>();
         services.AddSingleton<IScheduleSelectionService, ScheduleSelectionService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
         services.AddSingleton<IDisplayMetadataService, DisplayMetadataService>();
@@ -130,9 +133,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAudioPlayer, AudioPlayer>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<IFontService, FontService>();
-        services.AddSingleton<SchedulerService>();
-        services.AddSingleton<ISchedulerService>(sp => sp.GetRequiredService<SchedulerService>());
-        services.AddSingleton<IMediaIndexService>(sp => sp.GetRequiredService<MediaIndexService>());
+        services.AddSingleton<ISchedulerService, SchedulerService>();
         services.AddSingleton<IDatabaseSeedService, DatabaseSeedService>();
         services.AddSingleton<IScheduleMigrationService, ScheduleMigrationService>();
 
@@ -167,7 +168,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAudioPreviewer>(sp => new iOSAudioPreviewer(
             sp.GetRequiredService<IDownloadService>(),
             sp.GetRequiredService<ILogger>()));
-        services.AddSingleton<iOSAlarmHandler>();
+        services.AddSingleton<IiOSAlarmHandler, iOSAlarmHandler>();
 #elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
@@ -176,7 +177,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAudioPreviewer>(sp => new WindowsAudioPreviewer(
             sp.GetRequiredService<MediaPlayer>(),
             sp.GetRequiredService<ILogger>()));
-        services.AddSingleton<WindowsAlarmHandler>();
+        services.AddSingleton<IWindowsAlarmHandler, WindowsAlarmHandler>();
 #endif
 
         // Register database contexts
@@ -195,38 +196,8 @@ public static class ServiceRegistrationHelper
         });
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context
+        // TaskScheduler doesn't implement IDisposable, so use regular AddSingleton
         services.AddSingleton(_ => TaskScheduler.Default);
-
-        // Register INavigation for all platforms
-        // Note: INavigation is not auto-registered in MAUI, so we need to register it manually
-        // Using a factory that is evaluated lazily when first requested
-        services.AddSingleton<INavigation>(sp =>
-        {
-            var app = Application.Current ?? throw new InvalidOperationException("Application.Current is null. Cannot register INavigation. This should not happen during service registration.");
-
-            // Use Windows[0].Page instead of obsolete MainPage
-            if (app.Windows.Count > 0)
-            {
-                var window = app.Windows[0];
-                // Window.Page is directly NavigationPage
-                if (window?.Page is NavigationPage windowNavPage)
-                {
-                    return windowNavPage.Navigation;
-                }
-            }
-
-            // Fallback — try MainPage for compatibility (obsolete but may be needed)
-            // Type or member is obsolete
-#pragma warning disable CS0618
-            if (app.MainPage is NavigationPage mainNavPage)
-            {
-                return mainNavPage.Navigation;
-            }
-#pragma warning restore CS0618
-
-            // During startup, this might not be ready yet
-            throw new InvalidOperationException("INavigation is not available. NavigationPage must be set before resolving INavigation.");
-        });
     }
 
     private static void RegisterViewModels(IServiceCollection services)
@@ -270,6 +241,17 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();
         services.AddTransient<BootstrapPage>();
+        
+   
+        // It will be created with BootstrapPage as the root page
+        services.AddTransient<NavigationPage>(sp =>
+        {
+            var bootstrapPage = sp.GetRequiredService<BootstrapPage>();
+            var navigationPage = new NavigationPage(bootstrapPage);
+            // NavigationPage background will adapt to theme via BootstrapPage
+            NavigationPage.SetHasNavigationBar(bootstrapPage, false);
+            return navigationPage;
+        });
     }
 }
 

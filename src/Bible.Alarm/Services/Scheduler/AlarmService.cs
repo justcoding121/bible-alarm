@@ -7,7 +7,7 @@ namespace Bible.Alarm.Services.Scheduler;
 
 public sealed partial class AlarmService(
     INotificationService notificationService)
-    : IAlarmService
+    : IAlarmService, IDisposable
 {
     public Task Create(AlarmSchedule schedule)
     {
@@ -39,8 +39,18 @@ public sealed partial class AlarmService(
         notificationService.RemoveAsync(scheduleId);
     }
 
+    private bool _isDisposed;
+    
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // All injected services (notificationService) are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }

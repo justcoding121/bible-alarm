@@ -30,6 +30,14 @@ public class ObservableMessenger
     }
     
     /// <summary>
+    /// Clears all stored last messages. Should be called during app disposal.
+    /// </summary>
+    public void Clear()
+    {
+        _lastMessages.Clear();
+    }
+    
+    /// <summary>
     /// Static instance for InitializedMessage to ensure messages are not lost
     /// </summary>
     public static readonly ObservableMessenger InitializationMessenger = new();

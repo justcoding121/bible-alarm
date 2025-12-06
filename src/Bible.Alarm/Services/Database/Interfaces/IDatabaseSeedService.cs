@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Services.Database.Interfaces;
 
-public interface IDatabaseSeedService
+public interface IDatabaseSeedService : IDisposable
 {
     Task SeedDefaultAlarmAsync();
 }

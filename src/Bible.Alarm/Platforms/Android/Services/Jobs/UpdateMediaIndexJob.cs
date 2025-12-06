@@ -1,8 +1,8 @@
-﻿using Android.App;
+using Android.App;
 using Android.App.Job;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Platform;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
 using AndroidBuild = Android.OS.Build;
 
@@ -49,7 +49,8 @@ public class UpdateMediaIndexJob : JobService
                 // Run bootstrapper after CreateAndStore for background launch
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 
-                var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                // IMediaIndexService is a singleton, so don't dispose it
+                var mediaIndexService = ServiceProviderManager.GetService<IMediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)

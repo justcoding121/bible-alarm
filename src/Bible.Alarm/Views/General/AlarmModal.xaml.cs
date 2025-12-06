@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 using Microsoft.Maui.Controls;
@@ -100,6 +100,8 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             {
                 disposable.Dispose();
             }
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

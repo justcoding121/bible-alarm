@@ -1,10 +1,11 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Bible.Alarm.Services.Storage;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Storage
 {
-    public class WindowsStorageService : StorageService
+    public class WindowsStorageService : StorageService, IDisposable
     {
+        private bool _isDisposed;
         // Use standard .NET paths instead of UWP ApplicationData
         private static readonly string storageRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bible.Alarm", "Data");
         public override string StorageRoot => storageRoot;
@@ -13,5 +14,17 @@ namespace Bible.Alarm.Platforms.Windows.Services.Storage
         private static readonly string cacheRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bible.Alarm", "Cache");
         public override string CacheRoot => cacheRoot;
         public override Assembly MainAssembly => typeof(WindowsStorageService).Assembly;
+        
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+            
+            _isDisposed = true;
+            
+            // No resources to dispose
+        }
     }
 }

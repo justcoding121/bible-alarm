@@ -8,7 +8,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
@@ -26,7 +26,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
 
-    private readonly MediaService _mediaService;
+    private readonly IMediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IAudioPreviewer _playService;
     private readonly IMediaUrlRefreshService _urlRefreshService;
@@ -42,7 +42,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     public TrackSelectionViewModel(
         ILogger logger,
-        MediaService mediaService,
+        IMediaService mediaService,
         IToastService toastService,
         IAudioPreviewer playService,
         INavigationService navigationService,

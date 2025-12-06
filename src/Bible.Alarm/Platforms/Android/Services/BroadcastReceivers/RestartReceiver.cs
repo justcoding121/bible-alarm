@@ -1,9 +1,9 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Platform;
-using Bible.Alarm.Services.Scheduler;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
@@ -57,7 +57,8 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
             // Run bootstrapper after CreateAndStore for background launch
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
             
-            using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
+            // ISchedulerService is a singleton, so don't dispose it
+            var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
             await schedulerService.HandleAsync();
 
             context.StopService(intent);

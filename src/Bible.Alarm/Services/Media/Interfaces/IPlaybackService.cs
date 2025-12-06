@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Services.Media.Interfaces;
 
-public interface IPlaybackService
+public interface IPlaybackService : IDisposable
 {
     Task PlayAsync();
     Task PauseAsync();

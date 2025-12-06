@@ -3,7 +3,7 @@ using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
@@ -19,7 +19,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     private BibleReadingSchedule _current;
     private BibleReadingSchedule _tentative;
 
-    private readonly MediaService _mediaService;
+    private readonly IMediaService _mediaService;
     private readonly IState<ApplicationState> _state;
     private readonly IDispatcher _dispatcher;
     private bool _initComplete;
@@ -28,7 +28,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(MediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
+    public BookSelectionViewModel(IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
         _mediaService = mediaService;
         _state = state;

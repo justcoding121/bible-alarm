@@ -1,4 +1,5 @@
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -12,7 +13,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
         IPlaybackService playbackService,
         IState<PlaybackState> playbackState,
         TaskScheduler taskScheduler)
-        : IDisposable
+        : IiOSAlarmHandler
     {
         private readonly ILogger _logger = logger;
         private readonly IState<PlaybackState> _playbackState = playbackState;
@@ -72,26 +73,30 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
             }
         }
 
+        private bool _isDisposed;
+        
         public void Dispose()
         {
-            Dispose(false);
-        }
-
-        private bool _disposed;
-
-        private void Dispose(bool disposeMediaManager)
-        {
-            if (!_disposed)
+            if (_isDisposed)
             {
-                _disposed = true;
-
-                if (disposeMediaManager)
-                {
-                    Task.Delay(0)
-                        .ContinueWith(_ => { UIApplication.SharedApplication.EndReceivingRemoteControlEvents(); },
-                            taskScheduler);
-                }
+                return;
             }
+            
+            _isDisposed = true;
+            
+            // Dispose static semaphore
+            try
+            {
+                Lock.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore if already disposed
+                _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+            }
+            
+            // All injected services (playbackService, IState<PlaybackState>, TaskScheduler) are singletons
+            // and should not be disposed here as they are managed by the DI container
         }
     }
 }

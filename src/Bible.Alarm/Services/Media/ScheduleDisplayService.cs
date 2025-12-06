@@ -13,11 +13,13 @@ public class ScheduleDisplayService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IState<PlaybackState> playbackState)
-    : IScheduleDisplayService
+    : IScheduleDisplayService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IState<PlaybackState> _playbackState = playbackState;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _isDisposed;
 
     public async Task<string> GetChapterDisplayNameAsync(int scheduleId, bool force = false)
     {
@@ -46,7 +48,7 @@ public class ScheduleDisplayService(
                     .Include(x => x.BibleReadingSchedule)
                     .AsNoTracking()
                     .Where(x => x.Id == scheduleId)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(_cancellationTokenSource.Token);
 
                 if (schedule?.BibleReadingSchedule == null) return string.Empty;
                 scheduleToUse = schedule.BibleReadingSchedule;
@@ -63,7 +65,7 @@ public class ScheduleDisplayService(
                             && x.Number == scheduleToUse.BookNumber)
                 .Select(x => x.Name)
                 .AsNoTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(_cancellationTokenSource.Token);
 
             if (bookName == null) return string.Empty;
 
@@ -74,6 +76,31 @@ public class ScheduleDisplayService(
             _logger.Error(e, "An error happened while getting chapter display name for schedule {ScheduleId}", scheduleId);
             return string.Empty;
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

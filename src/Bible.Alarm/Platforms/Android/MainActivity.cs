@@ -6,7 +6,13 @@ using Android.Views;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
+using Polly;
+using Polly.Retry;
 using Serilog;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Bible.Alarm.Platforms.Android;
 
@@ -19,14 +25,17 @@ public class MainActivity : MauiAppCompatActivity
 
     protected override void OnCreate(Bundle savedInstanceState)
     {
+        // IMPORTANT: Create MAUI app BEFORE calling base.OnCreate()
+        // This ensures the service provider is available when MAUI's lifecycle events try to access it
+        // If the app was previously disposed (swiped out), CreateAndStore() will create a new app instance
+        MauiAppHolder.CreateAndStore();
+
         base.OnCreate(savedInstanceState);
 
         // Set up global exception handlers
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
 
-        // Initialize MAUI app if not already initialized
-        MauiAppHolder.CreateAndStore();
         // Run bootstrapper for foreground scenarios
         MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: true);
 
@@ -62,7 +71,7 @@ public class MainActivity : MauiAppCompatActivity
                     MauiAppHolder.CreateAndStore();
                     // Run bootstrapper after CreateAndStore for background launch
                     MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                    
+
                     _alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
                     await _alarmHandler.HandleAsync(scheduleId, false);
                 }
@@ -78,26 +87,25 @@ public class MainActivity : MauiAppCompatActivity
     {
         Task.Run(async () =>
         {
-            while (true)
+
+            try
             {
-                try
+                if (_lastResumeTime.HasValue && DateTime.Now.Subtract(_lastResumeTime.Value).TotalSeconds >= 3)
                 {
-                    if (_lastResumeTime.HasValue && DateTime.Now.Subtract(_lastResumeTime.Value).TotalSeconds >= 3)
-                    {
-                        var intent = new Intent(this, typeof(AlarmSetupService));
-                        intent.PutExtra("Action", "SetupBackgroundTasks");
-                        StartService(intent);
-                        break;
-                    }
+                    var intent = new Intent(this, typeof(AlarmSetupService));
+                    intent.PutExtra("Action", "SetupBackgroundTasks");
+                    StartService(intent);
+                    return true;
                 }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Error setting up background tasks");
-                    break;
-                }
-                await Task.Delay(1000);
             }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error setting up background tasks");
+                return true;
+            }
+            return false;
         });
+
     }
 
     protected override void OnResume()
@@ -111,4 +119,33 @@ public class MainActivity : MauiAppCompatActivity
         base.OnPause();
         _lastResumeTime = null;
     }
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+
+        // Call player dismiss action when activity is destroyed (e.g., user swipes out the app)
+        // This is NOT called when app is just backgrounded (OnPause handles that)
+        // IMPORTANT: Wait for playback to stop before disposing MauiApp to prevent ObjectDisposedException
+        try
+        {
+            // Check if MauiAppHolder is still initialized before trying to use it
+            if (MauiAppHolder.IsInitialized)
+            {
+                var serviceProvider = MauiAppHolder.Services;
+                if (serviceProvider != null)
+                {
+                    var windowSetupService = serviceProvider.GetService<IWindowSetupService>();
+                    windowSetupService.TearDown();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error in MainActivity.OnDestroy while attempting to dismiss player");
+        }
+
+     
+    }
+
 }

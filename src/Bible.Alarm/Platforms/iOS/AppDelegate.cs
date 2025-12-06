@@ -4,9 +4,10 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
-using Bible.Alarm.Services.Media;
-using Bible.Alarm.Services.Scheduler;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Foundation;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using UIKit;
 using UserNotifications;
@@ -126,19 +127,23 @@ namespace Bible.Alarm.Platforms.iOS
                                 // Run bootstrapper after CreateAndStore for background launch
                                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                                 
-                                using var dbContext = ServiceProviderManager.GetService<ScheduleDbContext>();
+                                // ScheduleDbContext is scoped, so use a scope
+                                var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+                                await using var scope = scopeFactory.CreateAsyncScope();
+                                var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-                                if (!dbContext.GeneralSettings.Any(x => x.Key == "iOSNotificationDisabledMsgShown"))
+                                if (!await dbContext.GeneralSettings.AnyAsync(x => x.Key == "iOSNotificationDisabledMsgShown"))
                                 {
-                                    dbContext.GeneralSettings.Add(new GeneralSettings
+                                    await dbContext.GeneralSettings.AddAsync(new GeneralSettings
                                     {
                                         Key = "iOSNotificationDisabledMsgShown",
                                         Value = "true"
                                     });
-                                    dbContext.SaveChanges();
+                                    await dbContext.SaveChangesAsync();
 
+                                    // IToastService is a singleton, so don't dispose it
                                     var popupService = ServiceProviderManager.GetService<IToastService>();
-                                    popupService.ShowMessage("You've disabled notifications. " +
+                                    await popupService.ShowMessage("You've disabled notifications. " +
                                                              "We won't be able to alert you on scheduled time. " +
                                                              "You can however open the app anytime and resume listening.",
                                         8);
@@ -214,12 +219,13 @@ namespace Bible.Alarm.Platforms.iOS
                 // Run bootstrapper after CreateAndStore for background launch
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
 
-                using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
+                // ISchedulerService is a singleton, so don't dispose it
+                var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
                 downloaded = await schedulerService.HandleAsync();
 
-                var mediaIndexService = ServiceProviderManager.GetService<MediaIndexService>();
+                // IMediaIndexService is a singleton, so don't dispose it
+                var mediaIndexService = ServiceProviderManager.GetService<IMediaIndexService>();
                 downloaded = downloaded || await mediaIndexService.UpdateIndexIfAvailable();
-                // Note: mediaIndexService is a singleton and should not be disposed
             }
             catch (Exception e)
             {

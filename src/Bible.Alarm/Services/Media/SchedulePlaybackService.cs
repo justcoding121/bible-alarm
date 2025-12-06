@@ -11,11 +11,12 @@ public class SchedulePlaybackService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IState<PlaybackState> playbackState)
-    : ISchedulePlaybackService
+    : ISchedulePlaybackService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IState<PlaybackState> _playbackState = playbackState;
+    private bool _isDisposed;
 
     public async Task PlayScheduleAsync(int scheduleId)
     {
@@ -49,6 +50,19 @@ public class SchedulePlaybackService(
         await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
 
         return false;
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

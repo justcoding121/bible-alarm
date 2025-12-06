@@ -19,7 +19,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 
 namespace Bible.Alarm.Services.Media;
 
-public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElementMessage>
+public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElementMessage>, IDisposable
 {
     private readonly ILogger _logger;
     private readonly IMediaElementService _mediaElementService;
@@ -510,6 +510,21 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
                 }
             });
             _logger.Information("ReleaseMediaSession called - notification should be removed");
+            
+            // Wait for RecreateMediaElementMessage to be processed and MediaElement to be cleared
+            // This ensures MediaElement is set to null before ResetAsync completes
+            await Task.Delay(200);
+            
+            // Clear the MediaElement reference after it's been disposed
+            // The RecreateMediaElementMessage handler will set _mediaElement = null, but we ensure it here too
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (_mediaElement != null)
+                {
+                    _logger.Debug("Clearing MediaElement reference after ResetAsync");
+                    _mediaElement = null;
+                }
+            });
 #endif
 
 
@@ -598,8 +613,17 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
     }
 
 
+    private bool _isDisposed;
+    
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<RecreateMediaElementMessage>(this);
 
@@ -608,8 +632,9 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         {
             UnsubscribeFromMediaElement(_mediaElement);
         }
-
-        GC.SuppressFinalize(this);
+        
+        // All injected services (_mediaElementService, _displayMetadataService, _dispatcher, 
+        // _androidPlayerNotificationService) are singletons, so don't dispose them
     }
 
     /// <summary>

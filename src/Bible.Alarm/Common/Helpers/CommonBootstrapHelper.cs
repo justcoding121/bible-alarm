@@ -1,6 +1,6 @@
-﻿using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Database;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -10,9 +10,7 @@ namespace Bible.Alarm.Common.Helpers;
 public static class CommonBootstrapHelper
 {
     private static readonly SemaphoreSlim Lock = new(1);
-    private static volatile bool _initializationMessageSent = false;
-
-    public static async Task VerifyServices()
+    public static async Task VerifyServices(bool initializeUI = false)
     {
         await Lock.WaitAsync().ConfigureAwait(false);
 
@@ -31,13 +29,8 @@ public static class CommonBootstrapHelper
         }
         finally
         {
-            // Always send InitializedMessage once, even if bootstrap had errors
-            // This ensures the app can still navigate to Home page
-            // Use ObservableMessenger so the message is not lost if recipient registers late
-            // Only send once to prevent multiple navigation attempts
-            if (!_initializationMessageSent)
+            if (initializeUI)
             {
-                _initializationMessageSent = true;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     ObservableMessenger.InitializationMessenger.Send(new InitializedMessage());
@@ -50,7 +43,7 @@ public static class CommonBootstrapHelper
 
     private static async Task VerifyMediaLookUpService()
     {
-        var service = ServiceProviderManager.GetService<MediaIndexService>();
+        var service = ServiceProviderManager.GetService<IMediaIndexService>();
         await service.Verify().ConfigureAwait(false);
     }
 

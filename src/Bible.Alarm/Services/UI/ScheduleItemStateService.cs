@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
 using Microsoft.Maui.Controls;
@@ -6,9 +7,10 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class ScheduleItemStateService(ILogger logger)
+public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateService
 {
     private readonly ILogger _logger = logger;
+    private bool _isDisposed;
 
     /// <summary>
     /// Sets IsBusy to false for the schedule item with the given ID and hides the Home page overlay.
@@ -85,6 +87,18 @@ public class ScheduleItemStateService(ILogger logger)
         {
             _logger.Warning(ex, "Could not hide Home page overlay");
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }
 }
 

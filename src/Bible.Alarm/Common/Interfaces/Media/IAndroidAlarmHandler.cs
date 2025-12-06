@@ -1,6 +1,6 @@
-﻿namespace Bible.Alarm.Common.Interfaces.Media;
+namespace Bible.Alarm.Common.Interfaces.Media;
 
-public interface IAndroidAlarmHandler
+public interface IAndroidAlarmHandler : IDisposable
 {
     Task HandleAsync(int scheduleId, bool isAlarm);
 }

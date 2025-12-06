@@ -6,10 +6,11 @@ namespace Bible.Alarm.Services.Media;
 public class MediaCacheSetupService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IMediaCacheSetupService
+    : IMediaCacheSetupService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private bool _isDisposed;
 
     public async Task SetupAlarmCacheAsync(int scheduleId)
     {
@@ -23,6 +24,19 @@ public class MediaCacheSetupService(
         {
             _logger.Error(ex, "Error setting up alarm cache for schedule {ScheduleId}", scheduleId);
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // IServiceScopeFactory is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }
 

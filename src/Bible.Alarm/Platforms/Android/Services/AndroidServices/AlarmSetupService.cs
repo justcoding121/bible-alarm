@@ -1,11 +1,11 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content;
 using Android.OS;
 using Android.Runtime;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
-using Bible.Alarm.Services.Scheduler;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Java.Lang;
 using Serilog;
 using static Android.App.AlarmManager;
@@ -81,7 +81,8 @@ public class AlarmSetupService : Service, IDisposable
                     {
                         try
                         {
-                            using var schedulerService = ServiceProviderManager.GetService<SchedulerService>();
+                            // ISchedulerService is a singleton, so don't dispose it
+                            var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
                             await schedulerService.HandleAsync();
                         }
                         catch (Exception e)

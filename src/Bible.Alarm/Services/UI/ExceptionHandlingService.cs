@@ -1,12 +1,14 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class ExceptionHandlingService(ILogger logger)
+public class ExceptionHandlingService(ILogger logger) : IExceptionHandlingService
 {
     private readonly ILogger _logger = logger;
+    private bool _isDisposed;
 
     public void SetupGlobalExceptionHandlers()
     {
@@ -22,6 +24,20 @@ public class ExceptionHandlingService(ILogger logger)
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         _logger.Error("Unhandled exception.", e.SerializeObject());
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Unsubscribe from global exception handlers
+        AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+        TaskScheduler.UnobservedTaskException -= UnobservedTaskExceptionHandler;
     }
 }
 

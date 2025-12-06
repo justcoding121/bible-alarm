@@ -12,20 +12,30 @@ public class AlarmModalService(
     ILogger logger,
     INavigationService navigationService,
     IState<PlaybackState> playbackState,
-    ScheduleItemStateService scheduleItemStateService,
+    IScheduleItemStateService scheduleItemStateService,
     IDispatcher dispatcher)
+    : IAlarmModalService
 {
     private readonly ILogger _logger = logger;
     private readonly INavigationService _navigationService = navigationService;
     private readonly IState<PlaybackState> _playbackState = playbackState;
-    private readonly ScheduleItemStateService _scheduleItemStateService = scheduleItemStateService;
+    private readonly IScheduleItemStateService _scheduleItemStateService = scheduleItemStateService;
     private readonly IDispatcher _dispatcher = dispatcher;
     private bool _isModalOpen;
+    private bool _isDisposed;
 
     public void SubscribeToPlaybackStateChanges()
     {
+        _isModalOpen = false;
         _playbackState.StateChanged += OnPlaybackStateChanged;
     }
+
+    public void UnsubscribeToPlaybackStateChanges()
+    {
+        _isModalOpen = false;
+        _playbackState.StateChanged -= OnPlaybackStateChanged;
+    }
+
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
@@ -68,6 +78,19 @@ public class AlarmModalService(
                 }
             });
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Unsubscribe from playback state changes
+        _playbackState.StateChanged -= OnPlaybackStateChanged;
     }
 }
 

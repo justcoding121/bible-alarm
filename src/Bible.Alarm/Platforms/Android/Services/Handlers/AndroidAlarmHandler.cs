@@ -71,23 +71,20 @@ public class AndroidAlarmHandler(
     // PlayerNotificationManager removed - using MediaElement instead
     // Notification handling is now managed by the MediaElement service
 
-    private bool _disposed;
+    private bool _isDisposed;
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-
-        // PlayerNotificationManager removed - using MediaElement instead
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
 
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
-        // notificationService (INotificationService) is a singleton
-        // and should not be disposed here as it is managed by the DI container
-
-        if (_playbackServiceInitialized)
-        {
-            // MediaManager removed - using MediaElement instead
-        }
+        // playbackService (IPlaybackService) and IServiceScopeFactory are singletons
+        // and should not be disposed here as they are managed by the DI container
 
         Disposed?.Invoke(this, true);
     }

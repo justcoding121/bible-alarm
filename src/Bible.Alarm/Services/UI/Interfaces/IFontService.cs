@@ -3,7 +3,7 @@ namespace Bible.Alarm.Services.UI.Interfaces;
 /// <summary>
 /// Service for managing scalable font sizes based on device metrics
 /// </summary>
-public interface IFontService
+public interface IFontService : IDisposable
 {
     /// <summary>
     /// Base font size (12 points) scaled by device density

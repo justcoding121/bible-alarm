@@ -12,11 +12,12 @@ namespace Bible.Alarm.Services.UI;
 public class MessageHandlingService(
     ILogger logger,
     IServiceProvider serviceProvider,
-    INavigationService navigationService) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>
+    INavigationService navigationService) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>, IMessageHandlingService
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly INavigationService _navigationService = navigationService;
+    private bool _isDisposed;
 
     public void RegisterMessageHandlers()
     {
@@ -30,27 +31,44 @@ public class MessageHandlingService(
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            using var toastService = _serviceProvider.GetRequiredService<IToastService>();
+            // IToastService is a singleton, so don't dispose it
+            var toastService = _serviceProvider.GetRequiredService<IToastService>();
             await toastService.ShowMessage(message.Value);
         });
     }
 
     public void Receive(InitializedMessage message)
     {
+        logger.Information("Received InitializedMessage, navigating to Home page.");
+
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
                 // Create Home page and initialize ViewModel before navigating
+                // Note: Home is transient, but NavigateToHomeAsync will create a new instance and push it
+                // This instance is only used for initialization, so we need to dispose it if navigation fails
                 var homePage = _serviceProvider.GetRequiredService<Home>();
-                if (homePage.BindingContext is HomeViewModel homeViewModel)
+                try
                 {
-                    // Wait for initialization to complete before navigating
-                    await homeViewModel.InitializeAsync();
-                }
+                    if (homePage.BindingContext is HomeViewModel homeViewModel)
+                    {
+                        // Wait for initialization to complete before navigating
+                        await homeViewModel.InitializeAsync();
+                    }
 
-                // Navigate to the initialized home page
-                await _navigationService.NavigateToHomeAsync();
+                    // Navigate to the initialized home page (this creates a new Home instance)
+                    await _navigationService.NavigateToHomeAsync();
+                }
+                finally
+                {
+                    // Dispose the temporary Home page if it implements IDisposable
+                    // (The page pushed by NavigateToHomeAsync will be disposed when popped)
+                    if (homePage is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                    }
+                }
 
                 _ = Task.Run(async () =>
                 {
@@ -77,6 +95,20 @@ public class MessageHandlingService(
                 _logger.Error(e, "An error happened while showing HomePage after initialization.");
             }
         });
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Unregister from messages
+        ObservableMessenger.InitializationMessenger.Unregister<InitializedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<ShowToastMessage>(this);
     }
 }
 

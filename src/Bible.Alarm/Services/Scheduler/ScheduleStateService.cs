@@ -19,7 +19,7 @@ public class ScheduleStateService(
     INotificationService notificationService,
     IToastService toastService,
     IDispatcher dispatcher)
-    : IScheduleStateService
+    : IScheduleStateService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
@@ -27,6 +27,8 @@ public class ScheduleStateService(
     private readonly INotificationService _notificationService = notificationService;
     private readonly IToastService _toastService = toastService;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _isDisposed;
 
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {
@@ -60,9 +62,9 @@ public class ScheduleStateService(
                 var existing = await scheduleDbContext.AlarmSchedules
                     .Include(x => x.BibleReadingSchedule)
                     .Include(x => x.Music)
-                    .FirstAsync(x => x.Id == scheduleId);
+                    .FirstAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
                 existing.IsEnabled = isEnabled;
-                await scheduleDbContext.SaveChangesAsync();
+                await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
 
                 _alarmService.Update(existing);
                 updatedSchedule = existing;
@@ -106,6 +108,31 @@ public class ScheduleStateService(
 
         // Indicates the state change was successful
         return true;
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

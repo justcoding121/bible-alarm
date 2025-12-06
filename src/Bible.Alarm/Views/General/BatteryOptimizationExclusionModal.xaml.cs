@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Views;
+using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Views.General;
 
@@ -16,6 +16,8 @@ public partial class BatteryOptimizationExclusionModal : BaseContentPage, IDispo
         if (!_isDisposed)
         {
             // This modal uses parent page view model, so do NOT dispose it
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Linq;
 using Bible.Alarm.Services.UI;
@@ -14,8 +14,9 @@ using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public sealed partial class WindowsToastService(TaskScheduler taskScheduler) : ToastService
+    public sealed partial class WindowsToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
     {
+        private bool _isDisposed;
         private static readonly SemaphoreSlim Lock = new(1);
 
         private static TaskCompletionSource<bool>? clearRequest;
@@ -402,6 +403,18 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             // Don't try to set XamlRoot to null - it can fail if already set or popup is disposed
             // The popup will be garbage collected anyway, and setting it to null can cause COM exceptions
         }
-
+        
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+            
+            _isDisposed = true;
+            
+            // TaskScheduler is a singleton, so don't dispose it
+            // No event handlers to unsubscribe
+        }
     }
 }

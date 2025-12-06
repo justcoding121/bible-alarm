@@ -567,8 +567,17 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         }
     }
 
+    private bool _isDisposed;
+    
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
         try
         {
             // Note: ReleaseMediaSession is now called from AudioPlayer with MediaElement instance
@@ -581,6 +590,8 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         {
             logger.Debug(ex, "Error disposing AndroidPlayerNotificationService");
         }
+        
+        // All injected services (logger) are singletons, so don't dispose them
     }
 
     /// <summary>

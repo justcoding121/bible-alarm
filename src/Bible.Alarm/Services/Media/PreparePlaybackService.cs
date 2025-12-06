@@ -10,11 +10,12 @@ namespace Bible.Alarm.Services.Media;
 public class PreparePlaybackService(
     ILogger logger,
     IPlaylistService playlistService,
-    IMediaCacheService cacheService) : IPreparePlaybackService
+    IMediaCacheService cacheService) : IPreparePlaybackService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IPlaylistService _playlistService = playlistService;
     private readonly IMediaCacheService _cacheService = cacheService;
+    private bool _isDisposed;
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
     {
@@ -62,6 +63,19 @@ public class PreparePlaybackService(
         }
 
         return preparedTracks;
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

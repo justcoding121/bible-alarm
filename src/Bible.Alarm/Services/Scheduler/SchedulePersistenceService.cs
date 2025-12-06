@@ -18,13 +18,15 @@ public class SchedulePersistenceService(
     IAlarmService alarmService,
     IDispatcher dispatcher,
     IMediaCacheService mediaCacheService)
-    : ISchedulePersistenceService
+    : ISchedulePersistenceService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IAlarmService _alarmService = alarmService;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IMediaCacheService _mediaCacheService = mediaCacheService;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _isDisposed;
 
     public async Task<bool> SaveScheduleAsync(AlarmSchedule schedule, bool isNewSchedule, bool musicUpdated = true, bool bibleReadingUpdated = true)
     {
@@ -44,9 +46,9 @@ public class SchedulePersistenceService(
                     var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                     _logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
                         schedule.Id, schedule.Name);
-                    await scheduleDbContext.AlarmSchedules.AddAsync(schedule);
+                    await scheduleDbContext.AlarmSchedules.AddAsync(schedule, _cancellationTokenSource.Token);
                     _logger.Debug("SaveScheduleAsync: Calling SaveChangesAsync");
-                    await scheduleDbContext.SaveChangesAsync();
+                    await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
                     _logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", schedule.Id);
                     if (schedule.IsEnabled) await _alarmService.Create(schedule);
                 });
@@ -58,7 +60,7 @@ public class SchedulePersistenceService(
                 savedSchedule = await scheduleDbContext.AlarmSchedules
                     .Include(x => x.Music)
                     .Include(x => x.BibleReadingSchedule)
-                    .FirstAsync(x => x.Id == schedule.Id);
+                    .FirstAsync(x => x.Id == schedule.Id, _cancellationTokenSource.Token);
 
                 _logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
                     savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
@@ -115,7 +117,7 @@ public class SchedulePersistenceService(
                     existing.Second = schedule.Second;
                     existing.SnoozeMinutes = schedule.SnoozeMinutes;
 
-                    await scheduleDbContext.SaveChangesAsync();
+                    await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
                     _alarmService.Update(existing);
                 });
 
@@ -125,7 +127,7 @@ public class SchedulePersistenceService(
                 savedSchedule = await scheduleDbContext.AlarmSchedules
                     .Include(x => x.Music)
                     .Include(x => x.BibleReadingSchedule)
-                    .FirstAsync(x => x.Id == schedule.Id);
+                    .FirstAsync(x => x.Id == schedule.Id, _cancellationTokenSource.Token);
 
                 _dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
             }
@@ -171,11 +173,11 @@ public class SchedulePersistenceService(
                 _alarmService.Delete(scheduleId);
                 using var scope = _scopeFactory.CreateScope();
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                var model = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleId);
+                var model = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
                 if (model != null)
                 {
                     scheduleDbContext.AlarmSchedules.Remove(model);
-                    await scheduleDbContext.SaveChangesAsync();
+                    await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
                 }
             });
 
@@ -193,6 +195,31 @@ public class SchedulePersistenceService(
         using var scope = _scopeFactory.CreateScope();
         var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         return await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

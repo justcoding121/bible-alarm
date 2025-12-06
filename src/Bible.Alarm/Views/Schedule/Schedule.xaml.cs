@@ -19,12 +19,12 @@ public partial class Schedule : BaseContentPage, IDisposable
     public Schedule(ScheduleViewModel viewModel)
     {
         var constructorStartTime = DateTime.UtcNow;
-        try { Log.Information("[PERF] Schedule page: Constructor started at {StartTime}", constructorStartTime); } catch { }
+        Log.Information("[PERF] Schedule page: Constructor started at {StartTime}", constructorStartTime);
         
         var initComponentStartTime = DateTime.UtcNow;
         InitializeComponent();
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
-        try { Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed); } catch { }
+        Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
         
         BindingContext = viewModel;
         _viewModel = viewModel;
@@ -34,7 +34,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         Loaded += SetupGestureRecognizers;
         
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
-        try { Log.Information("[PERF] Schedule page: Constructor completed in {ElapsedMs}ms", constructorElapsed); } catch { }
+        Log.Information("[PERF] Schedule page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
     }
 
     private void SetupGestureRecognizers(object? sender, EventArgs e)
@@ -107,6 +107,8 @@ public partial class Schedule : BaseContentPage, IDisposable
             {
                 disposable.Dispose();
             }
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

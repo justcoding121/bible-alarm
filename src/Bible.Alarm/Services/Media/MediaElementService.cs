@@ -163,10 +163,21 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
         }
     }
 
+    private bool _isDisposed;
+    
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<RecreateMediaElementMessage>(this);
+        
+        // All injected services (_navigationService) are singletons, so don't dispose them
     }
 }
 

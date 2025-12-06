@@ -9,7 +9,7 @@ public class iOSBootstrapHelper
     {
         try
         {
-            await CommonBootstrapHelper.VerifyServices().ConfigureAwait(false);
+            await CommonBootstrapHelper.VerifyServices(false).ConfigureAwait(false);
             logger.Information("iOS database initialization completed successfully.");
         }
         catch (Exception e)

@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Services.Database.Interfaces;
 
-public interface IScheduleMigrationService
+public interface IScheduleMigrationService : IDisposable
 {
     Task MigrateBibleGatewaySchedulesAsync();
 }

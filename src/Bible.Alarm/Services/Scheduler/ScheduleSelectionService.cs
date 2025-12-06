@@ -9,10 +9,12 @@ namespace Bible.Alarm.Services.Scheduler;
 public class ScheduleSelectionService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IScheduleSelectionService
+    : IScheduleSelectionService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private bool _isDisposed;
 
     public async Task<AlarmMusic> LoadMusicForSelectionAsync(int scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic)
     {
@@ -25,7 +27,7 @@ public class ScheduleSelectionService(
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                 return await scheduleDbContext.AlarmMusic
                     .AsNoTracking()
-                    .FirstAsync(x => x.AlarmScheduleId == scheduleId);
+                    .FirstAsync(x => x.AlarmScheduleId == scheduleId, _cancellationTokenSource.Token);
             }
 
             return currentMusic;
@@ -48,7 +50,7 @@ public class ScheduleSelectionService(
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                 return await scheduleDbContext.BibleReadingSchedules
                     .AsNoTracking()
-                    .FirstAsync(x => x.AlarmScheduleId == scheduleId);
+                    .FirstAsync(x => x.AlarmScheduleId == scheduleId, _cancellationTokenSource.Token);
             }
 
             return currentBibleReading;
@@ -58,6 +60,31 @@ public class ScheduleSelectionService(
             _logger.Error(ex, "Error loading bible reading for selection for schedule {ScheduleId}", scheduleId);
             return currentBibleReading;
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // IServiceScopeFactory is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }
 

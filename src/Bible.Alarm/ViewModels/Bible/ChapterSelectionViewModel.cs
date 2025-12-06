@@ -10,7 +10,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
@@ -27,7 +27,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger _logger;
 
-    private readonly MediaService _mediaService;
+    private readonly IMediaService _mediaService;
     private readonly IToastService _toastService;
     private readonly IAudioPreviewer _playService;
     private BibleReadingSchedule? _current;
@@ -43,7 +43,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     public ChapterSelectionViewModel(
         ILogger logger,
-        MediaService mediaService,
+        IMediaService mediaService,
         IToastService toastService,
         IAudioPreviewer playService,
         INavigationService navigationService,

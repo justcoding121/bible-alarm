@@ -4,7 +4,7 @@ using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.Services.Media.Interfaces;
 
-public interface IDisplayMetadataService
+public interface IDisplayMetadataService : IDisposable
 {
     Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track);
 }

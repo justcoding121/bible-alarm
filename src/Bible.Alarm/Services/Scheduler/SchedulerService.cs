@@ -20,6 +20,7 @@ public class SchedulerService(
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
     private static readonly SemaphoreSlim Lock = new(1);
 
@@ -45,7 +46,7 @@ public class SchedulerService(
 
                 using var scope = _scopeFactory.CreateScope();
                 var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                var schedules = await scheduleDbContext.AlarmSchedules.Where(x => x.IsEnabled).ToListAsync();
+                var schedules = await scheduleDbContext.AlarmSchedules.Where(x => x.IsEnabled).ToListAsync(_cancellationTokenSource.Token);
                 foreach (var schedule in schedules)
                     if (!await notificationService.IsScheduledAsync(schedule.Id))
                     {
@@ -113,10 +114,42 @@ public class SchedulerService(
         }
     }
 
+    private bool _isDisposed;
+    
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // Cancel and dispose cancellation token source
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore errors during cancellation/disposal
+            _logger.Warning(ex, "Error during cancellation token source disposal");
+        }
+        
+        // Dispose static semaphore
+        try
+        {
+            Lock.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore if already disposed
+            _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+        }
+        
         // Note: DbContext is now created via IServiceScopeFactory and disposed by the scope
-        // mediaCacheService, alarmService, notificationService, and storageService are singletons
+        // mediaCacheService, alarmService, notificationService, storageService, and IServiceScopeFactory are singletons
         // and should not be disposed here as they are managed by the DI container
     }
 }

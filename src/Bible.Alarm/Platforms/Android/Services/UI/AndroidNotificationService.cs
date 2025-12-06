@@ -21,8 +21,9 @@ using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
-public class AndroidNotificationService(ILogger logger) : INotificationService
+public class AndroidNotificationService(ILogger logger) : INotificationService, IDisposable
 {
+    private bool _isDisposed;
     public static readonly string ChannelIdAndName = "alarm_notification";
     public static readonly string ChannelDescription = "alarm_notification are send to this channel";
     public static readonly string ScheduleId = "schedule_id";
@@ -214,6 +215,13 @@ public class AndroidNotificationService(ILogger logger) : INotificationService
 
     public void Dispose()
     {
-        // Nothing to dispose - logger is managed by DI container
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }
 }

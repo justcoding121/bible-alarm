@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Media
 {
-    public class WindowsAudioPreviewer : IAudioPreviewer
+    public class WindowsAudioPreviewer : IAudioPreviewer, IDisposable
     {
         private readonly MediaPlayer _mediaPlayer;
         private readonly ILogger _logger;

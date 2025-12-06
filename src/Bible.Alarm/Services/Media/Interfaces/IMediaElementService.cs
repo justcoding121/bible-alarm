@@ -7,7 +7,7 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 /// Service for managing and accessing the MediaElement instance.
 /// Handles creation and retrieval of MediaElement from BootstrapPage.
 /// </summary>
-public interface IMediaElementService
+public interface IMediaElementService : IDisposable
 {
     /// <summary>
     /// Gets the MediaElement instance from BootstrapPage.

@@ -2,7 +2,7 @@
 
 using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
-using Bible.Alarm.Platforms.Windows.Services.Handlers;
+using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
 using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
@@ -118,7 +118,7 @@ namespace Bible.Alarm.WinUI
                             // Ensure MauiApp is created
                             MauiAppHolder.CreateAndStore();
 
-                            var alarmHandler = MauiAppHolder.Services.GetRequiredService<WindowsAlarmHandler>();
+                            var alarmHandler = MauiAppHolder.Services.GetRequiredService<IWindowsAlarmHandler>();
                             await alarmHandler.HandleAsync(scheduleId, true);
 
                             // Reschedule the next occurrence for recurring alarms

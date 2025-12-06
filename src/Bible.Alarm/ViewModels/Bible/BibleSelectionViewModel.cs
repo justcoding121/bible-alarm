@@ -5,7 +5,7 @@ using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
@@ -19,7 +19,7 @@ namespace Bible.Alarm.ViewModels.Bible;
 
 public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
-    private readonly MediaService _mediaService;
+    private readonly IMediaService _mediaService;
     private readonly IState<ApplicationState> _state;
     private readonly IDispatcher _dispatcher;
     private readonly INavigationService _navigationService;
@@ -37,7 +37,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    public BibleSelectionViewModel(MediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
+    public BibleSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
     {
         _mediaService = mediaService;
         _state = state;

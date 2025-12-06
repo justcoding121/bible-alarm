@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Common.ViewHelpers;
 using Microsoft.Maui.Controls;
@@ -17,12 +17,12 @@ public partial class Home : BaseContentPage, IDisposable
     public Home(HomeViewModel vm)
     {
         var constructorStartTime = DateTime.UtcNow;
-        try { Log.Information("[PERF] Home page: Constructor started at {StartTime}", constructorStartTime); } catch { }
+        Log.Information("[PERF] Home page: Constructor started at {StartTime}", constructorStartTime);
         
         var initComponentStartTime = DateTime.UtcNow;
         InitializeComponent();
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
-        try { Log.Information("[PERF] Home page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed); } catch { }
+        Log.Information("[PERF] Home page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
         
         BindingContext = vm;
         _viewModel = vm;
@@ -31,7 +31,7 @@ public partial class Home : BaseContentPage, IDisposable
         Loaded += OnPageLoaded;
         
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
-        try { Log.Information("[PERF] Home page: Constructor completed in {ElapsedMs}ms", constructorElapsed); } catch { }
+        Log.Information("[PERF] Home page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)
@@ -146,6 +146,8 @@ public partial class Home : BaseContentPage, IDisposable
             {
                 disposable.Dispose();
             }
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
             _isDisposed = true;
         }
     }

@@ -12,10 +12,11 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService
+public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IDownloadService _downloadService = downloadService;
+    private bool _isDisposed;
 
     private static readonly string[] JwOrgUrls =
     [
@@ -207,6 +208,19 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
             _logger.Error(ex, "Exception in GetMusicTrackUrl for language '{LanguageCode}'", languageCode ?? "null");
             return null;
         }
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+        
+        _isDisposed = true;
+        
+        // All injected services are singletons, so don't dispose them
+        // No event handlers to unsubscribe
     }
 }
 

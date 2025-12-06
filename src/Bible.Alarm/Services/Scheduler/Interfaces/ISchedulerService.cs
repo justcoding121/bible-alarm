@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Services.Scheduler.Interfaces;
 
-public interface ISchedulerService
+public interface ISchedulerService : IDisposable
 {
     Task ProcessScheduledTasksAsync();
     Task<bool> HandleAsync();

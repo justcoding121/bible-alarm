@@ -1,4 +1,5 @@
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -9,7 +10,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
     public class WindowsAlarmHandler(
         ILogger logger, 
         IPlaybackService playbackService,
-        IState<PlaybackState> playbackState) : IDisposable
+        IState<PlaybackState> playbackState) : IWindowsAlarmHandler
     {
         private readonly ILogger _logger = logger;
         private readonly IState<PlaybackState> _playbackState = playbackState;
@@ -53,8 +54,30 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
             }
         }
 
+        private bool _isDisposed;
+        
         public void Dispose()
         {
+            if (_isDisposed)
+            {
+                return;
+            }
+            
+            _isDisposed = true;
+            
+            // Dispose static semaphore
+            try
+            {
+                Lock.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore if already disposed
+                _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+            }
+            
+            // All injected services (playbackService, IState<PlaybackState>) are singletons
+            // and should not be disposed here as they are managed by the DI container
         }
     }
 }

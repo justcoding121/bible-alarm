@@ -8,7 +8,7 @@ using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Battery;
 
-public class AndroidBatteryOptimizationManager : IBatteryOptimizationManager
+public class AndroidBatteryOptimizationManager : IBatteryOptimizationManager, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<AndroidBatteryOptimizationManager>();
 

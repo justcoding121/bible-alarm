@@ -5,8 +5,9 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Platform
 {
-    public class WindowsVersionFinder : IVersionFinder
+    public class WindowsVersionFinder : IVersionFinder, IDisposable
     {
+        private bool _isDisposed;
         private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
         public static WindowsVersionFinder Default => new WindowsVersionFinder();
 
@@ -43,6 +44,18 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform
                 // If all else fails, return a default version
                 return "Windows 1.0.0.0";
             }
+        }
+        
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+            
+            _isDisposed = true;
+            
+            // No resources to dispose
         }
     }
 }
