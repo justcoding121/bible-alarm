@@ -4,16 +4,7 @@ This folder contains build automation scripts for the Bible Alarm project.
 
 ## Individual Platform Scripts
 
-### Android Scripts
-
-#### `build-android-fast.bat`
-Windows batch script for fast Android debug builds with optimized settings.
-
-**Usage:**
-```cmd
-cd src\.build
-build-android-fast.bat
-```
+### Android Script
 
 #### `build-android-fast.ps1`
 PowerShell script for fast Android debug builds with optimized settings.
@@ -24,16 +15,7 @@ cd src\.build
 .\build-android-fast.ps1
 ```
 
-### iOS Scripts
-
-#### `build-ios-fast.bat`
-Windows batch script for fast iOS debug builds with optimized settings.
-
-**Usage:**
-```cmd
-cd src\.build
-build-ios-fast.bat
-```
+### iOS Script
 
 #### `build-ios-fast.ps1`
 PowerShell script for fast iOS debug builds with optimized settings.
@@ -44,16 +26,7 @@ cd src\.build
 .\build-ios-fast.ps1
 ```
 
-### Windows Scripts
-
-#### `build-windows-fast.bat`
-Windows batch script for fast Windows debug builds with optimized settings.
-
-**Usage:**
-```cmd
-cd src\.build
-build-windows-fast.bat
-```
+### Windows Script
 
 #### `build-windows-fast.ps1`
 PowerShell script for fast Windows debug builds with optimized settings.
@@ -64,22 +37,7 @@ cd src\.build
 .\build-windows-fast.ps1
 ```
 
-## Multi-Platform Scripts
-
-### `build-all-fast.bat`
-Windows batch script to build all platforms or a specific platform.
-
-**Usage:**
-```cmd
-cd src\.build
-build-all-fast.bat [platform]
-```
-
-**Platforms:**
-- `all` (default) - Build all platforms
-- `android` - Build Android only
-- `ios` - Build iOS only  
-- `windows` - Build Windows only
+## Multi-Platform Script
 
 ### `build-all-fast.ps1`
 PowerShell script to build all platforms or a specific platform.

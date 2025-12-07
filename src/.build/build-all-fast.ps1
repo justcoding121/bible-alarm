@@ -48,7 +48,7 @@ if ($Platform -eq "all" -or $Platform -eq "ios") {
   --property:MtouchAot=false `
   --property:MtouchArch=ARM64 `
   --property:MtouchSdkVersion=latest `
-  --property:MtouchMinimumOSVersion=12.2 `
+  --property:MtouchMinimumOSVersion=15.0 `
       --property:MtouchEnableBitcode=false `
       --property:MtouchEnableIncrementalBuilds=true `
       --property:MtouchFastDev=true `
