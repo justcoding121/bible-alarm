@@ -324,13 +324,24 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     public async Task StopAsync()
     {
+        await StopAsyncInternal(skipMarkAsPlayed: false);
+    }
+
+    private async Task StopAsyncInternal(bool skipMarkAsPlayed)
+    {
         _logger.Information("StopAsync called - stopping alarm completely");
         
         // Stop progress timer first to prevent it from trying to save progress after ServiceProvider is disposed
         _progressSaveTimer?.Stop();
         
         await _audioPlayer.StopAsync();
-        await MarkCurrentTrackAsPlayedAsync();
+        
+        // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
+        // This prevents overwriting the database update that MarkTrackAsFinished() already made
+        if (!skipMarkAsPlayed)
+        {
+            await MarkCurrentTrackAsPlayedAsync();
+        }
         
         if (_currentScheduleId.HasValue)
         {
@@ -454,6 +465,8 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         try
         {
             _progressSaveTimer?.Stop();
+            
+            // Mark track as finished - this advances Bible chapter to next chapter with position 0.00
             await MarkCurrentTrackAsFinishedAsync();
             
             if (_playlist is not null && _currentTrackIndex < _playlist.Count - 1)
@@ -464,7 +477,9 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             }
             else
             {
-                await StopAsync();
+                // Last track ended - skip MarkCurrentTrackAsPlayedAsync in StopAsync
+                // because MarkTrackAsFinished already updated the database correctly
+                await StopAsyncInternal(skipMarkAsPlayed: true);
             }
         }
         catch (Exception ex)
