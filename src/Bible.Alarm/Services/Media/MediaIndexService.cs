@@ -90,7 +90,8 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                 for (var i = 0; i < weeksToCheck; i++)
                 {
                     var checkDate = time.AddDays(-i * 7);
-                    var url = $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{checkDate.Day}-{checkDate.Month}-{checkDate.Year}.zip";
+                    // Use new format with prefix
+                    var url = $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{checkDate.Day}-{checkDate.Month}-{checkDate.Year}.zip";
                     _logger.Debug("Attempting to download media index from: {Url} (week {WeekNumber} ago)", url, i);
                     
                     byte[] bytes;

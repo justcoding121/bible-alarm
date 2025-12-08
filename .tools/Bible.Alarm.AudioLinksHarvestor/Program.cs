@@ -21,6 +21,7 @@ using Microsoft.Data.Sqlite;
 using Serilog;
 using Serilog.Extensions.Logging;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Constants;
 using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.AudioLinksHarvestor
@@ -283,7 +284,8 @@ namespace Bible.Alarm.AudioLinksHarvestor
             });
 
             var utcTime = DateTime.UtcNow;
-            var fileName = $"{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
+            // Use new file name format with prefix (e.g., "v2-7-1-2024.zip")
+            var fileName = $"{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
             var keyName = $"{keyPrefix}/{fileName}";
             await s3Client.PutObjectAsync(new PutObjectRequest
             {
@@ -293,6 +295,7 @@ namespace Bible.Alarm.AudioLinksHarvestor
 
             });
 
+            // Only delete files with the new prefix format to preserve pre-migration files
             if (listObjectsResponse.S3Objects.Count > 0)
             {
                 var deleteObjectsRequest = new DeleteObjectsRequest
@@ -302,7 +305,8 @@ namespace Bible.Alarm.AudioLinksHarvestor
 
                 listObjectsResponse.S3Objects.ForEach(x =>
                 {
-                    if (x.Key != keyName)
+                    // Only delete files with the new prefix format (v2-), preserve old format files
+                    if (x.Key != keyName && x.Key.Contains($"{keyPrefix}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}"))
                     {
                         deleteObjectsRequest.AddKey(x.Key);
                     }

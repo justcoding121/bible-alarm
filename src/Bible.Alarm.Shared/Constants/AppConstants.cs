@@ -28,6 +28,12 @@ public static class AppConstants
         /// Media index download base URL
         /// </summary>
         public const string MediaIndexDownloadBaseUrl = "https://jthomas.info/bible-alarm/media-index";
+        
+        /// <summary>
+        /// Media index file name prefix for new format (v2+)
+        /// Old format files don't have this prefix and will be preserved for backward compatibility
+        /// </summary>
+        public const string MediaIndexFileNamePrefix = "v2-";
     }
 
     #endregion
