@@ -68,6 +68,13 @@
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 
+	<!-- Android Auto Car App Library -->
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
+		<PackageReference Include="Xamarin.AndroidX.Car.App.App" Version="1.7.0.1" />
+		<!-- AndroidX.Media for MediaBrowserServiceCompat (old Android Auto support) -->
+		<PackageReference Include="Xamarin.AndroidX.Media" Version="1.7.1" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
 		<ProjectReference Include="..\..\libraries\CommunityToolkit.Maui.MediaElement\CommunityToolkit.Maui.MediaElement.csproj" />
@@ -198,6 +205,11 @@
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
 		<AndroidResource Include="Platforms\Android\Resources\**" Exclude="Platforms\Android\Resources\raw\cool_alarm_tone_notification_sound.mp3" />
 		<AndroidResource Include="Resources\cool_alarm_tone_notification_sound.mp3" Link="Resources\raw\cool_alarm_tone_notification_sound.mp3" />
+		<!-- Android Auto Car App Library requires car-app-api.level file in assets -->
+		<!-- Explicitly include car-app-api.level at root of assets folder -->
+		<AndroidAsset Include="Platforms\Android\Assets\car-app-api.level" />
+		<!-- Include other assets -->
+		<AndroidAsset Include="Platforms\Android\Assets\**" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-ios'))">

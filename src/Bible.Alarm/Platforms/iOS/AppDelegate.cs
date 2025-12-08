@@ -118,7 +118,7 @@ namespace Bible.Alarm.Platforms.iOS
                 {
                     if (!approved)
                     {
-                        Task.Run(() =>
+                        Task.Run(async () =>
                         {
                             try
                             {
