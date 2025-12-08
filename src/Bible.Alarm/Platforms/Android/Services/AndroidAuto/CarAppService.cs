@@ -1,11 +1,13 @@
 #nullable enable
+using Android.App;
 using Android.Content;
 using Android.Runtime;
 using Android.Support.V4.Media.Session;
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using AndroidX.Car.App.Validation;
-using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+using Bible.Alarm.Common;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -14,10 +16,25 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// CarAppService for modern Android Automotive OS (Polestar, Volvo, GM, Rivian, Ford 2024+).
 /// Uses the shared MediaSessionCompat from MediaSessionManager to ensure seamless playback continuity.
 /// </summary>
+[Service(Exported = true, Name = "bible.alarm.platforms.android.services.androidauto.CarAppService")]
+[IntentFilter(new[] { "androidx.car.app.CarAppService" })]
+[MetaData("androidx.car.app", Resource = "@xml/automotive_app_desc")]
 [Register("bible.alarm.platforms.android.services.androidauto.CarAppService")]
 public class CarAppService : AndroidX.Car.App.CarAppService
 {
     private static readonly ILogger Logger = Log.ForContext<CarAppService>();
+
+    public override void OnCreate()
+    {
+        base.OnCreate();
+        
+        
+        // Initialize bootstrap and ensure services are available
+        MauiAppHolder.CreateAndStore();
+        MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+        
+        Logger.Information("✅ CarAppService.OnCreate() called - Bootstrap initialized");
+    }
 
     public override HostValidator CreateHostValidator()
     {
@@ -28,7 +45,8 @@ public class CarAppService : AndroidX.Car.App.CarAppService
     public override Session OnCreateSession()
     {
         Logger.Information("✅ CarAppService.OnCreateSession() called - Modern Android Auto is connecting!");
-        return new ModernMediaSession();
+        // Get ModernMediaSession from service provider
+        return ServiceProviderManager.GetService<ModernMediaSession>();
     }
 }
 
@@ -38,10 +56,11 @@ public class CarAppService : AndroidX.Car.App.CarAppService
 public class ModernMediaSession : Session
 {
     private static readonly ILogger Logger = Log.ForContext<ModernMediaSession>();
-    private readonly MediaSessionCompat _phoneSession = MediaSessionManager.Instance.GetOrCreate();
+    private readonly MediaSessionCompat _phoneSession;
 
-    public ModernMediaSession()
+    public ModernMediaSession(MediaSessionManager mediaSessionManager)
     {
+        _phoneSession = mediaSessionManager.GetOrCreate(true);
         Logger.Information("✅ ModernMediaSession created");
     }
 

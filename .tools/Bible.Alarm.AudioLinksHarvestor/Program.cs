@@ -60,9 +60,11 @@ namespace Bible.Alarm.AudioLinksHarvestor
 
                 var connectionString = $"Data Source={dbPath};";
 
-                options.UseSqlite(connectionString, sqliteOptions =>
+                // Specify migrations assembly so EF Core can find and apply all migrations
+                options.UseSqlite(connectionString, b =>
                 {
-                    sqliteOptions.CommandTimeout(60);
+                    b.MigrationsAssembly("Bible.Alarm.Shared");
+                    b.CommandTimeout(60);
                 });
             });
             

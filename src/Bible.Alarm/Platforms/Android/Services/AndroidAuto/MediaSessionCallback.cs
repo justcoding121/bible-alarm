@@ -3,7 +3,7 @@ using Android.OS;
 using Android.Support.V4.Media.Session;
 using Serilog;
 
-namespace Bible.Alarm.Platforms.Android.Services.Media;
+namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
 /// <summary>
 /// Callback handler for MediaSessionCompat commands from Android Auto.
@@ -53,3 +53,4 @@ public class MediaSessionCallback : MediaSessionCompat.Callback
         base.OnPlayFromMediaId(mediaId, extras);
     }
 }
+

@@ -30,6 +30,7 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using Fluxor;
+using Bible.Alarm.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
@@ -159,6 +160,17 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<MediaPlayer>(), 
             sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();
+        // Register global audio focus listener and service as singletons
+        services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusListener>();
+        services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusService>();
+        services.AddSingleton<Platforms.Android.Services.AndroidAuto.MediaSessionManager>();
+        services.AddTransient<Platforms.Android.Services.AndroidAuto.ModernMediaSession>(sp =>
+            new Platforms.Android.Services.AndroidAuto.ModernMediaSession(
+                sp.GetRequiredService<Platforms.Android.Services.AndroidAuto.MediaSessionManager>()));
+        // Register MediaSession effect for Android Auto
+        services.AddSingleton<Platforms.Android.Effects.MediaSessionEffect>();
+        // Register global audio focus effect that manages audio focus based on playback state
+        services.AddSingleton<Platforms.Android.Effects.AudioFocusEffect>();
 #elif IOS
         services.AddSingleton<INotificationService, iOSNotificationService>();
         services.AddSingleton<IToastService, iOSToastService>();

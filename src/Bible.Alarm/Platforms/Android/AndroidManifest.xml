@@ -15,24 +15,34 @@
 	<uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
 	<uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
 	
-	<application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true">
-		<!-- 1. Modern Android Automotive OS (Polestar, Volvo, GM, Rivian, etc.) -->
+	<application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:label="Bible Alarm">
+		<!-- 1. Modern Android Auto (Car App Library) Service -->
 		<service
 			android:name="bible.alarm.platforms.android.services.androidauto.CarAppService"
-			android:exported="true"
-			android:foregroundServiceType="mediaPlayback">
+			android:exported="true">
 			<intent-filter>
 				<action android:name="androidx.car.app.CarAppService" />
-				<category android:name="androidx.car.app.category.MEDIA" />
 			</intent-filter>
+			
+			<!-- Metadata for Modern Car App Library -->
 			<meta-data
 				android:name="androidx.car.app"
 				android:resource="@xml/automotive_app_desc" />
+			
+			<!-- CRITICAL: Declare min Car API level (using integer resource) -->
+			<meta-data
+				android:name="androidx.car.app.minCarApiLevel"
+				android:resource="@integer/car_app_min_api_level" />
+			
+			<!-- OPTIONAL: Declare target (latest) for future-proofing -->
+			<meta-data
+				android:name="androidx.car.app.targetCarApiLevel"
+				android:resource="@integer/car_app_target_api_level" />
 		</service>
 		
 		<!-- 2. Legacy Android Auto (phone projection + old DHU) -->
 		<service
-			android:name="bible.alarm.platforms.android.services.media.LegacyMediaBrowserService"
+			android:name="bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService"
 			android:exported="true"
 			android:foregroundServiceType="mediaPlayback">
 			<intent-filter>
@@ -40,15 +50,7 @@
 			</intent-filter>
 		</service>
 		
-		<!-- Android Auto metadata -->
-		<!-- CRITICAL: Declare min Car API level (1 = oldest supported; use 1 for max compatibility) -->
-		<meta-data
-			android:name="androidx.car.app.minCarApiLevel"
-			android:resource="@integer/car_app_min_api_level" />
-		<!-- OPTIONAL: Declare target (latest) for future-proofing -->
-		<meta-data
-			android:name="androidx.car.app.targetCarApiLevel"
-			android:resource="@integer/car_app_target_api_level" />
+		<!-- Android Auto global metadata for legacy host discovery -->
 		<meta-data
 			android:name="com.google.android.gms.car.application"
 			android:resource="@xml/automotive_app_desc" />

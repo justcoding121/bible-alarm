@@ -13,6 +13,9 @@
 		<!-- The license key is embedded at build time for all platforms -->
 		<SyncfusionLicenseKey Condition="'$(SyncfusionLicenseKey)' == ''">$(SYNCFUSION_LICENSE_KEY)</SyncfusionLicenseKey>
 
+		<!-- Application Display Name - Used for Android Auto and app launcher -->
+		<ApplicationTitle>Bible Alarm</ApplicationTitle>
+		
 		<!-- Display Version -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
@@ -53,10 +56,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
+		<!-- Note: Microsoft.EntityFrameworkCore.Design is NOT needed here - it's in .tools/Bible.Alarm.DbMigration -->
+		<!-- Design tools are only needed for creating migrations, which is done via the DbMigration project -->
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.11" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
@@ -122,15 +123,9 @@
 	</ItemGroup>
 
 	<!-- Fonts -->
-	<ItemGroup>
-		<!-- Font Awesome 7 fonts - shared across all platforms -->
-		<MauiFont Include="Platforms\Windows\Assets\Fonts\fa-brands-400.otf" />
-		<MauiFont Include="Platforms\Windows\Assets\Fonts\fa-regular-400.otf" />
-		<MauiFont Include="Platforms\Windows\Assets\Fonts\fa-solid-900.otf" />
-		<MauiFont Include="Resources\Fonts\fa-solid-900.otf" />
-		<MauiFont Include="Resources\Fonts\fa-regular-400.otf" />
-		<MauiFont Include="Resources\Fonts\fa-brands-400.otf" />
-	</ItemGroup>
+	<!-- Font Awesome 7 fonts are automatically included from Resources/Fonts/ -->
+	<!-- MAUI SDK handles platform-specific requirements automatically when fonts are in Resources/Fonts/ -->
+	<!-- with Build Action set to MauiFont (default) -->
 
 	<!-- Embedded Resources -->
 	<ItemGroup>
@@ -180,11 +175,6 @@
 		<PropertyGroup>
 			<EnableDefaultXamlItems>false</EnableDefaultXamlItems>
 		</PropertyGroup>
-		<ItemGroup>
-		  <None Remove="Platforms\Windows\Assets\Fonts\fa-brands-400.otf" />
-		  <None Remove="Platforms\Windows\Assets\Fonts\fa-regular-400.otf" />
-		  <None Remove="Platforms\Windows\Assets\Fonts\fa-solid-900.otf" />
-		</ItemGroup>
 
 	<!-- Enable platform-specific multi-targeting for files with platform extensions -->
 	<ItemGroup>
@@ -209,20 +199,40 @@
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
 		<AndroidResource Include="Platforms\Android\Resources\**" Exclude="Platforms\Android\Resources\raw\cool_alarm_tone_notification_sound.mp3" />
 		<AndroidResource Include="Resources\cool_alarm_tone_notification_sound.mp3" Link="Resources\raw\cool_alarm_tone_notification_sound.mp3" />
-		<!-- Android Auto Car App Library requires car-app-api.level file in assets -->
-		<!-- Explicitly include car-app-api.level at root of assets folder -->
-		<AndroidAsset Include="Platforms\Android\Assets\car-app-api.level" />
-		<!-- Include other assets -->
+		<!-- Include assets (car-app-api.level is no longer needed - using metadata approach in AndroidManifest.xml) -->
 		<AndroidAsset Include="Platforms\Android\Assets\**" />
 	</ItemGroup>
+	
+	<!-- Target to copy Font Awesome fonts with valid Android resource names (no hyphens) -->
+	<Target Name="CopyFontAwesomeFontsForAndroid" BeforeTargets="_UpdateAndroidResgen" Condition="$(TargetFramework.StartsWith('net10.0-android'))">
+		<!-- Remove any auto-included font files with hyphens -->
+		<ItemGroup>
+			<AndroidResource Remove="Resources\Fonts\fa-solid-900.otf" />
+			<AndroidResource Remove="Resources\Fonts\fa-regular-400.otf" />
+			<AndroidResource Remove="Resources\Fonts\fa-brands-400.otf" />
+		</ItemGroup>
+		
+		<!-- Ensure intermediate directory exists -->
+		<MakeDir Directories="$(IntermediateOutputPath)android\res\font" />
+		
+		<!-- Copy fonts to intermediate directory with valid names -->
+		<Copy SourceFiles="Resources\Fonts\fa-solid-900.otf" DestinationFiles="$(IntermediateOutputPath)android\res\font\fa_solid_900.otf" />
+		<Copy SourceFiles="Resources\Fonts\fa-regular-400.otf" DestinationFiles="$(IntermediateOutputPath)android\res\font\fa_regular_400.otf" />
+		<Copy SourceFiles="Resources\Fonts\fa-brands-400.otf" DestinationFiles="$(IntermediateOutputPath)android\res\font\fa_brands_400.otf" />
+		
+		<!-- Include the copied fonts as Android resources -->
+		<ItemGroup>
+			<AndroidResource Include="$(IntermediateOutputPath)android\res\font\fa_solid_900.otf" Link="Resources\font\fa_solid_900.otf" />
+			<AndroidResource Include="$(IntermediateOutputPath)android\res\font\fa_regular_400.otf" Link="Resources\font\fa_regular_400.otf" />
+			<AndroidResource Include="$(IntermediateOutputPath)android\res\font\fa_brands_400.otf" Link="Resources\font\fa_brands_400.otf" />
+		</ItemGroup>
+	</Target>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-ios'))">
 		<BundleResource Include="Platforms\iOS\Resources\**" />
 		<BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
 		<BundleResource Include="Resources\cool_alarm_tone_notification_sound.mp3" />
-		<BundleResource Include="Resources\Fonts\fa-solid-900.otf" />
-		<BundleResource Include="Resources\Fonts\fa-regular-400.otf" />
-		<BundleResource Include="Resources\Fonts\fa-brands-400.otf" />
+		<!-- Fonts are automatically handled by MAUI SDK from Resources/Fonts/ -->
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-windows'))">

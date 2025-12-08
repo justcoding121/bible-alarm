@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<!-- Min level: 1 = API 5 (2021+ compatibility); bump to 2+ for newer features -->
+	<!-- Min level: 1 = maximum compatibility with all AA versions -->
 	<integer name="car_app_min_api_level">1</integer>
 	
-	<!-- Target level: Use latest (8 as of Dec 2025) for full features; or omit for auto -->
-	<integer name="car_app_target_api_level">8</integer>
+	<!-- Target level: Use 6 for modern apps -->
+	<integer name="car_app_target_api_level">6</integer>
 </resources>
