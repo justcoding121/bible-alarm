@@ -9,6 +9,8 @@ namespace Bible.Alarm.Models.Schedule;
 [Serializable]
 [Table("AlarmNotifications")]
 [Index(nameof(AlarmScheduleId))]
+[Index(nameof(ScheduledTime))]
+[Index(nameof(Sent), nameof(Fired))]
 public class AlarmNotification
 {
     [Key]

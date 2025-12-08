@@ -15,6 +15,8 @@ namespace Bible.Alarm.Models.Schedule;
 
 [Serializable]
 [Table("AlarmSchedules")]
+[Index(nameof(IsEnabled))]
+[Index(nameof(Hour), nameof(Minute))]
 public class AlarmSchedule : IComparable
 {
     [Key]
@@ -65,9 +67,11 @@ public class AlarmSchedule : IComparable
     public virtual BibleReadingSchedule? BibleReadingSchedule { get; set; }
 
     [Required]
+    [Range(1, 60)]
     public int SnoozeMinutes { get; set; } = 5;
 
     [Required]
+    [Range(1, 10)]
     public int NumberOfChaptersToRead { get; set; } = 3;
 
     [Required]

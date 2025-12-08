@@ -135,6 +135,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<ISchedulerService, SchedulerService>();
         services.AddSingleton<IDatabaseSeedService, DatabaseSeedService>();
         services.AddSingleton<IScheduleMigrationService, ScheduleMigrationService>();
+        services.AddSingleton<IMediaMigrationService, MediaMigrationService>();
 
         // Register platform-specific version finder
 #if ANDROID
@@ -184,14 +185,18 @@ public static class ServiceRegistrationHelper
         {
             var storageService = sp.GetRequiredService<IStorageService>();
             var databasePath = System.IO.Path.Combine(storageService.StorageRoot, AppConstants.Database.ScheduleDatabaseFileName);
-            options.UseSqlite(string.Format(AppConstants.Database.ScheduleDatabaseConnectionStringFormat, databasePath));
+            options.UseSqlite(
+                string.Format(AppConstants.Database.ScheduleDatabaseConnectionStringFormat, databasePath),
+                b => b.MigrationsAssembly("Bible.Alarm.Shared"));
         });
 
         services.AddDbContext<MediaDbContext>((sp, options) =>
         {
             var storageService = sp.GetRequiredService<IStorageService>();
             var databasePath = System.IO.Path.Combine(storageService.StorageRoot, AppConstants.Database.MediaIndexDatabaseFileName);
-            options.UseSqlite(string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, databasePath));
+            options.UseSqlite(
+                string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, databasePath),
+                b => b.MigrationsAssembly("Bible.Alarm.Shared"));
         });
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context

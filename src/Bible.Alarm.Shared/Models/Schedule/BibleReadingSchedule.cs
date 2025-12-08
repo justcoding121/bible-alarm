@@ -9,6 +9,7 @@ namespace Bible.Alarm.Models.Schedule;
 [Serializable]
 [Table("BibleReadingSchedules")]
 [Index(nameof(AlarmScheduleId), IsUnique = true)]
+[Index(nameof(PublicationCode), nameof(LanguageCode))]
 public class BibleReadingSchedule
 {
     [Key]
@@ -23,9 +24,11 @@ public class BibleReadingSchedule
     public string PublicationCode { get; set; } = string.Empty;
 
     [Required]
+    [Range(1, 66)]
     public int BookNumber { get; set; }
 
     [Required]
+    [Range(1, 150)]
     public int ChapterNumber { get; set; }
 
     [Required]

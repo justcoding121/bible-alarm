@@ -24,7 +24,7 @@ public class MediaDbContextFactory : IDesignTimeDbContextFactory<MediaDbContext>
             dbPath);
         
         var optionsBuilder = new DbContextOptionsBuilder<MediaDbContext>();
-        optionsBuilder.UseSqlite(connectionString);
+            optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
         
         return new MediaDbContext(optionsBuilder.Options);
     }

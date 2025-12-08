@@ -24,7 +24,7 @@ public class ScheduleDbContextFactory : IDesignTimeDbContextFactory<ScheduleDbCo
             dbPath);
         
         var optionsBuilder = new DbContextOptionsBuilder<ScheduleDbContext>();
-        optionsBuilder.UseSqlite(connectionString);
+            optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
         
         return new ScheduleDbContext(optionsBuilder.Options);
     }

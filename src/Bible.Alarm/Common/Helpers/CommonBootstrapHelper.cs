@@ -1,6 +1,7 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Database.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -53,7 +54,15 @@ public static class CommonBootstrapHelper
         // This ensures proper lifetime management and prevents disposal issues
         var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
         await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        await db.Database.MigrateAsync().ConfigureAwait(false);
+        
+        // Migrate Schedule database (always safe - app owns this DB)
+        var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        await scheduleDb.Database.MigrateAsync().ConfigureAwait(false);
+        
+        // Migrate Media database if it exists and is from a previous app version
+        // Note: App is packaged with latest media index database, so this primarily
+        // handles users upgrading from previous app versions
+        var mediaMigrationService = ServiceProviderManager.GetService<IMediaMigrationService>();
+        await mediaMigrationService.MigrateIfNeededAsync().ConfigureAwait(false);
     }
 }

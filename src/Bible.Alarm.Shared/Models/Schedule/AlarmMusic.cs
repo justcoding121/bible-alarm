@@ -9,6 +9,7 @@ namespace Bible.Alarm.Models.Schedule;
 [Serializable]
 [Table("AlarmMusic")]
 [Index(nameof(AlarmScheduleId), IsUnique = true)]
+[Index(nameof(PublicationCode), nameof(LanguageCode))]
 public class AlarmMusic
 {
     [Key]
@@ -25,6 +26,7 @@ public class AlarmMusic
     public string? LanguageCode { get; set; }
 
     [Required]
+    [Range(1, int.MaxValue)]
     public int TrackNumber { get; set; }
 
     //Always play current track.
