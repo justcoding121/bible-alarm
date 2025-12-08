@@ -1,5 +1,5 @@
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Database;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

@@ -2,18 +2,34 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Threading.Tasks;
+using Serilog;
 
 namespace Bible.Alarm.Models.Schedule;
 
 [Serializable]
+[Table("AlarmSchedules")]
 public class AlarmSchedule : IComparable
 {
+    [Key]
     public int Id { get; set; }
 
+    [Required]
+    [MaxLength(255)]
     public string Name { get; set; } = string.Empty;
+
+    [Required]
     public bool IsEnabled { get; set; }
 
     //24 hour based
+    [Required]
+    [Range(0, 23)]
     public int Hour { get; set; }
 
     public int MeridianHour => Meridian == Meridian.Am ? Hour == 0
@@ -21,33 +37,50 @@ public class AlarmSchedule : IComparable
             : Hour :
         Hour == 12 ? 12 : Hour % 12;
 
+    [Required]
+    [Range(0, 59)]
     public int Minute { get; set; }
+
     public Meridian Meridian => Hour < 12 ? Meridian.Am : Meridian.Pm;
+
+    [Required]
+    [Range(0, 59)]
     public int Second { get; set; }
 
+    [Required]
     public DaysOfWeek DaysOfWeek { get; set; }
 
     public string TimeText => $"{MeridianHour:D2}:{Minute:D2}";
 
     public string CronExpression => GetCronExpression();
 
+    [Required]
     public bool NotificationEnabled { get; set; }
+
+    [Required]
     public bool MusicEnabled { get; set; }
-    public virtual AlarmMusic Music { get; set; }
 
-    public virtual BibleReadingSchedule BibleReadingSchedule { get; set; }
+    public virtual AlarmMusic? Music { get; set; }
 
+    public virtual BibleReadingSchedule? BibleReadingSchedule { get; set; }
+
+    [Required]
     public int SnoozeMinutes { get; set; } = 5;
 
+    [Required]
     public int NumberOfChaptersToRead { get; set; } = 3;
 
+    [Required]
     public bool AlwaysPlayFromStart { get; set; } = false;
 
     //state
+    [Required]
     public PlayType CurrentPlayItem { get; set; }
 
+    [Required]
     public long LatestAlarmNotificationId { get; set; }
-    public virtual ICollection<AlarmNotification> AlarmNotifications { get; set; }
+
+    public virtual ICollection<AlarmNotification> AlarmNotifications { get; set; } = new List<AlarmNotification>();
 
     public DateTimeOffset NextFireDate()
     {

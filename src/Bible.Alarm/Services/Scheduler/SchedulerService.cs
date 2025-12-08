@@ -3,7 +3,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Database;
+using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 

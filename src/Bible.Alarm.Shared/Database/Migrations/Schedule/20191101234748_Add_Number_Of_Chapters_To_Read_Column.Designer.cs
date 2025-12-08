@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Bible.Alarm.Database.Migrations
+namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
-    [Migration("20191101225511_Add_General_Settings_Table")]
-    partial class Add_General_Settings_Table
+    [Migration("20191101234748_Add_Number_Of_Chapters_To_Read_Column")]
+    partial class Add_Number_Of_Chapters_To_Read_Column
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -59,6 +59,8 @@ namespace Bible.Alarm.Database.Migrations
                     b.Property<bool>("MusicEnabled");
 
                     b.Property<string>("Name");
+
+                    b.Property<int>("NumberOfChaptersToRead");
 
                     b.Property<int>("Second");
 

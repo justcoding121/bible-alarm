@@ -2,7 +2,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Database;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;

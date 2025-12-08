@@ -1,4 +1,4 @@
-using Bible.Alarm.Database;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;

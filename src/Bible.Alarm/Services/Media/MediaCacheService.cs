@@ -5,7 +5,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
-using Bible.Alarm.Database;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;

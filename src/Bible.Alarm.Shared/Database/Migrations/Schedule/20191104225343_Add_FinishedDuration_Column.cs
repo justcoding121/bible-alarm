@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Bible.Alarm.Database.Migrations
+namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     public partial class Add_FinishedDuration_Column : Migration
     {

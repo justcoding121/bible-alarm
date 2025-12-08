@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Bible.Alarm.Database.Migrations
+namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     public partial class Add_General_Settings_Table : Migration
     {

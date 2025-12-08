@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Bible.Alarm.Database.Migrations
+namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
-    [Migration("20191104225343_Add_FinishedDuration_Column")]
-    partial class Add_FinishedDuration_Column
+    [Migration("20190922162956_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -46,8 +46,6 @@ namespace Bible.Alarm.Database.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
 
-                    b.Property<bool>("AlwaysPlayFromStart");
-
                     b.Property<int>("CurrentPlayItem");
 
                     b.Property<int>("DaysOfWeek");
@@ -61,8 +59,6 @@ namespace Bible.Alarm.Database.Migrations
                     b.Property<bool>("MusicEnabled");
 
                     b.Property<string>("Name");
-
-                    b.Property<int>("NumberOfChaptersToRead");
 
                     b.Property<int>("Second");
 
@@ -84,8 +80,6 @@ namespace Bible.Alarm.Database.Migrations
 
                     b.Property<int>("ChapterNumber");
 
-                    b.Property<TimeSpan>("FinishedDuration");
-
                     b.Property<string>("LanguageCode");
 
                     b.Property<string>("PublicationCode");
@@ -96,20 +90,6 @@ namespace Bible.Alarm.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("BibleReadingSchedules");
-                });
-
-            modelBuilder.Entity("Bible.Alarm.Models.GeneralSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<string>("Key");
-
-                    b.Property<string>("Value");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("GeneralSettings");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Models.AlarmMusic", b =>

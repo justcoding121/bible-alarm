@@ -1,4 +1,4 @@
-using Bible.Alarm.Database;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
