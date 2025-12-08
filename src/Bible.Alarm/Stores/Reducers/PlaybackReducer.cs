@@ -20,6 +20,8 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
+            playlist: state.Playlist,
+            currentTrackIndex: state.CurrentTrackIndex,
             // Clear error when starting new playback
             errorMessage: null);
     }
@@ -38,6 +40,8 @@ public static class PlaybackReducer
             album: null,
             artworkUrl: null,
             duration: TimeSpan.Zero,
+            playlist: null,
+            currentTrackIndex: -1,
             errorMessage: null);
     }
 
@@ -55,6 +59,8 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
+            playlist: state.Playlist,
+            currentTrackIndex: state.CurrentTrackIndex,
             errorMessage: state.ErrorMessage);
     }
 
@@ -89,6 +95,8 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
+            playlist: state.Playlist,
+            currentTrackIndex: state.CurrentTrackIndex,
             errorMessage: state.ErrorMessage);
     }
 
@@ -106,6 +114,8 @@ public static class PlaybackReducer
             album: action.Album,
             artworkUrl: action.ArtworkUrl,
             duration: state.Duration,
+            playlist: state.Playlist,
+            currentTrackIndex: state.CurrentTrackIndex,
             errorMessage: state.ErrorMessage);
     }
 
@@ -123,6 +133,8 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: action.Duration,
+            playlist: state.Playlist,
+            currentTrackIndex: state.CurrentTrackIndex,
             errorMessage: state.ErrorMessage);
     }
 
@@ -141,7 +153,28 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
+            playlist: state.Playlist,
+            currentTrackIndex: state.CurrentTrackIndex,
             errorMessage: action.ErrorMessage);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnPlaybackPlaylistChanged(PlaybackState state, PlaybackPlaylistChangedAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            duration: state.Duration,
+            playlist: action.Playlist,
+            currentTrackIndex: action.CurrentTrackIndex,
+            errorMessage: state.ErrorMessage);
     }
 }
 

@@ -50,7 +50,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
                 var toast = CreateScheduledToast(scheduleId, title, body, time);
                 notifier.AddToSchedule(toast);
-                
+
                 if (IsNotificationScheduled(notifier, scheduleId))
                 {
                     Serilog.Log.Information("Successfully scheduled notification for schedule {ScheduleId} at {Time}", scheduleId, time);
@@ -74,7 +74,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             {
                 var notifier = GetToastNotifier();
                 if (notifier is null) return Task.CompletedTask;
-                
+
                 var toRemove = FindScheduledToast(notifier, scheduleId);
                 if (toRemove is not null)
                 {
@@ -95,7 +95,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             {
                 var notifier = GetToastNotifier();
                 if (notifier is null) return Task.FromResult(false);
-                
+
                 return Task.FromResult(IsNotificationScheduled(notifier, scheduleId));
             }
             catch (Exception ex)
@@ -122,7 +122,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         private static XmlDocument CreateToastXml(string title, string body, int scheduleId)
         {
             var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
-            
+
             var textElements = toastXml.GetElementsByTagName("text");
             if (textElements.Length > 0)
             {
@@ -197,7 +197,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 // Catch any unexpected exceptions during notifier creation
                 Serilog.Log.Warning(ex, "Unexpected error creating toast notifier. Scheduled notifications will not work.");
             }
-            
+
             return null;
         }
 
@@ -237,7 +237,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             {
                 var package = Package.Current;
                 var packageId = package.Id;
-                
+
                 string[] aumidFormats =
                 [
                     $"{packageId.FamilyName}!App",
@@ -294,24 +294,11 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // IServiceProvider is a singleton, so don't dispose it
             // No event handlers to unsubscribe
         }
-    }
-    
-    public void Dispose()
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-        
-        _isDisposed = true;
-        
-        // IServiceProvider is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
     }
 }

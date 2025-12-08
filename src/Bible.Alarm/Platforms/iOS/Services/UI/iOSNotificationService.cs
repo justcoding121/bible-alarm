@@ -126,24 +126,11 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // IServiceScopeFactory is a singleton, so don't dispose it
             // No event handlers to unsubscribe
         }
-    }
-    
-    public void Dispose()
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-        
-        _isDisposed = true;
-        
-        // IServiceScopeFactory is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
     }
 }

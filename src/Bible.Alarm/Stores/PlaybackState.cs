@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
 
 namespace Bible.Alarm.Stores;
@@ -25,6 +26,10 @@ public class PlaybackState
     // Note: CurrentPosition and PreparationProgress are handled via MVVM messaging for performance (high-frequency updates)
     public TimeSpan Duration { get; init; }
     
+    // Playlist information (for CarPlay/Android Auto)
+    public List<PlaylistTrackInfo>? Playlist { get; init; }
+    public int CurrentTrackIndex { get; init; }
+    
     // Error message (shown when playback fails)
     public string? ErrorMessage { get; init; }
 
@@ -40,6 +45,8 @@ public class PlaybackState
         Album = null;
         ArtworkUrl = null;
         Duration = TimeSpan.Zero;
+        Playlist = null;
+        CurrentTrackIndex = -1;
         ErrorMessage = null;
     }
 
@@ -54,6 +61,8 @@ public class PlaybackState
         string? album = null,
         string? artworkUrl = null,
         TimeSpan duration = default,
+        List<PlaylistTrackInfo>? playlist = null,
+        int currentTrackIndex = -1,
         string? errorMessage = null)
     {
         CurrentScheduleId = currentScheduleId;
@@ -66,6 +75,8 @@ public class PlaybackState
         Album = album;
         ArtworkUrl = artworkUrl;
         Duration = duration;
+        Playlist = playlist;
+        CurrentTrackIndex = currentTrackIndex;
         ErrorMessage = errorMessage;
     }
 }

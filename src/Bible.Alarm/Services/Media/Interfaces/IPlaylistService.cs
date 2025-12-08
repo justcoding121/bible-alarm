@@ -11,7 +11,7 @@ public interface IPlaylistService : IDisposable
     Task<List<PlayItem>> NextTracks(int scheduleId);
     Task SaveLastPlayed(int currentScheduleId);
 
-    Task<int> GetRelavantScheduleToPlay();
+    Task<int> GetRelevantScheduleToPlay();
 
     Task MoveToNextBibleChapter(int scheduleId);
     Task MoveToPreviousBibleChapter(int scheduleId);

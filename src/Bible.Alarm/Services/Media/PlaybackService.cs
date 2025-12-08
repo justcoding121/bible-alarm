@@ -23,6 +23,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     private readonly IFallbackAlarmSoundService _fallbackAlarmSoundService;
     private readonly IDispatcher _dispatcher;
     private readonly INotificationService _notificationService;
+    private readonly IDisplayMetadataService _displayMetadataService;
 
     private List<AudioPlayerTrack>? _playlist;
     private int _currentTrackIndex = -1;
@@ -60,7 +61,8 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         IPlaylistService playlistService,
         IFallbackAlarmSoundService fallbackAlarmSoundService,
         IDispatcher dispatcher,
-        INotificationService notificationService
+        INotificationService notificationService,
+        IDisplayMetadataService displayMetadataService
         )
     {
         _logger = logger;
@@ -70,6 +72,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         _fallbackAlarmSoundService = fallbackAlarmSoundService;
         _dispatcher = dispatcher;
         _notificationService = notificationService;
+        _displayMetadataService = displayMetadataService;
 
         // Register for Next/Previous button press messages from Android system controls
         WeakReferenceMessenger.Default.Register<NextButtonPressedMessage>(this);
@@ -124,6 +127,9 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
             _currentTrackIndex = 0;
             _manuallyVisitedTrackIndices.Clear();
+            
+            // Dispatch playlist info to Fluxor state for CarPlay/Android Auto
+            await _preparePlaybackService.DispatchPlaylistChangedAsync(_playlist, _currentTrackIndex);
             
             await PlayCurrentTrackAsync();
             NotifyNavigationChanged();
@@ -185,6 +191,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             
             await PlayCurrentTrackAsync(startFromBeginning: startFromBeginning);
             NotifyNavigationChanged();
+            await _preparePlaybackService.DispatchPlaylistChangedAsync(_playlist, _currentTrackIndex);
         }
     }
 
@@ -204,8 +211,10 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             _manuallyVisitedTrackIndices.Add(_currentTrackIndex);
             await PlayCurrentTrackAsync(startFromBeginning: true);
             NotifyNavigationChanged();
+            await _preparePlaybackService.DispatchPlaylistChangedAsync(_playlist, _currentTrackIndex);
         }
     }
+
 
     private void NotifyNavigationChanged()
     {
@@ -363,6 +372,9 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         
         // Dispatch playback stopped action
         _dispatcher.Dispatch(new PlaybackStoppedAction());
+        
+        // Clear playlist in state using the centralized dispatch method
+        await _preparePlaybackService.DispatchPlaylistChangedAsync(null, -1);
         
         // Log reset completion for debugging
         _logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}", 
