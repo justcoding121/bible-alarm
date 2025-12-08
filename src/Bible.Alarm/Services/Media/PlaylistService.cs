@@ -31,14 +31,15 @@ public class PlaylistService(
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
-    public async Task<int> GetRelavantScheduleToPlay()
+    public async Task<int> GetRelevantScheduleToPlay()
     {
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         
-        var lastSchedule =
-            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, _cancellationTokenSource.Token);
+        // Query directly by Key - unique index ensures efficient lookup
+        var lastSchedule = await scheduleDbContext.GeneralSettings
+            .FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, _cancellationTokenSource.Token);
 
         AlarmSchedule schedule = null;
 
@@ -62,8 +63,9 @@ public class PlaylistService(
         using var scope = _scopeFactory.CreateScope();
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         
-        var lastSchedule =
-            await scheduleDbContext.GeneralSettings.FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, _cancellationTokenSource.Token);
+        // Query directly by Key - unique index ensures efficient lookup
+        var lastSchedule = await scheduleDbContext.GeneralSettings
+            .FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, _cancellationTokenSource.Token);
 
         if (lastSchedule == null)
         {
