@@ -3,23 +3,19 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Database;
-using Microsoft.EntityFrameworkCore;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Scheduler;
 
 public class SchedulerService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory,
+    IAlarmScheduleService alarmScheduleService,
     IMediaCacheService mediaCacheService,
     IAlarmService alarmService,
     INotificationService notificationService,
-    IStorageService storageService)
-    : ISchedulerService, IDisposable
+    IStorageService storageService) : ISchedulerService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
     private static readonly SemaphoreSlim Lock = new(1);
@@ -41,12 +37,10 @@ public class SchedulerService(
                 }
                 catch (Exception e)
                 {
-                    _logger.Error(e, "An error happenned inside cleanup task.");
+                    logger.Error(e, "An error happenned inside cleanup task.");
                 }
 
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                var schedules = await scheduleDbContext.AlarmSchedules.Where(x => x.IsEnabled).ToListAsync(_cancellationTokenSource.Token);
+                var schedules = await alarmScheduleService.GetSchedulesAsync(x => x.IsEnabled, includeMusic: false, includeBibleReading: false, _cancellationTokenSource.Token);
                 foreach (var schedule in schedules)
                     if (!await notificationService.IsScheduledAsync(schedule.Id))
                     {
@@ -60,7 +54,7 @@ public class SchedulerService(
             }
             catch (Exception e)
             {
-                _logger.Error(e, $"Failed to process scheduler task. Db directory: {storageService.CacheRoot}");
+                logger.Error(e, $"Failed to process scheduler task. Db directory: {storageService.CacheRoot}");
             }
             finally
             {
@@ -70,7 +64,7 @@ public class SchedulerService(
                 }
                 catch (ObjectDisposedException e)
                 {
-                    _logger.Error(e, "SchedulerService: @lock disposed error.");
+                    logger.Error(e, "SchedulerService: @lock disposed error.");
                 }
             }
 
@@ -85,16 +79,8 @@ public class SchedulerService(
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-            var alarmService = scope.ServiceProvider.GetRequiredService<IAlarmService>();
-            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-
             // Load the schedule with all includes
-            var schedule = await scheduleDbContext.AlarmSchedules
-                .Include(x => x.BibleReadingSchedule)
-                .Include(x => x.Music)
-                .FirstOrDefaultAsync(x => x.Id == scheduleId);
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, includeMusic: true, includeBibleReading: true);
 
             if (schedule != null && schedule.IsEnabled)
             {
@@ -104,18 +90,18 @@ public class SchedulerService(
                 {
                     // Reschedule the next occurrence
                     await alarmService.Create(schedule);
-                    _logger.Information("Rescheduled next occurrence for schedule {ScheduleId}", scheduleId);
+                    logger.Information("Rescheduled next occurrence for schedule {ScheduleId}", scheduleId);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error rescheduling next occurrence for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, "Error rescheduling next occurrence for schedule {ScheduleId}", scheduleId);
         }
     }
 
     private bool _isDisposed;
-    
+
     public void Dispose()
     {
         if (_isDisposed)
@@ -134,7 +120,7 @@ public class SchedulerService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
         
         // Dispose static semaphore
@@ -145,11 +131,10 @@ public class SchedulerService(
         catch (Exception ex)
         {
             // Ignore if already disposed
-            _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+            logger.Warning(ex, "Error disposing semaphore, may already be disposed");
         }
         
-        // Note: DbContext is now created via IServiceScopeFactory and disposed by the scope
-        // mediaCacheService, alarmService, notificationService, storageService, and IServiceScopeFactory are singletons
+        // Note: alarmScheduleService, mediaCacheService, alarmService, notificationService, and storageService are singletons
         // and should not be disposed here as they are managed by the DI container
     }
 }

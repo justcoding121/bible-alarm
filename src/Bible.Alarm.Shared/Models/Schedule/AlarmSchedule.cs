@@ -140,6 +140,7 @@ public class AlarmSchedule : IComparable
         var startTime = DateTime.UtcNow;
         Serilog.Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
         
+        // Create sample schedule disabled by default - user must explicitly enable it
         var sample = new AlarmSchedule
         {
             IsEnabled = false,

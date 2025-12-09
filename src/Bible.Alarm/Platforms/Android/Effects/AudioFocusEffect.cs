@@ -13,15 +13,10 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 /// Requests audio focus when playback starts (Playing) and releases it when playback stops (Stopped/Ended).
 /// This is global and not specific to Android Auto.
 /// </summary>
-public class AudioFocusEffect
+public class AudioFocusEffect(AudioFocusService audioFocusService)
 {
     private static readonly ILogger Logger = Log.ForContext<AudioFocusEffect>();
-    private readonly AudioFocusService _audioFocusService;
-
-    public AudioFocusEffect(AudioFocusService audioFocusService)
-    {
-        _audioFocusService = audioFocusService ?? throw new ArgumentNullException(nameof(audioFocusService));
-    }
+    private readonly AudioFocusService _audioFocusService = audioFocusService ?? throw new ArgumentNullException(nameof(audioFocusService));
 
     [EffectMethod]
     public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)

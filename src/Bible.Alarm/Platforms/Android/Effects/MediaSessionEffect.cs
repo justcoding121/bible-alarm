@@ -12,15 +12,9 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 /// This ensures that Android Auto receives the correct playback state and can route audio properly.
 /// Audio focus management is handled by MediaSessionManager.
 /// </summary>
-public class MediaSessionEffect
+public class MediaSessionEffect(MediaSessionManager mediaSessionManager)
 {
     private static readonly ILogger Logger = Log.ForContext<MediaSessionEffect>();
-    private readonly MediaSessionManager _mediaSessionManager;
-
-    public MediaSessionEffect(MediaSessionManager mediaSessionManager)
-    {
-        _mediaSessionManager = mediaSessionManager;
-    }
 
     [EffectMethod]
     public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)
@@ -28,7 +22,7 @@ public class MediaSessionEffect
         try
         {
             // Ensure MediaSession is created before accessing
-            var session = _mediaSessionManager.GetOrCreate();
+            var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
                 Logger.Warning("MediaSessionCompat is null, cannot update playback state");
@@ -36,7 +30,7 @@ public class MediaSessionEffect
             }
 
             // SetPlaybackStatus handles active state and audio focus automatically
-            _mediaSessionManager.SetPlaybackStatus(action.Status);
+            mediaSessionManager.SetPlaybackStatus(action.Status);
         }
         catch (Exception ex)
         {
@@ -52,7 +46,7 @@ public class MediaSessionEffect
         try
         {
             // Ensure MediaSession is created before accessing
-            var session = _mediaSessionManager.GetOrCreate();
+            var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
                 Logger.Warning("MediaSessionCompat is null, cannot update metadata");
@@ -61,7 +55,7 @@ public class MediaSessionEffect
 
             if (!string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist))
             {
-                _mediaSessionManager.UpdateMetadata(
+                mediaSessionManager.UpdateMetadata(
                     action.Title ?? "",
                     action.Artist ?? "",
                     action.Album);

@@ -10,16 +10,10 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// Callback handler for MediaSessionCompat commands from Android Auto.
 /// This handles play, pause, next, previous, and other media button events.
 /// </summary>
-public class MediaSessionCallback : MediaSessionCompat.Callback
+public class MediaSessionCallback(IPlaybackService playbackService, ILogger logger) : MediaSessionCompat.Callback
 {
-    private readonly IPlaybackService _playbackService;
-    private readonly ILogger _logger;
-
-    public MediaSessionCallback(IPlaybackService playbackService, ILogger logger)
-    {
-        _playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly IPlaybackService _playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public override void OnPlay()
     {

@@ -1,9 +1,12 @@
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -16,7 +19,8 @@ public class SchedulePersistenceService(
     IServiceScopeFactory scopeFactory,
     IAlarmService alarmService,
     IDispatcher dispatcher,
-    IMediaCacheService mediaCacheService)
+    IMediaCacheService mediaCacheService,
+    IAlarmScheduleService alarmScheduleService)
     : ISchedulePersistenceService, IDisposable
 {
     private readonly ILogger _logger = logger;
@@ -24,6 +28,7 @@ public class SchedulePersistenceService(
     private readonly IAlarmService _alarmService = alarmService;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IMediaCacheService _mediaCacheService = mediaCacheService;
+    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
@@ -146,6 +151,19 @@ public class SchedulePersistenceService(
     {
         try
         {
+            // Check if this is the last schedule - prevent deletion if it is
+            var allSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
+                includeMusic: false, 
+                includeBibleReading: false, 
+                _cancellationTokenSource.Token);
+            
+            if (allSchedules.Count <= 1)
+            {
+                _logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule in the database", scheduleId);
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
+                return;
+            }
+
             // Load the schedule BEFORE deleting it, so we can dispatch the action
             AlarmSchedule scheduleToRemove = null;
             using (var scope = _scopeFactory.CreateScope())

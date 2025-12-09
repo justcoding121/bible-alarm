@@ -1,8 +1,6 @@
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -25,22 +23,17 @@ public class DatabaseSeedService(
         var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        if (!await scheduleDbContext.AlarmSchedules.AnyAsync(_cancellationTokenSource.Token)
-            && !await scheduleDbContext.GeneralSettings.AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.AlarmSeeded, _cancellationTokenSource.Token)
-            //for existing apps before version 1.30
-            && !await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == AppConstants.GeneralSettingsKeys.AndroidBatteryOptimizationExclusionPromptShown, _cancellationTokenSource.Token))
+        // Seed if schedules are empty
+        if (!await scheduleDbContext.AlarmSchedules.AnyAsync(_cancellationTokenSource.Token))
         {
+            // Create sample schedule with IsEnabled = false (disabled by default)
             var schedule = await AlarmSchedule.GetSampleSchedule(false, mediaDbContext);
 
             await scheduleDbContext.AlarmSchedules.AddAsync(schedule, _cancellationTokenSource.Token);
-            await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
-            {
-                Key = AppConstants.GeneralSettingsKeys.AlarmSeeded,
-                Value = "True"
-            }, _cancellationTokenSource.Token);
-
             await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
+            
+            _logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}", 
+                schedule.Id, schedule.Name);
         }
     }
     

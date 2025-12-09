@@ -10,6 +10,8 @@ using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Services;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Battery;
 using Bible.Alarm.Services.Database;
@@ -117,6 +119,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<ISchedulePlaybackService, SchedulePlaybackService>();
         services.AddSingleton<IScheduleDisplayService, ScheduleDisplayService>();
         services.AddSingleton<ISchedulePersistenceService, SchedulePersistenceService>();
+        services.AddSingleton<IDefaultScheduleService, DefaultScheduleService>();
+        services.AddSingleton<IAlarmScheduleService, AlarmScheduleService>();
         services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
