@@ -109,18 +109,21 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             // This ensures the modal is visible when we show error messages or play fallback
             _dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
             
-            _playlist = await _preparePlaybackService.PrepareTracksAsync(scheduleId);
+            // Run track preparation (including downloads) on background thread to avoid blocking main thread
+            // This ensures UI remains responsive during download/preparation phase
+            _logger.Debug("Starting track preparation on background thread for schedule {ScheduleId}", scheduleId);
+            _playlist = await Task.Run(async () => await _preparePlaybackService.PrepareTracksAsync(scheduleId));
 
             if (_playlist is null)
             {
-                _logger.Warning($"Failed to prepare tracks for schedule {scheduleId}");
+                _logger.Warning("Failed to prepare tracks for schedule {ScheduleId}", scheduleId);
                 await HandlePlaybackFailureAsync();
                 return;
             }
 
             if (_playlist.Count == 0)
             {
-                _logger.Warning($"No tracks prepared for schedule {scheduleId}");
+                _logger.Warning("No tracks prepared for schedule {ScheduleId}", scheduleId);
                 await ResetAsync();
                 return;
             }
@@ -131,12 +134,13 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             // Dispatch playlist info to Fluxor state for CarPlay/Android Auto
             await _preparePlaybackService.DispatchPlaylistChangedAsync(_playlist, _currentTrackIndex);
             
+            // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
             await PlayCurrentTrackAsync();
             NotifyNavigationChanged();
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, $"Error preparing and playing schedule {scheduleId}");
+            _logger.Error(ex, "Error preparing and playing schedule {ScheduleId}", scheduleId);
             await ResetAsync();
             throw;
         }
