@@ -23,8 +23,9 @@ public interface INavigationService : IDisposable
     /// <summary>
     /// Gets the BootstrapPage from the navigation stack.
     /// </summary>
+    /// <param name="shouldRetry">If true, retries indefinitely until navigation is available. If false, returns null immediately if navigation is not available.</param>
     /// <returns>The BootstrapPage instance, or null if not found</returns>
-    Views.General.BootstrapPage? GetBootstrapPage();
+    Views.General.BootstrapPage? GetBootstrapPage(bool shouldRetry = true);
     
     /// <summary>
     /// Pops all modals and pages from the navigation stack, disposing them if they implement IDisposable.

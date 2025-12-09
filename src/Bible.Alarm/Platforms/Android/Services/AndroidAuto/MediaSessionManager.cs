@@ -27,6 +27,7 @@ public sealed class MediaSessionManager
 
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
+        Logger.Debug("MediaSessionManager constructor called with serviceProvider: {ServiceProvider}", serviceProvider != null ? "provided" : "null");
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
    
@@ -37,6 +38,7 @@ public sealed class MediaSessionManager
     /// </summary>
     public MediaSessionCompat GetOrCreate(bool isConnect = false)
     {
+        Logger.Debug("GetOrCreate called with isConnect: {IsConnect}", isConnect);
         // Fast path: if already created, return it
         if (_mediaSession == null)
         {
@@ -90,6 +92,7 @@ public sealed class MediaSessionManager
             }
         }
 
+        Logger.Debug("GetOrCreate returning existing MediaSessionCompat instance");
         return _mediaSession;
     }
 
@@ -99,6 +102,7 @@ public sealed class MediaSessionManager
     /// </summary>
     public void UpdatePlaybackState(int state, long position = 0)
     {
+        Logger.Debug("UpdatePlaybackState called with state: {State}, position: {Position}", state, position);
         var builder = new PlaybackStateCompat.Builder()
             .SetActions(PlaybackStateCompat.ActionPlay |
                         PlaybackStateCompat.ActionPause |
@@ -109,6 +113,7 @@ public sealed class MediaSessionManager
             .SetState(state, position, 1.0f);
 
         _mediaSession?.SetPlaybackState(builder.Build());
+        Logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}", state, position);
     }
 
     /// <summary>
@@ -116,6 +121,7 @@ public sealed class MediaSessionManager
     /// </summary>
     public void UpdateMetadata(string title, string artist, string? album = null)
     {
+        Logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}", title, artist, album ?? "null");
         var metadata = new MediaMetadataCompat.Builder()
             .PutString(MediaMetadataCompat.MetadataKeyTitle, title)
             .PutString(MediaMetadataCompat.MetadataKeyArtist, artist)
@@ -123,6 +129,7 @@ public sealed class MediaSessionManager
             .Build();
 
         _mediaSession?.SetMetadata(metadata);
+        Logger.Debug("UpdateMetadata completed for title: {Title}, artist: {Artist}", title, artist);
     }
 
     /// <summary>
@@ -131,7 +138,9 @@ public sealed class MediaSessionManager
     /// </summary>
     public void ClearMetadata()
     {
+        Logger.Debug("ClearMetadata called");
         _mediaSession?.SetMetadata(null);
+        Logger.Debug("ClearMetadata completed");
     }
 
     /// <summary>
@@ -140,6 +149,7 @@ public sealed class MediaSessionManager
     /// </summary>
     public void UpdatePlaybackStateForStop()
     {
+        Logger.Debug("UpdatePlaybackStateForStop called");
         var builder = new PlaybackStateCompat.Builder()
             .SetActions(PlaybackStateCompat.ActionPlay) // Only allow Play action when stopped
             .SetState(
@@ -150,6 +160,7 @@ public sealed class MediaSessionManager
             );
 
         _mediaSession?.SetPlaybackState(builder.Build());
+        Logger.Debug("UpdatePlaybackStateForStop completed");
     }
 
     /// <summary>
@@ -157,6 +168,7 @@ public sealed class MediaSessionManager
     /// </summary>
     public void SetPlaybackStatus(PlayStatus status)
     {
+        Logger.Debug("SetPlaybackStatus called with status: {Status}", status);
         if (_mediaSession == null)
         {
             Logger.Warning("MediaSessionCompat is null, cannot set playback status. Call GetOrCreate() first.");
@@ -199,6 +211,7 @@ public sealed class MediaSessionManager
         }
 
         Logger.Debug("MediaSessionCompat playback status updated to: {Status} (State: {State})", status, state);
+        Logger.Debug("SetPlaybackStatus completed for status: {Status}", status);
     }
 
     internal void SetActive(bool active)
@@ -216,6 +229,15 @@ public sealed class MediaSessionManager
     /// Gets the SessionToken from the shared MediaSessionCompat.
     /// This token is used by both Legacy and Modern Android Auto services.
     /// </summary>
-    public MediaSessionCompat.Token Token => _mediaSession!.SessionToken;
+    public MediaSessionCompat.Token Token
+    {
+        get
+        {
+            Logger.Debug("Token property accessed");
+            var token = _mediaSession!.SessionToken;
+            Logger.Debug("Token property returning token: {Token}", token != null ? "available" : "null");
+            return token;
+        }
+    }
 }
 

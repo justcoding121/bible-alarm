@@ -1,7 +1,9 @@
 using Bible.Alarm.Common;
+using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Serilog;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
@@ -10,6 +12,7 @@ namespace Bible.Alarm.Views.General;
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class BootstrapPage : ContentPage, IDisposable
 {
+    private static readonly ILogger Logger = Log.ForContext<BootstrapPage>();
     private bool _isDisposed;
     private readonly Timer _animationTimer;
     private int _currentDot;
@@ -73,6 +76,24 @@ public partial class BootstrapPage : ContentPage, IDisposable
             case 2:
                 Dot3.Opacity = 1.0;
                 break;
+        }
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        
+        // Reattach MediaElement to container when BootstrapPage becomes available
+        // This handles the case where MediaElement was created while app was backgrounded
+        try
+        {
+            var mediaElementService = ServiceProviderManager.GetService<IMediaElementService>();
+            mediaElementService.ReattachMediaElementIfNeeded();
+        }
+        catch (Exception ex)
+        {
+            // Service might not be available yet - that's okay, will retry on next GetMediaElement call
+            Logger.Warning(ex, "Failed to reattach MediaElement in BootstrapPage.OnAppearing - will retry on next GetMediaElement call");
         }
     }
 

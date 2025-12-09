@@ -46,11 +46,17 @@ public class NavigationService(
             });
 
 
-    private INavigation GetNavigation()
+    private INavigation GetNavigation(bool shouldRetry = true)
     {
         if (_cachedNavigation is not null)
         {
             return _cachedNavigation;
+        }
+
+        if (!shouldRetry)
+        {
+            // Try once without retry - throw immediately if navigation is not available
+            return NavigationFinder();
         }
 
         var retryPolicy = CreateNavigationRetryPolicy();
@@ -355,11 +361,11 @@ public class NavigationService(
         await navigation.PushAsync(page, animated: true);
     }
 
-    public BootstrapPage? GetBootstrapPage()
+    public BootstrapPage? GetBootstrapPage(bool shouldRetry = true)
     {
         try
         {
-            var navigation = GetNavigation();
+            var navigation = GetNavigation(shouldRetry);
             var navStack = navigation.NavigationStack;
             foreach (var page in navStack)
             {
