@@ -163,6 +163,7 @@ public static class ServiceRegistrationHelper
         // Register global audio focus listener and service as singletons
         services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusListener>();
         services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusService>();
+        // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
         services.AddSingleton<Platforms.Android.Services.AndroidAuto.MediaSessionManager>();
         services.AddTransient<Platforms.Android.Services.AndroidAuto.ModernMediaSession>(sp =>
             new Platforms.Android.Services.AndroidAuto.ModernMediaSession(

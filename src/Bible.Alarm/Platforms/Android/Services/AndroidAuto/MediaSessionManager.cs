@@ -4,9 +4,11 @@ using Android.Content;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -21,6 +23,12 @@ public sealed class MediaSessionManager
     private MediaSessionCompat? _mediaSession;
     private readonly object _lock = new();
     private static readonly ILogger Logger = Log.ForContext<MediaSessionManager>();
+    private readonly IServiceProvider _serviceProvider;
+
+    public MediaSessionManager(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+    }
    
     /// <summary>
     /// Gets or creates the shared MediaSessionCompat instance.
@@ -59,7 +67,11 @@ public sealed class MediaSessionManager
                         MediaSessionCompat.FlagHandlesMediaButtons |
                         MediaSessionCompat.FlagHandlesTransportControls);
 
-                    _mediaSession.SetCallback(new MediaSessionCallback());
+                    // Create MediaSessionCallback lazily to avoid startup dependency resolution issues
+                    var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
+                    var logger = _serviceProvider.GetRequiredService<ILogger>();
+                    var mediaSessionCallback = new MediaSessionCallback(playbackService, logger);
+                    _mediaSession.SetCallback(mediaSessionCallback);
 
                     // Start with stopped state — prevents auto-play on bind
                     // The effect will update this when it receives playback status changes
