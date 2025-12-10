@@ -98,7 +98,11 @@ public class ScheduleListItem(
         {
             if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(Schedule.Id))
             {
-                await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
+                // Run database operations off UI thread
+                await Task.Run(async () =>
+                {
+                    await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
+                });
                 await RefreshChapterNameAsync(true);
             }
         });
@@ -107,7 +111,11 @@ public class ScheduleListItem(
         {
             if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(Schedule.Id))
             {
-                await playlistService.MoveToNextBibleChapter(Schedule.Id);
+                // Run database operations off UI thread
+                await Task.Run(async () =>
+                {
+                    await playlistService.MoveToNextBibleChapter(Schedule.Id);
+                });
                 await RefreshChapterNameAsync(true);
             }
         });
@@ -116,7 +124,9 @@ public class ScheduleListItem(
         {
             if (Schedule?.Id > 0)
             {
-                await schedulePersistenceService.DeleteScheduleAsync(Schedule.Id);
+                // Run database operations off UI thread
+                await Task.Run(async () =>
+                    await schedulePersistenceService.DeleteScheduleAsync(Schedule.Id));
             }
         });
     }
@@ -227,12 +237,18 @@ public class ScheduleListItem(
 
         try
         {
-            var displayName = await displayService.GetChapterDisplayNameAsync(scheduleId, force);
+            // Run database operations off UI thread
+            var displayName = await Task.Run(async () =>
+                await displayService.GetChapterDisplayNameAsync(scheduleId, force));
             
             if (!string.IsNullOrEmpty(displayName))
             {
-                SubTitle = displayName;
-                OnPropertyChanged(nameof(SubTitle));
+                // Update UI on main thread
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    SubTitle = displayName;
+                    OnPropertyChanged(nameof(SubTitle));
+                });
             }
         }
         catch (Exception e)

@@ -13,14 +13,18 @@ public static class CommonBootstrapHelper
     private static readonly SemaphoreSlim Lock = new(1);
     public static async Task VerifyServices(bool initializeUI = false)
     {
-        await Lock.WaitAsync().ConfigureAwait(false);
+        await Lock.WaitAsync();
 
         try
         {
-            var task1 = VerifyMediaLookUpService();
-            var task2 = InitializeDatabase();
+            // Run database and IO operations off UI thread
+            await Task.Run(async () =>
+            {
+                var task1 = VerifyMediaLookUpService();
+                var task2 = InitializeDatabase();
 
-            await Task.WhenAll(task1, task2).ConfigureAwait(false);
+                await Task.WhenAll(task1, task2);
+            });
         }
         catch (Exception ex)
         {
@@ -45,7 +49,7 @@ public static class CommonBootstrapHelper
     private static async Task VerifyMediaLookUpService()
     {
         var service = ServiceProviderManager.GetService<IMediaIndexService>();
-        await service.Verify().ConfigureAwait(false);
+        await service.Verify();
     }
 
     private static async Task InitializeDatabase()
@@ -57,12 +61,12 @@ public static class CommonBootstrapHelper
         
         // Migrate Schedule database (always safe - app owns this DB)
         var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        await scheduleDb.Database.MigrateAsync().ConfigureAwait(false);
+        await scheduleDb.Database.MigrateAsync();
         
         // Migrate Media database if it exists and is from a previous app version
         // Note: App is packaged with latest media index database, so this primarily
         // handles users upgrading from previous app versions
         var mediaMigrationService = ServiceProviderManager.GetService<IMediaMigrationService>();
-        await mediaMigrationService.MigrateIfNeededAsync().ConfigureAwait(false);
+        await mediaMigrationService.MigrateIfNeededAsync();
     }
 }

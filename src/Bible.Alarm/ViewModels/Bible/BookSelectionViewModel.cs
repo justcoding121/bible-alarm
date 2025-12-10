@@ -163,7 +163,9 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     {
         _bookVMsMapping.Clear();
 
-        var books = await _mediaService.GetBibleBooks(languageCode, publicationCode);
+        // Run database operations off UI thread
+        var books = await Task.Run(async () =>
+            await _mediaService.GetBibleBooks(languageCode, publicationCode));
         var bookVMs = new ObservableCollection<BibleBookListViewItemModel>();
 
         foreach (var book in books.Select(x => x.Value))

@@ -148,8 +148,8 @@
                                                     Padding="0"
                                                     Text="{x:Static fn:GlyphNames.Repeat}"
                                                     TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"
-                                                    VerticalOptions="Center"
-                                                    HorizontalOptions="Center" />
+                                                    VerticalOptions="Fill"
+                                                    HorizontalOptions="Fill" />
                                             </Border>
                                             <Border
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -172,8 +172,8 @@
                                                     Padding="0"
                                                     Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
                                                     TextColor="{DynamicResource TextSecondaryColor}"
-                                                    VerticalOptions="Center"
-                                                    HorizontalOptions="Center" />
+                                                    VerticalOptions="Fill"
+                                                    HorizontalOptions="Fill" />
                                             </Border>
                                         </HorizontalStackLayout>
                                     </Grid>

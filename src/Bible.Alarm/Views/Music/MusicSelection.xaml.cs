@@ -7,6 +7,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly MusicSelectionViewModel _viewModel;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isClearingSelection;
 
     public MusicSelectionViewModel ViewModel => BindingContext as MusicSelectionViewModel;
@@ -53,11 +54,11 @@ public partial class MusicSelection : BaseContentPage, IDisposable
         // Just wait a moment for CollectionView to render, then scroll
         if (ViewModel != null)
         {
-            await Task.Delay(200);
+            await Task.Delay(200, _cancellationTokenSource.Token);
             
             if (ViewModel.SelectedMusicType != null && musicTypesCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false, cancellationToken: _cancellationTokenSource.Token);
             }
         }
     }
@@ -72,6 +73,18 @@ public partial class MusicSelection : BaseContentPage, IDisposable
     {
         if (!_isDisposed)
         {
+            // Cancel and dispose cancellation token source
+            try
+            {
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore errors during cancellation/disposal
+                Serilog.Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+            }
+            
             // ViewModel was injected via constructor, so dispose it
             if (_viewModel is IDisposable disposable)
             {

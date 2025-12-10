@@ -315,10 +315,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     {
         var isVocal = languageCode != null;
 
-        var tracks = isVocal
+        // Run database operations off UI thread
+        var tracks = await Task.Run(async () => isVocal
             ? await _mediaService.GetVocalMusicTracks(languageCode, publicationCode)
             : await _mediaService.GetMelodyMusicTracks(
-                (await _mediaService.GetMelodyMusicReleases()).FirstOrDefault().Value?.Code ?? "iam");
+                (await _mediaService.GetMelodyMusicReleases()).FirstOrDefault().Value?.Code ?? "iam"));
 
         // Build the list of track view models
         var trackViewModelList = new List<MusicTrackListViewItemModel>();

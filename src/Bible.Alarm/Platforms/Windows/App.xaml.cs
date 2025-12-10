@@ -36,7 +36,21 @@ namespace Bible.Alarm.WinUI
 
         private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            Logger.Error("Unhandled exception.", e.SerializeObject());
+            var exception = e.ExceptionObject as Exception;
+            if (exception != null)
+            {
+                Logger.Fatal(exception, "Unhandled exception occurred. IsTerminating: {IsTerminating}", e.IsTerminating);
+            }
+            else
+            {
+                Logger.Fatal("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}", 
+                    e.ExceptionObject, e.IsTerminating);
+            }
+            
+            // Note: In WinUI 3, we cannot prevent app termination for unhandled exceptions.
+            // The app will restart when you click "Continue" in Visual Studio debugger
+            // because the exception is still unhandled. To prevent crashes, ensure all
+            // exceptions are caught and handled appropriately in their respective try-catch blocks.
         }
 
         protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore();

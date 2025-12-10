@@ -282,7 +282,9 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     private async Task PopulateChapters(string languageCode, string publicationCode, int bookNumber)
     {
-        var chapters = await _mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
+        // Run database operations off UI thread
+        var chapters = await Task.Run(async () =>
+            await _mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber));
 
         // Build the list of chapter view models
         var chapterViewModelList = new List<BibleChapterListViewItemModel>();

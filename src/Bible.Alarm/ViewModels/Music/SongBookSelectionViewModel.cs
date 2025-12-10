@@ -248,7 +248,9 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private async Task PopulateLanguages(string? searchTerm = null)
     {
-        var languages = await _mediaService.GetVocalMusicLanguages();
+        // Run database operations off UI thread
+        var languages = await Task.Run(async () =>
+            await _mediaService.GetVocalMusicLanguages());
         var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
 
         // Trim the search term before using it
@@ -281,7 +283,9 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     {
         _songBookVMsMapping.Clear();
 
-        var songBooks = await _mediaService.GetVocalMusicReleases(languageCode);
+        // Run database operations off UI thread
+        var songBooks = await Task.Run(async () =>
+            await _mediaService.GetVocalMusicReleases(languageCode));
         var songBookVMs = new ObservableCollection<PublicationListViewItemModel>();
 
         foreach (var release in songBooks.Select(x => x.Value))

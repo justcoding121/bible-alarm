@@ -52,7 +52,7 @@ public class MediaMigrationService(
                 _logger.Information(
                     "Media database from previous app version has {Count} pending migrations, applying...", 
                     pendingMigrations.Count());
-                await mediaDb.Database.MigrateAsync().ConfigureAwait(false);
+                await mediaDb.Database.MigrateAsync();
                 _logger.Information("Media database migration completed successfully");
                 return;
             }

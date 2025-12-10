@@ -57,11 +57,11 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
             
             // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200);
+            await Task.Delay(200, _cancellationTokenSource.Token);
             
             if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, cancellationToken: _cancellationTokenSource.Token);
             }
         }
     }

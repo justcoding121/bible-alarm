@@ -8,6 +8,7 @@ namespace Bible.Alarm.Views.Schedule;
 public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isClearingSelection;
 
     public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
@@ -50,7 +51,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         
         if (ViewModel?.CurrentNumberOfChapters != null && ChaptersCollectionView != null)
         {
-            await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters);
+            await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, cancellationToken: _cancellationTokenSource.Token);
         }
     }
 
@@ -58,6 +59,18 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     {
         if (!_isDisposed)
         {
+            // Cancel and dispose cancellation token source
+            try
+            {
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore errors during cancellation/disposal
+                Serilog.Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+            }
+            
             // This modal uses parent page view model, so do NOT dispose it
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;

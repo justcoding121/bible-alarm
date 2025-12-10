@@ -37,11 +37,11 @@ public partial class BookSelection : BaseContentPage, IDisposable
             await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
             
             // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200);
+            await Task.Delay(200, _cancellationTokenSource.Token);
             
             if (ViewModel.SelectedBook != null && bookCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook, cancellationToken: _cancellationTokenSource.Token);
             }
         }
     }

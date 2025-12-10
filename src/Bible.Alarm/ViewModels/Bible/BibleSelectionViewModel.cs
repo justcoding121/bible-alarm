@@ -242,7 +242,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
     private async Task PopulateLanguages(string? searchTerm = null)
     {
-        var languages = await _mediaService.GetBibleLanguages();
+        // Run database operations off UI thread
+        var languages = await Task.Run(async () =>
+            await _mediaService.GetBibleLanguages());
         var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
 
         // Trim the search term before using it
@@ -275,7 +277,9 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
     {
         _translationVMsMapping.Clear();
 
-        var translations = await _mediaService.GetBibleTranslations(languageCode);
+        // Run database operations off UI thread
+        var translations = await Task.Run(async () =>
+            await _mediaService.GetBibleTranslations(languageCode));
         var translationVMs = new ObservableCollection<PublicationListViewItemModel>();
 
         foreach (var translation in translations.Select(x => x.Value))

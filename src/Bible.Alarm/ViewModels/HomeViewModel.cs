@@ -125,20 +125,28 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             if (!_initialized)
             {
-                await _databaseSeedService.SeedDefaultAlarmAsync();
-                await _scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
+                // Run database operations off UI thread
+                await Task.Run(async () =>
+                {
+                    await _databaseSeedService.SeedDefaultAlarmAsync();
+                    await _scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
 
-                var alarmSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
-                    includeMusic: true,
-                    includeBibleReading: true);
+                    var alarmSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
+                        includeMusic: true,
+                        includeBibleReading: true);
 
-                var initialSchedules = new ObservableHashSet<AlarmSchedule>();
-                foreach (var schedule in alarmSchedules)
-                    initialSchedules.Add(schedule);
+                    var initialSchedules = new ObservableHashSet<AlarmSchedule>();
+                    foreach (var schedule in alarmSchedules)
+                        initialSchedules.Add(schedule);
 
-                _dispatcher.Dispatch(new InitializeAction(initialSchedules));
+                    // Dispatch action on main thread
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        _dispatcher.Dispatch(new InitializeAction(initialSchedules));
+                    });
 
-                _initialized = true;
+                    _initialized = true;
+                });
             }
         }
         catch (Exception e)

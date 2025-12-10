@@ -38,11 +38,11 @@ public partial class TrackSelection : BaseContentPage, IDisposable
             await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
             
             // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200);
+            await Task.Delay(200, _cancellationTokenSource.Token);
             
             if (ViewModel.SelectedTrack != null && trackCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack, cancellationToken: _cancellationTokenSource.Token);
             }
         }
     }

@@ -141,12 +141,12 @@
                                                     Command="{Binding TogglePlayCommand}"
                                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                     FontSize="16"
-                                                    HorizontalOptions="Center"
+                                                    HorizontalOptions="Fill"
                                                     MinimumWidthRequest="36"
                                                     Padding="0"
                                                     Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
                                                     TextColor="{DynamicResource TextSecondaryColor}"
-                                                    VerticalOptions="Center" />
+                                                    VerticalOptions="Fill" />
                                             </Border>
                                         </HorizontalStackLayout>
                                     </Grid>

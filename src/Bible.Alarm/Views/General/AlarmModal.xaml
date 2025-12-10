@@ -280,10 +280,10 @@
                             Command="{Binding DismissCommand}"
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                             FontSize="20"
-                            HorizontalOptions="Center"
+                            HorizontalOptions="Fill"
                             Text="{x:Static fn:GlyphNames.Stop}"
                             TextColor="White"
-                            VerticalOptions="Center" />
+                            VerticalOptions="Fill" />
                     </Border>
                     
                     <!-- Progress Bar Row -->
@@ -360,10 +360,10 @@
                                 Command="{Binding PreviousCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="20"
-                                HorizontalOptions="Center"
+                                HorizontalOptions="Fill"
                                 IsEnabled="{Binding PreviousEnabled}"
                                 Text="{x:Static fn:GlyphNames.Previous}"
-                                VerticalOptions="Center">
+                                VerticalOptions="Fill">
                                 <Button.Triggers>
                                     <Trigger TargetType="Button" Property="IsEnabled" Value="False">
                                         <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
@@ -395,10 +395,10 @@
                                 Command="{Binding BackwardCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="18"
-                                HorizontalOptions="Center"
+                                HorizontalOptions="Fill"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Backward}"
-                                VerticalOptions="Center">
+                                VerticalOptions="Fill">
                                 <Button.Triggers>
                                     <Trigger TargetType="Button" Property="IsEnabled" Value="False">
                                         <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
@@ -437,11 +437,11 @@
                                     Command="{Binding PlayCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                     FontSize="28"
-                                    HorizontalOptions="Center"
+                                    HorizontalOptions="Fill"
                                     IsEnabled="{Binding AreControlsEnabled}"
                                     IsVisible="{Binding PlayVisible}"
                                     Text="{x:Static fn:GlyphNames.Play}"
-                                    VerticalOptions="Center">
+                                    VerticalOptions="Fill">
                                     <Button.Triggers>
                                         <Trigger TargetType="Button" Property="IsEnabled" Value="False">
                                             <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
@@ -459,11 +459,11 @@
                                     Command="{Binding PauseCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                     FontSize="28"
-                                    HorizontalOptions="Center"
+                                    HorizontalOptions="Fill"
                                     IsEnabled="{Binding AreControlsEnabled}"
                                     IsVisible="{Binding PauseVisible}"
                                     Text="{x:Static fn:GlyphNames.Pause}"
-                                    VerticalOptions="Center">
+                                    VerticalOptions="Fill">
                                     <Button.Triggers>
                                         <Trigger TargetType="Button" Property="IsEnabled" Value="False">
                                             <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
@@ -496,10 +496,10 @@
                                 Command="{Binding ForwardCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="18"
-                                HorizontalOptions="Center"
+                                HorizontalOptions="Fill"
                                 IsEnabled="{Binding AreControlsEnabled}"
                                 Text="{x:Static fn:GlyphNames.Forward}"
-                                VerticalOptions="Center">
+                                VerticalOptions="Fill">
                                 <Button.Triggers>
                                     <Trigger TargetType="Button" Property="IsEnabled" Value="False">
                                         <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
@@ -531,10 +531,10 @@
                                 Command="{Binding NextCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="20"
-                                HorizontalOptions="Center"
+                                HorizontalOptions="Fill"
                                 IsEnabled="{Binding NextEnabled}"
                                 Text="{x:Static fn:GlyphNames.Next}"
-                                VerticalOptions="Center">
+                                VerticalOptions="Fill">
                                 <Button.Triggers>
                                     <Trigger TargetType="Button" Property="IsEnabled" Value="False">
                                         <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />

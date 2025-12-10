@@ -99,36 +99,42 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
             try
             {
-                if (!await _generalSettingsService.GeneralSettingExistsAsync(
-                        AppConstants.GeneralSettingsKeys.ReviewRequested))
+                // Run database operations off UI thread
+                await Task.Run(async () =>
                 {
-                    var dismissCount = await _generalSettingsService.GetGeneralSettingAsync(
-                        AppConstants.GeneralSettingsKeys.DismissCount);
-
-                    if (dismissCount != null && int.Parse(dismissCount.Value) >= 6)
+                    if (!await _generalSettingsService.GeneralSettingExistsAsync(
+                            AppConstants.GeneralSettingsKeys.ReviewRequested))
                     {
-                        await _generalSettingsService.SetGeneralSettingAsync(
-                            AppConstants.GeneralSettingsKeys.ReviewRequested,
-                            "True");
+                        var dismissCount = await _generalSettingsService.GetGeneralSettingAsync(
+                            AppConstants.GeneralSettingsKeys.DismissCount);
 
-                        await CrossStoreReview.Current.RequestReview(false);
-                    }
-                    else
-                    {
-                        if (dismissCount != null)
+                        if (dismissCount != null && int.Parse(dismissCount.Value) >= 6)
                         {
                             await _generalSettingsService.SetGeneralSettingAsync(
-                                AppConstants.GeneralSettingsKeys.DismissCount,
-                                (int.Parse(dismissCount.Value) + 1).ToString());
+                                AppConstants.GeneralSettingsKeys.ReviewRequested,
+                                "True");
+
+                            // CrossStoreReview must be called on main thread
+                            await MainThread.InvokeOnMainThreadAsync(async () =>
+                                await CrossStoreReview.Current.RequestReview(false));
                         }
                         else
                         {
-                            await _generalSettingsService.SetGeneralSettingAsync(
-                                AppConstants.GeneralSettingsKeys.DismissCount,
-                                "1");
+                            if (dismissCount != null)
+                            {
+                                await _generalSettingsService.SetGeneralSettingAsync(
+                                    AppConstants.GeneralSettingsKeys.DismissCount,
+                                    (int.Parse(dismissCount.Value) + 1).ToString());
+                            }
+                            else
+                            {
+                                await _generalSettingsService.SetGeneralSettingAsync(
+                                    AppConstants.GeneralSettingsKeys.DismissCount,
+                                    "1");
+                            }
                         }
                     }
-                }
+                });
             }
             catch (Exception e)
             {

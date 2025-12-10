@@ -23,7 +23,7 @@ public class AndroidBootstrapHelper
 
         try
         {
-            await CommonBootstrapHelper.VerifyServices(false).ConfigureAwait(false);
+            await CommonBootstrapHelper.VerifyServices(false);
             logger.Information("Android database initialization completed successfully.");
         }
         catch (Exception e)

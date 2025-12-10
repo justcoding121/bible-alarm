@@ -188,7 +188,7 @@ public static class MauiProgram
                 {
                     try
                     {
-                        await RunBootstrap(services).ConfigureAwait(false);
+                        await RunBootstrap(services);
                         BootstrapCompleted = true;
                     }
                     catch (Exception ex)
@@ -200,7 +200,8 @@ public static class MauiProgram
             else
             {
                 // Run bootstrap synchronously for background services/jobs
-                await RunBootstrap(services).ConfigureAwait(false);
+                // Note: Database operations inside RunBootstrap are already wrapped in Task.Run
+                await RunBootstrap(services);
                 BootstrapCompleted = true;
             }
         }, timeoutMs: 0).GetAwaiter().GetResult();
@@ -225,7 +226,8 @@ public static class MauiProgram
                     }
                     // If we got here, the previous bootstrap failed or was interrupted
                     // Continue to run bootstrap
-                    await RunBootstrap(services).ConfigureAwait(false);
+                    // Note: Database operations inside RunBootstrap are already wrapped in Task.Run
+                    await RunBootstrap(services);
                     BootstrapCompleted = true;
                 }).GetAwaiter().GetResult();
             }
@@ -246,7 +248,7 @@ public static class MauiProgram
 
             if (context != null)
             {
-                await AndroidBootstrapHelper.Initialize(logger, context, application).ConfigureAwait(false);
+                await AndroidBootstrapHelper.Initialize(logger, context, application);
             }
             else
             {
@@ -254,10 +256,10 @@ public static class MauiProgram
             }
 #elif IOS
             // iOS bootstrap initialization
-            await iOSBootstrapHelper.Initialize(logger, isForeground: true).ConfigureAwait(false);
+            await iOSBootstrapHelper.Initialize(logger, isForeground: true);
 #elif WINDOWS
             // Windows bootstrap initialization
-            await WindowsBootstrapHelper.Initialize(logger, isForeground: true).ConfigureAwait(false);
+            await WindowsBootstrapHelper.Initialize(logger, isForeground: true);
 #endif
         }
         catch (Exception ex)

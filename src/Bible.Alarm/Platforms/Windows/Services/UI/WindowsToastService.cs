@@ -293,7 +293,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
                 if (clearRequest is { } request)
                 {
-                    await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(false);
+                    await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000)));
                 }
                 else
                 {

@@ -372,8 +372,8 @@
                                             FontSize="14"
                                             HeightRequest="32"
                                             MinimumWidthRequest="40"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center"
+                                            HorizontalOptions="Fill"
+                                            VerticalOptions="Fill"
                                             Text="{x:Static fn:GlyphNames.Trash}"
                                             TextColor="White"
                                             IsVisible="{OnPlatform WinUI='True', Default='False'}">

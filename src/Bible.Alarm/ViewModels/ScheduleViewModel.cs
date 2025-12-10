@@ -263,7 +263,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         SelectMusicCommand = new AsyncRelayCommand(async () =>
         {
-            Music = await scheduleSelectionService1.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music);
+            // Run database operations off UI thread
+            Music = await Task.Run(async () =>
+                await scheduleSelectionService1.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music));
 
             await _navigationService.NavigateToMusicSelectionAsync();
 
@@ -272,8 +274,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         SelectBibleCommand = new AsyncRelayCommand(async () =>
         {
-            BibleReadingSchedule = await scheduleSelectionService1.LoadBibleReadingForSelectionAsync(
-                _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule);
+            // Run database operations off UI thread
+            BibleReadingSchedule = await Task.Run(async () =>
+                await scheduleSelectionService1.LoadBibleReadingForSelectionAsync(
+                    _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule));
 
             if (BibleReadingSchedule != null)
             {
@@ -348,7 +352,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToPreviousBookAsync(BibleReadingSchedule))
+            // Run database operations off UI thread
+            var moved = await Task.Run(async () =>
+                await bibleNavigationService1.MoveToPreviousBookAsync(BibleReadingSchedule));
+
+            if (moved)
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -359,7 +367,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToNextBookAsync(BibleReadingSchedule))
+            // Run database operations off UI thread
+            var moved = await Task.Run(async () =>
+                await bibleNavigationService1.MoveToNextBookAsync(BibleReadingSchedule));
+
+            if (moved)
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -370,7 +382,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToPreviousChapterAsync(BibleReadingSchedule))
+            // Run database operations off UI thread
+            var moved = await Task.Run(async () =>
+                await bibleNavigationService1.MoveToPreviousChapterAsync(BibleReadingSchedule));
+
+            if (moved)
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -381,7 +397,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             if (BibleReadingSchedule == null) return;
 
-            if (await bibleNavigationService1.MoveToNextChapterAsync(BibleReadingSchedule))
+            // Run database operations off UI thread
+            var moved = await Task.Run(async () =>
+                await bibleNavigationService1.MoveToNextChapterAsync(BibleReadingSchedule));
+
+            if (moved)
             {
                 _bibleReadingUpdated = true;
                 RefreshChapterName();
@@ -1008,11 +1028,14 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _logger.Information("SaveAsync: Calling SaveScheduleAsync. IsNewSchedule={IsNewSchedule}, MusicUpdated={MusicUpdated}, BibleReadingUpdated={BibleReadingUpdated}",
             IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
 
-        var saved = await _schedulePersistenceService.SaveScheduleAsync(model, IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
+        // Run database operations off UI thread
+        var saved = await Task.Run(async () =>
+            await _schedulePersistenceService.SaveScheduleAsync(model, IsNewSchedule, _musicUpdated, _bibleReadingUpdated));
 
         if (saved)
         {
             _logger.Information("SaveAsync: Save successful. ScheduleId={ScheduleId}, Model.Id={ModelId}", _scheduleId, model.Id);
+            // SetupMediaCache already uses Task.Run internally for IO operations
             SetupMediaCache(model.Id, isUpdate: !IsNewSchedule);
         }
         else
@@ -1035,7 +1058,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     {
         if (_scheduleId > 0)
         {
-            await _schedulePersistenceService.DeleteScheduleAsync(_scheduleId);
+            // Run database operations off UI thread
+            await Task.Run(async () =>
+                await _schedulePersistenceService.DeleteScheduleAsync(_scheduleId));
         }
     }
 

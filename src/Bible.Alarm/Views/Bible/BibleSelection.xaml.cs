@@ -9,6 +9,7 @@ public partial class BibleSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private readonly BibleSelectionViewModel _viewModel;
+    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
     public BibleSelectionViewModel ViewModel => BindingContext as BibleSelectionViewModel;
 
@@ -32,11 +33,11 @@ public partial class BibleSelection : BaseContentPage, IDisposable
         // Just wait a moment for CollectionView to render, then scroll
         if (ViewModel != null)
         {
-            await Task.Delay(200);
+            await Task.Delay(200, _cancellationTokenSource.Token);
             
             if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false, cancellationToken: _cancellationTokenSource.Token);
             }
         }
     }
@@ -51,6 +52,18 @@ public partial class BibleSelection : BaseContentPage, IDisposable
     {
         if (!_isDisposed)
         {
+            // Cancel and dispose cancellation token source
+            try
+            {
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore errors during cancellation/disposal
+                Serilog.Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+            }
+            
             // ViewModel was injected via constructor, so dispose it
             if (_viewModel is IDisposable disposable)
             {

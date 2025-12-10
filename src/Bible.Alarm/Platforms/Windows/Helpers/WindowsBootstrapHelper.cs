@@ -14,13 +14,15 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
         {
             try
             {
-                await CommonBootstrapHelper.VerifyServices().ConfigureAwait(false);
+                await CommonBootstrapHelper.VerifyServices();
                 logger.Information("Windows database initialization completed successfully.");
             }
             catch (Exception e)
             {
-                logger.Fatal(e, "Windows database initialization crashed.");
-                throw;
+                // CommonBootstrapHelper.VerifyServices already handles exceptions internally,
+                // but if an exception escapes (e.g., from SetupBackgroundTask), log it without crashing
+                logger.Error(e, "Windows database initialization encountered an error (non-fatal).");
+                // Don't re-throw - allow app to continue running even if bootstrap has issues
             }
             
             // Fire-and-forget: SetupBackgroundTask runs synchronously and completes immediately
