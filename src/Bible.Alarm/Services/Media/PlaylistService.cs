@@ -164,8 +164,11 @@ public class PlaylistService(
                 if (next.Key == null || next.Value == null)
                     throw new InvalidOperationException($"Next chapter Key or Value is null");
                 
+                // Update book, chapter, AND translation to match the track that just finished
                 bibleReadingSchedule.BookNumber = next.Key.Number;
                 bibleReadingSchedule.ChapterNumber = next.Value.Number;
+                bibleReadingSchedule.LanguageCode = trackMetadata.LanguageCode;
+                bibleReadingSchedule.PublicationCode = trackMetadata.PublicationCode;
                 bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
             }
 
