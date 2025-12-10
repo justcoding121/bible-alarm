@@ -4,9 +4,9 @@
 <dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>fa-solid-900.otf</string>
-		<string>fa-regular-400.otf</string>
-		<string>fa-brands-400.otf</string>
+		<string>fa_solid_900.otf</string>
+		<string>fa_regular_400.otf</string>
+		<string>fa_brands_400.otf</string>
 	</array>
 	<key>UIDeviceFamily</key>
 	<array>

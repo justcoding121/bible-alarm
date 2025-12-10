@@ -128,11 +128,11 @@ public static class MauiProgram
             {
                 fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);
                 
-                // Font Awesome 7 fonts - use only filenames as they exist in Resources/Fonts/
-                // MAUI SDK handles platform-specific requirements automatically
-                fonts.AddFont("fa-solid-900.otf", "FontAwesomeSolid");
-                fonts.AddFont("fa-regular-400.otf", "FontAwesomeRegular");
-                fonts.AddFont("fa-brands-400.otf", "FontAwesomeBrands");
+                // Font Awesome 7 fonts - use underscores in filenames for Android compatibility
+                // This works universally across all platforms (Android, iOS, Windows)
+                fonts.AddFont("fa_solid_900.otf", "FontAwesomeSolid");
+                fonts.AddFont("fa_regular_400.otf", "FontAwesomeRegular");
+                fonts.AddFont("fa_brands_400.otf", "FontAwesomeBrands");
             });
 
         // Register services

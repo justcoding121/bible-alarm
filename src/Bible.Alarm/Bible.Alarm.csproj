@@ -123,9 +123,12 @@
 	</ItemGroup>
 
 	<!-- Fonts -->
-	<!-- Font Awesome 7 fonts are automatically included from Resources/Fonts/ -->
-	<!-- MAUI SDK handles platform-specific requirements automatically when fonts are in Resources/Fonts/ -->
-	<!-- with Build Action set to MauiFont (default) -->
+	<!-- Font Awesome 7 fonts - explicitly include to ensure they're included in build -->
+	<ItemGroup>
+		<MauiFont Include="Resources\Fonts\fa_solid_900.otf" />
+		<MauiFont Include="Resources\Fonts\fa_regular_400.otf" />
+		<MauiFont Include="Resources\Fonts\fa_brands_400.otf" />
+	</ItemGroup>
 
 	<!-- Embedded Resources -->
 	<ItemGroup>
@@ -203,30 +206,6 @@
 		<AndroidAsset Include="Platforms\Android\Assets\**" />
 	</ItemGroup>
 	
-	<!-- Target to copy Font Awesome fonts with valid Android resource names (no hyphens) -->
-	<Target Name="CopyFontAwesomeFontsForAndroid" BeforeTargets="_UpdateAndroidResgen" Condition="$(TargetFramework.StartsWith('net10.0-android'))">
-		<!-- Remove any auto-included font files with hyphens -->
-		<ItemGroup>
-			<AndroidResource Remove="Resources\Fonts\fa-solid-900.otf" />
-			<AndroidResource Remove="Resources\Fonts\fa-regular-400.otf" />
-			<AndroidResource Remove="Resources\Fonts\fa-brands-400.otf" />
-		</ItemGroup>
-		
-		<!-- Ensure intermediate directory exists -->
-		<MakeDir Directories="$(IntermediateOutputPath)android\res\font" />
-		
-		<!-- Copy fonts to intermediate directory with valid names -->
-		<Copy SourceFiles="Resources\Fonts\fa-solid-900.otf" DestinationFiles="$(IntermediateOutputPath)android\res\font\fa_solid_900.otf" />
-		<Copy SourceFiles="Resources\Fonts\fa-regular-400.otf" DestinationFiles="$(IntermediateOutputPath)android\res\font\fa_regular_400.otf" />
-		<Copy SourceFiles="Resources\Fonts\fa-brands-400.otf" DestinationFiles="$(IntermediateOutputPath)android\res\font\fa_brands_400.otf" />
-		
-		<!-- Include the copied fonts as Android resources -->
-		<ItemGroup>
-			<AndroidResource Include="$(IntermediateOutputPath)android\res\font\fa_solid_900.otf" Link="Resources\font\fa_solid_900.otf" />
-			<AndroidResource Include="$(IntermediateOutputPath)android\res\font\fa_regular_400.otf" Link="Resources\font\fa_regular_400.otf" />
-			<AndroidResource Include="$(IntermediateOutputPath)android\res\font\fa_brands_400.otf" Link="Resources\font\fa_brands_400.otf" />
-		</ItemGroup>
-	</Target>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-ios'))">
 		<BundleResource Include="Platforms\iOS\Resources\**" />
