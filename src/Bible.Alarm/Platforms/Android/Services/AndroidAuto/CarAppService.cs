@@ -15,9 +15,17 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// <summary>
 /// CarAppService for modern Android Automotive OS (Polestar, Volvo, GM, Rivian, Ford 2024+).
 /// Uses the shared MediaSessionCompat from MediaSessionManager to ensure seamless playback continuity.
+/// 
+/// Strategy: Dual Support
+/// - CarAppService: Handles templated UI for browsing and playback screens (CAL API 8+)
+/// - MediaBrowserService: Mandatory backend for voice commands, recommendations, and playback controls
+/// 
+/// The host (Android Auto/AAOS) determines which service to bind to based on capability:
+/// - Newer systems: Use CarAppService for UI, MediaBrowserService for playback
+/// - Older systems: Fall back to MediaBrowserService for everything
 /// </summary>
 [Service(Exported = true, Name = "bible.alarm.platforms.android.services.androidauto.CarAppService")]
-[IntentFilter(new[] { "androidx.car.app.CarAppService" })]
+[IntentFilter(new[] { "androidx.car.app.CarAppService" }, Categories = new[] { "androidx.car.app.category.MEDIA" })]
 [MetaData("androidx.car.app", Resource = "@xml/automotive_app_desc")]
 [Register("bible.alarm.platforms.android.services.androidauto.CarAppService")]
 public class CarAppService : AndroidX.Car.App.CarAppService

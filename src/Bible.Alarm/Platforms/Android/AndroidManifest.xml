@@ -17,11 +17,14 @@
 	
 	<application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:label="Bible Alarm">
 		<!-- 1. Modern Android Auto (Car App Library) Service -->
+		<!-- Supports both templated UI (Car App Library) and fallback to MediaBrowserService -->
 		<service
 			android:name="bible.alarm.platforms.android.services.androidauto.CarAppService"
 			android:exported="true">
 			<intent-filter>
 				<action android:name="androidx.car.app.CarAppService" />
+				<!-- CRITICAL: MEDIA category tells Android Auto this is a media app -->
+				<category android:name="androidx.car.app.category.MEDIA" />
 			</intent-filter>
 			
 			<!-- Metadata for Modern Car App Library -->
