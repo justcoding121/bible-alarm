@@ -32,6 +32,7 @@ public class DefaultScheduleService(
     IServiceScopeFactory scopeFactory,
     IDatabaseSeedService databaseSeedService,
     IAlarmScheduleService alarmScheduleService,
+    IGeneralSettingsService generalSettingsService,
     IPlaylistService playlistService,
     IPreparePlaybackService preparePlaybackService,
     IDisplayMetadataService displayMetadataService,
@@ -65,7 +66,7 @@ public class DefaultScheduleService(
 
     private async Task<AlarmSchedule?> TryGetLastPlayedScheduleAsync(bool schedulesExistedBeforeSeed)
     {
-        var lastPlayedSetting = await alarmScheduleService.GetGeneralSettingAsync(
+        var lastPlayedSetting = await generalSettingsService.GetGeneralSettingAsync(
             AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, 
             _cancellationTokenSource.Token);
 

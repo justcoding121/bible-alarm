@@ -10,6 +10,7 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.Essentials;
 using Serilog;
@@ -24,12 +25,14 @@ public class MediaCacheService(
     IServiceScopeFactory scopeFactory,
     IMediaService mediaService,
     INetworkStatusService networkStatusService,
-    IMediaUrlRefreshService urlRefreshService)
+    IMediaUrlRefreshService urlRefreshService,
+    IAlarmScheduleService alarmScheduleService)
     : IMediaCacheService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IMediaUrlRefreshService _urlRefreshService = urlRefreshService;
+    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
@@ -195,13 +198,8 @@ public class MediaCacheService(
 
     public async Task CleanUpAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
-        var schedules = await dbContext
-            .AlarmSchedules
-            .AsNoTracking()
-            .ToListAsync(_cancellationTokenSource.Token);
+        var schedules = await _alarmScheduleService.GetAllSchedulesAsync(
+            false, false, _cancellationTokenSource.Token);
 
         var filePathsToDelete = await GetUnusedCacheFilesAsync(schedules);
         await DeleteFilesAsync(filePathsToDelete);

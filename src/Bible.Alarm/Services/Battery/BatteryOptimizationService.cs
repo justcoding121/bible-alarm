@@ -1,21 +1,19 @@
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Services.Battery.Interfaces;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Models;
-using Microsoft.EntityFrameworkCore;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Battery;
 
 public class BatteryOptimizationService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory,
+    IGeneralSettingsService generalSettingsService,
     IBatteryOptimizationManager batteryOptimizationManager)
     : IBatteryOptimizationService, IDisposable
 {
     private bool _isDisposed;
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IGeneralSettingsService _generalSettingsService = generalSettingsService;
     private readonly IBatteryOptimizationManager _batteryOptimizationManager = batteryOptimizationManager;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
@@ -23,19 +21,11 @@ public class BatteryOptimizationService(
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+            const string key = "AndroidBatteryOptimizationExclusionPromptShown";
             
-            if (!await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                    x.Key == "AndroidBatteryOptimizationExclusionPromptShown", _cancellationTokenSource.Token))
+            if (!await _generalSettingsService.GeneralSettingExistsAsync(key, _cancellationTokenSource.Token))
             {
-                await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
-                {
-                    Key = "AndroidBatteryOptimizationExclusionPromptShown",
-                    Value = "True"
-                }, _cancellationTokenSource.Token);
-
-                await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
+                await _generalSettingsService.SetGeneralSettingAsync(key, "True", _cancellationTokenSource.Token);
             }
         }
         catch (Exception ex)
@@ -48,10 +38,8 @@ public class BatteryOptimizationService(
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-            return !await scheduleDbContext.GeneralSettings.AnyAsync(x =>
-                x.Key == "AndroidBatteryOptimizationExclusionPromptShown", _cancellationTokenSource.Token);
+            const string key = "AndroidBatteryOptimizationExclusionPromptShown";
+            return !await _generalSettingsService.GeneralSettingExistsAsync(key, _cancellationTokenSource.Token);
         }
         catch (Exception ex)
         {

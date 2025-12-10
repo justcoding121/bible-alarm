@@ -6,6 +6,7 @@ using Bible.Alarm.Models;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Foundation;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -127,26 +128,23 @@ namespace Bible.Alarm.Platforms.iOS
                                 // Run bootstrapper after CreateAndStore for background launch
                                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                                 
-                                // ScheduleDbContext is scoped, so use a scope
-                                var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
-                                await using var scope = scopeFactory.CreateAsyncScope();
-                                var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-                                if (!await dbContext.GeneralSettings.AnyAsync(x => x.Key == "iOSNotificationDisabledMsgShown"))
+                                // Use GeneralSettingsService to check and set the setting
+                                var generalSettingsService = ServiceProviderManager.GetService<IGeneralSettingsService>();
+                                if (generalSettingsService != null)
                                 {
-                                    await dbContext.GeneralSettings.AddAsync(new GeneralSettings
+                                    if (!await generalSettingsService.GeneralSettingExistsAsync("iOSNotificationDisabledMsgShown"))
                                     {
-                                        Key = "iOSNotificationDisabledMsgShown",
-                                        Value = "true"
-                                    });
-                                    await dbContext.SaveChangesAsync();
+                                        await generalSettingsService.SetGeneralSettingAsync(
+                                            "iOSNotificationDisabledMsgShown",
+                                            "true");
 
-                                    // IToastService is a singleton, so don't dispose it
-                                    var popupService = ServiceProviderManager.GetService<IToastService>();
-                                    await popupService.ShowMessage("You've disabled notifications. " +
-                                                             "We won't be able to alert you on scheduled time. " +
-                                                             "You can however open the app anytime and resume listening.",
-                                        8);
+                                        // IToastService is a singleton, so don't dispose it
+                                        var popupService = ServiceProviderManager.GetService<IToastService>();
+                                        await popupService.ShowMessage("You've disabled notifications. " +
+                                                                 "We won't be able to alert you on scheduled time. " +
+                                                                 "You can however open the app anytime and resume listening.",
+                                            8);
+                                    }
                                 }
                             }
                             catch (Exception e)

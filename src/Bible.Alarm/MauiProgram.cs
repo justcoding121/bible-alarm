@@ -20,7 +20,6 @@ using Bible.Alarm.Services.UI;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Bible;

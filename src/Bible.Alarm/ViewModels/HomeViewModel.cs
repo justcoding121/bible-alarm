@@ -6,6 +6,7 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -25,6 +26,7 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     private readonly IDatabaseSeedService _databaseSeedService;
     private readonly IScheduleMigrationService _scheduleMigrationService;
+    private readonly IAlarmScheduleService _alarmScheduleService;
 
     private readonly Dictionary<int, ScheduleListItem> _scheduleViewModels = [];
 
@@ -41,7 +43,8 @@ public class HomeViewModel : ObservableObject, IDisposable
         IDispatcher dispatcher,
         IDatabaseSeedService databaseSeedService,
         IScheduleMigrationService scheduleMigrationService,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        IAlarmScheduleService alarmScheduleService)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -50,6 +53,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         _dispatcher = dispatcher;
         _databaseSeedService = databaseSeedService;
         _scheduleMigrationService = scheduleMigrationService;
+        _alarmScheduleService = alarmScheduleService;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
@@ -124,13 +128,9 @@ public class HomeViewModel : ObservableObject, IDisposable
                 await _databaseSeedService.SeedDefaultAlarmAsync();
                 await _scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
 
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-                var alarmSchedules = await scheduleDbContext.AlarmSchedules
-                    .Include(x => x.BibleReadingSchedule)
-                    .Include(x => x.Music)
-                    .ToListAsync();
+                var alarmSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
+                    includeMusic: true,
+                    includeBibleReading: true);
 
                 var initialSchedules = new ObservableHashSet<AlarmSchedule>();
                 foreach (var schedule in alarmSchedules)

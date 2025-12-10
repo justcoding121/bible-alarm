@@ -5,38 +5,70 @@ using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.Scheduler;
 
+/// <summary>
+/// Service for managing alarm schedules and OS-level toast notifications.
+/// Schedules OS toast notifications only when the alarm is enabled.
+/// Flyout messages are shown separately via ToastService.ShowScheduledNotification.
+/// </summary>
 public sealed partial class AlarmService(
     INotificationService notificationService)
     : IAlarmService, IDisposable
 {
-    public Task Create(AlarmSchedule schedule)
+    /// <summary>
+    /// Creates an alarm schedule and schedules OS toast notification if enabled.
+    /// Only schedules if notifications are available (e.g., not in debug mode on Windows).
+    /// </summary>
+    public async Task Create(AlarmSchedule schedule)
     {
-        ScheduleNotification(schedule);
-        return Task.CompletedTask;
+        // Only schedule OS notification if alarm is enabled and notifications are available
+        if (schedule.IsEnabled && await notificationService.CanScheduleAsync())
+        {
+            await ScheduleNotification(schedule);
+        }
     }
 
-    public void Update(AlarmSchedule schedule)
+    /// <summary>
+    /// Updates an alarm schedule and reschedules OS toast notification if enabled.
+    /// Only schedules if notifications are available (e.g., not in debug mode on Windows).
+    /// </summary>
+    public async void Update(AlarmSchedule schedule)
     {
-        RemoveNotification(schedule.Id);
+        // Remove existing notification first
+        if (await notificationService.CanScheduleAsync())
+        {
+            await RemoveNotification(schedule.Id);
+        }
 
-        if (schedule.IsEnabled) ScheduleNotification(schedule);
+        // Schedule new notification only if alarm is enabled
+        if (schedule.IsEnabled && await notificationService.CanScheduleAsync())
+        {
+            await ScheduleNotification(schedule);
+        }
     }
 
-    public void Delete(int scheduleId)
+    /// <summary>
+    /// Deletes an alarm schedule and removes OS toast notification.
+    /// Only removes if notifications are available (e.g., not in debug mode on Windows).
+    /// </summary>
+    public async void Delete(int scheduleId)
     {
-        RemoveNotification(scheduleId);
+        // Remove notification if available
+        if (await notificationService.CanScheduleAsync())
+        {
+            await RemoveNotification(scheduleId);
+        }
     }
 
-    private void ScheduleNotification(AlarmSchedule schedule)
+    private async Task ScheduleNotification(AlarmSchedule schedule)
     {
-        notificationService.ScheduleNotificationAsync(schedule,
+        await notificationService.ScheduleNotificationAsync(schedule,
             string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name,
             "Press to start listening now.");
     }
 
-    private void RemoveNotification(int scheduleId)
+    private async Task RemoveNotification(int scheduleId)
     {
-        notificationService.RemoveAsync(scheduleId);
+        await notificationService.RemoveAsync(scheduleId);
     }
 
     private bool _isDisposed;

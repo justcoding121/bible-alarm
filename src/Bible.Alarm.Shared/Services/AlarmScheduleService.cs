@@ -195,41 +195,6 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
     }
 
-    public async Task<GeneralSettings?> GetGeneralSettingAsync(string key, CancellationToken cancellationToken = default)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
-        return await dbContext.GeneralSettings
-            .FirstOrDefaultAsync(x => x.Key == key, cancellationToken);
-    }
-
-    public async Task SetGeneralSettingAsync(string key, string value, CancellationToken cancellationToken = default)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
-        var setting = await dbContext.GeneralSettings
-            .FirstOrDefaultAsync(x => x.Key == key, cancellationToken);
-        
-        if (setting == null)
-        {
-            setting = new GeneralSettings { Key = key };
-            await dbContext.GeneralSettings.AddAsync(setting, cancellationToken);
-        }
-        
-        setting.Value = value;
-        await dbContext.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task<bool> GeneralSettingExistsAsync(string key, CancellationToken cancellationToken = default)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
-        return await dbContext.GeneralSettings.AnyAsync(x => x.Key == key, cancellationToken);
-    }
-
     public void Dispose()
     {
         if (_isDisposed)

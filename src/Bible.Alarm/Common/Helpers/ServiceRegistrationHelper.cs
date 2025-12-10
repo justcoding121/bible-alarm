@@ -121,6 +121,9 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<ISchedulePersistenceService, SchedulePersistenceService>();
         services.AddSingleton<IDefaultScheduleService, DefaultScheduleService>();
         services.AddSingleton<IAlarmScheduleService, AlarmScheduleService>();
+        services.AddSingleton<IGeneralSettingsService, GeneralSettingsService>();
+        services.AddSingleton<IAlarmMusicService, AlarmMusicService>();
+        services.AddSingleton<IBibleReadingScheduleService, BibleReadingScheduleService>();
         services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();

@@ -44,27 +44,14 @@ public class SchedulePersistenceService(
             if (isNewSchedule)
             {
                 _logger.Debug("SaveScheduleAsync: Saving new schedule to database");
-                await Task.Run(async () =>
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                    _logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
-                        schedule.Id, schedule.Name);
-                    await scheduleDbContext.AlarmSchedules.AddAsync(schedule, _cancellationTokenSource.Token);
-                    _logger.Debug("SaveScheduleAsync: Calling SaveChangesAsync");
-                    await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
-                    _logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", schedule.Id);
-                    if (schedule.IsEnabled) await _alarmService.Create(schedule);
-                });
-
-                // Load the complete schedule with all includes after save
-                _logger.Debug("SaveScheduleAsync: Reloading saved schedule. ScheduleId={ScheduleId}", schedule.Id);
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                savedSchedule = await scheduleDbContext.AlarmSchedules
-                    .Include(x => x.Music)
-                    .Include(x => x.BibleReadingSchedule)
-                    .FirstAsync(x => x.Id == schedule.Id, _cancellationTokenSource.Token);
+                _logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
+                    schedule.Id, schedule.Name);
+                
+                savedSchedule = await _alarmScheduleService.AddScheduleAsync(schedule, _cancellationTokenSource.Token);
+                
+                _logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", savedSchedule.Id);
+                
+                if (savedSchedule.IsEnabled) await _alarmService.Create(savedSchedule);
 
                 _logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
                     savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
@@ -75,63 +62,52 @@ public class SchedulePersistenceService(
             }
             else
             {
+                savedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+                    schedule.Id,
+                    existing =>
+                    {
+                        existing.Hour = schedule.Hour;
+                        existing.Minute = schedule.Minute;
+                        existing.DaysOfWeek = schedule.DaysOfWeek;
+                        existing.IsEnabled = schedule.IsEnabled;
+
+                        // Only update music if it was changed
+                        if (musicUpdated && schedule.Music != null && existing.Music != null)
+                        {
+                            existing.Music.Repeat = schedule.Music.Repeat;
+                            existing.Music.LanguageCode = schedule.Music.LanguageCode;
+                            existing.Music.MusicType = schedule.Music.MusicType;
+                            existing.Music.PublicationCode = schedule.Music.PublicationCode;
+                            existing.Music.TrackNumber = schedule.Music.TrackNumber;
+                        }
+
+                        if (schedule.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
+                        {
+                            existing.BibleReadingSchedule.BookNumber = schedule.BibleReadingSchedule.BookNumber;
+                            existing.BibleReadingSchedule.ChapterNumber = schedule.BibleReadingSchedule.ChapterNumber;
+                            existing.BibleReadingSchedule.LanguageCode = schedule.BibleReadingSchedule.LanguageCode;
+                            existing.BibleReadingSchedule.PublicationCode = schedule.BibleReadingSchedule.PublicationCode;
+                            // Only reset duration if bible reading was changed
+                            if (bibleReadingUpdated)
+                            {
+                                existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                            }
+                        }
+
+                        existing.MusicEnabled = schedule.MusicEnabled;
+                        existing.NotificationEnabled = schedule.NotificationEnabled;
+                        existing.AlwaysPlayFromStart = schedule.AlwaysPlayFromStart;
+                        existing.NumberOfChaptersToRead = schedule.NumberOfChaptersToRead;
+                        existing.Name = schedule.Name;
+                        existing.Second = schedule.Second;
+                        existing.SnoozeMinutes = schedule.SnoozeMinutes;
+                    },
+                    _cancellationTokenSource.Token);
+
                 await Task.Run(async () =>
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                    
-                    var existing = await scheduleDbContext.AlarmSchedules
-                        .Include(x => x.Music)
-                        .Include(x => x.BibleReadingSchedule)
-                        .FirstAsync(x => x.Id == schedule.Id);
-
-                    existing.Hour = schedule.Hour;
-                    existing.Minute = schedule.Minute;
-                    existing.DaysOfWeek = schedule.DaysOfWeek;
-                    existing.IsEnabled = schedule.IsEnabled;
-
-                    // Only update music if it was changed
-                    if (musicUpdated && schedule.Music != null && existing.Music != null)
-                    {
-                        existing.Music.Repeat = schedule.Music.Repeat;
-                        existing.Music.LanguageCode = schedule.Music.LanguageCode;
-                        existing.Music.MusicType = schedule.Music.MusicType;
-                        existing.Music.PublicationCode = schedule.Music.PublicationCode;
-                        existing.Music.TrackNumber = schedule.Music.TrackNumber;
-                    }
-
-                    if (schedule.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
-                    {
-                        existing.BibleReadingSchedule.BookNumber = schedule.BibleReadingSchedule.BookNumber;
-                        existing.BibleReadingSchedule.ChapterNumber = schedule.BibleReadingSchedule.ChapterNumber;
-                        existing.BibleReadingSchedule.LanguageCode = schedule.BibleReadingSchedule.LanguageCode;
-                        existing.BibleReadingSchedule.PublicationCode = schedule.BibleReadingSchedule.PublicationCode;
-                        // Only reset duration if bible reading was changed
-                        if (bibleReadingUpdated)
-                        {
-                            existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-                        }
-                    }
-
-                    existing.MusicEnabled = schedule.MusicEnabled;
-                    existing.NotificationEnabled = schedule.NotificationEnabled;
-                    existing.AlwaysPlayFromStart = schedule.AlwaysPlayFromStart;
-                    existing.NumberOfChaptersToRead = schedule.NumberOfChaptersToRead;
-                    existing.Name = schedule.Name;
-                    existing.Second = schedule.Second;
-                    existing.SnoozeMinutes = schedule.SnoozeMinutes;
-
-                    await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
-                    _alarmService.Update(existing);
+                    _alarmService.Update(savedSchedule);
                 });
-
-                // Load the complete updated schedule with all includes
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                savedSchedule = await scheduleDbContext.AlarmSchedules
-                    .Include(x => x.Music)
-                    .Include(x => x.BibleReadingSchedule)
-                    .FirstAsync(x => x.Id == schedule.Id, _cancellationTokenSource.Token);
 
                 _dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
             }
@@ -165,15 +141,8 @@ public class SchedulePersistenceService(
             }
 
             // Load the schedule BEFORE deleting it, so we can dispatch the action
-            AlarmSchedule scheduleToRemove = null;
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                scheduleToRemove = await scheduleDbContext.AlarmSchedules
-                    .Include(x => x.Music)
-                    .Include(x => x.BibleReadingSchedule)
-                    .FirstOrDefaultAsync(x => x.Id == scheduleId);
-            }
+            var scheduleToRemove = await _alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId, true, true, _cancellationTokenSource.Token);
 
             if (scheduleToRemove == null)
             {
@@ -188,14 +157,7 @@ public class SchedulePersistenceService(
             await Task.Run(async () =>
             {
                 _alarmService.Delete(scheduleId);
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                var model = await scheduleDbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
-                if (model != null)
-                {
-                    scheduleDbContext.AlarmSchedules.Remove(model);
-                    await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
-                }
+                await _alarmScheduleService.DeleteScheduleAsync(scheduleId, _cancellationTokenSource.Token);
             });
 
             // Dispatch action to remove from state (this will trigger HomeViewModel to update)

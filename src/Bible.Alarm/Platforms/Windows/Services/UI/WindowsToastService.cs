@@ -14,7 +14,7 @@ using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public sealed partial class WindowsToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
+    public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILogger logger) : ToastService, IDisposable
     {
         private bool _isDisposed;
         private static readonly SemaphoreSlim Lock = new(1);
@@ -24,6 +24,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         private static Window? _currentWindow;
         private static SizeChangedEventHandler? _sizeChangedHandler;
         private readonly TaskScheduler _taskScheduler = taskScheduler;
+        private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         public override Task Clear()
         {
@@ -41,7 +42,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Exception occurred while closing popup in Clear()");
+                    _logger.Warning(ex, "Exception occurred while closing popup in Clear()");
                 }
             }
 
@@ -404,7 +405,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             // The popup will be garbage collected anyway, and setting it to null can cause COM exceptions
         }
         
-        public void Dispose()
+        public new void Dispose()
         {
             if (_isDisposed)
             {

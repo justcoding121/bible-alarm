@@ -1,7 +1,7 @@
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +12,14 @@ namespace Bible.Alarm.Services.Media;
 public class ScheduleDisplayService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
-    IState<PlaybackState> playbackState)
+    IState<PlaybackState> playbackState,
+    IAlarmScheduleService alarmScheduleService)
     : IScheduleDisplayService, IDisposable
 {
     private readonly ILogger _logger = logger;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IState<PlaybackState> _playbackState = playbackState;
+    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
@@ -35,20 +37,13 @@ public class ScheduleDisplayService(
             // If bibleReadingSchedule is not provided, load it from database
             if (scheduleToUse == null)
             {
-                using var scope = _scopeFactory.CreateScope();
-                
                 if (!force)
                 {
                     if (!_playbackState.Value.IsPreparingOrPlaying) return string.Empty;
                 }
 
-                await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-                var schedule = await scheduleDbContext.AlarmSchedules
-                    .Include(x => x.BibleReadingSchedule)
-                    .AsNoTracking()
-                    .Where(x => x.Id == scheduleId)
-                    .FirstOrDefaultAsync(_cancellationTokenSource.Token);
+                var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
+                    scheduleId, false, true, _cancellationTokenSource.Token);
 
                 if (schedule?.BibleReadingSchedule == null) return string.Empty;
                 scheduleToUse = schedule.BibleReadingSchedule;

@@ -4,6 +4,7 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace Bible.Alarm.Services.Scheduler;
 
 public class ScheduleStateService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory,
+    IAlarmScheduleService alarmScheduleService,
     IAlarmService alarmService,
     INotificationService notificationService,
     IToastService toastService,
@@ -22,7 +23,7 @@ public class ScheduleStateService(
     : IScheduleStateService, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
     private readonly IAlarmService _alarmService = alarmService;
     private readonly INotificationService _notificationService = notificationService;
     private readonly IToastService _toastService = toastService;
@@ -55,19 +56,14 @@ public class ScheduleStateService(
         AlarmSchedule updatedSchedule = null;
         try
         {
-            await Task.Run(async () =>
-            {
-                using var scope = _scopeFactory.CreateScope();
-                await using var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                var existing = await scheduleDbContext.AlarmSchedules
-                    .Include(x => x.BibleReadingSchedule)
-                    .Include(x => x.Music)
-                    .FirstAsync(x => x.Id == scheduleId, _cancellationTokenSource.Token);
-                existing.IsEnabled = isEnabled;
-                await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
+            updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+                scheduleId,
+                schedule => schedule.IsEnabled = isEnabled,
+                _cancellationTokenSource.Token);
 
-                _alarmService.Update(existing);
-                updatedSchedule = existing;
+            await Task.Run(() =>
+            {
+                _alarmService.Update(updatedSchedule);
             });
         }
         catch (Exception ex)

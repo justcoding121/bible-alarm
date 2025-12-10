@@ -1,6 +1,7 @@
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -8,11 +9,11 @@ namespace Bible.Alarm.Services.Database;
 
 public class ScheduleMigrationService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory)
+    IAlarmScheduleService alarmScheduleService)
     : IScheduleMigrationService, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
@@ -25,27 +26,33 @@ public class ScheduleMigrationService(
 
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-            var alarmSchedules = await scheduleDbContext.AlarmSchedules
-                .Include(x => x.BibleReadingSchedule)
-                .Where(x => x.BibleReadingSchedule != null)
-                .ToListAsync(_cancellationTokenSource.Token);
+            var alarmSchedules = await _alarmScheduleService.GetSchedulesAsync(
+                x => x.BibleReadingSchedule != null,
+                false,
+                true,
+                _cancellationTokenSource.Token);
 
             //bible gateway is not supported anymore due to copyright issues
             var toRemove = alarmSchedules.Where(x =>
-                BgSourceHelper.PublicationCodeToNameMappings.Any(y => y.Key == x.BibleReadingSchedule.PublicationCode)).ToList();
+                BgSourceHelper.PublicationCodeToNameMappings.Any(y => y.Key == x.BibleReadingSchedule!.PublicationCode)).ToList();
 
             if (toRemove.Any())
             {
                 foreach (var item in toRemove)
                 {
-                    item.BibleReadingSchedule.PublicationCode = "bi12";
-                    item.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                    await _alarmScheduleService.UpdateScheduleByIdAsync(
+                        item.Id,
+                        schedule =>
+                        {
+                            if (schedule.BibleReadingSchedule != null)
+                            {
+                                schedule.BibleReadingSchedule.PublicationCode = "bi12";
+                                schedule.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                            }
+                        },
+                        _cancellationTokenSource.Token);
                 }
 
-                await scheduleDbContext.SaveChangesAsync(_cancellationTokenSource.Token);
                 _logger.Information("Migrated {Count} Bible Gateway schedules to default publication code", toRemove.Count);
             }
         }

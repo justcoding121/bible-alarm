@@ -1,8 +1,7 @@
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.UI;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Handlers;
@@ -10,11 +9,11 @@ namespace Bible.Alarm.Platforms.Android.Services.Handlers;
 public class AndroidAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
-    IServiceScopeFactory scopeFactory)
+    IAlarmScheduleService alarmScheduleService)
     : IAndroidAlarmHandler, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
 
 
     private bool _playbackServiceInitialized;
@@ -23,10 +22,8 @@ public class AndroidAlarmHandler(
 
     public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
-        var schedule = await dbContext.AlarmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleId);
+        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, false, false);
 
         if (schedule == null)
         {

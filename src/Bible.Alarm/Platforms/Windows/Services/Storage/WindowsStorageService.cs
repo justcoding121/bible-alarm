@@ -15,7 +15,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Storage
         public override string CacheRoot => cacheRoot;
         public override Assembly MainAssembly => typeof(WindowsStorageService).Assembly;
         
-        public void Dispose()
+        public new void Dispose()
         {
             if (_isDisposed)
             {

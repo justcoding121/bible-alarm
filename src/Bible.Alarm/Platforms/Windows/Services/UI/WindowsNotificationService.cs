@@ -9,13 +9,15 @@ using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
-    public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider) : INotificationService, IDisposable
+    public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : INotificationService, IDisposable
     {
         private bool _isDisposed;
         private readonly IServiceProvider _serviceProvider = serviceProvider;
+        private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         public async Task ShowNotificationAsync(int scheduleId)
         {
@@ -35,16 +37,16 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
                 if (time <= DateTimeOffset.Now)
                 {
-                    Serilog.Log.Warning("Cannot schedule notification for schedule {ScheduleId}: time {Time} is in the past", scheduleId, time);
+                    _logger.Warning("Cannot schedule notification for schedule {ScheduleId}: time {Time} is in the past", scheduleId, time);
                     return Task.CompletedTask;
                 }
 
-                Serilog.Log.Information("Scheduling notification for schedule {ScheduleId} at {Time}", scheduleId, time);
+                _logger.Information("Scheduling notification for schedule {ScheduleId} at {Time}", scheduleId, time);
 
                 var notifier = GetToastNotifier();
                 if (notifier == null)
                 {
-                    Serilog.Log.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications.", scheduleId);
+                    _logger.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications.", scheduleId);
                     return Task.CompletedTask;
                 }
 
@@ -53,16 +55,16 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
                 if (IsNotificationScheduled(notifier, scheduleId))
                 {
-                    Serilog.Log.Information("Successfully scheduled notification for schedule {ScheduleId} at {Time}", scheduleId, time);
+                    _logger.Information("Successfully scheduled notification for schedule {ScheduleId} at {Time}", scheduleId, time);
                 }
                 else
                 {
-                    Serilog.Log.Warning("Notification may not have been scheduled for schedule {ScheduleId}. Check Windows notification settings.", scheduleId);
+                    _logger.Warning("Notification may not have been scheduled for schedule {ScheduleId}. Check Windows notification settings.", scheduleId);
                 }
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "Error scheduling notification for schedule {ScheduleId}", schedule.Id);
+                _logger.Error(ex, "Error scheduling notification for schedule {ScheduleId}", schedule.Id);
             }
 
             return Task.CompletedTask;
@@ -83,7 +85,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "Error removing notification for schedule {ScheduleId}", scheduleId);
+                _logger.Error(ex, "Error removing notification for schedule {ScheduleId}", scheduleId);
             }
 
             return Task.CompletedTask;
@@ -100,7 +102,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "Error checking if notification is scheduled for schedule {ScheduleId}", scheduleId);
+                _logger.Error(ex, "Error checking if notification is scheduled for schedule {ScheduleId}", scheduleId);
                 return Task.FromResult(false);
             }
         }
@@ -214,19 +216,41 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 }
                 Serilog.Log.Warning("ToastNotificationManager.CreateToastNotifier() returned null");
             }
-            catch (System.Runtime.InteropServices.COMException ex) when (ex.HResult == unchecked((int)0x80070490))
-            {
-                // 0x80070490 = Element not found - common in debug mode or when app is not registered for notifications
-                Serilog.Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
-            }
             catch (System.Runtime.InteropServices.COMException ex)
             {
-                // Catch any other COM exceptions
-                Serilog.Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
+                // Check HResult - 0x80070490 = Element not found
+                // This is common in debug mode or when app is not registered for notifications
+                if (ex.HResult == unchecked((int)0x80070490))
+                {
+                    // This is expected and handled gracefully - no need to log as error
+                    Serilog.Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
+                }
+                else
+                {
+                    // Catch any other COM exceptions
+                    Serilog.Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
+                }
             }
             catch (Exception ex)
             {
-                Serilog.Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
+                // Catch any other exceptions - safely get HResult if available
+                var hResult = 0;
+                if (ex is System.Runtime.InteropServices.COMException comEx)
+                {
+                    hResult = comEx.HResult;
+                }
+                else
+                {
+                    try
+                    {
+                        hResult = ex.HResult;
+                    }
+                    catch
+                    {
+                        // HResult not available on this exception type
+                    }
+                }
+                Serilog.Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", hResult);
             }
             return null;
         }

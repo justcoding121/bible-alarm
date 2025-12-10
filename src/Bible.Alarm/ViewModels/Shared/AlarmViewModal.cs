@@ -7,6 +7,7 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -27,6 +28,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     private readonly IPlaybackService _playbackService;
     private readonly IState<PlaybackState> _playbackState;
     private readonly IDispatcher _dispatcher;
+    private readonly IGeneralSettingsService _generalSettingsService;
 
     private bool _isDisposed;
     private bool _hasReceivedInitialState;
@@ -56,12 +58,13 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     public ICommand BackwardCommand { get; set; }
     public ICommand SeekCommand { get; set; }
 
-    public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher)
+    public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, IGeneralSettingsService generalSettingsService)
     {
         _logger = logger;
         _playbackService = playbackService;
         _playbackState = playbackState;
         _dispatcher = dispatcher;
+        _generalSettingsService = generalSettingsService;
         
         // Initialize string fields to avoid nullable warnings
         _title = "";
@@ -93,38 +96,37 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             await Task.Delay(100);
             
             await _playbackService.StopAsync();
-            
-            using var scope = scopeFactory.CreateScope();
-            var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
             try
             {
-                if (!await scheduleDbContext.GeneralSettings
-                        .AnyAsync(x => x.Key == AppConstants.GeneralSettingsKeys.ReviewRequested))
+                if (!await _generalSettingsService.GeneralSettingExistsAsync(
+                        AppConstants.GeneralSettingsKeys.ReviewRequested))
                 {
-                    var dismissCount = await scheduleDbContext.GeneralSettings
-                        .FirstOrDefaultAsync(x => x.Key == AppConstants.GeneralSettingsKeys.DismissCount);
+                    var dismissCount = await _generalSettingsService.GetGeneralSettingAsync(
+                        AppConstants.GeneralSettingsKeys.DismissCount);
 
                     if (dismissCount != null && int.Parse(dismissCount.Value) >= 6)
                     {
-                        await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
-                        {
-                            Key = AppConstants.GeneralSettingsKeys.ReviewRequested,
-                            Value = "True"
-                        });
+                        await _generalSettingsService.SetGeneralSettingAsync(
+                            AppConstants.GeneralSettingsKeys.ReviewRequested,
+                            "True");
 
                         await CrossStoreReview.Current.RequestReview(false);
                     }
                     else
                     {
                         if (dismissCount != null)
-                            dismissCount.Value = (int.Parse(dismissCount.Value) + 1).ToString();
+                        {
+                            await _generalSettingsService.SetGeneralSettingAsync(
+                                AppConstants.GeneralSettingsKeys.DismissCount,
+                                (int.Parse(dismissCount.Value) + 1).ToString());
+                        }
                         else
-                            await scheduleDbContext.GeneralSettings.AddAsync(new GeneralSettings
-                            {
-                                Key = AppConstants.GeneralSettingsKeys.DismissCount,
-                                Value = "1"
-                            });
+                        {
+                            await _generalSettingsService.SetGeneralSettingAsync(
+                                AppConstants.GeneralSettingsKeys.DismissCount,
+                                "1");
+                        }
                     }
                 }
             }
@@ -132,8 +134,6 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             {
                 logger.Error(e, "An error happened when review was requested.");
             }
-
-            await scheduleDbContext.SaveChangesAsync();
         });
 
         CancelCommand = new RelayCommand(() =>

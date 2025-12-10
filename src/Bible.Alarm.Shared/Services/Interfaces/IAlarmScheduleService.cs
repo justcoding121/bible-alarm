@@ -31,10 +31,5 @@ public interface IAlarmScheduleService : IDisposable
     // Related entity operations
     Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default);
     Task<BibleReadingSchedule?> GetBibleReadingByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default);
-
-    // GeneralSettings operations
-    Task<GeneralSettings?> GetGeneralSettingAsync(string key, CancellationToken cancellationToken = default);
-    Task SetGeneralSettingAsync(string key, string value, CancellationToken cancellationToken = default);
-    Task<bool> GeneralSettingExistsAsync(string key, CancellationToken cancellationToken = default);
 }
 

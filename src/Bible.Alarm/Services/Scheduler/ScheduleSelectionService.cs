@@ -1,18 +1,20 @@
+using System;
 using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
-using Microsoft.EntityFrameworkCore;
+using Bible.Alarm.Shared.Services.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Scheduler;
 
 public class ScheduleSelectionService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory)
+    IAlarmMusicService alarmMusicService,
+    IBibleReadingScheduleService bibleReadingScheduleService)
     : IScheduleSelectionService, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IAlarmMusicService _alarmMusicService = alarmMusicService;
+    private readonly IBibleReadingScheduleService _bibleReadingScheduleService = bibleReadingScheduleService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
@@ -23,11 +25,10 @@ public class ScheduleSelectionService(
             // Get the latest music track if needed
             if (currentMusic == null || (!isNewSchedule && !musicUpdated))
             {
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                return await scheduleDbContext.AlarmMusic
-                    .AsNoTracking()
-                    .FirstAsync(x => x.AlarmScheduleId == scheduleId, _cancellationTokenSource.Token);
+                var music = await _alarmMusicService.GetMusicByScheduleIdAsync(scheduleId, _cancellationTokenSource.Token);
+                if (music == null)
+                    throw new InvalidOperationException($"Music not found for schedule {scheduleId}");
+                return music;
             }
 
             return currentMusic;
@@ -46,11 +47,10 @@ public class ScheduleSelectionService(
             // Get the latest bible track if needed
             if (currentBibleReading == null || (!isNewSchedule && !bibleReadingUpdated))
             {
-                using var scope = _scopeFactory.CreateScope();
-                var scheduleDbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                return await scheduleDbContext.BibleReadingSchedules
-                    .AsNoTracking()
-                    .FirstAsync(x => x.AlarmScheduleId == scheduleId, _cancellationTokenSource.Token);
+                var bibleReading = await _bibleReadingScheduleService.GetBibleReadingScheduleByScheduleIdAsync(scheduleId, _cancellationTokenSource.Token);
+                if (bibleReading == null)
+                    throw new InvalidOperationException($"BibleReadingSchedule not found for schedule {scheduleId}");
+                return bibleReading;
             }
 
             return currentBibleReading;
