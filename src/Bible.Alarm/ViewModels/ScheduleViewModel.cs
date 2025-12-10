@@ -10,7 +10,7 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
@@ -39,7 +39,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IState<ApplicationState> _state;
     private readonly IState<PlaybackState> _playbackState;
     private readonly IDispatcher _dispatcher;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IBibleTranslationService _bibleTranslationService;
+    private readonly IMelodyMusicService _melodyMusicService;
 
     private int _lastScheduleId = -1;
     private bool _modelInitialized;
@@ -65,7 +66,6 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IToastService popUpService,
         IPlaybackService playbackService,
         INotificationService notificationService,
-        IServiceScopeFactory scopeFactory,
         ISchedulePersistenceService schedulePersistenceService,
         IBibleNavigationService bibleNavigationService,
         IMediaCacheSetupService mediaCacheSetupService,
@@ -76,13 +76,16 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IState<ApplicationState> state,
         IState<PlaybackState> playbackState,
         IDispatcher dispatcher,
-        IScheduleItemStateService scheduleItemStateService)
+        IScheduleItemStateService scheduleItemStateService,
+        IBibleTranslationService bibleTranslationService,
+        IMelodyMusicService melodyMusicService)
     {
         var constructorStartTime = DateTime.UtcNow;
         _logger = logger;
         _logger.Information("[PERF] ScheduleViewModel: Constructor started at {StartTime}", constructorStartTime);
         _popUpService = popUpService;
-        _scopeFactory = scopeFactory;
+        _bibleTranslationService = bibleTranslationService;
+        _melodyMusicService = melodyMusicService;
 
         _state = state;
         _playbackState = playbackState;
@@ -509,9 +512,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                     var getSampleStartTime = DateTime.UtcNow;
                     _logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule started at {StartTime}", getSampleStartTime);
                     
-                    using var scope = _scopeFactory.CreateScope();
-                    var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, _bibleTranslationService, _melodyMusicService);
                     
                     var getSampleElapsed = (DateTime.UtcNow - getSampleStartTime).TotalMilliseconds;
                     _logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule completed in {ElapsedMs}ms", getSampleElapsed);
@@ -941,7 +942,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             {
                 try
                 {
-                    using var scope = _scopeFactory.CreateScope();
+                    using var scope = _serviceProvider.CreateScope();
                     var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
                     await mediaCacheService.DeleteScheduleCacheAsync(scheduleId);
                     await _mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);

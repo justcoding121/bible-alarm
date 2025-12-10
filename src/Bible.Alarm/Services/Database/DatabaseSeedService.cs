@@ -1,35 +1,33 @@
 using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Database;
 
 public class DatabaseSeedService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory,
-    IAlarmScheduleService alarmScheduleService)
+    IAlarmScheduleService alarmScheduleService,
+    IBibleTranslationService bibleTranslationService,
+    IMelodyMusicService melodyMusicService)
     : IDatabaseSeedService, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
+    private readonly IBibleTranslationService _bibleTranslationService = bibleTranslationService;
+    private readonly IMelodyMusicService _melodyMusicService = melodyMusicService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
     public async Task SeedDefaultAlarmAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
         // Seed if schedules are empty
         if (!await _alarmScheduleService.AnySchedulesExistAsync(_cancellationTokenSource.Token))
         {
             // Create sample schedule with IsEnabled = false (disabled by default)
-            var schedule = await AlarmSchedule.GetSampleSchedule(false, mediaDbContext);
+            var schedule = await AlarmSchedule.GetSampleSchedule(false, _bibleTranslationService, _melodyMusicService);
 
             await _alarmScheduleService.AddScheduleAsync(schedule, _cancellationTokenSource.Token);
             

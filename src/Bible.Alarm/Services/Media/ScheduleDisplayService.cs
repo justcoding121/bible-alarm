@@ -1,25 +1,24 @@
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
 public class ScheduleDisplayService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory,
     IState<PlaybackState> playbackState,
-    IAlarmScheduleService alarmScheduleService)
+    IAlarmScheduleService alarmScheduleService,
+    IBibleBookService bibleBookService)
     : IScheduleDisplayService, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IState<PlaybackState> _playbackState = playbackState;
     private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
+    private readonly IBibleBookService _bibleBookService = bibleBookService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
@@ -51,16 +50,11 @@ public class ScheduleDisplayService(
 
             if (scheduleToUse == null) return string.Empty;
 
-            using var mediaScope = _scopeFactory.CreateScope();
-            await using var mediaDbContext = mediaScope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var bookName = await mediaDbContext.BibleBook
-                .Where(x => x.BibleTranslation.Code == scheduleToUse.PublicationCode
-                            && x.BibleTranslation.Language.Code == scheduleToUse.LanguageCode
-                            && x.Number == scheduleToUse.BookNumber)
-                .Select(x => x.Name)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(_cancellationTokenSource.Token);
+            var bookName = await _bibleBookService.GetBookNameAsync(
+                scheduleToUse.LanguageCode,
+                scheduleToUse.PublicationCode,
+                scheduleToUse.BookNumber,
+                _cancellationTokenSource.Token);
 
             if (bookName == null) return string.Empty;
 

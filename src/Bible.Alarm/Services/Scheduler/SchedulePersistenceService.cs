@@ -3,12 +3,11 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -16,19 +15,21 @@ namespace Bible.Alarm.Services.Scheduler;
 
 public class SchedulePersistenceService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory,
     IAlarmService alarmService,
     IDispatcher dispatcher,
     IMediaCacheService mediaCacheService,
-    IAlarmScheduleService alarmScheduleService)
+    IAlarmScheduleService alarmScheduleService,
+    IBibleTranslationService bibleTranslationService,
+    IMelodyMusicService melodyMusicService)
     : ISchedulePersistenceService, IDisposable
 {
     private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IAlarmService _alarmService = alarmService;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IMediaCacheService _mediaCacheService = mediaCacheService;
     private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
+    private readonly IBibleTranslationService _bibleTranslationService = bibleTranslationService;
+    private readonly IMelodyMusicService _melodyMusicService = melodyMusicService;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
@@ -171,9 +172,7 @@ public class SchedulePersistenceService(
 
     public async Task<AlarmSchedule> GetSampleScheduleAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        return await AlarmSchedule.GetSampleSchedule(true, mediaDbContext);
+        return await AlarmSchedule.GetSampleSchedule(true, _bibleTranslationService, _melodyMusicService);
     }
     
     public void Dispose()

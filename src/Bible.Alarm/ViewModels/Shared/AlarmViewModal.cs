@@ -7,7 +7,7 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using CommunityToolkit.Mvvm.ComponentModel;

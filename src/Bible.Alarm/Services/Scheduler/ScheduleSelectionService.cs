@@ -1,7 +1,7 @@
 using System;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Scheduler;

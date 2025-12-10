@@ -7,12 +7,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
-namespace Bible.Alarm.Shared.Services;
+namespace Bible.Alarm.Shared.Services.Schedule;
 
 /// <summary>
 /// Service for interacting with BibleReadingSchedule database operations.

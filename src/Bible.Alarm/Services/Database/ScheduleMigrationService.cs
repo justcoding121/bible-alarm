@@ -1,7 +1,7 @@
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 

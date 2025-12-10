@@ -10,7 +10,7 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.Essentials;
 using Serilog;

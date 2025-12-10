@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Models;
 
-namespace Bible.Alarm.Shared.Services.Interfaces;
+namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
 /// <summary>
 /// Service for interacting with GeneralSettings database operations.

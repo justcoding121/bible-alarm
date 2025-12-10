@@ -10,8 +10,10 @@ using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Services;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Media;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Battery;
 using Bible.Alarm.Services.Database;
@@ -95,7 +97,7 @@ public static class ServiceRegistrationHelper
 
         // Register UI components
         RegisterUiComponents(services);
-        }
+    }
 
     private static void RegisterCommonServices(IServiceCollection services)
     {
@@ -124,6 +126,11 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IGeneralSettingsService, GeneralSettingsService>();
         services.AddSingleton<IAlarmMusicService, AlarmMusicService>();
         services.AddSingleton<IBibleReadingScheduleService, BibleReadingScheduleService>();
+        services.AddSingleton<IBibleTranslationService, BibleTranslationService>();
+        services.AddSingleton<IBibleBookService, BibleBookService>();
+        services.AddSingleton<IBibleChapterService, BibleChapterService>();
+        services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
+        services.AddSingleton<IVocalMusicService, VocalMusicService>();
         services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
@@ -164,7 +171,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
         services.AddSingleton(_ => new MediaPlayer());
         services.AddSingleton<IAudioPreviewer>(sp => new AndroidAudioPreviewer(
-            sp.GetRequiredService<MediaPlayer>(), 
+            sp.GetRequiredService<MediaPlayer>(),
             sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();
         services.AddSingleton<Platforms.Android.Services.Media.AndroidArtworkService>();
@@ -266,8 +273,8 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();
         services.AddTransient<BootstrapPage>();
-        
-   
+
+
         // It will be created with BootstrapPage as the root page
         services.AddTransient<NavigationPage>(sp =>
         {

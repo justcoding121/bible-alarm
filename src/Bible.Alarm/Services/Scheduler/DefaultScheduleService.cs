@@ -9,11 +9,11 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Services;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
@@ -29,13 +29,14 @@ namespace Bible.Alarm.Services.Scheduler;
 /// </summary>
 public class DefaultScheduleService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory,
     IDatabaseSeedService databaseSeedService,
     IAlarmScheduleService alarmScheduleService,
     IGeneralSettingsService generalSettingsService,
     IPlaylistService playlistService,
     IPreparePlaybackService preparePlaybackService,
     IDisplayMetadataService displayMetadataService,
+    IBibleTranslationService bibleTranslationService,
+    IMelodyMusicService melodyMusicService,
     IDispatcher dispatcher) : IDefaultScheduleService, IDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
@@ -50,13 +51,10 @@ public class DefaultScheduleService(
         // This will create a sample schedule if none exists and seeding hasn't happened
         await databaseSeedService.SeedDefaultAlarmAsync();
 
-        using var scope = scopeFactory.CreateScope();
-        var mediaDbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
         // Try to get a valid schedule: last played -> first existing -> create sample
         var schedule = await TryGetLastPlayedScheduleAsync(schedulesExistedBeforeSeed) 
             ?? await TryGetFirstExistingScheduleAsync(schedulesExistedBeforeSeed)
-            ?? await CreateSampleScheduleAsync(mediaDbContext);
+            ?? await CreateSampleScheduleAsync();
 
         var scheduleId = schedule.Id;
 
@@ -124,11 +122,11 @@ public class DefaultScheduleService(
         return schedule;
     }
 
-    private async Task<AlarmSchedule> CreateSampleScheduleAsync(MediaDbContext mediaDbContext)
+    private async Task<AlarmSchedule> CreateSampleScheduleAsync()
     {
         // Note: GetSampleSchedule creates schedule with IsEnabled = false (disabled by default)
         logger.Information("No schedules found, creating sample schedule as default schedule");
-        var sampleSchedule = await AlarmSchedule.GetSampleSchedule(false, mediaDbContext);
+        var sampleSchedule = await AlarmSchedule.GetSampleSchedule(false, bibleTranslationService, melodyMusicService);
 
         // Save the sample schedule to database using AlarmScheduleService
         var schedule = await alarmScheduleService.AddScheduleAsync(sampleSchedule, _cancellationTokenSource.Token);

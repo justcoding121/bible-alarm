@@ -6,7 +6,7 @@ using Bible.Alarm.Models;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Foundation;
 using Microsoft.EntityFrameworkCore;
 using Serilog;

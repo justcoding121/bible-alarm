@@ -1,5 +1,6 @@
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using System;
@@ -135,7 +136,7 @@ public class AlarmSchedule : IComparable
         return Id.CompareTo(other.Id);
     }
 
-    public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, MediaDbContext mediaDbContext)
+    public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, IBibleTranslationService bibleTranslationService, IMelodyMusicService melodyMusicService)
     {
         var startTime = DateTime.UtcNow;
         Serilog.Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
@@ -165,14 +166,9 @@ public class AlarmSchedule : IComparable
         };
 
         var bibleQueryStartTime = DateTime.UtcNow;
-        var bible = await mediaDbContext
-            .BibleTranslations
-            .AsNoTracking()
-            .Include(x => x.Books)
-            .Where(x => x.Code == sample.BibleReadingSchedule.PublicationCode
-                        && x.Language.Code
-                        == sample.BibleReadingSchedule.LanguageCode)
-            .FirstOrDefaultAsync();
+        var bible = await bibleTranslationService.GetByLanguageAndCodeWithBooksAsync(
+            sample.BibleReadingSchedule.LanguageCode,
+            sample.BibleReadingSchedule.PublicationCode);
         var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;
         Serilog.Log.Information("[PERF] GetSampleSchedule: Bible query took {ElapsedMs}ms", bibleQueryElapsed);
 
@@ -190,13 +186,7 @@ public class AlarmSchedule : IComparable
             throw new InvalidOperationException("Music is null in sample schedule");
         
         var musicQueryStartTime = DateTime.UtcNow;
-        var music = await mediaDbContext
-            .MelodyMusic
-            .AsNoTracking()
-            .Include(x => x.Tracks)
-            .Where(x => x.Code
-                        == sample.Music.PublicationCode)
-            .FirstOrDefaultAsync();
+        var music = await melodyMusicService.GetByCodeWithTracksAsync(sample.Music.PublicationCode);
         var musicQueryElapsed = (DateTime.UtcNow - musicQueryStartTime).TotalMilliseconds;
         Serilog.Log.Information("[PERF] GetSampleSchedule: Music query took {ElapsedMs}ms", musicQueryElapsed);
 

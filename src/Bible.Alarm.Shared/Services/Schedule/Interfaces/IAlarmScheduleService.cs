@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
 
-namespace Bible.Alarm.Shared.Services.Interfaces;
+namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
 /// <summary>
 /// Service for interacting with alarm schedule-related database operations.

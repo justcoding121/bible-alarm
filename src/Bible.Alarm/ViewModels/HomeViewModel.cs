@@ -6,7 +6,7 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;

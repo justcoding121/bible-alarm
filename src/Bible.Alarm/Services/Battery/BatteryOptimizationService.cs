@@ -1,6 +1,6 @@
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Services.Battery.Interfaces;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Battery;

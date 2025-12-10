@@ -4,7 +4,7 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.Services.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
