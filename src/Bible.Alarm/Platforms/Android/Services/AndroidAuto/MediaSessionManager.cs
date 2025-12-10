@@ -6,9 +6,11 @@ using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -69,11 +71,40 @@ public sealed class MediaSessionManager
                         MediaSessionCompat.FlagHandlesMediaButtons |
                         MediaSessionCompat.FlagHandlesTransportControls);
 
+                    // CRITICAL: SetCallback must be called on the main thread (requires Looper)
                     // Create MediaSessionCallback lazily to avoid startup dependency resolution issues
                     var playbackService = _serviceProvider.GetRequiredService<IPlaybackService>();
                     var logger = _serviceProvider.GetRequiredService<ILogger>();
                     var mediaSessionCallback = new MediaSessionCallback(playbackService, logger);
-                    _mediaSession.SetCallback(mediaSessionCallback);
+                    
+                    // Ensure SetCallback runs on main thread to avoid Looper exception
+                    if (MainThread.IsMainThread)
+                    {
+                        // The preferred path: if we are on the main thread, execute immediately.
+                        _mediaSession.SetCallback(mediaSessionCallback);
+                        Logger.Debug("MediaSessionCallback set synchronously on main thread");
+                    }
+                    else
+                    {
+                        // CRITICAL: Ensure SetCallback is run on the main thread without blocking the current Binder thread.
+                        // The callback will be set asynchronously. The MediaSession will be operational shortly after.
+                        // Android Auto is tolerant of this slight delay, and blocking the Binder thread causes deadlocks/ANRs.
+                        Logger.Warning("MediaSession creation not on MainThread. Invoking SetCallback asynchronously to avoid blocking Binder thread.");
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            try
+                            {
+                                _mediaSession?.SetCallback(mediaSessionCallback);
+                                Logger.Information("Successfully set MediaSessionCallback on main thread (async)");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(ex, "Error setting MediaSessionCallback asynchronously");
+                            }
+                        });
+                        // NO BLOCKING CALL HERE (e.g., .Wait() or Task.Run().Wait())
+                        // The Binder thread returns immediately, allowing Android Auto to complete binding without timeout.
+                    }
 
                     // Start with stopped state — prevents auto-play on bind
                     // The effect will update this when it receives playback status changes
@@ -188,12 +219,12 @@ public sealed class MediaSessionManager
 
         if (status == PlayStatus.Stopped || status == PlayStatus.Ended)
         {
-            // When stopped/ended, remove playback controls from Android Auto screen
+            // When stopped/ended, set metadata for next schedule instead of clearing
             UpdatePlaybackStateForStop();
-            ClearMetadata();
+            SetNextScheduleMetadata();
             SetActive(false);
             // Note: Audio focus is released globally by AudioFocusEffect when playback stops
-            Logger.Information("MediaSessionCompat set to stopped/inactive - Android Auto playback controls removed");
+            Logger.Information("MediaSessionCompat set to stopped/inactive - Android Auto shows next schedule metadata");
         }
         else
         {
@@ -212,6 +243,59 @@ public sealed class MediaSessionManager
 
         Logger.Debug("MediaSessionCompat playback status updated to: {Status} (State: {State})", status, state);
         Logger.Debug("SetPlaybackStatus completed for status: {Status}", status);
+    }
+
+    /// <summary>
+    /// Sets metadata for the next schedule track to be played.
+    /// Called when playback stops or ends to show the next available schedule in Android Auto.
+    /// </summary>
+    private void SetNextScheduleMetadata()
+    {
+        Logger.Debug("SetNextScheduleMetadata called");
+        try
+        {
+            var defaultScheduleService = _serviceProvider.GetRequiredService<IDefaultScheduleService>();
+            var metadataTask = defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
+            
+            // Fire and forget - don't block the callback thread
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var metadata = await metadataTask;
+                    
+                    // Update metadata on main thread
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        UpdateMetadata(metadata.Title, metadata.Artist, metadata.Album);
+                        
+                        // Set mediaId to scheduleId for OnPlayFromMediaId
+                        var metadataBuilder = new MediaMetadataCompat.Builder()
+                            .PutString(MediaMetadataCompat.MetadataKeyTitle, metadata.Title)
+                            .PutString(MediaMetadataCompat.MetadataKeyArtist, metadata.Artist)
+                            .PutString(MediaMetadataCompat.MetadataKeyAlbum, metadata.Album ?? "")
+                            .PutString(MediaMetadataCompat.MetadataKeyMediaId, metadata.ScheduleId.ToString());
+                        
+                        _mediaSession?.SetMetadata(metadataBuilder.Build());
+                        
+                        Logger.Information("Set next schedule metadata: ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}", 
+                            metadata.ScheduleId, metadata.Title, metadata.Artist);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error setting next schedule metadata");
+                    // Fallback to clearing metadata if there's an error
+                    ClearMetadata();
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error getting default schedule service for next schedule metadata");
+            // Fallback to clearing metadata if there's an error
+            ClearMetadata();
+        }
     }
 
     internal void SetActive(bool active)

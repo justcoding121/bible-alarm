@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools">
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -12,48 +13,13 @@
 	<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 	<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 	<uses-permission android:name="android.permission.REORDER_TASKS" />
-	<uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
-	<uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
+	<!-- Remove deprecated permission if it exists in merged manifest -->
+	<uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" tools:node="remove" />
 	
 	<application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:label="Bible Alarm">
-		<!-- 1. Modern Android Auto (Car App Library) Service -->
-		<!-- Supports both templated UI (Car App Library) and fallback to MediaBrowserService -->
-		<service
-			android:name="bible.alarm.platforms.android.services.androidauto.CarAppService"
-			android:exported="true">
-			<intent-filter>
-				<action android:name="androidx.car.app.CarAppService" />
-				<!-- CRITICAL: MEDIA category tells Android Auto this is a media app -->
-				<category android:name="androidx.car.app.category.MEDIA" />
-			</intent-filter>
-			
-			<!-- Metadata for Modern Car App Library -->
-			<meta-data
-				android:name="androidx.car.app"
-				android:resource="@xml/automotive_app_desc" />
-			
-			<!-- CRITICAL: Declare min Car API level (using integer resource) -->
-			<meta-data
-				android:name="androidx.car.app.minCarApiLevel"
-				android:resource="@integer/car_app_min_api_level" />
-			
-			<!-- OPTIONAL: Declare target (latest) for future-proofing -->
-			<meta-data
-				android:name="androidx.car.app.targetCarApiLevel"
-				android:resource="@integer/car_app_target_api_level" />
-		</service>
-		
-		<!-- 2. Legacy Android Auto (phone projection + old DHU) -->
-		<service
-			android:name="bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService"
-			android:exported="true"
-			android:foregroundServiceType="mediaPlayback">
-			<intent-filter>
-				<action android:name="android.media.browse.MediaBrowserService" />
-			</intent-filter>
-		</service>
-		
-		<!-- Android Auto global metadata for legacy host discovery -->
+		<!-- CRITICAL: Application-level legacy metadata for Android Auto discovery -->
+		<!-- This is required for Android Auto to discover and list the app -->
+		<!-- Spotify uses this approach - application-level metadata for discovery -->
 		<meta-data
 			android:name="com.google.android.gms.car.application"
 			android:resource="@xml/automotive_app_desc" />

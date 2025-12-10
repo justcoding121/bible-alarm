@@ -164,6 +164,7 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<MediaPlayer>(), 
             sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();
+        services.AddSingleton<Platforms.Android.Services.Media.AndroidArtworkService>();
         // Register global audio focus listener and service as singletons
         services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusListener>();
         services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusService>();

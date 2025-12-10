@@ -27,8 +27,9 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// Uses the shared MediaSessionCompat from MediaSessionManager to ensure seamless playback continuity
 /// across both services.
 /// </summary>
-[Register("bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService")]
 [Service(Exported = true)]
+[IntentFilter(new[] { "android.media.browse.MediaBrowserService" })]
+[Register("bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService")]
 public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 {
     private static readonly ILogger Logger = Log.ForContext<LegacyMediaBrowserService>();
@@ -86,8 +87,10 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         Logger.Information("✅ OnGetRoot called for client: {ClientPackageName} (UID: {ClientUid})", 
             clientPackageName, clientUid);
         
-        // Allow all connections for debugging
-        return new MediaBrowserServiceCompat.BrowserRoot("root", null);
+        // Standard media root ID for Android Auto/AAOS compatibility
+        // The root ID "__ID_ROOT__" is a common practice for media apps
+        // Android Auto and AAOS hosts are trusted by default when connecting to MediaBrowserService
+        return new MediaBrowserServiceCompat.BrowserRoot("__ID_ROOT__", null);
     }
 
     public override void OnLoadChildren(string parentId, MediaBrowserServiceCompat.Result result)
@@ -112,13 +115,28 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     public override IBinder? OnBind(Intent? intent)
     {
-        Logger.Information("✅ OnBind called with intent: {Action}", intent?.Action);
+        Logger.Information("✅ LegacyMediaBrowserService.OnBind() called with intent: {Action}", 
+            intent?.Action);
+        
+        // Log the intent details to help debug binder conflicts
+        if (intent != null)
+        {
+            Logger.Information("Intent component: {Component}, Package: {Package}, Categories: {Categories}", 
+                intent.Component?.ClassName, intent.Package, string.Join(", ", intent.Categories ?? Array.Empty<string>()));
+        }
+        
         return base.OnBind(intent);
     }
 
     public override void OnDestroy()
     {
-        Logger.Information("✅ LegacyMediaBrowserService destroyed");
+        Logger.Information("✅ LegacyMediaBrowserService destroyed - Releasing MediaSession");
+        
+        // Release the shared MediaSessionCompat to clean up resources
+        // This ensures proper cleanup when the service is stopped by the system
+        _session?.Release();
+        _session = null;
+        
         base.OnDestroy();
     }
 }

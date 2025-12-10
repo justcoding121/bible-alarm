@@ -131,9 +131,6 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             _currentTrackIndex = 0;
             _manuallyVisitedTrackIndices.Clear();
             
-            // Dispatch playlist info to Fluxor state for CarPlay/Android Auto
-            await _preparePlaybackService.DispatchPlaylistChangedAsync(_playlist, _currentTrackIndex);
-            
             // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
             await PlayCurrentTrackAsync();
             NotifyNavigationChanged();
@@ -195,7 +192,6 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             
             await PlayCurrentTrackAsync(startFromBeginning: startFromBeginning);
             NotifyNavigationChanged();
-            await _preparePlaybackService.DispatchPlaylistChangedAsync(_playlist, _currentTrackIndex);
         }
     }
 
@@ -215,7 +211,6 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             _manuallyVisitedTrackIndices.Add(_currentTrackIndex);
             await PlayCurrentTrackAsync(startFromBeginning: true);
             NotifyNavigationChanged();
-            await _preparePlaybackService.DispatchPlaylistChangedAsync(_playlist, _currentTrackIndex);
         }
     }
 
@@ -376,9 +371,6 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         
         // Dispatch playback stopped action
         _dispatcher.Dispatch(new PlaybackStoppedAction());
-        
-        // Clear playlist in state using the centralized dispatch method
-        await _preparePlaybackService.DispatchPlaylistChangedAsync(null, -1);
         
         // Log reset completion for debugging
         _logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}", 
