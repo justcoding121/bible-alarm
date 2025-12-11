@@ -36,8 +36,9 @@ public class MainActivity : MauiAppCompatActivity
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
 
-        // Run bootstrapper for foreground scenarios
-        MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: true);
+        // NOTE: Do NOT call InitializePlatformBootstrap here for foreground launches
+        // WindowSetupService.CreateWindow() will handle bootstrap and send InitializedMessage
+        // Bootstrap is only needed here for background services/jobs, not for foreground UI launches
 
         // Handle incoming intents (e.g., from notifications)
         HandleIncomingIntent();
@@ -72,6 +73,9 @@ public class MainActivity : MauiAppCompatActivity
                     MauiAppHolder.CreateAndStore();
                     // Run bootstrapper after CreateAndStore for background launch
                     MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+                    
+                    // Wait for bootstrap to complete before using database services
+                    await MauiProgram.WaitForBootstrapAsync();
 
                     _alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
                     await _alarmHandler.HandleAsync(scheduleId, false);
@@ -86,9 +90,8 @@ public class MainActivity : MauiAppCompatActivity
 
     private void SetupBackgroundTasks()
     {
-        Task.Run(async () =>
+        Task.Run(() =>
         {
-
             try
             {
                 if (_lastResumeTime.HasValue && DateTime.Now.Subtract(_lastResumeTime.Value).TotalSeconds >= 3)
@@ -96,17 +99,13 @@ public class MainActivity : MauiAppCompatActivity
                     var intent = new Intent(this, typeof(AlarmSetupService));
                     intent.PutExtra("Action", "SetupBackgroundTasks");
                     StartService(intent);
-                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Error setting up background tasks");
-                return true;
             }
-            return false;
         });
-
     }
 
     protected override void OnResume()

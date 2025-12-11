@@ -129,9 +129,11 @@ public static class MauiProgram
                 
                 // Font Awesome 7 fonts - use underscores in filenames for Android compatibility
                 // This works universally across all platforms (Android, iOS, Windows)
+                Log.Logger.Debug("Registering Font Awesome fonts");
                 fonts.AddFont("fa_solid_900.otf", "FontAwesomeSolid");
                 fonts.AddFont("fa_regular_400.otf", "FontAwesomeRegular");
                 fonts.AddFont("fa_brands_400.otf", "FontAwesomeBrands");
+                Log.Logger.Debug("Font Awesome fonts registered successfully");
             });
 
         // Register services
@@ -143,18 +145,12 @@ public static class MauiProgram
         var fontService = app.Services.GetRequiredService<IFontService>();
         FontServiceHelper.Initialize(fontService);
 
-        // Initialize Fluxor store
-        var store = app.Services.GetRequiredService<IStore>();
-        // Store initialization happens automatically, but we ensure it's ready
-        store.InitializeAsync().GetAwaiter().GetResult();
-        ReduxContainer.Store = store;
+        // Fluxor store initialization is now handled in CommonBootstrapHelper.VerifyServices()
+        // This ensures it's initialized asynchronously as part of the bootstrap process
 
         return app;
     }
 
-
-    private static readonly SemaphoreSlim BootstrapLock = new(1, 1);
-    private static volatile bool BootstrapCompleted = false;
 
     /// <summary>
     /// Initializes platform-specific bootstrap.
@@ -165,106 +161,29 @@ public static class MauiProgram
     /// <param name="isForeground">If true, runs bootstrap on a background Task. If false, runs synchronously.</param>
     public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false)
     {
-        // Fast path: if bootstrap already completed, return immediately
-        if (BootstrapCompleted)
-        {
-            return;
-        }
-
-        // Try to acquire lock without blocking (timeout = 0)
-        var lockAcquired = ConcurrencyHelper.ExecuteAsync(BootstrapLock, async () =>
-        {
-            // Double-check if completed while waiting for lock
-            if (BootstrapCompleted)
-            {
-                return;
-            }
-
-            if (isForeground)
-            {
-                // Run bootstrap as a background job for foreground launches to avoid blocking UI
-                // Fire and forget - don't await
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await RunBootstrap(services);
-                        BootstrapCompleted = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Error(ex, "Error in background bootstrap initialization");
-                    }
-                });
-            }
-            else
-            {
-                // Run bootstrap synchronously for background services/jobs
-                // Note: Database operations inside RunBootstrap are already wrapped in Task.Run
-                await RunBootstrap(services);
-                BootstrapCompleted = true;
-            }
-        }, timeoutMs: 0).GetAwaiter().GetResult();
-
-        // If lock wasn't acquired (timeout = 0 means try without waiting)
-        if (!lockAcquired)
-        {
-            if (isForeground)
-            {
-                // For foreground, don't block - just return and let the other bootstrap complete
-                return;
-            }
-            else
-            {
-                // For background services, wait for the lock and check if bootstrap completed
-                ConcurrencyHelper.ExecuteAsync(BootstrapLock, async () =>
-                {
-                    // Double-check if completed while waiting
-                    if (BootstrapCompleted)
-                    {
-                        return;
-                    }
-                    // If we got here, the previous bootstrap failed or was interrupted
-                    // Continue to run bootstrap
-                    // Note: Database operations inside RunBootstrap are already wrapped in Task.Run
-                    await RunBootstrap(services);
-                    BootstrapCompleted = true;
-                }).GetAwaiter().GetResult();
-            }
-        }
+        BootstrapHelper.InitializePlatformBootstrap(services, isForeground);
     }
 
-    private static async Task RunBootstrap(IServiceProvider services)
+    /// <summary>
+    /// Synchronously waits for bootstrap to complete before allowing database access.
+    /// Use this method when you must wait synchronously (e.g., in framework override methods).
+    /// </summary>
+    /// <param name="timeoutMs">Maximum time to wait in milliseconds (default: 30 seconds)</param>
+    /// <exception cref="TimeoutException">Thrown if bootstrap doesn't complete within timeout</exception>
+    public static void WaitForBootstrap(int timeoutMs = 30000)
     {
-        try
-        {
-            var logger = services.GetRequiredService<ILogger>();
+        BootstrapHelper.WaitForBootstrap(timeoutMs);
+    }
 
-#if ANDROID
-            // Android bootstrap initialization
-            // Try Platform.CurrentActivity first, fallback to AndroidApplication.Context
-            var context = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
-            var application = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.Application ?? Android.App.Application.Context as Android.App.Application;
-
-            if (context != null)
-            {
-                await AndroidBootstrapHelper.Initialize(logger, context, application);
-            }
-            else
-            {
-                logger.Warning("Android context not available for bootstrap initialization");
-            }
-#elif IOS
-            // iOS bootstrap initialization
-            await iOSBootstrapHelper.Initialize(logger, isForeground: true);
-#elif WINDOWS
-            // Windows bootstrap initialization
-            await WindowsBootstrapHelper.Initialize(logger, isForeground: true);
-#endif
-        }
-        catch (Exception ex)
-        {
-            Log.Logger.Error(ex, "Error in InitializePlatformBootstrap");
-        }
+    /// <summary>
+    /// Waits for bootstrap to complete before allowing database access.
+    /// This ensures database migrations are finished before services use the database.
+    /// </summary>
+    /// <param name="timeoutMs">Maximum time to wait in milliseconds (default: 30 seconds)</param>
+    /// <returns>Task that completes when bootstrap is done</returns>
+    /// <exception cref="TimeoutException">Thrown if bootstrap doesn't complete within timeout</exception>
+    public static async Task WaitForBootstrapAsync(int timeoutMs = 30000)
+    {
+        await BootstrapHelper.WaitForBootstrapAsync(timeoutMs);
     }
 }

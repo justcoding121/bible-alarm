@@ -14,7 +14,9 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
         {
             try
             {
-                await CommonBootstrapHelper.VerifyServices();
+                // Pass isForeground to VerifyServices so InitializedMessage is sent for foreground launches
+                // Database operations run in background Task.Run, so UI thread is not blocked
+                await CommonBootstrapHelper.VerifyServices(isForeground);
                 logger.Information("Windows database initialization completed successfully.");
             }
             catch (Exception e)

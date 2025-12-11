@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -27,9 +28,9 @@ public class SchedulerService(
 
     public async Task<bool> HandleAsync()
     {
-        var downloaded = false;
-        if (await Lock.WaitAsync(1000))
-            try
+        try
+        {
+            var downloaded = await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
                 try
                 {
@@ -40,6 +41,7 @@ public class SchedulerService(
                     logger.Error(e, "An error happenned inside cleanup task.");
                 }
 
+                var downloaded = false;
                 var schedules = await alarmScheduleService.GetSchedulesAsync(x => x.IsEnabled, includeMusic: false, includeBibleReading: false, _cancellationTokenSource.Token);
                 foreach (var schedule in schedules)
                     if (!await notificationService.IsScheduledAsync(schedule.Id))
@@ -51,24 +53,23 @@ public class SchedulerService(
                     {
                         downloaded = await mediaCacheService.SetupAlarmCacheAsync(schedule.Id);
                     }
-            }
-            catch (Exception e)
+                
+                return downloaded;
+            }, timeoutMs: 1000);
+
+            if (!downloaded)
             {
-                logger.Error(e, $"Failed to process scheduler task. Db directory: {storageService.CacheRoot}");
-            }
-            finally
-            {
-                try
-                {
-                    Lock.Release();
-                }
-                catch (ObjectDisposedException e)
-                {
-                    logger.Error(e, "SchedulerService: @lock disposed error.");
-                }
+                logger.Warning("Failed to acquire lock for scheduler task (timeout). Db directory: {CacheRoot}", storageService.CacheRoot);
+                return false;
             }
 
-        return downloaded;
+            return downloaded;
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Failed to process scheduler task. Db directory: {CacheRoot}", storageService.CacheRoot);
+            return false;
+        }
     }
 
     /// <summary>

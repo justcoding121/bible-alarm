@@ -18,12 +18,15 @@ public class AndroidBootstrapHelper
     /// <summary>
     /// Main entry point for Android platform initialization
     /// </summary>
-    public static async Task Initialize(ILogger logger, Context context, AndroidApplication application = null)
+    public static async Task Initialize(ILogger logger, Context context, AndroidApplication application = null, bool isForeground = false)
     {
+        logger.Information("AndroidBootstrapHelper.Initialize called with isForeground={IsForeground}", isForeground);
 
         try
         {
-            await CommonBootstrapHelper.VerifyServices(false);
+            // Pass isForeground to VerifyServices so InitializedMessage is sent for foreground launches
+            // Database operations run in background Task.Run, so UI thread is not blocked
+            await CommonBootstrapHelper.VerifyServices(isForeground);
             logger.Information("Android database initialization completed successfully.");
         }
         catch (Exception e)

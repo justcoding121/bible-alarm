@@ -39,7 +39,7 @@ public class MessageHandlingService(
 
     public void Receive(InitializedMessage message)
     {
-        logger.Information("Received InitializedMessage, navigating to Home page.");
+        _logger.Information("Received InitializedMessage, navigating to Home page.");
 
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {

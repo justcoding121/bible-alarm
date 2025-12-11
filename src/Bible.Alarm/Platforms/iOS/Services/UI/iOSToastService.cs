@@ -1,5 +1,7 @@
-﻿using Bible.Alarm.Platforms.iOS.Services.UI;
+﻿using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
+using Microsoft.Maui.ApplicationModel;
 using UIKit;
 
 [assembly: Dependency(typeof(iOSToastService))]
@@ -33,9 +35,8 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
         private static async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
-            await Lock.WaitAsync();
-
-            try
+            
+            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
                 // Validate platform compatibility
 #pragma warning disable CA1422
@@ -68,20 +69,20 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                 UIView.Animate(0.3, () => toastView.Alpha = 1);
                 
                 // Wait for duration or clear request
-                await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000))).ConfigureAwait(true);
+                await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000)));
                 
-                // Animate out and remove
-                UIView.Animate(0.3, () => toastView.Alpha = 0, () =>
+                // Animate out and remove - ensure UIView operations run on main thread
+                await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    toastView.RemoveFromSuperview();
-                    toastView.Dispose();
+                    UIView.Animate(0.3, () => toastView.Alpha = 0, () =>
+                    {
+                        toastView.RemoveFromSuperview();
+                        toastView.Dispose();
+                    });
                 });
-            }
-            finally
-            {
-                Lock.Release();
-                clearRequest = null;
-            }
+            });
+            
+            clearRequest = null;
         }
 
         private static UIView CreateToastView(string message)

@@ -16,7 +16,7 @@ public interface IMediaElementService : IDisposable
     /// MediaElement will be attached to BootstrapPage container if available, otherwise works without UI container.
     /// </summary>
     /// <returns>The MediaElement instance</returns>
-    MediaElement GetMediaElement();
+    Task<MediaElement> GetMediaElementAsync();
 
     /// <summary>
     /// Reattaches MediaElement to BootstrapPage container when BootstrapPage becomes available.

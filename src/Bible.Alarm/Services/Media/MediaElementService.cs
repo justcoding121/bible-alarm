@@ -38,57 +38,64 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
         WeakReferenceMessenger.Default.Register<RecreateMediaElementMessage>(this);
     }
 
-    public MediaElement GetMediaElement()
+    public async Task<MediaElement> GetMediaElementAsync()
     {
+        MediaElement? existingInstance;
+        
         // Use local lock to synchronize access to MediaElement
         lock (_lockObject)
         {
             // First, check if we already have a MediaElement instance (even if not attached to UI)
-            if (_mediaElementInstance != null)
-            {
-                _logger.Debug("MediaElement instance found in service");
-                
-                // Try to attach to BootstrapPage if it's available
-                TryAttachToBootstrapPage(_mediaElementInstance);
-                
-                return _mediaElementInstance;
-            }
-
-            // MediaElement doesn't exist, create a new one
-            // MUST be done on main thread - MediaElement creation must be on UI thread
-            _logger.Information("MediaElement not found, creating new instance on main thread");
-            
-            MediaElement? newMediaElement = null;
-            
-            if (MainThread.IsMainThread)
-            {
-                newMediaElement = CreateMediaElementOnMainThread();
-            }
-            else
-            {
-                // Synchronously invoke on main thread to ensure MediaElement is created before returning
-                // This prevents race conditions where MediaElement is accessed before it's fully created
-                MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    newMediaElement = CreateMediaElementOnMainThread();
-                }).GetAwaiter().GetResult();
-            }
-
-            if (newMediaElement == null)
-            {
-                _logger.Error("Failed to create MediaElement on main thread");
-                throw new InvalidOperationException("Failed to create MediaElement - could not create on main thread");
-            }
-
-            // Store the instance
-            _mediaElementInstance = newMediaElement;
+            existingInstance = _mediaElementInstance;
+        }
+        
+        if (existingInstance != null)
+        {
+            _logger.Debug("MediaElement instance found in service");
             
             // Try to attach to BootstrapPage if it's available
-            TryAttachToBootstrapPage(newMediaElement);
+            TryAttachToBootstrapPage(existingInstance);
             
-            _logger.Information("New MediaElement created and stored in service");
-            return newMediaElement;
+            return existingInstance;
         }
+
+        // MediaElement doesn't exist, create a new one
+        // MUST be done on main thread - MediaElement creation must be on UI thread
+        _logger.Information("MediaElement not found, creating new instance on main thread");
+        
+        MediaElement? newMediaElement = null;
+        
+        if (MainThread.IsMainThread)
+        {
+            newMediaElement = CreateMediaElementOnMainThread();
+        }
+        else
+        {
+            // Asynchronously invoke on main thread to ensure MediaElement is created before returning
+            // This prevents race conditions where MediaElement is accessed before it's fully created
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                newMediaElement = CreateMediaElementOnMainThread();
+            });
+        }
+
+        if (newMediaElement == null)
+        {
+            _logger.Error("Failed to create MediaElement on main thread");
+            throw new InvalidOperationException("Failed to create MediaElement - could not create on main thread");
+        }
+
+        // Store the instance
+        lock (_lockObject)
+        {
+            _mediaElementInstance = newMediaElement;
+        }
+        
+        // Try to attach to BootstrapPage if it's available
+        TryAttachToBootstrapPage(newMediaElement);
+        
+        _logger.Information("New MediaElement created and stored in service");
+        return newMediaElement;
     }
 
     /// <summary>
@@ -187,7 +194,7 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
 
     /// <summary>
     /// Disposes the MediaElement and sets the container content to null.
-    /// The MediaElement will be recreated by GetMediaElement() when needed.
+    /// The MediaElement will be recreated by GetMediaElementAsync() when needed.
     /// </summary>
     private void ReplaceMediaElement()
     {

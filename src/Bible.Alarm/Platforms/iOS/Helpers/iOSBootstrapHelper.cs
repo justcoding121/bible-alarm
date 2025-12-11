@@ -9,7 +9,9 @@ public class iOSBootstrapHelper
     {
         try
         {
-            await CommonBootstrapHelper.VerifyServices(false);
+            // Pass isForeground to VerifyServices so InitializedMessage is sent for foreground launches
+            // Database operations run in background Task.Run, so UI thread is not blocked
+            await CommonBootstrapHelper.VerifyServices(isForeground);
             logger.Information("iOS database initialization completed successfully.");
         }
         catch (Exception e)

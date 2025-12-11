@@ -45,11 +45,28 @@ public class CarAppService : AndroidX.Car.App.CarAppService
     {
         base.OnCreate();
         
-        // Initialize bootstrap and ensure services are available
-        MauiAppHolder.CreateAndStore();
-        MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+        Logger.Information("CarAppService.OnCreate() called - Initializing bootstrap (background service)");
         
-        Logger.Information("✅ CarAppService.OnCreate() called - Bootstrap initialized");
+        // Initialize bootstrap asynchronously to avoid blocking UI thread
+        // Android Auto services can be created during app startup, so we must not block
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                MauiAppHolder.CreateAndStore();
+                MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+                
+                // Wait for bootstrap to complete before proceeding
+                // This ensures database migrations are finished before accessing schedule database
+                await MauiProgram.WaitForBootstrapAsync();
+                
+                Logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialized and ready");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error initializing bootstrap in CarAppService");
+            }
+        });
     }
 
     public override HostValidator CreateHostValidator()
@@ -128,6 +145,10 @@ public class MainCarScreen : AndroidX.Car.App.Screen
         
         try
         {
+            // Ensure bootstrap is complete before accessing database services
+            // This is critical for Android Auto to show schedule list and handle media playback
+            MauiProgram.WaitForBootstrap();
+            
             // Get the MediaSessionCompat to verify it's initialized
             var mediaSession = _mediaSessionManager.GetOrCreate();
             var sessionToken = mediaSession.SessionToken;
@@ -147,7 +168,9 @@ public class MainCarScreen : AndroidX.Car.App.Screen
             
             Logger.Information("✅ Creating PaneTemplate for Android Auto");
             
-            // Create a Pane with content - required for PaneTemplate.Builder
+            // TODO: Load schedules from database and create list items
+            // Each item should be tappable and play the corresponding scheduleId (mediaId)
+            // For now, create a Pane with empty content
             var pane = new Pane.Builder()
                 .SetLoading(false)
                 .Build();

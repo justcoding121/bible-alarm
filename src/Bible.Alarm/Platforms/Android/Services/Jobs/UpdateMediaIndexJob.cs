@@ -49,6 +49,9 @@ public class UpdateMediaIndexJob : JobService
                 // Run bootstrapper after CreateAndStore for background launch
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 
+                // Wait for bootstrap to complete before using database services
+                await MauiProgram.WaitForBootstrapAsync();
+                
                 // IMediaIndexService is a singleton, so don't dispose it
                 var mediaIndexService = ServiceProviderManager.GetService<IMediaIndexService>();
                 await mediaIndexService.UpdateIndexIfAvailable();

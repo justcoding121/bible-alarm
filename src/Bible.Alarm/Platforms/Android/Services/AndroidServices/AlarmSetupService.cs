@@ -61,6 +61,21 @@ public class AlarmSetupService : Service, IDisposable
         MauiAppHolder.CreateAndStore();
         // Run bootstrapper after CreateAndStore for background launch
         MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+        
+        // Wait for bootstrap to complete before using database services
+        // Run asynchronously to avoid blocking OnStartCommand
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await MauiProgram.WaitForBootstrapAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail - service can continue without waiting
+                Log.Logger.Warning(ex, "Failed to wait for bootstrap in AlarmSetupService");
+            }
+        });
 
         try
         {

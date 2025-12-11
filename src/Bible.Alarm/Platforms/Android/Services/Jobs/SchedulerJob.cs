@@ -49,6 +49,9 @@ public class SchedulerJob : JobService
                 // Run bootstrapper after CreateAndStore for background launch
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 
+                // Wait for bootstrap to complete before using database services
+                await MauiProgram.WaitForBootstrapAsync();
+                
                 // ISchedulerService is a singleton, so don't dispose it
                 var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
                 await schedulerService.HandleAsync();

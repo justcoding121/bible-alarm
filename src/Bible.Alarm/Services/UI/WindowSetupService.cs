@@ -42,7 +42,19 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
 
         navigationService.ClearCache();
 
-        Task.Run(async () => await CommonBootstrapHelper.VerifyServices(true));
+        Logger.Information("WindowSetupService.CreateWindow: Starting VerifyServices with initializeUI=true");
+        Task.Run(async () =>
+        {
+            try
+            {
+                await CommonBootstrapHelper.VerifyServices(true);
+                Logger.Information("WindowSetupService.CreateWindow: VerifyServices completed");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "WindowSetupService.CreateWindow: Error in VerifyServices");
+            }
+        });
 
         alarmModalService.SubscribeToPlaybackStateChanges();
 

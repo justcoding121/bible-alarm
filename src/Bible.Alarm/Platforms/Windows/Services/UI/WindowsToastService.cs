@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Linq;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
@@ -71,55 +72,57 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         private static async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
-            await Lock.WaitAsync();
-
-            try
+            
+            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
-                // Close any existing popup first
-                if (_currentPopup != null)
+                try
                 {
-                    try
+                    // Close any existing popup first
+                    if (_currentPopup != null)
                     {
-                        _currentPopup.IsOpen = false;
-                        // Give it time to close
-                        await Task.Delay(100);
+                        try
+                        {
+                            _currentPopup.IsOpen = false;
+                            // Give it time to close
+                            await Task.Delay(100);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(ex, "Exception occurred while closing existing popup before showing new one");
+                        }
+                        finally
+                        {
+                            CleanupPopup(_currentPopup);
+                            _currentPopup = null;
+                        }
                     }
-                    catch (Exception ex)
+
+                    var currentWindow = GetNativeWindow();
+                    if (currentWindow is null)
                     {
-                        Log.Warning(ex, "Exception occurred while closing existing popup before showing new one");
+                        return;
                     }
-                    finally
+
+                    var popup = CreateToastPopup(message, currentWindow);
+                    _currentPopup = popup;
+                    await ShowFlyoutAsync(popup, currentWindow, seconds);
+                }
+                catch (System.Runtime.InteropServices.COMException ex)
+                {
+                    // COM exceptions can occur when manipulating UI elements from wrong thread or during cleanup
+                    Log.Warning(ex, "COM exception occurred while showing toast message. This can happen when manipulating UI elements from wrong thread or during cleanup");
+                }
+                finally
+                {
+                    if (_currentPopup != null)
                     {
                         CleanupPopup(_currentPopup);
                         _currentPopup = null;
                     }
                 }
-
-                var currentWindow = GetNativeWindow();
-                if (currentWindow is null)
-                {
-                    return;
-                }
-
-                var popup = CreateToastPopup(message, currentWindow);
-                _currentPopup = popup;
-                await ShowFlyoutAsync(popup, currentWindow, seconds);
-            }
-            catch (System.Runtime.InteropServices.COMException ex)
-            {
-                // COM exceptions can occur when manipulating UI elements from wrong thread or during cleanup
-                Log.Warning(ex, "COM exception occurred while showing toast message. This can happen when manipulating UI elements from wrong thread or during cleanup");
-            }
-            finally
-            {
-                if (_currentPopup != null)
-                {
-                    CleanupPopup(_currentPopup);
-                    _currentPopup = null;
-                }
-                Lock.Release();
-                clearRequest = null;
-            }
+            });
+            
+            clearRequest = null;
         }
 
         private static Window? GetNativeWindow()

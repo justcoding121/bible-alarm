@@ -95,6 +95,19 @@ public class PlaylistService(
             }
         }
 
+        // For music, get next track number before updating
+        int? nextTrackNumber = null;
+        if (trackMetadata.PlayType == PlayType.Music)
+        {
+            var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
+                (int)trackMetadata.ScheduleId, true, false, _cancellationTokenSource.Token);
+            if (schedule?.Music != null && !schedule.Music.Repeat)
+            {
+                var next = await NextMusicUrlToPlay(schedule, true);
+                nextTrackNumber = next.Metadata.TrackNumber;
+            }
+        }
+
         // Update schedule using service
         var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
@@ -102,11 +115,9 @@ public class PlaylistService(
             {
                 if (trackMetadata.PlayType == PlayType.Music)
                 {
-                    if (schedule.Music != null && !schedule.Music.Repeat)
+                    if (schedule.Music != null && !schedule.Music.Repeat && nextTrackNumber.HasValue)
                     {
-                        schedule.Music.TrackNumber = trackMetadata.TrackNumber;
-                        var next = NextMusicUrlToPlay(schedule, true).GetAwaiter().GetResult();
-                        schedule.Music.TrackNumber = next.Metadata.TrackNumber;
+                        schedule.Music.TrackNumber = nextTrackNumber.Value;
                     }
                 }
                 else
@@ -136,6 +147,26 @@ public class PlaylistService(
 
     public async Task MarkTrackAsFinished(TrackMetadata trackMetadata)
     {
+        // Get next track/chapter before updating
+        int? nextTrackNumber = null;
+        KeyValuePair<BibleBook, BibleChapter>? nextChapter = null;
+
+        if (trackMetadata.PlayType == PlayType.Music)
+        {
+            var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
+                (int)trackMetadata.ScheduleId, true, false, _cancellationTokenSource.Token);
+            if (schedule?.Music != null && !schedule.Music.Repeat)
+            {
+                var next = await NextMusicUrlToPlay(schedule, true);
+                nextTrackNumber = next.Metadata.TrackNumber;
+            }
+        }
+        else
+        {
+            nextChapter = await GetNextBibleChapter(trackMetadata.LanguageCode, trackMetadata.PublicationCode,
+                trackMetadata.BookNumber, trackMetadata.ChapterNumber);
+        }
+
         // Update schedule using service
         var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
@@ -143,10 +174,9 @@ public class PlaylistService(
             {
                 if (trackMetadata.PlayType == PlayType.Music)
                 {
-                    if (schedule.Music != null && !schedule.Music.Repeat)
+                    if (schedule.Music != null && !schedule.Music.Repeat && nextTrackNumber.HasValue)
                     {
-                        var next = NextMusicUrlToPlay(schedule, true).GetAwaiter().GetResult();
-                        schedule.Music.TrackNumber = next.Metadata.TrackNumber;
+                        schedule.Music.TrackNumber = nextTrackNumber.Value;
                     }
                 }
                 else
@@ -155,15 +185,12 @@ public class PlaylistService(
                     if (bibleReadingSchedule == null)
                         throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
-                    var next = GetNextBibleChapter(trackMetadata.LanguageCode, trackMetadata.PublicationCode,
-                        trackMetadata.BookNumber, trackMetadata.ChapterNumber).GetAwaiter().GetResult();
-
-                    if (next.Key == null || next.Value == null)
+                    if (nextChapter == null || nextChapter.Value.Key == null || nextChapter.Value.Value == null)
                         throw new InvalidOperationException($"Next chapter Key or Value is null");
                     
                     // Update book, chapter, AND translation to match the track that just finished
-                    bibleReadingSchedule.BookNumber = next.Key.Number;
-                    bibleReadingSchedule.ChapterNumber = next.Value.Number;
+                    bibleReadingSchedule.BookNumber = nextChapter.Value.Key.Number;
+                    bibleReadingSchedule.ChapterNumber = nextChapter.Value.Value.Number;
                     bibleReadingSchedule.LanguageCode = trackMetadata.LanguageCode;
                     bibleReadingSchedule.PublicationCode = trackMetadata.PublicationCode;
                     bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
@@ -303,24 +330,31 @@ public class PlaylistService(
 
     public async Task MoveToNextBibleChapter(int scheduleId)
     {
+        // Get current schedule and next chapter before updating
+        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, false, true, _cancellationTokenSource.Token);
+        
+        if (schedule?.BibleReadingSchedule == null)
+            throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
+
+        var bibleReadingSchedule = schedule.BibleReadingSchedule;
+        var next = await GetNextBibleChapter(
+            bibleReadingSchedule.LanguageCode, 
+            bibleReadingSchedule.PublicationCode, 
+            bibleReadingSchedule.BookNumber, 
+            bibleReadingSchedule.ChapterNumber);
+
         var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
-            schedule =>
+            s =>
             {
-                var bibleReadingSchedule = schedule.BibleReadingSchedule;
-                if (bibleReadingSchedule == null)
+                var brs = s.BibleReadingSchedule;
+                if (brs == null)
                     throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
 
-                var bookNumber = bibleReadingSchedule.BookNumber;
-                var chapter = bibleReadingSchedule.ChapterNumber;
-                var publicationCode = bibleReadingSchedule.PublicationCode;
-                var languageCode = bibleReadingSchedule.LanguageCode;
-
-                var next = GetNextBibleChapter(languageCode, publicationCode, bookNumber, chapter).GetAwaiter().GetResult();
-
-                bibleReadingSchedule.BookNumber = next.Key.Number;
-                bibleReadingSchedule.ChapterNumber = next.Value.Number;
-                bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                brs.BookNumber = next.Key.Number;
+                brs.ChapterNumber = next.Value.Number;
+                brs.FinishedDuration = TimeSpan.Zero;
             },
             _cancellationTokenSource.Token);
         
@@ -330,27 +364,34 @@ public class PlaylistService(
 
     public async Task MoveToPreviousBibleChapter(int scheduleId)
     {
+        // Get current schedule and previous chapter before updating
+        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, false, true, _cancellationTokenSource.Token);
+        
+        if (schedule?.BibleReadingSchedule == null)
+            throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
+
+        var bibleReadingSchedule = schedule.BibleReadingSchedule;
+        var previous = await GetPreviousBibleChapter(
+            bibleReadingSchedule.LanguageCode, 
+            bibleReadingSchedule.PublicationCode, 
+            bibleReadingSchedule.BookNumber, 
+            bibleReadingSchedule.ChapterNumber);
+
+        if (previous.Key == null || previous.Value == null)
+            throw new InvalidOperationException($"Previous chapter Key or Value is null");
+
         var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
-            schedule =>
+            s =>
             {
-                var bibleReadingSchedule = schedule.BibleReadingSchedule;
-                if (bibleReadingSchedule == null)
+                var brs = s.BibleReadingSchedule;
+                if (brs == null)
                     throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-
-                var bookNumber = bibleReadingSchedule.BookNumber;
-                var chapter = bibleReadingSchedule.ChapterNumber;
-                var publicationCode = bibleReadingSchedule.PublicationCode;
-                var languageCode = bibleReadingSchedule.LanguageCode;
-
-                var previous = GetPreviousBibleChapter(languageCode, publicationCode, bookNumber, chapter).GetAwaiter().GetResult();
-
-                if (previous.Key == null || previous.Value == null)
-                    throw new InvalidOperationException($"Previous chapter Key or Value is null");
                 
-                bibleReadingSchedule.BookNumber = previous.Key.Number;
-                bibleReadingSchedule.ChapterNumber = previous.Value.Number;
-                bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                brs.BookNumber = previous.Key.Number;
+                brs.ChapterNumber = previous.Value.Number;
+                brs.FinishedDuration = TimeSpan.Zero;
             },
             _cancellationTokenSource.Token);
         

@@ -1,6 +1,7 @@
 ﻿using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
@@ -43,28 +44,37 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
     {
         var pendingIntent = GoAsync();
 
-        await Lock.WaitAsync();
-
         try
         {
-            _context = context;
-            _intent = intent;
-
-            // Initialize DI container for background service
-            MauiAppHolder.CreateAndStore();
-            // Run bootstrapper after CreateAndStore for background launch
-            MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-            
-            var scheduleId = intent.GetStringExtra("ScheduleId");
-            var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
-
-            _alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
-            // Subscribe to Disposed event if the handler implements it
-            if (_alarmHandler is AndroidAlarmHandler concreteHandler)
+            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
-                concreteHandler.Disposed += OnDisposed;
-            }
-            await _alarmHandler.HandleAsync(int.Parse(scheduleId), isAlarm);
+                _context = context;
+                _intent = intent;
+
+                // Initialize DI container for background service
+                MauiAppHolder.CreateAndStore();
+                
+                // Run bootstrapper asynchronously to avoid blocking the receiver thread
+                // This is critical for BroadcastReceivers which must not block
+                await Task.Run(() =>
+                {
+                    MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+                });
+                
+                // Wait for bootstrap to complete before using database services
+                await MauiProgram.WaitForBootstrapAsync();
+                
+                var scheduleId = intent.GetStringExtra("ScheduleId");
+                var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
+
+                _alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
+                // Subscribe to Disposed event if the handler implements it
+                if (_alarmHandler is AndroidAlarmHandler concreteHandler)
+                {
+                    concreteHandler.Disposed += OnDisposed;
+                }
+                await _alarmHandler.HandleAsync(int.Parse(scheduleId), isAlarm);
+            });
         }
         catch (Exception e)
         {
@@ -73,7 +83,6 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         }
         finally
         {
-            Lock.Release();
             pendingIntent.Finish();
         }
     }

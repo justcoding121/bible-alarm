@@ -17,7 +17,9 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
     {
         App.IsInForeground = true;
 
-        MauiProgram.InitializePlatformBootstrap(_serviceProvider, isForeground: true);
+        // NOTE: Do NOT call InitializePlatformBootstrap here
+        // WindowSetupService.CreateWindow() already handled bootstrap and sent InitializedMessage
+        // This method is called AFTER CreateWindow(), so bootstrap is already complete
 
         Task.Run(async () =>
         {

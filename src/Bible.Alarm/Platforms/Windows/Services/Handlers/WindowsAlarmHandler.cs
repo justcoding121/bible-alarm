@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -22,35 +23,32 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
         {
             try
             {
-                await Lock.WaitAsync();
-
-                if (_playbackState.Value.IsPreparingOrPlaying)
+                await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
                 {
-                    Dispose();
-                    return;
-                }
+                    if (_playbackState.Value.IsPreparingOrPlaying)
+                    {
+                        Dispose();
+                        return;
+                    }
 
-                await Task.Run(async () =>
-                {
-                    try
+                    await Task.Run(async () =>
                     {
-                        await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.Error(e, "An error happened when ringing the alarm.");
-                        throw;
-                    }
+                        try
+                        {
+                            await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.Error(e, "An error happened when ringing the alarm.");
+                            throw;
+                        }
+                    });
                 });
             }
             catch (Exception e)
             {
                 _logger.Error(e, "An error happened when creating the task to ring the alarm.");
                 Dispose();
-            }
-            finally
-            {
-                Lock.Release();
             }
         }
 

@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -28,48 +29,45 @@ namespace Bible.Alarm.Platforms.iOS.Services.Handlers
         {
             try
             {
-                await Lock.WaitAsync();
-
-                if (_playbackState.Value.IsPreparingOrPlaying)
+                await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
                 {
-                    Dispose();
-                    return;
-                }
-                else
-                {
-                    await Task.Delay(0).ContinueWith(_ =>
+                    if (_playbackState.Value.IsPreparingOrPlaying)
                     {
-                        if (!firstTime)
+                        Dispose();
+                        return;
+                    }
+                    else
+                    {
+                        await Task.Delay(0).ContinueWith(_ =>
                         {
-                            UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
+                            if (!firstTime)
+                            {
+                                UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
+                            }
+
+                            firstTime = false;
+                        }, taskScheduler);
+                    }
+
+
+                    await Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
                         }
-
-                        firstTime = false;
-                    }, taskScheduler);
-                }
-
-
-                await Task.Run(async () =>
-                {
-                    try
-                    {
-                        await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.Error(e, "An error happened when ringing the alarm.");
-                        throw;
-                    }
+                        catch (Exception e)
+                        {
+                            _logger.Error(e, "An error happened when ringing the alarm.");
+                            throw;
+                        }
+                    });
                 });
             }
             catch (Exception e)
             {
                 _logger.Error(e, "An error happened when creating the task to ring the alarm.");
                 Dispose();
-            }
-            finally
-            {
-                Lock.Release();
             }
         }
 

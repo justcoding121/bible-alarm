@@ -105,7 +105,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             throw new ArgumentException("Track URI cannot be null or empty", nameof(track));
 
         // Get MediaElement from service if it's null, or if it was recreated
-        var newMediaElement = _mediaElementService.GetMediaElement();
+        var newMediaElement = await _mediaElementService.GetMediaElementAsync();
 
         // Always unsubscribe from current MediaElement before subscribing again
         // This prevents duplicate event handlers if PrepareAsync is called multiple times
