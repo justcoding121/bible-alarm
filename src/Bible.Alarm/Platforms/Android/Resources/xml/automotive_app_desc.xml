@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <automotiveApp xmlns:android="http://schemas.android.com/apk/res/android">
-	<uses name="template" />
+	<!-- Removed "template" capability to prevent duplicate app entry -->
+	<!-- MediaBrowserService should only handle playback backend, not UI browsing -->
+	<!-- CarAppService handles UI via car_app_desc.xml -->
 	<uses name="media" />
 </automotiveApp>

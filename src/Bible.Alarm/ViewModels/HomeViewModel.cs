@@ -109,59 +109,6 @@ public class HomeViewModel : ObservableObject, IDisposable
         // IsBusy starts as true and will be set to false in OnStateChanged after schedules are populated
     }
 
-    public async Task InitializeAsync()
-    {
-        await HandleInitialized();
-    }
-
-    private async Task HandleInitialized()
-    {
-        await _lock.WaitAsync();
-
-        try
-        {
-            if (!_initialized)
-            {
-                // Run database operations off UI thread
-                await Task.Run(async () =>
-                {
-                    await _databaseSeedService.SeedDefaultAlarmAsync();
-                    await _scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
-
-                    var alarmSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
-                        includeMusic: true,
-                        includeBibleReading: true);
-
-                    var initialSchedules = new ObservableHashSet<AlarmSchedule>();
-                    foreach (var schedule in alarmSchedules)
-                        initialSchedules.Add(schedule);
-
-                    // Dispatch action on main thread
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        _dispatcher.Dispatch(new InitializeAction(initialSchedules));
-                    });
-
-                    _initialized = true;
-                });
-            }
-        }
-        catch (Exception e)
-        {
-            _logger.Error(e, "An error happened in HomeViewModel Initialize.");
-        }
-        finally
-        {
-            try
-            {
-                _lock.Release();
-            }
-            catch (ObjectDisposedException e)
-            {
-                _logger.Error(e, "HomeViewModel: @lock disposed error.");
-            }
-        }
-    }
 
     private ObservableHashSet<ScheduleListItem> _schedules;
 
@@ -325,8 +272,6 @@ public class HomeViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _selectedSchedule, value);
     }
 
-    private bool _initialized;
-    private readonly SemaphoreSlim _lock = new(1);
 
     private void OnStateChanged(object sender, EventArgs e)
     {
@@ -357,6 +302,5 @@ public class HomeViewModel : ObservableObject, IDisposable
             }
         }
 
-        _lock.Dispose();
     }
 }

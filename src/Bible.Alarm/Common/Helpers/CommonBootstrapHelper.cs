@@ -2,10 +2,15 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Common.Helpers;
 
@@ -36,6 +41,10 @@ public static class CommonBootstrapHelper
                     var task3 = InitializeFluxorStore();
 
                     await Task.WhenAll(task1, task2, task3);
+                    
+                    // After database and Fluxor store are initialized, load schedules into state
+                    // This ensures schedules are available for both Android Auto services and main UI
+                    await InitializeSchedules();
                 });
                 _servicesVerified = true;
                 Log.Logger.Information("Database and IO operations completed");
@@ -101,5 +110,56 @@ public static class CommonBootstrapHelper
         ReduxContainer.Store = store;
         
         Log.Logger.Information("Fluxor store initialized successfully");
+    }
+    
+    private static async Task InitializeSchedules()
+    {
+        Log.Logger.Information("Initializing schedules in state");
+        
+        try
+        {
+            // Get services needed for schedule initialization
+            var databaseSeedService = ServiceProviderManager.GetService<IDatabaseSeedService>();
+            var scheduleMigrationService = ServiceProviderManager.GetService<IScheduleMigrationService>();
+            var alarmScheduleService = ServiceProviderManager.GetService<IAlarmScheduleService>();
+            var dispatcher = ServiceProviderManager.GetService<IDispatcher>();
+            
+            if (databaseSeedService == null || scheduleMigrationService == null || 
+                alarmScheduleService == null || dispatcher == null)
+            {
+                Log.Logger.Warning("Required services not available for schedule initialization - skipping");
+                return;
+            }
+            
+            // Run seed and migration first (same as HomeViewModel)
+            await databaseSeedService.SeedDefaultAlarmAsync();
+            await scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
+            
+            // Load all schedules from database
+            var alarmSchedules = await alarmScheduleService.GetAllSchedulesAsync(
+                includeMusic: true,
+                includeBibleReading: true);
+            
+            Log.Logger.Information("Loaded {Count} schedules from database during bootstrap", alarmSchedules.Count);
+            
+            // Create ObservableHashSet for state
+            var initialSchedules = new ObservableHashSet<AlarmSchedule>();
+            foreach (var schedule in alarmSchedules)
+            {
+                initialSchedules.Add(schedule);
+            }
+            
+            // Dispatch InitializeAction to populate state
+            // This must be done on main thread since Fluxor dispatcher may require UI context
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                dispatcher.Dispatch(new InitializeAction(initialSchedules));
+                Log.Logger.Information("Dispatched InitializeAction with {Count} schedules", initialSchedules.Count);
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Error(ex, "Error initializing schedules in bootstrap");
+        }
     }
 }

@@ -44,30 +44,8 @@ public class MessageHandlingService(
         {
             try
             {
-                // Create Home page and initialize ViewModel before navigating
-                // Note: Home is transient, but NavigateToHomeAsync will create a new instance and push it
-                // This instance is only used for initialization, so we need to dispose it if navigation fails
-                var homePage = _serviceProvider.GetRequiredService<Home>();
-                try
-                {
-                    if (homePage.BindingContext is HomeViewModel homeViewModel)
-                    {
-                        // Wait for initialization to complete before navigating
-                        await homeViewModel.InitializeAsync();
-                    }
-
                     // Navigate to the initialized home page (this creates a new Home instance)
                     await _navigationService.NavigateToHomeAsync();
-                }
-                finally
-                {
-                    // Dispose the temporary Home page if it implements IDisposable
-                    // (The page pushed by NavigateToHomeAsync will be disposed when popped)
-                    if (homePage is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                    }
-                }
 
                 _ = Task.Run(async () =>
                 {

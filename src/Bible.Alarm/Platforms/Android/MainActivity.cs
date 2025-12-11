@@ -24,7 +24,42 @@ public class MainActivity : MauiAppCompatActivity
         // If the app was previously disposed (swiped out), CreateAndStore() will create a new app instance
         MauiAppHolder.CreateAndStore();
 
-        base.OnCreate(savedInstanceState);
+        // Fix for MAUI NavigationRootManager fragment state restoration issue
+        // If savedInstanceState contains stale fragment state that references non-existent views (like id/legacy),
+        // pass null to prevent fragment restoration. This can happen after app updates or when MAUI framework
+        // tries to restore fragments with view IDs that no longer exist.
+        Bundle? safeSavedInstanceState = savedInstanceState;
+        if (savedInstanceState != null)
+        {
+            try
+            {
+                // Check if savedInstanceState contains fragment state that might be stale
+                var hasFragmentState = false;
+                foreach (var key in savedInstanceState.KeySet())
+                {
+                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") || 
+                        key.Contains("androidx.lifecycle") || key.Contains("android:support")))
+                    {
+                        hasFragmentState = true;
+                        break;
+                    }
+                }
+                
+                if (hasFragmentState)
+                {
+                    Logger.Information("Detected fragment state in savedInstanceState - ignoring to prevent NavigationRootManager crash");
+                    // Pass null to prevent fragment restoration - MAUI will recreate navigation from scratch
+                    safeSavedInstanceState = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Error checking fragment state - ignoring savedInstanceState to be safe");
+                safeSavedInstanceState = null;
+            }
+        }
+
+        base.OnCreate(safeSavedInstanceState);
 
         // Set up global exception handlers
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
@@ -102,6 +137,53 @@ public class MainActivity : MauiAppCompatActivity
         });
     }
 
+    protected override void OnStart()
+    {
+        // Fix for MAUI NavigationRootManager fragment state restoration issue
+        // Fragment restoration happens in OnStart(), so we need to handle stale fragment restoration
+        // that references non-existent views (like id/legacy)
+        try
+        {
+            base.OnStart();
+        }
+        catch (Java.Lang.IllegalArgumentException ex) when (ex.Message?.Contains("No view found for id") == true && ex.Message?.Contains("legacy") == true)
+        {
+            // Fragment restoration failed due to stale state - clear fragments and retry
+            Logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");
+            try
+            {
+                var fragmentManager = SupportFragmentManager;
+                if (fragmentManager != null)
+                {
+                    // Clear all fragments
+                    var fragments = fragmentManager.Fragments;
+                    if (fragments != null && fragments.Count > 0)
+                    {
+                        var transaction = fragmentManager.BeginTransaction();
+                        foreach (var fragment in fragments)
+                        {
+                            if (fragment != null)
+                            {
+                                transaction.Remove(fragment);
+                            }
+                        }
+                        transaction.CommitAllowingStateLoss();
+                        fragmentManager.ExecutePendingTransactions();
+                    }
+                }
+                
+                // Retry base.OnStart() after clearing fragments
+                base.OnStart();
+            }
+            catch (Exception retryEx)
+            {
+                Logger.Error(retryEx, "Failed to recover from fragment restoration error - app may be in inconsistent state");
+                // Re-throw to let Android handle it
+                throw;
+            }
+        }
+    }
+
     protected override void OnResume()
     {
         base.OnResume();
@@ -112,6 +194,56 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnPause();
         _lastResumeTime = null;
+    }
+
+    protected override void OnSaveInstanceState(Bundle outState)
+    {
+        // Fix for MAUI NavigationRootManager fragment state restoration issue
+        // Prevent saving fragment state to avoid stale fragment restoration crashes
+        // MAUI will recreate the navigation structure from scratch on next launch
+        // This prevents crashes when fragment state references non-existent views (like id/legacy)
+        try
+        {
+            // Call base to save other state (like activity state)
+            base.OnSaveInstanceState(outState);
+            
+            // Remove fragment state keys to prevent stale fragment restoration
+            if (outState != null)
+            {
+                var keysToRemove = new List<string>();
+                foreach (var key in outState.KeySet())
+                {
+                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") || 
+                        key.Contains("androidx.lifecycle") || key.Contains("android:support")))
+                    {
+                        keysToRemove.Add(key);
+                    }
+                }
+                
+                foreach (var key in keysToRemove)
+                {
+                    outState.Remove(key);
+                }
+                
+                if (keysToRemove.Count > 0)
+                {
+                    Logger.Information("Prevented saving {Count} fragment state keys to avoid NavigationRootManager crash", keysToRemove.Count);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Error in OnSaveInstanceState - proceeding anyway");
+            // Still call base to ensure other state is saved
+            try
+            {
+                base.OnSaveInstanceState(outState);
+            }
+            catch
+            {
+                // Ignore errors in base call
+            }
+        }
     }
 
     protected override void OnDestroy()
