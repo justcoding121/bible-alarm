@@ -167,11 +167,6 @@ public class SchedulePersistenceService(
             _logger.Error(ex, "Error deleting schedule {ScheduleId}", scheduleId);
         }
     }
-
-    public async Task<AlarmSchedule> GetSampleScheduleAsync()
-    {
-        return await AlarmSchedule.GetSampleSchedule(true, _bibleTranslationService, _melodyMusicService);
-    }
     
     public void Dispose()
     {

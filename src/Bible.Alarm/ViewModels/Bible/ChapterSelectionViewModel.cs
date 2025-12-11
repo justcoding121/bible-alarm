@@ -11,6 +11,8 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
+using Bible.Alarm.Stores.Models;
+using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -32,6 +34,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IDownloadService _downloadService;
     private readonly IState<ApplicationState> _state;
     private readonly IDispatcher _dispatcher;
+    private readonly IMapper _mapper;
     private bool _initComplete;
 
     private readonly Dictionary<BibleChapterListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
@@ -46,7 +49,8 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
         IDownloadService downloadService,
         IMediaUrlRefreshService urlRefreshService,
         IState<ApplicationState> state,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        IMapper mapper)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -54,6 +58,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
         _playService = playService;
         _downloadService = downloadService;
         _urlRefreshService = urlRefreshService;
+        _mapper = mapper;
 
         _state = state;
         _dispatcher = dispatcher;
@@ -90,13 +95,15 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             if (_tentative is null) return;
 
-            _dispatcher.Dispatch(new ChapterSelectedAction(new BibleReadingSchedule
+            // Map entity to DTO before dispatching
+            var chapterSelectedItem = new BibleReadingStateItem
             {
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
                 BookNumber = _tentative.BookNumber,
                 ChapterNumber = x.Number
-            }));
+            };
+            _dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
             IsBusy = false;
         });
 
@@ -108,8 +115,9 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
         if (_initComplete) return;
         var stateValue = _state.Value;
         if (stateValue.CurrentBibleReadingSchedule is null || stateValue.TentativeBibleReadingSchedule is null) return;
-        _current = stateValue.CurrentBibleReadingSchedule;
-        _tentative = stateValue.TentativeBibleReadingSchedule;
+        // Map DTOs to entities
+        _current = _mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+        _tentative = _mapper.Map<BibleReadingSchedule>(stateValue.TentativeBibleReadingSchedule);
         _initComplete = true;
         Task.Run(async () =>
         {

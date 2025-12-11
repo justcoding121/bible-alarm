@@ -97,8 +97,10 @@ public class HomeViewModel : ObservableObject, IDisposable
             x.Schedule.IsEnabled = x.IsEnabled;
             // Start navigation immediately (don't await yet)
             var navigationTask = navigationService.NavigateToScheduleAsync();
+            // Map AlarmSchedule to ScheduleStateItem before dispatching
+            var scheduleStateItem = _mapper.Map<ScheduleStateItem>(x.Schedule);
             // Dispatch action immediately so data loading can start
-            _dispatcher.Dispatch(new ViewScheduleAction(x.Schedule));
+            _dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
             // Wait for navigation to complete
             await navigationTask;
             // Don't hide overlay here - it will be hidden by ScheduleViewModel after navigation completes

@@ -1,8 +1,8 @@
-﻿using Bible.Alarm.Models.Schedule;
+﻿using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions.Bible;
 
-public class BookSelectionAction(BibleReadingSchedule tentativeBibleReadingSchedule)
+public class BookSelectionAction(BibleReadingStateItem tentativeBibleReadingSchedule)
 {
-    public BibleReadingSchedule TentativeBibleReadingSchedule { get; } = tentativeBibleReadingSchedule;
+    public BibleReadingStateItem TentativeBibleReadingSchedule { get; } = tentativeBibleReadingSchedule;
 }

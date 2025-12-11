@@ -74,14 +74,8 @@ public static class ServiceRegistrationHelper
     /// </summary>
     public static void RegisterServices(IServiceCollection services)
     {
-        // Register platform-specific HttpMessageHandler
-#if ANDROID
+        // Register HttpMessageHandler (same implementation for all platforms)
         services.AddSingleton<System.Net.Http.HttpMessageHandler, System.Net.Http.HttpClientHandler>();
-#elif IOS
-        services.AddSingleton<System.Net.Http.HttpMessageHandler, System.Net.Http.HttpClientHandler>();
-#elif WINDOWS
-        services.AddSingleton<System.Net.Http.HttpMessageHandler, System.Net.Http.HttpClientHandler>();
-#endif
 
         // Register common services
         RegisterCommonServices(services);

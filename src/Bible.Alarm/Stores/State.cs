@@ -1,5 +1,4 @@
-﻿using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.DataStructures;
+﻿using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 
@@ -10,13 +9,13 @@ public class ApplicationState
 {
     public ObservableHashSet<ScheduleStateItem> Schedules { get; set; }
 
-    public AlarmSchedule CurrentSchedule { get; set; }
+    public ScheduleStateItem? CurrentSchedule { get; set; }
 
-    public AlarmMusic CurrentMusic { get; set; }
-    public AlarmMusic TentativeMusic { get; set; }
+    public MusicStateItem? CurrentMusic { get; set; }
+    public MusicStateItem? TentativeMusic { get; set; }
 
-    public BibleReadingSchedule CurrentBibleReadingSchedule { get; set; }
-    public BibleReadingSchedule TentativeBibleReadingSchedule { get; set; }
+    public BibleReadingStateItem? CurrentBibleReadingSchedule { get; set; }
+    public BibleReadingStateItem? TentativeBibleReadingSchedule { get; set; }
 
     public bool IsHomePageOverlayVisible { get; set; }
     public bool IsSchedulePageOverlayVisible { get; set; }
@@ -30,11 +29,11 @@ public class ApplicationState
 
     public ApplicationState(
         ObservableHashSet<ScheduleStateItem> schedules,
-        AlarmSchedule currentSchedule,
-        AlarmMusic currentMusic,
-        AlarmMusic tentativeMusic,
-        BibleReadingSchedule currentBibleReadingSchedule,
-        BibleReadingSchedule tentativeBibleReadingSchedule,
+        ScheduleStateItem? currentSchedule = null,
+        MusicStateItem? currentMusic = null,
+        MusicStateItem? tentativeMusic = null,
+        BibleReadingStateItem? currentBibleReadingSchedule = null,
+        BibleReadingStateItem? tentativeBibleReadingSchedule = null,
         bool isHomePageOverlayVisible = false,
         bool isSchedulePageOverlayVisible = false)
     {

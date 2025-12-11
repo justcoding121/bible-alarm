@@ -13,7 +13,10 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
+using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -27,7 +30,6 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private readonly ILogger _logger;
 
     private readonly IToastService _popUpService;
-    private readonly ISchedulePersistenceService _schedulePersistenceService;
     private readonly IMediaCacheSetupService _mediaCacheSetupService;
     private readonly INavigationService _navigationService;
     private readonly IScheduleDisplayService _scheduleDisplayService;
@@ -37,6 +39,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IDispatcher _dispatcher;
     private readonly IBibleTranslationService _bibleTranslationService;
     private readonly IMelodyMusicService _melodyMusicService;
+    private readonly IMapper _mapper;
 
     private int _lastScheduleId = -1;
     private bool _modelInitialized;
@@ -62,7 +65,6 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IToastService popUpService,
         IPlaybackService playbackService,
         INotificationService notificationService,
-        ISchedulePersistenceService schedulePersistenceService,
         IBibleNavigationService bibleNavigationService,
         IMediaCacheSetupService mediaCacheSetupService,
         INavigationService navigationService,
@@ -74,7 +76,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IDispatcher dispatcher,
         IScheduleItemStateService scheduleItemStateService,
         IBibleTranslationService bibleTranslationService,
-        IMelodyMusicService melodyMusicService)
+        IMelodyMusicService melodyMusicService,
+        IMapper mapper)
     {
         var constructorStartTime = DateTime.UtcNow;
         _logger = logger;
@@ -82,13 +85,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         _popUpService = popUpService;
         _bibleTranslationService = bibleTranslationService;
         _melodyMusicService = melodyMusicService;
+        _mapper = mapper;
 
         _state = state;
         _playbackState = playbackState;
         _dispatcher = dispatcher;
         _scheduleItemStateService = scheduleItemStateService;
 
-        _schedulePersistenceService = schedulePersistenceService;
         var bibleNavigationService1 = bibleNavigationService;
         _mediaCacheSetupService = mediaCacheSetupService;
         _navigationService = navigationService;
@@ -265,7 +268,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             await _navigationService.NavigateToMusicSelectionAsync();
 
-            _dispatcher.Dispatch(new MusicSelectionAction(Music));
+            // Map entity to DTO before dispatching
+            var musicStateItem = _mapper.Map<MusicStateItem>(Music);
+            _dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
         });
 
         SelectBibleCommand = new AsyncRelayCommand(async () =>
@@ -282,13 +287,20 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             await _navigationService.NavigateToBibleSelectionAsync();
 
-            _dispatcher.Dispatch(new BibleSelectionAction(
-                BibleReadingSchedule,
-                new BibleReadingSchedule
-                {
-                    PublicationCode = BibleReadingSchedule?.PublicationCode ?? "",
-                    LanguageCode = BibleReadingSchedule?.LanguageCode ?? ""
-                }));
+            // Map entities to DTOs before dispatching
+            var currentBibleReadingItem = BibleReadingSchedule != null 
+                ? _mapper.Map<BibleReadingStateItem>(BibleReadingSchedule) 
+                : null;
+            var tentativeBibleReadingItem = new BibleReadingStateItem
+            {
+                PublicationCode = BibleReadingSchedule?.PublicationCode ?? "",
+                LanguageCode = BibleReadingSchedule?.LanguageCode ?? ""
+            };
+            
+            if (currentBibleReadingItem != null)
+            {
+                _dispatcher.Dispatch(new BibleSelectionAction(currentBibleReadingItem, tentativeBibleReadingItem));
+            }
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
@@ -443,26 +455,31 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 }
                 
                 // Check if the schedule in Schedules collection has been updated (e.g., from next/prev in home view)
-                var updatedSchedule = stateValue.Schedules?.FirstOrDefault(s => s.Id == currentScheduleId);
-                if (updatedSchedule != null && updatedSchedule != Model)
+                var updatedScheduleItem = stateValue.Schedules?.FirstOrDefault(s => s.Id == currentScheduleId);
+                if (updatedScheduleItem != null)
                 {
-                    // Schedule was updated externally (e.g., next/prev from home view)
-                    // Update the model to reflect the changes
-                    MainThread.BeginInvokeOnMainThread(() =>
+                    // Map DTO to entity for SetModel
+                    var updatedSchedule = _mapper.Map<AlarmSchedule>(updatedScheduleItem);
+                    if (updatedSchedule.Id != Model.Id)
                     {
-                        SetModel(updatedSchedule);
-                        RefreshChapterName();
-                    });
+                        // Schedule was updated externally (e.g., next/prev from home view)
+                        // Update the model to reflect the changes
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            SetModel(updatedSchedule);
+                            RefreshChapterName();
+                        });
+                    }
                 }
                 return;
             }
 
             _isInitializingNewSchedule = false;
 
-            var currentSchedule = stateValue.CurrentSchedule;
+            var currentScheduleItem = stateValue.CurrentSchedule;
             _lastScheduleId = currentScheduleId;
             
-            var isNew = currentSchedule.Id <= 0;
+            var isNew = currentScheduleItem.Id <= 0;
             _logger.Information("[PERF] OnCurrentScheduleChanged: IsNew={IsNew}, invoking on main thread", isNew);
 
             _ = MainThread.InvokeOnMainThreadAsync(async () =>
@@ -474,6 +491,9 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                     
                     // IsBusy is already true from constructor, no need to set it again
                     IsNewSchedule = isNew;
+                    
+                    // Map DTO to entity for SetModel
+                    var currentSchedule = _mapper.Map<AlarmSchedule>(currentScheduleItem);
                     
                     var setModelStartTime = DateTime.UtcNow;
                     SetModel(currentSchedule);
@@ -569,18 +589,21 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         if (stateValue.CurrentBibleReadingSchedule == null) return;
         
         // Check if the bible reading actually changed by comparing properties
-        var newBibleReading = stateValue.CurrentBibleReadingSchedule;
+        var newBibleReadingItem = stateValue.CurrentBibleReadingSchedule;
         var hasChanged = _lastBibleReading == null || 
                         BibleReadingSchedule == null ||
-                        _lastBibleReading.LanguageCode != newBibleReading.LanguageCode ||
-                        _lastBibleReading.PublicationCode != newBibleReading.PublicationCode ||
-                        _lastBibleReading.BookNumber != newBibleReading.BookNumber ||
-                        _lastBibleReading.ChapterNumber != newBibleReading.ChapterNumber ||
+                        _lastBibleReading.LanguageCode != newBibleReadingItem.LanguageCode ||
+                        _lastBibleReading.PublicationCode != newBibleReadingItem.PublicationCode ||
+                        _lastBibleReading.BookNumber != newBibleReadingItem.BookNumber ||
+                        _lastBibleReading.ChapterNumber != newBibleReadingItem.ChapterNumber ||
                         (BibleReadingSchedule != null && 
-                         (BibleReadingSchedule.BookNumber != newBibleReading.BookNumber ||
-                          BibleReadingSchedule.ChapterNumber != newBibleReading.ChapterNumber));
+                         (BibleReadingSchedule.BookNumber != newBibleReadingItem.BookNumber ||
+                          BibleReadingSchedule.ChapterNumber != newBibleReadingItem.ChapterNumber));
         
         if (!hasChanged) return;
+        
+        // Map DTO to entity
+        var newBibleReading = _mapper.Map<BibleReadingSchedule>(newBibleReadingItem);
         
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -600,20 +623,23 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         if (stateValue.CurrentMusic == null) return;
         
         // Check if the music actually changed by comparing properties
-        var newMusic = stateValue.CurrentMusic;
+        var newMusicItem = stateValue.CurrentMusic;
         var hasChanged = _lastMusic == null || 
                         Music == null ||
-                        _lastMusic.LanguageCode != newMusic.LanguageCode ||
-                        _lastMusic.PublicationCode != newMusic.PublicationCode ||
-                        _lastMusic.MusicType != newMusic.MusicType ||
-                        _lastMusic.TrackNumber != newMusic.TrackNumber ||
+                        _lastMusic.LanguageCode != newMusicItem.LanguageCode ||
+                        _lastMusic.PublicationCode != newMusicItem.PublicationCode ||
+                        _lastMusic.MusicType != newMusicItem.MusicType ||
+                        _lastMusic.TrackNumber != newMusicItem.TrackNumber ||
                         (Music != null && 
-                         (Music.TrackNumber != newMusic.TrackNumber ||
-                          Music.MusicType != newMusic.MusicType ||
-                          Music.LanguageCode != newMusic.LanguageCode ||
-                          Music.PublicationCode != newMusic.PublicationCode));
+                         (Music.TrackNumber != newMusicItem.TrackNumber ||
+                          Music.MusicType != newMusicItem.MusicType ||
+                          Music.LanguageCode != newMusicItem.LanguageCode ||
+                          Music.PublicationCode != newMusicItem.PublicationCode));
         
         if (!hasChanged) return;
+        
+        // Map DTO to entity
+        var newMusic = _mapper.Map<AlarmMusic>(newMusicItem);
         
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -1021,25 +1047,30 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             _logger.Debug("SaveAsync: Music set to null for existing schedule (not updated)");
         }
 
-        _logger.Information("SaveAsync: Calling SaveScheduleAsync. IsNewSchedule={IsNewSchedule}, MusicUpdated={MusicUpdated}, BibleReadingUpdated={BibleReadingUpdated}",
+        _logger.Information("SaveAsync: Mapping AlarmSchedule to ScheduleStateItem and dispatching action. IsNewSchedule={IsNewSchedule}, MusicUpdated={MusicUpdated}, BibleReadingUpdated={BibleReadingUpdated}",
             IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
 
-        // Run database operations off UI thread
-        var saved = await Task.Run(async () =>
-            await _schedulePersistenceService.SaveScheduleAsync(model, IsNewSchedule, _musicUpdated, _bibleReadingUpdated));
+        // Map DB entity (AlarmSchedule) → domain model (ScheduleStateItem)
+        var scheduleStateItem = _mapper.Map<ScheduleStateItem>(model);
 
-        if (saved)
+        // Dispatch action with domain model (following Fluxor best practices)
+        if (IsNewSchedule)
         {
-            _logger.Information("SaveAsync: Save successful. ScheduleId={ScheduleId}, Model.Id={ModelId}", _scheduleId, model.Id);
-            // SetupMediaCache already uses Task.Run internally for IO operations
-            SetupMediaCache(model.Id, isUpdate: !IsNewSchedule);
+            _logger.Information("SaveAsync: Dispatching CreateScheduleAction");
+            _dispatcher.Dispatch(new CreateScheduleAction(scheduleStateItem, _musicUpdated, _bibleReadingUpdated));
         }
         else
         {
-            _logger.Error("SaveAsync: Save failed. ScheduleId={ScheduleId}", _scheduleId);
+            _logger.Information("SaveAsync: Dispatching UpdateScheduleFromViewModelAction");
+            _dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, _musicUpdated, _bibleReadingUpdated));
         }
 
-        return saved;
+        // Setup media cache optimistically (will be set up even if save fails later)
+        // In production, you might want to wait for success action before calling this
+        SetupMediaCache(model.Id, isUpdate: !IsNewSchedule);
+
+        // Return true optimistically - the Effect will handle the actual save and dispatch success/failure
+        return true;
     }
 
     private async Task<bool> Validate()
@@ -1054,9 +1085,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     {
         if (_scheduleId > 0)
         {
-            // Run database operations off UI thread
-            await Task.Run(async () =>
-                await _schedulePersistenceService.DeleteScheduleAsync(_scheduleId));
+            _logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", _scheduleId);
+            
+            // Dispatch action with schedule ID (following Fluxor best practices)
+            _dispatcher.Dispatch(new DeleteScheduleAction(_scheduleId));
+            
+            // Note: The Effect will handle the actual deletion and dispatch success/failure
+            // Media cache deletion is handled in the Effect
         }
     }
 

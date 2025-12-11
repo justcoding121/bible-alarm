@@ -10,6 +10,8 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Stores.Models;
+using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -29,6 +31,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly IDownloadService _downloadService;
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
+    private readonly IMapper _mapper;
 
     private AlarmMusic _current;
     private AlarmMusic _tentative;
@@ -45,7 +48,8 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         IDownloadService downloadService,
         IMediaUrlRefreshService urlRefreshService,
         IState<ApplicationState> state,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        IMapper mapper)
     {
         _logger = logger;
         _mediaService = mediaService;
@@ -53,6 +57,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _playService = playService;
         _downloadService = downloadService;
         _urlRefreshService = urlRefreshService;
+        _mapper = mapper;
         
         _state = state;
         _dispatcher = dispatcher;
@@ -82,8 +87,18 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             if (_tentative == null)
             {
                 var stateValue = _state.Value;
-                _tentative = stateValue.TentativeMusic;
-                _current = stateValue.CurrentMusic ?? _tentative;
+                if (stateValue.TentativeMusic != null)
+                {
+                    _tentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
+                }
+                if (stateValue.CurrentMusic != null)
+                {
+                    _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+                }
+                else if (_tentative != null)
+                {
+                    _current = _tentative;
+                }
             }
 
             if (_tentative == null) return;
@@ -101,14 +116,16 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             _tentative.TrackNumber = x.Number;
             _tentative.Repeat = x.Repeat;
 
-            _dispatcher.Dispatch(new TrackSelectedAction(new AlarmMusic
+            // Map entity to DTO before dispatching
+            var trackSelectedItem = new MusicStateItem
             {
                 MusicType = _tentative.MusicType,
                 LanguageCode = _tentative.LanguageCode,
                 PublicationCode = _tentative.PublicationCode,
                 TrackNumber = _tentative.TrackNumber,
                 Repeat = _tentative.Repeat
-            }));
+            };
+            _dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
             IsBusy = false;
         });
@@ -123,9 +140,17 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         // For track selection, we only need TentativeMusic to initialize
         // CurrentMusic might be null when navigating directly to track selection
         if (stateValue.TentativeMusic == null) return;
-        _tentative = stateValue.TentativeMusic;
+        // Map DTOs to entities
+        _tentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
         // Use TentativeMusic as CurrentMusic if CurrentMusic is null
-        _current = stateValue.CurrentMusic ?? stateValue.TentativeMusic;
+        if (stateValue.CurrentMusic != null)
+        {
+            _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+        }
+        else
+        {
+            _current = _tentative;
+        }
         _initComplete = true;
         Task.Run(async () =>
         {
@@ -277,14 +302,16 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _tentative.Repeat = track.Repeat;
         _tentative.TrackNumber = track.Number;
 
-        _dispatcher.Dispatch(new TrackSelectedAction(new AlarmMusic
+        // Map entity to DTO before dispatching
+        var trackSelectedItem = new MusicStateItem
         {
             MusicType = _tentative.MusicType,
             LanguageCode = _tentative.LanguageCode,
             PublicationCode = _tentative.PublicationCode,
             TrackNumber = _tentative.TrackNumber,
             Repeat = _tentative.Repeat
-        }));
+        };
+        _dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
         if (track.Repeat) _toastService.ShowMessage("Reminder will always repeat this track.");
     }

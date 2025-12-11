@@ -1,8 +1,8 @@
-﻿using Bible.Alarm.Models.Schedule;
+﻿using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions.Music;
 
-public class SongBookSelectionAction(AlarmMusic tentativeMusic)
+public class SongBookSelectionAction(MusicStateItem tentativeMusic)
 {
-    public AlarmMusic TentativeMusic { get; } = tentativeMusic;
+    public MusicStateItem TentativeMusic { get; } = tentativeMusic;
 }

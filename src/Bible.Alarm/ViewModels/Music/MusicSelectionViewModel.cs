@@ -5,6 +5,8 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Stores.Models;
+using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -18,16 +20,18 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
     private readonly IState<ApplicationState> _state;
     private readonly IDispatcher _dispatcher;
+    private readonly IMapper _mapper;
 
-    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
+    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
         _state = state;
         _dispatcher = dispatcher;
+        _mapper = mapper;
 
-        // Initialize _current from state if available
+        // Initialize _current from state if available (map DTO to entity)
         if (_state.Value.CurrentMusic != null)
         {
-            _current = _state.Value.CurrentMusic;
+            _current = _mapper.Map<AlarmMusic>(_state.Value.CurrentMusic);
         }
 
         _state.StateChanged += OnStateOnStateChanged;
@@ -41,30 +45,38 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             // Ensure _current is set from state if it's null
             if (_current == null)
             {
-                _current = _state.Value.CurrentMusic;
+                var currentItem = _state.Value.CurrentMusic;
+                if (currentItem != null)
+                {
+                    _current = _mapper.Map<AlarmMusic>(currentItem);
+                }
             }
 
             if (x.MusicType == MusicType.Vocals)
             {
                 await navigationService.NavigateToSongBookSelectionAsync();
 
-                _dispatcher.Dispatch(new SongBookSelectionAction(new AlarmMusic
+                // Map entity to DTO before dispatching
+                var songBookItem = new MusicStateItem
                 {
                     MusicType = MusicType.Vocals,
                     LanguageCode = _current?.LanguageCode
-                }));
+                };
+                _dispatcher.Dispatch(new SongBookSelectionAction(songBookItem));
   
             }
             else
             {
                 await navigationService.NavigateToTrackSelectionAsync();
 
-                _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+                // Map entity to DTO before dispatching
+                var trackItem = new MusicStateItem
                 {
                     Repeat = _current?.Repeat ?? false,
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
-                }));
+                };
+                _dispatcher.Dispatch(new TrackSelectionAction(trackItem));
                
             }
 
@@ -83,7 +95,8 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     {
         var stateValue = _state.Value;
         if (stateValue.CurrentMusic == null) return;
-        _current = stateValue.CurrentMusic;
+        // Map DTO to entity
+        _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);

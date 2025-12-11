@@ -3,6 +3,7 @@ using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
+using System;
 
 namespace Bible.Alarm.Stores.Mapping;
 
@@ -54,10 +55,24 @@ public class ScheduleMappingProfile : Profile
             } : null))
             .ForMember(dest => dest.AlarmNotifications, opt => opt.Ignore()) // Not stored in state
             .ForMember(dest => dest.CronExpression, opt => opt.Ignore()) // Computed property
-            .ForMember(dest => dest.NextFireDate, opt => opt.Ignore()) // Method, not property
             .ForMember(dest => dest.MeridianHour, opt => opt.Ignore()) // Computed property
             .ForMember(dest => dest.Meridian, opt => opt.Ignore()) // Computed property
             .ForMember(dest => dest.TimeText, opt => opt.Ignore()); // Computed property
+        
+        // Map AlarmMusic to MusicStateItem
+        CreateMap<AlarmMusic, MusicStateItem>();
+        
+        // Map MusicStateItem back to AlarmMusic
+        CreateMap<MusicStateItem, AlarmMusic>()
+            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
+        
+        // Map BibleReadingSchedule to BibleReadingStateItem
+        CreateMap<BibleReadingSchedule, BibleReadingStateItem>()
+            .ForMember(dest => dest.TranslationName, opt => opt.Ignore()); // Set manually during bootstrap
+        
+        // Map BibleReadingStateItem back to BibleReadingSchedule
+        CreateMap<BibleReadingStateItem, BibleReadingSchedule>()
+            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
     }
 }
 

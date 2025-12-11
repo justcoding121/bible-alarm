@@ -1,8 +1,8 @@
-﻿using Bible.Alarm.Models.Schedule;
+﻿using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions.Music;
 
-public class MusicSelectionAction(AlarmMusic currentMusic)
+public class MusicSelectionAction(MusicStateItem currentMusic)
 {
-    public AlarmMusic CurrentMusic { get; } = currentMusic;
+    public MusicStateItem CurrentMusic { get; } = currentMusic;
 }

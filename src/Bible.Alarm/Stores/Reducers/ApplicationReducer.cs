@@ -5,7 +5,6 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
-using AutoMapper;
 using Fluxor;
 using Serilog;
 
@@ -27,20 +26,19 @@ public static class ApplicationReducer
             isSchedulePageOverlayVisible: false);
     }
 
+    /// <summary>
+    /// Optimistic reducer: Handle CreateScheduleAction - immediately add to store for fast UI feedback.
+    /// Following Fluxor best practices: Optimistic updates for responsive UX.
+    /// </summary>
     [ReducerMethod]
-    public static ApplicationState OnAddSchedule(ApplicationState state, AddScheduleAction action)
+    public static ApplicationState OnCreateSchedule(ApplicationState state, CreateScheduleAction action)
     {
-        Log.Information("ApplicationReducer: OnAddSchedule - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
-            action.Schedule?.Id, action.Schedule?.Name, state.Schedules?.Count ?? 0);
-        
-        // Get AutoMapper from service provider
-        var mapper = Bible.Alarm.Common.ServiceProviderManager.GetService<IMapper>();
-        if (mapper == null)
-        {
-            Log.Error("IMapper not found in OnAddSchedule - cannot map schedule to state item");
+        Log.Information("ApplicationReducer: OnCreateSchedule - Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
+            action.Schedule?.Name, state.Schedules?.Count ?? 0);
+
+        if (action.Schedule == null)
             return state;
-        }
-        
+
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         if (state.Schedules != null)
         {
@@ -49,17 +47,47 @@ public static class ApplicationReducer
                 newSchedules.Add(scheduleItem);
             }
         }
-        // Map AlarmSchedule to ScheduleStateItem using AutoMapper
-        // TranslationName will be null initially (can be populated later if needed)
-        var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
-        newSchedules.Add(scheduleStateItem);
-        
-        Log.Information("ApplicationReducer: OnAddSchedule - NewSchedulesCount: {NewCount}", newSchedules.Count);
-        
+
+        // Add optimistically with a temporary ID (will be replaced on success)
+        // Mark as pending if needed (could add IsSaving flag to ScheduleStateItem if needed)
+        // Create a new instance since ScheduleStateItem is a class, not a record
+        var optimisticSchedule = new ScheduleStateItem
+        {
+            Id = action.Schedule.Id == 0 ? -1 : action.Schedule.Id,
+            Name = action.Schedule.Name,
+            IsEnabled = action.Schedule.IsEnabled,
+            Hour = action.Schedule.Hour,
+            Minute = action.Schedule.Minute,
+            Second = action.Schedule.Second,
+            DaysOfWeek = action.Schedule.DaysOfWeek,
+            NotificationEnabled = action.Schedule.NotificationEnabled,
+            MusicEnabled = action.Schedule.MusicEnabled,
+            SnoozeMinutes = action.Schedule.SnoozeMinutes,
+            NumberOfChaptersToRead = action.Schedule.NumberOfChaptersToRead,
+            AlwaysPlayFromStart = action.Schedule.AlwaysPlayFromStart,
+            CurrentPlayItem = action.Schedule.CurrentPlayItem,
+            LatestAlarmNotificationId = action.Schedule.LatestAlarmNotificationId,
+            BibleReadingScheduleId = action.Schedule.BibleReadingScheduleId,
+            BibleReadingLanguageCode = action.Schedule.BibleReadingLanguageCode,
+            BibleReadingPublicationCode = action.Schedule.BibleReadingPublicationCode,
+            BibleReadingBookNumber = action.Schedule.BibleReadingBookNumber,
+            BibleReadingChapterNumber = action.Schedule.BibleReadingChapterNumber,
+            BibleReadingFinishedDuration = action.Schedule.BibleReadingFinishedDuration,
+            MusicId = action.Schedule.MusicId,
+            MusicType = action.Schedule.MusicType,
+            MusicPublicationCode = action.Schedule.MusicPublicationCode,
+            MusicLanguageCode = action.Schedule.MusicLanguageCode,
+            MusicTrackNumber = action.Schedule.MusicTrackNumber,
+            MusicRepeat = action.Schedule.MusicRepeat,
+            TranslationName = action.Schedule.TranslationName
+        };
+        newSchedules.Add(optimisticSchedule);
+
+        Log.Information("ApplicationReducer: OnCreateSchedule - NewSchedulesCount: {NewCount}", newSchedules.Count);
+
         return new ApplicationState(
             schedules: newSchedules,
-            // Set CurrentSchedule to the newly added schedule
-            currentSchedule: action.Schedule,
+            currentSchedule: optimisticSchedule,
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
@@ -68,21 +96,108 @@ public static class ApplicationReducer
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
+    /// <summary>
+    /// Optimistic reducer: Handle UpdateScheduleFromViewModelAction - immediately update in store for fast UI feedback.
+    /// Following Fluxor best practices: Optimistic updates for responsive UX.
+    /// </summary>
     [ReducerMethod]
-    public static ApplicationState OnRemoveSchedule(ApplicationState state, RemoveScheduleAction action)
+    public static ApplicationState OnUpdateScheduleFromViewModel(ApplicationState state, UpdateScheduleFromViewModelAction action)
+    {
+        if (action.Schedule == null || state.Schedules == null)
+            return state;
+
+        Log.Information("ApplicationReducer: OnUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}",
+            action.Schedule.Id, action.Schedule.Name);
+
+        // Find and update the existing schedule optimistically
+        var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+
+        if (existingScheduleItem != null)
+        {
+            // Remove old and add updated
+            state.Schedules.Remove(existingScheduleItem);
+            state.Schedules.Add(action.Schedule);
+        }
+        else
+        {
+            // Schedule not found, add it (shouldn't happen, but handle gracefully)
+            state.Schedules.Add(action.Schedule);
+        }
+
+        // Update CurrentSchedule if it matches
+        ScheduleStateItem? updatedCurrentSchedule = state.CurrentSchedule;
+        if (state.CurrentSchedule?.Id == action.Schedule.Id)
+        {
+            updatedCurrentSchedule = action.Schedule;
+        }
+
+        return new ApplicationState(
+            schedules: state.Schedules,
+            currentSchedule: updatedCurrentSchedule,
+            currentMusic: state.CurrentMusic,
+            tentativeMusic: state.TentativeMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
+
+    /// <summary>
+    /// Optimistic reducer: Handle DeleteScheduleAction - immediately remove from store for fast UI feedback.
+    /// Following Fluxor best practices: Optimistic updates for responsive UX.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
     {
         if (state.Schedules == null)
             return state;
 
+        Log.Information("ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}", action.ScheduleId);
+
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         foreach (var scheduleItem in state.Schedules)
         {
-            if (scheduleItem.Id != action.Schedule.Id)
+            if (scheduleItem.Id != action.ScheduleId)
             {
                 newSchedules.Add(scheduleItem);
             }
         }
-        
+
+        return new ApplicationState(
+            schedules: newSchedules,
+            currentSchedule: state.CurrentSchedule?.Id == action.ScheduleId ? null : state.CurrentSchedule,
+            currentMusic: state.CurrentMusic,
+            tentativeMusic: state.TentativeMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
+
+    /// <summary>
+    /// Failure reducer: Handle CreateScheduleFailureAction - rollback optimistic update.
+    /// Following Fluxor best practices: Rollback optimistic changes on failure.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnCreateScheduleFailure(ApplicationState state, CreateScheduleFailureAction action)
+    {
+        if (action.Schedule == null || state.Schedules == null)
+            return state;
+
+        Log.Warning("ApplicationReducer: OnCreateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+            action.Schedule.Id, action.Error);
+
+        // Remove the optimistically added schedule
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        foreach (var scheduleItem in state.Schedules)
+        {
+            // Remove if it matches the failed schedule (by ID or by temporary ID)
+            if (scheduleItem.Id != action.Schedule.Id && scheduleItem.Id != -1)
+            {
+                newSchedules.Add(scheduleItem);
+            }
+        }
+
         return new ApplicationState(
             schedules: newSchedules,
             currentSchedule: state.CurrentSchedule?.Id == action.Schedule.Id ? null : state.CurrentSchedule,
@@ -94,57 +209,193 @@ public static class ApplicationReducer
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
+    /// <summary>
+    /// Failure reducer: Handle UpdateScheduleFailureAction - rollback optimistic update.
+    /// Following Fluxor best practices: Rollback optimistic changes on failure.
+    /// Note: This is a simplified rollback - in a production app, you might want to store the previous state.
+    /// </summary>
     [ReducerMethod]
-    public static ApplicationState OnUpdateSchedule(ApplicationState state, UpdateScheduleAction action)
+    public static ApplicationState OnUpdateScheduleFailure(ApplicationState state, UpdateScheduleFailureAction action)
+    {
+        Log.Warning("ApplicationReducer: OnUpdateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+            action.Schedule?.Id, action.Error);
+
+        // For update failures, we could reload from server or keep the optimistic update
+        // For now, we'll keep the optimistic update and let the user retry
+        // In a production app, you might want to dispatch a reload action
+        return state;
+    }
+
+    /// <summary>
+    /// Failure reducer: Handle DeleteScheduleFailureAction - rollback optimistic update by re-adding the schedule.
+    /// Following Fluxor best practices: Rollback optimistic changes on failure.
+    /// Note: This requires fetching the schedule from DB or storing it before deletion.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnDeleteScheduleFailure(ApplicationState state, DeleteScheduleFailureAction action)
+    {
+        Log.Warning("ApplicationReducer: OnDeleteScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+            action.ScheduleId, action.Error);
+
+        // For delete failures, we can't easily rollback without the original schedule data
+        // In a production app, you might want to dispatch a reload action to refresh from server
+        // For now, we'll just log the error - the schedule was already removed optimistically
+        return state;
+    }
+
+    /// <summary>
+    /// Success reducer: Handle CreateScheduleSuccessAction - replace optimistic update with confirmed data.
+    /// Following Fluxor best practices: Confirm optimistic updates with server data.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnCreateScheduleSuccess(ApplicationState state, CreateScheduleSuccessAction action)
+    {
+        Log.Information("ApplicationReducer: OnCreateScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}",
+            action.Schedule?.Id, action.Schedule?.Name);
+
+        if (action.Schedule == null || state.Schedules == null)
+            return state;
+
+        // Remove optimistic schedule (by ID or temporary ID -1) and add confirmed one
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        foreach (var scheduleItem in state.Schedules)
+        {
+            // Skip the optimistic schedule (will be replaced with confirmed one)
+            if (scheduleItem.Id != action.Schedule.Id && scheduleItem.Id != -1)
+            {
+                newSchedules.Add(scheduleItem);
+            }
+        }
+        // Add the confirmed schedule
+        newSchedules.Add(action.Schedule);
+
+        return new ApplicationState(
+            schedules: newSchedules,
+            currentSchedule: action.Schedule,
+            currentMusic: state.CurrentMusic,
+            tentativeMusic: state.TentativeMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
+
+    /// <summary>
+    /// Pure reducer: Handle AddScheduleSuccessAction with DTO (no mapping, no side effects).
+    /// Following Fluxor best practices: Effects handle transformation, Reducers are pure.
+    /// This is kept for backward compatibility with old AddScheduleAction flow.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnAddScheduleSuccess(ApplicationState state, AddScheduleSuccessAction action)
+    {
+        Log.Information("ApplicationReducer: OnAddScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
+            action.Schedule?.Id, action.Schedule?.Name, state.Schedules?.Count ?? 0);
+        
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        if (state.Schedules != null)
+        {
+            foreach (var scheduleItem in state.Schedules)
+            {
+                newSchedules.Add(scheduleItem);
+            }
+        }
+        // Add the DTO (already transformed by Effect)
+        newSchedules.Add(action.Schedule);
+        
+        Log.Information("ApplicationReducer: OnAddScheduleSuccess - NewSchedulesCount: {NewCount}", newSchedules.Count);
+        
+        return new ApplicationState(
+            schedules: newSchedules,
+            // Set CurrentSchedule to the newly added schedule (already a DTO)
+            currentSchedule: action.Schedule,
+            currentMusic: state.CurrentMusic,
+            tentativeMusic: state.TentativeMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
+
+    /// <summary>
+    /// Pure reducer: Handle RemoveScheduleSuccessAction (no mapping, no side effects).
+    /// Following Fluxor best practices: Effects handle transformation, Reducers are pure.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnRemoveScheduleSuccess(ApplicationState state, RemoveScheduleSuccessAction action)
     {
         if (state.Schedules == null)
             return state;
 
-        // Get AutoMapper from service provider
-        var mapper = Bible.Alarm.Common.ServiceProviderManager.GetService<IMapper>();
-        if (mapper == null)
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        foreach (var scheduleItem in state.Schedules)
         {
-            Log.Error("IMapper not found in OnUpdateSchedule - cannot map schedule to state item");
-            return state;
+            if (scheduleItem.Id != action.ScheduleId)
+            {
+                newSchedules.Add(scheduleItem);
+            }
         }
+        
+        return new ApplicationState(
+            schedules: newSchedules,
+            currentSchedule: state.CurrentSchedule?.Id == action.ScheduleId ? null : state.CurrentSchedule,
+            currentMusic: state.CurrentMusic,
+            tentativeMusic: state.TentativeMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            tentativeBibleReadingSchedule: state.TentativeBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+    }
+
+    /// <summary>
+    /// Pure reducer: Handle UpdateScheduleSuccessAction with DTO (no mapping, no side effects).
+    /// Following Fluxor best practices: Effects handle transformation, Reducers are pure.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnUpdateScheduleSuccess(ApplicationState state, UpdateScheduleSuccessAction action)
+    {
+        if (state.Schedules == null)
+            return state;
 
         // Update the existing collection in place to avoid creating a new collection reference
         // This prevents the entire list from reloading when only one item is updated
         var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+        
         if (existingScheduleItem != null)
         {
-            // Preserve TranslationName from existing item when updating
-            // Map the updated schedule to ScheduleStateItem
-            var updatedItem = mapper.Map<ScheduleStateItem>(action.Schedule);
-            updatedItem.TranslationName = existingScheduleItem.TranslationName; // Preserve TranslationName
-            
             // Only remove and re-add if the schedule data actually changed
             // Compare key properties to determine if update is needed
-            if (existingScheduleItem.Name != updatedItem.Name ||
-                existingScheduleItem.IsEnabled != updatedItem.IsEnabled ||
-                existingScheduleItem.Hour != updatedItem.Hour ||
-                existingScheduleItem.Minute != updatedItem.Minute ||
-                existingScheduleItem.BibleReadingLanguageCode != updatedItem.BibleReadingLanguageCode ||
-                existingScheduleItem.BibleReadingBookNumber != updatedItem.BibleReadingBookNumber ||
-                existingScheduleItem.BibleReadingChapterNumber != updatedItem.BibleReadingChapterNumber)
+            if (existingScheduleItem.Name != action.Schedule.Name ||
+                existingScheduleItem.IsEnabled != action.Schedule.IsEnabled ||
+                existingScheduleItem.Hour != action.Schedule.Hour ||
+                existingScheduleItem.Minute != action.Schedule.Minute ||
+                existingScheduleItem.BibleReadingLanguageCode != action.Schedule.BibleReadingLanguageCode ||
+                existingScheduleItem.BibleReadingBookNumber != action.Schedule.BibleReadingBookNumber ||
+                existingScheduleItem.BibleReadingChapterNumber != action.Schedule.BibleReadingChapterNumber)
             {
                 state.Schedules.Remove(existingScheduleItem);
-                state.Schedules.Add(updatedItem);
+                state.Schedules.Add(action.Schedule);
             }
             // If no changes detected, no need to update the collection
         }
         else
         {
             // Schedule not found, add it (shouldn't happen, but handle gracefully)
-            // Map AlarmSchedule to ScheduleStateItem using AutoMapper
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
-            state.Schedules.Add(scheduleStateItem);
+            state.Schedules.Add(action.Schedule);
+        }
+        
+        // Update CurrentSchedule if it matches the updated schedule
+        ScheduleStateItem? updatedCurrentSchedule = state.CurrentSchedule;
+        if (state.CurrentSchedule?.Id == action.Schedule.Id)
+        {
+            // Use the updated item from the collection if it exists
+            var updatedItemFromCollection = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+            updatedCurrentSchedule = updatedItemFromCollection ?? action.Schedule;
         }
         
         return new ApplicationState(
             // Reuse the same collection reference
             schedules: state.Schedules,
-            currentSchedule: state.CurrentSchedule?.Id == action.Schedule.Id ? action.Schedule : state.CurrentSchedule,
+            currentSchedule: updatedCurrentSchedule,
             currentMusic: state.CurrentMusic,
             tentativeMusic: state.TentativeMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,

@@ -9,7 +9,9 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
+using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -23,6 +25,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private readonly IState<ApplicationState> _state;
     private readonly IDispatcher _dispatcher;
     private readonly INavigationService _navigationService;
+    private readonly IMapper _mapper;
 
     private AlarmMusic? _current;
     private AlarmMusic? _tentative;
@@ -31,12 +34,13 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private AlarmMusic? _lastTentative;
     private PropertyChangedEventHandler? _propertyChangedHandler;
 
-    public SongBookSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService)
+    public SongBookSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
         _mediaService = mediaService;
         _state = state;
         _dispatcher = dispatcher;
         _navigationService = navigationService;
+        _mapper = mapper;
 
         _state.StateChanged += OnMusicInitialized;
         _state.StateChanged += OnMusicChanged;
@@ -57,18 +61,24 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             // Ensure _current is set from state if it's null
             if (_current == null)
             {
-                _current = _state.Value.CurrentMusic;
+                var currentItem = _state.Value.CurrentMusic;
+                if (currentItem != null)
+                {
+                    _current = _mapper.Map<AlarmMusic>(currentItem);
+                }
             }
 
             await navigationService.NavigateToTrackSelectionAsync();
 
-            _dispatcher.Dispatch(new TrackSelectionAction(new AlarmMusic
+            // Map entity to DTO before dispatching
+            var trackItem = new MusicStateItem
             {
                 Repeat = _current?.Repeat ?? false,
                 MusicType = MusicType.Vocals,
                 LanguageCode = CurrentLanguage?.Code ?? string.Empty,
                 PublicationCode = x.Code
-            }));
+            };
+            _dispatcher.Dispatch(new TrackSelectionAction(trackItem));
 
             IsBusy = false;
         });
@@ -124,10 +134,17 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private void OnMusicChanged(object? sender, EventArgs e)
     {
         var stateValue = _state.Value;
-        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null ||
-            (stateValue.CurrentMusic == _lastCurrent && stateValue.TentativeMusic == _lastTentative)) return;
-        _current = stateValue.CurrentMusic;
-        _tentative = stateValue.TentativeMusic;
+        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
+        
+        // Map DTOs to entities
+        var newCurrent = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+        var newTentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
+        
+        // Compare by ID to avoid unnecessary updates
+        if (_lastCurrent?.Id == newCurrent.Id && _lastTentative?.Id == newTentative.Id) return;
+        
+        _current = newCurrent;
+        _tentative = newTentative;
         _lastCurrent = _current;
         _lastTentative = _tentative;
         
@@ -140,8 +157,9 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         if (_initComplete) return;
         var stateValue = _state.Value;
         if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
-        _current = stateValue.CurrentMusic;
-        _tentative = stateValue.TentativeMusic;
+        // Map DTOs to entities
+        _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+        _tentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
         _initComplete = true;
         Task.Run(async () =>
         {

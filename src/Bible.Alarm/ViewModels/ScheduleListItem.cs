@@ -5,6 +5,10 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
+using AutoMapper;
+using IDispatcher = Fluxor.IDispatcher;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -18,11 +22,13 @@ public class ScheduleListItem(
     IScheduleDisplayService displayService,
     IScheduleStateService scheduleStateService,
     IPlaylistService playlistService,
-    ISchedulePersistenceService schedulePersistenceService,
     IState<ApplicationState> applicationState,
-    IState<PlaybackState> playbackState)
+    IState<PlaybackState> playbackState,
+    IDispatcher dispatcher,
+    IMapper mapper)
     : ObservableObject, IComparable, IDisposable
 {
+    private readonly IMapper _mapper = mapper;
     private bool _isInitializing;
     private AlarmSchedule? _lastKnownSchedule;
     private bool _isBusy;
@@ -119,14 +125,16 @@ public class ScheduleListItem(
             }
         });
 
-        DeleteCommand = new AsyncRelayCommand(async () =>
+        DeleteCommand = new AsyncRelayCommand(() =>
         {
             if (Schedule?.Id > 0)
             {
-                // Run database operations off UI thread
-                await Task.Run(async () =>
-                    await schedulePersistenceService.DeleteScheduleAsync(Schedule.Id));
+                // Dispatch DeleteScheduleAction (following Fluxor best practices)
+                // The Effect will handle the actual DB deletion and dispatch success/failure actions
+                logger.Information("ScheduleListItem: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", Schedule.Id);
+                dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
             }
+            return Task.CompletedTask;
         });
     }
 
@@ -274,11 +282,14 @@ public class ScheduleListItem(
         if (schedule == null) return;
         var scheduleId = schedule.Id;
 
-        // Find the updated schedule in the state
-        var updatedSchedule = applicationState.Value.Schedules
+        // Find the updated schedule in the state (ScheduleStateItem DTO)
+        var updatedScheduleItem = applicationState.Value.Schedules
             .FirstOrDefault(s => s.Id == scheduleId);
 
-        if (updatedSchedule == null) return;
+        if (updatedScheduleItem == null) return;
+
+        // Map DTO to entity for comparison and storage
+        var updatedSchedule = _mapper.Map<AlarmSchedule>(updatedScheduleItem);
 
         // Check if the track/chapter changed by comparing BibleReadingSchedule or Music properties
         var trackChanged = false;

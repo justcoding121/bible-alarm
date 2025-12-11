@@ -1,8 +1,8 @@
-﻿using Bible.Alarm.Models.Schedule;
+﻿using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions.Schedule;
 
-public class ViewScheduleAction(AlarmSchedule selectedSchedule)
+public class ViewScheduleAction(ScheduleStateItem? selectedSchedule)
 {
-    public AlarmSchedule SelectedSchedule { get; } = selectedSchedule;
+    public ScheduleStateItem? SelectedSchedule { get; } = selectedSchedule;
 }
