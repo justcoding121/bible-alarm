@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using Microsoft.Maui.Controls;
+using System.ComponentModel;
 using UriTypeConverter = Microsoft.Maui.Controls.UriTypeConverter;
 
 namespace CommunityToolkit.Maui.Views;

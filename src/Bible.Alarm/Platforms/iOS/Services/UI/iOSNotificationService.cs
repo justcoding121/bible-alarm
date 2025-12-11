@@ -2,7 +2,6 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.iOS.Extensions;
 using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using UserNotifications;
 

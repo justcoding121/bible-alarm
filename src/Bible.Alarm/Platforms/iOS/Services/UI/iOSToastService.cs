@@ -1,7 +1,6 @@
-﻿using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
-using Microsoft.Maui.ApplicationModel;
 using UIKit;
 
 [assembly: Dependency(typeof(iOSToastService))]

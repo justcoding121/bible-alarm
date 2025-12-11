@@ -1,5 +1,4 @@
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores;

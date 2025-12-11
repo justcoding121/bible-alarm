@@ -1,6 +1,5 @@
 using Android.Content.Res;
 using AndroidX.AppCompat.Widget;
-using Microsoft.Maui.Handlers;
 
 namespace Bible.Alarm.Platforms.Android.Handlers;
 

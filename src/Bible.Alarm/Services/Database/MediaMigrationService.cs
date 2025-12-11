@@ -1,7 +1,6 @@
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Database.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Services.Database;

@@ -1,4 +1,3 @@
-using Microsoft.Maui.Controls;
 namespace CommunityToolkit.Maui.Extensions;
 
 // Since MediaElement can't access .NET MAUI internals we have to copy this code here

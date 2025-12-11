@@ -8,7 +8,6 @@ using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels;

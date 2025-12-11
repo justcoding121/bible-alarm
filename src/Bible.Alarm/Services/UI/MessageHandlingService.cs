@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels;

@@ -1,7 +1,4 @@
 #nullable enable
-using Microsoft.Maui.Controls;
-using Bible.Alarm.Common.ViewHelpers;
-
 namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 
 /// <summary>

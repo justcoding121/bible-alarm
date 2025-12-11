@@ -2,17 +2,13 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
-using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
-using System.IO;
 #if IOS
 using Bible.Alarm.Platforms.iOS.Helpers;
 #endif
@@ -573,7 +569,6 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
     /// On Android, calling Stop() when in IDLE or ERROR states causes errors.
     /// On iOS, Stop() internally tries to seek which can fail if the player isn't ready.
     /// </summary>
-    /// <param name="clearSource">If true, clears the Source property after stopping. If false, only clears Source for invalid states.</param>
     private Task SafeStopMediaElementAsync(bool clearSource = true)
     {
         return MainThread.InvokeOnMainThreadAsync(() =>

@@ -13,9 +13,6 @@ public static class ResourceLoader
     /// <summary>
     /// Attempts to find and return the given resource from within the specified assembly.
     /// </summary>
-    /// <returns>The embedded resource stream.</returns>
-    /// <param name="assembly">Assembly.</param>
-    /// <param name="resourceFileName">Resource file name.</param>
     public static Stream GetEmbeddedResourceStream(Assembly assembly, string resourceFileName)
     {
         var resourceNames = assembly.GetManifestResourceNames();

@@ -1,15 +1,7 @@
-﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using Bible.Alarm.AudioLinksHarvestor.Models;
-using Bible.Alarm.AudioLinksHarvestor.Models.Bible;
-using Bible.Alarm.AudioLinksHarvestor.Models.Music;
-using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.Bible;
-using Bible.Alarm.Shared.Models.Media.Music;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;

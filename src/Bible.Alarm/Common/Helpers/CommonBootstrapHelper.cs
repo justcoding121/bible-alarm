@@ -1,4 +1,3 @@
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -6,7 +5,6 @@ using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Common.Helpers;

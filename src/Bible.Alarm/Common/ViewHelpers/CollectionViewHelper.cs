@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Controls;
 using System.Runtime.InteropServices;
 using System.Collections;
 using Polly;
-using Polly.Retry;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 
@@ -302,11 +301,6 @@ public static class CollectionViewHelper
     /// Waits for a ViewModel's IsBusy property to become false using Polly retry policy.
     /// This is useful for ensuring data is loaded before attempting to scroll to an item.
     /// </summary>
-    /// <param name="isBusyGetter">Function that returns the current IsBusy value</param>
-    /// <param name="maxWaitSeconds">Maximum time to wait in seconds (default: 5 seconds)</param>
-    /// <param name="delayMs">Delay between checks in milliseconds (default: 100ms)</param>
-    /// <param name="cancellationToken">Optional cancellation token to cancel the wait operation</param>
-    /// <returns>True if IsBusy became false within the timeout, false otherwise</returns>
     public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 5, int delayMs = 100, CancellationToken cancellationToken = default)
     {
         if (isBusyGetter == null)

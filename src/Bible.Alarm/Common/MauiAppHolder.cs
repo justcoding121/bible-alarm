@@ -1,12 +1,4 @@
-using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Services.UI.Interfaces;
-using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
 using Serilog;
-using System.Linq;
 
 namespace Bible.Alarm.Common;
 

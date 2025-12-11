@@ -1,9 +1,7 @@
 #nullable enable
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;

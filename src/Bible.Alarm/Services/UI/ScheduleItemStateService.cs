@@ -2,7 +2,6 @@
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
-using Microsoft.Maui.Controls;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;

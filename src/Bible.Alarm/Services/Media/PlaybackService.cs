@@ -6,11 +6,9 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
-using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
 using Bible.Alarm.Common.Interfaces.UI;
-using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Services.Media;
 

@@ -58,8 +58,6 @@ public interface IFontService : IDisposable
     /// <summary>
     /// Gets a scaled font size based on a base size in points
     /// </summary>
-    /// <param name="baseSizeInPoints">Base font size in points</param>
-    /// <returns>Scaled font size based on device density</returns>
     double GetScaledFontSize(double baseSizeInPoints);
 }
 

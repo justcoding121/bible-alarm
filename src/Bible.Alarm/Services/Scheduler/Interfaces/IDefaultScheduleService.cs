@@ -14,7 +14,6 @@ public interface IDefaultScheduleService
     /// Returns the first track metadata from the most recently played schedule if valid.
     /// Otherwise, creates a sample schedule, saves it to database, and returns its first track metadata.
     /// </summary>
-    /// <returns>Track metadata and scheduleId for Android Auto MediaSession</returns>
     Task<ScheduleTrackMetadata> GetNextScheduleTrackMetaDataAsync();
 }
 

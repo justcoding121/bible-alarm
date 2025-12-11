@@ -1,9 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Views;
-using Microsoft.Maui.ApplicationModel;
-using System.Linq;
 using Serilog;
 
 namespace Bible.Alarm;

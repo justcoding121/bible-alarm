@@ -8,14 +8,9 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.General;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
-using CommunityToolkit.Maui.Views;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
 using Polly;
 using Polly.Retry;
 using Serilog;
-using System.Linq;
-using System.Reflection;
 
 
 namespace Bible.Alarm.Services.UI;

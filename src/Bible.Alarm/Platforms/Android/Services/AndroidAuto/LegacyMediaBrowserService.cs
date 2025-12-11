@@ -3,12 +3,10 @@ using Android.App;
 using Android.Content;
 using Android.OS;
 using Android.Runtime;
-using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;

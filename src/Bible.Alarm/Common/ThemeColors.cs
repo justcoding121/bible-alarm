@@ -1,6 +1,3 @@
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Graphics;
-
 namespace Bible.Alarm.Common;
 
 /// <summary>

@@ -1,5 +1,3 @@
-﻿using Bible.Alarm.Common;
-
 namespace Bible.Alarm.Common.ViewHelpers;
 
 public class AnimateUtils

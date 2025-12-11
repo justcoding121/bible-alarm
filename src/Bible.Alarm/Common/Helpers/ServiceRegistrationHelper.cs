@@ -1,4 +1,3 @@
-using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Platform;
@@ -34,13 +33,8 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using Fluxor;
-using Bible.Alarm.Stores;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.Controls;
 using Serilog;
-using System;
-using System.Threading.Tasks;
 #if IOS
 using AVFoundation;
 using Bible.Alarm.Platforms.iOS.Services.Storage;

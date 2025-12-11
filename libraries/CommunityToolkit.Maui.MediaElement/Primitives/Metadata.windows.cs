@@ -1,4 +1,3 @@
-﻿using Microsoft.Maui.Dispatching;
 using Windows.Media;
 
 namespace CommunityToolkit.Maui.Core.Primitives;

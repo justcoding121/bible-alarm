@@ -1,5 +1,4 @@
 using System.Globalization;
-using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 

@@ -1,8 +1,5 @@
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Models;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;

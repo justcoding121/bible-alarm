@@ -1,5 +1,4 @@
 #nullable enable
-using System.IO;
 using Android.Graphics;
 using Serilog;
 
@@ -18,9 +17,6 @@ public class AndroidArtworkService
     /// Handles file:// URIs and direct file paths.
     /// Scales down large images to recommended size for Android Auto (512x512 max).
     /// </summary>
-    /// <param name="artworkUrl">File path or file:// URI to the artwork image</param>
-    /// <param name="maxSize">Maximum size for scaling (default: 512 for Android Auto)</param>
-    /// <returns>Bitmap instance, or null if loading fails</returns>
     public Bitmap? LoadArtworkBitmap(string artworkUrl, int maxSize = 512)
     {
         try

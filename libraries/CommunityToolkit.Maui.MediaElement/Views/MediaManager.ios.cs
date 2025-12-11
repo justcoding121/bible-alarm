@@ -1,6 +1,5 @@
-﻿using AVFoundation;
+using AVFoundation;
 using AVKit;
-using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using CoreFoundation;
 using CoreGraphics;

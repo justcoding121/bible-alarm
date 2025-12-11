@@ -1,8 +1,4 @@
 #nullable enable
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Helpers;
@@ -32,8 +28,6 @@ public static class BootstrapHelper
     /// This should be called after MauiApp is created to ensure databases and services are initialized.
     /// Thread-safe: ensures bootstrap runs only once, even if called from multiple entry points concurrently.
     /// </summary>
-    /// <param name="services">The service provider</param>
-    /// <param name="isForeground">If true, runs bootstrap on a background Task. If false, runs synchronously.</param>
     public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false)
     {
         // Log caller information to help debug which code path is calling bootstrap
@@ -62,8 +56,6 @@ public static class BootstrapHelper
     /// Synchronously waits for bootstrap to complete before allowing database access.
     /// Use this method when you must wait synchronously (e.g., in framework override methods).
     /// </summary>
-    /// <param name="timeoutMs">Maximum time to wait in milliseconds (default: 30 seconds)</param>
-    /// <exception cref="TimeoutException">Thrown if bootstrap doesn't complete within timeout</exception>
     public static void WaitForBootstrap(int timeoutMs = 30000)
     {
         if (BootstrapCompleted)
@@ -86,9 +78,6 @@ public static class BootstrapHelper
     /// Waits for bootstrap to complete before allowing database access.
     /// This ensures database migrations are finished before services use the database.
     /// </summary>
-    /// <param name="timeoutMs">Maximum time to wait in milliseconds (default: 30 seconds)</param>
-    /// <returns>Task that completes when bootstrap is done</returns>
-    /// <exception cref="TimeoutException">Thrown if bootstrap doesn't complete within timeout</exception>
     public static async Task WaitForBootstrapAsync(int timeoutMs = 30000)
     {
         if (BootstrapCompleted)

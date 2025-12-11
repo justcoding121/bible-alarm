@@ -2,17 +2,11 @@ using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
-using Android.Views;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Polly;
-using Polly.Retry;
 using Serilog;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Bible.Alarm.Platforms.Android;
 

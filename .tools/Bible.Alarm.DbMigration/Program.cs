@@ -1,10 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Logging;
 using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Constants;
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 

@@ -1,42 +1,19 @@
 #nullable enable
 using Android.Content;
-using Android.Net;
 using Android.App;
-using Android.OS;
 using Android.Provider;
-using Android.Runtime;
-using AndroidX.Core.App;
-using AndroidX.Media.App;
 using AndroidX.Media3.Common;
 using AndroidX.Media3.Common.Text;
-using AndroidX.Media3.Session;
-using NotificationCompat = AndroidX.Core.App.NotificationCompat;
-using MediaStyle = AndroidX.Media.App.NotificationCompat.MediaStyle;
 using Java.Lang;
-using Java.Interop;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.ExoPlayer.Source;
 using AndroidX.Media3.DataSource;
 using Bible.Alarm.Common.Messenger;
-using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
-using Bible.Alarm.Platforms.Android;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Stores;
-using Fluxor;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Devices;
-using Microsoft.Maui.Handlers;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using AndroidApplication = Android.App.Application;
 using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
@@ -58,10 +35,6 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     /// unlike duplicate MediaItems which ExoPlayer may deduplicate.
     /// Only creates dummy items when needed (previous dummy only if not first track, next dummy only if not last track).
     /// </summary>
-    /// <param name="mediaElement">The MediaElement instance to use</param>
-    /// <param name="uri">The URI of the current track</param>
-    /// <param name="isFirstTrack">True if this is the first track (no previous dummy needed)</param>
-    /// <param name="isLastTrack">True if this is the last track (no next dummy needed)</param>
     public void SetSourceWithDummyQueue(MediaElement mediaElement, string uri, bool isFirstTrack = false, bool isLastTrack = false)
     {
         try
@@ -192,11 +165,6 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     /// <summary>
     /// Creates a dummy media source with a fragment identifier for creating a multi-item queue.
     /// </summary>
-    /// <param name="androidUri">The base Android URI</param>
-    /// <param name="fragment">The fragment identifier and item type name (e.g., "previous" or "next")</param>
-    /// <param name="mediaId">The media ID for the dummy item</param>
-    /// <param name="dataSourceFactory">The data source factory for creating the media source</param>
-    /// <returns>The created IMediaSource, or null if creation failed</returns>
     private IMediaSource? CreateDummyMediaSource(
         global::Android.Net.Uri androidUri,
         string fragment,

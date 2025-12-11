@@ -1,13 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -20,7 +17,6 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

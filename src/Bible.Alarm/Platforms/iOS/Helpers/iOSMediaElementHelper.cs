@@ -1,11 +1,6 @@
 #nullable enable
 using CommunityToolkit.Maui.Views;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;
 

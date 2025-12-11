@@ -1,7 +1,5 @@
 #nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.Services.UI;
 

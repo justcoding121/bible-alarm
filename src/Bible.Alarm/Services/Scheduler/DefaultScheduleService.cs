@@ -1,11 +1,7 @@
 #nullable enable
-using System;
-using System.Threading.Tasks;
-using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Bible.Alarm.Shared.Constants;
@@ -13,9 +9,7 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

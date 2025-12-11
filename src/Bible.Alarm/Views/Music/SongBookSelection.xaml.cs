@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
 
 namespace Bible.Alarm.Views.Music;

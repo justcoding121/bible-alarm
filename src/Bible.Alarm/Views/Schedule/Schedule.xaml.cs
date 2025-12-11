@@ -1,9 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
-using static Serilog.Log;
 
 namespace Bible.Alarm.Views.Schedule;
 

@@ -1,6 +1,4 @@
 #nullable enable
-using CommunityToolkit.Maui.Views;
-
 namespace Bible.Alarm.Services.UI.Interfaces;
 
 public interface INavigationService : IDisposable
@@ -23,8 +21,6 @@ public interface INavigationService : IDisposable
     /// <summary>
     /// Gets the BootstrapPage from the navigation stack.
     /// </summary>
-    /// <param name="shouldRetry">If true, retries indefinitely until navigation is available. If false, returns null immediately if navigation is not available.</param>
-    /// <returns>The BootstrapPage instance, or null if not found</returns>
     Views.General.BootstrapPage? GetBootstrapPage(bool shouldRetry = true);
     
     /// <summary>

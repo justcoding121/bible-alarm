@@ -4,8 +4,6 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
-using System.IO;
-using TagLib;
 
 namespace Bible.Alarm.Services.Media;
 

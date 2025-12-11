@@ -1,6 +1,5 @@
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.Common.ViewHelpers;
-using Bible.Alarm.Views;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;

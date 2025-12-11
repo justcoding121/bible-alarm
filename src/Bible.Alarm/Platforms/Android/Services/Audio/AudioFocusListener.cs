@@ -2,7 +2,6 @@
 using Android.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
-using MediaStream = Android.Media.Stream;
 
 namespace Bible.Alarm.Platforms.Android.Services.Audio;
 

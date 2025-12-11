@@ -1,11 +1,8 @@
 #nullable enable
-using System.IO;
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -15,7 +12,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Maui.ApplicationModel;
 using Plugin.StoreReview;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;

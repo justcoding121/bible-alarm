@@ -1,7 +1,4 @@
-﻿using System.Globalization;
-using Bible.Alarm.Common;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
+using System.Globalization;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 

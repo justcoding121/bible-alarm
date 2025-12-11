@@ -16,8 +16,6 @@ public static class iOSAudioSessionHelper
     /// Sets the category to Playback and activates the session.
     /// This allows audio to play even in silent mode.
     /// </summary>
-    /// <param name="logger">Logger instance for logging configuration results</param>
-    /// <param name="context">Context string for logging (e.g., "main playback" or "preview")</param>
     public static void ConfigureAudioSession(ILogger logger, string context = "playback")
     {
         try

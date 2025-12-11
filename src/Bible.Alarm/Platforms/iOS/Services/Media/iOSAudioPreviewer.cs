@@ -1,5 +1,4 @@
 #nullable enable
-using System.IO;
 using AVFoundation;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.iOS.Helpers;

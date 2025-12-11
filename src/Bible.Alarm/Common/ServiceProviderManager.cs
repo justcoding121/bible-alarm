@@ -15,8 +15,6 @@ public static class ServiceProviderManager
     /// Gets a service from the global service provider.
     /// Now uses MauiAppHolder internally.
     /// </summary>
-    /// <typeparam name="T">The type of service to get</typeparam>
-    /// <returns>The service instance</returns>
     public static T GetService<T>() where T : notnull
     {
         return MauiAppHolder.Services.GetRequiredService<T>();

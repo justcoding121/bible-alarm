@@ -3,10 +3,6 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Views;
-using Bible.Alarm.Views.General;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;

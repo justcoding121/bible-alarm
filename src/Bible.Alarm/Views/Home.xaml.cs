@@ -1,10 +1,7 @@
 #nullable enable
 using Bible.Alarm.ViewModels;
-using Bible.Alarm.Common.ViewHelpers;
-using Microsoft.Maui.Controls;
 using Syncfusion.Maui.Buttons;
 using Serilog;
-using static Serilog.Log;
 
 namespace Bible.Alarm.Views;
 

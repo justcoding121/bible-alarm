@@ -1,5 +1,4 @@
 using Android.Content.Res;
-using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Platform;
 
 namespace Bible.Alarm.Platforms.Android.Handlers;

@@ -1,6 +1,3 @@
-using Microsoft.Maui.Controls;
-using Syncfusion.Maui.Buttons;
-
 namespace Bible.Alarm.Views.Shared;
 
 public partial class PlatformSwitch : ContentView

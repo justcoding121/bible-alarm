@@ -1,5 +1,3 @@
-using Bible.Alarm.Views;
-
 namespace Bible.Alarm.Views.General;
 
 public partial class BatteryOptimizationExclusionModal : BaseContentPage, IDisposable

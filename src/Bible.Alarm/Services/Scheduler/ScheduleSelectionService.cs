@@ -1,4 +1,3 @@
-using System;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;

@@ -1,43 +1,13 @@
-using Bible.Alarm.Common.Interfaces.Battery;
-using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Common.Interfaces.Platform;
-using Bible.Alarm.Services.Storage.Interfaces;
-using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Services.Battery.Interfaces;
-using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Network.Interfaces;
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Battery;
-using Bible.Alarm.Services.Database;
-using Bible.Alarm.Services.Database.Interfaces;
-using Bible.Alarm.Services.Media;
-using Bible.Alarm.Services.Network;
-using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels;
-using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Music;
-using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views;
-using Bible.Alarm.Views.Bible;
-using Bible.Alarm.Views.General;
-using Bible.Alarm.Views.Music;
-using Bible.Alarm.Views.Schedule;
-using Bible.Alarm.Views.Shared;
 using CommunityToolkit.Maui;
 using Syncfusion.Licensing;
 using Syncfusion.Maui.Core.Hosting;
-using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using System.Threading;
 #if IOS
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
@@ -157,8 +127,6 @@ public static class MauiProgram
     /// This should be called after MauiApp is created to ensure databases and services are initialized.
     /// Thread-safe: ensures bootstrap runs only once, even if called from multiple entry points concurrently.
     /// </summary>
-    /// <param name="services">The service provider</param>
-    /// <param name="isForeground">If true, runs bootstrap on a background Task. If false, runs synchronously.</param>
     public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false)
     {
         BootstrapHelper.InitializePlatformBootstrap(services, isForeground);
@@ -168,8 +136,6 @@ public static class MauiProgram
     /// Synchronously waits for bootstrap to complete before allowing database access.
     /// Use this method when you must wait synchronously (e.g., in framework override methods).
     /// </summary>
-    /// <param name="timeoutMs">Maximum time to wait in milliseconds (default: 30 seconds)</param>
-    /// <exception cref="TimeoutException">Thrown if bootstrap doesn't complete within timeout</exception>
     public static void WaitForBootstrap(int timeoutMs = 30000)
     {
         BootstrapHelper.WaitForBootstrap(timeoutMs);
@@ -179,9 +145,6 @@ public static class MauiProgram
     /// Waits for bootstrap to complete before allowing database access.
     /// This ensures database migrations are finished before services use the database.
     /// </summary>
-    /// <param name="timeoutMs">Maximum time to wait in milliseconds (default: 30 seconds)</param>
-    /// <returns>Task that completes when bootstrap is done</returns>
-    /// <exception cref="TimeoutException">Thrown if bootstrap doesn't complete within timeout</exception>
     public static async Task WaitForBootstrapAsync(int timeoutMs = 30000)
     {
         await BootstrapHelper.WaitForBootstrapAsync(timeoutMs);

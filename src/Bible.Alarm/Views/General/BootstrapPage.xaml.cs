@@ -1,8 +1,5 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
-using CommunityToolkit.Maui.Views;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
 using Serilog;
 using System.Timers;
 using Timer = System.Timers.Timer;

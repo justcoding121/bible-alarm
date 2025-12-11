@@ -1,7 +1,5 @@
 #nullable enable
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.Views;
-using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Views.General;
 

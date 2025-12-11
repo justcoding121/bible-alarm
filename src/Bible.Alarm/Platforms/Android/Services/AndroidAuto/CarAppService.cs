@@ -1,13 +1,11 @@
 #nullable enable
 using Android.App;
 using Android.Content;
-using Android.OS;
 using Android.Runtime;
 using Android.Support.V4.Media.Session;
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using AndroidX.Car.App.Validation;
-using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Common;
 using Serilog;
 

@@ -1,4 +1,3 @@
-using Bible.Alarm.Views;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Common.ViewHelpers;
 

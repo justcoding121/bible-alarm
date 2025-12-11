@@ -1,10 +1,7 @@
 #nullable enable
 
-using System.Linq;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;

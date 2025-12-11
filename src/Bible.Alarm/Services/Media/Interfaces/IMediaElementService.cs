@@ -15,7 +15,6 @@ public interface IMediaElementService : IDisposable
     /// If the MediaElement doesn't exist (was disposed), creates a new one.
     /// MediaElement will be attached to BootstrapPage container if available, otherwise works without UI container.
     /// </summary>
-    /// <returns>The MediaElement instance</returns>
     Task<MediaElement> GetMediaElementAsync();
 
     /// <summary>
