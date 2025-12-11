@@ -3,6 +3,7 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
@@ -143,6 +144,49 @@ public static class CommonBootstrapHelper
                 includeBibleReading: true);
             
             Log.Logger.Information("Loaded {Count} schedules from database during bootstrap", alarmSchedules.Count);
+            
+            // Load language dictionary for translation names
+            Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>? languagesDict = null;
+            var bibleTranslationService = ServiceProviderManager.GetService<IBibleTranslationService>();
+            if (bibleTranslationService != null)
+            {
+                try
+                {
+                    languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
+                    Log.Logger.Information("Loaded {Count} languages for translation name lookup", languagesDict.Count);
+                }
+                catch (Exception langEx)
+                {
+                    Log.Logger.Warning(langEx, "Error loading languages - translation names will not be populated");
+                }
+            }
+            else
+            {
+                Log.Logger.Warning("IBibleTranslationService is null - translation names will not be populated");
+            }
+            
+            // Populate translation names for each schedule's BibleReadingSchedule
+            foreach (var schedule in alarmSchedules)
+            {
+                if (schedule.BibleReadingSchedule != null && languagesDict != null)
+                {
+                    var languageCode = schedule.BibleReadingSchedule.LanguageCode;
+                    if (!string.IsNullOrWhiteSpace(languageCode) && 
+                        languagesDict.TryGetValue(languageCode, out var language))
+                    {
+                        schedule.BibleReadingSchedule.TranslationName = language.Name;
+                        Log.Logger.Debug("Set TranslationName '{TranslationName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                            language.Name, schedule.Id, languageCode);
+                    }
+                    else
+                    {
+                        // Fallback to language code if language not found
+                        schedule.BibleReadingSchedule.TranslationName = languageCode;
+                        Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as TranslationName for schedule {ScheduleId}",
+                            languageCode, schedule.Id);
+                    }
+                }
+            }
             
             // Create ObservableHashSet for state
             var initialSchedules = new ObservableHashSet<AlarmSchedule>();

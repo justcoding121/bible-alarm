@@ -52,22 +52,17 @@ public class CarAppService : AndroidX.Car.App.CarAppService
     {
         base.OnCreate();
         
-        Logger.Information("CarAppService.OnCreate() called - Initializing bootstrap (background service)");
+        Logger.Information("CarAppService.OnCreate() called - Ensuring MauiApp is created");
         
-        // Initialize bootstrap asynchronously to avoid blocking UI thread
-        // Android Auto services can be created during app startup, so we must not block
-        _ = Task.Run(async () =>
+        // Ensure MauiApp is created and bootstrap is initialized (idempotent - safe to call multiple times)
+        // Bootstrap initialization is thread-safe and will only run once even if called from multiple services
+        _ = Task.Run(() =>
         {
             try
             {
                 MauiAppHolder.CreateAndStore();
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                
-                // Wait for bootstrap to complete before proceeding
-                // This ensures database migrations are finished before accessing schedule database
-                await MauiProgram.WaitForBootstrapAsync();
-                
-                Logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialized and ready");
+                Logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialization started");
             }
             catch (Exception ex)
             {
@@ -140,7 +135,6 @@ public class MainCarScreen : AndroidX.Car.App.Screen
     private static readonly ILogger Logger = Log.ForContext<MainCarScreen>();
     private readonly MediaSessionManager _mediaSessionManager;
     private List<AlarmSchedule>? _schedules;
-    private Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>? _languagesDict;
 
     public MainCarScreen(CarContext carContext, MediaSessionManager mediaSessionManager) : base(carContext)
     {
@@ -253,126 +247,16 @@ public class MainCarScreen : AndroidX.Car.App.Screen
     
     private void LoadSchedules()
     {
-        try
-        {
-            Logger.Debug("Loading schedules from state for CarAppService");
-            
-            // Get state from service provider - schedules are already loaded during bootstrap
-            var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
-            
-            if (state?.Value?.Schedules != null && state.Value.Schedules.Count > 0)
-            {
-                // Convert ObservableHashSet to List for easier iteration
-                _schedules = state.Value.Schedules.ToList();
-                Logger.Information("Loaded {Count} schedules from state for CarAppService", _schedules.Count);
-            }
-            else
-            {
-                Logger.Warning("No schedules found in state - state may not be initialized yet");
-                _schedules = new List<AlarmSchedule>();
-            }
-            
-            // Pre-load all languages for efficient lookup
-            // Use Task.Run to avoid blocking the main thread, but wait with timeout
-            var bibleTranslationService = ServiceProviderManager.GetService<IBibleTranslationService>();
-            if (bibleTranslationService != null)
-            {
-                try
-                {
-                    // Try to get languages with a short timeout to avoid blocking
-                    var languageTask = bibleTranslationService.GetDistinctLanguagesAsync();
-                    if (languageTask.Wait(TimeSpan.FromSeconds(2)))
-                    {
-                        _languagesDict = languageTask.Result;
-                    }
-                    else
-                    {
-                        Logger.Warning("Language loading timed out - continuing without language names");
-                        _languagesDict = new Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>();
-                    }
-                }
-                catch (Exception langEx)
-                {
-                    Logger.Warning(langEx, "Error loading languages - continuing without language names");
-                    _languagesDict = new Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>();
-                }
-            }
-            else
-            {
-                Logger.Warning("IBibleTranslationService is null - language lookup may fail");
-                _languagesDict = new Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Error loading schedules from state in MainCarScreen");
-            _schedules = new List<AlarmSchedule>();
-            _languagesDict = new Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>();
-        }
+        _schedules = AndroidAutoScheduleHelper.LoadSchedulesFromState();
     }
     
     private Row? CreateRowForSchedule(AlarmSchedule schedule)
     {
         try
         {
-            // Title: Schedule Name (if not empty), otherwise "Schedule {Id}"
-            var title = !string.IsNullOrWhiteSpace(schedule.Name) 
-                ? schedule.Name 
-                : $"Schedule {schedule.Id}";
-            
-            // Build subtitle: Language, Book, Chapter (if BibleReadingSchedule exists)
-            var subtitleParts = new List<string>();
-            
-            if (schedule.BibleReadingSchedule != null && _languagesDict != null)
-            {
-                var bibleReading = schedule.BibleReadingSchedule;
-                
-                // Get language name
-                string? languageName = null;
-                if (_languagesDict.TryGetValue(bibleReading.LanguageCode, out var language))
-                {
-                    languageName = language.Name;
-                }
-                else
-                {
-                    languageName = bibleReading.LanguageCode; // Fallback to code if name not found
-                }
-                
-                // Build subtitle with Language, Book Number, Chapter Number
-                // Use data directly from schedule to avoid any async calls that could block
-                // This prevents blocking OnGetTemplate() which must return quickly (< 1 second)
-                if (!string.IsNullOrWhiteSpace(languageName))
-                {
-                    subtitleParts.Add(languageName);
-                }
-                
-                // Add book number (we skip book name lookup to avoid async calls)
-                // Book number is sufficient for identification
-                if (bibleReading.BookNumber > 0)
-                {
-                    subtitleParts.Add($"Book {bibleReading.BookNumber}");
-                }
-                
-                // Add chapter number
-                if (bibleReading.ChapterNumber > 0)
-                {
-                    subtitleParts.Add($"Chapter {bibleReading.ChapterNumber}");
-                }
-            }
-            
-            // Set subtitle - Language, Book, Chapter (or status/time if no Bible reading)
-            string subtitle;
-            if (subtitleParts.Count > 0)
-            {
-                subtitle = string.Join(" • ", subtitleParts);
-            }
-            else
-            {
-                // Fallback: show status and time if no Bible reading schedule
-                var statusText = schedule.IsEnabled ? "Enabled" : "Disabled";
-                var timeText = schedule.TimeText;
-                subtitle = $"{statusText} • {timeText}";
-            }
+            // Use shared helper to build title and subtitle
+            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(schedule);
+            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(schedule);
             
             // Create Row with title, subtitle, and click callback
             // Store schedule ID in a closure so we can access it when clicked

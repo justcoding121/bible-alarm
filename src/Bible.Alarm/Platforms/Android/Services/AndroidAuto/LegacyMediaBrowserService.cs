@@ -48,22 +48,17 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         base.OnCreate();
         
-        Logger.Information("LegacyMediaBrowserService.OnCreate() called - Initializing bootstrap (background service)");
+        Logger.Information("LegacyMediaBrowserService.OnCreate() called - Ensuring MauiApp is created");
         
-        // Initialize bootstrap asynchronously to avoid blocking UI thread
-        // Android Auto services can be created during app startup, so we must not block
-        _ = Task.Run(async () =>
+        // Ensure MauiApp is created and bootstrap is initialized (idempotent - safe to call multiple times)
+        // Bootstrap initialization is thread-safe and will only run once even if called from multiple services
+        _ = Task.Run(() =>
         {
             try
             {
                 MauiAppHolder.CreateAndStore();
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                
-                // Wait for bootstrap to complete before proceeding
-                // This ensures database migrations are finished before accessing schedule database
-                await MauiProgram.WaitForBootstrapAsync();
-                
-                Logger.Information("✅ LegacyMediaBrowserService bootstrap initialized and ready");
+                Logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Bootstrap initialization started");
             }
             catch (Exception ex)
             {
@@ -132,147 +127,47 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             result.Detach();
             Logger.Debug("Result detached successfully for parent: {ParentId}", parentId);
             
-            // Ensure bootstrap is complete before accessing database services
+            // Ensure bootstrap is complete before accessing state
             // This is critical for loading schedules to show in Android Auto
-            // We MUST wait for bootstrap before accessing services to avoid database access errors
-            _ = Task.Run(async () =>
+            // Since OnLoadChildren is synchronous, we use WaitForBootstrap() synchronously
+            MauiProgram.WaitForBootstrap();
+            Logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
+            
+            // Run work to load schedules and create MediaItems on background thread
+            _ = Task.Run(() =>
             {
                 try
                 {
-                    Logger.Debug("Starting async schedule loading for parent: {ParentId}", parentId);
+                    Logger.Debug("Starting schedule loading for parent: {ParentId}", parentId);
                     
-                    // CRITICAL: Wait for bootstrap to complete before accessing schedule database
-                    // Bootstrap ensures database migrations are complete and services are initialized
-                    // This prevents errors when trying to access schedules before the database is ready
-                    await MauiProgram.WaitForBootstrapAsync();
+                    // Load schedules from state using shared helper
+                    var schedules = AndroidAutoScheduleHelper.LoadSchedulesFromState();
                     
-                    Logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
-                    
-                    // Now that bootstrap is complete, schedules are already loaded in state
-                    // Get state from service provider - schedules are already loaded during bootstrap
-                    var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
-                    
-                    if (state?.Value?.Schedules == null || state.Value.Schedules.Count == 0)
+                    if (schedules.Count == 0)
                     {
                         Logger.Warning("No schedules found in state for parent: {ParentId} - state may not be initialized yet", parentId);
                         result.SendResult(new Java.Util.ArrayList());
                         return;
                     }
                     
-                    // Convert ObservableHashSet to List for easier iteration
-                    var schedules = state.Value.Schedules.ToList();
-                    Logger.Information("Loaded {Count} schedules from state for Android Auto", schedules.Count);
-                    
-                    // Get services needed for display formatting
-                    var bibleTranslationService = ServiceProviderManager.GetService<IBibleTranslationService>();
-                    
-                    // Pre-load all languages for efficient lookup (optional, with timeout)
-                    // If this times out, we'll use language codes as fallback
-                    Dictionary<string, Bible.Alarm.Shared.Models.Media.Language> languagesDict;
-                    if (bibleTranslationService != null)
-                    {
-                        try
-                        {
-                            // Try to get languages with a timeout to avoid blocking
-                            // Use shorter timeout since this is async and we want fast response
-                            var languageTask = bibleTranslationService.GetDistinctLanguagesAsync();
-                            var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(500));
-                            var completedTask = await Task.WhenAny(languageTask, timeoutTask);
-                            
-                            if (completedTask == languageTask)
-                            {
-                                languagesDict = await languageTask;
-                            }
-                            else
-                            {
-                                Logger.Debug("Language loading timed out - will use language codes as fallback");
-                                languagesDict = new Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>();
-                            }
-                        }
-                        catch (Exception langEx)
-                        {
-                            Logger.Debug(langEx, "Error loading languages - will use language codes as fallback");
-                            languagesDict = new Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>();
-                        }
-                    }
-                    else
-                    {
-                        Logger.Debug("IBibleTranslationService is null - will use language codes as fallback");
-                        languagesDict = new Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>();
-                    }
-                    
                     // Convert schedules to MediaBrowserCompat.MediaItem objects
                     var mediaItems = new Java.Util.ArrayList();
                     
-                    foreach (var schedule in schedules.OrderBy(s => s.Name))
+                    foreach (var schedule in schedules)
                     {
                         try
                         {
-                            // Build display information
-                            var subtitleParts = new List<string>();
-                            
-                            // Title: Schedule Name (if not empty), otherwise "Schedule {Id}"
-                            var title = !string.IsNullOrWhiteSpace(schedule.Name) 
-                                ? schedule.Name 
-                                : $"Schedule {schedule.Id}";
-                            
-                            // Subtitle: Language, Book Number, Chapter Number (if BibleReadingSchedule exists)
-                            // Use data directly from schedule to avoid async calls that could cause delays
-                            // This prevents blocking and ensures fast response for Android Auto
-                            if (schedule.BibleReadingSchedule != null)
-                            {
-                                var bibleReading = schedule.BibleReadingSchedule;
-                                
-                                // Get language name (from pre-loaded dictionary or use code as fallback)
-                                string? languageName = null;
-                                if (languagesDict != null && languagesDict.TryGetValue(bibleReading.LanguageCode, out var language))
-                                {
-                                    languageName = language.Name;
-                                }
-                                else
-                                {
-                                    languageName = bibleReading.LanguageCode; // Fallback to code if name not found
-                                }
-                                
-                                // Build subtitle with Language, Book Number, Chapter Number
-                                // Use data directly from schedule to avoid async database calls
-                                if (!string.IsNullOrWhiteSpace(languageName))
-                                {
-                                    subtitleParts.Add(languageName);
-                                }
-                                
-                                // Add book number (we skip book name lookup to avoid async calls)
-                                // Book number is sufficient for identification
-                                if (bibleReading.BookNumber > 0)
-                                {
-                                    subtitleParts.Add($"Book {bibleReading.BookNumber}");
-                                }
-                                
-                                // Add chapter number
-                                if (bibleReading.ChapterNumber > 0)
-                                {
-                                    subtitleParts.Add($"Chapter {bibleReading.ChapterNumber}");
-                                }
-                            }
+                            // Use shared helper to build title and subtitle
+                            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(schedule);
+                            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(schedule);
                             
                             // Create MediaDescriptionCompat for each schedule
                             // Note: MediaDescriptionCompat is in Android.Support.V4.Media namespace
+                            // Set mediaId to just the schedule ID (not "schedule_{id}") so OnPlayFromMediaId can parse it as int
                             var descriptionBuilder = new MediaDescriptionCompat.Builder();
-                            descriptionBuilder.SetMediaId($"schedule_{schedule.Id}");
+                            descriptionBuilder.SetMediaId(schedule.Id.ToString());
                             descriptionBuilder.SetTitle(title);
-                            
-                            // Set subtitle - Language, Book, Chapter (or status/time if no Bible reading)
-                            if (subtitleParts.Count > 0)
-                            {
-                                descriptionBuilder.SetSubtitle(string.Join(" • ", subtitleParts));
-                            }
-                            else
-                            {
-                                // Fallback: show status and time if no Bible reading schedule
-                                var statusText = schedule.IsEnabled ? "Enabled" : "Disabled";
-                                var timeText = schedule.TimeText;
-                                descriptionBuilder.SetSubtitle($"{statusText} • {timeText}");
-                            }
+                            descriptionBuilder.SetSubtitle(subtitle);
                             
                             // Set description with schedule details
                             var description = $"Schedule ID: {schedule.Id}";
