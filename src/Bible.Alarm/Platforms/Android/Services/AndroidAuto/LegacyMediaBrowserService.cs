@@ -13,6 +13,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 using System.Collections.Generic;
@@ -140,10 +141,10 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 {
                     Logger.Debug("Starting schedule loading for parent: {ParentId}", parentId);
                     
-                    // Load schedules from state using shared helper
-                    var schedules = AndroidAutoScheduleHelper.LoadSchedulesFromState();
+                    // Load schedule state items from state using shared helper
+                    var scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
                     
-                    if (schedules.Count == 0)
+                    if (scheduleItems.Count == 0)
                     {
                         Logger.Warning("No schedules found in state for parent: {ParentId} - state may not be initialized yet", parentId);
                         result.SendResult(new Java.Util.ArrayList());
@@ -153,27 +154,27 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                     // Convert schedules to MediaBrowserCompat.MediaItem objects
                     var mediaItems = new Java.Util.ArrayList();
                     
-                    foreach (var schedule in schedules)
+                    foreach (var scheduleItem in scheduleItems)
                     {
                         try
                         {
-                            // Use shared helper to build title and subtitle
-                            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(schedule);
-                            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(schedule);
+                            // Use shared helper to build title and subtitle from ScheduleStateItem DTO
+                            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
+                            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
                             
                             // Create MediaDescriptionCompat for each schedule
                             // Note: MediaDescriptionCompat is in Android.Support.V4.Media namespace
                             // Set mediaId to just the schedule ID (not "schedule_{id}") so OnPlayFromMediaId can parse it as int
                             var descriptionBuilder = new MediaDescriptionCompat.Builder();
-                            descriptionBuilder.SetMediaId(schedule.Id.ToString());
+                            descriptionBuilder.SetMediaId(scheduleItem.Id.ToString());
                             descriptionBuilder.SetTitle(title);
                             descriptionBuilder.SetSubtitle(subtitle);
                             
                             // Set description with schedule details
-                            var description = $"Schedule ID: {schedule.Id}";
-                            if (schedule.BibleReadingSchedule != null)
+                            var description = $"Schedule ID: {scheduleItem.Id}";
+                            if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingPublicationCode))
                             {
-                                description += $", {schedule.BibleReadingSchedule.PublicationCode}";
+                                description += $", {scheduleItem.BibleReadingPublicationCode}";
                             }
                             descriptionBuilder.SetDescription(description);
                             
@@ -189,11 +190,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                             mediaItems.Add(mediaItem);
                             
                             Logger.Debug("Added MediaItem for schedule: {ScheduleId} - Title: {Title}, Subtitle: {Subtitle}", 
-                                schedule.Id, title, mediaDescription.Subtitle);
+                                scheduleItem.Id, title, mediaDescription.Subtitle);
                         }
                         catch (Exception ex)
                         {
-                            Logger.Warning(ex, "Failed to create MediaItem for schedule {ScheduleId}", schedule.Id);
+                            Logger.Warning(ex, "Failed to create MediaItem for schedule {ScheduleId}", scheduleItem.Id);
                         }
                     }
                     

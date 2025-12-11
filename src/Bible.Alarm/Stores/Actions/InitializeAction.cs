@@ -1,9 +1,9 @@
-﻿using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Shared.DataStructures;
+﻿using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions;
 
-public class InitializeAction(ObservableHashSet<AlarmSchedule> scheduleList)
+public class InitializeAction(ObservableHashSet<ScheduleStateItem> scheduleList)
 {
-    public ObservableHashSet<AlarmSchedule> ScheduleList { get; } = scheduleList ?? [];
+    public ObservableHashSet<ScheduleStateItem> ScheduleList { get; } = scheduleList ?? [];
 }

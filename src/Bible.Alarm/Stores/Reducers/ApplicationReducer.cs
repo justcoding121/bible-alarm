@@ -4,6 +4,8 @@ using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
+using AutoMapper;
 using Fluxor;
 using Serilog;
 
@@ -31,15 +33,26 @@ public static class ApplicationReducer
         Log.Information("ApplicationReducer: OnAddSchedule - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
             action.Schedule?.Id, action.Schedule?.Name, state.Schedules?.Count ?? 0);
         
-        var newSchedules = new ObservableHashSet<AlarmSchedule>();
+        // Get AutoMapper from service provider
+        var mapper = Bible.Alarm.Common.ServiceProviderManager.GetService<IMapper>();
+        if (mapper == null)
+        {
+            Log.Error("IMapper not found in OnAddSchedule - cannot map schedule to state item");
+            return state;
+        }
+        
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         if (state.Schedules != null)
         {
-            foreach (var schedule in state.Schedules)
+            foreach (var scheduleItem in state.Schedules)
             {
-                newSchedules.Add(schedule);
+                newSchedules.Add(scheduleItem);
             }
         }
-        newSchedules.Add(action.Schedule);
+        // Map AlarmSchedule to ScheduleStateItem using AutoMapper
+        // TranslationName will be null initially (can be populated later if needed)
+        var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
+        newSchedules.Add(scheduleStateItem);
         
         Log.Information("ApplicationReducer: OnAddSchedule - NewSchedulesCount: {NewCount}", newSchedules.Count);
         
@@ -61,12 +74,12 @@ public static class ApplicationReducer
         if (state.Schedules == null)
             return state;
 
-        var newSchedules = new ObservableHashSet<AlarmSchedule>();
-        foreach (var schedule in state.Schedules)
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        foreach (var scheduleItem in state.Schedules)
         {
-            if (schedule.Id != action.Schedule.Id)
+            if (scheduleItem.Id != action.Schedule.Id)
             {
-                newSchedules.Add(schedule);
+                newSchedules.Add(scheduleItem);
             }
         }
         
@@ -87,25 +100,45 @@ public static class ApplicationReducer
         if (state.Schedules == null)
             return state;
 
+        // Get AutoMapper from service provider
+        var mapper = Bible.Alarm.Common.ServiceProviderManager.GetService<IMapper>();
+        if (mapper == null)
+        {
+            Log.Error("IMapper not found in OnUpdateSchedule - cannot map schedule to state item");
+            return state;
+        }
+
         // Update the existing collection in place to avoid creating a new collection reference
         // This prevents the entire list from reloading when only one item is updated
-        var existingSchedule = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
-        if (existingSchedule != null)
+        var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+        if (existingScheduleItem != null)
         {
-            // Only remove and re-add if it's actually a different object reference
-            // This keeps the same collection reference, preventing full list reload
-            // The HomeViewModel will update the view model in place via Initialize()
-            if (!ReferenceEquals(existingSchedule, action.Schedule))
+            // Preserve TranslationName from existing item when updating
+            // Map the updated schedule to ScheduleStateItem
+            var updatedItem = mapper.Map<ScheduleStateItem>(action.Schedule);
+            updatedItem.TranslationName = existingScheduleItem.TranslationName; // Preserve TranslationName
+            
+            // Only remove and re-add if the schedule data actually changed
+            // Compare key properties to determine if update is needed
+            if (existingScheduleItem.Name != updatedItem.Name ||
+                existingScheduleItem.IsEnabled != updatedItem.IsEnabled ||
+                existingScheduleItem.Hour != updatedItem.Hour ||
+                existingScheduleItem.Minute != updatedItem.Minute ||
+                existingScheduleItem.BibleReadingLanguageCode != updatedItem.BibleReadingLanguageCode ||
+                existingScheduleItem.BibleReadingBookNumber != updatedItem.BibleReadingBookNumber ||
+                existingScheduleItem.BibleReadingChapterNumber != updatedItem.BibleReadingChapterNumber)
             {
-                state.Schedules.Remove(existingSchedule);
-                state.Schedules.Add(action.Schedule);
+                state.Schedules.Remove(existingScheduleItem);
+                state.Schedules.Add(updatedItem);
             }
-            // If it's the same reference, no need to update the collection
+            // If no changes detected, no need to update the collection
         }
         else
         {
             // Schedule not found, add it (shouldn't happen, but handle gracefully)
-            state.Schedules.Add(action.Schedule);
+            // Map AlarmSchedule to ScheduleStateItem using AutoMapper
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
+            state.Schedules.Add(scheduleStateItem);
         }
         
         return new ApplicationState(

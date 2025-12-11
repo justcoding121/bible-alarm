@@ -8,6 +8,8 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
+using Bible.Alarm.Stores.Models;
+using AutoMapper;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
@@ -165,34 +167,43 @@ public static class CommonBootstrapHelper
                 Log.Logger.Warning("IBibleTranslationService is null - translation names will not be populated");
             }
             
-            // Populate translation names for each schedule's BibleReadingSchedule
+            // Get AutoMapper instance
+            var mapper = ServiceProviderManager.GetService<IMapper>();
+            if (mapper == null)
+            {
+                Log.Logger.Error("IMapper service not found - cannot map schedules to state items");
+                return;
+            }
+            
+            // Create ObservableHashSet of ScheduleStateItem for state using AutoMapper
+            // Include TranslationName from language dictionary
+            var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
             foreach (var schedule in alarmSchedules)
             {
+                // Map AlarmSchedule to ScheduleStateItem using AutoMapper
+                var scheduleStateItem = mapper.Map<ScheduleStateItem>(schedule);
+                
+                // Set TranslationName from language dictionary
                 if (schedule.BibleReadingSchedule != null && languagesDict != null)
                 {
                     var languageCode = schedule.BibleReadingSchedule.LanguageCode;
                     if (!string.IsNullOrWhiteSpace(languageCode) && 
                         languagesDict.TryGetValue(languageCode, out var language))
                     {
-                        schedule.BibleReadingSchedule.TranslationName = language.Name;
+                        scheduleStateItem.TranslationName = language.Name;
                         Log.Logger.Debug("Set TranslationName '{TranslationName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
                             language.Name, schedule.Id, languageCode);
                     }
                     else
                     {
                         // Fallback to language code if language not found
-                        schedule.BibleReadingSchedule.TranslationName = languageCode;
+                        scheduleStateItem.TranslationName = languageCode;
                         Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as TranslationName for schedule {ScheduleId}",
                             languageCode, schedule.Id);
                     }
                 }
-            }
-            
-            // Create ObservableHashSet for state
-            var initialSchedules = new ObservableHashSet<AlarmSchedule>();
-            foreach (var schedule in alarmSchedules)
-            {
-                initialSchedules.Add(schedule);
+                
+                initialSchedules.Add(scheduleStateItem);
             }
             
             // Dispatch InitializeAction to populate state

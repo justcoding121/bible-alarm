@@ -7,6 +7,8 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
+using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -28,6 +30,7 @@ public class HomeViewModel : ObservableObject, IDisposable
     private readonly Dictionary<int, ScheduleListItem> _scheduleViewModels = [];
 
     private readonly Func<AlarmSchedule, ScheduleListItem> _scheduleListItemFactory;
+    private readonly IMapper _mapper;
 
     private readonly IDispatcher _dispatcher;
     private readonly IState<ApplicationState> _state;
@@ -41,7 +44,8 @@ public class HomeViewModel : ObservableObject, IDisposable
         IDatabaseSeedService databaseSeedService,
         IScheduleMigrationService scheduleMigrationService,
         INavigationService navigationService,
-        IAlarmScheduleService alarmScheduleService)
+        IAlarmScheduleService alarmScheduleService,
+        IMapper mapper)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -51,6 +55,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         _databaseSeedService = databaseSeedService;
         _scheduleMigrationService = scheduleMigrationService;
         _alarmScheduleService = alarmScheduleService;
+        _mapper = mapper;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
@@ -118,7 +123,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _schedules, value);
     }
 
-    private void UpdateScheduleViewModels(ObservableHashSet<AlarmSchedule> schedules)
+    private void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems)
     {
         var currentViewModelIds = new HashSet<int>();
         var schedulesToAdd = new List<ScheduleListItem>();
@@ -127,13 +132,16 @@ public class HomeViewModel : ObservableObject, IDisposable
         // Initialize Schedules if null
         Schedules ??= [];
 
-        // Create a snapshot of the schedules collection to avoid "Collection was modified" exception
+        // Create a snapshot of the schedule items collection to avoid "Collection was modified" exception
         // This can happen when state changes occur rapidly (e.g., track transitions)
-        var schedulesSnapshot = schedules.ToList();
+        var scheduleItemsSnapshot = scheduleItems.ToList();
 
-        // Process each schedule from the snapshot
-        foreach (var schedule in schedulesSnapshot)
+        // Process each schedule item from the snapshot
+        foreach (var scheduleItem in scheduleItemsSnapshot)
         {
+            // Map ScheduleStateItem back to AlarmSchedule for ScheduleListItem
+            // ScheduleListItem needs AlarmSchedule entity (not DTO)
+            var schedule = _mapper.Map<AlarmSchedule>(scheduleItem);
             currentViewModelIds.Add(schedule.Id);
             
             if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))

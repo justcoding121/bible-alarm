@@ -12,6 +12,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 using System.Collections.Generic;
@@ -134,7 +135,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen
 {
     private static readonly ILogger Logger = Log.ForContext<MainCarScreen>();
     private readonly MediaSessionManager _mediaSessionManager;
-    private List<AlarmSchedule>? _schedules;
+    private List<ScheduleStateItem>? _scheduleItems;
 
     public MainCarScreen(CarContext carContext, MediaSessionManager mediaSessionManager) : base(carContext)
     {
@@ -170,22 +171,22 @@ public class MainCarScreen : AndroidX.Car.App.Screen
             // Schedules are already loaded during bootstrap
             LoadSchedules();
             
-            if (_schedules == null || _schedules.Count == 0)
+            if (_scheduleItems == null || _scheduleItems.Count == 0)
             {
                 Logger.Information("No schedules found in state - showing empty list");
                 return CreateEmptyListTemplate();
             }
             
-            Logger.Information("Creating ListTemplate with {Count} schedules from state", _schedules.Count);
+            Logger.Information("Creating ListTemplate with {Count} schedules from state", _scheduleItems.Count);
             
             // Create list of Row items for each schedule
             var rows = new List<Row>();
             
-            foreach (var schedule in _schedules.OrderBy(s => s.Name))
+            foreach (var scheduleItem in _scheduleItems.OrderBy(s => s.Name))
             {
                 try
                 {
-                    var row = CreateRowForSchedule(schedule);
+                    var row = CreateRowForSchedule(scheduleItem);
                     if (row != null)
                     {
                         rows.Add(row);
@@ -193,7 +194,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", schedule.Id);
+                    Logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
                 }
             }
             
@@ -247,20 +248,20 @@ public class MainCarScreen : AndroidX.Car.App.Screen
     
     private void LoadSchedules()
     {
-        _schedules = AndroidAutoScheduleHelper.LoadSchedulesFromState();
+        _scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
     }
     
-    private Row? CreateRowForSchedule(AlarmSchedule schedule)
+    private Row? CreateRowForSchedule(ScheduleStateItem scheduleItem)
     {
         try
         {
-            // Use shared helper to build title and subtitle
-            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(schedule);
-            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(schedule);
+            // Use shared helper to build title and subtitle from ScheduleStateItem DTO
+            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
+            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
             
             // Create Row with title, subtitle, and click callback
             // Store schedule ID in a closure so we can access it when clicked
-            var scheduleId = schedule.Id;
+            var scheduleId = scheduleItem.Id;
             var rowBuilder = new Row.Builder()
                 .SetTitle(title)
                 .AddText(subtitle)
@@ -272,7 +273,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen
         }
         catch (Exception ex)
         {
-            Logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", schedule.Id);
+            Logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
             return null;
         }
     }

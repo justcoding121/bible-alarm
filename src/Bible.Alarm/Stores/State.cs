@@ -1,5 +1,6 @@
 ﻿using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Stores.Models;
 using Fluxor;
 
 namespace Bible.Alarm.Stores;
@@ -7,7 +8,7 @@ namespace Bible.Alarm.Stores;
 [FeatureState]
 public class ApplicationState
 {
-    public ObservableHashSet<AlarmSchedule> Schedules { get; set; }
+    public ObservableHashSet<ScheduleStateItem> Schedules { get; set; }
 
     public AlarmSchedule CurrentSchedule { get; set; }
 
@@ -28,7 +29,7 @@ public class ApplicationState
     }
 
     public ApplicationState(
-        ObservableHashSet<AlarmSchedule> schedules,
+        ObservableHashSet<ScheduleStateItem> schedules,
         AlarmSchedule currentSchedule,
         AlarmMusic currentMusic,
         AlarmMusic tentativeMusic,

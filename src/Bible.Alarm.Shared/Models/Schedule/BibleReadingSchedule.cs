@@ -39,12 +39,4 @@ public class BibleReadingSchedule
 
     [Required]
     public virtual AlarmSchedule AlarmSchedule { get; set; } = null!;
-
-    /// <summary>
-    /// Translation name (language name) for display purposes.
-    /// This is populated during bootstrap and stored in Fluxor state.
-    /// Not persisted to database.
-    /// </summary>
-    [NotMapped]
-    public string? TranslationName { get; set; }
 }

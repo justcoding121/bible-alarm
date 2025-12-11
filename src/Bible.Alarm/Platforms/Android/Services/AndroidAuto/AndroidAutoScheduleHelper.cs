@@ -2,6 +2,7 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 
@@ -16,10 +17,10 @@ public static class AndroidAutoScheduleHelper
     private static readonly ILogger Logger = Log.ForContext(typeof(AndroidAutoScheduleHelper));
 
     /// <summary>
-    /// Loads schedules from Fluxor ApplicationState.
+    /// Loads schedule state items from Fluxor ApplicationState.
     /// Returns empty list if state is not initialized or no schedules are available.
     /// </summary>
-    public static List<AlarmSchedule> LoadSchedulesFromState()
+    public static List<ScheduleStateItem> LoadScheduleStateItemsFromState()
     {
         try
         {
@@ -30,57 +31,55 @@ public static class AndroidAutoScheduleHelper
             
             if (state?.Value?.Schedules != null && state.Value.Schedules.Count > 0)
             {
-                // Convert ObservableHashSet to List for easier iteration
-                // Translation names are already populated in the state during bootstrap
-                var schedules = state.Value.Schedules.ToList();
-                Logger.Information("Loaded {Count} schedules from state for Android Auto", schedules.Count);
-                return schedules;
+                // Return ScheduleStateItem list which includes TranslationName
+                var scheduleItems = state.Value.Schedules.ToList();
+                Logger.Information("Loaded {Count} schedules from state for Android Auto", scheduleItems.Count);
+                return scheduleItems;
             }
             else
             {
                 Logger.Warning("No schedules found in state - state may not be initialized yet");
-                return new List<AlarmSchedule>();
+                return new List<ScheduleStateItem>();
             }
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error loading schedules from state for Android Auto");
-            return new List<AlarmSchedule>();
+            return new List<ScheduleStateItem>();
         }
     }
-
+    
     /// <summary>
-    /// Builds the display title for a schedule.
+    /// Builds the display title for a schedule state item.
     /// Returns schedule name if not empty, otherwise "Schedule {Id}".
     /// </summary>
-    public static string BuildScheduleTitle(AlarmSchedule schedule)
+    public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
-        return !string.IsNullOrWhiteSpace(schedule.Name) 
-            ? schedule.Name 
-            : $"Schedule {schedule.Id}";
+        return !string.IsNullOrWhiteSpace(scheduleItem.Name) 
+            ? scheduleItem.Name 
+            : $"Schedule {scheduleItem.Id}";
     }
 
     /// <summary>
-    /// Builds the display subtitle for a schedule.
+    /// Builds the display subtitle for a ScheduleStateItem.
+    /// Uses TranslationName from the ScheduleStateItem.
     /// Returns formatted subtitle with Language, Book, Chapter if BibleReadingSchedule exists,
     /// otherwise returns status and time.
     /// </summary>
-    public static string BuildScheduleSubtitle(AlarmSchedule schedule)
+    public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
         var subtitleParts = new List<string>();
         
-        if (schedule.BibleReadingSchedule != null)
+        if (scheduleItem.BibleReadingScheduleId.HasValue)
         {
-            var bibleReading = schedule.BibleReadingSchedule;
-            
-            // Use TranslationName from state (populated during bootstrap)
+            // Use TranslationName from ScheduleStateItem (populated during bootstrap)
             // Fallback to LanguageCode if TranslationName is not set
-            var languageName = !string.IsNullOrWhiteSpace(bibleReading.TranslationName)
-                ? bibleReading.TranslationName
-                : bibleReading.LanguageCode;
+            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.TranslationName)
+                ? scheduleItem.TranslationName
+                : scheduleItem.BibleReadingLanguageCode ?? string.Empty;
             
             // Build subtitle with Language, Book Number, Chapter Number
-            // Use data directly from schedule to avoid any async calls that could block
+            // Use data directly from DTO to avoid any async calls that could block
             if (!string.IsNullOrWhiteSpace(languageName))
             {
                 subtitleParts.Add(languageName);
@@ -88,15 +87,15 @@ public static class AndroidAutoScheduleHelper
             
             // Add book number (we skip book name lookup to avoid async calls)
             // Book number is sufficient for identification
-            if (bibleReading.BookNumber > 0)
+            if (scheduleItem.BibleReadingBookNumber.HasValue && scheduleItem.BibleReadingBookNumber.Value > 0)
             {
-                subtitleParts.Add($"Book {bibleReading.BookNumber}");
+                subtitleParts.Add($"Book {scheduleItem.BibleReadingBookNumber.Value}");
             }
             
             // Add chapter number
-            if (bibleReading.ChapterNumber > 0)
+            if (scheduleItem.BibleReadingChapterNumber.HasValue && scheduleItem.BibleReadingChapterNumber.Value > 0)
             {
-                subtitleParts.Add($"Chapter {bibleReading.ChapterNumber}");
+                subtitleParts.Add($"Chapter {scheduleItem.BibleReadingChapterNumber.Value}");
             }
         }
         
@@ -108,8 +107,8 @@ public static class AndroidAutoScheduleHelper
         else
         {
             // Fallback: show status and time if no Bible reading schedule
-            var statusText = schedule.IsEnabled ? "Enabled" : "Disabled";
-            var timeText = schedule.TimeText;
+            var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+            var timeText = scheduleItem.TimeText;
             return $"{statusText} • {timeText}";
         }
     }
