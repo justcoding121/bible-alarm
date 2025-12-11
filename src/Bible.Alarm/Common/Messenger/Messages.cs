@@ -4,8 +4,7 @@ namespace Bible.Alarm.Common.Messenger;
 
 // Message classes for WeakReferenceMessenger
 /// <summary>
-/// App initialization message. Should use ObservableMessenger.InitializationMessenger
-/// to ensure the message is not lost if sent before recipient registration.
+/// App initialization message. Sent after bootstrap completes to trigger navigation to Home page.
 /// </summary>
 public class InitializedMessage
 {

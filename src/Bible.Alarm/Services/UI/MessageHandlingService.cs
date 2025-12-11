@@ -20,9 +20,7 @@ public class MessageHandlingService(
 
     public void RegisterMessageHandlers()
     {
-        // Use ObservableMessenger for InitializedMessage so message is not lost if sent before registration
-        ObservableMessenger.InitializationMessenger.Register<InitializedMessage>(this);
-
+        WeakReferenceMessenger.Default.Register<InitializedMessage>(this);
         WeakReferenceMessenger.Default.Register<ShowToastMessage>(this);
     }
 
@@ -84,7 +82,7 @@ public class MessageHandlingService(
         _isDisposed = true;
         
         // Unregister from messages
-        ObservableMessenger.InitializationMessenger.Unregister<InitializedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<InitializedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<ShowToastMessage>(this);
     }
 }

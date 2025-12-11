@@ -7,6 +7,7 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -52,12 +53,13 @@ public static class CommonBootstrapHelper
         });
 
         // Send InitializedMessage after lock is released
+        // NavigateToHomeAsync handles duplicate navigation attempts internally
         if (initializeUI)
         {
             Log.Logger.Information("Sending InitializedMessage to trigger navigation");
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                ObservableMessenger.InitializationMessenger.Send(new InitializedMessage());
+                WeakReferenceMessenger.Default.Send(new InitializedMessage());
                 Log.Logger.Information("InitializedMessage sent");
             });
         }
