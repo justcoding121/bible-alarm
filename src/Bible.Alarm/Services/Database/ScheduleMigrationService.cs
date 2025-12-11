@@ -45,7 +45,7 @@ public class ScheduleMigrationService(
                         {
                             if (schedule.BibleReadingSchedule != null)
                             {
-                                schedule.BibleReadingSchedule.PublicationCode = "bi12";
+                                schedule.BibleReadingSchedule.PublicationCode = "nwt"; // NWT 2013 (not 1984)
                                 schedule.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                             }
                         },

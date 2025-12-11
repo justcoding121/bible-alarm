@@ -27,6 +27,7 @@
         <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <converters:IsStringNotEmptyConverter x:Key="isStringNotEmptyConverter" />
         <!-- Theme-aware colors are inherited from BaseContentPage and available via StaticResource -->
     </ContentPage.Resources>
     <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}">
@@ -136,7 +137,7 @@
                                     <ColumnDefinition Width="{OnPlatform WinUI='50', Default='auto'}" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <StackLayout VerticalOptions="Center"
                                                  Grid.Column="0"
@@ -389,6 +390,19 @@
                                             IsToggled="{Binding IsEnabled, Mode=TwoWay}"
                                             Scale="1" />
                                 </StackLayout>
+                                <!-- Language label positioned at bottom right, can overlap navigation buttons -->
+                                <Label
+                                        Grid.Column="1"
+                                        Grid.ColumnSpan="2"
+                                        Grid.Row="0"
+                                        Margin="0,0,0,0"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="End"
+                                        HorizontalTextAlignment="End"
+                                        FontSize="12"
+                                        Text="{Binding Language}"
+                                        TextColor="{DynamicResource PrimaryTextColor}"
+                                        IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}" />
                             </Grid>
                             </Border>
                             </Grid>

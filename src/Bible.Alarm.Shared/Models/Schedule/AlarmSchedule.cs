@@ -158,7 +158,7 @@ public class AlarmSchedule : IComparable
             {
                 ChapterNumber = 1,
                 LanguageCode = "E",
-                PublicationCode = "nwt"
+                PublicationCode = "nwt" // NWT 2013 (not 1984 - use "bi12" for 1984)
             }
         };
 

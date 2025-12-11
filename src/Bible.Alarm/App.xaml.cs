@@ -1,6 +1,10 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Effects;
+#endif
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm;
@@ -67,7 +71,21 @@ public partial class App : Application
         _exceptionHandlingService.SetupGlobalExceptionHandlers();
 
         // Register message handlers
-        _messageHandlingService.RegisterMessageHandlers();      
+        _messageHandlingService.RegisterMessageHandlers();
+        
+        // Register MediaSessionEffect message handlers for Android Auto position updates
+#if ANDROID
+        try
+        {
+            var mediaSessionEffect = Common.MauiAppHolder.Services.GetService<MediaSessionEffect>();
+            mediaSessionEffect?.RegisterMessageHandlers();
+            Log.Logger.Debug("MediaSessionEffect message handlers registered");
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Failed to register MediaSessionEffect message handlers");
+        }
+#endif
     }
 
 

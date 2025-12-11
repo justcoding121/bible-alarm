@@ -1,9 +1,13 @@
 #nullable enable
 using Android.Support.V4.Media;
+using Android.Support.V4.Media.Session;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using FluxorDispatcher = Fluxor.IDispatcher;
@@ -18,9 +22,14 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 public class MediaSessionEffect(
     MediaSessionManager mediaSessionManager, 
     IState<PlaybackState> playbackState,
-    AndroidArtworkService artworkService)
+    AndroidArtworkService artworkService) : IRecipient<PlaybackPositionChangedMessage>
 {
     private static readonly ILogger Logger = Log.ForContext<MediaSessionEffect>();
+    
+    public void RegisterMessageHandlers()
+    {
+        WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
+    }
 
     [EffectMethod]
     public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)
@@ -35,8 +44,12 @@ public class MediaSessionEffect(
                 return Task.CompletedTask;
             }
 
+            // Get navigation availability from current playback state
+            var canPlayNext = playbackState.Value.CanPlayNext;
+            var canPlayPrevious = playbackState.Value.CanPlayPrevious;
+
             // SetPlaybackStatus handles active state and audio focus automatically
-            mediaSessionManager.SetPlaybackStatus(action.Status);
+            mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
         }
         catch (Exception ex)
         {
@@ -117,5 +130,108 @@ public class MediaSessionEffect(
         }
 
         return Task.CompletedTask;
+    }
+    
+    [EffectMethod]
+    public Task HandlePlaybackDurationChanged(PlaybackDurationChangedAction action, FluxorDispatcher dispatcher)
+    {
+        try
+        {
+            // Ensure MediaSession is created before accessing
+            var session = mediaSessionManager.GetOrCreate();
+            if (session == null)
+            {
+                Logger.Warning("MediaSessionCompat is null, cannot update duration");
+                return Task.CompletedTask;
+            }
+            
+            // Update duration in metadata
+            var durationMs = (long)action.Duration.TotalMilliseconds;
+            if (durationMs > 0)
+            {
+                var currentMetadata = session.Controller?.Metadata;
+                if (currentMetadata != null)
+                {
+                    var metadataBuilder = new MediaMetadataCompat.Builder(currentMetadata);
+                    metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
+                    session.SetMetadata(metadataBuilder.Build());
+                    Logger.Debug("MediaSessionCompat duration updated: {Duration}ms", durationMs);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error updating MediaSessionCompat duration");
+        }
+        
+        return Task.CompletedTask;
+    }
+    
+    [EffectMethod]
+    public Task HandlePlaybackNavigationChanged(PlaybackNavigationChangedAction action, FluxorDispatcher dispatcher)
+    {
+        try
+        {
+            // Ensure MediaSession is created before accessing
+            var session = mediaSessionManager.GetOrCreate();
+            if (session == null)
+            {
+                Logger.Warning("MediaSessionCompat is null, cannot update navigation state");
+                return Task.CompletedTask;
+            }
+            
+            // Get current playback state to update with new navigation availability
+            var currentState = playbackState.Value;
+            var state = currentState.Status switch
+            {
+                PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
+                PlayStatus.Paused => PlaybackStateCompat.StatePaused,
+                PlayStatus.Loading => PlaybackStateCompat.StateBuffering,
+                PlayStatus.Stopped => PlaybackStateCompat.StateStopped,
+                PlayStatus.Ended => PlaybackStateCompat.StateStopped,
+                PlayStatus.Failed => PlaybackStateCompat.StateError,
+                _ => PlaybackStateCompat.StateNone
+            };
+            
+            // Update playback state with new navigation availability
+            var playbackStateCompat = session.Controller?.PlaybackState;
+            var position = playbackStateCompat?.Position ?? 0;
+            mediaSessionManager.UpdatePlaybackState(state, position, action.CanPlayNext, action.CanPlayPrevious);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error updating MediaSessionCompat navigation state");
+        }
+        
+        return Task.CompletedTask;
+    }
+    
+    /// <summary>
+    /// Handles playback position updates to keep Android Auto progress bar synchronized.
+    /// </summary>
+    public void Receive(PlaybackPositionChangedMessage message)
+    {
+        try
+        {
+            if (message.CurrentPosition == null)
+                return;
+            
+            // Ensure MediaSession is created before accessing
+            var session = mediaSessionManager.GetOrCreate();
+            if (session == null)
+                return;
+            
+            // Get duration and navigation availability from playback state
+            var duration = playbackState.Value.Duration;
+            var canPlayNext = playbackState.Value.CanPlayNext;
+            var canPlayPrevious = playbackState.Value.CanPlayPrevious;
+            
+            // Update position in MediaSessionCompat
+            mediaSessionManager.UpdatePlaybackPosition(message.CurrentPosition.Value, duration, canPlayNext, canPlayPrevious);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error updating MediaSessionCompat playback position");
+        }
     }
 }

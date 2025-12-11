@@ -70,8 +70,19 @@ public static class BootstrapHelper
         // Task.Run executes on a thread pool thread (no synchronization context), so ConfigureAwait is not needed
         var waitTask = Task.Run(async () => await WaitForBootstrapAsync(timeoutMs));
         
-        // Wait for the task to complete, propagating any exceptions
-        waitTask.Wait();
+        // Wait for the task to complete with timeout to prevent indefinite blocking
+        // Use a slightly longer timeout than the async version to account for Task.Run overhead
+        if (!waitTask.Wait(timeoutMs + 1000))
+        {
+            Log.Logger.Warning("WaitForBootstrap timed out after {TimeoutMs}ms - proceeding anyway", timeoutMs);
+            // Don't throw - allow code to proceed even if bootstrap wait timed out
+            // This prevents Android Auto from hanging indefinitely
+        }
+        else if (waitTask.IsFaulted)
+        {
+            Log.Logger.Warning(waitTask.Exception?.GetBaseException(), "WaitForBootstrap encountered an error - proceeding anyway");
+            // Don't throw - allow code to proceed even if bootstrap wait failed
+        }
     }
 
     /// <summary>
@@ -91,9 +102,24 @@ public static class BootstrapHelper
         Task<bool> waitTask;
         lock (BootstrapWaitLock)
         {
+            // Check again inside lock (bootstrap might have completed while waiting for lock)
+            if (BootstrapCompleted)
+            {
+                Log.Logger.Debug("Bootstrap completed while waiting for lock, returning immediately");
+                return;
+            }
+            
             // Create or reuse the completion source
+            // If bootstrap already completed, the source should already be set
+            // If it's null or completed, create a new one (bootstrap is still running)
             if (_bootstrapCompletionSource == null || _bootstrapCompletionSource.Task.IsCompleted)
             {
+                // Double-check bootstrap didn't complete between the outer check and now
+                if (BootstrapCompleted)
+                {
+                    Log.Logger.Debug("Bootstrap completed between checks, returning immediately");
+                    return;
+                }
                 _bootstrapCompletionSource = new TaskCompletionSource<bool>();
             }
             waitTask = _bootstrapCompletionSource.Task;
@@ -248,9 +274,20 @@ public static class BootstrapHelper
             BootstrapCompleted = true;
             
             // Signal waiting tasks that bootstrap is complete
+            // CRITICAL: Always ensure completion source exists and is set, even if no one was waiting
+            // This prevents issues where WaitForBootstrap() is called after bootstrap completes
             lock (BootstrapWaitLock)
             {
-                _bootstrapCompletionSource?.TrySetResult(true);
+                if (_bootstrapCompletionSource == null)
+                {
+                    // Create a completed source for future callers
+                    _bootstrapCompletionSource = new TaskCompletionSource<bool>();
+                    _bootstrapCompletionSource.TrySetResult(true);
+                }
+                else if (!_bootstrapCompletionSource.Task.IsCompleted)
+                {
+                    _bootstrapCompletionSource.TrySetResult(true);
+                }
             }
             
             Log.Logger.Information("Bootstrap completed {Context}", context);
@@ -262,7 +299,15 @@ public static class BootstrapHelper
             // Signal failure to waiting tasks
             lock (BootstrapWaitLock)
             {
-                _bootstrapCompletionSource?.TrySetException(ex);
+                if (_bootstrapCompletionSource == null)
+                {
+                    _bootstrapCompletionSource = new TaskCompletionSource<bool>();
+                    _bootstrapCompletionSource.TrySetException(ex);
+                }
+                else if (!_bootstrapCompletionSource.Task.IsCompleted)
+                {
+                    _bootstrapCompletionSource.TrySetException(ex);
+                }
             }
         }
     }

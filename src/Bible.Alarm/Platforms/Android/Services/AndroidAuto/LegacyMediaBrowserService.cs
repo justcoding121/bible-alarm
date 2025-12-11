@@ -1,6 +1,8 @@
 #nullable enable
 using Android.App;
 using Android.Content;
+using Android.Graphics;
+using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Runtime;
 using Android.Support.V4.Media;
@@ -10,11 +12,13 @@ using AndroidX.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,6 +48,9 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     private static readonly ILogger Logger = Log.ForContext<LegacyMediaBrowserService>();
     private MediaSessionCompat? _session;
     private MediaSessionManager? _mediaSessionManager;
+    private IState<ApplicationState>? _applicationState;
+    private AndroidAutoScheduleChangeTracker? _scheduleChangeTracker;
+    private const string RootId = "__ID_ROOT__";
 
     public override void OnCreate()
     {
@@ -60,6 +67,48 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 MauiAppHolder.CreateAndStore();
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 Logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Bootstrap initialization started");
+                
+                // Subscribe to state changes after bootstrap is initialized
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        // Wait for bootstrap to complete before accessing state
+                        // Use a longer timeout for OnCreate since it's not blocking the UI
+                        try
+                        {
+                            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
+                        }
+                        catch (Exception bootstrapEx)
+                        {
+                            Logger.Warning(bootstrapEx, "Bootstrap timed out in LegacyMediaBrowserService.OnCreate - will retry when schedules are loaded");
+                            // Don't throw - allow service to continue, schedules will be loaded when bootstrap completes
+                            return;
+                        }
+                        
+                        _applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
+                        if (_applicationState != null)
+                        {
+                            // Initialize schedule change tracker
+                            _scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
+                            _scheduleChangeTracker.Initialize(_applicationState);
+                            
+                            _applicationState.StateChanged += OnApplicationStateChanged;
+                            Logger.Information("✅ LegacyMediaBrowserService subscribed to schedule list changes");
+                        }
+                        else
+                        {
+                            Logger.Warning("IState<ApplicationState> not available - schedule updates will not refresh Android Auto UI");
+                        }
+                        
+                        // Set metadata to first schedule after bootstrap completes
+                        await SetInitialScheduleMetadataAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, "Error subscribing to ApplicationState changes in LegacyMediaBrowserService");
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -113,9 +162,31 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         // Standard media root ID for Android Auto/AAOS compatibility
         // The root ID "__ID_ROOT__" is a common practice for media apps
         // Android Auto and AAOS hosts are trusted by default when connecting to MediaBrowserService
-        return new MediaBrowserServiceCompat.BrowserRoot("__ID_ROOT__", null);
+        return new MediaBrowserServiceCompat.BrowserRoot(RootId, null);
     }
-
+    
+    private void OnApplicationStateChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_scheduleChangeTracker == null)
+                return;
+            
+            // Check if schedules changed using the shared tracker
+            if (_scheduleChangeTracker.CheckForChanges())
+            {
+                Logger.Debug("Schedule list changed - notifying Android Auto that children list has changed");
+                
+                // Notify Android Auto that the children list has changed so it reloads the schedule list
+                NotifyChildrenChanged(RootId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error checking schedule list changes");
+        }
+    }
+    
     public override void OnLoadChildren(string parentId, MediaBrowserServiceCompat.Result result)
     {
         Logger.Information("✅ OnLoadChildren called for parent: {ParentId}", parentId);
@@ -128,18 +199,27 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             result.Detach();
             Logger.Debug("Result detached successfully for parent: {ParentId}", parentId);
             
-            // Ensure bootstrap is complete before accessing state
-            // This is critical for loading schedules to show in Android Auto
-            // Since OnLoadChildren is synchronous, we use WaitForBootstrap() synchronously
-            MauiProgram.WaitForBootstrap();
-            Logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
-            
             // Run work to load schedules and create MediaItems on background thread
-            _ = Task.Run(() =>
+            // Bootstrap check is done asynchronously inside Task.Run to avoid blocking
+            _ = Task.Run(async () =>
             {
                 try
                 {
                     Logger.Debug("Starting schedule loading for parent: {ParentId}", parentId);
+                    
+                    // Check if bootstrap is ready - if not, wait with timeout
+                    // If bootstrap times out or isn't ready, return empty list gracefully
+                    try
+                    {
+                        await MauiProgram.WaitForBootstrapAsync(timeoutMs: 5000); // Short timeout for responsiveness
+                        Logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
+                    }
+                    catch (Exception bootstrapEx)
+                    {
+                        Logger.Warning(bootstrapEx, "Bootstrap not ready or timed out for parent: {ParentId} - returning empty list", parentId);
+                        result.SendResult(new Java.Util.ArrayList());
+                        return;
+                    }
                     
                     // Load schedule state items from state using shared helper
                     var scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
@@ -177,6 +257,13 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                                 description += $", {scheduleItem.BibleReadingPublicationCode}";
                             }
                             descriptionBuilder.SetDescription(description);
+                            
+                            // Add headphone/audio icon to beautify the playlist
+                            var iconBitmap = CreateHeadphoneIconBitmap();
+                            if (iconBitmap != null)
+                            {
+                                descriptionBuilder.SetIconBitmap(iconBitmap);
+                            }
                             
                             var mediaDescription = descriptionBuilder.Build();
                             
@@ -255,6 +342,21 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 intent.Component?.ClassName, intent.Package, string.Join(", ", intent.Categories ?? Array.Empty<string>()));
         }
         
+        // CRITICAL: Start the service to keep it alive even if Android Auto temporarily unbinds
+        // MediaBrowserServiceCompat is a bound service, so Android can destroy it when all clients unbind.
+        // By starting it as a sticky service, we ensure it persists across temporary unbind events.
+        // This prevents the service from being destroyed while Android Auto is still in proximity.
+        try
+        {
+            var startIntent = new Intent(this, typeof(LegacyMediaBrowserService));
+            StartService(startIntent);
+            Logger.Debug("Service started to keep it alive during Android Auto connection");
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to start service in OnBind() - service may be destroyed if Android Auto unbinds");
+        }
+        
         // If SessionToken wasn't set in OnCreate() (bootstrap may not have completed), try to set it now
         if (SessionToken == null)
         {
@@ -280,16 +382,128 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return base.OnBind(intent);
     }
 
+    public override bool OnUnbind(Intent? intent)
+    {
+        Logger.Information("⚠️ LegacyMediaBrowserService.OnUnbind() called - Client disconnected");
+        
+        // Note: Even though a client unbinds, the service may not be destroyed immediately
+        // because we start it as a sticky service in OnBind(). This prevents premature destruction
+        // when Android Auto temporarily disconnects and reconnects.
+        // The service will only be destroyed if StopService() is explicitly called or the system
+        // needs to reclaim resources (which is rare for sticky services).
+        
+        return base.OnUnbind(intent);
+    }
+
+    /// <summary>
+    /// Creates a bitmap icon for headphone/audio playback to display in Android Auto playlist.
+    /// Uses Android's standard media play icon as a headphone representation.
+    /// </summary>
+    private Bitmap? CreateHeadphoneIconBitmap()
+    {
+        try
+        {
+            // Use Android's built-in media play icon (android.R.drawable.ic_media_play)
+            // This provides a consistent, recognizable icon for audio content in Android Auto
+            var drawable = global::Android.Content.Res.Resources.System?.GetDrawable(global::Android.Resource.Drawable.IcMediaPlay, null);
+            if (drawable == null)
+            {
+                Logger.Warning("Could not get Android system drawable for headphone icon");
+                return null;
+            }
+
+            // Convert drawable to bitmap
+            if (drawable is BitmapDrawable bitmapDrawable && bitmapDrawable.Bitmap != null)
+            {
+                return bitmapDrawable.Bitmap;
+            }
+
+            // If not a BitmapDrawable, create a bitmap from the drawable
+            var bitmap = Bitmap.CreateBitmap(
+                drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 64,
+                drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 64,
+                Bitmap.Config.Argb8888);
+            
+            var canvas = new Canvas(bitmap);
+            drawable.SetBounds(0, 0, canvas.Width, canvas.Height);
+            drawable.Draw(canvas);
+            
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to create headphone icon bitmap - MediaItems will display without icon");
+            return null;
+        }
+    }
+
     public override void OnDestroy()
     {
-        Logger.Information("✅ LegacyMediaBrowserService destroyed - Releasing MediaSession");
+        Logger.Information("✅ LegacyMediaBrowserService destroyed - Clearing local MediaSession reference");
         
-        // Release the shared MediaSessionCompat to clean up resources
-        // This ensures proper cleanup when the service is stopped by the system
-        _session?.Release();
+        // Unsubscribe from state changes
+        try
+        {
+            if (_applicationState != null)
+            {
+                _applicationState.StateChanged -= OnApplicationStateChanged;
+                Logger.Debug("LegacyMediaBrowserService unsubscribed from ApplicationState changes");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error unsubscribing from ApplicationState changes in LegacyMediaBrowserService");
+        }
+        
+        // IMPORTANT: Do NOT release the shared MediaSessionCompat here!
+        // The MediaSession is managed by MediaSessionManager as a singleton and must persist
+        // across service lifecycle changes. Android Auto expects the MediaSession to remain
+        // available even when the service is temporarily destroyed and recreated.
+        // Only clear the local reference - MediaSessionManager will handle cleanup when appropriate.
         _session = null;
         
         base.OnDestroy();
+    }
+    
+    private async Task SetInitialScheduleMetadataAsync()
+    {
+        try
+        {
+            Logger.Debug("SetInitialScheduleMetadataAsync: Setting metadata to first schedule after bootstrap");
+            
+            var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
+            if (defaultScheduleService == null)
+            {
+                Logger.Warning("SetInitialScheduleMetadataAsync: IDefaultScheduleService not available");
+                return;
+            }
+            
+            var metadata = await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
+            
+            // Update metadata on main thread
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (_mediaSessionManager == null)
+                {
+                    Logger.Warning("SetInitialScheduleMetadataAsync: MediaSessionManager is null");
+                    return;
+                }
+                
+                // Set metadata using MediaSessionManager
+                _mediaSessionManager.UpdateMetadata(
+                    metadata.Title,
+                    metadata.Artist,
+                    metadata.Album,
+                    metadata.ScheduleId);
+                
+                Logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
+                    metadata.ScheduleId, metadata.Title, metadata.Artist);
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error setting initial schedule metadata in LegacyMediaBrowserService");
+        }
     }
 }
 

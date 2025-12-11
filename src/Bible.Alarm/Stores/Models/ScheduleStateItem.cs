@@ -55,6 +55,13 @@ public class ScheduleStateItem : IComparable
     public string? TranslationName { get; set; }
     
     /// <summary>
+    /// Book name for display purposes.
+    /// This is populated during bootstrap from Bible book service.
+    /// Not persisted to database.
+    /// </summary>
+    public string? BookName { get; set; }
+    
+    /// <summary>
     /// Compare by schedule ID for ObservableHashSet ordering.
     /// </summary>
     public int CompareTo(object? obj)

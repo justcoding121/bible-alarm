@@ -51,13 +51,13 @@ public static class AndroidAutoScheduleHelper
     
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Returns schedule name if not empty, otherwise "Schedule {Id}".
+    /// Returns schedule name if not empty, otherwise "Unnamed schedule".
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
         return !string.IsNullOrWhiteSpace(scheduleItem.Name) 
             ? scheduleItem.Name 
-            : $"Schedule {scheduleItem.Id}";
+            : "Unnamed schedule";
     }
 
     /// <summary>
@@ -85,10 +85,14 @@ public static class AndroidAutoScheduleHelper
                 subtitleParts.Add(languageName);
             }
             
-            // Add book number (we skip book name lookup to avoid async calls)
-            // Book number is sufficient for identification
-            if (scheduleItem.BibleReadingBookNumber.HasValue && scheduleItem.BibleReadingBookNumber.Value > 0)
+            // Add book name (populated during bootstrap) or fallback to book number
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BookName))
             {
+                subtitleParts.Add(scheduleItem.BookName);
+            }
+            else if (scheduleItem.BibleReadingBookNumber.HasValue && scheduleItem.BibleReadingBookNumber.Value > 0)
+            {
+                // Fallback to book number if book name is not available
                 subtitleParts.Add($"Book {scheduleItem.BibleReadingBookNumber.Value}");
             }
             

@@ -1,4 +1,5 @@
 #nullable enable
+using Android.Content;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
@@ -54,7 +55,12 @@ public sealed class MediaSessionManager
 
                     Logger.Information("Creating shared MediaSessionCompat instance");
 
-                    _mediaSession = new MediaSessionCompat(context, "BibleAlarmSession", null, null);
+                    // Create ComponentName for MediaButtonReceiver to suppress warning
+                    // We handle media buttons programmatically in LegacyMediaBrowserService.OnStartCommand
+                    // Using the service class name to register as media button receiver
+                    var componentName = new ComponentName(context, "bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService");
+                    
+                    _mediaSession = new MediaSessionCompat(context, "BibleAlarmSession", componentName, null);
                     if (_mediaSession == null)
                     {
                         Logger.Error("Failed to create MediaSessionCompat instance");
@@ -125,34 +131,145 @@ public sealed class MediaSessionManager
     /// <summary>
     /// Updates the playback state of the shared MediaSessionCompat.
     /// </summary>
-    public void UpdatePlaybackState(int state, long position = 0)
+    public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
     {
-        Logger.Debug("UpdatePlaybackState called with state: {State}, position: {Position}", state, position);
+        Logger.Debug("UpdatePlaybackState called with state: {State}, position: {Position}, canPlayNext: {CanPlayNext}, canPlayPrevious: {CanPlayPrevious}", 
+            state, position, canPlayNext, canPlayPrevious);
+        
+        // Base actions that are always available
+        long actions = PlaybackStateCompat.ActionPlay |
+                       PlaybackStateCompat.ActionPause |
+                       PlaybackStateCompat.ActionPlayPause |
+                       PlaybackStateCompat.ActionPlayFromMediaId;
+        
+        // Add next/previous actions only when available
+        if (canPlayNext)
+        {
+            actions |= PlaybackStateCompat.ActionSkipToNext;
+        }
+        
+        if (canPlayPrevious)
+        {
+            actions |= PlaybackStateCompat.ActionSkipToPrevious;
+        }
+        
         var builder = new PlaybackStateCompat.Builder()
-            .SetActions(PlaybackStateCompat.ActionPlay |
-                        PlaybackStateCompat.ActionPause |
-                        PlaybackStateCompat.ActionSkipToNext |
-                        PlaybackStateCompat.ActionSkipToPrevious |
-                        PlaybackStateCompat.ActionPlayPause |
-                        PlaybackStateCompat.ActionPlayFromMediaId)
-            .SetState(state, position, 1.0f);
+            .SetActions(actions)
+            .SetState(state, position, 1.0f, SystemClock.ElapsedRealtime());
 
         _mediaSession?.SetPlaybackState(builder.Build());
-        Logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}", state, position);
+        Logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}, actions: {Actions}", 
+            state, position, actions);
+    }
+    
+    /// <summary>
+    /// Updates the playback position for the progress bar in Android Auto.
+    /// Should be called regularly during playback to keep the progress bar updated.
+    /// </summary>
+    public void UpdatePlaybackPosition(TimeSpan position, TimeSpan duration, bool canPlayNext = false, bool canPlayPrevious = false)
+    {
+        if (_mediaSession == null)
+            return;
+        
+        var playbackState = _mediaSession.Controller?.PlaybackState;
+        if (playbackState == null)
+            return;
+        
+        // Only update position if playback is active
+        var isActive = playbackState.State == PlaybackStateCompat.StatePlaying || 
+                      playbackState.State == PlaybackStateCompat.StateBuffering ||
+                      playbackState.State == PlaybackStateCompat.StatePaused;
+        
+        if (!isActive)
+            return;
+        
+        var positionMs = (long)position.TotalMilliseconds;
+        var durationMs = (long)duration.TotalMilliseconds;
+        
+        Logger.Debug("UpdatePlaybackPosition called: Position={Position}ms, Duration={Duration}ms, canPlayNext: {CanPlayNext}, canPlayPrevious: {CanPlayPrevious}", 
+            positionMs, durationMs, canPlayNext, canPlayPrevious);
+        
+        // Base actions that are always available
+        long actions = PlaybackStateCompat.ActionPlay |
+                       PlaybackStateCompat.ActionPause |
+                       PlaybackStateCompat.ActionPlayPause |
+                       PlaybackStateCompat.ActionPlayFromMediaId;
+        
+        // Add next/previous actions only when available
+        if (canPlayNext)
+        {
+            actions |= PlaybackStateCompat.ActionSkipToNext;
+        }
+        
+        if (canPlayPrevious)
+        {
+            actions |= PlaybackStateCompat.ActionSkipToPrevious;
+        }
+        
+        var builder = new PlaybackStateCompat.Builder()
+            .SetActions(actions)
+            .SetState(playbackState.State, positionMs, 1.0f, SystemClock.ElapsedRealtime());
+        
+        // Set duration in metadata if available
+        if (durationMs > 0)
+        {
+            var metadataBuilder = new MediaMetadataCompat.Builder(_mediaSession.Controller.Metadata);
+            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
+            _mediaSession.SetMetadata(metadataBuilder.Build());
+        }
+        
+        _mediaSession.SetPlaybackState(builder.Build());
     }
 
     /// <summary>
     /// Updates the metadata of the shared MediaSessionCompat.
+    /// Preserves existing artwork and MediaId if present to prevent them from disappearing.
     /// </summary>
-    public void UpdateMetadata(string title, string artist, string? album = null)
+    public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null)
     {
-        Logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}", title, artist, album ?? "null");
-        var metadata = new MediaMetadataCompat.Builder()
+        Logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}, scheduleId: {ScheduleId}", 
+            title, artist, album ?? "null", scheduleId?.ToString() ?? "null");
+        
+        var builder = new MediaMetadataCompat.Builder()
             .PutString(MediaMetadataCompat.MetadataKeyTitle, title)
             .PutString(MediaMetadataCompat.MetadataKeyArtist, artist)
-            .PutString(MediaMetadataCompat.MetadataKeyAlbum, album ?? "")
-            .Build();
-
+            .PutString(MediaMetadataCompat.MetadataKeyAlbum, album ?? "");
+        
+        // Preserve existing MediaId and artwork if present - don't overwrite them
+        if (_mediaSession?.Controller?.Metadata != null)
+        {
+            var existingMetadata = _mediaSession.Controller.Metadata;
+            
+            // Preserve MediaId (scheduleId) for OnPlayFromMediaId
+            var existingMediaId = existingMetadata.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+            if (!string.IsNullOrEmpty(existingMediaId))
+            {
+                builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, existingMediaId);
+                Logger.Debug("Preserved existing MediaId '{MediaId}' in metadata update", existingMediaId);
+            }
+            else if (scheduleId.HasValue)
+            {
+                // Set MediaId if provided and not already present
+                builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+                Logger.Debug("Set MediaId to scheduleId '{ScheduleId}' in metadata update", scheduleId.Value);
+            }
+            
+            // Preserve existing artwork
+            global::Android.Graphics.Bitmap? existingArtwork = existingMetadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+            if (existingArtwork != null)
+            {
+                builder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+                Logger.Debug("Preserved existing artwork bitmap in metadata update");
+            }
+        }
+        else if (scheduleId.HasValue)
+        {
+            // Set MediaId if no existing metadata and scheduleId is provided
+            builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+            Logger.Debug("Set MediaId to scheduleId '{ScheduleId}' in metadata update (no existing metadata)", scheduleId.Value);
+        }
+        
+        var metadata = builder.Build();
         _mediaSession?.SetMetadata(metadata);
         Logger.Debug("UpdateMetadata completed for title: {Title}, artist: {Artist}", title, artist);
     }
@@ -191,9 +308,10 @@ public sealed class MediaSessionManager
     /// <summary>
     /// Sets the playback status, updating MediaSessionCompat active state and audio focus accordingly.
     /// </summary>
-    public void SetPlaybackStatus(PlayStatus status)
+    public void SetPlaybackStatus(PlayStatus status, bool canPlayNext = false, bool canPlayPrevious = false)
     {
-        Logger.Debug("SetPlaybackStatus called with status: {Status}", status);
+        Logger.Debug("SetPlaybackStatus called with status: {Status}, canPlayNext: {CanPlayNext}, canPlayPrevious: {CanPlayPrevious}", 
+            status, canPlayNext, canPlayPrevious);
         if (_mediaSession == null)
         {
             Logger.Warning("MediaSessionCompat is null, cannot set playback status. Call GetOrCreate() first.");
@@ -222,8 +340,8 @@ public sealed class MediaSessionManager
         }
         else
         {
-            // Update playback state normally for other states
-            UpdatePlaybackState(state);
+            // Update playback state normally for other states with navigation availability
+            UpdatePlaybackState(state, canPlayNext: canPlayNext, canPlayPrevious: canPlayPrevious);
 
             // Set MediaSessionCompat active when playing - this is critical for Android Auto audio routing
             // Note: Audio focus is managed globally by AudioFocusEffect, not here
@@ -242,6 +360,7 @@ public sealed class MediaSessionManager
     /// <summary>
     /// Sets metadata for the next schedule track to be played.
     /// Called when playback stops or ends to show the next available schedule in Android Auto.
+    /// Preserves existing artwork if present.
     /// </summary>
     private void SetNextScheduleMetadata()
     {
@@ -261,7 +380,35 @@ public sealed class MediaSessionManager
                     // Update metadata on main thread
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        UpdateMetadata(metadata.Title, metadata.Artist, metadata.Album);
+                        // Check if playback is currently active - if so, don't overwrite current schedule metadata
+                        var playbackState = _mediaSession?.Controller?.PlaybackState;
+                        var isPlaying = playbackState?.State == PlaybackStateCompat.StatePlaying || 
+                                       playbackState?.State == PlaybackStateCompat.StateBuffering ||
+                                       playbackState?.State == PlaybackStateCompat.StatePaused;
+                        
+                        if (isPlaying)
+                        {
+                            Logger.Debug("SetNextScheduleMetadata: Playback is active (state: {State}), skipping metadata update to avoid overwriting current schedule", 
+                                playbackState?.State);
+                            return;
+                        }
+                        
+                        // Check if the current metadata's scheduleId matches the next schedule's ID
+                        // If they match, we're already showing the correct metadata
+                        var currentMediaId = _mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+                        if (!string.IsNullOrEmpty(currentMediaId) && currentMediaId == metadata.ScheduleId.ToString())
+                        {
+                            Logger.Debug("SetNextScheduleMetadata: Current metadata already shows schedule {ScheduleId}, skipping update", 
+                                metadata.ScheduleId);
+                            return;
+                        }
+                        
+                        // Preserve existing artwork if present
+                        global::Android.Graphics.Bitmap? existingArtwork = null;
+                        if (_mediaSession?.Controller?.Metadata != null)
+                        {
+                            existingArtwork = _mediaSession.Controller.Metadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+                        }
                         
                         // Set mediaId to scheduleId for OnPlayFromMediaId
                         var metadataBuilder = new MediaMetadataCompat.Builder()
@@ -270,10 +417,17 @@ public sealed class MediaSessionManager
                             .PutString(MediaMetadataCompat.MetadataKeyAlbum, metadata.Album ?? "")
                             .PutString(MediaMetadataCompat.MetadataKeyMediaId, metadata.ScheduleId.ToString());
                         
+                        // Preserve existing artwork if present
+                        if (existingArtwork != null)
+                        {
+                            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+                            Logger.Debug("Preserved existing artwork bitmap in SetNextScheduleMetadata");
+                        }
+                        
                         _mediaSession?.SetMetadata(metadataBuilder.Build());
                         
-                        Logger.Information("Set next schedule metadata: ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}", 
-                            metadata.ScheduleId, metadata.Title, metadata.Artist);
+                        Logger.Information("Set next schedule metadata: ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}, HasArtwork={HasArtwork}", 
+                            metadata.ScheduleId, metadata.Title, metadata.Artist, existingArtwork != null);
                     });
                 }
                 catch (Exception ex)

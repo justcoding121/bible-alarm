@@ -1037,8 +1037,17 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         if (IsNewSchedule) IsEnabled = true;
 
         var model = GetModel();
-        _logger.Debug("SaveAsync: Model retrieved. Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}, MusicEnabled={MusicEnabled}",
-            model.Id, model.Name, model.Music != null, model.BibleReadingSchedule != null, model.MusicEnabled);
+        
+        // Ensure BibleReadingSchedule uses "nwt" (2013) as default if publication code is empty or invalid
+        if (model.BibleReadingSchedule != null && string.IsNullOrWhiteSpace(model.BibleReadingSchedule.PublicationCode))
+        {
+            _logger.Warning("SaveAsync: BibleReadingSchedule has empty PublicationCode, defaulting to 'nwt' (2013)");
+            model.BibleReadingSchedule.PublicationCode = "nwt";
+        }
+        
+        _logger.Debug("SaveAsync: Model retrieved. Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}, MusicEnabled={MusicEnabled}, PublicationCode={PublicationCode}",
+            model.Id, model.Name, model.Music != null, model.BibleReadingSchedule != null, model.MusicEnabled, 
+            model.BibleReadingSchedule?.PublicationCode ?? "null");
 
         // Don't pass music if it wasn't updated (for existing schedules)
         if (!IsNewSchedule && !_musicUpdated)
@@ -1083,16 +1092,25 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private async Task DeleteAsync()
     {
-        if (_scheduleId > 0)
+        if (_scheduleId <= 0)
+            return;
+        
+        // Check if this is the last schedule - prevent deletion if it is
+        var scheduleCount = _state.Value.Schedules?.Count ?? 0;
+        if (scheduleCount <= 1)
         {
-            _logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", _scheduleId);
-            
-            // Dispatch action with schedule ID (following Fluxor best practices)
-            _dispatcher.Dispatch(new DeleteScheduleAction(_scheduleId));
-            
-            // Note: The Effect will handle the actual deletion and dispatch success/failure
-            // Media cache deletion is handled in the Effect
+            _logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", _scheduleId);
+            await _popUpService.ShowMessage("Cannot delete last schedule");
+            return;
         }
+        
+        _logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", _scheduleId);
+        
+        // Dispatch action with schedule ID (following Fluxor best practices)
+        _dispatcher.Dispatch(new DeleteScheduleAction(_scheduleId));
+        
+        // Note: The Effect will handle the actual deletion and dispatch success/failure
+        // Media cache deletion is handled in the Effect
     }
 
     private void RefreshChapterName()

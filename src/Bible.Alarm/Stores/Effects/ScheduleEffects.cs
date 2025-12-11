@@ -2,6 +2,7 @@
 using System;
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -11,6 +12,7 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -31,6 +33,7 @@ public class ScheduleEffects
 {
     private readonly IMapper _mapper;
     private readonly IBibleTranslationService? _bibleTranslationService;
+    private readonly IBibleBookService? _bibleBookService;
     private readonly IAlarmScheduleService? _alarmScheduleService;
     private readonly IAlarmService? _alarmService;
     private readonly IMediaCacheService? _mediaCacheService;
@@ -39,6 +42,7 @@ public class ScheduleEffects
     public ScheduleEffects(
         IMapper mapper, 
         IBibleTranslationService? bibleTranslationService = null,
+        IBibleBookService? bibleBookService = null,
         IAlarmScheduleService? alarmScheduleService = null,
         IAlarmService? alarmService = null,
         IMediaCacheService? mediaCacheService = null,
@@ -46,6 +50,7 @@ public class ScheduleEffects
     {
         _mapper = mapper;
         _bibleTranslationService = bibleTranslationService ?? ServiceProviderManager.GetService<IBibleTranslationService>();
+        _bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
         _alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
         _alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
         _mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
@@ -73,8 +78,9 @@ public class ScheduleEffects
             // Transform DB entity to State DTO (following Fluxor best practices)
             var scheduleStateItem = _mapper.Map<ScheduleStateItem>(action.Schedule);
 
-            // Populate TranslationName if BibleReadingSchedule exists
+            // Populate TranslationName and BookName if BibleReadingSchedule exists
             await PopulateTranslationNameAsync(scheduleStateItem, action.Schedule);
+            await PopulateBookNameAsync(scheduleStateItem, action.Schedule);
 
             // Dispatch success action with DTO (reducer will handle this)
             dispatcher.Dispatch(new AddScheduleSuccessAction(scheduleStateItem));
@@ -109,16 +115,15 @@ public class ScheduleEffects
             // Transform DB entity to State DTO
             var scheduleStateItem = _mapper.Map<ScheduleStateItem>(action.Schedule);
 
-            // Preserve TranslationName from existing state item if it exists
-            var existingItem = _state?.Value.Schedules?.FirstOrDefault(s => s.Id == action.Schedule.Id);
-            if (existingItem != null && !string.IsNullOrWhiteSpace(existingItem.TranslationName))
+            // Populate TranslationName and BookName if missing
+            // (Note: This is for UpdateScheduleAction which doesn't go through the optimistic reducer)
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName))
             {
-                scheduleStateItem.TranslationName = existingItem.TranslationName;
-            }
-            else
-            {
-                // Populate TranslationName if not preserved
                 await PopulateTranslationNameAsync(scheduleStateItem, action.Schedule);
+            }
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BookName))
+            {
+                await PopulateBookNameAsync(scheduleStateItem, action.Schedule);
             }
 
             // Dispatch success action with DTO (reducer will handle this)
@@ -189,11 +194,19 @@ public class ScheduleEffects
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
             var dbSchedule = _mapper.Map<AlarmSchedule>(action.Schedule);
             
+            Log.Debug("ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                dbSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
+                dbSchedule.BibleReadingSchedule?.LanguageCode ?? "null");
+            
             // Set ID to 0 for new schedule (EF Core will generate it)
             dbSchedule.Id = 0;
 
             // Save to database
             var savedSchedule = await _alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None);
+            
+            Log.Debug("ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                savedSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
+                savedSchedule.BibleReadingSchedule?.LanguageCode ?? "null");
             
             Log.Information("ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}", savedSchedule.Id);
 
@@ -206,8 +219,9 @@ public class ScheduleEffects
             // Map DB entity → domain model (ScheduleStateItem)
             var scheduleStateItem = _mapper.Map<ScheduleStateItem>(savedSchedule);
             
-            // Populate TranslationName if BibleReadingSchedule exists
+            // Populate TranslationName and BookName if BibleReadingSchedule exists
             await PopulateTranslationNameAsync(scheduleStateItem, savedSchedule);
+            await PopulateBookNameAsync(scheduleStateItem, savedSchedule);
 
             // Dispatch success action with DTO
             dispatcher.Dispatch(new CreateScheduleSuccessAction(scheduleStateItem));
@@ -321,16 +335,50 @@ public class ScheduleEffects
             // Map DB entity → domain model (ScheduleStateItem)
             var scheduleStateItem = _mapper.Map<ScheduleStateItem>(savedSchedule);
 
-            // Preserve TranslationName from existing state item if it exists
+            // TranslationName and BookName are preserved by the reducer during optimistic update.
+            // Here we need to repopulate them if:
+            // 1. They're missing/null
+            // 2. Language code changed (TranslationName needs update)
+            // 3. Book number, language code, or publication code changed (BookName needs update)
             var existingItem = _state?.Value.Schedules?.FirstOrDefault(s => s.Id == action.Schedule.Id);
-            if (existingItem != null && !string.IsNullOrWhiteSpace(existingItem.TranslationName))
+            
+            if (existingItem != null)
             {
-                scheduleStateItem.TranslationName = existingItem.TranslationName;
+                // Check if language code changed
+                var languageCodeChanged = !string.Equals(
+                    existingItem.BibleReadingLanguageCode ?? string.Empty,
+                    scheduleStateItem.BibleReadingLanguageCode ?? string.Empty,
+                    StringComparison.OrdinalIgnoreCase);
+                
+                // Check if book-related codes changed
+                var bookNumberChanged = existingItem.BibleReadingBookNumber != scheduleStateItem.BibleReadingBookNumber;
+                var publicationCodeChanged = !string.Equals(
+                    existingItem.BibleReadingPublicationCode ?? string.Empty,
+                    scheduleStateItem.BibleReadingPublicationCode ?? string.Empty,
+                    StringComparison.OrdinalIgnoreCase);
+                
+                // Repopulate TranslationName if missing or language code changed
+                if (string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName) || 
+                    languageCodeChanged ||
+                    scheduleStateItem.TranslationName == scheduleStateItem.BibleReadingLanguageCode)
+                {
+                    await PopulateTranslationNameAsync(scheduleStateItem, savedSchedule);
+                }
+
+                // Repopulate BookName if missing or any book-related code changed
+                if (string.IsNullOrWhiteSpace(scheduleStateItem.BookName) ||
+                    bookNumberChanged ||
+                    languageCodeChanged ||
+                    publicationCodeChanged)
+                {
+                    await PopulateBookNameAsync(scheduleStateItem, savedSchedule);
+                }
             }
             else
             {
-                // Populate TranslationName if not preserved
+                // No existing item - populate both
                 await PopulateTranslationNameAsync(scheduleStateItem, savedSchedule);
+                await PopulateBookNameAsync(scheduleStateItem, savedSchedule);
             }
 
             // Dispatch success action with DTO
@@ -376,6 +424,8 @@ public class ScheduleEffects
             if (allSchedules.Count <= 1)
             {
                 Log.Warning("ScheduleEffects: HandleDeleteSchedule - Cannot delete schedule {ScheduleId} - it is the last schedule", action.ScheduleId);
+                // Show toast message to user
+                WeakReferenceMessenger.Default.Send(new Common.Messenger.ShowToastMessage("Cannot delete last schedule"));
                 dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Cannot delete last schedule"));
                 return;
             }
@@ -475,6 +525,40 @@ public class ScheduleEffects
             Log.Warning(ex, "ScheduleEffects: Error populating TranslationName for schedule {ScheduleId}", scheduleStateItem.Id);
             // Fallback to language code
             scheduleStateItem.TranslationName = scheduleStateItem.BibleReadingLanguageCode;
+        }
+    }
+
+    /// <summary>
+    /// Populate BookName from BibleBookService if BibleReadingSchedule exists.
+    /// </summary>
+    private async Task PopulateBookNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
+    {
+        if (schedule.BibleReadingSchedule == null || _bibleBookService == null)
+            return;
+
+        try
+        {
+            var bibleReading = schedule.BibleReadingSchedule;
+            if (bibleReading.BookNumber <= 0 || 
+                string.IsNullOrWhiteSpace(bibleReading.LanguageCode) ||
+                string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
+                return;
+
+            var bookName = await _bibleBookService.GetBookNameAsync(
+                bibleReading.LanguageCode,
+                bibleReading.PublicationCode,
+                bibleReading.BookNumber);
+            
+            if (!string.IsNullOrWhiteSpace(bookName))
+            {
+                scheduleStateItem.BookName = bookName;
+                Log.Debug("ScheduleEffects: Set BookName '{BookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
+                    bookName, schedule.Id, bibleReading.BookNumber);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "ScheduleEffects: Error populating BookName for schedule {ScheduleId}", schedule.Id);
         }
     }
 }

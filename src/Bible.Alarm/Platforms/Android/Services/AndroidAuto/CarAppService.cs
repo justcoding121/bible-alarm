@@ -9,11 +9,14 @@ using AndroidX.Car.App.Validation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,19 +60,74 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         
         // Ensure MauiApp is created and bootstrap is initialized (idempotent - safe to call multiple times)
         // Bootstrap initialization is thread-safe and will only run once even if called from multiple services
-        _ = Task.Run(() =>
+        _ = Task.Run(async () =>
         {
             try
             {
                 MauiAppHolder.CreateAndStore();
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 Logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialization started");
+                
+                // Wait for bootstrap to complete and set initial metadata
+                // Use a longer timeout for OnCreate since it's not blocking the UI
+                try
+                {
+                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
+                    await SetInitialScheduleMetadataAsync();
+                }
+                catch (Exception bootstrapEx)
+                {
+                    Logger.Warning(bootstrapEx, "Bootstrap timed out in CarAppService.OnCreate - will retry when template is requested");
+                    // Don't throw - allow service to continue, template will be generated when bootstrap completes
+                }
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Error initializing bootstrap in CarAppService");
             }
         });
+    }
+    
+    private async Task SetInitialScheduleMetadataAsync()
+    {
+        try
+        {
+            Logger.Debug("SetInitialScheduleMetadataAsync: Setting metadata to first schedule after bootstrap");
+            
+            var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
+            if (defaultScheduleService == null)
+            {
+                Logger.Warning("SetInitialScheduleMetadataAsync: IDefaultScheduleService not available");
+                return;
+            }
+            
+            var metadata = await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
+            
+            // Update metadata on main thread
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
+                if (mediaSessionManager == null)
+                {
+                    Logger.Warning("SetInitialScheduleMetadataAsync: MediaSessionManager is null");
+                    return;
+                }
+                
+                // Set metadata using MediaSessionManager
+                mediaSessionManager.UpdateMetadata(
+                    metadata.Title,
+                    metadata.Artist,
+                    metadata.Album,
+                    metadata.ScheduleId);
+                
+                Logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
+                    metadata.ScheduleId, metadata.Title, metadata.Artist);
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error setting initial schedule metadata in CarAppService");
+        }
     }
 
     public override HostValidator CreateHostValidator()
@@ -131,16 +189,85 @@ public class ModernMediaSession : Session
 /// <summary>
 /// Main car screen that displays the schedule list with playback controls.
 /// </summary>
-public class MainCarScreen : AndroidX.Car.App.Screen
+public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<MainCarScreen>();
     private readonly MediaSessionManager _mediaSessionManager;
     private List<ScheduleStateItem>? _scheduleItems;
+    private IState<ApplicationState>? _applicationState;
+    private AndroidAutoScheduleChangeTracker? _scheduleChangeTracker;
+    private bool _disposed;
 
     public MainCarScreen(CarContext carContext, MediaSessionManager mediaSessionManager) : base(carContext)
     {
         _mediaSessionManager = mediaSessionManager ?? throw new ArgumentNullException(nameof(mediaSessionManager));
         Logger.Information("✅ MainCarScreen created");
+        
+        // Subscribe to state changes to refresh the template when schedules are added/updated/removed
+        try
+        {
+            _applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
+            if (_applicationState != null)
+            {
+                // Initialize schedule change tracker
+                _scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
+                _scheduleChangeTracker.Initialize(_applicationState);
+                
+                _applicationState.StateChanged += OnApplicationStateChanged;
+                Logger.Information("✅ MainCarScreen subscribed to schedule list changes");
+            }
+            else
+            {
+                Logger.Warning("IState<ApplicationState> not available - schedule updates will not refresh Android Auto UI");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error subscribing to ApplicationState changes in MainCarScreen");
+        }
+    }
+    
+    private void OnApplicationStateChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_scheduleChangeTracker == null)
+                return;
+            
+            // Check if schedules changed using the shared tracker
+            if (_scheduleChangeTracker.CheckForChanges())
+            {
+                Logger.Debug("Schedule list changed - invalidating template to refresh Android Auto UI");
+                
+                // Invalidate the template to force Android Auto to call OnGetTemplate() again
+                Invalidate();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error checking schedule list changes");
+        }
+    }
+    
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        
+        try
+        {
+            if (_applicationState != null)
+            {
+                _applicationState.StateChanged -= OnApplicationStateChanged;
+                Logger.Debug("MainCarScreen unsubscribed from ApplicationState changes");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error unsubscribing from ApplicationState changes in MainCarScreen");
+        }
+        
+        _disposed = true;
     }
 
     public override ITemplate OnGetTemplate()
@@ -149,23 +276,9 @@ public class MainCarScreen : AndroidX.Car.App.Screen
         
         try
         {
-            // Ensure bootstrap is complete before accessing state
-            // This is critical for Android Auto to show schedule list and handle media playback
-            MauiProgram.WaitForBootstrap();
-            Logger.Debug("Bootstrap completed, loading schedules from state");
-            
-            // Get the MediaSessionCompat to verify it's initialized
-            var mediaSession = _mediaSessionManager.GetOrCreate();
-            var sessionToken = mediaSession.SessionToken;
-            
-            if (sessionToken == null)
-            {
-                Logger.Warning("MediaSessionCompat.SessionToken is null - MediaSession may not be fully initialized yet");
-            }
-            else
-            {
-                Logger.Information("✅ MediaSession token available: {Token}", sessionToken.ToString());
-            }
+            // CRITICAL: Don't block OnGetTemplate() - return template immediately to prevent "Getting your selection" message
+            // Bootstrap should already be complete from Android Auto connection, but if not, proceed with available data
+            // This ensures Android Auto shows the list immediately instead of the loading message
             
             // Load schedules from state (fast, no database access)
             // Schedules are already loaded during bootstrap
@@ -259,13 +372,22 @@ public class MainCarScreen : AndroidX.Car.App.Screen
             var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
             var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
             
-            // Create Row with title, subtitle, and click callback
+            // Create headphone icon for the row
+            var headphoneIcon = CreateHeadphoneIcon();
+            
+            // Create Row with title, subtitle, icon, and click callback
             // Store schedule ID in a closure so we can access it when clicked
             var scheduleId = scheduleItem.Id;
             var rowBuilder = new Row.Builder()
                 .SetTitle(title)
                 .AddText(subtitle)
                 .SetOnClickListener(new ScheduleClickCallback(this, scheduleId));
+            
+            // Add headphone icon if available
+            if (headphoneIcon != null)
+            {
+                rowBuilder.SetImage(headphoneIcon);
+            }
             
             var row = rowBuilder.Build();
             
@@ -276,6 +398,24 @@ public class MainCarScreen : AndroidX.Car.App.Screen
             Logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Creates a CarIcon for headphone/audio playback.
+    /// Uses Android's standard media play icon to represent audio/media content.
+    /// Note: Currently returns null as IconCompat requires AndroidX.Core package reference.
+    /// Rows will display without icons until the proper package is added.
+    /// TODO: Add AndroidX.Core.Graphics.Drawables package and use IconCompat.CreateWithResource()
+    /// </summary>
+    private CarIcon? CreateHeadphoneIcon()
+    {
+        // TODO: Implement icon creation once AndroidX.Core.Graphics.Drawables package is available
+        // Example implementation:
+        // var iconCompat = IconCompat.CreateWithResource(CarContext, Android.Resource.Drawable.IcMediaPlay);
+        // return new CarIcon.Builder(iconCompat).Build();
+        
+        Logger.Debug("Icon creation skipped - AndroidX.Core.Graphics.Drawables.IconCompat not available");
+        return null;
     }
     
     private ITemplate CreateEmptyListTemplate()
@@ -297,11 +437,24 @@ public class MainCarScreen : AndroidX.Car.App.Screen
         
         try
         {
+            // Immediately update MediaSession to Loading state to prevent "Getting your selection" message
+            // This tells Android Auto that playback is starting, so it doesn't show the loading message
+            try
+            {
+                _mediaSessionManager.SetPlaybackStatus(PlayStatus.Loading);
+                Logger.Debug("Set MediaSession to Loading state immediately on click");
+            }
+            catch (Exception mediaEx)
+            {
+                Logger.Warning(mediaEx, "Failed to update MediaSession state on click - continuing anyway");
+            }
+            
             // Get playback service and play the schedule
             var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
             if (playbackService != null)
             {
                 // Play asynchronously - don't block the UI thread
+                // This returns immediately so Android Auto doesn't show "Getting your selection"
                 _ = Task.Run(async () =>
                 {
                     try

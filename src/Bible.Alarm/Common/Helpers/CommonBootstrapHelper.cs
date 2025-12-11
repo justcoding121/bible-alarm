@@ -57,14 +57,37 @@ public static class CommonBootstrapHelper
 
         // Send InitializedMessage after lock is released
         // NavigateToHomeAsync handles duplicate navigation attempts internally
+        // CRITICAL: Send InitializedMessage even if services were already verified
+        // This handles the case where Android Auto completed bootstrap first (isForeground=false)
+        // and the UI needs to navigate away from BootstrapPage
         if (initializeUI)
         {
-            Log.Logger.Information("Sending InitializedMessage to trigger navigation");
-            MainThread.BeginInvokeOnMainThread(() =>
+            Log.Logger.Information("Sending InitializedMessage to trigger navigation (services verified: {ServicesVerified})", _servicesVerified);
+            
+            // If services were already verified (bootstrap completed by Android Auto), add a small delay
+            // to ensure MessageHandlingService.RegisterMessageHandlers() has been called in App.xaml.cs
+            if (_servicesVerified)
             {
-                WeakReferenceMessenger.Default.Send(new InitializedMessage());
-                Log.Logger.Information("InitializedMessage sent");
-            });
+                // Small delay to ensure message handlers are registered before sending message
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(100); // 100ms delay to ensure handlers are registered
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        WeakReferenceMessenger.Default.Send(new InitializedMessage());
+                        Log.Logger.Information("InitializedMessage sent (delayed for handler registration)");
+                    });
+                });
+            }
+            else
+            {
+                // Services just verified, send message immediately
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    WeakReferenceMessenger.Default.Send(new InitializedMessage());
+                    Log.Logger.Information("InitializedMessage sent");
+                });
+            }
         }
         else
         {
@@ -167,6 +190,13 @@ public static class CommonBootstrapHelper
                 Log.Logger.Warning("IBibleTranslationService is null - translation names will not be populated");
             }
             
+            // Get BibleBookService for book name lookup
+            var bibleBookService = ServiceProviderManager.GetService<IBibleBookService>();
+            if (bibleBookService == null)
+            {
+                Log.Logger.Warning("IBibleBookService is null - book names will not be populated");
+            }
+            
             // Get AutoMapper instance
             var mapper = ServiceProviderManager.GetService<IMapper>();
             if (mapper == null)
@@ -176,30 +206,60 @@ public static class CommonBootstrapHelper
             }
             
             // Create ObservableHashSet of ScheduleStateItem for state using AutoMapper
-            // Include TranslationName from language dictionary
+            // Include TranslationName from language dictionary and BookName from BibleBookService
             var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
             foreach (var schedule in alarmSchedules)
             {
                 // Map AlarmSchedule to ScheduleStateItem using AutoMapper
                 var scheduleStateItem = mapper.Map<ScheduleStateItem>(schedule);
                 
-                // Set TranslationName from language dictionary
-                if (schedule.BibleReadingSchedule != null && languagesDict != null)
+                // Set TranslationName and BookName from services
+                if (schedule.BibleReadingSchedule != null)
                 {
-                    var languageCode = schedule.BibleReadingSchedule.LanguageCode;
-                    if (!string.IsNullOrWhiteSpace(languageCode) && 
-                        languagesDict.TryGetValue(languageCode, out var language))
+                    var bibleReading = schedule.BibleReadingSchedule;
+                    
+                    // Set TranslationName from language dictionary
+                    if (languagesDict != null)
                     {
-                        scheduleStateItem.TranslationName = language.Name;
-                        Log.Logger.Debug("Set TranslationName '{TranslationName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                            language.Name, schedule.Id, languageCode);
+                        var languageCode = bibleReading.LanguageCode;
+                        if (!string.IsNullOrWhiteSpace(languageCode) && 
+                            languagesDict.TryGetValue(languageCode, out var language))
+                        {
+                            scheduleStateItem.TranslationName = language.Name;
+                            Log.Logger.Debug("Set TranslationName '{TranslationName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                                language.Name, schedule.Id, languageCode);
+                        }
+                        else
+                        {
+                            // Fallback to language code if language not found
+                            scheduleStateItem.TranslationName = languageCode;
+                            Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as TranslationName for schedule {ScheduleId}",
+                                languageCode, schedule.Id);
+                        }
                     }
-                    else
+                    
+                    // Set BookName from BibleBookService
+                    if (bibleBookService != null && bibleReading.BookNumber > 0)
                     {
-                        // Fallback to language code if language not found
-                        scheduleStateItem.TranslationName = languageCode;
-                        Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as TranslationName for schedule {ScheduleId}",
-                            languageCode, schedule.Id);
+                        try
+                        {
+                            var bookName = await bibleBookService.GetBookNameAsync(
+                                bibleReading.LanguageCode,
+                                bibleReading.PublicationCode,
+                                bibleReading.BookNumber);
+                            
+                            if (!string.IsNullOrWhiteSpace(bookName))
+                            {
+                                scheduleStateItem.BookName = bookName;
+                                Log.Logger.Debug("Set BookName '{BookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
+                                    bookName, schedule.Id, bibleReading.BookNumber);
+                            }
+                        }
+                        catch (Exception bookEx)
+                        {
+                            Log.Logger.Warning(bookEx, "Error loading book name for schedule {ScheduleId} (BookNumber: {BookNumber})",
+                                schedule.Id, bibleReading.BookNumber);
+                        }
                     }
                 }
                 

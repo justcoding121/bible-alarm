@@ -86,6 +86,14 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
     {
+        // If already playing a different schedule, stop it first
+        if (IsPreparingOrPlayingInternal && _currentScheduleId.HasValue && _currentScheduleId.Value != scheduleId)
+        {
+            _logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}", 
+                _currentScheduleId.Value, scheduleId);
+            await StopAsyncInternal(skipMarkAsPlayed: true); // Stop without marking as played since we're switching schedules
+        }
+        
         if (IsPreparingOrPlayingInternal)
         {
             _logger.Warning("Cannot prepare and play schedule {ScheduleId} - already preparing or playing schedule {CurrentScheduleId}. Status: {Status}", 

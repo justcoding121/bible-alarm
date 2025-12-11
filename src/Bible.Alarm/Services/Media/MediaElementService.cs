@@ -82,16 +82,18 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
             throw new InvalidOperationException("Failed to create MediaElement - could not create on main thread");
         }
 
-        // Store the instance
+        // Store the instance immediately - MediaElement can work without UI attachment
         lock (_lockObject)
         {
             _mediaElementInstance = newMediaElement;
         }
         
-        // Try to attach to BootstrapPage if it's available
+        _logger.Information("New MediaElement created and stored in service (will attempt UI attachment separately)");
+        
+        // Try to attach to BootstrapPage if it's available (non-blocking, non-critical)
+        // MediaElement will work for playback even if attachment fails (e.g., UI is disposed)
         TryAttachToBootstrapPage(newMediaElement);
         
-        _logger.Information("New MediaElement created and stored in service");
         return newMediaElement;
     }
 
@@ -123,6 +125,8 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
     /// This allows MediaElement to work when app is backgrounded (no UI) and reattach when UI is recreated.
     /// Non-blocking: Passes shouldRetry=false to prevent indefinite blocking when navigation is not available.
     /// Safe from circular calls: Checks if already attached before attaching to prevent infinite loops.
+    /// CRITICAL: UI operations must be on main thread - this method handles thread switching automatically.
+    /// MediaElement will function for playback even if attachment fails (e.g., UI is disposed).
     /// </summary>
     private void TryAttachToBootstrapPage(MediaElement mediaElement)
     {
@@ -143,21 +147,101 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
                 return;
             }
 
-            // Only attach if not already attached - prevents re-attachment and potential circular calls
-            if (mediaElementContainer.Content != mediaElement)
+            // CRITICAL: Setting Content property requires UI dispatcher
+            // Check if we're on main thread, if not, invoke on main thread
+            if (MainThread.IsMainThread)
             {
-                _logger.Debug("Attaching MediaElement to BootstrapPage container");
-                mediaElementContainer.Content = mediaElement;
+                AttachMediaElementToContainer(mediaElement, mediaElementContainer);
             }
             else
             {
-                _logger.Debug("MediaElement already attached to BootstrapPage container - skipping");
+                // Fire and forget - don't block background threads (e.g., Android Auto callbacks)
+                // MediaElement can work without UI attachment, so this is non-critical
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        AttachMediaElementToContainer(mediaElement, mediaElementContainer);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warning(ex, "Failed to attach MediaElement to container on main thread");
+                    }
+                });
             }
         }
         catch (Exception ex)
         {
             // Log but don't fail - MediaElement can work without UI container
             _logger.Warning(ex, "Failed to attach MediaElement to BootstrapPage - MediaElement will work without UI container");
+        }
+    }
+
+    /// <summary>
+    /// Attaches MediaElement to container. Must be called on main thread.
+    /// </summary>
+    private void AttachMediaElementToContainer(MediaElement mediaElement, ContentView mediaElementContainer)
+    {
+        try
+        {
+            // Check if the container's handler is still valid before trying to attach
+            // If the handler is null or disposed, the MauiContext is no longer available
+            if (mediaElementContainer.Handler == null)
+            {
+                _logger.Debug("MediaElementContainer handler is null - container may be disposed, skipping attachment");
+                return;
+            }
+
+            // Check if the handler's MauiContext is still valid by trying to access a service
+            // This will throw ObjectDisposedException if the context is disposed
+            try
+            {
+                var mauiContext = mediaElementContainer.Handler.MauiContext;
+                if (mauiContext == null)
+                {
+                    _logger.Debug("MediaElementContainer MauiContext is null - container may be disposed, skipping attachment");
+                    return;
+                }
+
+                // Try to access the service provider to verify it's not disposed
+                // This will throw ObjectDisposedException if disposed
+                _ = mauiContext.Services;
+            }
+            catch (ObjectDisposedException)
+            {
+                _logger.Debug("MediaElementContainer MauiContext is disposed - skipping attachment");
+                return;
+            }
+
+            // Only attach if not already attached - prevents re-attachment and potential circular calls
+            if (mediaElementContainer.Content != mediaElement)
+            {
+                _logger.Debug("Attaching MediaElement to BootstrapPage container");
+                
+                // Wrap in try-catch because setting Content might fail if MauiContext is disposed
+                // This can happen if the page was disposed between getting the reference and setting Content
+                try
+                {
+                    mediaElementContainer.Content = mediaElement;
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    _logger.Warning(ex, "MediaElementContainer MauiContext was disposed while setting Content - MediaElement will work without UI container");
+                    return;
+                }
+            }
+            else
+            {
+                _logger.Debug("MediaElement already attached to BootstrapPage container - skipping");
+            }
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.Warning(ex, "MediaElementContainer or its context is disposed - skipping attachment");
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Error attaching MediaElement to container - MediaElement will work without UI container");
         }
     }
 

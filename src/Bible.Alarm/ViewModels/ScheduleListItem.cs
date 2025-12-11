@@ -11,6 +11,8 @@ using AutoMapper;
 using IDispatcher = Fluxor.IDispatcher;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.Common.Messenger;
 using Fluxor;
 using Serilog;
 
@@ -97,7 +99,8 @@ public class ScheduleListItem(
             }
         });
 
-        _ = RefreshChapterNameAsync(true);
+        // Initialize subtitle from state (BookName is pre-populated during bootstrap)
+        RefreshSubTitleFromState();
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
@@ -108,7 +111,7 @@ public class ScheduleListItem(
                 {
                     await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
                 });
-                await RefreshChapterNameAsync(true);
+                RefreshSubTitleFromState();
             }
         });
 
@@ -121,20 +124,28 @@ public class ScheduleListItem(
                 {
                     await playlistService.MoveToNextBibleChapter(Schedule.Id);
                 });
-                await RefreshChapterNameAsync(true);
+                RefreshSubTitleFromState();
             }
         });
 
-        DeleteCommand = new AsyncRelayCommand(() =>
+        DeleteCommand = new AsyncRelayCommand(async () =>
         {
-            if (Schedule?.Id > 0)
+            if (Schedule?.Id <= 0)
+                return;
+            
+            // Check if this is the last schedule - prevent deletion if it is
+            var scheduleCount = applicationState.Value.Schedules?.Count ?? 0;
+            if (scheduleCount <= 1)
             {
-                // Dispatch DeleteScheduleAction (following Fluxor best practices)
-                // The Effect will handle the actual DB deletion and dispatch success/failure actions
-                logger.Information("ScheduleListItem: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", Schedule.Id);
-                dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
+                logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", Schedule.Id);
+                WeakReferenceMessenger.Default.Send(new Common.Messenger.ShowToastMessage("Cannot delete last schedule"));
+                return;
             }
-            return Task.CompletedTask;
+            
+            // Dispatch DeleteScheduleAction (following Fluxor best practices)
+            // The Effect will handle the actual DB deletion and dispatch success/failure actions
+            logger.Information("ScheduleListItem: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", Schedule.Id);
+            dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
         });
     }
 
@@ -143,6 +154,8 @@ public class ScheduleListItem(
     public string Name => Schedule?.Name ?? string.Empty;
 
     public string SubTitle { get; private set; } = string.Empty;
+
+    public string Language { get; private set; } = string.Empty;
 
     private bool _isEnabled;
 
@@ -234,6 +247,90 @@ public class ScheduleListItem(
         }
     }
 
+    /// <summary>
+    /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated BookName).
+    /// Falls back to async database lookup if BookName is not available in state.
+    /// </summary>
+    private void RefreshSubTitleFromState()
+    {
+        if (Schedule?.Id <= 0) return;
+        var scheduleId = Schedule.Id;
+
+        try
+        {
+            // Get ScheduleStateItem from state (BookName is pre-populated during bootstrap)
+            var scheduleStateItem = applicationState.Value.Schedules
+                .FirstOrDefault(s => s.Id == scheduleId);
+
+            logger.Debug("ScheduleListItem: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, TranslationName: '{TranslationName}', BookName: '{BookName}'",
+                scheduleId, scheduleStateItem?.TranslationName ?? "null", scheduleStateItem?.BookName ?? "null");
+
+            if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)
+            {
+                // Set language separately (for display below switch)
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName))
+                {
+                    Language = scheduleStateItem.TranslationName;
+                }
+                else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
+                {
+                    Language = scheduleStateItem.BibleReadingLanguageCode;
+                }
+                else
+                {
+                    Language = string.Empty;
+                }
+                OnPropertyChanged(nameof(Language));
+
+                // Build subtitle from state (synchronous, no database call)
+                // Format: "BookName ChapterNumber" (e.g., "Mark 1" instead of "Mark • Chapter 1")
+                var subtitleParts = new List<string>();
+
+                // Add book name (pre-populated during bootstrap) or fallback to book number
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BookName))
+                {
+                    subtitleParts.Add(scheduleStateItem.BookName);
+                }
+                else if (scheduleStateItem.BibleReadingBookNumber.HasValue && scheduleStateItem.BibleReadingBookNumber.Value > 0)
+                {
+                    subtitleParts.Add($"Book {scheduleStateItem.BibleReadingBookNumber.Value}");
+                }
+
+                // Add chapter number (without "Chapter" prefix)
+                if (scheduleStateItem.BibleReadingChapterNumber.HasValue && scheduleStateItem.BibleReadingChapterNumber.Value > 0)
+                {
+                    subtitleParts.Add(scheduleStateItem.BibleReadingChapterNumber.Value.ToString());
+                }
+
+                if (subtitleParts.Count > 0)
+                {
+                    SubTitle = string.Join(" ", subtitleParts); // Use space instead of bullet
+                    OnPropertyChanged(nameof(SubTitle));
+                    return;
+                }
+            }
+            else
+            {
+                // No Bible reading schedule - clear language
+                Language = string.Empty;
+                OnPropertyChanged(nameof(Language));
+            }
+
+            // Fallback: If BookName not available in state, do async lookup (for backward compatibility)
+            _ = RefreshChapterNameAsync(force: false);
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
+            // Fallback to async lookup on error
+            _ = RefreshChapterNameAsync(force: false);
+        }
+    }
+
+    /// <summary>
+    /// Async fallback method for refreshing chapter name from database.
+    /// Only used if BookName is not available in state.
+    /// </summary>
     public async Task RefreshChapterNameAsync(bool force = false)
     {
         if (Schedule?.Id <= 0) return;
@@ -244,19 +341,40 @@ public class ScheduleListItem(
 
         try
         {
+            // Try to get Language from state first (synchronous)
+            var scheduleStateItem = applicationState.Value.Schedules
+                .FirstOrDefault(s => s.Id == scheduleId);
+            
+            string language = string.Empty;
+            if (scheduleStateItem != null)
+            {
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName))
+                {
+                    language = scheduleStateItem.TranslationName;
+                }
+                else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
+                {
+                    language = scheduleStateItem.BibleReadingLanguageCode;
+                }
+            }
+
             // Run database operations off UI thread
             var displayName = await Task.Run(async () =>
                 await displayService.GetChapterDisplayNameAsync(scheduleId, force));
             
-            if (!string.IsNullOrEmpty(displayName))
+            // Update UI on main thread
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                // Update UI on main thread
-                await MainThread.InvokeOnMainThreadAsync(() =>
+                if (!string.IsNullOrEmpty(displayName))
                 {
                     SubTitle = displayName;
                     OnPropertyChanged(nameof(SubTitle));
-                });
-            }
+                }
+                
+                // Update Language property
+                Language = language;
+                OnPropertyChanged(nameof(Language));
+            });
         }
         catch (Exception e)
         {
@@ -266,7 +384,8 @@ public class ScheduleListItem(
 
     public void RefreshChapterName(bool force = false)
     {
-        _ = RefreshChapterNameAsync(force);
+        // Try state first, then fallback to async lookup
+        RefreshSubTitleFromState();
     }
 
     public int CompareTo(object? obj)
@@ -329,11 +448,9 @@ public class ScheduleListItem(
         var nameChanged = oldName != updatedSchedule.Name;
         var timeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute;
 
-        if (trackChanged)
-        {
-            // Refresh the chapter name display
-            RefreshChapterName();
-        }
+        // Always refresh subtitle/language when state changes, since TranslationName and BookName
+        // may have been updated even if other properties didn't change
+        RefreshChapterName();
 
         // Always update _isEnabled to match the schedule
         _isEnabled = updatedSchedule.IsEnabled;
