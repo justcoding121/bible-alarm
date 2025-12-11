@@ -41,7 +41,8 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        _logger.Error("Unhandled exception.", e.SerializeObject());
+        _logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+            e.IsTerminating);
     }
 
     public override async void OnReceive(Context context, Intent intent)

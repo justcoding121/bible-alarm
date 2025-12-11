@@ -35,7 +35,8 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error("Unhandled exception.", e.SerializeObject());
+        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+            e.IsTerminating);
     }
 
     public override async void OnReceive(Context context, Intent intent)

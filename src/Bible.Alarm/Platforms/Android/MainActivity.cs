@@ -53,7 +53,8 @@ public class MainActivity : MauiAppCompatActivity
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error("Unhandled exception.", e.SerializeObject());
+        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+            e.IsTerminating);
     }
 
     private void HandleIncomingIntent()

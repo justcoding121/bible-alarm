@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Serilog;
 
@@ -67,76 +66,5 @@ public class LogSetup
             Log.Logger.Debug(ex, "Failed to get version name from version finder, using fallback");
             return "AssemblyVersionNotFound";
         }
-    }
-}
-
-public static class JsonConvertExtension
-{
-    public static string SerializeObject(this object @object)
-    {
-        try
-        {
-            // Configure JSON serializer to ignore non-serializable properties like MethodBase (TargetSite)
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = false,
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                // Exclude properties that can't be serialized (like TargetSite.MethodBase)
-                IgnoreReadOnlyProperties = false
-            };
-            
-            // Handle UnhandledExceptionEventArgs - extract and serialize only the exception
-            if (@object is System.UnhandledExceptionEventArgs unhandledArgs)
-            {
-                var unhandledException = unhandledArgs.ExceptionObject as Exception;
-                if (unhandledException != null)
-                {
-                    return SerializeException(unhandledException, options);
-                }
-                else
-                {
-                    // Non-Exception object - just serialize basic info
-                    return JsonSerializer.Serialize(new
-                    {
-                        ExceptionObject = unhandledArgs.ExceptionObject?.ToString(),
-                        IsTerminating = unhandledArgs.IsTerminating
-                    }, options);
-                }
-            }
-            
-            // For Exception objects, serialize only the essential properties
-            if (@object is Exception exception)
-            {
-                return SerializeException(exception, options);
-            }
-            
-            return JsonSerializer.Serialize(@object, options);
-        }
-        catch (Exception ex)
-        {
-            Log.Logger.Warning(ex, "Failed to serialize object to JSON");
-            return null;
-        }
-    }
-    
-    private static string SerializeException(Exception exception, JsonSerializerOptions options)
-    {
-        var exceptionInfo = new
-        {
-            Type = exception.GetType().FullName,
-            Message = exception.Message,
-            StackTrace = exception.StackTrace,
-            Source = exception.Source,
-            HResult = exception.HResult,
-            HelpLink = exception.HelpLink,
-            InnerException = exception.InnerException != null ? new
-            {
-                Type = exception.InnerException.GetType().FullName,
-                Message = exception.InnerException.Message,
-                StackTrace = exception.InnerException.StackTrace,
-                Source = exception.InnerException.Source
-            } : null
-        };
-        return JsonSerializer.Serialize(exceptionInfo, options);
     }
 }
