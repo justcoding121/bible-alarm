@@ -33,6 +33,8 @@ public class ScheduleListItem(
     private readonly IMapper _mapper = mapper;
     private bool _isInitializing;
     private AlarmSchedule? _lastKnownSchedule;
+    private string? _lastKnownTranslationName;
+    private string? _lastKnownBookName;
     private bool _isBusy;
     private Action? _onPlayStarted;
     private Action? _onPlaybackStarted;
@@ -83,6 +85,11 @@ public class ScheduleListItem(
         applicationState.StateChanged += OnApplicationStateChanged;
         // Store initial state for comparison
         _lastKnownSchedule = Schedule;
+        
+        // Initialize tracked subtitle values from state
+        var initialStateItem = applicationState.Value.Schedules.FirstOrDefault(s => s.Id == schedule.Id);
+        _lastKnownTranslationName = initialStateItem?.TranslationName;
+        _lastKnownBookName = initialStateItem?.BookName;
 
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -262,9 +269,6 @@ public class ScheduleListItem(
             var scheduleStateItem = applicationState.Value.Schedules
                 .FirstOrDefault(s => s.Id == scheduleId);
 
-            logger.Debug("ScheduleListItem: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, TranslationName: '{TranslationName}', BookName: '{BookName}'",
-                scheduleId, scheduleStateItem?.TranslationName ?? "null", scheduleStateItem?.BookName ?? "null");
-
             if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)
             {
                 // Set language separately (for display below switch)
@@ -407,6 +411,12 @@ public class ScheduleListItem(
 
         if (updatedScheduleItem == null) return;
 
+        // Store old subtitle-related values BEFORE updating
+        // Get current values from SubTitle property (which reflects what's currently displayed)
+        // and from the current Schedule entity
+        var oldBookNumber = Schedule?.BibleReadingSchedule?.BookNumber;
+        var oldChapterNumber = Schedule?.BibleReadingSchedule?.ChapterNumber;
+
         // Map DTO to entity for comparison and storage
         var updatedSchedule = _mapper.Map<AlarmSchedule>(updatedScheduleItem);
 
@@ -447,10 +457,26 @@ public class ScheduleListItem(
         var isEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled;
         var nameChanged = oldName != updatedSchedule.Name;
         var timeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute;
+        
+        // Check if subtitle-related properties changed
+        var newTranslationName = updatedScheduleItem.TranslationName;
+        var newBookName = updatedScheduleItem.BookName;
+        var bookNumberChanged = oldBookNumber != updatedSchedule.BibleReadingSchedule?.BookNumber;
+        var chapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber;
+        var translationNameChanged = _lastKnownTranslationName != newTranslationName;
+        var bookNameChanged = _lastKnownBookName != newBookName;
+        
+        // Only refresh subtitle if subtitle-related properties actually changed
+        var subtitleChanged = trackChanged || bookNumberChanged || chapterNumberChanged || 
+                             translationNameChanged || bookNameChanged;
 
-        // Always refresh subtitle/language when state changes, since TranslationName and BookName
-        // may have been updated even if other properties didn't change
-        RefreshChapterName();
+        if (subtitleChanged)
+        {
+            // Update tracked values
+            _lastKnownTranslationName = newTranslationName;
+            _lastKnownBookName = newBookName;
+            RefreshChapterName();
+        }
 
         // Always update _isEnabled to match the schedule
         _isEnabled = updatedSchedule.IsEnabled;
