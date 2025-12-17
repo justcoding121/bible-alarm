@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
+using Bible.Alarm.Common.Helpers;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -57,6 +58,10 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             {
                 try
                 {
+                    // Wait for bootstrap to complete before accessing schedules/database
+                    // This ensures Application.Current.Dispatcher is available and database is initialized
+                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
+                    
                     var playbackStateValue = PlaybackState.Value;
                     
                     // If playback is stopped, get scheduleId from metadata or use first schedule
@@ -226,6 +231,10 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             {
                 try
                 {
+                    // Wait for bootstrap to complete before accessing schedules/database
+                    // This ensures Application.Current.Dispatcher is available and database is initialized
+                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
+                    
                     int scheduleIdToPlay = scheduleId;
                     
                     // Validate scheduleId exists in state

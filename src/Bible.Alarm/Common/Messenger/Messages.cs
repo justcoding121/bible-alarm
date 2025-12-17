@@ -49,9 +49,10 @@ public class PreviousButtonPressedMessage
 }
 
 /// <summary>
-/// Message sent to MediaElementService to recreate the MediaElement after MediaSession release.
-/// This ensures a fresh ExoPlayer instance is created, ready for new playlists.
+/// Message sent to MediaElementService to destroy the MediaElement after MediaSession release.
+/// MediaElement will be recreated automatically by GetMediaElementAsync() when needed for the next playlist.
+/// This ensures a fresh ExoPlayer instance is created for each new playback session.
 /// </summary>
-public class RecreateMediaElementMessage
+public class DestroyMediaElementMessage
 {
 }

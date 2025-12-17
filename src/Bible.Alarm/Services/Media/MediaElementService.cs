@@ -12,11 +12,11 @@ namespace Bible.Alarm.Services.Media;
 /// Service for managing and accessing the MediaElement instance.
 /// Handles creation and retrieval of MediaElement from BootstrapPage.
 /// Thread-safe: ensures MediaElement creation happens on the main thread to prevent deadlocks and crashes.
-/// Also handles MediaElement disposal and recreation when RecreateMediaElementMessage is received.
+/// Also handles MediaElement disposal and recreation when DestroyMediaElementMessage is received.
 /// MediaElement can exist without being attached to BootstrapPage container (e.g., when app is backgrounded).
 /// When BootstrapPage becomes available, MediaElement will be reattached automatically.
 /// </summary>
-public class MediaElementService : IMediaElementService, IRecipient<RecreateMediaElementMessage>, IDisposable
+public class MediaElementService : IMediaElementService, IRecipient<DestroyMediaElementMessage>, IDisposable
 {
     private readonly INavigationService _navigationService;
     private readonly ILogger _logger;
@@ -31,8 +31,8 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
         _navigationService = navigationService;
         _logger = logger;
         
-        // Register for RecreateMediaElementMessage to handle MediaElement disposal
-        WeakReferenceMessenger.Default.Register<RecreateMediaElementMessage>(this);
+        // Register for DestroyMediaElementMessage to handle MediaElement disposal
+        WeakReferenceMessenger.Default.Register<DestroyMediaElementMessage>(this);
     }
 
     public async Task<MediaElement> GetMediaElementAsync()
@@ -262,10 +262,10 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
     }
 
     /// <summary>
-    /// Handles RecreateMediaElementMessage by disposing the old MediaElement and setting container content to null.
+    /// Handles DestroyMediaElementMessage by disposing the old MediaElement and setting container content to null.
     /// This is called after MediaSession release to ensure a clean ExoPlayer instance.
     /// </summary>
-    public void Receive(RecreateMediaElementMessage message)
+    public void Receive(DestroyMediaElementMessage message)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -332,7 +332,7 @@ public class MediaElementService : IMediaElementService, IRecipient<RecreateMedi
         _isDisposed = true;
         
         // Unregister from messages
-        WeakReferenceMessenger.Default.Unregister<RecreateMediaElementMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<DestroyMediaElementMessage>(this);
         
         // All injected services (_navigationService) are singletons, so don't dispose them
     }

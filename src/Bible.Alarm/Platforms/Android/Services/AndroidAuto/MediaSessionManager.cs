@@ -35,7 +35,6 @@ public sealed class MediaSessionManager
     /// </summary>
     public MediaSessionCompat GetOrCreate(bool isConnect = false)
     {
-        Logger.Debug("GetOrCreate called with isConnect: {IsConnect}", isConnect);
         // Fast path: if already created, return it
         if (_mediaSession == null)
         {
@@ -123,7 +122,6 @@ public sealed class MediaSessionManager
             }
         }
 
-        Logger.Debug("GetOrCreate returning existing MediaSessionCompat instance");
         return _mediaSession;
     }
 
@@ -133,9 +131,6 @@ public sealed class MediaSessionManager
     /// </summary>
     public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
     {
-        Logger.Debug("UpdatePlaybackState called with state: {State}, position: {Position}, canPlayNext: {CanPlayNext}, canPlayPrevious: {CanPlayPrevious}", 
-            state, position, canPlayNext, canPlayPrevious);
-        
         // Base actions that are always available
         long actions = PlaybackStateCompat.ActionPlay |
                        PlaybackStateCompat.ActionPause |
@@ -185,9 +180,6 @@ public sealed class MediaSessionManager
         
         var positionMs = (long)position.TotalMilliseconds;
         var durationMs = (long)duration.TotalMilliseconds;
-        
-        Logger.Debug("UpdatePlaybackPosition called: Position={Position}ms, Duration={Duration}ms, canPlayNext: {CanPlayNext}, canPlayPrevious: {CanPlayPrevious}", 
-            positionMs, durationMs, canPlayNext, canPlayPrevious);
         
         // Base actions that are always available
         long actions = PlaybackStateCompat.ActionPlay |
@@ -245,13 +237,11 @@ public sealed class MediaSessionManager
             if (!string.IsNullOrEmpty(existingMediaId))
             {
                 builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, existingMediaId);
-                Logger.Debug("Preserved existing MediaId '{MediaId}' in metadata update", existingMediaId);
             }
             else if (scheduleId.HasValue)
             {
                 // Set MediaId if provided and not already present
                 builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
-                Logger.Debug("Set MediaId to scheduleId '{ScheduleId}' in metadata update", scheduleId.Value);
             }
             
             // Preserve existing artwork
@@ -259,19 +249,16 @@ public sealed class MediaSessionManager
             if (existingArtwork != null)
             {
                 builder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-                Logger.Debug("Preserved existing artwork bitmap in metadata update");
             }
         }
         else if (scheduleId.HasValue)
         {
             // Set MediaId if no existing metadata and scheduleId is provided
             builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
-            Logger.Debug("Set MediaId to scheduleId '{ScheduleId}' in metadata update (no existing metadata)", scheduleId.Value);
         }
         
         var metadata = builder.Build();
         _mediaSession?.SetMetadata(metadata);
-        Logger.Debug("UpdateMetadata completed for title: {Title}, artist: {Artist}", title, artist);
     }
 
     /// <summary>
@@ -280,9 +267,7 @@ public sealed class MediaSessionManager
     /// </summary>
     public void ClearMetadata()
     {
-        Logger.Debug("ClearMetadata called");
         _mediaSession?.SetMetadata(null);
-        Logger.Debug("ClearMetadata completed");
     }
 
     /// <summary>
@@ -291,7 +276,6 @@ public sealed class MediaSessionManager
     /// </summary>
     public void UpdatePlaybackStateForStop()
     {
-        Logger.Debug("UpdatePlaybackStateForStop called");
         var builder = new PlaybackStateCompat.Builder()
             .SetActions(PlaybackStateCompat.ActionPlay) // Only allow Play action when stopped
             .SetState(
@@ -302,7 +286,6 @@ public sealed class MediaSessionManager
             );
 
         _mediaSession?.SetPlaybackState(builder.Build());
-        Logger.Debug("UpdatePlaybackStateForStop completed");
     }
 
     /// <summary>
@@ -310,8 +293,6 @@ public sealed class MediaSessionManager
     /// </summary>
     public void SetPlaybackStatus(PlayStatus status, bool canPlayNext = false, bool canPlayPrevious = false)
     {
-        Logger.Debug("SetPlaybackStatus called with status: {Status}, canPlayNext: {CanPlayNext}, canPlayPrevious: {CanPlayPrevious}", 
-            status, canPlayNext, canPlayPrevious);
         if (_mediaSession == null)
         {
             Logger.Warning("MediaSessionCompat is null, cannot set playback status. Call GetOrCreate() first.");
@@ -352,9 +333,6 @@ public sealed class MediaSessionManager
             }
             // Keep session active when paused (allows resume)
         }
-
-        Logger.Debug("MediaSessionCompat playback status updated to: {Status} (State: {State})", status, state);
-        Logger.Debug("SetPlaybackStatus completed for status: {Status}", status);
     }
 
     /// <summary>
@@ -364,7 +342,6 @@ public sealed class MediaSessionManager
     /// </summary>
     private void SetNextScheduleMetadata()
     {
-        Logger.Debug("SetNextScheduleMetadata called");
         try
         {
             var defaultScheduleService = _serviceProvider.GetRequiredService<IDefaultScheduleService>();
@@ -388,8 +365,6 @@ public sealed class MediaSessionManager
                         
                         if (isPlaying)
                         {
-                            Logger.Debug("SetNextScheduleMetadata: Playback is active (state: {State}), skipping metadata update to avoid overwriting current schedule", 
-                                playbackState?.State);
                             return;
                         }
                         
@@ -398,8 +373,6 @@ public sealed class MediaSessionManager
                         var currentMediaId = _mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
                         if (!string.IsNullOrEmpty(currentMediaId) && currentMediaId == metadata.ScheduleId.ToString())
                         {
-                            Logger.Debug("SetNextScheduleMetadata: Current metadata already shows schedule {ScheduleId}, skipping update", 
-                                metadata.ScheduleId);
                             return;
                         }
                         
@@ -421,13 +394,9 @@ public sealed class MediaSessionManager
                         if (existingArtwork != null)
                         {
                             metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-                            Logger.Debug("Preserved existing artwork bitmap in SetNextScheduleMetadata");
                         }
                         
                         _mediaSession?.SetMetadata(metadataBuilder.Build());
-                        
-                        Logger.Information("Set next schedule metadata: ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}, HasArtwork={HasArtwork}", 
-                            metadata.ScheduleId, metadata.Title, metadata.Artist, existingArtwork != null);
                     });
                 }
                 catch (Exception ex)
@@ -465,10 +434,7 @@ public sealed class MediaSessionManager
     {
         get
         {
-            Logger.Debug("Token property accessed");
-            var token = _mediaSession!.SessionToken;
-            Logger.Debug("Token property returning token: {Token}", token != null ? "available" : "null");
-            return token;
+            return _mediaSession!.SessionToken;
         }
     }
 }

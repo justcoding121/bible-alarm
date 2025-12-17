@@ -15,7 +15,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 
 namespace Bible.Alarm.Services.Media;
 
-public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElementMessage>, IDisposable
+public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>, IDisposable
 {
     private readonly ILogger _logger;
     private readonly IMediaElementService _mediaElementService;
@@ -90,8 +90,8 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         // MediaElement will be initialized lazily when first accessed
         // Event handlers will be attached in PrepareAsync
 
-        // Register for RecreateMediaElementMessage to unsubscribe when MediaElement is recreated
-        WeakReferenceMessenger.Default.Register<RecreateMediaElementMessage>(this);
+        // Register for DestroyMediaElementMessage to unsubscribe when MediaElement is destroyed
+        WeakReferenceMessenger.Default.Register<DestroyMediaElementMessage>(this);
     }
 
     public async Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false)
@@ -142,6 +142,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             var processedUri = iOSMediaElementHelper.ProcessUriForMediaElement(track.Uri, _logger);
             iOSMediaElementHelper.SetSourceAndVolume(_mediaElement, processedUri, _logger);
 #elif ANDROID
+            // Handler is guaranteed to exist - GetMediaElementAsync() creates it for headless mode
             // CRITICAL: We MUST set a valid Source on MediaElement itself
             // even when using ExoPlayer directly for the queue.
             // Otherwise MediaElement stays in State.None forever.
@@ -507,12 +508,12 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
             });
             _logger.Information("ReleaseMediaSession called - notification should be removed");
             
-            // Wait for RecreateMediaElementMessage to be processed and MediaElement to be cleared
+            // Wait for DestroyMediaElementMessage to be processed and MediaElement to be cleared
             // This ensures MediaElement is set to null before ResetAsync completes
             await Task.Delay(200);
             
             // Clear the MediaElement reference after it's been disposed
-            // The RecreateMediaElementMessage handler will set _mediaElement = null, but we ensure it here too
+            // The DestroyMediaElementMessage handler will set _mediaElement = null, but we ensure it here too
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (_mediaElement != null)
@@ -620,7 +621,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
         _isDisposed = true;
         
         // Unregister from messages
-        WeakReferenceMessenger.Default.Unregister<RecreateMediaElementMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<DestroyMediaElementMessage>(this);
 
         // Unsubscribe from current MediaElement if it exists
         if (_mediaElement != null)
@@ -633,16 +634,16 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<RecreateMediaElement
     }
 
     /// <summary>
-    /// Handles RecreateMediaElementMessage by unsubscribing from the old MediaElement.
-    /// This is called when BootstrapPage disposes and recreates the MediaElement.
+    /// Handles DestroyMediaElementMessage by unsubscribing from the MediaElement.
+    /// This is called when MediaElement is destroyed after playback stops/ends.
     /// </summary>
-    public void Receive(RecreateMediaElementMessage message)
+    public void Receive(DestroyMediaElementMessage message)
     {
         if (_mediaElement != null)
         {
-            _logger.Information("Received RecreateMediaElementMessage - unsubscribing from old MediaElement");
+            _logger.Information("Received DestroyMediaElementMessage - unsubscribing from MediaElement");
             UnsubscribeFromMediaElement(_mediaElement);
-            // Clear reference since MediaElement is being recreated
+            // Clear reference since MediaElement is being destroyed
             _mediaElement = null;
         }
     }

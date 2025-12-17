@@ -472,8 +472,8 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             logger.Debug("Disconnected MediaElement handler - MediaSession released");
 
             // 4. Send message to BootstrapPage to dispose MediaElement with its ExoPlayer instance
-            WeakReferenceMessenger.Default.Send(new RecreateMediaElementMessage());
-            logger.Information("Sent RecreateMediaElementMessage to BootstrapPage - MediaElement will be recreated");
+            WeakReferenceMessenger.Default.Send(new DestroyMediaElementMessage());
+            logger.Information("Sent DestroyMediaElementMessage to BootstrapPage - MediaElement will be recreated");
 
             // 5. Cancel the hard-coded notification ID + all (extra safety to ensure notification is gone)
             var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;

@@ -97,28 +97,12 @@ public class MediaSessionEffect(
                         if (artworkBitmap != null)
                         {
                             metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
-                            Logger.Debug("MediaSessionCompat artwork set from: {ArtworkUrl}", action.ArtworkUrl);
-                        }
-                        else
-                        {
-                            Logger.Debug("Failed to load artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
                         }
                     }
                     catch (Exception ex)
                     {
                         Logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
                     }
-                }
-                
-                if (scheduleId.HasValue)
-                {
-                    Logger.Debug("MediaSessionCompat metadata updated with ScheduleId from state: Title={Title}, Artist={Artist}, Album={Album}, ScheduleId={ScheduleId}, HasArtwork={HasArtwork}",
-                        action.Title, action.Artist, action.Album, scheduleId.Value, !string.IsNullOrEmpty(action.ArtworkUrl));
-                }
-                else
-                {
-                    Logger.Debug("MediaSessionCompat metadata updated: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}",
-                        action.Title, action.Artist, action.Album, !string.IsNullOrEmpty(action.ArtworkUrl));
                 }
                 
                 session.SetMetadata(metadataBuilder.Build());
@@ -155,7 +139,6 @@ public class MediaSessionEffect(
                     var metadataBuilder = new MediaMetadataCompat.Builder(currentMetadata);
                     metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
                     session.SetMetadata(metadataBuilder.Build());
-                    Logger.Debug("MediaSessionCompat duration updated: {Duration}ms", durationMs);
                 }
             }
         }
