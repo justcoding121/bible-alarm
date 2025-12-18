@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Android.Content;
 using Android.Views;
 using Android.Widget;
@@ -37,8 +38,14 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	MediaItem.Builder? mediaItem;
 	BoundServiceConnection? connection;
 
+	private static bool _globalExoPlayerCreated = false;
+	private static readonly object _globalExoPlayerLock = new object();
+	private static PlatformMediaElement? _globalPlayer;
+	private static MediaSession? _globalSession;
+
 	/// <summary>
 	/// The platform native counterpart of <see cref="MediaElement"/>.
+	/// Null in headless mode (audio-only, no view required).
 	/// </summary>
 	protected PlayerView? PlayerView { get; set; }
 
@@ -126,58 +133,110 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 
 	/// <summary>
 	/// Creates the corresponding platform view of <see cref="MediaElement"/> on Android.
+	/// Modified for headless (audio-only) playback - no TextureView/Surface required.
 	/// </summary>
 	/// <returns>The platform native counterpart of <see cref="MediaElement"/>.</returns>
 	/// <exception cref="NullReferenceException">Thrown when <see cref="Context"/> is <see langword="null"/> or when the platform view could not be created.</exception>
-	[MemberNotNull(nameof(Player), nameof(PlayerView), nameof(session))]
-	public (PlatformMediaElement platformView, PlayerView PlayerView) CreatePlatformView(AndroidViewType androidViewType)
+	[MemberNotNull(nameof(Player), nameof(session))]
+	public (PlatformMediaElement platformView, PlayerView? PlayerView) CreatePlatformView(AndroidViewType androidViewType)
 	{
-		Player = new ExoPlayerBuilder(MauiContext.Context).Build() ?? throw new InvalidOperationException("Player cannot be null");
-		Player.AddListener(this);
+		RunOnMainThread(() =>
+		{
+			lock (_globalExoPlayerLock)
+			{
+				// If another MediaManager already created the shared player, just reuse it.
+				if (_globalExoPlayerCreated && _globalPlayer is not null && _globalSession is not null)
+				{
+					Player = _globalPlayer;
+					session = _globalSession;
+					return;
+				}
 
-		if (androidViewType is AndroidViewType.SurfaceView)
-		{
-			PlayerView = new PlayerView(MauiContext.Context)
-			{
-				Player = Player,
-				UseController = false,
-				ControllerAutoShow = false,
-				LayoutParameters = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent)
-			};
-		}
-		else if (androidViewType is AndroidViewType.TextureView)
-		{
-			if (MauiContext.Context?.Resources is null)
-			{
-				throw new InvalidOperationException("Unable to retrieve Android Resources");
+				if (_globalExoPlayerCreated)
+				{
+					// Defensive: created flag is set but shared instances are missing. Reset and recreate.
+					_globalExoPlayerCreated = false;
+				}
+
+				_globalExoPlayerCreated = true;
 			}
 
-			var resources = MauiContext.Context.Resources;
-			var xmlResource = resources.GetXml(Microsoft.Maui.Resource.Layout.textureview);
-			xmlResource.Read();
-
-			var attributes = Android.Util.Xml.AsAttributeSet(xmlResource)!;
-
-			PlayerView = new PlayerView(MauiContext.Context, attributes)
+			// Use MauiContext.Context - guaranteed to be available when PrepareAndPlayAsync is called
+			// (bootstrap completes before PrepareAndPlayAsync is called)
+			var context = MauiContext.Context;
+			if (context == null)
 			{
-				Player = Player,
-				UseController = false,
-				ControllerAutoShow = false,
-				LayoutParameters = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent)
-			};
-		}
-		else
+				lock (_globalExoPlayerLock)
+				{
+					_globalExoPlayerCreated = false;
+				}
+				throw new InvalidOperationException("Cannot create ExoPlayer - MauiContext.Context is null. Ensure bootstrap has completed before calling PrepareAndPlayAsync.");
+			}
+
+			Log.I("MediaManager", $"MediaManager: Creating ExoPlayer directly via ExoPlayerBuilder. Context: {context.GetType().FullName}");
+
+			// Direct creation - no reflection needed
+			// Xamarin.AndroidX.Media3 bindings expose ExoPlayer.Builder as ExoPlayerBuilder
+			var exoPlayer = new ExoPlayerBuilder(context).Build();
+
+			Player = exoPlayer;
+			Player.AddListener(this);
+
+			// Headless audio-only config (critical for no surface/view)
+			Player.SetVideoSurfaceView(null);  // No surface ever
+
+			Log.I("MediaManager", $"MediaManager: ExoPlayer created headlessly. Type: {Player.GetType().FullName}");
+
+			var mediaSession = new MediaSession.Builder(Platform.AppContext, Player);
+			mediaSession.SetId(Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..8]);
+
+			session ??= mediaSession.Build() ?? throw new InvalidOperationException("Session cannot be null");
+			ArgumentNullException.ThrowIfNull(session.Id);
+
+			lock (_globalExoPlayerLock)
+			{
+				_globalPlayer = Player;
+				_globalSession = session;
+			}
+		});
+
+		// Always headless mode - no PlayerView needed for audio-only playback
+		PlayerView? playerView = null;
+		return (Player, playerView);
+	}
+
+	static void RunOnMainThread(Action action)
+	{
+		if (Microsoft.Maui.ApplicationModel.MainThread.IsMainThread)
 		{
-			throw new NotSupportedException($"{androidViewType} is not yet supported");
+			action();
+			return;
 		}
 
-		var mediaSession = new MediaSession.Builder(Platform.AppContext, Player);
-		mediaSession.SetId(Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..8]);
+		Exception? ex = null;
+		using var evt = new ManualResetEventSlim(false);
+		var handler = new Android.OS.Handler(Android.OS.Looper.MainLooper);
+		handler.Post(() =>
+		{
+			try
+			{
+				action();
+			}
+			catch (Exception e)
+			{
+				ex = e;
+			}
+			finally
+			{
+				evt.Set();
+			}
+		});
 
-		session ??= mediaSession.Build() ?? throw new InvalidOperationException("Session cannot be null");
-		ArgumentNullException.ThrowIfNull(session.Id);
-
-		return (Player, PlayerView);
+		evt.Wait();
+		if (ex != null)
+		{
+			throw ex;
+		}
 	}
 
 	/// <summary>
@@ -534,6 +593,13 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 			}
 
 			client.Dispose();
+
+			lock (_globalExoPlayerLock)
+			{
+				_globalExoPlayerCreated = false;
+				_globalPlayer = null;
+				_globalSession = null;
+			}
 		}
 	}
 

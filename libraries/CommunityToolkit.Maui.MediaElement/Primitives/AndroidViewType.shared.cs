@@ -15,5 +15,10 @@ public enum AndroidViewType
 	/// <summary>
 	/// Create MediaElement on Android using TextureView
 	/// </summary>
-	TextureView
+	TextureView,
+
+	/// <summary>
+	/// Headless mode - no view created (audio-only playback, e.g., Android Auto)
+	/// </summary>
+	None
 }

@@ -1,10 +1,21 @@
 #nullable enable
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using CommunityToolkit.Maui.Core.Handlers;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Maui;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Handlers;
+using Microsoft.Maui.Platform;
 using Serilog;
+#if ANDROID
+using Android.App;
+using Android.Content;
+#endif
 
 namespace Bible.Alarm.Services.Media;
 
@@ -12,7 +23,7 @@ namespace Bible.Alarm.Services.Media;
 /// Service for managing and accessing the MediaElement instance.
 /// Handles creation and retrieval of MediaElement from BootstrapPage.
 /// Thread-safe: ensures MediaElement creation happens on the main thread to prevent deadlocks and crashes.
-/// Also handles MediaElement disposal and recreation when DestroyMediaElementMessage is received.
+/// Also handles MediaElement disposal when DestroyMediaElementMessage is received.
 /// MediaElement can exist without being attached to BootstrapPage container (e.g., when app is backgrounded).
 /// When BootstrapPage becomes available, MediaElement will be reattached automatically.
 /// </summary>
@@ -25,6 +36,12 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     // Store MediaElement instance independently of BootstrapPage container
     // This allows MediaElement to exist when app is backgrounded (no UI)
     private MediaElement? _mediaElementInstance;
+    // Track if handler has been created to prevent duplicate ExoPlayer creation
+    private bool _handlerCreated = false;
+
+    // STATIC flag to prevent duplicate ExoPlayer creation across entire application
+    // This is critical because MediaElementService might be instantiated multiple times
+    private static bool _globalHandlerCreated = false;
 
     public MediaElementService(INavigationService navigationService, ILogger logger)
     {
@@ -50,8 +67,14 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         {
             _logger.Debug("MediaElement instance found in service");
             
-            // Try to attach to BootstrapPage if it's available
+#if !ANDROID
+            // Try to attach to BootstrapPage if it's available (iOS/Windows only)
+            // Android: Skip UI attachment - MediaElement runs headlessly
             TryAttachToBootstrapPage(existingInstance);
+#else
+            // Android: Ensure handler exists for existing MediaElement
+            await EnsureHandlerCreatedAsync(existingInstance).ConfigureAwait(false);
+#endif
             
             return existingInstance;
         }
@@ -62,6 +85,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         
         MediaElement? newMediaElement = null;
         
+        // Always create MediaElement on main thread
         if (MainThread.IsMainThread)
         {
             newMediaElement = CreateMediaElementOnMainThread();
@@ -90,9 +114,15 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         
         _logger.Information("New MediaElement created and stored in service (will attempt UI attachment separately)");
         
-        // Try to attach to BootstrapPage if it's available (non-blocking, non-critical)
+#if ANDROID
+        // Android: Create handler immediately for headless mode
+        // Handler must exist before Source is set (MapSource requires handler)
+        await EnsureHandlerCreatedAsync(newMediaElement).ConfigureAwait(false);
+#else
+        // Try to attach to BootstrapPage if it's available (iOS/Windows only)
         // MediaElement will work for playback even if attachment fails (e.g., UI is disposed)
         TryAttachToBootstrapPage(newMediaElement);
+#endif
         
         return newMediaElement;
     }
@@ -100,6 +130,8 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     /// <summary>
     /// Creates a new MediaElement instance on the main thread.
     /// Does not attach to BootstrapPage - that's handled separately by TryAttachToBootstrapPage.
+    /// Android: Handler must be created manually in headless mode (no parent view).
+    /// Handler is required before Source can be set (MapSource requires handler to exist).
     /// </summary>
     private MediaElement CreateMediaElementOnMainThread()
     {
@@ -119,6 +151,116 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
 
         return newMediaElement;
     }
+
+#if ANDROID
+    /// <summary>
+    /// Ensures MediaElement handler is created for headless Android operation.
+    /// Must be called on main thread after bootstrap completes.
+    /// </summary>
+    private async Task EnsureHandlerCreatedAsync(MediaElement mediaElement)
+    {
+        _logger.Debug($"EnsureHandlerCreated called - _handlerCreated={_handlerCreated}, _globalHandlerCreated={_globalHandlerCreated}, mediaElement.Handler != null: {mediaElement.Handler != null}");
+
+        // CRITICAL: Check STATIC flag first to prevent duplicate ExoPlayer creation across entire application
+        lock (_lockObject)
+        {
+            if (_globalHandlerCreated)
+            {
+                _logger.Debug("GLOBAL: Handler already created (static flag check), skipping duplicate creation");
+                return;
+            }
+        }
+        
+        if (mediaElement.Handler != null)
+        {
+            lock (_lockObject)
+            {
+                _handlerCreated = true;
+            }
+            _logger.Debug("MediaElement handler already exists");
+            return;
+        }
+
+        if (!MainThread.IsMainThread)
+        {
+            _logger.Debug("EnsureHandlerCreated called from non-main thread - marshalling to main thread");
+            await MainThread.InvokeOnMainThreadAsync(() => EnsureHandlerCreatedAsync(mediaElement)).ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            // Get MauiContext from Application.Current (available after bootstrap)
+            var appHandler = Microsoft.Maui.Controls.Application.Current?.Handler;
+            if (appHandler?.MauiContext == null)
+            {
+                _logger.Warning("Cannot create handler - Application.Current.Handler.MauiContext is null. Bootstrap may not have completed.");
+                return;
+            }
+
+            var mauiContext = appHandler.MauiContext;
+            var dispatcher = Microsoft.Maui.Controls.Application.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                _logger.Warning("Cannot create handler - Application.Current.Dispatcher is null. Bootstrap may not have completed.");
+                return;
+            }
+
+            // Create handler manually
+            var handler = new MediaElementHandler();
+            handler.SetMauiContext(mauiContext);
+
+            // Set VirtualView - this may fail in headless mode due to gesture manager, but we'll handle it
+            try
+            {
+                handler.SetVirtualView(mediaElement);
+            }
+            catch (Exception ex)
+            {
+                //In headless mode, SetVirtualView may fail due to gesture manager setup
+                // Use reflection to set VirtualView directly
+                _logger.Debug(ex, "SetVirtualView failed (expected in headless mode) - using reflection fallback");
+                var virtualViewField = typeof(Microsoft.Maui.Handlers.ElementHandler).GetField("_virtualView",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                virtualViewField?.SetValue(handler, mediaElement);
+            }
+
+            // Trigger CreatePlatformView to initialize MediaManager and ExoPlayer
+            // This will return null in headless mode (expected)
+            // Use reflection since CreatePlatformView is protected
+            var createPlatformViewMethod = typeof(MediaElementHandler).GetMethod("CreatePlatformView", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            createPlatformViewMethod?.Invoke(handler, null);
+            
+            // Attach handler to MediaElement
+            try
+            {
+                mediaElement.Handler = handler;
+            }
+            catch (Exception ex)
+            {
+                // Gesture manager setup may fail - use reflection fallback
+                _logger.Debug(ex, "Failed to set handler via property (expected in headless mode) - using reflection fallback");
+                var handlerField = typeof(Microsoft.Maui.Controls.Element).GetField("_handler", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                handlerField?.SetValue(mediaElement, handler);
+            }
+
+            // Mark handler as created to prevent duplicate ExoPlayer creation
+            lock (_lockObject)
+            {
+                _handlerCreated = true;
+                _globalHandlerCreated = true; // STATIC flag prevents creation across entire app
+            }
+            
+            _logger.Information("MediaElement handler created successfully for headless Android operation");
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to create MediaElement handler - handler will be created when Source is set");
+        }
+    }
+#endif
 
     /// <summary>
     /// Tries to attach MediaElement to BootstrapPage container if BootstrapPage is available.
@@ -180,7 +322,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     /// <summary>
     /// Attaches MediaElement to container. Must be called on main thread.
     /// </summary>
-    private void AttachMediaElementToContainer(MediaElement mediaElement, ContentView mediaElementContainer)
+    private void AttachMediaElementToContainer(MediaElement mediaElement, Microsoft.Maui.Controls.ContentView mediaElementContainer)
     {
         try
         {
@@ -251,6 +393,8 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     /// </summary>
     public void ReattachMediaElementIfNeeded()
     {
+#if !ANDROID
+        // Android: Skip UI attachment - MediaElement runs headlessly
         lock (_lockObject)
         {
             if (_mediaElementInstance != null)
@@ -259,57 +403,94 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
                 TryAttachToBootstrapPage(_mediaElementInstance);
             }
         }
+#endif
     }
 
     /// <summary>
-    /// Handles DestroyMediaElementMessage by disposing the old MediaElement and setting container content to null.
+    /// Handles DestroyMediaElementMessage by disposing the MediaElement and setting container content to null.
     /// This is called after MediaSession release to ensure a clean ExoPlayer instance.
+    /// MediaElement will be recreated automatically by GetMediaElementAsync() when needed for the next playlist.
     /// </summary>
     public void Receive(DestroyMediaElementMessage message)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            ReplaceMediaElement();
+            DestroyMediaElement();
         });
     }
 
     /// <summary>
-    /// Disposes the MediaElement and sets the container content to null.
-    /// The MediaElement will be recreated by GetMediaElementAsync() when needed.
+    /// Destroys the MediaElement by disconnecting handler, disposing resources, and clearing references.
+    /// The MediaElement will be recreated automatically by GetMediaElementAsync() when needed for the next playlist.
     /// </summary>
-    private void ReplaceMediaElement()
+    private void DestroyMediaElement()
     {
         // Use local lock to synchronize with GetMediaElement
         lock (_lockObject)
         {
             try
             {
-                // Dispose the stored MediaElement instance
+                // First, detach MediaElement from UI container (iOS/Windows) before disposing
+                // This ensures proper cleanup order
+                if (_mediaElementInstance != null)
+                {
+#if !ANDROID
+                    // Detach from BootstrapPage container if attached (iOS/Windows only)
+                    var bootstrapPage = _navigationService.GetBootstrapPage(shouldRetry: false);
+                    if (bootstrapPage != null)
+                    {
+                        var mediaElementContainer = bootstrapPage.MediaElementContainerInstance;
+                        if (mediaElementContainer != null && mediaElementContainer.Content == _mediaElementInstance)
+                        {
+                            mediaElementContainer.Content = null;
+                            _logger.Information("MediaElement detached from BootstrapPage container");
+                        }
+                    }
+#endif
+                }
+
+                // Now dispose the stored MediaElement instance
                 if (_mediaElementInstance != null)
                 {
                     _logger.Information("Disposing MediaElement instance");
+                    
+                    // Clear handler reference before disposing MediaElement
+                    // This ensures handler is properly cleaned up
+                    // CRITICAL: Call Dispose() directly instead of DisconnectHandler() because
+                    // DisconnectHandler() override may not be called in headless mode when PlatformView is null.
+                    // Direct disposal bypasses the DisconnectHandler issue and ensures cleanup happens.
+                    if (_mediaElementInstance.Handler != null)
+                    {
+                        try
+                        {
+                            if (_mediaElementInstance.Handler is IDisposable disposableHandler)
+                            {
+                                disposableHandler.Dispose();  // Direct disposal, bypasses DisconnectHandler
+                                _logger.Debug("Handler disposed directly (bypassing DisconnectHandler)");
+                            }
+                            else
+                            {
+                                // Fallback to DisconnectHandler if handler doesn't implement IDisposable
+                                _mediaElementInstance.Handler.DisconnectHandler();
+                                _logger.Debug("Handler disconnected via DisconnectHandler()");
+                            }
+                            _mediaElementInstance.Handler = null;
+                            
+                            // Reset handler created flag so a new one can be created later
+                            _handlerCreated = false;
+                            _globalHandlerCreated = false; // Reset STATIC flag
+                        }
+                        catch (Exception handlerEx)
+                        {
+                            _logger.Warning(handlerEx, "Error disposing handler during MediaElement disposal");
+                        }
+                    }
+                    
                     if (_mediaElementInstance is IDisposable disposable)
                     {
                         disposable.Dispose();
                     }
                     _mediaElementInstance = null;
-                }
-
-                // Also clear BootstrapPage container if available
-                // Use shouldRetry=false to avoid blocking when disposing (e.g., app is backgrounded)
-                var bootstrapPage = _navigationService.GetBootstrapPage(shouldRetry: false);
-                if (bootstrapPage != null)
-                {
-                    var mediaElementContainer = bootstrapPage.MediaElementContainerInstance;
-                    if (mediaElementContainer != null)
-                    {
-                        mediaElementContainer.Content = null;
-                        _logger.Information("MediaElement container content set to null");
-                    }
-                }
-                else
-                {
-                    _logger.Debug("BootstrapPage not available when disposing MediaElement - instance already cleared");
                 }
             }
             catch (Exception ex)

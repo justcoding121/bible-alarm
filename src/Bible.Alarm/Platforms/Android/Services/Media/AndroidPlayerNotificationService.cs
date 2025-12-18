@@ -444,17 +444,16 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     }
 
     /// <summary>
-    /// Removes the notification by disconnecting the handler (which releases MediaSession) and canceling the notification.
-    /// After DisconnectHandler(), the MediaElement handler will be automatically recreated by MAUI when a new Source is set
-    /// and Play() is called. This is the proper way to release a sticky MediaSession-based notification.
+    /// Removes Android-specific notification resources and sends DestroyMediaElementMessage to trigger MediaElement cleanup.
+    /// MediaElement lifecycle (handler disconnect/dispose) is handled by MediaElementService in response to DestroyMediaElementMessage.
+    /// This method focuses on Android-specific cleanup: removing ExoPlayer listener and canceling notifications.
     /// MediaElement 7.0.0 on Android uses notification ID = 1 (confirmed from MediaControlsService.android.cs source code).
-    /// Reference: https://github.com/dotnet/maui/blob/7.0.0/src/Core/src/Platform/Android/MediaElementHandler.cs#L198
     /// </summary>
     private async Task ReleaseMediaSessionInternalAsync(MediaElement mediaElement)
     {
         try
         {
-            logger.Information("Removing notification by disconnecting handler (handler will be recreated on next Play)");
+            logger.Information("Removing Android notification resources and triggering MediaElement cleanup");
 
             // 1. Stop playback and reset source (triggers internal cleanup)
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -464,26 +463,26 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                 mediaElement.Source = null;
             });
 
-            // 2. Remove ExoPlayer listener before disconnecting handler (ExoPlayer will be disposed)
+            // 2. Remove ExoPlayer listener before MediaElement is disposed
+            // This prevents listener callbacks after ExoPlayer is released
             RemoveExoPlayerListener();
 
-            // 3. Disconnect handler - this properly releases the MediaSession and removes the sticky notification
-            mediaElement.Handler?.DisconnectHandler();
-            logger.Debug("Disconnected MediaElement handler - MediaSession released");
-
-            // 4. Send message to BootstrapPage to dispose MediaElement with its ExoPlayer instance
+            // 3. Send message to MediaElementService to destroy MediaElement and disconnect handler
+            // MediaElementService.DestroyMediaElement() will handle handler disconnect and disposal
+            // This centralizes MediaElement lifecycle management in one place
             WeakReferenceMessenger.Default.Send(new DestroyMediaElementMessage());
-            logger.Information("Sent DestroyMediaElementMessage to BootstrapPage - MediaElement will be recreated");
+            logger.Information("Sent DestroyMediaElementMessage - MediaElementService will handle handler disconnect and disposal");
 
-            // 5. Cancel the hard-coded notification ID + all (extra safety to ensure notification is gone)
-            var activity = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
-            if (activity == null)
+            // 4. Cancel the hard-coded notification ID + all (extra safety to ensure notification is gone)
+            // Use Application.Context for headless mode (always available), fallback to CurrentActivity for UI mode
+            var context = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity ?? global::Android.App.Application.Context;
+            if (context == null)
             {
-                logger.Warning("CurrentActivity is null, cannot cancel notification");
+                logger.Warning("Cannot get Android context (Activity or Application.Context), cannot cancel notification");
                 return;
             }
 
-            var notificationManager = activity.GetSystemService(Context.NotificationService) as NotificationManager;
+            var notificationManager = context.GetSystemService(Context.NotificationService) as NotificationManager;
             if (notificationManager == null)
             {
                 logger.Warning("Could not get Android NotificationManager");
@@ -495,7 +494,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             notificationManager.CancelAll();
             logger.Information("Canceled notification ID 1 and all notifications");
 
-            // 5. Samsung-specific: Kill reminders (one-time global fix)
+            // 5. Samsung-specific: Disable notification reminders (one-time global fix)
             try
             {
                 var manufacturer = Microsoft.Maui.Devices.DeviceInfo.Manufacturer;
@@ -527,7 +526,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                 logger.Debug(ex, "Could not disable Samsung notification reminders (setting may not exist)");
             }
 
-            logger.Information("Notification removed - handler will be automatically recreated when MediaElement is used again");
+            logger.Information("Android notification cleanup completed - MediaElementService will handle MediaElement disposal");
         }
         catch (Exception ex)
         {
