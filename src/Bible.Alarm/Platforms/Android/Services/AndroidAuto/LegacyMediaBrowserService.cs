@@ -52,6 +52,37 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     private AndroidAutoScheduleChangeTracker? _scheduleChangeTracker;
     private const string RootId = "__ID_ROOT__";
 
+    // Samsung/phone SystemUI may bind to any exported MediaBrowserService and show a phone media card.
+    // We only want car hosts (Android Auto / AAOS) to connect to this service.
+    static bool IsCarHostPackage(string clientPackageName)
+    {
+        if (string.IsNullOrWhiteSpace(clientPackageName))
+        {
+            return false;
+        }
+
+        // Android Auto (phone projection)
+        if (clientPackageName.Equals("com.google.android.projection.gearhead", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Common AAOS/Car host packages (vary by OEM/build; keep permissive but car-focused)
+        if (clientPackageName.StartsWith("com.android.car.", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Emulator DHU / Google automotive projection variants sometimes use these prefixes
+        if (clientPackageName.StartsWith("com.google.android.", StringComparison.OrdinalIgnoreCase) &&
+            clientPackageName.Contains("car", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     public override void OnCreate()
     {
         base.OnCreate();
@@ -158,6 +189,13 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         Logger.Information("✅ OnGetRoot called for client: {ClientPackageName} (UID: {ClientUid})", 
             clientPackageName, clientUid);
+
+        // Block non-car clients (e.g., Samsung SystemUI) from binding and generating a phone media card.
+        if (!IsCarHostPackage(clientPackageName))
+        {
+            Logger.Information("Rejecting MediaBrowser client (non-car host): {ClientPackageName}", clientPackageName);
+            return null;
+        }
         
         // Standard media root ID for Android Auto/AAOS compatibility
         // The root ID "__ID_ROOT__" is a common practice for media apps
