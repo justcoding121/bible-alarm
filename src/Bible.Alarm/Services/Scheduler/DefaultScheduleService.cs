@@ -1,138 +1,62 @@
 #nullable enable
-using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores;
+using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Scheduler;
 
 /// <summary>
 /// Service for getting the next schedule track metadata for Android Auto MediaSession.
 /// Returns track metadata and scheduleId for the next schedule to be played.
-/// Uses DatabaseSeedService to ensure initial seeding has occurred.
 /// Downloads the first track and uses DisplayMetadataService to get full metadata (same as PreparePlaybackService).
 /// </summary>
 public class DefaultScheduleService(
     ILogger logger,
-    IDatabaseSeedService databaseSeedService,
-    IAlarmScheduleService alarmScheduleService,
-    IGeneralSettingsService generalSettingsService,
+    IState<ApplicationState> applicationState,
+    IState<PlaybackState> playbackState,
     IPlaylistService playlistService,
     IPreparePlaybackService preparePlaybackService,
-    IDisplayMetadataService displayMetadataService,
-    IBibleTranslationService bibleTranslationService,
-    IMelodyMusicService melodyMusicService,
-    IDispatcher dispatcher) : IDefaultScheduleService, IDisposable
+    IDisplayMetadataService displayMetadataService) : IDefaultScheduleService, IDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private bool _isDisposed;
 
     public async Task<ScheduleTrackMetadata> GetNextScheduleTrackMetaDataAsync()
     {
-        // Check if schedules exist before seeding
-        var schedulesExistedBeforeSeed = await alarmScheduleService.AnySchedulesExistAsync(_cancellationTokenSource.Token);
-        
-        // First, ensure initial seeding has occurred (for legacy app support)
-        // This will create a sample schedule if none exists and seeding hasn't happened
-        await databaseSeedService.SeedDefaultAlarmAsync();
+        // IMPORTANT:
+        // This method must NOT call database seeding or create schedules.
+        // Bootstrap guarantees schedules are loaded into Fluxor state, and UI enforces at least one schedule.
+        //
+        // Pick a scheduleId deterministically from state:
+        // - Prefer the currently/most-recently active playback schedule (if available)
+        // - Else prefer the currently selected schedule in state
+        // - Else fall back to the first schedule in the schedule list (guaranteed post-bootstrap)
+        var scheduleId =
+            playbackState.Value.CurrentScheduleId
+            ?? applicationState.Value.CurrentSchedule?.Id
+            ?? applicationState.Value.Schedules.FirstOrDefault()?.Id;
 
-        // Try to get a valid schedule: last played -> first existing -> create sample
-        var schedule = await TryGetLastPlayedScheduleAsync(schedulesExistedBeforeSeed) 
-            ?? await TryGetFirstExistingScheduleAsync(schedulesExistedBeforeSeed)
-            ?? await CreateSampleScheduleAsync();
-
-        var scheduleId = schedule.Id;
+        if (!scheduleId.HasValue || scheduleId.Value <= 0)
+        {
+            logger.Warning("GetNextScheduleTrackMetaDataAsync: No schedules available in state; returning fallback metadata");
+            // Fallback: create "empty" metadata with an invalid schedule id
+            return new ScheduleTrackMetadata
+            {
+                ScheduleId = scheduleId ?? 0,
+                Title = "",
+                Artist = "",
+                Album = ""
+            };
+        }
 
         // Get track metadata for the schedule
-        return await GetTrackMetadataForScheduleAsync(scheduleId);
-    }
-
-    private async Task<AlarmSchedule?> TryGetLastPlayedScheduleAsync(bool schedulesExistedBeforeSeed)
-    {
-        var lastPlayedSetting = await generalSettingsService.GetGeneralSettingAsync(
-            AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, 
-            _cancellationTokenSource.Token);
-
-        if (string.IsNullOrEmpty(lastPlayedSetting?.Value))
-        {
-            logger.Debug("No last played schedule found in general settings, will create sample schedule");
-            return null;
-        }
-
-        if (!int.TryParse(lastPlayedSetting.Value, out int lastPlayedScheduleId))
-        {
-            logger.Warning("Invalid last played schedule ID format in general settings: {Value}, will create sample schedule", 
-                lastPlayedSetting.Value);
-            return null;
-        }
-
-        logger.Debug("Found last played schedule ID in general settings: {ScheduleId}", lastPlayedScheduleId);
-        
-        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-            lastPlayedScheduleId, 
-            includeMusic: true, 
-            includeBibleReading: true, 
-            _cancellationTokenSource.Token);
-
-        if (schedule == null)
-        {
-            logger.Warning("Last played schedule ID {ScheduleId} not found in database, will create sample schedule", 
-                lastPlayedScheduleId);
-            return null;
-        }
-
-        logger.Information("Using most recently played schedule: {ScheduleId}, Name: {Name}", 
-            schedule.Id, schedule.Name);
-        
-        DispatchScheduleIfNeeded(schedule, schedulesExistedBeforeSeed, "schedule created by seed service");
-        return schedule;
-    }
-
-    private async Task<AlarmSchedule?> TryGetFirstExistingScheduleAsync(bool schedulesExistedBeforeSeed)
-    {
-        var schedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
-            includeMusic: true, 
-            includeBibleReading: true, 
-            _cancellationTokenSource.Token);
-
-        if (schedule == null)
-        {
-            return null;
-        }
-
-        logger.Information("Using first existing schedule: {ScheduleId}, Name: {Name}", 
-            schedule.Id, schedule.Name);
-        
-        DispatchScheduleIfNeeded(schedule, schedulesExistedBeforeSeed, "schedule created by seed service");
-        return schedule;
-    }
-
-    private async Task<AlarmSchedule> CreateSampleScheduleAsync()
-    {
-        // Note: GetSampleSchedule creates schedule with IsEnabled = false (disabled by default)
-        logger.Information("No schedules found, creating sample schedule as default schedule");
-        var sampleSchedule = await AlarmSchedule.GetSampleSchedule(false, bibleTranslationService, melodyMusicService);
-
-        // Save the sample schedule to database using AlarmScheduleService
-        var schedule = await alarmScheduleService.AddScheduleAsync(sampleSchedule, _cancellationTokenSource.Token);
-
-        logger.Information("Sample schedule created and saved: {ScheduleId}, Name: {Name}", 
-            schedule.Id, schedule.Name);
-
-        // Dispatch the newly created schedule
-        logger.Debug("Dispatching AddScheduleAction for newly created schedule");
-        dispatcher.Dispatch(new AddScheduleAction(schedule));
-        
-        return schedule;
+        return await GetTrackMetadataForScheduleAsync(scheduleId.Value);
     }
 
     private async Task<ScheduleTrackMetadata> GetTrackMetadataForScheduleAsync(int scheduleId)
@@ -175,15 +99,6 @@ public class DefaultScheduleService(
             Artist = firstPlayItem.Metadata?.PublicationCode ?? "",
             Album = firstPlayItem.Metadata?.LanguageCode
         };
-    }
-
-    private void DispatchScheduleIfNeeded(AlarmSchedule schedule, bool schedulesExistedBeforeSeed, string reason)
-    {
-        if (!schedulesExistedBeforeSeed)
-        {
-            logger.Debug("Dispatching AddScheduleAction for {Reason}", reason);
-            dispatcher.Dispatch(new AddScheduleAction(schedule));
-        }
     }
 
     public void Dispose()

@@ -57,6 +57,20 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         base.OnCreate();
         
         Logger.Information("CarAppService.OnCreate() called - Ensuring MauiApp is created");
+
+        // Create the DI container immediately (fast) so ServiceProviderManager is available synchronously.
+        // Then publish a blank, non-interactive loading UI to Android Auto ASAP.
+        try
+        {
+            MauiAppHolder.CreateAndStore();
+            var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
+            mediaSessionManager?.GetOrCreate(true);
+            mediaSessionManager?.SetBlankLoadingState();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "CarAppService.OnCreate: failed to create MauiApp / initialize MediaSession loading state");
+        }
         
         // Ensure MauiApp is created and bootstrap is initialized (idempotent - safe to call multiple times)
         // Bootstrap initialization is thread-safe and will only run once even if called from multiple services
@@ -64,7 +78,6 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         {
             try
             {
-                MauiAppHolder.CreateAndStore();
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 Logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialization started");
                 
@@ -119,6 +132,9 @@ public class CarAppService : AndroidX.Car.App.CarAppService
                     metadata.Artist,
                     metadata.Album,
                     metadata.ScheduleId);
+
+                // Return to stopped state (idle) with normal actions once metadata is ready.
+                mediaSessionManager.UpdatePlaybackStateForStop();
                 
                 Logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
                     metadata.ScheduleId, metadata.Title, metadata.Artist);
@@ -437,12 +453,12 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         
         try
         {
-            // Immediately update MediaSession to Loading state to prevent "Getting your selection" message
-            // This tells Android Auto that playback is starting, so it doesn't show the loading message
+            // Immediately update MediaSession to a non-interactive Buffering state.
+            // This prevents Android Auto from showing tappable controls / "Getting your selection" while we start playback.
             try
             {
-                _mediaSessionManager.SetPlaybackStatus(PlayStatus.Loading);
-                Logger.Debug("Set MediaSession to Loading state immediately on click");
+                _mediaSessionManager.SetBufferingNoControlsState();
+                Logger.Debug("Set MediaSession to buffering no-controls state immediately on click");
             }
             catch (Exception mediaEx)
             {

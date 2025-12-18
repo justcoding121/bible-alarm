@@ -91,7 +91,9 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         {
             _logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}", 
                 _currentScheduleId.Value, scheduleId);
-            await StopAsyncInternal(skipMarkAsPlayed: true); // Stop without marking as played since we're switching schedules
+            // Mark current track as played to advance TrackNumber, but skip saving "last played" since we're switching
+            await MarkCurrentTrackAsPlayedAsync();
+            await StopAsyncInternal(skipMarkAsPlayed: true, skipSaveLastPlayed: true);
         }
         
         if (IsPreparingOrPlayingInternal)
@@ -114,6 +116,10 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             // Dispatch playback started action BEFORE preparing tracks so modal opens
             // This ensures the modal is visible when we show error messages or play fallback
             _dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
+
+            // Immediately set loading/buffering status for any new schedule start (phone tap or Android Auto play).
+            // This keeps UI/Android Auto from showing "idle" controls with empty metadata while we prepare tracks.
+            _dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Loading));
             
             // Run track preparation (including downloads) on background thread to avoid blocking main thread
             // This ensures UI remains responsive during download/preparation phase
@@ -341,7 +347,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         await StopAsyncInternal(skipMarkAsPlayed: false);
     }
 
-    private async Task StopAsyncInternal(bool skipMarkAsPlayed)
+    private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false)
     {
         _logger.Information("StopAsync called - stopping alarm completely");
         
@@ -357,7 +363,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             await MarkCurrentTrackAsPlayedAsync();
         }
         
-        if (_currentScheduleId.HasValue)
+        if (_currentScheduleId.HasValue && !skipSaveLastPlayed)
         {
             await _playlistService.SaveLastPlayed(_currentScheduleId.Value);
         }

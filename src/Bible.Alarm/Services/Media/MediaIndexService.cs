@@ -81,67 +81,58 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                         creationDate.UtcDateTime);
                 }
 
-                // Try to find the most recent weekly index file
-                // Harvester runs weekly on Sundays, so we check the last few weeks
-                var time = DateTime.UtcNow;
-                // Check up to 4 weeks back to find the latest index
-                var weeksToCheck = 4;
-
-                for (var i = 0; i < weeksToCheck; i++)
+                // Single-attempt policy:
+                // We do NOT try previous weeks here because repeated 403/404s can significantly slow bootstrapping
+                // (especially for Android Auto/headless flows). If the current week's index is unavailable,
+                // we fall back to the existing local index (if any).
+                var checkDate = DateTime.UtcNow;
+                var url = $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{checkDate.Day}-{checkDate.Month}-{checkDate.Year}.zip";
+                _logger.Debug("Attempting to download media index from: {Url}", url);
+                
+                byte[] bytes;
+                try
                 {
-                    var checkDate = time.AddDays(-i * 7);
-                    // Use new format with prefix
-                    var url = $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{checkDate.Day}-{checkDate.Month}-{checkDate.Year}.zip";
-                    _logger.Debug("Attempting to download media index from: {Url} (week {WeekNumber} ago)", url, i);
-                    
-                    byte[] bytes;
-                    try
-                    {
-                        bytes = await _downloadService.DownloadAsync(url);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Warning(ex, "Failed to download media index from {Url}, will try previous week if available", url);
-                        continue;
-                    }
-
-                    if (bytes == null || bytes.Length == 0)
-                    {
-                        _logger.Warning("Downloaded media index from {Url} is empty, trying previous week", url);
-                        continue;
-                    }
-
-                    const string indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
-
-                    if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
-
-                    var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
-
-                    if (await _storageService.FileExists(tmpIndexZipFilePath))
-                        await _storageService.DeleteFile(tmpIndexZipFilePath);
-
-                    await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
-
-                    if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
-                        await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
-
-                    var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
-                    await _storageService.CreateDirectory(extractionDir);
-
-                    ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
-
-                    File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
-                        true);
-
-                    await _storageService.DeleteDirectory(extractionDir);
-                    await _storageService.DeleteFile(tmpIndexZipFilePath);
-
-                    _logger.Information("Successfully updated media index from {Url}", url);
-                    return true;
+                    bytes = await _downloadService.DownloadAsync(url);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Failed to download media index from {Url}, using existing index if available", url);
+                    return false;
                 }
 
-                _logger.Warning("Failed to download media index after checking {WeeksToCheck} weeks, using existing index if available", weeksToCheck);
-                return false;
+                if (bytes == null || bytes.Length == 0)
+                {
+                    _logger.Warning("Downloaded media index from {Url} is empty, using existing index if available", url);
+                    return false;
+                }
+
+                const string indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
+
+                if (!Directory.Exists(IndexRoot)) Directory.CreateDirectory(IndexRoot);
+
+                var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
+
+                if (await _storageService.FileExists(tmpIndexZipFilePath))
+                    await _storageService.DeleteFile(tmpIndexZipFilePath);
+
+                await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
+
+                if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+                    await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+
+                var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
+                await _storageService.CreateDirectory(extractionDir);
+
+                ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
+
+                File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
+                    true);
+
+                await _storageService.DeleteDirectory(extractionDir);
+                await _storageService.DeleteFile(tmpIndexZipFilePath);
+
+                _logger.Information("Successfully updated media index from {Url}", url);
+                return true;
             }
             catch (Exception ex)
             {

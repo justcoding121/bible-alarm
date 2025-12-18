@@ -27,7 +27,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
 {
     private ExoPlayerListener? _exoPlayerListener;
     private IExoPlayer? _currentPlayer;
-
+    
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer using SetMediaSources to enable both Next and Previous buttons.
     /// Uses distinct MediaItems (dummy previous, current, dummy next) with different MediaIds and URI fragments pointing to the same file.
@@ -455,78 +455,14 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         {
             logger.Information("Removing Android notification resources and triggering MediaElement cleanup");
 
-            // 1. Stop playback and reset source (triggers internal cleanup)
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                mediaElement.Stop();
-                // Forces session reset
-                mediaElement.Source = null;
-            });
-
-            // 2. Remove ExoPlayer listener before MediaElement is disposed
-            // This prevents listener callbacks after ExoPlayer is released
+            // 1. Remove our ExoPlayer listener first (best effort) to stop intercepting callbacks.
             RemoveExoPlayerListener();
-
+            
             // 3. Send message to MediaElementService to destroy MediaElement and disconnect handler
             // MediaElementService.DestroyMediaElement() will handle handler disconnect and disposal
             // This centralizes MediaElement lifecycle management in one place
             WeakReferenceMessenger.Default.Send(new DestroyMediaElementMessage());
             logger.Information("Sent DestroyMediaElementMessage - MediaElementService will handle handler disconnect and disposal");
-
-            // 4. Cancel the hard-coded notification ID + all (extra safety to ensure notification is gone)
-            // Use Application.Context for headless mode (always available), fallback to CurrentActivity for UI mode
-            var context = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity ?? global::Android.App.Application.Context;
-            if (context == null)
-            {
-                logger.Warning("Cannot get Android context (Activity or Application.Context), cannot cancel notification");
-                return;
-            }
-
-            var notificationManager = context.GetSystemService(Context.NotificationService) as NotificationManager;
-            if (notificationManager == null)
-            {
-                logger.Warning("Could not get Android NotificationManager");
-                return;
-            }
-
-            // MediaElement 7.0.0 uses notification ID 1 (confirmed from source code)
-            notificationManager.Cancel(1);
-            notificationManager.CancelAll();
-            logger.Information("Canceled notification ID 1 and all notifications");
-
-            // 5. Samsung-specific: Disable notification reminders (one-time global fix)
-            try
-            {
-                var manufacturer = Microsoft.Maui.Devices.DeviceInfo.Manufacturer;
-                if (!string.IsNullOrEmpty(manufacturer) && manufacturer.Contains("samsung", StringComparison.OrdinalIgnoreCase))
-                {
-                    var appContext = Microsoft.Maui.ApplicationModel.Platform.AppContext;
-                    if (appContext != null)
-                    {
-                        Settings.Global.PutInt(
-                            appContext.ContentResolver,
-                            "notification_reminders_enabled", 0);
-                        logger.Debug("Disabled Samsung notification reminders");
-                    }
-                    else
-                    {
-                        logger.Debug("Platform.AppContext is null, skipping Samsung reminder disable");
-                    }
-                }
-            }
-            catch (SecurityException)
-            {
-                // WRITE_SECURE_SETTINGS permission is not available to regular apps
-                // This is expected and can be safely ignored
-                logger.Debug("Could not disable Samsung notification reminders - WRITE_SECURE_SETTINGS permission not available (this is expected)");
-            }
-            catch (Exception ex)
-            {
-                // Catch any other exceptions (e.g., DeviceInfo.Manufacturer access issues)
-                logger.Debug(ex, "Could not disable Samsung notification reminders (setting may not exist)");
-            }
-
-            logger.Information("Android notification cleanup completed - MediaElementService will handle MediaElement disposal");
         }
         catch (Exception ex)
         {

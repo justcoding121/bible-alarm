@@ -465,8 +465,20 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
                         {
                             if (_mediaElementInstance.Handler is IDisposable disposableHandler)
                             {
-                                disposableHandler.Dispose();  // Direct disposal, bypasses DisconnectHandler
-                                _logger.Debug("Handler disposed directly (bypassing DisconnectHandler)");
+                                // Prefer disconnect first to allow MediaElementHandler to detach Media3 listeners cleanly.
+                                // Direct disposal here can lead to Media3 callbacks firing into disposed managed peers.
+                                try
+                                {
+                                    _mediaElementInstance.Handler.DisconnectHandler();
+                                    _logger.Debug("Handler disconnected via DisconnectHandler()");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Debug(ex, "DisconnectHandler threw; continuing with handler disposal (best-effort)");
+                                }
+                                
+                                disposableHandler.Dispose();
+                                _logger.Debug("Handler disposed");
                             }
                             else
                             {

@@ -11,8 +11,8 @@ public interface IDefaultScheduleService
 {
     /// <summary>
     /// Gets the next schedule track metadata.
-    /// Returns the first track metadata from the most recently played schedule if valid.
-    /// Otherwise, creates a sample schedule, saves it to database, and returns its first track metadata.
+    /// Selects scheduleId from Fluxor state (playback/current schedule/first schedule) and returns
+    /// first track metadata for that schedule. Does not seed or create schedules.
     /// </summary>
     Task<ScheduleTrackMetadata> GetNextScheduleTrackMetaDataAsync();
 }

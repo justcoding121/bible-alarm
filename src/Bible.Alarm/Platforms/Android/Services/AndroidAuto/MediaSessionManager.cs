@@ -3,6 +3,9 @@ using Android.Content;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Android.Graphics;
+using Android.Graphics.Drawables;
+using AndroidX.Core.Content;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -106,8 +109,22 @@ public sealed class MediaSessionManager
                     }
 
                     // Start with stopped state — prevents auto-play on bind
-                    // The effect will update this when it receives playback status changes
-                    UpdatePlaybackState(PlaybackStateCompat.StateStopped);
+                    // The effect will update this when it receives playback status changes.
+                    //
+                    // IMPORTANT for Android Auto UX:
+                    // Do NOT start in Stopped/Paused if we are not ready to show the player UI yet.
+                    // Start in a neutral, non-interactive state (STATE_NONE + actions=0).
+                    //
+                    // Immediately present a blank, non-interactive loading UI for Android Auto.
+                    // This does not depend on MAUI bootstrap; it only needs the MediaSession itself.
+                    try
+                    {
+                        AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(_mediaSession, context);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning(ex, "Failed to apply Android Auto blank loading state");
+                    }
 
                     // Verify SessionToken is available
                     if (_mediaSession.SessionToken == null)
@@ -268,6 +285,64 @@ public sealed class MediaSessionManager
     public void ClearMetadata()
     {
         _mediaSession?.SetMetadata(null);
+    }
+
+    /// <summary>
+    /// Sets a blank "loading" state for Android Auto:
+    /// - clears metadata (no title/artist/artwork)
+    /// - disables all transport controls (no tap/play while loading)
+    /// - sets playback state to None (neutral) so hosts don't show "Tap to Open" style affordances
+    /// </summary>
+    public void SetBlankLoadingState()
+    {
+        if (_mediaSession == null)
+        {
+            Logger.Warning("MediaSessionCompat is null, cannot set loading state. Call GetOrCreate() first.");
+            return;
+        }
+
+        try
+        {
+            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(_mediaSession, global::Android.App.Application.Context);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error setting blank loading state");
+        }
+    }
+
+    /// <summary>
+    /// Sets a non-interactive buffering/loading state.
+    /// This can be used during transitions (user clicked a schedule, skip next/prev) before metadata is ready.
+    /// </summary>
+    public void SetBufferingNoControlsState()
+    {
+        if (_mediaSession == null)
+        {
+            Logger.Warning("MediaSessionCompat is null, cannot set buffering state. Call GetOrCreate() first.");
+            return;
+        }
+
+        try
+        {
+            // IMPORTANT:
+            // When switching schedules, Android Auto will otherwise keep showing the previous schedule's
+            // title/artwork until the new track's metadata arrives. Force the UI into a neutral state
+            // (art-only, no text) during buffering.
+            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(_mediaSession, global::Android.App.Application.Context);
+
+            // Disable all controls while buffering so AA doesn't show tappable UI.
+            var builder = new PlaybackStateCompat.Builder()
+                .SetActions(0)
+                .SetState(PlaybackStateCompat.StateBuffering, 0, 0.0f, SystemClock.ElapsedRealtime());
+
+            _mediaSession.SetPlaybackState(builder.Build());
+            SetActive(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error setting buffering no-controls state");
+        }
     }
 
     /// <summary>

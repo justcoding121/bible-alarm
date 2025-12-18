@@ -178,17 +178,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             await _playbackService.SeekToAsync(position);
         });
 
-        // Initialize properties with default values
-        Title = "";
-        SubTitle = "";
-        Description = "";
-        CurrentTime = "00:00";
-        EndTime = "00:00";
-        Progress = 0.0;
-        PlayVisible = true;
-        PauseVisible = false;
-        NextEnabled = false;
-        PreviousEnabled = false;
+        // NOTE:
+        // Do not reset Title/SubTitle/Description/etc here.
+        // UpdateFromState() already hydrated the VM from Fluxor, and resetting afterwards
+        // causes the UI to appear blank (especially noticeable in Android Auto -> later open app flows).
 
         Task.Run(async () =>
         {
@@ -470,7 +463,12 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     /// <summary>
     /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
     /// </summary>
-    public bool AreControlsEnabled => _hasReceivedInitialState && !IsPreparing && !HasError && !IsBusy;
+    public bool AreControlsEnabled =>
+        _hasReceivedInitialState &&
+        !IsPreparing &&
+        !HasError &&
+        !IsBusy &&
+        _playbackState.Value.Status != PlayStatus.Loading;
 
     public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
     
@@ -521,9 +519,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
             
-            // Mark that we've received initial state only when playback is actually playing
-            // This ensures controls are disabled until playback actually starts (not just when track metadata is available)
-            if (!_hasReceivedInitialState && state.Status == PlayStatus.Playing)
+            // Mark that we've received initial state when playback is meaningfully active (Playing or Paused).
+            // We intentionally do NOT treat Loading as "ready" for interactive controls.
+            if (!_hasReceivedInitialState &&
+                (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
             {
                 _hasReceivedInitialState = true;
                 OnPropertyChanged(nameof(AreControlsEnabled));
@@ -576,7 +575,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             var isPlaying = state.Status == PlayStatus.Playing;
             PlayVisible = !isPlaying;
             PauseVisible = isPlaying;
-            
+
             // Notify property changes
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(PreparationProgress));

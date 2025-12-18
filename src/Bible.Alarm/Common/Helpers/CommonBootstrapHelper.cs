@@ -15,6 +15,9 @@ using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Effects;
+#endif
 
 namespace Bible.Alarm.Common.Helpers;
 
@@ -136,6 +139,22 @@ public static class CommonBootstrapHelper
         
         // Set the static store reference
         ReduxContainer.Store = store;
+
+#if ANDROID
+        // Android Auto can start the process without constructing the MAUI App UI (App.xaml.cs),
+        // so register MediaSessionEffect message handlers here to ensure progress updates flow to MediaSession.
+        // (Metadata/status/navigation are handled via Fluxor effects, but position comes from MVVM messages.)
+        try
+        {
+            var mediaSessionEffect = ServiceProviderManager.GetService<MediaSessionEffect>();
+            mediaSessionEffect?.RegisterMessageHandlers();
+            Log.Logger.Debug("MediaSessionEffect message handlers registered (bootstrap)");
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Failed to register MediaSessionEffect message handlers (bootstrap)");
+        }
+#endif
         
         Log.Logger.Information("Fluxor store initialized successfully");
     }
