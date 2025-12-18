@@ -1,7 +1,6 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Foundation;
@@ -9,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using UIKit;
 using UserNotifications;
+using BackgroundTasks;
 
 namespace Bible.Alarm.Platforms.iOS
 {
@@ -71,8 +71,11 @@ namespace Bible.Alarm.Platforms.iOS
                 // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+
                 if (UIDevice.CurrentDevice.CheckSystemVersion(13, 0))
                 {
-                    // Use BGAppRefreshTask for iOS 13+
-                    // This is configured in the app's Info.plist
+                    // Use BGTaskScheduler for iOS 13+ to register background tasks
+                    // Media index update is handled separately from scheduler
+                    RegisterMediaIndexUpdateBackgroundTask();
+                    // Schedule the initial background task run
+                    ScheduleMediaIndexUpdateBackgroundTask();
                 }
                 else
                 {
@@ -213,7 +216,8 @@ namespace Bible.Alarm.Platforms.iOS
             try
             {
                 // Ensure MauiApp is created exactly once (thread-safe)
-                // This is the iOS background fetch entry point
+                // This is the iOS background fetch entry point for scheduler only
+                // Media index update is handled separately via UpdateMediaIndexBackgroundTask
                 MauiAppHolder.CreateAndStore();
                 // Run bootstrapper after CreateAndStore for background launch
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
@@ -224,10 +228,6 @@ namespace Bible.Alarm.Platforms.iOS
                 // ISchedulerService is a singleton, so don't dispose it
                 var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
                 downloaded = await schedulerService.HandleAsync();
-
-                // IMediaIndexService is a singleton, so don't dispose it
-                var mediaIndexService = ServiceProviderManager.GetService<IMediaIndexService>();
-                downloaded = downloaded || await mediaIndexService.UpdateIndexIfAvailable();
             }
             catch (Exception e)
             {
@@ -236,6 +236,78 @@ namespace Bible.Alarm.Platforms.iOS
 
             // Inform system of fetch results
             completionHandler(downloaded ? UIBackgroundFetchResult.NewData : UIBackgroundFetchResult.NoData);
+        }
+
+        private const string MediaIndexUpdateTaskIdentifier = "com.jthomas.info.Bible.Alarm.MediaIndexUpdate";
+
+        /// <summary>
+        /// Registers the media index update background task with BGTaskScheduler for iOS 13+
+        /// </summary>
+        private void RegisterMediaIndexUpdateBackgroundTask()
+        {
+            try
+            {
+                BGTaskScheduler.Shared.Register(MediaIndexUpdateTaskIdentifier, null, task =>
+                {
+                    HandleMediaIndexUpdateBackgroundTask(task as BGAppRefreshTask);
+                });
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Failed to register media index update background task");
+            }
+        }
+
+        /// <summary>
+        /// Handles the media index update background task when triggered by the system
+        /// </summary>
+        private void HandleMediaIndexUpdateBackgroundTask(BGAppRefreshTask task)
+        {
+            if (task == null) return;
+
+            task.ExpirationHandler = () =>
+            {
+                Logger.Warning("Media index update background task expired");
+            };
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var downloaded = await Services.BackgroundTasks.UpdateMediaIndexBackgroundTask.HandleAsync();
+                    task.SetTaskCompleted(downloaded);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, "Error in media index update background task");
+                    task.SetTaskCompleted(false);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Schedules the next media index update background task
+        /// This should be called after the task completes to schedule the next run
+        /// </summary>
+        public static void ScheduleMediaIndexUpdateBackgroundTask()
+        {
+            try
+            {
+                var request = new BGAppRefreshTaskRequest(MediaIndexUpdateTaskIdentifier)
+                {
+                    EarliestBeginDate = NSDate.FromTimeIntervalSinceNow(60 * 60 * 24) // Schedule for 24 hours from now
+                };
+
+                BGTaskScheduler.Shared.Submit(request, out var error);
+                if (error != null)
+                {
+                    Log.ForContext<AppDelegate>().Warning("Failed to schedule media index update background task: {Error}", error);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.ForContext<AppDelegate>().Error(e, "Error scheduling media index update background task");
+            }
         }
 
         private bool _disposed;

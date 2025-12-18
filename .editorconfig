@@ -113,6 +113,17 @@ csharp_style_prefer_using_alias_directive = true:suggestion
 csharp_style_prefer_readonly_struct = true:suggestion
 csharp_style_prefer_readonly_struct_member = true:suggestion
 
+# Inline arrays (C# 12)
+csharp_style_prefer_inline_array_initialization = true:suggestion
+
+#### C# 13 Modern Features ####
+
+# Ref readonly parameters (C# 13)
+csharp_style_prefer_readonly_ref_parameters = true:suggestion
+
+# Escape sequences in interpolated strings (C# 13)
+csharp_style_prefer_escape_sequences_in_interpolated_strings = true:suggestion
+
 #### Naming conventions ####
 
 # Naming rules
@@ -128,12 +139,36 @@ dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = warning
 dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
 dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
 
+dotnet_naming_rule.private_or_internal_field_should_be_camel_case.severity = warning
+dotnet_naming_rule.private_or_internal_field_should_be_camel_case.symbols = private_or_internal_field
+dotnet_naming_rule.private_or_internal_field_should_be_camel_case.style = camel_case
+
+dotnet_naming_rule.private_or_internal_static_field_should_be_camel_case.severity = warning
+dotnet_naming_rule.private_or_internal_static_field_should_be_camel_case.symbols = private_or_internal_static_field
+dotnet_naming_rule.private_or_internal_static_field_should_be_camel_case.style = camel_case
+
+dotnet_naming_rule.const_should_be_pascal_case.severity = warning
+dotnet_naming_rule.const_should_be_pascal_case.symbols = const
+dotnet_naming_rule.const_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.local_function_should_be_pascal_case.severity = warning
+dotnet_naming_rule.local_function_should_be_pascal_case.symbols = local_function
+dotnet_naming_rule.local_function_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.local_variable_should_be_camel_case.severity = warning
+dotnet_naming_rule.local_variable_should_be_camel_case.symbols = local_variable
+dotnet_naming_rule.local_variable_should_be_camel_case.style = camel_case
+
+dotnet_naming_rule.parameter_should_be_camel_case.severity = warning
+dotnet_naming_rule.parameter_should_be_camel_case.symbols = parameter
+dotnet_naming_rule.parameter_should_be_camel_case.style = camel_case
+
 # Symbol specifications
 dotnet_naming_symbols.interface.applicable_kinds = interface
 dotnet_naming_symbols.interface.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.interface.required_modifiers =
 
-dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum, delegate
 dotnet_naming_symbols.types.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.types.required_modifiers =
 
@@ -141,11 +176,40 @@ dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, meth
 dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.non_field_members.required_modifiers =
 
+dotnet_naming_symbols.private_or_internal_field.applicable_kinds = field
+dotnet_naming_symbols.private_or_internal_field.applicable_accessibilities = internal, private, private_protected
+dotnet_naming_symbols.private_or_internal_field.required_modifiers =
+
+dotnet_naming_symbols.private_or_internal_static_field.applicable_kinds = field
+dotnet_naming_symbols.private_or_internal_static_field.applicable_accessibilities = internal, private, private_protected
+dotnet_naming_symbols.private_or_internal_static_field.required_modifiers = static
+
+dotnet_naming_symbols.const.applicable_kinds = field, local
+dotnet_naming_symbols.const.applicable_accessibilities = *
+dotnet_naming_symbols.const.required_modifiers = const
+
+dotnet_naming_symbols.local_function.applicable_kinds = local_function
+dotnet_naming_symbols.local_function.applicable_accessibilities = *
+dotnet_naming_symbols.local_function.required_modifiers =
+
+dotnet_naming_symbols.local_variable.applicable_kinds = local
+dotnet_naming_symbols.local_variable.applicable_accessibilities = *
+dotnet_naming_symbols.local_variable.required_modifiers =
+
+dotnet_naming_symbols.parameter.applicable_kinds = parameter
+dotnet_naming_symbols.parameter.applicable_accessibilities = *
+dotnet_naming_symbols.parameter.required_modifiers =
+
 # Naming styles
 dotnet_naming_style.pascal_case.required_prefix =
 dotnet_naming_style.pascal_case.required_suffix =
 dotnet_naming_style.pascal_case.word_separator =
 dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.camel_case.required_prefix =
+dotnet_naming_style.camel_case.required_suffix =
+dotnet_naming_style.camel_case.word_separator =
+dotnet_naming_style.camel_case.capitalization = camel_case
 
 dotnet_naming_style.begins_with_i.required_prefix = I
 dotnet_naming_style.begins_with_i.required_suffix =
@@ -170,6 +234,7 @@ csharp_indent_labels = one_less_than_current
 csharp_indent_block_contents = true
 csharp_indent_braces = false
 csharp_indent_case_labels = true
+csharp_indent_case_contents_when_block = true
 
 # Space preferences
 csharp_space_after_cast = false
@@ -185,6 +250,17 @@ csharp_space_between_method_call_parameter_list_parentheses = false
 csharp_space_between_method_call_empty_parameter_list_parentheses = false
 csharp_space_between_method_call_name_and_opening_parenthesis = false
 csharp_space_between_squares = false
+csharp_space_between_empty_squares = false
+csharp_space_after_comma = true
+csharp_space_before_comma = false
+csharp_space_after_dot = false
+csharp_space_before_dot = false
+csharp_space_after_semicolon_in_for_statement = true
+csharp_space_before_semicolon_in_for_statement = false
+csharp_space_around_declaration_statements = false
+csharp_space_before_open_square_brackets = false
+csharp_space_between_empty_square_brackets = false
+csharp_space_between_square_brackets = false
 
 # Wrapping preferences
 csharp_preserve_single_line_statements = true
@@ -216,6 +292,7 @@ csharp_style_prefer_extended_property_pattern = true:suggestion
 csharp_style_prefer_constant_pattern_over_is_expression = true:suggestion
 csharp_style_prefer_pattern_matching_over_member_access_null_check = true:suggestion
 csharp_style_prefer_conditional_expression_over_ref_expression = true:suggestion
+csharp_style_prefer_list_pattern = true:suggestion
 
 # Null-checking preferences
 csharp_style_throw_expression = true:suggestion
@@ -255,6 +332,9 @@ csharp_style_prefer_simplified_boolean_expressions = true:suggestion
 
 # Method group conversion
 csharp_style_prefer_method_group_conversion = true:suggestion
+
+# Conditional expression preferences
+csharp_style_prefer_conditional_expression_over_if = true:suggestion
 
 #### Code Style Rules - Custom Project Rules ####
 

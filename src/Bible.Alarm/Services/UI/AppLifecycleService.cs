@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
@@ -25,9 +24,6 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
             try
             {
                 await Task.Delay(1000);
-
-                var mediaIndexService = _serviceProvider.GetRequiredService<IMediaIndexService>();
-                await mediaIndexService.UpdateIndexIfAvailable();
 
 #if WINDOWS
                 // Reschedule any enabled alarms that may have fired while app was closed
@@ -57,9 +53,6 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
             try
             {
                 await Task.Delay(1000);
-
-                var mediaIndexService = _serviceProvider.GetRequiredService<IMediaIndexService>();
-                await mediaIndexService.UpdateIndexIfAvailable();
 
 #if WINDOWS
                 // Reschedule any enabled alarms that may have fired while app was in background

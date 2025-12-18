@@ -37,11 +37,13 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             // Instead, we'll use a different approach for scheduled tasks
             // Background execution is generally available for desktop apps
             IsBackgroundTaskEnabled = true;
+            
+            // Note: Media index update background task handler is available at:
+            // Platforms.Windows.Services.BackgroundTasks.UpdateMediaIndexBackgroundTask
+            // This can be called from Windows Task Scheduler or app lifecycle events
+            // WinUI 3 doesn't support UWP background tasks the same way as UWP
+            
             return Task.CompletedTask;
-
-            // Note: For WinUI 3 desktop apps, we'll rely on the main application
-            // to handle scheduled tasks rather than system background tasks
-            // This is a limitation of moving from UWP to WinUI 3 desktop
         }
     }
 }
