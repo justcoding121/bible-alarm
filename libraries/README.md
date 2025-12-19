@@ -28,31 +28,43 @@ libraries/
 
 ### Why We're Forking
 
-We're including the MediaElement 7.0.0 source code to fix the Android 14+ notification body tap bug directly in the source, eliminating the need for the 800ms timer workaround.
+We're including the MediaElement 7.0.0 source code to:
+1. Fix critical bugs that affect Android functionality
+2. Add headless playback support for Android Auto integration
+3. Eliminate workarounds by fixing issues directly in the source
 
 ### Fixes Applied
 
-#### ✅ Android 14+ Notification Body Tap Fix (Commit: 804a177)
+#### ✅ Bug Fixes
 
-**Problem**: On Android 14+ (especially Pixel 7a), tapping the notification body did not bring the app to foreground.
-
-**Solution**: Implemented the recommended Android 14+ approach
-
-1. **MediaControlsService.android.cs**:
+1. **Issue #2976 - Android 14+ Notification Body Tap Does Nothing**
+   - **Problem**: On Android 14+ (especially Pixel 7a), tapping the notification body did not bring the app to foreground
+   - **Solution**: Implemented the recommended Android 14+ approach in `MediaControlsService.android.cs`
    - Added fallback `SetContentIntent()` call using the stored PendingIntent from MediaManager
-   - This bypasses view interception and ensures notification body taps work for Android 14+
+   - Uses `Platform.CurrentActivity` (not `AppContext`) for creating the PendingIntent - critical for reliability
+   - Uses `PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent` for proper intent handling
+   - See: https://github.com/CommunityToolkit/Maui/issues/2976
 
-**Key Implementation Details**:
-- Uses `Platform.CurrentActivity` (not `AppContext`) for creating the PendingIntent - this is critical for reliability
-- Uses `PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent` for proper intent handling
-- The fix follows Android's recommended approach for Android 14+ notification body taps
+2. **Issue #2989 - Missing `OnAudioSessionIdChanged` method causes AbstractMethodError crash on Android**
+   - **Problem**: Crash caused by a missing `OnAudioSessionIdChanged` method implementation
+   - **Solution**: Added the missing method implementation to prevent AbstractMethodError when audio session IDs change
+   - See: https://github.com/CommunityToolkit/Maui/issues/2989
 
-### Next Steps
+#### ✅ Android Auto Headless Playback Support
 
-1. ✅ Add the project to the solution
-2. ✅ Reference it instead of the NuGet package
-3. ✅ Fix the notification bug in `Services/MediaControlsService.android.cs` and `Views/MediaManager.android.cs`
-4. ✅ Remove the 800ms timer workaround from `AndroidPlayerNotificationService.cs`
+**Commit**: [55b4e8365f96b11db69fb52dc69f20bab32822ef](https://github.com/justcoding121/bible-alarm/commit/55b4e8365f96b11db69fb52dc69f20bab32822ef)
+
+**Problem**: MediaElement requires a UI view (TextureView/SurfaceView) to function, which prevents headless audio playback needed for Android Auto.
+
+**Solution**: Implemented comprehensive headless playback support:
+
+- **Added `AndroidViewType.None` enum value** - Enables headless mode where no UI view is created
+- **Modified `MediaElementHandler.android.cs`** - Updated `CreatePlatformView()` to return `null` in headless mode, allowing MediaElement to work without a parent view
+- **Enhanced `MediaManager.android.cs`** - Implemented shared ExoPlayer instance management and ensured ExoPlayer works without a video surface for audio-only playback
+- **Updated `MediaElementService.cs`** - Added manual handler creation for Android headless mode, ensuring the handler exists before setting media source
+- **Modified notification service** - Updated to work with Application.Context for headless scenarios where CurrentActivity may be null
+
+These changes allow the MediaElement to function properly in Android Auto scenarios where the UI may not be visible but audio playback must continue. The implementation ensures that ExoPlayer can operate in headless mode without requiring a TextureView or SurfaceView, which is critical for background audio playback in Android Auto.
 
 ### License
 
