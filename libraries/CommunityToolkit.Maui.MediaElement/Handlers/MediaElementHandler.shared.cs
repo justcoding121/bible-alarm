@@ -1,5 +1,6 @@
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
+using Microsoft.Maui.Handlers;
 
 namespace CommunityToolkit.Maui.Core.Handlers;
 
@@ -8,53 +9,53 @@ namespace CommunityToolkit.Maui.Core.Handlers;
 /// </summary>
 public partial class MediaElementHandler
 {
-	/// <summary>
-	/// The default property mapper for this handler.
-	/// </summary>
-	public static IPropertyMapper<MediaElement, MediaElementHandler> PropertyMapper = new PropertyMapper<MediaElement, MediaElementHandler>(ViewMapper)
-	{
-		[nameof(IMediaElement.Aspect)] = MapAspect,
-		[nameof(IMediaElement.ShouldShowPlaybackControls)] = MapShouldShowPlaybackControls,
-		[nameof(IMediaElement.Source)] = MapSource,
-		[nameof(IMediaElement.Speed)] = MapSpeed,
-		[nameof(IMediaElement.Volume)] = MapVolume,
-		[nameof(IMediaElement.ShouldKeepScreenOn)] = MapShouldKeepScreenOn,
-		[nameof(IMediaElement.ShouldMute)] = MapShouldMute,
+    /// <summary>
+    /// The default property mapper for this handler.
+    /// </summary>
+    public static IPropertyMapper<MediaElement, MediaElementHandler> PropertyMapper = new PropertyMapper<MediaElement, MediaElementHandler>(ViewMapper)
+    {
+        [nameof(IMediaElement.Aspect)] = MapAspect,
+        [nameof(IMediaElement.ShouldShowPlaybackControls)] = MapShouldShowPlaybackControls,
+        [nameof(IMediaElement.Source)] = MapSource,
+        [nameof(IMediaElement.Speed)] = MapSpeed,
+        [nameof(IMediaElement.Volume)] = MapVolume,
+        [nameof(IMediaElement.ShouldKeepScreenOn)] = MapShouldKeepScreenOn,
+        [nameof(IMediaElement.ShouldMute)] = MapShouldMute,
 #if ANDROID || WINDOWS || TIZEN
 		[nameof(IMediaElement.ShouldLoopPlayback)] = ShouldLoopPlayback
 #endif
-	};
+    };
 
-	/// <summary>
-	/// The default command mapper for this handler.
-	/// </summary>
-	public static CommandMapper<MediaElement, MediaElementHandler> CommandMapper = new(ViewCommandMapper)
-	{
-		[nameof(MediaElement.StatusUpdated)] = MapStatusUpdated,
-		[nameof(MediaElement.PlayRequested)] = MapPlayRequested,
-		[nameof(MediaElement.PauseRequested)] = MapPauseRequested,
-		[nameof(MediaElement.SeekRequested)] = MapSeekRequested,
-		[nameof(MediaElement.StopRequested)] = MapStopRequested
-	};
+    /// <summary>
+    /// The default command mapper for this handler.
+    /// </summary>
+    public static CommandMapper<MediaElement, MediaElementHandler> CommandMapper = new(ViewCommandMapper)
+    {
+        [nameof(MediaElement.StatusUpdated)] = MapStatusUpdated,
+        [nameof(MediaElement.PlayRequested)] = MapPlayRequested,
+        [nameof(MediaElement.PauseRequested)] = MapPauseRequested,
+        [nameof(MediaElement.SeekRequested)] = MapSeekRequested,
+        [nameof(MediaElement.StopRequested)] = MapStopRequested
+    };
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="MediaElementHandler"/> class.
-	/// </summary>
-	public MediaElementHandler() : base(PropertyMapper, CommandMapper)
-	{
-	}
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MediaElementHandler"/> class.
+    /// </summary>
+    public MediaElementHandler() : base(PropertyMapper, CommandMapper)
+    {
+    }
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="MediaElementHandler"/> class
-	/// with custom property and command mappers.
-	/// </summary>
-	/// <param name="mapper">The custom property mapper to use.</param>
-	/// <param name="commandMapper">The custom command mapper to use.</param>
-	public MediaElementHandler(IPropertyMapper? mapper, CommandMapper? commandMapper)
-		: base(mapper ?? PropertyMapper, commandMapper ?? CommandMapper)
-	{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MediaElementHandler"/> class
+    /// with custom property and command mappers.
+    /// </summary>
+    /// <param name="mapper">The custom property mapper to use.</param>
+    /// <param name="commandMapper">The custom command mapper to use.</param>
+    public MediaElementHandler(IPropertyMapper? mapper, CommandMapper? commandMapper)
+        : base(mapper ?? PropertyMapper, commandMapper ?? CommandMapper)
+    {
 
-	}
+    }
 
 #if ANDROID || IOS || MACCATALYST || WINDOWS || TIZEN
 	/// <summary>

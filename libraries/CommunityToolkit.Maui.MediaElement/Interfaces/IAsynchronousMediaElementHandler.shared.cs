@@ -5,8 +5,8 @@ namespace CommunityToolkit.Maui.Core;
 /// </summary>
 public interface IAsynchronousMediaElementHandler
 {
-	/// <summary>
-	/// A <see cref="TaskCompletionSource"/> to provide Handlers an asynchronous way to complete
-	/// </summary>
-	TaskCompletionSource SeekCompletedTCS { get; }
+    /// <summary>
+    /// A <see cref="TaskCompletionSource"/> to provide Handlers an asynchronous way to complete
+    /// </summary>
+    TaskCompletionSource SeekCompletedTCS { get; }
 }
