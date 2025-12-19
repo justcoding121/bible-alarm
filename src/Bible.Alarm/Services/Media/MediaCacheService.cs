@@ -61,6 +61,12 @@ public class MediaCacheService(
 
     public async Task<bool> SetupAlarmCacheAsync(int alarmScheduleId)
     {
+        if (alarmScheduleId <= 0)
+        {
+            _logger.Warning("Skipping cache setup for invalid schedule ID: {ScheduleId}", alarmScheduleId);
+            return false;
+        }
+
         var downloaded = false;
 
         var @lock = LockStore.GetOrAdd(alarmScheduleId, new SemaphoreSlim(1));
@@ -254,6 +260,12 @@ public class MediaCacheService(
 
     public async Task DeleteScheduleCacheAsync(int scheduleId)
     {
+        if (scheduleId <= 0)
+        {
+            _logger.Warning("Skipping cache deletion for invalid schedule ID: {ScheduleId}", scheduleId);
+            return;
+        }
+
         try
         {
             var playlist = await mediaPlayService.NextTracks(scheduleId);

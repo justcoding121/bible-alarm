@@ -40,7 +40,7 @@ public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDispo
         await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             UIWindow? window = null;
-            
+
             // Use modern API to get window from connected scenes (iOS 13+)
             // Minimum iOS version is 15.0, so this API is always available
             var scenes = UIApplication.SharedApplication.ConnectedScenes;
@@ -56,7 +56,7 @@ public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDispo
                     }
                 }
             }
-            
+
             if (window?.RootViewController?.View == null)
             {
                 return;

@@ -112,7 +112,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         var checkStateStartTime = DateTime.UtcNow;
         var currentState = state.Value;
         var checkStateElapsed = (DateTime.UtcNow - checkStateStartTime).TotalMilliseconds;
-            logger.Information("[PERF] ScheduleViewModel: State check took {ElapsedMs}ms, CurrentSchedule={HasSchedule}", checkStateElapsed, currentState.CurrentSchedule != null);
+        logger.Information("[PERF] ScheduleViewModel: State check took {ElapsedMs}ms, CurrentSchedule={HasSchedule}", checkStateElapsed, currentState.CurrentSchedule != null);
 
         if (currentState.CurrentSchedule != null)
         {
@@ -1039,6 +1039,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private void SetupMediaCache(int scheduleId, bool isUpdate = false)
     {
+        if (scheduleId <= 0)
+        {
+            logger.Warning("Skipping media cache setup for invalid schedule ID: {ScheduleId}", scheduleId);
+            return;
+        }
+
         if (isUpdate)
         {
             // For updates, delete old cache files first in a separate task, then cache new files

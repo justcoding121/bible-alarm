@@ -62,10 +62,10 @@ public partial class MediaManager
 
 
 #if ANDROID || IOS || MACCATALYST || WINDOWS || TIZEN
-    /// <summary>
-    /// The platform-specific media player.
-    /// </summary>
-    protected PlatformMediaElement? Player { get; set; }
+	/// <summary>
+	/// The platform-specific media player.
+	/// </summary>
+	protected PlatformMediaElement? Player { get; set; }
 #endif
 
 	/// <summary>

@@ -80,6 +80,9 @@
 		<PackageReference Include="Xamarin.AndroidX.Car.App.App" Version="1.7.0.1" />
 		<!-- AndroidX.Media for MediaBrowserServiceCompat (old Android Auto support) -->
 		<PackageReference Include="Xamarin.AndroidX.Media" Version="1.7.1" />
+		<!-- AndroidX.Core for IconCompat support (required for CarIcon creation) -->
+		<!-- Version must be >= 1.17.0 to satisfy Xamarin.AndroidX.Media dependency -->
+		<PackageReference Include="Xamarin.AndroidX.Core" Version="1.17.0" />
 	</ItemGroup>
 
 	<ItemGroup>

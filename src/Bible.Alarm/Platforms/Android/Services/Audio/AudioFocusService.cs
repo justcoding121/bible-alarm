@@ -59,7 +59,7 @@ public sealed class AudioFocusService
                     logger.Warning("Failed to create AudioAttributes.Builder");
                     return;
                 }
-                
+
                 audioAttributesBuilder.SetUsage(AudioUsageKind.Media);
                 audioAttributesBuilder.SetContentType(AudioContentType.Music);
                 var audioAttributes = audioAttributesBuilder.Build();
@@ -76,7 +76,7 @@ public sealed class AudioFocusService
                     logger.Warning("Failed to create AudioFocusRequest.Builder");
                     return;
                 }
-                
+
                 audioFocusRequestBuilder.SetAudioAttributes(audioAttributes);
                 audioFocusRequestBuilder.SetAcceptsDelayedFocusGain(true);
                 audioFocusRequestBuilder.SetOnAudioFocusChangeListener(audioFocusListener);

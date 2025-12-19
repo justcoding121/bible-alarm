@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    
+    <!-- Open book icon - represents an open book with pages -->
+    <!-- License: MIT. Made by Microsoft: https://github.com/microsoft/vscode-codicons -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M14.5,2H9l-0.35,0.15 -0.65,0.64 -0.65,-0.64L7,2H1.5l-0.5,0.5v10l0.5,0.5h5.29l0.86,0.85h0.7l0.86,-0.85h5.29l0.5,-0.5v-10l-0.5,-0.5zM7.5,12.32l-0.18,-0.17L7,12H2V3h4.79l0.74,0.74 -0.03,8.58zM14,12H9l-0.35,0.15 -0.14,0.13V3.7l0.7,-0.7H14v9zM6,5H3v1h3V5zM6,9H3v1h3V9zM3,7h3v1H3V7zM13,5h-3v1h3V5zM10,7h3v1h-3V7zM10,9h3v1h-3V9z" />
+</vector>
+

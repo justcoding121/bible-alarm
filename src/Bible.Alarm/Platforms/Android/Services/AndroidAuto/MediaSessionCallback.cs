@@ -47,149 +47,113 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         }
     }
 
+    private bool ValidateScheduleIdExists(int scheduleId)
+    {
+        var schedules = ApplicationState.Value.Schedules;
+        return schedules?.Any(s => s.Id == scheduleId) ?? false;
+    }
+
+    private int? GetFirstScheduleId()
+    {
+        var schedules = ApplicationState.Value.Schedules;
+        if (schedules != null && schedules.Count > 0)
+        {
+            return schedules.First().Id;
+        }
+
+        return null;
+    }
+
     public override void OnPlay()
     {
         _logger.Information("MediaSessionCallback.OnPlay() called from Android Auto");
-        try
-        {
-            // Fire and forget - don't block the callback thread
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // Wait for bootstrap to complete before accessing schedules/database
-                    // This ensures Application.Current.Dispatcher is available and database is initialized
-                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
-
-                    var playbackStateValue = PlaybackState.Value;
-
-                    // If playback is stopped, get scheduleId from metadata or use first schedule
-                    if (playbackStateValue.Status == PlayStatus.Stopped)
-                    {
-                        int? scheduleId = null;
-
-                        // Try to get scheduleId from MediaSession metadata
-                        var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
-                        var mediaSession = mediaSessionManager.GetOrCreate();
-                        var mediaId = mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-
-                        if (!string.IsNullOrEmpty(mediaId) && int.TryParse(mediaId, out int parsedScheduleId))
-                        {
-                            scheduleId = parsedScheduleId;
-                            _logger.Debug("OnPlay: Got scheduleId {ScheduleId} from MediaSession metadata", scheduleId);
-                        }
-
-                        // Validate scheduleId exists in state, or get first schedule
-                        if (!scheduleId.HasValue || scheduleId.Value <= 0)
-                        {
-                            var schedules = ApplicationState.Value.Schedules;
-                            if (schedules != null && schedules.Count > 0)
-                            {
-                                scheduleId = schedules.First().Id;
-                                _logger.Debug("OnPlay: Using first schedule from state: {ScheduleId}", scheduleId);
-                            }
-                            else
-                            {
-                                _logger.Warning("OnPlay: No schedules available in state");
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            // Validate scheduleId exists in state
-                            var schedules = ApplicationState.Value.Schedules;
-                            var scheduleExists = schedules?.Any(s => s.Id == scheduleId.Value) ?? false;
-
-                            if (!scheduleExists)
-                            {
-                                _logger.Warning("OnPlay: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
-                                if (schedules != null && schedules.Count > 0)
-                                {
-                                    scheduleId = schedules.First().Id;
-                                }
-                                else
-                                {
-                                    _logger.Warning("OnPlay: No schedules available in state");
-                                    return;
-                                }
-                            }
-                        }
-
-                        // Play the schedule
-                        await _playbackService.PrepareAndPlayAsync(scheduleId.Value, isAlarm: false);
-                    }
-                    else
-                    {
-                        // If already playing/paused, just resume
-                        await _playbackService.PlayAsync();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex, "Error in MediaSessionCallback.OnPlay()");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error starting play task in MediaSessionCallback.OnPlay()");
-        }
+        ExecuteAsyncOperation(async () => await HandlePlayAsync());
         base.OnPlay();
+    }
+
+    private async Task HandlePlayAsync()
+    {
+        // Wait for bootstrap to complete before accessing schedules/database
+        await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
+
+        var playbackStateValue = PlaybackState.Value;
+
+        // If playback is stopped, get scheduleId from metadata or use first schedule
+        if (playbackStateValue.Status == PlayStatus.Stopped)
+        {
+            var scheduleId = GetScheduleIdForPlay();
+            if (!scheduleId.HasValue)
+            {
+                _logger.Warning("OnPlay: No valid scheduleId found");
+                return;
+            }
+
+            await _playbackService.PrepareAndPlayAsync(scheduleId.Value, isAlarm: false);
+        }
+        else
+        {
+            // If already playing/paused, just resume
+            await _playbackService.PlayAsync();
+        }
+    }
+
+    private int? GetScheduleIdForPlay()
+    {
+        // Try to get scheduleId from MediaSession metadata
+        var scheduleId = GetScheduleIdFromMetadata();
+        if (scheduleId.HasValue)
+        {
+            // Validate scheduleId exists in state
+            if (ValidateScheduleIdExists(scheduleId.Value))
+            {
+                return scheduleId;
+            }
+
+            _logger.Warning("OnPlay: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
+        }
+
+        // Get first schedule from state
+        return GetFirstScheduleId();
+    }
+
+    private int? GetScheduleIdFromMetadata()
+    {
+        var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
+        var mediaSession = mediaSessionManager?.GetOrCreate();
+        var mediaId = mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+
+        if (!string.IsNullOrEmpty(mediaId) && int.TryParse(mediaId, out int parsedScheduleId))
+        {
+            _logger.Debug("OnPlay: Got scheduleId {ScheduleId} from MediaSession metadata", parsedScheduleId);
+            return parsedScheduleId;
+        }
+
+        return null;
     }
 
     public override void OnPause()
     {
         _logger.Information("MediaSessionCallback.OnPause() called from Android Auto");
-        try
-        {
-            // Fire and forget - don't block the callback thread
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _playbackService.PauseAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex, "Error in MediaSessionCallback.OnPause()");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error starting pause task in MediaSessionCallback.OnPause()");
-        }
+        ExecuteAsyncOperation(async () => await _playbackService.PauseAsync());
         base.OnPause();
     }
 
     public override void OnSkipToNext()
     {
         _logger.Information("MediaSessionCallback.OnSkipToNext() called from Android Auto");
-        try
-        {
-            // Fire and forget - don't block the callback thread
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _playbackService.PlayNextAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex, "Error in MediaSessionCallback.OnSkipToNext()");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error starting next task in MediaSessionCallback.OnSkipToNext()");
-        }
+        ExecuteAsyncOperation(async () => await _playbackService.PlayNextAsync());
         base.OnSkipToNext();
     }
 
     public override void OnSkipToPrevious()
     {
         _logger.Information("MediaSessionCallback.OnSkipToPrevious() called from Android Auto");
+        ExecuteAsyncOperation(async () => await _playbackService.PlayPreviousAsync());
+        base.OnSkipToPrevious();
+    }
+
+    private void ExecuteAsyncOperation(Func<Task> asyncOperation)
+    {
         try
         {
             // Fire and forget - don't block the callback thread
@@ -197,88 +161,81 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             {
                 try
                 {
-                    await _playbackService.PlayPreviousAsync();
+                    await asyncOperation();
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Error in MediaSessionCallback.OnSkipToPrevious()");
+                    _logger.Error(ex, "Error executing async operation in MediaSessionCallback");
                 }
             });
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error starting previous task in MediaSessionCallback.OnSkipToPrevious()");
+            _logger.Error(ex, "Error starting async task in MediaSessionCallback");
         }
-        base.OnSkipToPrevious();
     }
 
     public override void OnPlayFromMediaId(string? mediaId, Bundle? extras)
     {
         _logger.Information("MediaSessionCallback.OnPlayFromMediaId() called with mediaId: {MediaId}", mediaId);
-        try
-        {
-            // Parse mediaId directly as scheduleId
-            if (!int.TryParse(mediaId, out int scheduleId) || scheduleId <= 0)
-            {
-                _logger.Warning("MediaSessionCallback.OnPlayFromMediaId() received invalid mediaId: {MediaId}", mediaId);
-                // Fall through to use first schedule
-                scheduleId = 0;
-            }
 
-            // Fire and forget - don't block the callback thread
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // Wait for bootstrap to complete before accessing schedules/database
-                    // This ensures Application.Current.Dispatcher is available and database is initialized
-                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
+        var parsedScheduleId = ParseMediaId(mediaId);
+        ExecuteAsyncOperation(async () => await HandlePlayFromMediaIdAsync(parsedScheduleId));
 
-                    int scheduleIdToPlay = scheduleId;
-
-                    // Validate scheduleId exists in state
-                    if (scheduleIdToPlay > 0)
-                    {
-                        var schedules = ApplicationState.Value.Schedules;
-                        var scheduleExists = schedules?.Any(s => s.Id == scheduleIdToPlay) ?? false;
-
-                        if (!scheduleExists)
-                        {
-                            _logger.Warning("OnPlayFromMediaId: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleIdToPlay);
-                            scheduleIdToPlay = 0; // Will use first schedule below
-                        }
-                    }
-
-                    // If scheduleId is invalid or not found, use first schedule from state
-                    if (scheduleIdToPlay <= 0)
-                    {
-                        var schedules = ApplicationState.Value.Schedules;
-                        if (schedules != null && schedules.Count > 0)
-                        {
-                            scheduleIdToPlay = schedules.First().Id;
-                            _logger.Debug("OnPlayFromMediaId: Using first schedule from state: {ScheduleId}", scheduleIdToPlay);
-                        }
-                        else
-                        {
-                            _logger.Warning("OnPlayFromMediaId: No schedules available in state");
-                            return;
-                        }
-                    }
-
-                    // Use isAlarm=false for Android Auto playback
-                    await _playbackService.PrepareAndPlayAsync(scheduleIdToPlay, isAlarm: false);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex, "Error in MediaSessionCallback.OnPlayFromMediaId() for scheduleId: {ScheduleId}", scheduleId);
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error parsing mediaId in MediaSessionCallback.OnPlayFromMediaId()");
-        }
         base.OnPlayFromMediaId(mediaId, extras);
+    }
+
+    private int ParseMediaId(string? mediaId)
+    {
+        // Parse mediaId directly as scheduleId
+        if (!int.TryParse(mediaId, out int scheduleId) || scheduleId <= 0)
+        {
+            _logger.Warning("MediaSessionCallback.OnPlayFromMediaId() received invalid mediaId: {MediaId}", mediaId);
+            return 0; // Will use first schedule
+        }
+
+        return scheduleId;
+    }
+
+    private async Task HandlePlayFromMediaIdAsync(int scheduleId)
+    {
+        // Wait for bootstrap to complete before accessing schedules/database
+        await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
+
+        var scheduleIdToPlay = GetValidScheduleId(scheduleId);
+        if (scheduleIdToPlay <= 0)
+        {
+            _logger.Warning("OnPlayFromMediaId: No valid scheduleId found");
+            return;
+        }
+
+        // Use isAlarm=false for Android Auto playback
+        await _playbackService.PrepareAndPlayAsync(scheduleIdToPlay, isAlarm: false);
+    }
+
+    private int GetValidScheduleId(int scheduleId)
+    {
+        // Validate scheduleId exists in state
+        if (scheduleId > 0 && ValidateScheduleIdExists(scheduleId))
+        {
+            return scheduleId;
+        }
+
+        if (scheduleId > 0)
+        {
+            _logger.Warning("OnPlayFromMediaId: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
+        }
+
+        // If scheduleId is invalid or not found, use first schedule from state
+        var firstScheduleId = GetFirstScheduleId();
+        if (firstScheduleId.HasValue)
+        {
+            _logger.Debug("OnPlayFromMediaId: Using first schedule from state: {ScheduleId}", firstScheduleId);
+            return firstScheduleId.Value;
+        }
+
+        _logger.Warning("OnPlayFromMediaId: No schedules available in state");
+        return 0;
     }
 }
 

@@ -31,10 +31,10 @@ public static class AppBuilderExtensions
 		});
 
 #if ANDROID
-        if (OperatingSystem.IsAndroidVersionAtLeast(26))
-        {
-            builder.Services.AddSingleton<Media.Services.MediaControlsService>();
-        }
+		if (OperatingSystem.IsAndroidVersionAtLeast(26))
+		{
+			builder.Services.AddSingleton<Media.Services.MediaControlsService>();
+		}
 #endif
 
 		return builder;

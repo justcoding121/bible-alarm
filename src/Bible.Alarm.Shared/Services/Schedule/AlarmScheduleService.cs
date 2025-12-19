@@ -58,7 +58,9 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var query = dbContext.AlarmSchedules.AsQueryable();
+        // Apply filter first, then include navigation properties
+        var query = dbContext.AlarmSchedules
+            .Where(x => x.Id == scheduleId);
 
         if (includeMusic)
         {
@@ -70,7 +72,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
             query = query.Include(x => x.BibleReadingSchedule);
         }
 
-        return await query.FirstOrDefaultAsync(x => x.Id == scheduleId, cancellationToken);
+        return await query.FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)

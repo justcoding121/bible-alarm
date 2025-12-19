@@ -3,9 +3,12 @@ using Android.App;
 using Android.Content;
 using Android.Runtime;
 using Android.Support.V4.Media.Session;
+using Android.Graphics;
+using Android.Graphics.Drawables;
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using AndroidX.Car.App.Validation;
+using AndroidX.Core.Content;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -14,6 +17,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
+using AndroidX.Core.Graphics.Drawable;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -299,8 +303,6 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             // Bootstrap should already be complete from Android Auto connection, but if not, proceed with available data
             // This ensures Android Auto shows the list immediately instead of the loading message
 
-            // Load schedules from state (fast, no database access)
-            // Schedules are already loaded during bootstrap
             LoadSchedules();
 
             if (scheduleItems == null || scheduleItems.Count == 0)
@@ -311,67 +313,28 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
 
             logger.Information("Creating ListTemplate with {Count} schedules from state", scheduleItems.Count);
 
-            // Create list of Row items for each schedule
-            var rows = new List<Row>();
-
-            foreach (var scheduleItem in scheduleItems.OrderBy(s => s.Name))
-            {
-                try
-                {
-                    var row = CreateRowForSchedule(scheduleItem);
-                    if (row != null)
-                    {
-                        rows.Add(row);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
-                }
-            }
-
+            var rows = BuildRowsFromSchedules();
             if (rows.Count == 0)
             {
                 logger.Warning("No rows created from schedules - showing empty list");
                 return CreateEmptyListTemplate();
             }
 
-            // Create ItemList with all rows
-            // Each row has its own OnClickListener set in CreateRowForSchedule
-            var itemListBuilder = new ItemList.Builder()
-                .SetNoItemsMessage("No schedules available");
-
-            foreach (var row in rows)
-            {
-                itemListBuilder?.AddItem(row);
-            }
-
-            var itemList = itemListBuilder?.Build();
+            var itemList = BuildItemList(rows);
             if (itemList == null)
             {
                 logger.Warning("Failed to build item list, returning empty template");
                 return CreateEmptyListTemplate();
             }
 
-            // Create ListTemplate with the item list
-            // 2025 Modern Header: Title and HeaderAction are now part of a Header object
-            var header = new Header.Builder()
-                ?.SetTitle("Bible Alarm")
-                ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
-                ?.Build();
-
+            var header = BuildHeader();
             if (header == null)
             {
                 logger.Warning("Failed to build header, returning empty template");
                 return CreateEmptyListTemplate();
             }
 
-            // Modern ListTemplate: Replaces direct SetTitle/SetHeaderAction with SetHeader
-            var listTemplate = new ListTemplate.Builder()
-                ?.SetHeader(header)
-                ?.SetSingleList(itemList)
-                ?.Build();
-
+            var listTemplate = BuildListTemplate(header, itemList);
             if (listTemplate == null)
             {
                 logger.Warning("Failed to build list template, returning empty template");
@@ -384,37 +347,88 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         catch (Exception ex)
         {
             logger.Error(ex, "❌ Error creating template - falling back to MessageTemplate. Exception: {Exception}", ex);
-            // Fallback to message template on error
+            return CreateFallbackTemplate();
+        }
+    }
+
+    private List<Row> BuildRowsFromSchedules()
+    {
+        var rows = new List<Row>();
+
+        foreach (var scheduleItem in scheduleItems!.OrderBy(s => s.Name))
+        {
             try
             {
-                // Modern MessageTemplate: Uses the Builder with a Header object
-                var fallbackHeader = new Header.Builder()
-                    ?.SetTitle("Bible Alarm")
-                    ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
-                    ?.Build();
-
-                if (fallbackHeader == null)
+                var row = CreateRowForSchedule(scheduleItem);
+                if (row != null)
                 {
-                    logger.Warning("Failed to build fallback header, returning empty template");
-                    return CreateEmptyListTemplate();
+                    rows.Add(row);
                 }
-
-                var messageTemplate = new MessageTemplate.Builder("An error occurred loading your schedules.")
-                    ?.SetHeader(fallbackHeader)
-                    ?.Build();
-                if (messageTemplate != null)
-                {
-                    return messageTemplate;
-                }
-                // If messageTemplate is null, fall through to return empty template
-                return CreateEmptyListTemplate();
             }
-            catch (Exception fallbackEx)
+            catch (Exception ex)
             {
-                logger.Error(fallbackEx, "❌ Failed to create fallback MessageTemplate");
-                // Last resort - return empty template
+                logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
+            }
+        }
+
+        return rows;
+    }
+
+    private ItemList? BuildItemList(List<Row> rows)
+    {
+        var itemListBuilder = new ItemList.Builder()
+            .SetNoItemsMessage("No schedules available");
+
+        foreach (var row in rows)
+        {
+            itemListBuilder?.AddItem(row);
+        }
+
+        return itemListBuilder?.Build();
+    }
+
+    private Header? BuildHeader()
+    {
+        return new Header.Builder()
+            ?.SetTitle("Bible Alarm")
+            ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+            ?.Build();
+    }
+
+    private ListTemplate? BuildListTemplate(Header header, ItemList itemList)
+    {
+        return new ListTemplate.Builder()
+            ?.SetHeader(header)
+            ?.SetSingleList(itemList)
+            ?.Build();
+    }
+
+    private ITemplate CreateFallbackTemplate()
+    {
+        try
+        {
+            var fallbackHeader = BuildHeader();
+            if (fallbackHeader == null)
+            {
+                logger.Warning("Failed to build fallback header, returning empty template");
                 return CreateEmptyListTemplate();
             }
+
+            var messageTemplate = new MessageTemplate.Builder("An error occurred loading your schedules.")
+                ?.SetHeader(fallbackHeader)
+                ?.Build();
+
+            if (messageTemplate != null)
+            {
+                return messageTemplate;
+            }
+
+            return CreateEmptyListTemplate();
+        }
+        catch (Exception fallbackEx)
+        {
+            logger.Error(fallbackEx, "❌ Failed to create fallback MessageTemplate");
+            return CreateEmptyListTemplate();
         }
     }
 
@@ -431,8 +445,8 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
             var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
 
-            // Create headphone icon for the row
-            var headphoneIcon = CreateHeadphoneIcon();
+            // Create book icon for the row
+            var bookIcon = CreateBookIcon();
 
             // Create Row with title, subtitle, icon, and click callback
             // Store schedule ID in a closure so we can access it when clicked
@@ -442,10 +456,10 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
                 ?.AddText(subtitle)
                 ?.SetOnClickListener(new ScheduleClickCallback(this, scheduleId));
 
-            // Add headphone icon if available
-            if (headphoneIcon != null)
+            // Add book icon if available
+            if (bookIcon != null)
             {
-                rowBuilder?.SetImage(headphoneIcon);
+                rowBuilder?.SetImage(bookIcon);
             }
 
             var row = rowBuilder?.Build();
@@ -465,21 +479,48 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
     }
 
     /// <summary>
-    /// Creates a CarIcon for headphone/audio playback.
-    /// Uses Android's standard media play icon to represent audio/media content.
-    /// Note: Currently returns null as IconCompat requires AndroidX.Core package reference.
-    /// Rows will display without icons until the proper package is added.
-    /// TODO: Add AndroidX.Core.Graphics.Drawables package and use IconCompat.CreateWithResource()
+    /// Creates a CarIcon for playlist items to display in Android Auto.
+    /// Uses a custom open book icon to represent Bible reading schedules.
     /// </summary>
-    private CarIcon? CreateHeadphoneIcon()
+    private CarIcon? CreateBookIcon()
     {
-        // TODO: Implement icon creation once AndroidX.Core.Graphics.Drawables package is available
-        // Example implementation:
-        // var iconCompat = IconCompat.CreateWithResource(CarContext, Android.Resource.Drawable.IcMediaPlay);
-        // return new CarIcon.Builder(iconCompat).Build();
+        try
+        {
+            // Use custom open book icon from app resources
+            // IconCompat is the standard way to create CarIcon in AndroidX Car App Library
+            var iconCompat = IconCompat.CreateWithResource(CarContext, Resource.Drawable.ic_book_open);
+            return new CarIcon.Builder(iconCompat).Build();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to create book icon - Rows will display without icon");
+            return null;
+        }
+    }
 
-        logger.Debug("Icon creation skipped - AndroidX.Core.Graphics.Drawables.IconCompat not available");
-        return null;
+    /// <summary>
+    /// Converts a Drawable to a Bitmap.
+    /// </summary>
+    private static Bitmap? DrawableToBitmap(Drawable? drawable)
+    {
+        if (drawable == null)
+        {
+            return null;
+        }
+
+        if (drawable is BitmapDrawable bitmapDrawable && bitmapDrawable.Bitmap != null)
+        {
+            return bitmapDrawable.Bitmap;
+        }
+
+        var width = drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 64;
+        var height = drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 64;
+
+        var bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888 ?? Bitmap.Config.Argb8888!);
+        using var canvas = new Canvas(bitmap);
+        drawable.SetBounds(0, 0, canvas.Width, canvas.Height);
+        drawable.Draw(canvas);
+        return bitmap;
     }
 
     private ITemplate CreateEmptyListTemplate()
@@ -487,7 +528,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         var itemList = new ItemList.Builder()
             ?.SetNoItemsMessage("No schedules available")
             ?.Build();
-        
+
         if (itemList == null)
         {
             throw new InvalidOperationException("Failed to build empty item list");
@@ -522,46 +563,53 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
 
         try
         {
-            // Immediately update MediaSession to a non-interactive Buffering state.
-            // This prevents Android Auto from showing tappable controls / "Getting your selection" while we start playback.
-            try
-            {
-                mediaSessionManager.SetBufferingNoControlsState();
-                logger.Debug("Set MediaSession to buffering no-controls state immediately on click");
-            }
-            catch (Exception mediaEx)
-            {
-                logger.Warning(mediaEx, "Failed to update MediaSession state on click - continuing anyway");
-            }
-
-            // Get playback service and play the schedule
-            var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
-            if (playbackService != null)
-            {
-                // Play asynchronously - don't block the UI thread
-                // This returns immediately so Android Auto doesn't show "Getting your selection"
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await playbackService.PlayScheduleAsync(scheduleId);
-                        logger.Information("✅ Started playback for schedule {ScheduleId}", scheduleId);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Error playing schedule {ScheduleId}", scheduleId);
-                    }
-                });
-            }
-            else
-            {
-                logger.Error("ISchedulePlaybackService is null - cannot play schedule {ScheduleId}", scheduleId);
-            }
+            SetBufferingStateOnClick();
+            StartPlaybackAsync(scheduleId);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error handling schedule click for schedule {ScheduleId}", scheduleId);
         }
+    }
+
+    private void SetBufferingStateOnClick()
+    {
+        try
+        {
+            // Immediately update MediaSession to a non-interactive Buffering state.
+            // This prevents Android Auto from showing tappable controls / "Getting your selection" while we start playback.
+            mediaSessionManager.SetBufferingNoControlsState();
+            logger.Debug("Set MediaSession to buffering no-controls state immediately on click");
+        }
+        catch (Exception mediaEx)
+        {
+            logger.Warning(mediaEx, "Failed to update MediaSession state on click - continuing anyway");
+        }
+    }
+
+    private void StartPlaybackAsync(int scheduleId)
+    {
+        var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
+        if (playbackService == null)
+        {
+            logger.Error("ISchedulePlaybackService is null - cannot play schedule {ScheduleId}", scheduleId);
+            return;
+        }
+
+        // Play asynchronously - don't block the UI thread
+        // This returns immediately so Android Auto doesn't show "Getting your selection"
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await playbackService.PlayScheduleAsync(scheduleId);
+                logger.Information("✅ Started playback for schedule {ScheduleId}", scheduleId);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error playing schedule {ScheduleId}", scheduleId);
+            }
+        });
     }
 }
 

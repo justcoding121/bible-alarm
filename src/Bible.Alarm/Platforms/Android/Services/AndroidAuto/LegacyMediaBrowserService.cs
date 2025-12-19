@@ -7,11 +7,13 @@ using Android.OS;
 using Android.Runtime;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using AndroidX.Core.Content;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 
@@ -228,126 +230,149 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             logger.Debug("Result detached successfully for parent: {ParentId}", parentId);
 
             // Run work to load schedules and create MediaItems on background thread
-            // Bootstrap check is done asynchronously inside Task.Run to avoid blocking
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    logger.Debug("Starting schedule loading for parent: {ParentId}", parentId);
-
-                    // Check if bootstrap is ready - if not, wait with timeout
-                    // If bootstrap times out or isn't ready, return empty list gracefully
-                    try
-                    {
-                        await MauiProgram.WaitForBootstrapAsync(timeoutMs: 5000); // Short timeout for responsiveness
-                        logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
-                    }
-                    catch (Exception bootstrapEx)
-                    {
-                        logger.Warning(bootstrapEx, "Bootstrap not ready or timed out for parent: {ParentId} - returning empty list", parentId);
-                        result.SendResult(new Java.Util.ArrayList());
-                        return;
-                    }
-
-                    // Load schedule state items from state using shared helper
-                    var scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
-
-                    if (scheduleItems.Count == 0)
-                    {
-                        logger.Warning("No schedules found in state for parent: {ParentId} - state may not be initialized yet", parentId);
-                        result.SendResult(new Java.Util.ArrayList());
-                        return;
-                    }
-
-                    // Convert schedules to MediaBrowserCompat.MediaItem objects
-                    var mediaItems = new Java.Util.ArrayList();
-
-                    foreach (var scheduleItem in scheduleItems)
-                    {
-                        try
-                        {
-                            // Use shared helper to build title and subtitle from ScheduleStateItem DTO
-                            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
-                            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
-
-                            // Create MediaDescriptionCompat for each schedule
-                            // Note: MediaDescriptionCompat is in Android.Support.V4.Media namespace
-                            // Set mediaId to just the schedule ID (not "schedule_{id}") so OnPlayFromMediaId can parse it as int
-                            var descriptionBuilder = new MediaDescriptionCompat.Builder();
-                            descriptionBuilder.SetMediaId(scheduleItem.Id.ToString());
-                            descriptionBuilder.SetTitle(title);
-                            descriptionBuilder.SetSubtitle(subtitle);
-
-                            // Set description with schedule details
-                            var description = $"Schedule ID: {scheduleItem.Id}";
-                            if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingPublicationCode))
-                            {
-                                description += $", {scheduleItem.BibleReadingPublicationCode}";
-                            }
-                            descriptionBuilder.SetDescription(description);
-
-                            // Add headphone/audio icon to beautify the playlist
-                            var iconBitmap = CreateHeadphoneIconBitmap();
-                            if (iconBitmap != null)
-                            {
-                                descriptionBuilder.SetIconBitmap(iconBitmap);
-                            }
-
-                            var mediaDescription = descriptionBuilder.Build();
-
-                            // Create MediaBrowserCompat.MediaItem with FLAG_PLAYABLE flag
-                            // This indicates the item can be played when selected
-                            // Note: MediaBrowserCompat is in Android.Support.V4.Media namespace
-                            if (mediaDescription != null)
-                            {
-                                var mediaItem = new MediaBrowserCompat.MediaItem(
-                                    mediaDescription,
-                                    MediaBrowserCompat.MediaItem.FlagPlayable);
-
-                                mediaItems.Add(mediaItem);
-                            }
-
-                            logger.Debug("Added MediaItem for schedule: {ScheduleId} - Title: {Title}, Subtitle: {Subtitle}",
-                                scheduleItem.Id, title, mediaDescription?.Subtitle ?? "");
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Warning(ex, "Failed to create MediaItem for schedule {ScheduleId}", scheduleItem.Id);
-                        }
-                    }
-
-                    logger.Information("Created {Count} MediaItems for Android Auto", mediaItems.Size());
-                    result.SendResult(mediaItems);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error loading children in LegacyMediaBrowserService for parent: {ParentId}. Bootstrap may not have completed or services may not be available.", parentId);
-                    try
-                    {
-                        // Always send a result, even if empty, to satisfy Android's requirement
-                        // This prevents the IllegalStateException from occurring
-                        result.SendResult(new Java.Util.ArrayList());
-                        logger.Debug("Sent empty result after error for parent: {ParentId}", parentId);
-                    }
-                    catch (Exception sendEx)
-                    {
-                        logger.Error(sendEx, "Failed to send empty result after error for parent: {ParentId}. This may cause Android Auto connection issues.", parentId);
-                    }
-                }
-            });
+            _ = Task.Run(async () => await LoadChildrenAsync(parentId, result));
         }
         catch (Exception ex)
         {
             // If Detach() itself fails, try to send empty result synchronously
             logger.Error(ex, "Critical error in OnLoadChildren before detaching result for parent: {ParentId}", parentId);
-            try
+            SendEmptyResultSafely(result, parentId);
+        }
+    }
+
+    private async Task LoadChildrenAsync(string parentId, MediaBrowserServiceCompat.Result result)
+    {
+        try
+        {
+            logger.Debug("Starting schedule loading for parent: {ParentId}", parentId);
+
+            if (!await WaitForBootstrapAsync(parentId))
             {
                 result.SendResult(new Java.Util.ArrayList());
+                return;
             }
-            catch (Exception sendEx)
+
+            var scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
+            if (scheduleItems.Count == 0)
             {
-                logger.Error(sendEx, "Failed to send result synchronously after critical error for parent: {ParentId}", parentId);
+                logger.Warning("No schedules found in state for parent: {ParentId} - state may not be initialized yet", parentId);
+                result.SendResult(new Java.Util.ArrayList());
+                return;
             }
+
+            var mediaItems = CreateMediaItemsFromSchedules(scheduleItems);
+            logger.Information("Created {Count} MediaItems for Android Auto", mediaItems.Size());
+            result.SendResult(mediaItems);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error loading children in LegacyMediaBrowserService for parent: {ParentId}. Bootstrap may not have completed or services may not be available.", parentId);
+            SendEmptyResultSafely(result, parentId);
+        }
+    }
+
+    private async Task<bool> WaitForBootstrapAsync(string parentId)
+    {
+        try
+        {
+            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 5000); // Short timeout for responsiveness
+            logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
+            return true;
+        }
+        catch (Exception bootstrapEx)
+        {
+            logger.Warning(bootstrapEx, "Bootstrap not ready or timed out for parent: {ParentId} - returning empty list", parentId);
+            return false;
+        }
+    }
+
+    private Java.Util.ArrayList CreateMediaItemsFromSchedules(List<ScheduleStateItem> scheduleItems)
+    {
+        var mediaItems = new Java.Util.ArrayList();
+
+        foreach (var scheduleItem in scheduleItems)
+        {
+            try
+            {
+                var mediaItem = CreateMediaItemFromSchedule(scheduleItem);
+                if (mediaItem != null)
+                {
+                    mediaItems.Add(mediaItem);
+                    logger.Debug("Added MediaItem for schedule: {ScheduleId} - Title: {Title}",
+                        scheduleItem.Id, AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to create MediaItem for schedule {ScheduleId}", scheduleItem.Id);
+            }
+        }
+
+        return mediaItems;
+    }
+
+    private MediaBrowserCompat.MediaItem? CreateMediaItemFromSchedule(ScheduleStateItem scheduleItem)
+    {
+        var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
+        var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
+        var description = BuildScheduleDescription(scheduleItem);
+
+        var mediaDescription = CreateMediaDescription(scheduleItem, title, subtitle, description);
+        if (mediaDescription == null)
+        {
+            return null;
+        }
+
+        return new MediaBrowserCompat.MediaItem(
+            mediaDescription,
+            MediaBrowserCompat.MediaItem.FlagPlayable);
+    }
+
+    private string BuildScheduleDescription(ScheduleStateItem scheduleItem)
+    {
+        var description = $"Schedule ID: {scheduleItem.Id}";
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingPublicationCode))
+        {
+            description += $", {scheduleItem.BibleReadingPublicationCode}";
+        }
+        return description;
+    }
+
+    private MediaDescriptionCompat? CreateMediaDescription(ScheduleStateItem scheduleItem, string title, string subtitle, string description)
+    {
+        var descriptionBuilder = new MediaDescriptionCompat.Builder();
+        descriptionBuilder.SetMediaId(scheduleItem.Id.ToString());
+        descriptionBuilder.SetTitle(title);
+        descriptionBuilder.SetSubtitle(subtitle);
+        descriptionBuilder.SetDescription(description);
+
+        var bookIconBitmap = CreateBookIconBitmap();
+        if (bookIconBitmap != null)
+        {
+            descriptionBuilder.SetIconBitmap(bookIconBitmap);
+            logger.Debug("Set book icon bitmap for schedule {ScheduleId} - Size: {Width}x{Height}", 
+                scheduleItem.Id, bookIconBitmap.Width, bookIconBitmap.Height);
+        }
+        else
+        {
+            logger.Warning("Failed to create book icon bitmap for schedule {ScheduleId}", scheduleItem.Id);
+        }
+
+        return descriptionBuilder.Build();
+    }
+
+    private void SendEmptyResultSafely(MediaBrowserServiceCompat.Result result, string parentId)
+    {
+        try
+        {
+            // Always send a result, even if empty, to satisfy Android's requirement
+            // This prevents the IllegalStateException from occurring
+            result.SendResult(new Java.Util.ArrayList());
+            logger.Debug("Sent empty result for parent: {ParentId}", parentId);
+        }
+        catch (Exception sendEx)
+        {
+            logger.Error(sendEx, "Failed to send empty result for parent: {ParentId}. This may cause Android Auto connection issues.", parentId);
         }
     }
 
@@ -427,44 +452,42 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     }
 
     /// <summary>
-    /// Creates a bitmap icon for headphone/audio playback to display in Android Auto playlist.
-    /// Uses Android's standard media play icon as a headphone representation.
+    /// Creates a bitmap icon for playlist items to display in Android Auto.
+    /// Uses a custom open book icon to represent Bible reading schedules.
+    /// Android Auto requires icons to be at least 64x64 pixels for proper display.
     /// </summary>
-    private Bitmap? CreateHeadphoneIconBitmap()
+    private Bitmap? CreateBookIconBitmap()
     {
         try
         {
-            // Use Android's built-in media play icon (android.R.drawable.ic_media_play)
-            // This provides a consistent, recognizable icon for audio content in Android Auto
-            var drawable = global::Android.Content.Res.Resources.System?.GetDrawable(global::Android.Resource.Drawable.IcMediaPlay, null);
+            // Use custom open book icon from app resources
+            // This provides a recognizable icon for Bible reading content in Android Auto
+            var drawable = ContextCompat.GetDrawable(this, Resource.Drawable.ic_book_open);
             if (drawable == null)
             {
-                logger.Warning("Could not get Android system drawable for headphone icon");
+                logger.Warning("Could not get app drawable for book icon");
                 return null;
             }
 
-            // Convert drawable to bitmap
-            if (drawable is BitmapDrawable bitmapDrawable && bitmapDrawable.Bitmap != null)
-            {
-                return bitmapDrawable.Bitmap;
-            }
-
-            // If not a BitmapDrawable, create a bitmap from the drawable
+            // Android Auto requires icons to be at least 64x64 pixels for proper display
+            // Use a larger size to ensure good quality on high-DPI displays
+            const int IconSize = 128;
             var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
-            var bitmap = Bitmap.CreateBitmap(
-                drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 64,
-                drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 64,
-                config);
+            var bitmap = Bitmap.CreateBitmap(IconSize, IconSize, config);
+
+            // Clear the bitmap with transparent background
+            bitmap.EraseColor(global::Android.Graphics.Color.Transparent);
 
             var canvas = new Canvas(bitmap);
-            drawable.SetBounds(0, 0, canvas.Width, canvas.Height);
+            drawable.SetBounds(0, 0, IconSize, IconSize);
             drawable.Draw(canvas);
 
+            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}", IconSize, IconSize);
             return bitmap;
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to create headphone icon bitmap - MediaItems will display without icon");
+            logger.Warning(ex, "Failed to create book icon bitmap - MediaItems will display without icon");
             return null;
         }
     }

@@ -256,6 +256,11 @@ public class PlaylistService(
 
     public async Task<List<PlayItem>> NextTracks(int scheduleId)
     {
+        if (scheduleId <= 0)
+        {
+            throw new ArgumentException($"Invalid schedule Id {scheduleId}. Schedule ID must be greater than 0.");
+        }
+
         var result = new List<PlayItem>();
 
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(

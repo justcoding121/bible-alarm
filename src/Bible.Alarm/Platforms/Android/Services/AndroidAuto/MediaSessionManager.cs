@@ -6,6 +6,7 @@ using Android.Support.V4.Media.Session;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Scheduler.Models;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -44,93 +45,7 @@ public sealed class MediaSessionManager
                 // Check again inside lock (another thread might have created it)
                 if (mediaSession == null)
                 {
-                    // Create the MediaSessionCompat instance
-                    var context = global::Android.App.Application.Context;
-                    if (context == null)
-                    {
-                        logger.Error("Android Application.Context is null - cannot create MediaSessionCompat");
-                        throw new InvalidOperationException("Android Application.Context is null");
-                    }
-
-                    logger.Information("Creating shared MediaSessionCompat instance (2025 Standard)");
-
-                    // 2025 NON-DEPRECATED CONSTRUCTOR: Only context and tag needed
-                    // Note: Ensure your AndroidManifest.xml has a MediaButtonReceiver registered
-                    // The system now automatically finds your MediaButtonReceiver via the <intent-filter> in AndroidManifest.xml
-                    mediaSession = new MediaSessionCompat(context, "BibleAlarmSession");
-                    if (mediaSession == null)
-                    {
-                        logger.Error("Failed to create MediaSessionCompat instance");
-                        throw new InvalidOperationException("Failed to create MediaSessionCompat instance");
-                    }
-
-                    // REMOVED SetFlags: FlagHandlesMediaButtons and FlagHandlesTransportControls are now default behavior in 2025
-
-                    // CRITICAL: Set Active = true for Android Auto to "see" the session
-                    mediaSession.Active = true;
-
-                    // CRITICAL: SetCallback must be called on the main thread (requires Looper)
-                    // Create MediaSessionCallback lazily to avoid startup dependency resolution issues
-                    var playbackService = serviceProvider.GetRequiredService<IPlaybackService>();
-                    var serviceLogger = serviceProvider.GetRequiredService<ILogger>();
-                    var mediaSessionCallback = new MediaSessionCallback(playbackService, serviceLogger);
-
-                    // Ensure SetCallback runs on main thread to avoid Looper exception
-                    if (MainThread.IsMainThread)
-                    {
-                        // The preferred path: if we are on the main thread, execute immediately.
-                        mediaSession.SetCallback(mediaSessionCallback);
-                        logger.Debug("MediaSessionCallback set synchronously on main thread");
-                    }
-                    else
-                    {
-                        // CRITICAL: Ensure SetCallback is run on the main thread without blocking the current Binder thread.
-                        // The callback will be set asynchronously. The MediaSession will be operational shortly after.
-                        // Android Auto is tolerant of this slight delay, and blocking the Binder thread causes deadlocks/ANRs.
-                        logger.Warning("MediaSession creation not on MainThread. Invoking SetCallback asynchronously to avoid blocking Binder thread.");
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            try
-                            {
-                                mediaSession?.SetCallback(mediaSessionCallback);
-                                logger.Information("Successfully set MediaSessionCallback on main thread (async)");
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.Error(ex, "Error setting MediaSessionCallback asynchronously");
-                            }
-                        });
-                        // NO BLOCKING CALL HERE (e.g., .Wait() or Task.Run().Wait())
-                        // The Binder thread returns immediately, allowing Android Auto to complete binding without timeout.
-                    }
-
-                    // Start with stopped state — prevents auto-play on bind
-                    // The effect will update this when it receives playback status changes.
-                    //
-                    // IMPORTANT for Android Auto UX:
-                    // Do NOT start in Stopped/Paused if we are not ready to show the player UI yet.
-                    // Start in a neutral, non-interactive state (STATE_NONE + actions=0).
-                    //
-                    // Immediately present a blank, non-interactive loading UI for Android Auto.
-                    // This does not depend on MAUI bootstrap; it only needs the MediaSession itself.
-                    try
-                    {
-                        AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, context);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Warning(ex, "Failed to apply Android Auto blank loading state");
-                    }
-
-                    // Verify SessionToken is available
-                    if (mediaSession.SessionToken == null)
-                    {
-                        logger.Error("MediaSessionCompat.SessionToken is null after creation - this should not happen");
-                        throw new InvalidOperationException("MediaSessionCompat.SessionToken is null after creation");
-                    }
-
-                    logger.Information("MediaSessionCompat created successfully. Initial state: Stopped, Active: True, SessionToken available: {HasToken}",
-                        mediaSession.SessionToken != null);
+                    mediaSession = CreateMediaSession();
                 }
             }
         }
@@ -138,11 +53,147 @@ public sealed class MediaSessionManager
         return mediaSession;
     }
 
+    private MediaSessionCompat CreateMediaSession()
+    {
+        var context = GetApplicationContext();
+        var session = InitializeMediaSession(context);
+        SetMediaSessionCallback(session);
+        ApplyInitialLoadingState(session, context);
+        VerifySessionToken(session);
+
+        logger.Information("MediaSessionCompat created successfully. Initial state: Stopped, Active: True, SessionToken available: {HasToken}",
+            session.SessionToken != null);
+
+        return session;
+    }
+
+    private Context GetApplicationContext()
+    {
+        var context = global::Android.App.Application.Context;
+        if (context == null)
+        {
+            logger.Error("Android Application.Context is null - cannot create MediaSessionCompat");
+            throw new InvalidOperationException("Android Application.Context is null");
+        }
+        return context;
+    }
+
+    private MediaSessionCompat InitializeMediaSession(Context context)
+    {
+        logger.Information("Creating shared MediaSessionCompat instance (2025 Standard)");
+
+        // 2025 NON-DEPRECATED CONSTRUCTOR: Only context and tag needed
+        // Note: Ensure your AndroidManifest.xml has a MediaButtonReceiver registered
+        // The system now automatically finds your MediaButtonReceiver via the <intent-filter> in AndroidManifest.xml
+        var session = new MediaSessionCompat(context, "BibleAlarmSession");
+        if (session == null)
+        {
+            logger.Error("Failed to create MediaSessionCompat instance");
+            throw new InvalidOperationException("Failed to create MediaSessionCompat instance");
+        }
+
+        // REMOVED SetFlags: FlagHandlesMediaButtons and FlagHandlesTransportControls are now default behavior in 2025
+
+        // CRITICAL: Set Active = true for Android Auto to "see" the session
+        session.Active = true;
+
+        return session;
+    }
+
+    private void SetMediaSessionCallback(MediaSessionCompat session)
+    {
+        // CRITICAL: SetCallback must be called on the main thread (requires Looper)
+        // Create MediaSessionCallback lazily to avoid startup dependency resolution issues
+        var playbackService = serviceProvider.GetRequiredService<IPlaybackService>();
+        var serviceLogger = serviceProvider.GetRequiredService<ILogger>();
+        var mediaSessionCallback = new MediaSessionCallback(playbackService, serviceLogger);
+
+        // Ensure SetCallback runs on main thread to avoid Looper exception
+        if (MainThread.IsMainThread)
+        {
+            // The preferred path: if we are on the main thread, execute immediately.
+            session.SetCallback(mediaSessionCallback);
+            logger.Debug("MediaSessionCallback set synchronously on main thread");
+        }
+        else
+        {
+            // CRITICAL: Ensure SetCallback is run on the main thread without blocking the current Binder thread.
+            // The callback will be set asynchronously. The MediaSession will be operational shortly after.
+            // Android Auto is tolerant of this slight delay, and blocking the Binder thread causes deadlocks/ANRs.
+            logger.Warning("MediaSession creation not on MainThread. Invoking SetCallback asynchronously to avoid blocking Binder thread.");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    session?.SetCallback(mediaSessionCallback);
+                    logger.Information("Successfully set MediaSessionCallback on main thread (async)");
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error setting MediaSessionCallback asynchronously");
+                }
+            });
+            // NO BLOCKING CALL HERE (e.g., .Wait() or Task.Run().Wait())
+            // The Binder thread returns immediately, allowing Android Auto to complete binding without timeout.
+        }
+    }
+
+    private void ApplyInitialLoadingState(MediaSessionCompat session, Context context)
+    {
+        // Start with stopped state — prevents auto-play on bind
+        // The effect will update this when it receives playback status changes.
+        //
+        // IMPORTANT for Android Auto UX:
+        // Do NOT start in Stopped/Paused if we are not ready to show the player UI yet.
+        // Start in a neutral, non-interactive state (STATE_NONE + actions=0).
+        //
+        // Immediately present a blank, non-interactive loading UI for Android Auto.
+        // This does not depend on MAUI bootstrap; it only needs the MediaSession itself.
+        try
+        {
+            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(session, context);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to apply Android Auto blank loading state");
+        }
+    }
+
+    private void VerifySessionToken(MediaSessionCompat session)
+    {
+        // Verify SessionToken is available
+        if (session.SessionToken == null)
+        {
+            logger.Error("MediaSessionCompat.SessionToken is null after creation - this should not happen");
+            throw new InvalidOperationException("MediaSessionCompat.SessionToken is null after creation");
+        }
+    }
+
 
     /// <summary>
     /// Updates the playback state of the shared MediaSessionCompat.
     /// </summary>
     public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
+    {
+        var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var builder = new PlaybackStateCompat.Builder();
+
+        if (builder != null)
+        {
+            builder.SetActions(actions);
+            builder.SetState(state, position, 1.0f, SystemClock.ElapsedRealtime());
+            var playbackState = builder.Build();
+            if (playbackState != null)
+            {
+                mediaSession?.SetPlaybackState(playbackState);
+            }
+        }
+
+        logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}, actions: {Actions}",
+            state, position, actions);
+    }
+
+    private long BuildPlaybackActions(bool canPlayNext, bool canPlayPrevious)
     {
         // Base actions that are always available
         long actions = PlaybackStateCompat.ActionPlay |
@@ -161,19 +212,7 @@ public sealed class MediaSessionManager
             actions |= PlaybackStateCompat.ActionSkipToPrevious;
         }
 
-        var builder = new PlaybackStateCompat.Builder();
-        if (builder != null)
-        {
-            builder.SetActions(actions);
-            builder.SetState(state, position, 1.0f, SystemClock.ElapsedRealtime());
-            var playbackState = builder.Build();
-            if (playbackState != null)
-            {
-                mediaSession?.SetPlaybackState(playbackState);
-            }
-        }
-        logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}, actions: {Actions}",
-            state, position, actions);
+        return actions;
     }
 
     /// <summary>
@@ -188,66 +227,56 @@ public sealed class MediaSessionManager
         }
 
         var playbackState = mediaSession.Controller?.PlaybackState;
-        if (playbackState == null)
-        {
-            return;
-        }
-
-        // Only update position if playback is active
-        var isActive = playbackState.State is PlaybackStateCompat.StatePlaying or
-                      PlaybackStateCompat.StateBuffering or
-                      PlaybackStateCompat.StatePaused;
-
-        if (!isActive)
+        if (playbackState == null || !IsPlaybackActive(playbackState))
         {
             return;
         }
 
         var positionMs = (long)position.TotalMilliseconds;
         var durationMs = (long)duration.TotalMilliseconds;
+        var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
 
-        // Base actions that are always available
-        long actions = PlaybackStateCompat.ActionPlay |
-                       PlaybackStateCompat.ActionPause |
-                       PlaybackStateCompat.ActionPlayPause |
-                       PlaybackStateCompat.ActionPlayFromMediaId;
+        UpdatePlaybackStateWithPosition(playbackState, positionMs, actions);
+        UpdateMetadataDuration(durationMs);
+    }
 
-        // Add next/previous actions only when available
-        if (canPlayNext)
-        {
-            actions |= PlaybackStateCompat.ActionSkipToNext;
-        }
+    private bool IsPlaybackActive(PlaybackStateCompat playbackState)
+    {
+        return playbackState.State is PlaybackStateCompat.StatePlaying or
+               PlaybackStateCompat.StateBuffering or
+               PlaybackStateCompat.StatePaused;
+    }
 
-        if (canPlayPrevious)
-        {
-            actions |= PlaybackStateCompat.ActionSkipToPrevious;
-        }
-
+    private void UpdatePlaybackStateWithPosition(PlaybackStateCompat playbackState, long positionMs, long actions)
+    {
         var builder = new PlaybackStateCompat.Builder();
         if (builder != null)
         {
             builder.SetActions(actions);
             builder.SetState(playbackState.State, positionMs, 1.0f, SystemClock.ElapsedRealtime());
 
-            // Set duration in metadata if available
-            if (durationMs > 0 && mediaSession?.Controller?.Metadata != null)
-            {
-                var metadataBuilder = new MediaMetadataCompat.Builder(mediaSession.Controller.Metadata);
-                if (metadataBuilder != null)
-                {
-                    metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
-                    var metadata = metadataBuilder.Build();
-                    if (metadata != null)
-                    {
-                        mediaSession?.SetMetadata(metadata);
-                    }
-                }
-            }
-
             var playbackStateCompat = builder.Build();
             if (playbackStateCompat != null)
             {
                 mediaSession?.SetPlaybackState(playbackStateCompat);
+            }
+        }
+    }
+
+    private void UpdateMetadataDuration(long durationMs)
+    {
+        // Set duration in metadata if available
+        if (durationMs > 0 && mediaSession?.Controller?.Metadata != null)
+        {
+            var metadataBuilder = new MediaMetadataCompat.Builder(mediaSession.Controller.Metadata);
+            if (metadataBuilder != null)
+            {
+                metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
+                var metadata = metadataBuilder.Build();
+                if (metadata != null)
+                {
+                    mediaSession?.SetMetadata(metadata);
+                }
             }
         }
     }
@@ -267,47 +296,67 @@ public sealed class MediaSessionManager
             return;
         }
 
-        var builder = new MediaMetadataCompat.Builder()
-            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, title)
-            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, artist)
-            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, album ?? "");
-
+        var builder = CreateMetadataBuilder(title, artist, album);
         if (builder == null)
         {
             logger.Warning("Failed to create MediaMetadataCompat.Builder");
             return;
         }
 
-        // Preserve existing MediaId and artwork if present - don't overwrite them
+        PreserveExistingMetadata(builder, scheduleId);
+        ApplyMetadata(builder);
+    }
+
+    private MediaMetadataCompat.Builder? CreateMetadataBuilder(string title, string artist, string? album)
+    {
+        return new MediaMetadataCompat.Builder()
+            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, title)
+            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, artist)
+            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, album ?? "");
+    }
+
+    private void PreserveExistingMetadata(MediaMetadataCompat.Builder builder, int? scheduleId)
+    {
         if (mediaSession?.Controller?.Metadata != null)
         {
             var existingMetadata = mediaSession.Controller.Metadata;
-
-            // Preserve MediaId (scheduleId) for OnPlayFromMediaId
-            var existingMediaId = existingMetadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-            if (!string.IsNullOrEmpty(existingMediaId))
-            {
-                builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, existingMediaId);
-            }
-            else if (scheduleId.HasValue)
-            {
-                // Set MediaId if provided and not already present
-                builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
-            }
-
-            // Preserve existing artwork
-            global::Android.Graphics.Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-            if (existingArtwork != null)
-            {
-                builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-            }
+            PreserveMediaId(builder, existingMetadata, scheduleId);
+            PreserveArtwork(builder, existingMetadata);
         }
         else if (scheduleId.HasValue)
         {
             // Set MediaId if no existing metadata and scheduleId is provided
             builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
         }
+    }
 
+    private void PreserveMediaId(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, int? scheduleId)
+    {
+        // Preserve MediaId (scheduleId) for OnPlayFromMediaId
+        var existingMediaId = existingMetadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+        if (!string.IsNullOrEmpty(existingMediaId))
+        {
+            builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, existingMediaId);
+        }
+        else if (scheduleId.HasValue)
+        {
+            // Set MediaId if provided and not already present
+            builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+        }
+    }
+
+    private void PreserveArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata)
+    {
+        // Preserve existing artwork
+        global::Android.Graphics.Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+        if (existingArtwork != null)
+        {
+            builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+        }
+    }
+
+    private void ApplyMetadata(MediaMetadataCompat.Builder builder)
+    {
         var metadata = builder?.Build();
         mediaSession?.SetMetadata(metadata);
     }
@@ -463,64 +512,7 @@ public sealed class MediaSessionManager
             var metadataTask = defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
 
             // Fire and forget - don't block the callback thread
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var metadata = await metadataTask;
-
-                    // Update metadata on main thread
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        // Check if playback is currently active - if so, don't overwrite current schedule metadata
-                        var playbackState = mediaSession?.Controller?.PlaybackState;
-                        var isPlaying = playbackState?.State is PlaybackStateCompat.StatePlaying or
-                                       PlaybackStateCompat.StateBuffering or
-                                       PlaybackStateCompat.StatePaused;
-
-                        if (isPlaying)
-                        {
-                            return;
-                        }
-
-                        // Check if the current metadata's scheduleId matches the next schedule's ID
-                        // If they match, we're already showing the correct metadata
-                        var currentMediaId = mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-                        if (!string.IsNullOrEmpty(currentMediaId) && currentMediaId == metadata.ScheduleId.ToString())
-                        {
-                            return;
-                        }
-
-                        // Preserve existing artwork if present
-                        global::Android.Graphics.Bitmap? existingArtwork = null;
-                        if (mediaSession?.Controller?.Metadata != null)
-                        {
-                            existingArtwork = mediaSession.Controller.Metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-                        }
-
-                        // Set mediaId to scheduleId for OnPlayFromMediaId
-                        var metadataBuilder = new MediaMetadataCompat.Builder()
-                            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, metadata.Title)
-                            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, metadata.Artist)
-                            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, metadata.Album ?? "")
-                            ?.PutString(MediaMetadataCompat.MetadataKeyMediaId, metadata.ScheduleId.ToString());
-
-                        // Preserve existing artwork if present
-                        if (existingArtwork != null)
-                        {
-                            metadataBuilder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-                        }
-
-                        mediaSession?.SetMetadata(metadataBuilder?.Build());
-                    });
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error setting next schedule metadata");
-                    // Fallback to clearing metadata if there's an error
-                    ClearMetadata();
-                }
-            });
+            _ = Task.Run(async () => await SetNextScheduleMetadataAsync(metadataTask));
         }
         catch (Exception ex)
         {
@@ -528,6 +520,85 @@ public sealed class MediaSessionManager
             // Fallback to clearing metadata if there's an error
             ClearMetadata();
         }
+    }
+
+    private async Task SetNextScheduleMetadataAsync(Task<ScheduleTrackMetadata> metadataTask)
+    {
+        try
+        {
+            var metadata = await metadataTask;
+
+            // Update metadata on main thread
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (ShouldSkipMetadataUpdate(metadata))
+                {
+                    return;
+                }
+
+                var existingArtwork = GetExistingArtwork();
+                var metadataBuilder = BuildNextScheduleMetadata(metadata, existingArtwork);
+                mediaSession?.SetMetadata(metadataBuilder?.Build());
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error setting next schedule metadata");
+            // Fallback to clearing metadata if there's an error
+            ClearMetadata();
+        }
+    }
+
+    private bool ShouldSkipMetadataUpdate(ScheduleTrackMetadata metadata)
+    {
+        // Check if playback is currently active - if so, don't overwrite current schedule metadata
+        var playbackState = mediaSession?.Controller?.PlaybackState;
+        var isPlaying = playbackState?.State is PlaybackStateCompat.StatePlaying or
+                       PlaybackStateCompat.StateBuffering or
+                       PlaybackStateCompat.StatePaused;
+
+        if (isPlaying)
+        {
+            return true;
+        }
+
+        // Check if the current metadata's scheduleId matches the next schedule's ID
+        // If they match, we're already showing the correct metadata
+        var currentMediaId = mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+        if (!string.IsNullOrEmpty(currentMediaId) && currentMediaId == metadata.ScheduleId.ToString())
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private global::Android.Graphics.Bitmap? GetExistingArtwork()
+    {
+        // Preserve existing artwork if present
+        if (mediaSession?.Controller?.Metadata != null)
+        {
+            return mediaSession.Controller.Metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+        }
+        return null;
+    }
+
+    private MediaMetadataCompat.Builder? BuildNextScheduleMetadata(ScheduleTrackMetadata metadata, global::Android.Graphics.Bitmap? existingArtwork)
+    {
+        // Set mediaId to scheduleId for OnPlayFromMediaId
+        var metadataBuilder = new MediaMetadataCompat.Builder()
+            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, metadata.Title)
+            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, metadata.Artist)
+            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, metadata.Album ?? "")
+            ?.PutString(MediaMetadataCompat.MetadataKeyMediaId, metadata.ScheduleId.ToString());
+
+        // Preserve existing artwork if present
+        if (existingArtwork != null)
+        {
+            metadataBuilder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+        }
+
+        return metadataBuilder;
     }
 
     internal void SetActive(bool active)
