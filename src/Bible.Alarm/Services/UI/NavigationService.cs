@@ -22,7 +22,7 @@ public class NavigationService(
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly ILogger _logger = logger;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     // Cached navigation instance to avoid retries on every call
     private INavigation? _cachedNavigation;

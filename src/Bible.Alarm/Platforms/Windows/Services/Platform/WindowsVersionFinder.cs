@@ -8,8 +8,8 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform;
 public class WindowsVersionFinder : IVersionFinder, IDisposable
 {
     private bool _isDisposed;
-    private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
-    public static WindowsVersionFinder Default => new WindowsVersionFinder();
+    private static readonly Lazy<string> Version = new(() => VersionName());
+    public static WindowsVersionFinder Default => new();
 
     public string GetVersionName()
     {

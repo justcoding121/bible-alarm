@@ -19,7 +19,7 @@ public class ScheduleDisplayService(
     private readonly IState<PlaybackState> playbackState = playbackState;
     private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
     private readonly IBibleBookService bibleBookService = bibleBookService;
-    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
     public async Task<string> GetChapterDisplayNameAsync(int scheduleId, bool force = false)

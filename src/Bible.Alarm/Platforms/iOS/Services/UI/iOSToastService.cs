@@ -12,7 +12,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI;
 public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {
     private readonly TaskScheduler taskScheduler = taskScheduler;
-    private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
+    private static readonly SemaphoreSlim @lock = new(1);
 
     public override async Task ShowMessage(string message, int seconds)
     {
@@ -37,32 +37,25 @@ public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDispo
     {
         clearRequest = new TaskCompletionSource<bool>();
 
-        await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             UIWindow? window = null;
             
             // Use modern API to get window from connected scenes (iOS 13+)
-            if (UIDevice.CurrentDevice.CheckSystemVersion(13, 0))
+            // Minimum iOS version is 15.0, so this API is always available
+            var scenes = UIApplication.SharedApplication.ConnectedScenes;
+            if (scenes != null)
             {
-                var scenes = UIApplication.SharedApplication.ConnectedScenes;
-                if (scenes != null)
+                foreach (var scene in scenes)
                 {
-                    foreach (var scene in scenes)
+                    if (scene is UIWindowScene windowScene && windowScene.Windows != null)
                     {
-                        if (scene is UIWindowScene windowScene && windowScene.Windows != null)
-                        {
-                            window = windowScene.Windows.FirstOrDefault(w => w.IsKeyWindow);
-                            if (window != null)
-                                break;
-                        }
+                        window = windowScene.Windows.FirstOrDefault(w => w.IsKeyWindow);
+                        if (window != null)
+                            break;
                     }
                 }
             }
-            
-            // Fallback to KeyWindow for older iOS versions (suppress warning)
-#pragma warning disable CA1422
-            window ??= UIApplication.SharedApplication.KeyWindow;
-#pragma warning restore CA1422
             
             if (window?.RootViewController?.View == null)
             {

@@ -10,8 +10,9 @@ public interface IStorageService : IDisposable
     Task<bool> DirectoryExists(string path);
     Task<bool> FileExists(string path);
     Task<List<string>> GetAllFiles(string path);
+    Task<DateTimeOffset> GetFileCreationDate(string path);
     [RequiresAssemblyFiles]
-    Task<DateTimeOffset> GetFileCreationDate(string path, bool isResourceFile);
+    Task<DateTimeOffset> GetFileCreationDateFromResource(string resourceName);
 
     Task<string> ReadFile(string path);
     Task CopyResourceFile(string resourceFileName, string destinationDirectoryPath, string destinationFileName);

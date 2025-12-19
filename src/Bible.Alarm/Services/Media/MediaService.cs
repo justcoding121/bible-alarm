@@ -22,7 +22,7 @@ public class MediaService(
     private readonly IBibleChapterService _bibleChapterService = bibleChapterService ?? throw new ArgumentNullException(nameof(bibleChapterService));
     private readonly IMelodyMusicService _melodyMusicService = melodyMusicService ?? throw new ArgumentNullException(nameof(melodyMusicService));
     private readonly IVocalMusicService _vocalMusicService = vocalMusicService ?? throw new ArgumentNullException(nameof(vocalMusicService));
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isDisposed;
 
     public async Task<Dictionary<string, Language>> GetBibleLanguages()

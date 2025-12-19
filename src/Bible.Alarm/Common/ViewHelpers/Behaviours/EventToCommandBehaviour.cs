@@ -29,8 +29,8 @@ public class EventToCommandBehavior : BindableBehavior<View>
     public static readonly BindableProperty EventArgsConverterParameterProperty =
         BindableProperty.Create("EventArgsConverterParameter", typeof(object), typeof(EventToCommandBehavior));
 
-    private Delegate _handler;
-    private EventInfo _eventInfo;
+    private Delegate handler;
+    private EventInfo eventInfo;
 
     /// <summary>
     /// The name of the View event to bind.
@@ -91,22 +91,22 @@ public class EventToCommandBehavior : BindableBehavior<View>
         var events = AssociatedObject.GetType().GetRuntimeEvents().ToArray();
         if (events.Any())
         {
-            _eventInfo = events.FirstOrDefault(e => e.Name == EventName);
-            if (_eventInfo == null)
+            eventInfo = events.FirstOrDefault(e => e.Name == EventName);
+            if (eventInfo == null)
             {
                 throw new ArgumentException(
                     $"EventToCommand: Cannot find any event named '{EventName}' on attached type");
             }
 
-            AddEventHandler(_eventInfo, AssociatedObject, OnFired);
+            AddEventHandler(eventInfo, AssociatedObject, OnFired);
         }
     }
 
     protected override void OnDetachingFrom(View view)
     {
-        if (_handler != null)
+        if (handler != null)
         {
-            _eventInfo.RemoveEventHandler(AssociatedObject, _handler);
+            eventInfo.RemoveEventHandler(AssociatedObject, handler);
         }
 
         base.OnDetachingFrom(view);
@@ -123,14 +123,14 @@ public class EventToCommandBehavior : BindableBehavior<View>
         var actionInvoke = action.GetType()
             .GetRuntimeMethods().First(m => m.Name == "Invoke");
 
-        _handler = Expression.Lambda(
+        handler = Expression.Lambda(
                 eventInfo.EventHandlerType,
                 Expression.Call(Expression.Constant(action), actionInvoke, eventParameters[0], eventParameters[1]),
                 eventParameters
             )
             .Compile();
 
-        eventInfo.AddEventHandler(item, _handler);
+        eventInfo.AddEventHandler(item, handler);
     }
 
     public void OnFired(object sender, EventArgs eventArgs)

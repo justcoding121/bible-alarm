@@ -9,12 +9,12 @@ namespace Bible.Alarm.Platforms.Android.Services.UI;
 public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {
     private readonly TaskScheduler taskScheduler = taskScheduler;
-    private static readonly SemaphoreSlim Lock = new(1);
+    private static readonly SemaphoreSlim @lock = new(1);
     private static Toast latest;
 
     public override async Task ShowMessage(string message, int seconds)
     {
-        await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             //if current is not UI thread, run on UI thread
             if (!MainThread.IsMainThread)
@@ -49,7 +49,7 @@ public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, ID
     //not needed for android
     public override async Task Clear()
     {
-        await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             if (!MainThread.IsMainThread)
             {

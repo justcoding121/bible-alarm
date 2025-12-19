@@ -18,7 +18,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 public sealed class MediaSessionManager
 {
     private MediaSessionCompat? mediaSession;
-    private readonly object lockObject = new();
+    private readonly Lock @lock = new();
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
     private readonly IServiceProvider serviceProvider;
 
@@ -39,7 +39,7 @@ public sealed class MediaSessionManager
         if (mediaSession == null)
         {
             // Double-checked locking pattern for thread safety
-            lock (lockObject)
+            lock (@lock)
             {
                 // Check again inside lock (another thread might have created it)
                 if (mediaSession == null)
@@ -52,25 +52,22 @@ public sealed class MediaSessionManager
                         throw new InvalidOperationException("Android Application.Context is null");
                     }
 
-                    logger.Information("Creating shared MediaSessionCompat instance");
+                    logger.Information("Creating shared MediaSessionCompat instance (2025 Standard)");
 
-                    // Create ComponentName for MediaButtonReceiver to suppress warning
-                    // We handle media buttons programmatically in LegacyMediaBrowserService.OnStartCommand
-                    // Using the service class name to register as media button receiver
-                    var componentName = new ComponentName(context, "bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService");
-
-                    mediaSession = new MediaSessionCompat(context, "BibleAlarmSession", componentName, null);
+                    // 2025 NON-DEPRECATED CONSTRUCTOR: Only context and tag needed
+                    // Note: Ensure your AndroidManifest.xml has a MediaButtonReceiver registered
+                    // The system now automatically finds your MediaButtonReceiver via the <intent-filter> in AndroidManifest.xml
+                    mediaSession = new MediaSessionCompat(context, "BibleAlarmSession");
                     if (mediaSession == null)
                     {
                         logger.Error("Failed to create MediaSessionCompat instance");
                         throw new InvalidOperationException("Failed to create MediaSessionCompat instance");
                     }
 
-#pragma warning disable CS0618 // Obsolete API from AndroidX library - deprecated but still functional
-                    mediaSession.SetFlags(
-                        MediaSessionCompat.FlagHandlesMediaButtons |
-                        MediaSessionCompat.FlagHandlesTransportControls);
-#pragma warning restore CS0618
+                    // REMOVED SetFlags: FlagHandlesMediaButtons and FlagHandlesTransportControls are now default behavior in 2025
+
+                    // CRITICAL: Set Active = true for Android Auto to "see" the session
+                    mediaSession.Active = true;
 
                     // CRITICAL: SetCallback must be called on the main thread (requires Looper)
                     // Create MediaSessionCallback lazily to avoid startup dependency resolution issues
@@ -132,7 +129,7 @@ public sealed class MediaSessionManager
                         throw new InvalidOperationException("MediaSessionCompat.SessionToken is null after creation");
                     }
 
-                    logger.Information("MediaSessionCompat created successfully. Initial state: Stopped, Active: False, SessionToken available: {HasToken}",
+                    logger.Information("MediaSessionCompat created successfully. Initial state: Stopped, Active: True, SessionToken available: {HasToken}",
                         mediaSession.SessionToken != null);
                 }
             }

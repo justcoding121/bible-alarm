@@ -5,8 +5,8 @@ namespace Bible.Alarm.Views;
 
 public partial class FontFileResources : ResourceDictionary
 {
-    private static FontFileResources? _instance;
-    private static readonly object _lock = new object();
+    private static FontFileResources? instance;
+    private static readonly object _lock = new();
 
     public FontFileResources()
     {
@@ -17,17 +17,17 @@ public partial class FontFileResources : ResourceDictionary
     {
         get
         {
-            if (_instance == null)
+            if (instance == null)
             {
                 lock (_lock)
                 {
-                    if (_instance == null)
+                    if (instance == null)
                     {
-                        _instance = new FontFileResources();
+                        instance = new FontFileResources();
                     }
                 }
             }
-            return _instance;
+            return instance;
         }
     }
 

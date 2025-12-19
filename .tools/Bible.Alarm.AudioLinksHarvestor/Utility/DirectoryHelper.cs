@@ -7,7 +7,7 @@ public static class DirectoryHelper
 {
     internal static string IndexDirectory => indexDirectory.Value;
 
-    private static Lazy<string> indexDirectory = new Lazy<string>(() =>
+    private static Lazy<string> indexDirectory = new(() =>
      {
          var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 

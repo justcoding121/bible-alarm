@@ -65,8 +65,8 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         // Initialize string fields to avoid nullable warnings
         _title = "";
         _subTitle = "";
-        _description = "";
-        _currentTime = "00:00";
+        description = "";
+        currentTime = "00:00";
         _endTime = "00:00";
 
         // Controls are hidden until first playback state is received
@@ -227,27 +227,27 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         set => SetProperty(ref _subTitle, value);
     }
 
-    private string _description;
+    private string description;
 
     public string Description
     {
-        get => _description;
-        set => SetProperty(ref _description, value);
+        get => description;
+        set => SetProperty(ref description, value);
     }
 
-    private ImageSource? _artworkSource;
-    private bool _isArtworkLoading;
+    private ImageSource? artworkSource;
+    private bool isArtworkLoading;
     // Keep bytes in memory for stream-based images
-    private byte[]? _artworkBytes;
+    private byte[]? artworkBytes;
     // Track last artwork URL to avoid unnecessary updates
-    private string? _lastArtworkUrl;
+    private string? lastArtworkUrl;
 
     public ImageSource? ArtworkSource
     {
-        get => _artworkSource;
+        get => artworkSource;
         private set
         {
-            if (SetProperty(ref _artworkSource, value))
+            if (SetProperty(ref artworkSource, value))
             {
                 // Update loading state when artwork source changes
                 IsArtworkLoading = false;
@@ -258,10 +258,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     public bool IsArtworkLoading
     {
-        get => _isArtworkLoading;
+        get => isArtworkLoading;
         private set
         {
-            if (SetProperty(ref _isArtworkLoading, value))
+            if (SetProperty(ref isArtworkLoading, value))
             {
                 OnPropertyChanged(nameof(HasArtwork));
             }
@@ -270,28 +270,28 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     public bool HasArtwork => ArtworkSource != null && !IsArtworkLoading;
 
-    private bool _playVisible;
+    private bool playVisible;
 
     public bool PlayVisible
     {
-        get => _playVisible;
-        set => SetProperty(ref _playVisible, value);
+        get => playVisible;
+        set => SetProperty(ref playVisible, value);
     }
 
-    private bool _pauseVisible;
+    private bool pauseVisible;
 
     public bool PauseVisible
     {
-        get => _pauseVisible;
-        set => SetProperty(ref _pauseVisible, value);
+        get => pauseVisible;
+        set => SetProperty(ref pauseVisible, value);
     }
 
-    private string _currentTime;
+    private string currentTime;
 
     public string CurrentTime
     {
-        get => _currentTime;
-        set => SetProperty(ref _currentTime, value);
+        get => currentTime;
+        set => SetProperty(ref currentTime, value);
     }
 
     private string _endTime;
@@ -562,7 +562,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 // Reset last artwork URL to force reload even if URL is the same
                 if (trackChanged)
                 {
-                    _lastArtworkUrl = null;
+                    lastArtworkUrl = null;
                 }
                 UpdateArtwork(artworkUrl);
             }
@@ -671,18 +671,18 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     private void UpdateArtwork(string? artworkUrl)
     {
         // Avoid unnecessary updates if URL hasn't changed
-        if (_lastArtworkUrl == artworkUrl)
+        if (lastArtworkUrl == artworkUrl)
         {
             return;
         }
 
-        var previousUrl = _lastArtworkUrl;
-        _lastArtworkUrl = artworkUrl;
+        var previousUrl = lastArtworkUrl;
+        lastArtworkUrl = artworkUrl;
 
         if (string.IsNullOrEmpty(artworkUrl))
         {
             // Only clear if we currently have artwork displayed
-            if (_artworkSource != null)
+            if (artworkSource != null)
             {
                 ClearArtwork();
             }
@@ -691,7 +691,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
         // Only clear existing artwork if we're switching to a different artwork
         // Don't clear if we're loading artwork for the first time (to avoid showing bell icon briefly)
-        if (_artworkSource != null && !string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
+        if (artworkSource != null && !string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
         {
             ClearArtwork();
         }
@@ -725,9 +725,9 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     private void ClearArtwork()
     {
         ArtworkSource = null;
-        _artworkBytes = null;
+        artworkBytes = null;
         IsArtworkLoading = false;
-        _lastArtworkUrl = null; // Reset so we can reload if needed
+        lastArtworkUrl = null; // Reset so we can reload if needed
     }
 
     private bool TryLoadFromUri(string artworkUrl)
@@ -797,8 +797,8 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     {
         try
         {
-            _artworkBytes = File.ReadAllBytes(filePath);
-            if (_artworkBytes == null || _artworkBytes.Length == 0)
+            artworkBytes = File.ReadAllBytes(filePath);
+            if (artworkBytes == null || artworkBytes.Length == 0)
             {
                 ClearArtwork();
                 return;
@@ -806,14 +806,14 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
             // Store bytes in field to keep them alive, create new stream each time
             // Capture for lambda
-            var bytes = _artworkBytes;
+            var bytes = artworkBytes;
             ArtworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
             IsArtworkLoading = false;
         }
         catch (Exception ex)
         {
             logger.Debug(ex, "Failed to create ImageSource from stream for Android, trying FromFile fallback: {FilePath}", filePath);
-            _artworkBytes = null;
+            artworkBytes = null;
             LoadFromFileFallback(filePath);
         }
     }

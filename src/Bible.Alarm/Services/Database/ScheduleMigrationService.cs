@@ -13,7 +13,7 @@ public class ScheduleMigrationService(
 {
     private readonly ILogger _logger = logger;
     private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isDisposed;
 
     public async Task MigrateBibleGatewaySchedulesAsync()

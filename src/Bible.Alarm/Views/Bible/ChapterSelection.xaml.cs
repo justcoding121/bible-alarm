@@ -7,19 +7,17 @@ namespace Bible.Alarm.Views.Bible;
 public partial class ChapterSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
-    private readonly ChapterSelectionViewModel _viewModel;
-    private readonly TaskScheduler _taskScheduler;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly ChapterSelectionViewModel viewModel;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public ChapterSelectionViewModel ViewModel => BindingContext as ChapterSelectionViewModel;
 
 
     public ChapterSelection(ChapterSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
-        _taskScheduler = taskScheduler;
         InitializeComponent();
         BindingContext = viewModel;
-        _viewModel = viewModel;
+        this.viewModel = viewModel;
 
         // SelectionChanged handler removed - using SelectionMode="None" with TapGestureRecognizer instead
         // This eliminates the orange flash visual feedback
@@ -35,14 +33,14 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
         if (ViewModel != null)
         {
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
+            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
 
             // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200, _cancellationTokenSource.Token);
+            await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedChapter != null && chapterCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter, cancellationToken: _cancellationTokenSource.Token);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter, cancellationToken: cancellationTokenSource.Token);
             }
         }
     }
@@ -61,8 +59,8 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
             // Cancel and dispose cancellation token source
             try
             {
-                _cancellationTokenSource?.Cancel();
-                _cancellationTokenSource?.Dispose();
+                cancellationTokenSource?.Cancel();
+                cancellationTokenSource?.Dispose();
             }
             catch (Exception ex)
             {
@@ -71,7 +69,7 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
             }
 
             // ViewModel was injected via constructor, so dispose it
-            if (_viewModel is IDisposable disposable)
+            if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }

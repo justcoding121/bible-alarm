@@ -123,19 +123,17 @@ public abstract class StorageService : IStorageService, IDisposable
         return Task.FromResult(false);
     }
 
-    [RequiresAssemblyFiles()]
-    public Task<DateTimeOffset> GetFileCreationDate(string pathOrName, bool isResourceFile)
+    public Task<DateTimeOffset> GetFileCreationDate(string path)
     {
-        FileInfo file;
-        if (isResourceFile)
-        {
-            file = ResourceLoader.GetFileInfo(MainAssembly);
-        }
-        else
-        {
-            file = new FileInfo(pathOrName);
-        }
+        var file = new FileInfo(path);
+        return Task.FromResult(
+            new DateTimeOffset(new[] { file.LastAccessTime, file.LastWriteTime, file.CreationTime }.Max()));
+    }
 
+    [RequiresAssemblyFiles()]
+    public Task<DateTimeOffset> GetFileCreationDateFromResource(string resourceName)
+    {
+        var file = ResourceLoader.GetFileInfo(MainAssembly);
         return Task.FromResult(
             new DateTimeOffset(new[] { file.LastAccessTime, file.LastWriteTime, file.CreationTime }.Max()));
     }

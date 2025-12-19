@@ -38,10 +38,10 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 {
     private static readonly ILogger logger = Log.ForContext<LegacyMediaBrowserService>();
-    private MediaSessionCompat? _session;
-    private MediaSessionManager? _mediaSessionManager;
-    private IState<ApplicationState>? _applicationState;
-    private AndroidAutoScheduleChangeTracker? _scheduleChangeTracker;
+    private MediaSessionCompat? session;
+    private MediaSessionManager? mediaSessionManager;
+    private IState<ApplicationState>? applicationState;
+    private AndroidAutoScheduleChangeTracker? scheduleChangeTracker;
     private const string RootId = "__ID_ROOT__";
 
     // Samsung/phone SystemUI may bind to any exported MediaBrowserService and show a phone media card.
@@ -83,29 +83,29 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             MauiAppHolder.CreateAndStore();
 
             // Get MediaSessionManager from service provider (now available after CreateAndStore)
-            _mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
-            if (_mediaSessionManager == null)
+            mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
+            if (mediaSessionManager == null)
             {
                 logger.Warning("MediaSessionManager is null - cannot create MediaSession");
                 return;
             }
 
-            _session = _mediaSessionManager.GetOrCreate(true);
-            if (_session == null)
+            session = mediaSessionManager.GetOrCreate(true);
+            if (session == null)
             {
                 logger.Error("MediaSessionCompat is null after GetOrCreate() - cannot set SessionToken");
                 return;
             }
 
             // Verify SessionToken is available before setting it
-            if (_session.SessionToken == null)
+            if (session.SessionToken == null)
             {
                 logger.Error("MediaSessionCompat.SessionToken is null - MediaSessionCompat may not be properly initialized");
                 return;
             }
 
             // THIS IS THE KEY LINE — both systems now see the same session
-            SessionToken = _session.SessionToken;
+            SessionToken = session.SessionToken;
 
             logger.Information("SessionToken successfully set: {Token}", SessionToken?.ToString() ?? "null");
             logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Legacy Android Auto is connecting! SessionToken set correctly.");
@@ -142,14 +142,14 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                             return;
                         }
 
-                        _applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
-                        if (_applicationState != null)
+                        applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
+                        if (applicationState != null)
                         {
                             // Initialize schedule change tracker
-                            _scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
-                            _scheduleChangeTracker.Initialize(_applicationState);
+                            scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
+                            scheduleChangeTracker.Initialize(applicationState);
 
-                            _applicationState.StateChanged += OnApplicationStateChanged;
+                            applicationState.StateChanged += OnApplicationStateChanged;
                             logger.Information("✅ LegacyMediaBrowserService subscribed to schedule list changes");
                         }
                         else
@@ -195,13 +195,13 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         try
         {
-            if (_scheduleChangeTracker == null)
+            if (scheduleChangeTracker == null)
             {
                 return;
             }
 
             // Check if schedules changed using the shared tracker
-            if (_scheduleChangeTracker.CheckForChanges())
+            if (scheduleChangeTracker.CheckForChanges())
             {
                 logger.Debug("Schedule list changed - notifying Android Auto that children list has changed");
 
@@ -354,9 +354,9 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
         // Handle media button events (steering wheel buttons, etc.)
-        if (_session != null)
+        if (session != null)
         {
-            MediaButtonReceiver.HandleIntent(_session, intent);
+            MediaButtonReceiver.HandleIntent(session, intent);
         }
         return StartCommandResult.Sticky;
     }
@@ -393,13 +393,13 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         {
             try
             {
-                _mediaSessionManager ??= ServiceProviderManager.GetService<MediaSessionManager>();
-                if (_mediaSessionManager != null)
+                mediaSessionManager ??= ServiceProviderManager.GetService<MediaSessionManager>();
+                if (mediaSessionManager != null)
                 {
-                    _session ??= _mediaSessionManager.GetOrCreate(true);
-                    if (_session?.SessionToken != null)
+                    session ??= mediaSessionManager.GetOrCreate(true);
+                    if (session?.SessionToken != null)
                     {
-                        SessionToken = _session.SessionToken;
+                        SessionToken = session.SessionToken;
                         logger.Information("SessionToken set in OnBind(): {Token}", SessionToken?.ToString() ?? "null");
                     }
                 }
@@ -476,9 +476,9 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         // Unsubscribe from state changes
         try
         {
-            if (_applicationState != null)
+            if (applicationState != null)
             {
-                _applicationState.StateChanged -= OnApplicationStateChanged;
+                applicationState.StateChanged -= OnApplicationStateChanged;
                 logger.Debug("LegacyMediaBrowserService unsubscribed from ApplicationState changes");
             }
         }
@@ -492,7 +492,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         // across service lifecycle changes. Android Auto expects the MediaSession to remain
         // available even when the service is temporarily destroyed and recreated.
         // Only clear the local reference - MediaSessionManager will handle cleanup when appropriate.
-        _session = null;
+        session = null;
 
         base.OnDestroy();
     }
@@ -515,21 +515,21 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             // Update metadata on main thread
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                if (_mediaSessionManager == null)
+                if (mediaSessionManager == null)
                 {
                     logger.Warning("SetInitialScheduleMetadataAsync: MediaSessionManager is null");
                     return;
                 }
 
                 // Set metadata using MediaSessionManager
-                _mediaSessionManager.UpdateMetadata(
+                mediaSessionManager.UpdateMetadata(
                     metadata.Title,
                     metadata.Artist,
                     metadata.Album,
                     metadata.ScheduleId);
 
                 // Return to stopped state (idle) with normal actions once metadata is ready.
-                _mediaSessionManager.UpdatePlaybackStateForStop();
+                mediaSessionManager.UpdatePlaybackStateForStop();
 
                 logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
                     metadata.ScheduleId, metadata.Title, metadata.Artist);

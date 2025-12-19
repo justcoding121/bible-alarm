@@ -14,7 +14,7 @@ public class ScheduleSelectionService(
     private readonly ILogger logger = logger;
     private readonly IAlarmMusicService alarmMusicService = alarmMusicService;
     private readonly IBibleReadingScheduleService bibleReadingScheduleService = bibleReadingScheduleService;
-    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
     public async Task<AlarmMusic> LoadMusicForSelectionAsync(int scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic)

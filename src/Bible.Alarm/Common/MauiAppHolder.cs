@@ -9,7 +9,7 @@ namespace Bible.Alarm.Common;
 /// </summary>
 public static class MauiAppHolder
 {
-    private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
+    private static readonly SemaphoreSlim @lock = new(1, 1);
     private static MauiApp app;
     // Use Log.Logger directly for static classes (can't use ForContext<T> with static types)
     private static readonly ILogger logger = Log.Logger;
@@ -33,7 +33,7 @@ public static class MauiAppHolder
 
     public static MauiApp CreateAndStore()
     {
-        Lock.Wait();
+        @lock.Wait();
         try
         {
             // If app exists, verify it's not disposed by checking if service provider is accessible
@@ -49,7 +49,7 @@ public static class MauiAppHolder
         }
         finally
         {
-            Lock.Release();
+            @lock.Release();
         }
     }
 

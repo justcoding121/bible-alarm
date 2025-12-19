@@ -354,13 +354,23 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             }
 
             // Create ListTemplate with the item list
-#pragma warning disable CS0618 // Obsolete API from AndroidX.Car.App library
-            var listTemplate = new ListTemplate.Builder()
+            // 2025 Modern Header: Title and HeaderAction are now part of a Header object
+            var header = new Header.Builder()
                 ?.SetTitle("Bible Alarm")
-                ?.SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+                ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+                ?.Build();
+
+            if (header == null)
+            {
+                logger.Warning("Failed to build header, returning empty template");
+                return CreateEmptyListTemplate();
+            }
+
+            // Modern ListTemplate: Replaces direct SetTitle/SetHeaderAction with SetHeader
+            var listTemplate = new ListTemplate.Builder()
+                ?.SetHeader(header)
                 ?.SetSingleList(itemList)
                 ?.Build();
-#pragma warning restore CS0618
 
             if (listTemplate == null)
             {
@@ -377,16 +387,25 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             // Fallback to message template on error
             try
             {
-#pragma warning disable CS0618 // Obsolete API from AndroidX.Car.App library
-                var messageTemplate = new MessageTemplate.Builder("Bible Alarm")
+                // Modern MessageTemplate: Uses the Builder with a Header object
+                var fallbackHeader = new Header.Builder()
                     ?.SetTitle("Bible Alarm")
-                    ?.SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+                    ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+                    ?.Build();
+
+                if (fallbackHeader == null)
+                {
+                    logger.Warning("Failed to build fallback header, returning empty template");
+                    return CreateEmptyListTemplate();
+                }
+
+                var messageTemplate = new MessageTemplate.Builder("An error occurred loading your schedules.")
+                    ?.SetHeader(fallbackHeader)
                     ?.Build();
                 if (messageTemplate != null)
                 {
                     return messageTemplate;
                 }
-#pragma warning restore CS0618
                 // If messageTemplate is null, fall through to return empty template
                 return CreateEmptyListTemplate();
             }
@@ -474,10 +493,20 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             throw new InvalidOperationException("Failed to build empty item list");
         }
 
-#pragma warning disable CS0618 // Obsolete API from AndroidX.Car.App library
-        var template = new ListTemplate.Builder()
+        // 2025 Modern Header: Title and HeaderAction are now part of a Header object
+        var header = new Header.Builder()
             ?.SetTitle("Bible Alarm")
-            ?.SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+            ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+            ?.Build();
+
+        if (header == null)
+        {
+            throw new InvalidOperationException("Failed to build header for empty list template");
+        }
+
+        // Modern ListTemplate: Replaces direct SetTitle/SetHeaderAction with SetHeader
+        var template = new ListTemplate.Builder()
+            ?.SetHeader(header)
             ?.SetSingleList(itemList)
             ?.Build();
         if (template == null)
@@ -485,7 +514,6 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             throw new InvalidOperationException("Failed to build empty list template");
         }
         return template;
-#pragma warning restore CS0618
     }
 
     internal void OnScheduleItemClicked(int scheduleId)

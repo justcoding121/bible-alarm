@@ -7,11 +7,11 @@ namespace Bible.Alarm.Views.Shared;
 public partial class BibleLanguageModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public IListViewModel ViewModel => BindingContext as IListViewModel;
 
-    private bool _isClearingSelection;
+    private bool isClearingSelection;
 
     public BibleLanguageModal()
     {
@@ -21,7 +21,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
         LanguageCollectionView.SelectionChanged += (sender, e) =>
         {
             // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
-            if (_isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
+            if (isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
             {
                 return;
             }
@@ -34,9 +34,9 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
                 {
                     if (!_isDisposed && LanguageCollectionView != null)
                     {
-                        _isClearingSelection = true;
+                        isClearingSelection = true;
                         LanguageCollectionView.SelectedItem = null;
-                        _isClearingSelection = false;
+                        isClearingSelection = false;
                     }
                 });
             });
@@ -53,14 +53,14 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
         if (ViewModel != null)
         {
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
+            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
 
             // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200, _cancellationTokenSource.Token);
+            await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, cancellationToken: _cancellationTokenSource.Token);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, cancellationToken: cancellationTokenSource.Token);
             }
         }
     }
@@ -72,8 +72,8 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
             // Cancel and dispose cancellation token source
             try
             {
-                _cancellationTokenSource?.Cancel();
-                _cancellationTokenSource?.Dispose();
+                cancellationTokenSource?.Cancel();
+                cancellationTokenSource?.Dispose();
             }
             catch (Exception ex)
             {

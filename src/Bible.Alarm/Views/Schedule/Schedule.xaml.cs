@@ -8,7 +8,7 @@ namespace Bible.Alarm.Views.Schedule;
 public partial class Schedule : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
-    private readonly ScheduleViewModel _viewModel;
+    private readonly ScheduleViewModel viewModel;
 
     public ScheduleViewModel? ViewModel => BindingContext as ScheduleViewModel;
 
@@ -25,7 +25,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
 
         BindingContext = viewModel;
-        _viewModel = viewModel;
+        this.viewModel = viewModel;
 
         // Setup gesture recognizers after page is loaded to support hot reload
         Loaded += OnPageLoaded;
@@ -81,7 +81,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             // Hide Home page overlay after Schedule page is fully rendered and visible
-            _viewModel?.HideHomePageOverlay();
+            viewModel?.HideHomePageOverlay();
         });
     }
 
@@ -105,7 +105,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         if (!_isDisposed)
         {
             // ViewModel was injected via constructor, so dispose it
-            if (_viewModel is IDisposable disposable)
+            if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }

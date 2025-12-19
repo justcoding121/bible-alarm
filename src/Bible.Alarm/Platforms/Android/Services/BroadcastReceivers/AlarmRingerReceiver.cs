@@ -18,7 +18,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
     private Intent _intent;
     private IAndroidAlarmHandler _alarmHandler;
 
-    private static readonly SemaphoreSlim Lock = new(1);
+    private static readonly SemaphoreSlim @lock = new(1);
 
     public AlarmRingerReceiver()
     {
@@ -46,7 +46,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
         try
         {
-            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+            await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 _context = context;
                 _intent = intent;

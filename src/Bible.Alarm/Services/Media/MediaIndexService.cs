@@ -72,9 +72,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                 }
                 else
                 {
-#pragma warning disable IL3002 // RequiresAssemblyFiles - method works in normal deployments, warning only for single-file apps
-                    var creationDate = await storageService.GetFileCreationDate(mediaIndexPath, false);
-#pragma warning restore IL3002
+                    var creationDate = await storageService.GetFileCreationDate(mediaIndexPath);
 
                     //if downloaded within last week (harvester runs weekly on Sundays)
                     if (creationDate.UtcDateTime > DateTime.UtcNow.AddDays(-AppConstants.CacheSettings.MediaIndexUpdateCheckDays))

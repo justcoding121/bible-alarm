@@ -24,7 +24,7 @@ public class ScheduleStateService(
     private readonly INotificationService notificationService = notificationService;
     private readonly IToastService toastService = toastService;
     private readonly IDispatcher dispatcher = dispatcher;
-    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)

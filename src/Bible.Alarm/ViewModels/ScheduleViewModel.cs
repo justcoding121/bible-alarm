@@ -759,12 +759,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectNumberOfChaptersCommand { get; set; }
 
-    private ObservableCollection<NumberOfChaptersListViewItemModel> _numberOfChaptersList;
+    private ObservableCollection<NumberOfChaptersListViewItemModel> numberOfChaptersList;
 
     public ObservableCollection<NumberOfChaptersListViewItemModel> NumberOfChaptersList
     {
-        get => _numberOfChaptersList;
-        set => SetProperty(ref _numberOfChaptersList, value);
+        get => numberOfChaptersList;
+        set => SetProperty(ref numberOfChaptersList, value);
     }
 
     private NumberOfChaptersListViewItemModel currentNumberOfChapters;

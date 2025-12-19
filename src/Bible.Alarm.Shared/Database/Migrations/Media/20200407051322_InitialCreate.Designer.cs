@@ -12,7 +12,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
-#pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "3.1.3");
 
@@ -279,7 +278,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
-#pragma warning restore 612, 618
         }
     }
 }

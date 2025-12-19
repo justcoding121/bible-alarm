@@ -7,18 +7,16 @@ namespace Bible.Alarm.Views.Bible;
 public partial class BookSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
-    private readonly BookSelectionViewModel _viewModel;
-    private readonly TaskScheduler _taskScheduler;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly BookSelectionViewModel viewModel;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public BookSelectionViewModel ViewModel => BindingContext as BookSelectionViewModel;
 
     public BookSelection(BookSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
-        _taskScheduler = taskScheduler;
         InitializeComponent();
         BindingContext = viewModel;
-        _viewModel = viewModel;
+        this.viewModel = viewModel;
 
         // Note: We don't clear selection here because this page navigates away when an item is selected
         // The page will be disposed, so clearing selection is unnecessary and can interfere with navigation on iOS
@@ -34,14 +32,14 @@ public partial class BookSelection : BaseContentPage, IDisposable
         if (ViewModel != null)
         {
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
+            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
 
             // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200, _cancellationTokenSource.Token);
+            await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedBook != null && bookCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook, cancellationToken: _cancellationTokenSource.Token);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook, cancellationToken: cancellationTokenSource.Token);
             }
         }
     }
@@ -59,8 +57,8 @@ public partial class BookSelection : BaseContentPage, IDisposable
             // Cancel and dispose cancellation token source
             try
             {
-                _cancellationTokenSource?.Cancel();
-                _cancellationTokenSource?.Dispose();
+                cancellationTokenSource?.Cancel();
+                cancellationTokenSource?.Dispose();
             }
             catch (Exception ex)
             {
@@ -69,7 +67,7 @@ public partial class BookSelection : BaseContentPage, IDisposable
             }
 
             // ViewModel was injected via constructor, so dispose it
-            if (_viewModel is IDisposable disposable)
+            if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }

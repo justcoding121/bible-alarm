@@ -24,9 +24,9 @@ namespace CommunityToolkit.Maui.Core.Views;
 
 public partial class MediaManager : Java.Lang.Object, IPlayerListener
 {
-	const int bufferState = 2;
-	const int readyState = 3;
-	const int endedState = 4;
+	const int BufferState = 2;
+	const int ReadyState = 3;
+	const int EndedState = 4;
 
 	static readonly HttpClient client = new();
 	readonly SemaphoreSlim seekToSemaphoreSlim = new(1, 1);
@@ -41,7 +41,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	BoundServiceConnection? connection;
 
 	static bool globalExoPlayerCreated = false;
-	static readonly object globalExoPlayerLock = new object();
+	static readonly object globalExoPlayerLock = new();
 	static PlatformMediaElement? globalPlayer;
 	static MediaSession? globalSession;
 
@@ -126,7 +126,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 		};
 
 		MediaElement.CurrentStateChanged(newState);
-		if (playbackState is readyState)
+		if (playbackState is ReadyState)
 		{
 			MediaElement.Duration = TimeSpan.FromMilliseconds(Player.Duration < 0 ? 0 : Player.Duration);
 			MediaElement.Position = TimeSpan.FromMilliseconds(Player.CurrentPosition < 0 ? 0 : Player.CurrentPosition);
@@ -274,14 +274,14 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 		MediaElementState newState = MediaElement.CurrentState;
 		switch (playbackState)
 		{
-			case bufferState:
+			case BufferState:
 				newState = MediaElementState.Buffering;
 				break;
-			case endedState:
+			case EndedState:
 				newState = MediaElementState.Stopped;
 				MediaElement.MediaEnded();
 				break;
-			case readyState:
+			case ReadyState:
 				seekToTaskCompletionSource?.TrySetResult();
 				break;
 		}

@@ -11,14 +11,14 @@ namespace Bible.Alarm.Shared.DataStructures;
 public sealed class AsyncQueue<T> : IDisposable
 {
     //data queue.
-    private readonly Queue<T> _queue = new();
+    private readonly Queue<T> queue = new();
 
     //consumer task queue and lock.
-    private readonly Queue<TaskCompletionSource<T>> _consumerQueue = new();
-    private readonly SemaphoreSlim _consumerQueueLock = new(1);
-    private bool _disposed;
+    private readonly Queue<TaskCompletionSource<T>> consumerQueue = new();
+    private readonly SemaphoreSlim consumerQueueLock = new(1);
+    private bool disposed;
 
-    public int Count => _queue.Count;
+    public int Count => queue.Count;
 
     /// <summary>
     ///     Supports multi-threaded producers.
@@ -29,28 +29,28 @@ public sealed class AsyncQueue<T> : IDisposable
     {
         ThrowIfDisposed();
 
-        await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
+        await consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
 
         try
         {
-            if (_disposed)
+            if (disposed)
             {
                 return;
             }
 
-            if (_consumerQueue.Count > 0)
+            if (consumerQueue.Count > 0)
             {
-                var consumer = _consumerQueue.Dequeue();
+                var consumer = consumerQueue.Dequeue();
                 consumer.TrySetResult(value);
             }
             else
             {
-                _queue.Enqueue(value);
+                queue.Enqueue(value);
             }
         }
         finally
         {
-            _consumerQueueLock.Release();
+            consumerQueueLock.Release();
         }
     }
 
@@ -63,30 +63,30 @@ public sealed class AsyncQueue<T> : IDisposable
     {
         ThrowIfDisposed();
 
-        await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
+        await consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
 
         TaskCompletionSource<T> consumer;
 
         try
         {
-            if (_disposed)
+            if (disposed)
             {
                 throw new ObjectDisposedException(nameof(AsyncQueue<T>));
             }
 
-            if (_queue.Count > 0)
+            if (queue.Count > 0)
             {
-                var result = _queue.Dequeue();
+                var result = queue.Dequeue();
                 return result;
             }
 
             consumer = new TaskCompletionSource<T>();
             taskCancellationToken.Register(() => consumer.TrySetCanceled());
-            _consumerQueue.Enqueue(consumer);
+            consumerQueue.Enqueue(consumer);
         }
         finally
         {
-            _consumerQueueLock.Release();
+            consumerQueueLock.Release();
         }
 
         return await consumer.Task;
@@ -96,31 +96,31 @@ public sealed class AsyncQueue<T> : IDisposable
     {
         ThrowIfDisposed();
 
-        await _consumerQueueLock.WaitAsync();
+        await consumerQueueLock.WaitAsync();
 
         try
         {
-            if (_disposed)
+            if (disposed)
             {
                 throw new ObjectDisposedException(nameof(AsyncQueue<T>));
             }
 
-            if (_queue.Count == 0)
+            if (queue.Count == 0)
             {
                 return default;
             }
 
-            return _queue.Peek();
+            return queue.Peek();
         }
         finally
         {
-            _consumerQueueLock.Release();
+            consumerQueueLock.Release();
         }
     }
 
     private void ThrowIfDisposed()
     {
-        if (_disposed)
+        if (disposed)
         {
             throw new ObjectDisposedException(nameof(AsyncQueue<T>));
         }
@@ -128,17 +128,17 @@ public sealed class AsyncQueue<T> : IDisposable
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (!disposed)
         {
             // Cancel all pending consumers
-            while (_consumerQueue.Count > 0)
+            while (consumerQueue.Count > 0)
             {
-                var consumer = _consumerQueue.Dequeue();
+                var consumer = consumerQueue.Dequeue();
                 consumer.TrySetCanceled();
             }
 
-            _consumerQueueLock?.Dispose();
-            _disposed = true;
+            consumerQueueLock?.Dispose();
+            disposed = true;
         }
     }
 }

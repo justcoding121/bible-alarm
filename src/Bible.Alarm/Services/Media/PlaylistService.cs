@@ -24,7 +24,7 @@ public class PlaylistService(
     IBibleTranslationService bibleTranslationService,
     IMelodyMusicService melodyMusicService) : IPlaylistService, IDisposable
 {
-    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
     public async Task<int> GetRelevantScheduleToPlay()

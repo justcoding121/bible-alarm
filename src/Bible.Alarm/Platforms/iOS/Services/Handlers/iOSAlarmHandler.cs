@@ -19,7 +19,7 @@ public class iOSAlarmHandler(
     private readonly IState<PlaybackState> _playbackState = playbackState;
 
 
-    private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
+    private static readonly SemaphoreSlim @lock = new(1);
 
     //Need this to fix issue in XamarinMediaManager (notification stays on screen)
     private static bool firstTime = true;
@@ -28,7 +28,7 @@ public class iOSAlarmHandler(
     {
         try
         {
-            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+            await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 if (_playbackState.Value.IsPreparingOrPlaying)
                 {
@@ -84,7 +84,7 @@ public class iOSAlarmHandler(
         // Dispose static semaphore
         try
         {
-            Lock.Dispose();
+            @lock.Dispose();
         }
         catch (Exception ex)
         {

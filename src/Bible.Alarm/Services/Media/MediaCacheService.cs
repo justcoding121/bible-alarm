@@ -31,7 +31,7 @@ public class MediaCacheService(
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IMediaUrlRefreshService _urlRefreshService = urlRefreshService;
     private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isDisposed;
 
     // Use StorageRoot instead of CacheRoot to ensure media cache is in a permanent location

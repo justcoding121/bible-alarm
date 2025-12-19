@@ -8,7 +8,7 @@ public partial class BibleSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly BibleSelectionViewModel viewModel;
-    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public BibleSelectionViewModel? ViewModel => BindingContext as BibleSelectionViewModel;
 

@@ -15,7 +15,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI;
 public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILogger logger) : ToastService, IDisposable
 {
     private bool isDisposed;
-    private static readonly SemaphoreSlim Lock = new(1);
+    private static readonly SemaphoreSlim @lock = new(1);
 
     private static TaskCompletionSource<bool>? clearRequest;
     private static Popup? currentPopup;
@@ -70,7 +70,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
     {
         clearRequest = new TaskCompletionSource<bool>();
 
-        await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             try
             {

@@ -189,12 +189,12 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref isBusy, value);
     }
 
-    private ObservableCollection<BibleBookListViewItemModel> _books;
+    private ObservableCollection<BibleBookListViewItemModel> books;
 
     public ObservableCollection<BibleBookListViewItemModel> Books
     {
-        get => _books;
-        set => SetProperty(ref _books, value);
+        get => books;
+        set => SetProperty(ref books, value);
     }
 
     private async Task Initialize(string languageCode, string publicationCode)

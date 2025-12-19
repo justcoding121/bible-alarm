@@ -6,7 +6,7 @@ namespace Bible.Alarm.Views.Music;
 public partial class SongBookSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
-    private readonly SongBookSelectionViewModel _viewModel;
+    private readonly SongBookSelectionViewModel viewModel;
 
     public SongBookSelectionViewModel? ViewModel => BindingContext as SongBookSelectionViewModel;
 
@@ -14,7 +14,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
     {
         InitializeComponent();
         BindingContext = viewModel;
-        _viewModel = viewModel;
+        this.viewModel = viewModel;
 
         // Note: We don't clear selection here because this page navigates away when an item is selected
         // The page will be disposed, so clearing selection is unnecessary and can interfere with navigation on iOS
@@ -22,7 +22,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        _viewModel.BackCommand.Execute(null);
+        viewModel.BackCommand.Execute(null);
         return true;
     }
 
@@ -31,7 +31,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
         if (!_isDisposed)
         {
             // ViewModel was injected via constructor, so dispose it
-            if (_viewModel is IDisposable disposable)
+            if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }

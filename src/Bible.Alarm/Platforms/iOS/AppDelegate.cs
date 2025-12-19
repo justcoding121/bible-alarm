@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using BackgroundTasks;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.iOS.Services.BackgroundTasks;
@@ -90,30 +89,9 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             throw;
         }
 
-        // check for a notification
-        if (launchOptions != null)
-        {
-            try
-            {
-                // check for a local notification
-                // UIApplication.LaunchOptionsLocalNotificationKey is obsolete but needed for compatibility
-#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with iOS < 10
-                if (launchOptions.ContainsKey(UIApplication.LaunchOptionsLocalNotificationKey))
-                {
-                    if (launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] is UILocalNotification localNotification)
-                    {
-#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility
-                        HandleNotification(localNotification.UserInfo);
-#pragma warning restore CA1422
-                    }
-                }
-#pragma warning restore CA1422
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error handling iOS notification on launch.");
-            }
-        }
+        // Set the notification center delegate to handle notification taps (including app launch from notification)
+        // This is the modern, non-deprecated way to handle notifications in iOS 15+
+        UNUserNotificationCenter.Current.Delegate = this;
 
         // Request notification permissions from the user
         UNUserNotificationCenter.Current.RequestAuthorization(
@@ -183,17 +161,19 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                 UNUserNotificationCenter.Current.RemoveAllDeliveredNotifications();
             }
 
-            // Use modern API for setting badge (iOS 17+)
-            if (UIDevice.CurrentDevice.CheckSystemVersion(17, 0))
+            // In 2025, SetBadgeCount is the standard for 95%+ of the iOS market (iOS 16+)
+            // This avoids CA1422 entirely and uses the modern asynchronous pattern.
+            UNUserNotificationCenter.Current.SetBadgeCount(0, (error) =>
             {
-                UNUserNotificationCenter.Current.SetBadgeCount(0, null);
-            }
-            else
-            {
-#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with iOS < 17
-                UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
-#pragma warning restore CA1422
-            }
+                if (error != null)
+                {
+                    logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
+                }
+                else
+                {
+                    logger.Information("Badge count reset successfully.");
+                }
+            });
         }
         catch (Exception e)
         {
@@ -203,23 +183,56 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         base.OnActivated(uiApplication);
     }
 
+    /// <summary>
+    /// Called when the user taps a notification (including when app is launched from notification).
+    /// This is the modern, non-deprecated way to handle notification interactions in iOS 15+.
+    /// </summary>
+    public void DidReceiveNotificationResponse(UNUserNotificationCenter center, UNNotificationResponse response, Action completionHandler)
+    {
+        try
+        {
+            var userInfo = response.Notification.Request.Content.UserInfo;
+            HandleNotification(userInfo);
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error handling iOS notification response.");
+        }
+        finally
+        {
+            completionHandler?.Invoke();
+        }
+    }
 
-    private static void HandleNotification(NSDictionary _)
+    /// <summary>
+    /// Called when a notification is delivered while the app is in the foreground.
+    /// </summary>
+    public void WillPresentNotification(UNUserNotificationCenter center, UNNotification notification, Action<UNNotificationPresentationOptions> completionHandler)
+    {
+        // Allow the notification to be presented even when app is in foreground
+        // Use Banner instead of deprecated Alert option
+        var options = UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound | UNNotificationPresentationOptions.Badge;
+        completionHandler(options);
+    }
+
+    private static void HandleNotification(NSDictionary userInfo)
     {
         try
         {
             // reset our badge
-            // Use modern API for setting badge (iOS 17+)
-            if (UIDevice.CurrentDevice.CheckSystemVersion(17, 0))
+            // In 2025, SetBadgeCount is the standard for 95%+ of the iOS market (iOS 16+)
+            // This avoids CA1422 entirely and uses the modern asynchronous pattern.
+            UNUserNotificationCenter.Current.SetBadgeCount(0, (error) =>
             {
-                UNUserNotificationCenter.Current.SetBadgeCount(0, null);
-            }
-            else
-            {
-#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with iOS < 17
-                UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
-#pragma warning restore CA1422
-            }
+                if (error != null)
+                {
+                    logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
+                }
+                else
+                {
+                    logger.Information("Badge count reset successfully.");
+                }
+            });
         }
         catch (Exception e)
         {

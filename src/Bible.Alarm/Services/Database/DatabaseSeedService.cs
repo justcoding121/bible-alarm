@@ -17,7 +17,7 @@ public class DatabaseSeedService(
     private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
     private readonly IBibleTranslationService _bibleTranslationService = bibleTranslationService;
     private readonly IMelodyMusicService _melodyMusicService = melodyMusicService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isDisposed;
 
     public async Task SeedDefaultAlarmAsync()

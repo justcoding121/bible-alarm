@@ -32,8 +32,9 @@
 		<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>
 
 		<!-- iOS-specific -->
-		<!-- Minimum OS version must match CommunityToolkit.Maui.MediaElement requirement: iOS 15.0 -->
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+		<!-- Minimum OS version set to iOS 16.0 to support modern UNUserNotificationCenter.SetBadgeCount API -->
+		<!-- CommunityToolkit.Maui.MediaElement supports iOS 15.0+, but we require 16.0 for modern notification APIs -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">16.0</SupportedOSPlatformVersion>
 
 		<!-- Windows-specific -->
 		<!-- For .NET MAUI 10, minimum supported OS version is Windows 10 version 1809 (10.0.17763.0) with WinUI 3 -->

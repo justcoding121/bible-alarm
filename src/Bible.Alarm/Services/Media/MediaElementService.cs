@@ -26,7 +26,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     private readonly INavigationService navigationService;
     private readonly ILogger logger;
     // Local lock for this service
-    private readonly object lockObject = new object();
+    private readonly Lock lockObject = new();
     // Store MediaElement instance independently of BootstrapPage container
     // This allows MediaElement to exist when app is backgrounded (no UI)
     private MediaElement? mediaElementInstance;

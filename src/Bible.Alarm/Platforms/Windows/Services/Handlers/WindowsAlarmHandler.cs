@@ -16,13 +16,13 @@ public class WindowsAlarmHandler(
     private readonly IState<PlaybackState> _playbackState = playbackState;
 
 
-    private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
+    private static readonly SemaphoreSlim @lock = new(1);
 
     public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
         try
         {
-            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+            await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 if (_playbackState.Value.IsPreparingOrPlaying)
                 {
@@ -65,7 +65,7 @@ public class WindowsAlarmHandler(
         // Dispose static semaphore
         try
         {
-            Lock.Dispose();
+            @lock.Dispose();
         }
         catch (Exception ex)
         {

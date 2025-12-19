@@ -23,7 +23,7 @@ public class DefaultScheduleService(
     IPreparePlaybackService preparePlaybackService,
     IDisplayMetadataService displayMetadataService) : IDefaultScheduleService, IDisposable
 {
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isDisposed;
 
     public async Task<ScheduleTrackMetadata> GetNextScheduleTrackMetaDataAsync()

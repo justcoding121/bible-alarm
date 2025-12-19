@@ -17,7 +17,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
-#pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.AudioSource", b =>
@@ -363,7 +362,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 {
                     b.Navigation("Tracks");
                 });
-#pragma warning restore 612, 618
         }
     }
 }

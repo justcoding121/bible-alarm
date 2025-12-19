@@ -15,7 +15,7 @@ public class BatteryOptimizationService(
     private readonly ILogger _logger = logger;
     private readonly IGeneralSettingsService _generalSettingsService = generalSettingsService;
     private readonly IBatteryOptimizationManager _batteryOptimizationManager = batteryOptimizationManager;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     public async Task MarkModalAsShownAsync()
     {

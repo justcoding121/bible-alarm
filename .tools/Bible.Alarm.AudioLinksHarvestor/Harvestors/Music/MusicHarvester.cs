@@ -20,7 +20,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
     private readonly ILogger _logger = logger;
     private readonly DownloadUtility _downloadUtility = downloadUtility;
 
-    private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new Dictionary<string, string>(new[]{
+    private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new(new[]{
         new KeyValuePair<string, string>("osg","Original Songs"),
         new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
         new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
@@ -162,7 +162,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     }
 
-    private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new Dictionary<string, string>(new[]{
+    private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new(new[]{
         new KeyValuePair<string, string>("iam","Sing Praises to Jehovah (1984)")
     });
 

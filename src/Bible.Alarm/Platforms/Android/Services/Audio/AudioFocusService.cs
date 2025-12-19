@@ -16,7 +16,7 @@ public sealed class AudioFocusService
     private readonly AudioManager audioManager;
     private AudioFocusRequestClass? audioFocusRequest;
 
-    private readonly object @lock = new();
+    private readonly Lock @lock = new();
 
     /// <summary>
     /// Initializes the audio focus service with the global audio focus listener.
@@ -52,79 +52,57 @@ public sealed class AudioFocusService
             try
             {
                 // Request audio focus for media playback
-                if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
+                // Minimum Android version is 26 (API 26 = BuildVersionCodes.O), so we always use the modern API
+                var audioAttributesBuilder = new AudioAttributes.Builder();
+                if (audioAttributesBuilder == null)
                 {
-                    // Android 8.0+ (API 26+)
-                    var audioAttributesBuilder = new AudioAttributes.Builder();
-                    if (audioAttributesBuilder == null)
-                    {
-                        logger.Warning("Failed to create AudioAttributes.Builder");
-                        return;
-                    }
-                    
-                    audioAttributesBuilder.SetUsage(AudioUsageKind.Media);
-                    audioAttributesBuilder.SetContentType(AudioContentType.Music);
-                    var audioAttributes = audioAttributesBuilder.Build();
+                    logger.Warning("Failed to create AudioAttributes.Builder");
+                    return;
+                }
+                
+                audioAttributesBuilder.SetUsage(AudioUsageKind.Media);
+                audioAttributesBuilder.SetContentType(AudioContentType.Music);
+                var audioAttributes = audioAttributesBuilder.Build();
 
-                    if (audioAttributes == null)
-                    {
-                        logger.Warning("Failed to create AudioAttributes");
-                        return;
-                    }
+                if (audioAttributes == null)
+                {
+                    logger.Warning("Failed to create AudioAttributes");
+                    return;
+                }
 
-                    var audioFocusRequestBuilder = new AudioFocusRequestClass.Builder(AudioFocus.Gain);
-                    if (audioFocusRequestBuilder == null)
-                    {
-                        logger.Warning("Failed to create AudioFocusRequest.Builder");
-                        return;
-                    }
-                    
-                    audioFocusRequestBuilder.SetAudioAttributes(audioAttributes);
-                    audioFocusRequestBuilder.SetAcceptsDelayedFocusGain(true);
-                    audioFocusRequestBuilder.SetOnAudioFocusChangeListener(audioFocusListener);
-                    audioFocusRequest = audioFocusRequestBuilder.Build();
+                var audioFocusRequestBuilder = new AudioFocusRequestClass.Builder(AudioFocus.Gain);
+                if (audioFocusRequestBuilder == null)
+                {
+                    logger.Warning("Failed to create AudioFocusRequest.Builder");
+                    return;
+                }
+                
+                audioFocusRequestBuilder.SetAudioAttributes(audioAttributes);
+                audioFocusRequestBuilder.SetAcceptsDelayedFocusGain(true);
+                audioFocusRequestBuilder.SetOnAudioFocusChangeListener(audioFocusListener);
+                audioFocusRequest = audioFocusRequestBuilder.Build();
 
-                    if (audioFocusRequest == null)
-                    {
-                        logger.Warning("Failed to create AudioFocusRequest");
-                        return;
-                    }
+                if (audioFocusRequest == null)
+                {
+                    logger.Warning("Failed to create AudioFocusRequest");
+                    return;
+                }
 
-                    if (audioManager == null)
-                    {
-                        logger.Warning("AudioManager is null");
-                        return;
-                    }
+                if (audioManager == null)
+                {
+                    logger.Warning("AudioManager is null");
+                    return;
+                }
 
-                    var result = audioManager.RequestAudioFocus(audioFocusRequest);
+                var result = audioManager.RequestAudioFocus(audioFocusRequest);
 
-                    if (result == AudioFocusRequest.Granted)
-                    {
-                        logger.Information("Audio focus granted - playback can start");
-                    }
-                    else
-                    {
-                        logger.Warning("Audio focus request returned: {Result}", result);
-                    }
+                if (result == AudioFocusRequest.Granted)
+                {
+                    logger.Information("Audio focus granted - playback can start");
                 }
                 else
                 {
-                    // Android 7.1 and below - use legacy API
-#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with Android < 26
-                    var result = audioManager.RequestAudioFocus(
-                        audioFocusListener,
-                        MediaStream.Music,
-                        AudioFocus.Gain);
-#pragma warning restore CA1422
-
-                    if (result == AudioFocusRequest.Granted)
-                    {
-                        logger.Information("Audio focus granted (legacy API) - playback can start");
-                    }
-                    else
-                    {
-                        logger.Warning("Audio focus request returned: {Result}", result);
-                    }
+                    logger.Warning("Audio focus request returned: {Result}", result);
                 }
             }
             catch (Exception ex)
@@ -152,34 +130,19 @@ public sealed class AudioFocusService
     {
         try
         {
-            if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
+            // Minimum Android version is 26 (API 26 = BuildVersionCodes.O), so we always use the modern API
+            if (audioFocusRequest != null)
             {
-                // Android 8.0+ (API 26+)
-                if (audioFocusRequest != null)
-                {
-                    audioManager.AbandonAudioFocusRequest(audioFocusRequest);
-                    audioFocusRequest = null;
-                    logger.Debug("Audio focus released");
-                }
-            }
-            else
-            {
-                // Android 7.1 and below - use legacy API
-                // Safe to call even if we don't have focus
-#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with Android < 26
-                audioManager.AbandonAudioFocus(audioFocusListener);
-#pragma warning restore CA1422
-                logger.Debug("Audio focus released (legacy API)");
+                audioManager.AbandonAudioFocusRequest(audioFocusRequest);
+                audioFocusRequest = null;
+                logger.Debug("Audio focus released");
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error releasing audio focus");
             // Reset flag on error to prevent getting stuck
-            if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
-            {
-                audioFocusRequest = null;
-            }
+            audioFocusRequest = null;
         }
     }
 }

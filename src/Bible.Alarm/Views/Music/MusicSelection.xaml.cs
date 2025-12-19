@@ -6,9 +6,9 @@ namespace Bible.Alarm.Views.Music;
 public partial class MusicSelection : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
-    private readonly MusicSelectionViewModel _viewModel;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-    private bool _isClearingSelection;
+    private readonly MusicSelectionViewModel viewModel;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isClearingSelection;
 
     public MusicSelectionViewModel ViewModel => BindingContext as MusicSelectionViewModel;
 
@@ -16,13 +16,13 @@ public partial class MusicSelection : BaseContentPage, IDisposable
     {
         InitializeComponent();
         BindingContext = viewModel;
-        _viewModel = viewModel;
+        this.viewModel = viewModel;
 
         // Clear selection after SelectionChanged fires to allow command to execute first
         musicTypesCollectionView.SelectionChanged += (sender, e) =>
         {
             // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
-            if (_isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
+            if (isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
             {
                 return;
             }
@@ -35,9 +35,9 @@ public partial class MusicSelection : BaseContentPage, IDisposable
                 {
                     if (!_isDisposed && musicTypesCollectionView != null)
                     {
-                        _isClearingSelection = true;
+                        isClearingSelection = true;
                         musicTypesCollectionView.SelectedItem = null;
-                        _isClearingSelection = false;
+                        isClearingSelection = false;
                     }
                 });
             });
@@ -54,11 +54,11 @@ public partial class MusicSelection : BaseContentPage, IDisposable
         // Just wait a moment for CollectionView to render, then scroll
         if (ViewModel != null)
         {
-            await Task.Delay(200, _cancellationTokenSource.Token);
+            await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedMusicType != null && musicTypesCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false, cancellationToken: _cancellationTokenSource.Token);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false, cancellationToken: cancellationTokenSource.Token);
             }
         }
     }
@@ -76,8 +76,8 @@ public partial class MusicSelection : BaseContentPage, IDisposable
             // Cancel and dispose cancellation token source
             try
             {
-                _cancellationTokenSource?.Cancel();
-                _cancellationTokenSource?.Dispose();
+                cancellationTokenSource?.Cancel();
+                cancellationTokenSource?.Dispose();
             }
             catch (Exception ex)
             {
@@ -86,7 +86,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
             }
 
             // ViewModel was injected via constructor, so dispose it
-            if (_viewModel is IDisposable disposable)
+            if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }

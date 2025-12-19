@@ -10,24 +10,24 @@ namespace Bible.Alarm.Services.Media;
 
 public class DownloadService : IDownloadService, IDisposable
 {
-    private readonly HttpMessageHandler _handler;
-    private readonly int _timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
-    private readonly ILogger _logger;
-    private readonly CancellationTokenSource _cancellationTokenSource;
-    private bool _isDisposed;
+    private readonly HttpMessageHandler handler;
+    private readonly int timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
+    private readonly ILogger logger;
+    private readonly CancellationTokenSource cancellationTokenSource;
+    private bool isDisposed;
 
     // User-Agent string to identify the app and prevent 403 errors from servers that block requests without proper User-Agent
     private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
 
-    private readonly AsyncRetryPolicy<byte[]> _downloadRetryPolicy;
+    private readonly AsyncRetryPolicy<byte[]> downloadRetryPolicy;
 
     public DownloadService(HttpMessageHandler handler, ILogger logger)
     {
-        _handler = handler;
-        _logger = logger;
-        _cancellationTokenSource = new CancellationTokenSource();
+        this.handler = handler;
+        this.logger = logger;
+        cancellationTokenSource = new CancellationTokenSource();
 
-        _downloadRetryPolicy = Policy<byte[]>
+        downloadRetryPolicy = Policy<byte[]>
             .Handle<Exception>(ex =>
             {
                 // Don't retry on HTTP errors like 403, 404 (permanent failures)
@@ -40,7 +40,7 @@ public class DownloadService : IDownloadService, IDisposable
                         message.Contains("Forbidden") ||
                         message.Contains("Not Found"))
                     {
-                        _logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
+                        logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
                         // Don't handle/retry this exception
                         return false;
                     }
@@ -56,7 +56,7 @@ public class DownloadService : IDownloadService, IDisposable
                     // Log retry attempts
                     var exception = outcome?.Exception;
                     var exceptionMessage = exception?.Message ?? "Unknown error";
-                    _logger.Warning(exception, "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}",
+                    logger.Warning(exception, "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}",
                         retryCount,
                         AppConstants.CacheSettings.DownloadRetryAttempts,
                         timespan.TotalSeconds,
@@ -65,7 +65,7 @@ public class DownloadService : IDownloadService, IDisposable
     }
 
     // Polly retry policy for file existence checks
-    private readonly AsyncRetryPolicy _fileExistsRetryPolicy = Policy
+    private readonly AsyncRetryPolicy fileExistsRetryPolicy = Policy
         .Handle<Exception>()
         .WaitAndRetryAsync(
             retryCount: AppConstants.CacheSettings.FileExistsCheckRetryAttempts,
@@ -77,7 +77,7 @@ public class DownloadService : IDownloadService, IDisposable
 
     public async Task<byte[]> DownloadAsync(string url, string alternativeUrl = null)
     {
-        return await _downloadRetryPolicy.ExecuteAsync(async (ct) =>
+        return await downloadRetryPolicy.ExecuteAsync(async (ct) =>
         {
             try
             {
@@ -85,22 +85,22 @@ public class DownloadService : IDownloadService, IDisposable
                 request.Headers.UserAgent.ParseAdd(UserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
-                using var client = new HttpClient(_handler, false);
+                using var client = new HttpClient(handler, false);
                 using var response = await client.SendAsync(request, ct);
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsByteArrayAsync(ct);
             }
             catch (Exception ex)
             {
-                _logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
+                logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
 
                 if (alternativeUrl == null)
                 {
-                    _logger.Error(ex, "No alternative URL provided for failed download: {Url}", url);
+                    logger.Error(ex, "No alternative URL provided for failed download: {Url}", url);
                     throw;
                 }
 
-                _logger.Information("Attempting to download from alternative URL: {AlternativeUrl}", alternativeUrl);
+                logger.Information("Attempting to download from alternative URL: {AlternativeUrl}", alternativeUrl);
 
                 try
                 {
@@ -108,27 +108,27 @@ public class DownloadService : IDownloadService, IDisposable
                     request.Headers.UserAgent.ParseAdd(UserAgent);
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
-                    using var client = new HttpClient(_handler, false);
+                    using var client = new HttpClient(handler, false);
                     using var response = await client.SendAsync(request, ct);
                     response.EnsureSuccessStatusCode();
                     return await response.Content.ReadAsByteArrayAsync(ct);
                 }
                 catch (Exception altEx)
                 {
-                    _logger.Error(altEx, "Failed to download from alternative URL: {AlternativeUrl}", alternativeUrl);
+                    logger.Error(altEx, "Failed to download from alternative URL: {AlternativeUrl}", alternativeUrl);
                     throw;
                 }
             }
-        }, _cancellationTokenSource.Token);
+        }, cancellationTokenSource.Token);
     }
 
     public async Task<bool> FileExists(string url)
     {
-        return await _fileExistsRetryPolicy.ExecuteAsync(async (ct) =>
+        return await fileExistsRetryPolicy.ExecuteAsync(async (ct) =>
         {
-            using var client = new HttpClient(_handler, false)
+            using var client = new HttpClient(handler, false)
             {
-                Timeout = TimeSpan.FromSeconds(_timeOutSeconds)
+                Timeout = TimeSpan.FromSeconds(timeOutSeconds)
             };
 
             var getRequest = async () =>
@@ -166,31 +166,31 @@ public class DownloadService : IDownloadService, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.Warning(ex, "HEAD request failed for URL: {Url}, falling back to GET request", url);
+                logger.Warning(ex, "HEAD request failed for URL: {Url}, falling back to GET request", url);
                 return await getRequest();
             }
-        }, _cancellationTokenSource.Token);
+        }, cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // HttpMessageHandler is registered as a singleton and should not be disposed here

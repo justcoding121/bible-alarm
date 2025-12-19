@@ -6,8 +6,8 @@ namespace Bible.Alarm.Platforms.iOS.Services.Platform;
 public class iOSVersionFinder : IVersionFinder, IDisposable
 {
     private bool _isDisposed;
-    private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
-    public static iOSVersionFinder Default => new iOSVersionFinder();
+    private static readonly Lazy<string> Version = new(() => VersionName());
+    public static iOSVersionFinder Default => new();
 
     public string GetVersionName()
     {

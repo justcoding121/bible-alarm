@@ -17,7 +17,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
-#pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
             modelBuilder.Entity("Bible.Alarm.Models.GeneralSettings", b =>
@@ -249,7 +248,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.Navigation("Music");
                 });
-#pragma warning restore 612, 618
         }
     }
 }

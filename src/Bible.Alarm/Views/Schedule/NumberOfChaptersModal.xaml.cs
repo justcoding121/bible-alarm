@@ -7,8 +7,8 @@ namespace Bible.Alarm.Views.Schedule;
 public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-    private bool _isClearingSelection;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isClearingSelection;
 
     public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
 
@@ -20,7 +20,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         ChaptersCollectionView.SelectionChanged += (sender, e) =>
         {
             // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
-            if (_isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
+            if (isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
             {
                 return;
             }
@@ -33,9 +33,9 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
                 {
                     if (!_isDisposed && ChaptersCollectionView != null)
                     {
-                        _isClearingSelection = true;
+                        isClearingSelection = true;
                         ChaptersCollectionView.SelectedItem = null;
-                        _isClearingSelection = false;
+                        isClearingSelection = false;
                     }
                 });
             });
@@ -50,7 +50,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 
         if (ViewModel?.CurrentNumberOfChapters != null && ChaptersCollectionView != null)
         {
-            await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, cancellationToken: _cancellationTokenSource.Token);
+            await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, cancellationToken: cancellationTokenSource.Token);
         }
     }
 
@@ -61,8 +61,8 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
             // Cancel and dispose cancellation token source
             try
             {
-                _cancellationTokenSource?.Cancel();
-                _cancellationTokenSource?.Dispose();
+                cancellationTokenSource?.Cancel();
+                cancellationTokenSource?.Dispose();
             }
             catch (Exception ex)
             {

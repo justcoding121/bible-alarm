@@ -10,7 +10,7 @@ namespace Bible.Alarm.Services.UI;
 public static class FontServiceHelper
 {
     private static IFontService? _fontService;
-    private static readonly object _lock = new object();
+    private static readonly object _lock = new();
 
     /// <summary>
     /// Initializes the FontServiceHelper with the service instance.

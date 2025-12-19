@@ -18,9 +18,9 @@ namespace Bible.Alarm.Common.Helpers;
 /// </summary>
 public static class BootstrapHelper
 {
-    private static readonly object BootstrapLock = new object();
+    private static readonly object BootstrapLock = new();
     private static volatile bool BootstrapCompleted = false;
-    private static readonly object BootstrapWaitLock = new object();
+    private static readonly object BootstrapWaitLock = new();
     private static TaskCompletionSource<bool>? _bootstrapCompletionSource;
 
     /// <summary>

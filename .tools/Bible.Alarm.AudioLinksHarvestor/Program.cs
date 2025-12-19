@@ -32,7 +32,7 @@ public class Program
         JwSourceHelper.PublicationCodeToNameMappings;
 
 
-    public static async Task Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
@@ -128,7 +128,15 @@ public class Program
             await using (var seederScope = serviceProvider.CreateAsyncScope())
             {
                 var dbSeeder = seederScope.ServiceProvider.GetRequiredService<DbSeeder>();
-                await dbSeeder.Seed();
+                try
+                {
+                    await dbSeeder.Seed();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Seeding failed");
+                    return 1;
+                }
             }
 
             SqliteConnection.ClearAllPools();
@@ -159,17 +167,10 @@ public class Program
         catch (Exception ex)
         {
             logger.Error(ex, "Error during harvesting");
-            throw;
+            return 1;
         }
         finally
         {
-            var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
-            if (!File.Exists(zipIndex))
-            {
-                logger.Error("Harvesting failed to create zip file.");
-                throw new Exception("Harvesting failed to create zip file.");
-            }
-
             if (serviceProvider is IDisposable disposable)
             {
                 disposable.Dispose();
@@ -181,6 +182,15 @@ public class Program
 
             Log.CloseAndFlush();
         }
+
+        var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
+        if (!File.Exists(zipIndex))
+        {
+            logger.Error("Harvesting failed to create zip file.");
+            return 1;
+        }
+
+        return 0;
     }
 
     private static void WriteBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,

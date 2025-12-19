@@ -7,7 +7,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 {
     private bool _isDisposed;
     private bool _hasHandledFirstLoad;
-    private readonly AlarmViewModal _viewModel;
+    private readonly AlarmViewModal viewModel;
 
     public AlarmViewModal? ViewModel => BindingContext as AlarmViewModal;
 
@@ -15,7 +15,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     {
         InitializeComponent();
         BindingContext = viewModel;
-        _viewModel = viewModel;
+        this.viewModel = viewModel;
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
@@ -38,7 +38,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         await Task.Delay(100);
 
         // Hide Home page overlay after Alarm Modal is fully rendered and visible
-        _viewModel?.HideHomePageOverlay();
+        viewModel?.HideHomePageOverlay();
     }
 
     protected override void OnAppearing()
@@ -100,7 +100,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         if (!_isDisposed)
         {
             // ViewModel was injected via constructor, so dispose it
-            if (_viewModel is IDisposable disposable)
+            if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }

@@ -16,9 +16,9 @@ public class SchedulerService(
     INotificationService notificationService,
     IStorageService storageService) : ISchedulerService, IDisposable
 {
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
 
-    private static readonly SemaphoreSlim Lock = new(1);
+    private static readonly SemaphoreSlim @lock = new(1);
 
     public async Task ProcessScheduledTasksAsync()
     {
@@ -29,7 +29,7 @@ public class SchedulerService(
     {
         try
         {
-            var downloaded = await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+            var downloaded = await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 try
                 {
@@ -128,7 +128,7 @@ public class SchedulerService(
         // Dispose static semaphore
         try
         {
-            Lock.Dispose();
+            @lock.Dispose();
         }
         catch (Exception ex)
         {
