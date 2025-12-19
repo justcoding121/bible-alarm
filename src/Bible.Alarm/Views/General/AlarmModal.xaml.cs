@@ -24,7 +24,11 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     private async void OnPageLoaded(object? sender, EventArgs e)
     {
         // Only handle once per page instance
-        if (_hasHandledFirstLoad) return;
+        if (_hasHandledFirstLoad)
+        {
+            return;
+        }
+
         _hasHandledFirstLoad = true;
 
         // Unsubscribe to avoid multiple calls
@@ -32,7 +36,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
         // Wait a bit to ensure the modal is fully rendered and visible
         await Task.Delay(100);
-        
+
         // Hide Home page overlay after Alarm Modal is fully rendered and visible
         _viewModel?.HideHomePageOverlay();
     }
@@ -56,7 +60,9 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     private void OnSliderValueChanged(object? sender, ValueChangedEventArgs e)
     {
         if (ViewModel == null)
+        {
             return;
+        }
 
         // Ignore programmatic updates (from binding)
         if (!ViewModel.IsUserInteracting)

@@ -74,8 +74,8 @@ public static class PlaybackReducer
 
         // If status is Stopped/Ended and we're not preparing/playing, clear schedule
         // Keep schedule when Failed or Stopped (during track navigation) to allow error display and retry
-        var currentScheduleId = (isPreparingOrPlaying || state.IsPreparingOrPlaying) 
-            ? state.CurrentScheduleId 
+        var currentScheduleId = (isPreparingOrPlaying || state.IsPreparingOrPlaying)
+            ? state.CurrentScheduleId
             : null;
 
         return new PlaybackState(

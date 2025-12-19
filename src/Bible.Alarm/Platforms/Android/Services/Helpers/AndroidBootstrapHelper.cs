@@ -34,10 +34,10 @@ public class AndroidBootstrapHelper
             logger.Fatal(e, "Android database initialization crashed.");
             throw;
         }
-        
+
         // Create notification channel
         CreateNotificationChannel();
-        
+
         // Initialize background tasks
         VerifyBackgroundTasks(context);
     }
@@ -54,8 +54,16 @@ public class AndroidBootstrapHelper
         var jobInfo = jobBuilder.Build();
 
         var jobScheduler = (JobScheduler)context.GetSystemService(Context.JobSchedulerService);
-        if (jobScheduler == null) return false;
-        if (jobInfo == null) return false;
+        if (jobScheduler == null)
+        {
+            return false;
+        }
+
+        if (jobInfo == null)
+        {
+            return false;
+        }
+
         var scheduleResult = jobScheduler.Schedule(jobInfo);
 
         return JobScheduler.ResultSuccess == scheduleResult;
@@ -65,11 +73,19 @@ public class AndroidBootstrapHelper
     private static bool UpdateMediaIndexJobTask(Context context)
     {
         using var jobBuilder = context.CreateJobBuilderUsingJobId<UpdateMediaIndexJob>(UpdateMediaIndexJob.JobId, 60);
-        var jobInfo = jobBuilder.Build(); 
+        var jobInfo = jobBuilder.Build();
 
         var jobScheduler = (JobScheduler)context.GetSystemService(Context.JobSchedulerService);
-        if (jobScheduler == null) return false;
-        if (jobInfo == null) return false;
+        if (jobScheduler == null)
+        {
+            return false;
+        }
+
+        if (jobInfo == null)
+        {
+            return false;
+        }
+
         var scheduleResult = jobScheduler.Schedule(jobInfo);
 
         return JobScheduler.ResultSuccess == scheduleResult;
@@ -79,10 +95,12 @@ public class AndroidBootstrapHelper
     private static void CreateNotificationChannel()
     {
         if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+        {
             // Notification channels are new in API 26 (and not a part of the
             // support library). There is no need to create a notification
             // channel on older versions of Android.
             return;
+        }
 
         var channelId = AndroidNotificationService.ChannelIdAndName;
         var channelName = AndroidNotificationService.ChannelIdAndName;
@@ -101,7 +119,7 @@ public class AndroidBootstrapHelper
         var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName + "/" +
                                             ResourceConstant.Raw.cool_alarm_tone_notification_sound);
 
-            channel.Description = AndroidNotificationService.ChannelDescription;
+        channel.Description = AndroidNotificationService.ChannelDescription;
         channel.EnableLights(true);
         channel.EnableVibration(true);
         channel.SetSound(soundUri, attributes);

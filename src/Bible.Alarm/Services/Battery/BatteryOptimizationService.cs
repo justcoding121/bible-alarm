@@ -22,7 +22,7 @@ public class BatteryOptimizationService(
         try
         {
             const string key = "AndroidBatteryOptimizationExclusionPromptShown";
-            
+
             if (!await _generalSettingsService.GeneralSettingExistsAsync(key, _cancellationTokenSource.Token))
             {
                 await _generalSettingsService.SetGeneralSettingAsync(key, "True", _cancellationTokenSource.Token);
@@ -57,16 +57,16 @@ public class BatteryOptimizationService(
     {
         return _batteryOptimizationManager?.CanShowOptimizeActivity() ?? false;
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -78,7 +78,7 @@ public class BatteryOptimizationService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

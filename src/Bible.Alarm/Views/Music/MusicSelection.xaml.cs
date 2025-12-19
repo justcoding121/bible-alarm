@@ -26,7 +26,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
             {
                 return;
             }
-            
+
             // Clear selection after a short delay to allow command to execute
             _ = Task.Run(async () =>
             {
@@ -49,13 +49,13 @@ public partial class MusicSelection : BaseContentPage, IDisposable
     private async void OnAppearing(object sender, EventArgs e)
     {
         Appearing -= OnAppearing;
-        
+
         // List is hard-coded, so no need to wait for data loading
         // Just wait a moment for CollectionView to render, then scroll
         if (ViewModel != null)
         {
             await Task.Delay(200, _cancellationTokenSource.Token);
-            
+
             if (ViewModel.SelectedMusicType != null && musicTypesCollectionView != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false, cancellationToken: _cancellationTokenSource.Token);
@@ -84,7 +84,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
                 // Ignore errors during cancellation/disposal
                 Serilog.Log.Logger.Warning(ex, "Error during cancellation token source disposal");
             }
-            
+
             // ViewModel was injected via constructor, so dispose it
             if (_viewModel is IDisposable disposable)
             {

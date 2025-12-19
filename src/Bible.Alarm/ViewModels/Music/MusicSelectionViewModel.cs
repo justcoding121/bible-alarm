@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Services.UI.Interfaces;
+using AutoMapper;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
-using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -38,8 +38,11 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
         SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
-            if (x == null) return;
-            
+            if (x == null)
+            {
+                return;
+            }
+
             IsBusy = true;
 
             // Ensure _current is set from state if it's null
@@ -63,7 +66,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                     LanguageCode = _current?.LanguageCode
                 };
                 _dispatcher.Dispatch(new SongBookSelectionAction(songBookItem));
-  
+
             }
             else
             {
@@ -77,7 +80,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                     PublicationCode = "iam"
                 };
                 _dispatcher.Dispatch(new TrackSelectionAction(trackItem));
-               
+
             }
 
             IsBusy = false;
@@ -94,23 +97,26 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     private void OnStateOnStateChanged(object o, EventArgs eventArgs)
     {
         var stateValue = _state.Value;
-        if (stateValue.CurrentMusic == null) return;
+        if (stateValue.CurrentMusic == null)
+        {
+            return;
+        }
         // Map DTO to entity
         _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 SetSelectedMusicType();
             });
-            
+
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
             // Give CollectionView time to render
             await Task.Delay(100);
-            
+
             // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
@@ -118,13 +124,22 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
     private void SetSelectedMusicType()
     {
-        if (SelectedMusicType != null) SelectedMusicType.IsSelected = false;
+        if (SelectedMusicType != null)
+        {
+            SelectedMusicType.IsSelected = false;
+        }
 
-        if (_current == null) return;
+        if (_current == null)
+        {
+            return;
+        }
 
         var musicType = MusicTypes.FirstOrDefault(y => y.MusicType == _current.MusicType);
-        if (musicType == null) return;
-        
+        if (musicType == null)
+        {
+            return;
+        }
+
         SelectedMusicType = musicType;
         SelectedMusicType.IsSelected = true;
     }

@@ -25,13 +25,13 @@ public partial class PlatformSwitch : ContentView
         if (bindable is PlatformSwitch platformSwitch)
         {
             var isToggled = (bool)newValue;
-            
+
             // Update WinUI Switch
             if (platformSwitch.WinUISwitch != null)
             {
                 platformSwitch.WinUISwitch.IsToggled = isToggled;
             }
-            
+
             // Update Android SfSwitch
             if (platformSwitch.AndroidSwitch != null)
             {
@@ -49,7 +49,7 @@ public partial class PlatformSwitch : ContentView
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
-        
+
         // Set up event handlers after the view is loaded
         if (WinUISwitch != null)
         {
@@ -68,7 +68,7 @@ public partial class PlatformSwitch : ContentView
     protected override void OnPropertyChanged(string propertyName = null)
     {
         base.OnPropertyChanged(propertyName);
-        
+
         // Sync Scale property to child controls (for Android and iOS SfSwitch)
         if (propertyName == nameof(Scale))
         {
@@ -81,7 +81,7 @@ public partial class PlatformSwitch : ContentView
                 iOSSwitch.Scale = Scale;
             }
         }
-        
+
         // Sync HorizontalOptions property to child controls
         if (propertyName == nameof(HorizontalOptions))
         {

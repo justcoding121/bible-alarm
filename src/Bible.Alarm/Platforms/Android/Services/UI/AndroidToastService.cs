@@ -1,4 +1,4 @@
-﻿using Android.Widget;
+using Android.Widget;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI;
 using AndroidApplication = Android.App.Application;
@@ -18,11 +18,15 @@ public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, ID
         {
             //if current is not UI thread, run on UI thread
             if (!MainThread.IsMainThread)
+            {
                 await Task.Delay(0)
                     .ContinueWith(_ =>
                         ShowToast(message, seconds), _taskScheduler);
+            }
             else
+            {
                 ShowToast(message, seconds);
+            }
         });
     }
 
@@ -31,9 +35,13 @@ public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, ID
         var context = AndroidApplication.Context;
 
         if (seconds <= 3)
+        {
             latest = Toast.MakeText(context, message, ToastLength.Short);
+        }
         else
+        {
             latest = Toast.MakeText(context, message, ToastLength.Long);
+        }
 
         latest.Show();
     }
@@ -44,11 +52,15 @@ public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, ID
         await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
         {
             if (!MainThread.IsMainThread)
+            {
                 await Task.Delay(0)
                     .ContinueWith(_ =>
                         latest?.Cancel(), _taskScheduler);
+            }
             else
+            {
                 latest?.Cancel();
+            }
         });
     }
 }

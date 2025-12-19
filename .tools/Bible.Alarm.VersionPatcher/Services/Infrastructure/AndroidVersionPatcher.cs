@@ -13,7 +13,7 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
     public async Task PatchVersionAsync()
     {
         var manifestFile = pathService.GetAndroidManifestPath();
-        
+
         if (!fileService.FileExists(manifestFile))
         {
             Console.WriteLine($"Android manifest file not found: {manifestFile}");
@@ -22,7 +22,7 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
 
         var content = await fileService.ReadFileAsync(manifestFile);
         var doc = new XmlDocument();
-        
+
         try
         {
             doc.LoadXml(content);

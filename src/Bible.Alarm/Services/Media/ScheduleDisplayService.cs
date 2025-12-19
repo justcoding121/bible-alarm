@@ -1,5 +1,5 @@
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -38,17 +38,27 @@ public class ScheduleDisplayService(
             {
                 if (!force)
                 {
-                    if (!_playbackState.Value.IsPreparingOrPlaying) return string.Empty;
+                    if (!_playbackState.Value.IsPreparingOrPlaying)
+                    {
+                        return string.Empty;
+                    }
                 }
 
                 var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
                     scheduleId, false, true, _cancellationTokenSource.Token);
 
-                if (schedule?.BibleReadingSchedule == null) return string.Empty;
+                if (schedule?.BibleReadingSchedule == null)
+                {
+                    return string.Empty;
+                }
+
                 scheduleToUse = schedule.BibleReadingSchedule;
             }
 
-            if (scheduleToUse == null) return string.Empty;
+            if (scheduleToUse == null)
+            {
+                return string.Empty;
+            }
 
             var bookName = await _bibleBookService.GetBookNameAsync(
                 scheduleToUse.LanguageCode,
@@ -56,7 +66,10 @@ public class ScheduleDisplayService(
                 scheduleToUse.BookNumber,
                 _cancellationTokenSource.Token);
 
-            if (bookName == null) return string.Empty;
+            if (bookName == null)
+            {
+                return string.Empty;
+            }
 
             return $"{bookName} {scheduleToUse.ChapterNumber}";
         }
@@ -66,16 +79,16 @@ public class ScheduleDisplayService(
             return string.Empty;
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -87,7 +100,7 @@ public class ScheduleDisplayService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

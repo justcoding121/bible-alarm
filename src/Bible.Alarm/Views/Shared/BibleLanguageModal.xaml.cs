@@ -1,5 +1,5 @@
-using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.ViewModels.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
@@ -16,7 +16,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
     public BibleLanguageModal()
     {
         InitializeComponent();
-        
+
         // Clear selection after SelectionChanged fires to allow command to execute first
         LanguageCollectionView.SelectionChanged += (sender, e) =>
         {
@@ -25,7 +25,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
             {
                 return;
             }
-            
+
             // Clear selection after a short delay to allow command to execute
             _ = Task.Run(async () =>
             {
@@ -41,23 +41,23 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
                 });
             });
         };
-        
+
         Appearing += OnAppearing;
     }
 
     private async void OnAppearing(object sender, EventArgs e)
     {
         Appearing -= OnAppearing;
-        
+
         // Wait for the page to be fully loaded and data to be ready before attempting to scroll
         if (ViewModel != null)
         {
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
             await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
-            
+
             // Small additional delay to ensure CollectionView is rendered
             await Task.Delay(200, _cancellationTokenSource.Token);
-            
+
             if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, cancellationToken: _cancellationTokenSource.Token);
@@ -80,7 +80,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
                 // Ignore errors during cancellation/disposal
                 Log.Logger.Warning(ex, "Error during cancellation token source disposal");
             }
-            
+
             // This modal uses parent page view model, so do NOT dispose it
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;

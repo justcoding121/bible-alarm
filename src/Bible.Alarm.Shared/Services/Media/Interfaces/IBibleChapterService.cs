@@ -16,12 +16,12 @@ public interface IBibleChapterService : IDisposable
     /// Gets all BibleChapters for a given book (by language code, publication code, and book number), with Source included.
     /// </summary>
     Task<SortedDictionary<int, BibleChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets a BibleChapter by language code, publication code, book number, and chapter number, with Source included.
     /// </summary>
     Task<BibleChapter?> GetChapterAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Updates the URL for a Bible chapter's audio source.
     /// </summary>

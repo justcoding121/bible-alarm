@@ -12,7 +12,7 @@ public class TouchFeedbackBehavior : Behavior<View>
     {
         base.OnAttachedTo(bindable);
         _associatedView = bindable;
-        
+
         // Find TapGestureRecognizer and add Tapped event handler
         if (bindable.GestureRecognizers != null)
         {

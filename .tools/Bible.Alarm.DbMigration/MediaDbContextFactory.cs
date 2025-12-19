@@ -1,8 +1,8 @@
+using System.IO;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using System.IO;
 
 namespace Bible.Alarm.DbMigration;
 
@@ -18,14 +18,14 @@ public class MediaDbContextFactory : IDesignTimeDbContextFactory<MediaDbContext>
         var dbPath = Path.Combine(
             Directory.GetCurrentDirectory(),
             AppConstants.Database.MediaIndexDatabaseFileName);
-        
+
         var connectionString = string.Format(
             AppConstants.Database.MediaIndexDatabaseConnectionStringFormat,
             dbPath);
-        
+
         var optionsBuilder = new DbContextOptionsBuilder<MediaDbContext>();
-            optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
-        
+        optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+
         return new MediaDbContext(optionsBuilder.Options);
     }
 }

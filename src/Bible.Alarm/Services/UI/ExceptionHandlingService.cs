@@ -22,19 +22,19 @@ public class ExceptionHandlingService(ILogger logger) : IExceptionHandlingServic
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        _logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+        _logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Unsubscribe from global exception handlers
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobservedTaskExceptionHandler;

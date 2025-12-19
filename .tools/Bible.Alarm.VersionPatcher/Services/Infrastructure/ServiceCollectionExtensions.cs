@@ -11,12 +11,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IVersionService, VersionService>();
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IPathService, PathService>();
-        
+
         // Platform-specific patchers
         services.AddSingleton<IPlatformVersionPatcher, AndroidVersionPatcher>();
         services.AddSingleton<IPlatformVersionPatcher, IOSVersionPatcher>();
         services.AddSingleton<IPlatformVersionPatcher, WindowsVersionPatcher>();
-        
+
         // Main patching service
         services.AddSingleton<IVersionPatchingService, VersionPatchingService>();
 

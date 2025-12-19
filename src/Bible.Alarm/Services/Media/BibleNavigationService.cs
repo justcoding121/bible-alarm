@@ -1,5 +1,5 @@
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -15,7 +15,10 @@ public class BibleNavigationService(
 
     public async Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null) return false;
+        if (schedule == null)
+        {
+            return false;
+        }
 
         try
         {
@@ -26,7 +29,10 @@ public class BibleNavigationService(
                 schedule.PublicationCode,
                 schedule.BookNumber);
 
-            if (nextBook.Value == null) return false;
+            if (nextBook.Value == null)
+            {
+                return false;
+            }
 
             schedule.BookNumber = nextBook.Value.Number;
             schedule.ChapterNumber = 1;
@@ -42,7 +48,10 @@ public class BibleNavigationService(
 
     public async Task<bool> MoveToNextBookAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null) return false;
+        if (schedule == null)
+        {
+            return false;
+        }
 
         try
         {
@@ -53,7 +62,10 @@ public class BibleNavigationService(
                 schedule.PublicationCode,
                 schedule.BookNumber);
 
-            if (nextBook.Value == null) return false;
+            if (nextBook.Value == null)
+            {
+                return false;
+            }
 
             schedule.BookNumber = nextBook.Value.Number;
             schedule.ChapterNumber = 1;
@@ -69,7 +81,10 @@ public class BibleNavigationService(
 
     public async Task<bool> MoveToPreviousChapterAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null) return false;
+        if (schedule == null)
+        {
+            return false;
+        }
 
         try
         {
@@ -81,7 +96,10 @@ public class BibleNavigationService(
                 schedule.BookNumber,
                 schedule.ChapterNumber);
 
-            if (prevChapter.Key == null || prevChapter.Value == null) return false;
+            if (prevChapter.Key == null || prevChapter.Value == null)
+            {
+                return false;
+            }
 
             schedule.BookNumber = prevChapter.Key.Number;
             schedule.ChapterNumber = prevChapter.Value.Number;
@@ -97,7 +115,10 @@ public class BibleNavigationService(
 
     public async Task<bool> MoveToNextChapterAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null) return false;
+        if (schedule == null)
+        {
+            return false;
+        }
 
         try
         {
@@ -109,7 +130,10 @@ public class BibleNavigationService(
                 schedule.BookNumber,
                 schedule.ChapterNumber);
 
-            if (nextChapter.Key == null || nextChapter.Value == null) return false;
+            if (nextChapter.Key == null || nextChapter.Value == null)
+            {
+                return false;
+            }
 
             schedule.BookNumber = nextChapter.Key.Number;
             schedule.ChapterNumber = nextChapter.Value.Number;
@@ -122,16 +146,16 @@ public class BibleNavigationService(
             return false;
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe
     }

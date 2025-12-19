@@ -1,8 +1,8 @@
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
@@ -43,6 +43,7 @@ public class SchedulerService(
                 var downloaded = false;
                 var schedules = await alarmScheduleService.GetSchedulesAsync(x => x.IsEnabled, includeMusic: false, includeBibleReading: false, _cancellationTokenSource.Token);
                 foreach (var schedule in schedules)
+                {
                     if (!await notificationService.IsScheduledAsync(schedule.Id))
                     {
                         downloaded = true;
@@ -52,7 +53,8 @@ public class SchedulerService(
                     {
                         downloaded = await mediaCacheService.SetupAlarmCacheAsync(schedule.Id);
                     }
-                
+                }
+
                 return downloaded;
             }, timeoutMs: 1000);
 
@@ -108,9 +110,9 @@ public class SchedulerService(
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -122,7 +124,7 @@ public class SchedulerService(
             // Ignore errors during cancellation/disposal
             logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // Dispose static semaphore
         try
         {
@@ -133,7 +135,7 @@ public class SchedulerService(
             // Ignore if already disposed
             logger.Warning(ex, "Error disposing semaphore, may already be disposed");
         }
-        
+
         // Note: alarmScheduleService, mediaCacheService, alarmService, notificationService, and storageService are singletons
         // and should not be disposed here as they are managed by the DI container
     }

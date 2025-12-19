@@ -4,7 +4,6 @@ using Bible.Alarm.Services.UI.Interfaces;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Effects;
 #endif
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm;
@@ -31,25 +30,25 @@ public partial class App : Application
         _appLifecycleService = appLifecycleService;
         _messageHandlingService = messageHandlingService;
         _fontService = fontService;
-        
+
         InitializeComponent();
 
         // Set app to follow system theme preference (light/dark)
         // Follows system theme
         UserAppTheme = AppTheme.Unspecified;
-        
+
         // Initialize theme-aware color resources at application level
         // These are set programmatically as Color values (not AppThemeBinding)
         // Pages use {DynamicResource} to reference these keys for automatic theme updates
         InitializeThemeAwareColorResources();
-        
+
         // Listen to theme changes to update resources
         RequestedThemeChanged += OnRequestedThemeChanged;
 
         // Set font size resources for hot reload compatibility
         // Using DynamicResource allows hot reload to work without restarting
         SetFontSizeResources();
-        
+
         // Subscribe to font size changes for display changes (rotation/resize)
         // PropertyChanged with empty string only fires on actual display changes (via Recalculate())
         // This does NOT fire during Hot Reload, so it's safe to update resources here
@@ -71,7 +70,7 @@ public partial class App : Application
         _exceptionHandlingService.SetupGlobalExceptionHandlers();
 
         // Register message handlers
-        _messageHandlingService.RegisterMessageHandlers();  
+        _messageHandlingService.RegisterMessageHandlers();
     }
 
 
@@ -95,7 +94,7 @@ public partial class App : Application
                 stylesDict["AlarmMeridianFontSize"] = _fontService.AlarmMeridianFontSize;
                 stylesDict["AlarmBellIconFontSize"] = _fontService.AlarmBellIconFontSize;
             }
-            
+
             // Also update in main Resources dictionary for any direct lookups
             Resources["StandardFontSize"] = _fontService.StandardFontSize;
             Resources["HeaderFontSize"] = _fontService.HeaderFontSize;
@@ -158,7 +157,7 @@ public partial class App : Application
         {
             var theme = RequestedTheme;
             var isDark = theme == AppTheme.Dark;
-            
+
             // Set theme-aware colors at Application level (for DynamicResource to work)
             // All colors now use centralized ThemeColors constants
             Resources["BackgroundColor"] = ThemeColors.Background.Get(theme);
@@ -188,7 +187,7 @@ public partial class App : Application
     {
         // Update resources first - this triggers DynamicResource updates
         UpdateThemeAwareColorResources();
-        
+
         // Navigation bar colors are updated automatically by WindowSetupService
         // which listens to RequestedThemeChanged
         Services.UI.WindowSetupService.UpdateNavigationBarColors();

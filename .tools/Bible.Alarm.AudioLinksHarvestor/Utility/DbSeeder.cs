@@ -102,7 +102,7 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                 foreach (var translation in translations)
                 {
                     _logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
-                    
+
                     SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook> books;
                     try
                     {
@@ -231,11 +231,11 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                 _logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
 
                 var newMelodyMusic = new Bible.Alarm.Shared.Models.Media.Music.MelodyMusic
-                    {
-                        Code = melodyMusicRelease.Value.Code,
-                        Name = melodyMusicRelease.Value.Name,
-                        DisplayLanguage = displayLanguage
-                    };
+                {
+                    Code = melodyMusicRelease.Value.Code,
+                    Name = melodyMusicRelease.Value.Name,
+                    DisplayLanguage = displayLanguage
+                };
 
                 SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack> tracks;
                 try
@@ -351,7 +351,7 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                 foreach (var vocalMusicRelease in vocalMusicReleases)
                 {
                     _logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
-                    
+
                     var newVocalMusic = new Bible.Alarm.Shared.Models.Media.Music.VocalMusic
                     {
                         Code = vocalMusicRelease.Value.Code,

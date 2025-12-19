@@ -25,12 +25,12 @@ public class ScheduleStateItem : IComparable
     public bool AlwaysPlayFromStart { get; set; }
     public PlayType CurrentPlayItem { get; set; }
     public long LatestAlarmNotificationId { get; set; }
-    
+
     // Computed properties
     public int MeridianHour => Meridian == Meridian.Am ? Hour == 0 ? 12 : Hour : Hour == 12 ? 12 : Hour % 12;
     public Meridian Meridian => Hour < 12 ? Meridian.Am : Meridian.Pm;
     public string TimeText => $"{MeridianHour:D2}:{Minute:D2}";
-    
+
     // Bible Reading Schedule properties (flattened)
     public int? BibleReadingScheduleId { get; set; }
     public string? BibleReadingLanguageCode { get; set; }
@@ -38,7 +38,7 @@ public class ScheduleStateItem : IComparable
     public int? BibleReadingBookNumber { get; set; }
     public int? BibleReadingChapterNumber { get; set; }
     public TimeSpan? BibleReadingFinishedDuration { get; set; }
-    
+
     // Music properties (flattened)
     public int? MusicId { get; set; }
     public MusicType? MusicType { get; set; }
@@ -46,28 +46,31 @@ public class ScheduleStateItem : IComparable
     public string? MusicLanguageCode { get; set; }
     public int? MusicTrackNumber { get; set; }
     public bool? MusicRepeat { get; set; }
-    
+
     /// <summary>
     /// Translation name (language name) for display purposes.
     /// This is populated during bootstrap from language dictionary.
     /// Not persisted to database.
     /// </summary>
     public string? TranslationName { get; set; }
-    
+
     /// <summary>
     /// Book name for display purposes.
     /// This is populated during bootstrap from Bible book service.
     /// Not persisted to database.
     /// </summary>
     public string? BookName { get; set; }
-    
+
     /// <summary>
     /// Compare by schedule ID for ObservableHashSet ordering.
     /// </summary>
     public int CompareTo(object? obj)
     {
         if (obj is not ScheduleStateItem other)
+        {
             return 1;
+        }
+
         return Id.CompareTo(other.Id);
     }
 }

@@ -23,28 +23,28 @@ public static class iOSAudioSessionHelper
             logger.Debug("Attempting to configure iOS audio session for {Context}.", context);
             var audioSession = AVAudioSession.SharedInstance();
             NSError? error;
-            
+
             // Set category for playback - this allows audio to play even in silent mode
             var categoryName = new NSString("AVAudioSessionCategoryPlayback");
             var categoryResult = audioSession.SetCategory(categoryName, out error);
-            
+
             if (!categoryResult || error != null)
             {
-                logger.Warning("Failed to set AVAudioSession category for {Context}: {Error}", 
-                    context, 
+                logger.Warning("Failed to set AVAudioSession category for {Context}: {Error}",
+                    context,
                     error?.LocalizedDescription ?? "Unknown error");
             }
             else
             {
                 logger.Debug("Successfully set AVAudioSession category to Playback for {Context}", context);
             }
-            
+
             // Activate the audio session
             var activateResult = audioSession.SetActive(true, out error);
             if (!activateResult || error != null)
             {
-                logger.Warning("Failed to activate AVAudioSession for {Context}: {Error}", 
-                    context, 
+                logger.Warning("Failed to activate AVAudioSession for {Context}: {Error}",
+                    context,
                     error?.LocalizedDescription ?? "Unknown error");
             }
             else

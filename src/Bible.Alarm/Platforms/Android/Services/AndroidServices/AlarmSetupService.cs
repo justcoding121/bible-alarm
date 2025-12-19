@@ -37,7 +37,7 @@ public class AlarmSetupService : Service, IDisposable
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
@@ -61,7 +61,7 @@ public class AlarmSetupService : Service, IDisposable
         MauiAppHolder.CreateAndStore();
         // Run bootstrapper after CreateAndStore for background launch
         MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-        
+
         // Wait for bootstrap to complete before using database services
         // Run asynchronously to avoid blocking OnStartCommand
         _ = Task.Run(async () =>
@@ -84,14 +84,14 @@ public class AlarmSetupService : Service, IDisposable
             switch (extra)
             {
                 case "Add":
-                {
-                    var time = DateTimeOffset.Parse(intent.GetStringExtra("Time"));
-                    var title = intent.GetStringExtra("Title");
-                    var body = intent.GetStringExtra("Body");
-                    ScheduleNotification(ApplicationContext, int.Parse(intent.GetStringExtra("ScheduleId")), time,
-                        title, body);
-                    break;
-                }
+                    {
+                        var time = DateTimeOffset.Parse(intent.GetStringExtra("Time"));
+                        var title = intent.GetStringExtra("Title");
+                        var body = intent.GetStringExtra("Body");
+                        ScheduleNotification(ApplicationContext, int.Parse(intent.GetStringExtra("ScheduleId")), time,
+                            title, body);
+                        break;
+                    }
                 case "SetupBackgroundTasks":
                     Task.Run(async () =>
                     {
@@ -162,7 +162,9 @@ public class AlarmSetupService : Service, IDisposable
                                         + (long)time.Subtract(DateTimeOffset.Now).TotalSeconds * 1000;
 
             if (Build.VERSION.SdkInt < BuildVersionCodes.M)
+            {
                 alarmService.SetExact(AlarmType.RtcWakeup, milliSecondsRemaining, pIntent);
+            }
             else
             {
                 using var mainLauncherIntent = new Intent(context, typeof(MainActivity));
@@ -190,8 +192,10 @@ public class AlarmSetupService : Service, IDisposable
 
     protected override void Dispose(bool disposing)
     {
-        if (_disposed) return;
-
+        if (_disposed)
+        {
+            return;
+        }
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;

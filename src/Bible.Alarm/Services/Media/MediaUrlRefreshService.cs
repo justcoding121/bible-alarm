@@ -28,7 +28,9 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
         {
             var lookUpPath = trackMetadata.LookUpPath;
             if (string.IsNullOrEmpty(lookUpPath))
+            {
                 return null;
+            }
 
             var playType = trackMetadata.PlayType;
             if (playType == PlayType.Bible)
@@ -150,7 +152,10 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
 
             var lc = languageCode ?? AppConstants.Media.DefaultLanguageCode;
 
-            if (lc == AppConstants.Media.LanguageCodePatchFrom) lc = AppConstants.Media.LanguageCodePatchTo;
+            if (lc == AppConstants.Media.LanguageCodePatchFrom)
+            {
+                lc = AppConstants.Media.LanguageCodePatchTo;
+            }
 
             if (!root.TryGetProperty("files", out var files))
             {
@@ -207,16 +212,16 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
             return null;
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

@@ -40,7 +40,10 @@ public abstract class StorageService : IStorageService, IDisposable
 
     public async Task<List<string>> GetAllFiles(string path)
     {
-        if (!await DirectoryExists(path)) return [];
+        if (!await DirectoryExists(path))
+        {
+            return [];
+        }
 
         return [.. Directory.GetFiles(path)];
     }
@@ -52,14 +55,20 @@ public abstract class StorageService : IStorageService, IDisposable
 
     public async Task SaveFile(string directoryPath, string name, string contents)
     {
-        if (!await DirectoryExists(directoryPath)) await CreateDirectoryInternal(directoryPath);
+        if (!await DirectoryExists(directoryPath))
+        {
+            await CreateDirectoryInternal(directoryPath);
+        }
 
         File.WriteAllText(Path.Combine(directoryPath, name), contents);
     }
 
     public async Task SaveFile(string directoryPath, string name, byte[] contents)
     {
-        if (!await DirectoryExists(directoryPath)) await CreateDirectoryInternal(directoryPath);
+        if (!await DirectoryExists(directoryPath))
+        {
+            await CreateDirectoryInternal(directoryPath);
+        }
 
         File.WriteAllBytes(Path.Combine(directoryPath, name), contents);
     }
@@ -67,10 +76,13 @@ public abstract class StorageService : IStorageService, IDisposable
     public async Task CopyResourceFile(string resourceFileName,
         string destinationDirectoryPath, string destinationFileName)
     {
-        if (!await DirectoryExists(destinationDirectoryPath)) await CreateDirectoryInternal(destinationDirectoryPath);
+        if (!await DirectoryExists(destinationDirectoryPath))
+        {
+            await CreateDirectoryInternal(destinationDirectoryPath);
+        }
 
         var destinationFilePath = Path.Combine(destinationDirectoryPath, destinationFileName);
-        
+
         // Delete the file if it already exists to avoid IOException
         if (await FileExists(destinationFilePath))
         {
@@ -97,9 +109,9 @@ public abstract class StorageService : IStorageService, IDisposable
             var errorMessage = $"Failed to copy embedded resource '{resourceFileName}'. " +
                               $"Available resources: {availableResources}. " +
                               $"Make sure the file is included as an EmbeddedResource in the project file.";
-            
+
             Log.Logger.Error(ex, errorMessage);
-            
+
             throw new InvalidOperationException(errorMessage, ex);
         }
     }
@@ -114,9 +126,13 @@ public abstract class StorageService : IStorageService, IDisposable
     {
         FileInfo file;
         if (isResourceFile)
+        {
             file = ResourceLoader.GetFileInfo(MainAssembly);
+        }
         else
+        {
             file = new FileInfo(pathOrName);
+        }
 
         return Task.FromResult(
             new DateTimeOffset(new[] { file.LastAccessTime, file.LastWriteTime, file.CreationTime }.Max()));

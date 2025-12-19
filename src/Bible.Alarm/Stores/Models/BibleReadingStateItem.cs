@@ -1,6 +1,4 @@
 #nullable enable
-using System;
-
 namespace Bible.Alarm.Stores.Models;
 
 /// <summary>
@@ -17,21 +15,24 @@ public class BibleReadingStateItem : IComparable
     public int ChapterNumber { get; set; }
     public TimeSpan FinishedDuration { get; set; }
     public int AlarmScheduleId { get; set; }
-    
+
     /// <summary>
     /// Translation name (language name) for display purposes.
     /// This is populated during bootstrap from language dictionary.
     /// Not persisted to database.
     /// </summary>
     public string? TranslationName { get; set; }
-    
+
     /// <summary>
     /// Compare by ID for ObservableHashSet ordering.
     /// </summary>
     public int CompareTo(object? obj)
     {
         if (obj is not BibleReadingStateItem other)
+        {
             return 1;
+        }
+
         return Id.CompareTo(other.Id);
     }
 }

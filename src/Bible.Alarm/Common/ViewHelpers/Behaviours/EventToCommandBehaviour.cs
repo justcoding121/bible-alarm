@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows.Input;
@@ -84,15 +84,19 @@ public class EventToCommandBehavior : BindableBehavior<View>
         base.OnAttachedTo(visualElement);
 
         if (string.IsNullOrWhiteSpace(EventName))
+        {
             throw new ArgumentException("EventToCommand: EventName must be specified");
+        }
 
         var events = AssociatedObject.GetType().GetRuntimeEvents().ToArray();
         if (events.Any())
         {
             _eventInfo = events.FirstOrDefault(e => e.Name == EventName);
             if (_eventInfo == null)
+            {
                 throw new ArgumentException(
                     $"EventToCommand: Cannot find any event named '{EventName}' on attached type");
+            }
 
             AddEventHandler(_eventInfo, AssociatedObject, OnFired);
         }
@@ -101,7 +105,9 @@ public class EventToCommandBehavior : BindableBehavior<View>
     protected override void OnDetachingFrom(View view)
     {
         if (_handler != null)
+        {
             _eventInfo.RemoveEventHandler(AssociatedObject, _handler);
+        }
 
         base.OnDetachingFrom(view);
     }
@@ -130,7 +136,9 @@ public class EventToCommandBehavior : BindableBehavior<View>
     public void OnFired(object sender, EventArgs eventArgs)
     {
         if (Command == null)
+        {
             return;
+        }
 
         var parameter = CommandParameter;
 
@@ -139,10 +147,15 @@ public class EventToCommandBehavior : BindableBehavior<View>
             parameter = eventArgs;
 
             if (EventArgsConverter != null)
+            {
                 parameter = EventArgsConverter.Convert(eventArgs, typeof(object), EventArgsConverterParameter,
                     CultureInfo.CurrentUICulture);
+            }
         }
 
-        if (Command.CanExecute(parameter)) Command.Execute(parameter);
+        if (Command.CanExecute(parameter))
+        {
+            Command.Execute(parameter);
+        }
     }
 }

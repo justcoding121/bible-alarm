@@ -14,6 +14,7 @@ public class LogSetup
         CurrentDevice.RuntimePlatform = device;
 
         if (isLoggingEnabled)
+        {
             lock (Lock)
             {
                 if (!initialized)
@@ -22,6 +23,7 @@ public class LogSetup
                     initialized = true;
                 }
             }
+        }
     }
 
     private static void SetupSerilog(IVersionFinder versionFinder, string[] tags)
@@ -40,8 +42,12 @@ public class LogSetup
 
         // Add custom tags if provided
         if (tags != null)
+        {
             foreach (var tag in tags)
+            {
                 loggerConfig.Enrich.WithProperty("Tag", tag);
+            }
+        }
 
         // Configure debug sink for Visual Studio Output window
         // Serilog's Debug sink writes to the Visual Studio Output window

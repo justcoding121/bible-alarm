@@ -1,13 +1,13 @@
-using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Quartz;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Quartz;
 
 namespace Bible.Alarm.Models.Schedule;
 
@@ -113,23 +113,39 @@ public class AlarmSchedule : IComparable
 
     private void ValidateTime()
     {
-        if (Minute is < 0 or >= 60) throw new Exception("Invalid minute.");
+        if (Minute is < 0 or >= 60)
+        {
+            throw new Exception("Invalid minute.");
+        }
 
-        if (Hour is < 0 or >= 24) throw new Exception("Invalid hour.");
+        if (Hour is < 0 or >= 24)
+        {
+            throw new Exception("Invalid hour.");
+        }
 
-        if (DaysOfWeek == 0) throw new Exception("DaysOfWeek is empty.");
+        if (DaysOfWeek == 0)
+        {
+            throw new Exception("DaysOfWeek is empty.");
+        }
     }
 
     private static void ValidateNextFire(CronExpression expression)
     {
         var nextFire = expression.GetNextValidTimeAfter(DateTimeOffset.Now);
 
-        if (nextFire == null) throw new Exception("Invalid alarm time.");
+        if (nextFire == null)
+        {
+            throw new Exception("Invalid alarm time.");
+        }
     }
 
     public int CompareTo(object obj)
     {
-        if (obj is not AlarmSchedule other) return 1;
+        if (obj is not AlarmSchedule other)
+        {
+            return 1;
+        }
+
         return Id.CompareTo(other.Id);
     }
 
@@ -137,7 +153,7 @@ public class AlarmSchedule : IComparable
     {
         var startTime = DateTime.UtcNow;
         Serilog.Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
-        
+
         // Create sample schedule disabled by default - user must explicitly enable it
         var sample = new AlarmSchedule
         {
@@ -170,25 +186,33 @@ public class AlarmSchedule : IComparable
         Serilog.Log.Information("[PERF] GetSampleSchedule: Bible query took {ElapsedMs}ms", bibleQueryElapsed);
 
         if (bible == null)
+        {
             throw new InvalidOperationException("Bible translation not found for sample schedule");
-        
+        }
+
         var rnd = new Random();
         var book = bible.Books[rnd.Next() % bible.Books.Count];
         if (sample.BibleReadingSchedule == null)
+        {
             throw new InvalidOperationException("BibleReadingSchedule is null in sample schedule");
-        
+        }
+
         sample.BibleReadingSchedule.BookNumber = book.Number;
 
         if (sample.Music == null)
+        {
             throw new InvalidOperationException("Music is null in sample schedule");
-        
+        }
+
         var musicQueryStartTime = DateTime.UtcNow;
         var music = await melodyMusicService.GetByCodeWithTracksAsync(sample.Music.PublicationCode);
         var musicQueryElapsed = (DateTime.UtcNow - musicQueryStartTime).TotalMilliseconds;
         Serilog.Log.Information("[PERF] GetSampleSchedule: Music query took {ElapsedMs}ms", musicQueryElapsed);
 
         if (music == null)
+        {
             throw new InvalidOperationException("Melody music not found for sample schedule");
+        }
 
         var track = music.Tracks[rnd.Next() % music.Tracks.Count];
         sample.Music.TrackNumber = track.Number;

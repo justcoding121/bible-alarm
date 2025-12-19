@@ -44,9 +44,16 @@ public partial class FontFileResources : ResourceDictionary
 
     private static string? GetStringResourceForPlatform(string resourceKey)
     {
-        if (!Instance.ContainsKey(resourceKey)) return null;
+        if (!Instance.ContainsKey(resourceKey))
+        {
+            return null;
+        }
+
         var label = new Label();
-        if (!(Instance[resourceKey] is OnPlatform<string> resource)) return string.Empty;
+        if (!(Instance[resourceKey] is OnPlatform<string> resource))
+        {
+            return string.Empty;
+        }
 
         // Try to match using DeviceInfo first
         string platformName;

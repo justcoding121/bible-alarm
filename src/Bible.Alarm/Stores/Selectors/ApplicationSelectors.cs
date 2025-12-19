@@ -1,10 +1,6 @@
 #nullable enable
-using System.Collections.Generic;
-using System.Linq;
 using AutoMapper;
-using Bible.Alarm.Common;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Selectors;
 
@@ -29,7 +25,11 @@ public static class ApplicationSelectors
     /// </summary>
     public static AlarmSchedule? GetCurrentScheduleEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.CurrentSchedule == null) return null;
+        if (state.CurrentSchedule == null)
+        {
+            return null;
+        }
+
         return mapper.Map<AlarmSchedule>(state.CurrentSchedule);
     }
 
@@ -39,7 +39,11 @@ public static class ApplicationSelectors
     /// </summary>
     public static AlarmMusic? GetCurrentMusicEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.CurrentMusic == null) return null;
+        if (state.CurrentMusic == null)
+        {
+            return null;
+        }
+
         return mapper.Map<AlarmMusic>(state.CurrentMusic);
     }
 
@@ -49,7 +53,11 @@ public static class ApplicationSelectors
     /// </summary>
     public static AlarmMusic? GetTentativeMusicEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.TentativeMusic == null) return null;
+        if (state.TentativeMusic == null)
+        {
+            return null;
+        }
+
         return mapper.Map<AlarmMusic>(state.TentativeMusic);
     }
 
@@ -59,7 +67,11 @@ public static class ApplicationSelectors
     /// </summary>
     public static BibleReadingSchedule? GetCurrentBibleReadingEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.CurrentBibleReadingSchedule == null) return null;
+        if (state.CurrentBibleReadingSchedule == null)
+        {
+            return null;
+        }
+
         return mapper.Map<BibleReadingSchedule>(state.CurrentBibleReadingSchedule);
     }
 
@@ -69,7 +81,11 @@ public static class ApplicationSelectors
     /// </summary>
     public static BibleReadingSchedule? GetTentativeBibleReadingEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.TentativeBibleReadingSchedule == null) return null;
+        if (state.TentativeBibleReadingSchedule == null)
+        {
+            return null;
+        }
+
         return mapper.Map<BibleReadingSchedule>(state.TentativeBibleReadingSchedule);
     }
 
@@ -80,7 +96,9 @@ public static class ApplicationSelectors
     public static List<AlarmSchedule> GetAllSchedulesEntities(ApplicationState state, IMapper mapper)
     {
         if (state.Schedules == null || state.Schedules.Count == 0)
+        {
             return new List<AlarmSchedule>();
+        }
 
         return state.Schedules.Select(scheduleStateItem => mapper.Map<AlarmSchedule>(scheduleStateItem)).ToList();
     }
@@ -92,7 +110,11 @@ public static class ApplicationSelectors
     public static AlarmSchedule? GetScheduleByIdEntity(ApplicationState state, int scheduleId, IMapper mapper)
     {
         var scheduleStateItem = state.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
-        if (scheduleStateItem == null) return null;
+        if (scheduleStateItem == null)
+        {
+            return null;
+        }
+
         return mapper.Map<AlarmSchedule>(scheduleStateItem);
     }
 }

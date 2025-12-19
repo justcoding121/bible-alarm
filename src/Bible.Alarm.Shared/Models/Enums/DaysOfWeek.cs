@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Bible.Alarm.Shared.Models.Enums;
@@ -25,9 +25,16 @@ public static class DaysOfWeekExtensions
         var day = 1;
         foreach (var item in Enum.GetValues(typeof(DaysOfWeek)))
         {
-            if ((DaysOfWeek)item == DaysOfWeek.All) continue;
+            if ((DaysOfWeek)item == DaysOfWeek.All)
+            {
+                continue;
+            }
 
-            if ((daysOfWeek & (DaysOfWeek)item) == (DaysOfWeek)item) result.Add(day);
+            if ((daysOfWeek & (DaysOfWeek)item) == (DaysOfWeek)item)
+            {
+                result.Add(day);
+            }
+
             day++;
         }
 

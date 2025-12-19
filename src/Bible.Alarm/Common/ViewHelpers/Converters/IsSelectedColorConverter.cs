@@ -13,8 +13,11 @@ public class IsSelectedColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value == null) return GetUnselectedColor();
-        
+        if (value == null)
+        {
+            return GetUnselectedColor();
+        }
+
         bool isSelected = false;
         if (value is bool boolValue)
         {
@@ -24,7 +27,7 @@ public class IsSelectedColorConverter : IValueConverter
         {
             isSelected = parsedValue;
         }
-        
+
         // Return theme-aware colors from Application resources
         // Selected: Use ControlBackgroundColor (lighter background for selected state)
         // Unselected: Use CardBackgroundColor (standard card background)
@@ -39,7 +42,7 @@ public class IsSelectedColorConverter : IValueConverter
         {
             return selectedColor;
         }
-        
+
         // Fallback if resource not found
         var theme = ThemeColors.GetCurrentTheme();
         return ThemeColors.ControlBackground.Get(theme);
@@ -53,7 +56,7 @@ public class IsSelectedColorConverter : IValueConverter
         {
             return unselectedColor;
         }
-        
+
         // Fallback if resource not found
         var theme = ThemeColors.GetCurrentTheme();
         return ThemeColors.CardBackground.Get(theme);

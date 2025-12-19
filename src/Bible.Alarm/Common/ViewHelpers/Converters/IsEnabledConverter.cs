@@ -28,15 +28,15 @@ public class IsEnabledColorConverter : IValueConverter
             {
                 return enabledColor;
             }
-            
+
             // Try to get from resources if parameter is a resource key string
-            if (parameter is string resourceKey && 
+            if (parameter is string resourceKey &&
                 Application.Current?.Resources.TryGetValue(resourceKey, out var resourceValue) == true &&
                 resourceValue is Color resourceColor)
             {
                 return resourceColor;
             }
-            
+
             // If parameter is a DynamicResource or unresolved, try common resource keys
             // This handles cases where DynamicResource in ConverterParameter doesn't resolve properly
             if (Application.Current?.Resources.TryGetValue("TextPrimaryColor", out var textPrimary) == true &&
@@ -44,10 +44,10 @@ public class IsEnabledColorConverter : IValueConverter
             {
                 return textPrimaryColor;
             }
-            
+
             // Default enabled color
-            return Application.Current?.RequestedTheme == AppTheme.Dark 
-                ? Colors.White 
+            return Application.Current?.RequestedTheme == AppTheme.Dark
+                ? Colors.White
                 : Colors.Black;
         }
         else
@@ -58,7 +58,7 @@ public class IsEnabledColorConverter : IValueConverter
             {
                 return disabledTextColor;
             }
-            
+
             // Fallback if resource not found
             var theme = ThemeColors.GetCurrentTheme();
             return ThemeColors.Fallback.DisabledText.Get(theme);

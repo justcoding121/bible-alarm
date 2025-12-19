@@ -1,5 +1,5 @@
-using Bible.Alarm.ViewModels;
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Views.Schedule;
 
@@ -15,7 +15,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     public NumberOfChaptersModal()
     {
         InitializeComponent();
-        
+
         // Clear selection after SelectionChanged fires to allow command to execute first
         ChaptersCollectionView.SelectionChanged += (sender, e) =>
         {
@@ -24,7 +24,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
             {
                 return;
             }
-            
+
             // Clear selection after a short delay to allow command to execute
             _ = Task.Run(async () =>
             {
@@ -40,14 +40,14 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
                 });
             });
         };
-        
+
         Appearing += OnAppearing;
     }
 
     private async void OnAppearing(object sender, EventArgs e)
     {
         Appearing -= OnAppearing;
-        
+
         if (ViewModel?.CurrentNumberOfChapters != null && ChaptersCollectionView != null)
         {
             await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, cancellationToken: _cancellationTokenSource.Token);
@@ -69,7 +69,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
                 // Ignore errors during cancellation/disposal
                 Serilog.Log.Logger.Warning(ex, "Error during cancellation token source disposal");
             }
-            
+
             // This modal uses parent page view model, so do NOT dispose it
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;

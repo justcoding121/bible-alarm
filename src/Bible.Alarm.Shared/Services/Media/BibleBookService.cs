@@ -29,7 +29,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.BibleBook
                 .AsNoTracking()
                 .Where(x => x.BibleTranslation.Code == publicationCode
@@ -40,7 +40,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleBook name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}", 
+            _logger.Error(ex, "Error getting BibleBook name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
                 languageCode, publicationCode, bookNumber);
             throw;
         }
@@ -52,19 +52,19 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             var books = await dbContext.BibleTranslations
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Books)
                 .OrderBy(x => x.Number)
                 .ToListAsync(cancellationToken);
-            
+
             return new SortedDictionary<int, BibleBook>(books.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleBooks by translation. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}", 
+            _logger.Error(ex, "Error getting BibleBooks by translation. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -76,7 +76,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.BibleTranslations
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
@@ -86,7 +86,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleBook. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}", 
+            _logger.Error(ex, "Error getting BibleBook. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
                 languageCode, publicationCode, bookNumber);
             throw;
         }
@@ -98,9 +98,9 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();

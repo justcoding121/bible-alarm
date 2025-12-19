@@ -18,16 +18,16 @@ namespace Bible.Alarm.Platforms.iOS.Services.Platform
         {
             return "iOS " + (NSString)NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"];
         }
-        
+
         public void Dispose()
         {
             if (_isDisposed)
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // No resources to dispose
         }
     }

@@ -30,7 +30,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.VocalMusic
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
@@ -38,7 +38,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting VocalMusic. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}", 
+            _logger.Error(ex, "Error getting VocalMusic. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -50,7 +50,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.VocalMusic
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode)
@@ -69,13 +69,13 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             var languages = await dbContext.VocalMusic
                 .AsNoTracking()
                 .Select(x => x.Language)
                 .Distinct()
                 .ToListAsync(cancellationToken);
-            
+
             return languages.ToDictionary(x => x.Code, x => x);
         }
         catch (Exception ex)
@@ -91,7 +91,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             var tracks = await dbContext.VocalMusic
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
@@ -99,12 +99,12 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
                 .Include(x => x.Source)
                 .OrderBy(x => x.Number)
                 .ToListAsync(cancellationToken);
-            
+
             return new SortedDictionary<int, MusicTrack>(tracks.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting VocalMusic tracks. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}", 
+            _logger.Error(ex, "Error getting VocalMusic tracks. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -116,14 +116,14 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             var track = await dbContext.VocalMusic
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Tracks)
                 .Include(x => x.Source)
                 .Where(x => x.Number == trackNumber)
                 .FirstOrDefaultAsync(cancellationToken);
-            
+
             if (track?.Source != null)
             {
                 track.Source.Url = url;
@@ -132,7 +132,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error updating VocalMusic track URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}", 
+            _logger.Error(ex, "Error updating VocalMusic track URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
                 languageCode, publicationCode, trackNumber);
             throw;
         }
@@ -144,9 +144,9 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();

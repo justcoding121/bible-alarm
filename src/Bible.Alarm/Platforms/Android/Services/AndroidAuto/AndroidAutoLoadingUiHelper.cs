@@ -48,7 +48,10 @@ public static class AndroidAutoLoadingUiHelper
 
     private static Bitmap? DrawableToBitmap(Drawable? drawable)
     {
-        if (drawable == null) return null;
+        if (drawable == null)
+        {
+            return null;
+        }
 
         if (drawable is BitmapDrawable bitmapDrawable && bitmapDrawable.Bitmap != null)
         {

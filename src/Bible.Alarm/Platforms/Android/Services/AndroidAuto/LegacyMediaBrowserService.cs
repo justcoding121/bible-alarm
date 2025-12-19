@@ -10,18 +10,10 @@ using Android.Support.V4.Media.Session;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
-using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -204,7 +196,9 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         try
         {
             if (_scheduleChangeTracker == null)
+            {
                 return;
+            }
 
             // Check if schedules changed using the shared tracker
             if (_scheduleChangeTracker.CheckForChanges())

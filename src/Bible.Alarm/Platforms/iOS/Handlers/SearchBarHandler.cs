@@ -8,7 +8,7 @@ public class SearchBarHandler : Microsoft.Maui.Handlers.SearchBarHandler
     protected override MauiSearchBar CreatePlatformView()
     {
         var searchBar = base.CreatePlatformView();
-        
+
         // Remove black squares/borders on iOS SearchBar
         if (searchBar is UISearchBar uiSearchBar)
         {
@@ -16,7 +16,7 @@ public class SearchBarHandler : Microsoft.Maui.Handlers.SearchBarHandler
             uiSearchBar.BarTintColor = UIColor.Clear;
             uiSearchBar.SearchBarStyle = UISearchBarStyle.Minimal;
         }
-        
+
         return searchBar;
     }
 }

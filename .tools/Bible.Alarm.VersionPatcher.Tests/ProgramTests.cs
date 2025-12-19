@@ -16,7 +16,7 @@ public class ProgramTests
         // Arrange
         var services = new ServiceCollection();
         var versionPatchingServiceMock = new Mock<IVersionPatchingService>();
-        
+
         versionPatchingServiceMock.Setup(x => x.PatchAllPlatformsAsync())
             .Returns(Task.CompletedTask);
 
@@ -39,7 +39,7 @@ public class ProgramTests
         // Arrange
         var services = new ServiceCollection();
         var versionPatchingServiceMock = new Mock<IVersionPatchingService>();
-        
+
         versionPatchingServiceMock.Setup(x => x.PatchAllPlatformsAsync())
             .ThrowsAsync(new Exception("Patching failed"));
 

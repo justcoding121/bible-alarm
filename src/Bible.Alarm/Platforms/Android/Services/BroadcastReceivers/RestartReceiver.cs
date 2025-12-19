@@ -41,7 +41,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        _logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+        _logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
@@ -57,10 +57,10 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
             MauiAppHolder.CreateAndStore();
             // Run bootstrapper after CreateAndStore for background launch
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-            
+
             // Wait for bootstrap to complete before using database services
             await MauiProgram.WaitForBootstrapAsync();
-            
+
             // ISchedulerService is a singleton, so don't dispose it
             var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
             await schedulerService.HandleAsync();
@@ -92,7 +92,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         _disposed = true;
 
         base.Dispose();
-        
+
         GC.SuppressFinalize(this);
     }
 }

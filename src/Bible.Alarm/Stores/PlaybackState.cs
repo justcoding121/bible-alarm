@@ -11,20 +11,20 @@ public class PlaybackState
     public bool IsPreparingOrPlaying { get; init; }
     public bool CanPlayNext { get; init; }
     public bool CanPlayPrevious { get; init; }
-    
+
     // Playback status
     public PlayStatus Status { get; init; }
-    
+
     // Metadata
     public string? Title { get; init; }
     public string? Artist { get; init; }
     public string? Album { get; init; }
     public string? ArtworkUrl { get; init; }
-    
+
     // Duration (updated when track changes, infrequent)
     // Note: CurrentPosition and PreparationProgress are handled via MVVM messaging for performance (high-frequency updates)
     public TimeSpan Duration { get; init; }
-    
+
     // Error message (shown when playback fails)
     public string? ErrorMessage { get; init; }
 

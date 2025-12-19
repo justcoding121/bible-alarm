@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -17,8 +17,8 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
         {
             _logger = logger;
             _retryPolicy = Policy<string>
-                .Handle<HttpRequestException>(ex => 
-                    ex.Message.Contains("Server busy") || 
+                .Handle<HttpRequestException>(ex =>
+                    ex.Message.Contains("Server busy") ||
                     !ex.Message.Contains("Response status code"))
                 .Or<TaskCanceledException>()
                 .Or<System.IO.IOException>()
@@ -57,18 +57,18 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                         request.Headers.Add("Accept", "application/json, text/plain, */*");
 
                         var response = await client.SendAsync(request);
-                        
-                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable || 
+
+                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable ||
                             response.StatusCode == HttpStatusCode.TooManyRequests)
                         {
                             throw new HttpRequestException($"Server busy: {response.StatusCode}");
                         }
-                        
+
                         if (!response.IsSuccessStatusCode)
                         {
                             throw new HttpRequestException($"Response status code does not indicate success: {(int)response.StatusCode} ({response.StatusCode}).");
                         }
-                        
+
                         return await response.Content.ReadAsStringAsync();
                     }
                     catch (HttpRequestException ex) when (!ex.Message.Contains("Server busy") && !ex.Message.Contains("Response status code"))
@@ -83,18 +83,18 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                         request.Headers.Add("Accept", "application/json, text/plain, */*");
 
                         var response = await client.SendAsync(request);
-                        
-                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable || 
+
+                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable ||
                             response.StatusCode == HttpStatusCode.TooManyRequests)
                         {
                             throw new HttpRequestException($"Server busy: {response.StatusCode}");
                         }
-                        
+
                         if (!response.IsSuccessStatusCode)
                         {
                             throw new HttpRequestException($"Response status code does not indicate success: {(int)response.StatusCode} ({response.StatusCode}).");
                         }
-                        
+
                         return await response.Content.ReadAsStringAsync();
                     }
                 });

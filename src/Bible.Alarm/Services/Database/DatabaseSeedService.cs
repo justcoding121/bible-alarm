@@ -29,21 +29,21 @@ public class DatabaseSeedService(
             var schedule = await AlarmSchedule.GetSampleSchedule(false, _bibleTranslationService, _melodyMusicService);
 
             await _alarmScheduleService.AddScheduleAsync(schedule, _cancellationTokenSource.Token);
-            
-            _logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}", 
+
+            _logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
                 schedule.Id, schedule.Name);
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -55,7 +55,7 @@ public class DatabaseSeedService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe
     }

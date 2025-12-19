@@ -18,19 +18,19 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
         var constructorStartTime = DateTime.UtcNow;
         Log.Information("[PERF] Schedule page: Constructor started at {StartTime}", constructorStartTime);
-        
+
         var initComponentStartTime = DateTime.UtcNow;
         InitializeComponent();
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
         Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
-        
+
         BindingContext = viewModel;
         _viewModel = viewModel;
 
         // Setup gesture recognizers after page is loaded to support hot reload
         Loaded += OnPageLoaded;
         Loaded += SetupGestureRecognizers;
-        
+
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
         Log.Information("[PERF] Schedule page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
     }
@@ -63,7 +63,11 @@ public partial class Schedule : BaseContentPage, IDisposable
     private async void OnPageLoaded(object? sender, EventArgs e)
     {
         // Only handle once per page instance
-        if (_hasHandledFirstLoad) return;
+        if (_hasHandledFirstLoad)
+        {
+            return;
+        }
+
         _hasHandledFirstLoad = true;
 
         // Unsubscribe to avoid multiple calls
@@ -73,7 +77,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         // Loaded fires after the page is in the visual tree, but we still need a small delay
         // to ensure all UI elements are fully rendered
         await Task.Delay(100);
-        
+
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             // Hide Home page overlay after Schedule page is fully rendered and visible

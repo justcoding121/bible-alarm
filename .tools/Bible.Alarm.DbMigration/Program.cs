@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Bible.Alarm.Shared.Database;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Database;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 
 namespace Bible.Alarm.DbMigration;
 
@@ -99,16 +99,16 @@ class Program
     {
         var factory = GetFactory<TContext>();
         using var context = factory.CreateDbContext(Array.Empty<string>());
-        
+
         var migrations = await context.Database.GetPendingMigrationsAsync();
         var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
-        
+
         Console.WriteLine($"  Applied migrations: {appliedMigrations.Count()}");
         foreach (var migration in appliedMigrations)
         {
             Console.WriteLine($"    ✓ {migration}");
         }
-        
+
         Console.WriteLine($"  Pending migrations: {migrations.Count()}");
         foreach (var migration in migrations)
         {
@@ -120,10 +120,10 @@ class Program
     {
         var factory = GetFactory<TContext>();
         using var context = factory.CreateDbContext(Array.Empty<string>());
-        
+
         var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
         var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
-        
+
         if (pendingMigrations.Any())
         {
             Console.WriteLine($"  ⚠ Database is not up to date. {pendingMigrations.Count()} pending migration(s).");
@@ -144,7 +144,7 @@ class Program
         {
             return (IDesignTimeDbContextFactory<TContext>)(object)new MediaDbContextFactory();
         }
-        
+
         throw new NotSupportedException($"No factory found for context type {typeof(TContext).Name}");
     }
 }

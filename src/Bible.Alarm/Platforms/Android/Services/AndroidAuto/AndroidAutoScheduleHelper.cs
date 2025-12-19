@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Common;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -25,10 +24,10 @@ public static class AndroidAutoScheduleHelper
         try
         {
             Logger.Debug("Loading schedules from state for Android Auto");
-            
+
             // Get state from service provider - schedules are already loaded during bootstrap
             var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
-            
+
             if (state?.Value?.Schedules != null && state.Value.Schedules.Count > 0)
             {
                 // Return ScheduleStateItem list which includes TranslationName
@@ -48,15 +47,15 @@ public static class AndroidAutoScheduleHelper
             return new List<ScheduleStateItem>();
         }
     }
-    
+
     /// <summary>
     /// Builds the display title for a schedule state item.
     /// Returns schedule name if not empty, otherwise "Unnamed schedule".
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
-        return !string.IsNullOrWhiteSpace(scheduleItem.Name) 
-            ? scheduleItem.Name 
+        return !string.IsNullOrWhiteSpace(scheduleItem.Name)
+            ? scheduleItem.Name
             : "Unnamed schedule";
     }
 
@@ -69,7 +68,7 @@ public static class AndroidAutoScheduleHelper
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
         var subtitleParts = new List<string>();
-        
+
         if (scheduleItem.BibleReadingScheduleId.HasValue)
         {
             // Use TranslationName from ScheduleStateItem (populated during bootstrap)
@@ -77,14 +76,14 @@ public static class AndroidAutoScheduleHelper
             var languageName = !string.IsNullOrWhiteSpace(scheduleItem.TranslationName)
                 ? scheduleItem.TranslationName
                 : scheduleItem.BibleReadingLanguageCode ?? string.Empty;
-            
+
             // Build subtitle with Language, Book Number, Chapter Number
             // Use data directly from DTO to avoid any async calls that could block
             if (!string.IsNullOrWhiteSpace(languageName))
             {
                 subtitleParts.Add(languageName);
             }
-            
+
             // Add book name (populated during bootstrap) or fallback to book number
             if (!string.IsNullOrWhiteSpace(scheduleItem.BookName))
             {
@@ -95,14 +94,14 @@ public static class AndroidAutoScheduleHelper
                 // Fallback to book number if book name is not available
                 subtitleParts.Add($"Book {scheduleItem.BibleReadingBookNumber.Value}");
             }
-            
+
             // Add chapter number
             if (scheduleItem.BibleReadingChapterNumber.HasValue && scheduleItem.BibleReadingChapterNumber.Value > 0)
             {
                 subtitleParts.Add($"Chapter {scheduleItem.BibleReadingChapterNumber.Value}");
             }
         }
-        
+
         // Set subtitle - Language, Book, Chapter (or status/time if no Bible reading)
         if (subtitleParts.Count > 0)
         {

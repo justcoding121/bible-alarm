@@ -29,7 +29,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.MelodyMusic
                 .AsNoTracking()
                 .Include(x => x.Tracks)
@@ -49,7 +49,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.MelodyMusic
                 .AsNoTracking()
                 .ToDictionaryAsync(x => x.Code, x => x, cancellationToken);
@@ -67,7 +67,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             var tracks = await dbContext.MelodyMusic
                 .AsNoTracking()
                 .Where(x => x.Code == publicationCode)
@@ -75,7 +75,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
                 .Include(x => x.Source)
                 .OrderBy(x => x.Number)
                 .ToListAsync(cancellationToken);
-            
+
             return new SortedDictionary<int, MusicTrack>(tracks.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
@@ -91,14 +91,14 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             var track = await dbContext.MelodyMusic
                 .Where(x => x.Code == publicationCode)
                 .SelectMany(x => x.Tracks)
                 .Include(x => x.Source)
                 .Where(x => x.Number == trackNumber)
                 .FirstOrDefaultAsync(cancellationToken);
-            
+
             if (track?.Source != null)
             {
                 track.Source.Url = url;
@@ -107,7 +107,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error updating MelodyMusic track URL. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}", 
+            _logger.Error(ex, "Error updating MelodyMusic track URL. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
                 publicationCode, trackNumber);
             throw;
         }
@@ -119,9 +119,9 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();

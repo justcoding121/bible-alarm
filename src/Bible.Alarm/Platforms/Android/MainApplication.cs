@@ -7,14 +7,14 @@ namespace Bible.Alarm.Platforms.Android
     [Application]
     public class MainApplication(nint handle, JniHandleOwnership ownership) : MauiApplication(handle, ownership)
     {
-    public override void OnCreate()
-    {
-        base.OnCreate();
-        // Note: CreateMauiApp() is called automatically by MAUI framework
-        // No need to call CreateAndStore here - it will be called when CreateMauiApp() is invoked
-        // MainActivity will handle the bootstrap initialization
-    }
+        public override void OnCreate()
+        {
+            base.OnCreate();
+            // Note: CreateMauiApp() is called automatically by MAUI framework
+            // No need to call CreateAndStore here - it will be called when CreateMauiApp() is invoked
+            // MainActivity will handle the bootstrap initialization
+        }
 
-    protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore();
+        protected override MauiApp CreateMauiApp() => MauiAppHolder.CreateAndStore();
     }
 }

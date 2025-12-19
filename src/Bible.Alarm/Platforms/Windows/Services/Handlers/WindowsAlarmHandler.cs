@@ -8,7 +8,7 @@ using Serilog;
 namespace Bible.Alarm.Platforms.Windows.Services.Handlers
 {
     public class WindowsAlarmHandler(
-        ILogger logger, 
+        ILogger logger,
         IPlaybackService playbackService,
         IState<PlaybackState> playbackState) : IWindowsAlarmHandler
     {
@@ -52,16 +52,16 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
         }
 
         private bool _isDisposed;
-        
+
         public void Dispose()
         {
             if (_isDisposed)
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // Dispose static semaphore
             try
             {
@@ -72,7 +72,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Handlers
                 // Ignore if already disposed
                 _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
             }
-            
+
             // All injected services (playbackService, IState<PlaybackState>) are singletons
             // and should not be disposed here as they are managed by the DI container
         }

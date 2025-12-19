@@ -1,6 +1,6 @@
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 
 namespace Bible.Alarm.Services.Scheduler;
 
@@ -71,16 +71,16 @@ public sealed partial class AlarmService(
     }
 
     private bool _isDisposed;
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // All injected services (notificationService) are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

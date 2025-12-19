@@ -17,12 +17,12 @@ public interface IBibleTranslationService : IDisposable
     /// Gets a BibleTranslation by language code and publication code, with Books included.
     /// </summary>
     Task<BibleTranslation?> GetByLanguageAndCodeWithBooksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets all BibleTranslations for a given language code.
     /// </summary>
     Task<Dictionary<string, BibleTranslation>> GetByLanguageCodeAsync(string languageCode, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets all distinct Languages from BibleTranslations.
     /// </summary>

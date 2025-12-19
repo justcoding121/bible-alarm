@@ -17,12 +17,12 @@ public interface INavigationService : IDisposable
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
     Task PopModalAsync();
     Task PopAsync();
-    
+
     /// <summary>
     /// Gets the BootstrapPage from the navigation stack.
     /// </summary>
     Views.General.BootstrapPage? GetBootstrapPage(bool shouldRetry = true);
-    
+
     /// <summary>
     /// Pops all modals and pages from the navigation stack, disposing them if they implement IDisposable.
     /// </summary>

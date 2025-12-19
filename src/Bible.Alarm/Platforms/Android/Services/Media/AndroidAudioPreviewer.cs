@@ -1,9 +1,9 @@
 using Android.Media;
 using Bible.Alarm.Common.Interfaces.Media;
+using Serilog;
 using AndroidApplication = Android.App.Application;
 using AndroidNet = Android.Net;
 using Object = Java.Lang.Object;
-using Serilog;
 
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
@@ -81,7 +81,10 @@ public class AndroidAudioPreviewer(MediaPlayer player, ILogger logger) : Object,
 
     protected override void Dispose(bool disposing)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         try
         {

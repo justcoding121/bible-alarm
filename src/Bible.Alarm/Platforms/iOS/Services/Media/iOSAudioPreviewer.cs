@@ -73,7 +73,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media
             {
                 // Configure audio session before playing
                 ConfigureAudioSession();
-                
+
                 if (await Load(url))
                 {
                     if (_player == null)
@@ -89,8 +89,8 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media
                     else
                     {
                         _player.Play();
-                        _logger.Debug("AVAudioPlayer.Play() called. Playing: {Playing}, Volume: {Volume}", 
-                            _player.Playing, 
+                        _logger.Debug("AVAudioPlayer.Play() called. Playing: {Playing}, Volume: {Volume}",
+                            _player.Playing,
                             _player.Volume);
                     }
                 }
@@ -145,7 +145,10 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
 
             try
             {

@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models.Bible;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
-using System.Text.Json;
 using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible
@@ -113,7 +113,9 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible
         private bool ShouldSkipLanguage(string languageName)
         {
             if (string.IsNullOrWhiteSpace(languageName))
+            {
                 return false;
+            }
 
             var lowerName = languageName.ToLowerInvariant();
             return lowerName.Contains("sign language");

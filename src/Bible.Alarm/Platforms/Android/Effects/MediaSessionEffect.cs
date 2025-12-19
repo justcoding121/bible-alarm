@@ -20,12 +20,12 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 /// Audio focus management is handled by MediaSessionManager.
 /// </summary>
 public class MediaSessionEffect(
-    MediaSessionManager mediaSessionManager, 
+    MediaSessionManager mediaSessionManager,
     IState<PlaybackState> playbackState,
     AndroidArtworkService artworkService) : IRecipient<PlaybackPositionChangedMessage>
 {
     private static readonly ILogger Logger = Log.ForContext<MediaSessionEffect>();
-    
+
     public void RegisterMessageHandlers()
     {
         WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
@@ -79,15 +79,15 @@ public class MediaSessionEffect(
                     .PutString(MediaMetadataCompat.MetadataKeyTitle, action.Title ?? "")
                     .PutString(MediaMetadataCompat.MetadataKeyArtist, action.Artist ?? "")
                     .PutString(MediaMetadataCompat.MetadataKeyAlbum, action.Album ?? "");
-                
+
                 // Include scheduleId from state as mediaId for OnPlayFromMediaId callback
                 var scheduleId = playbackState.Value.CurrentScheduleId;
                 if (scheduleId.HasValue)
                 {
-                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId, 
+                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId,
                         scheduleId.Value.ToString());
                 }
-                
+
                 // Load and set artwork bitmap if available
                 if (!string.IsNullOrEmpty(action.ArtworkUrl))
                 {
@@ -104,7 +104,7 @@ public class MediaSessionEffect(
                         Logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
                     }
                 }
-                
+
                 session.SetMetadata(metadataBuilder.Build());
             }
         }
@@ -115,7 +115,7 @@ public class MediaSessionEffect(
 
         return Task.CompletedTask;
     }
-    
+
     [EffectMethod]
     public Task HandlePlaybackDurationChanged(PlaybackDurationChangedAction action, FluxorDispatcher dispatcher)
     {
@@ -128,7 +128,7 @@ public class MediaSessionEffect(
                 Logger.Warning("MediaSessionCompat is null, cannot update duration");
                 return Task.CompletedTask;
             }
-            
+
             // Update duration in metadata
             var durationMs = (long)action.Duration.TotalMilliseconds;
             if (durationMs > 0)
@@ -146,10 +146,10 @@ public class MediaSessionEffect(
         {
             Logger.Error(ex, "Error updating MediaSessionCompat duration");
         }
-        
+
         return Task.CompletedTask;
     }
-    
+
     [EffectMethod]
     public Task HandlePlaybackNavigationChanged(PlaybackNavigationChangedAction action, FluxorDispatcher dispatcher)
     {
@@ -162,7 +162,7 @@ public class MediaSessionEffect(
                 Logger.Warning("MediaSessionCompat is null, cannot update navigation state");
                 return Task.CompletedTask;
             }
-            
+
             // Get current playback state to update with new navigation availability
             var currentState = playbackState.Value;
             var state = currentState.Status switch
@@ -175,7 +175,7 @@ public class MediaSessionEffect(
                 PlayStatus.Failed => PlaybackStateCompat.StateError,
                 _ => PlaybackStateCompat.StateNone
             };
-            
+
             // Update playback state with new navigation availability
             var playbackStateCompat = session.Controller?.PlaybackState;
             var position = playbackStateCompat?.Position ?? 0;
@@ -185,10 +185,10 @@ public class MediaSessionEffect(
         {
             Logger.Error(ex, "Error updating MediaSessionCompat navigation state");
         }
-        
+
         return Task.CompletedTask;
     }
-    
+
     /// <summary>
     /// Handles playback position updates to keep Android Auto progress bar synchronized.
     /// </summary>
@@ -197,18 +197,22 @@ public class MediaSessionEffect(
         try
         {
             if (message.CurrentPosition == null)
+            {
                 return;
-            
+            }
+
             // Ensure MediaSession is created before accessing
             var session = mediaSessionManager.GetOrCreate();
             if (session == null)
+            {
                 return;
-            
+            }
+
             // Get duration and navigation availability from playback state
             var duration = playbackState.Value.Duration;
             var canPlayNext = playbackState.Value.CanPlayNext;
             var canPlayPrevious = playbackState.Value.CanPlayPrevious;
-            
+
             // Update position in MediaSessionCompat
             mediaSessionManager.UpdatePlaybackPosition(message.CurrentPosition.Value, duration, canPlayNext, canPlayPrevious);
         }

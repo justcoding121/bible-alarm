@@ -61,24 +61,24 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         _playbackState = playbackState;
         _dispatcher = dispatcher;
         _generalSettingsService = generalSettingsService;
-        
+
         // Initialize string fields to avoid nullable warnings
         _title = "";
         _subTitle = "";
         _description = "";
         _currentTime = "00:00";
         _endTime = "00:00";
-        
+
         // Controls are hidden until first playback state is received
         _hasReceivedInitialState = false;
-        
+
         // Subscribe to Fluxor state changes for reactive updates
         _playbackState.StateChanged += OnPlaybackStateChanged;
-        
+
         // Subscribe to position and preparation progress messages (high-frequency updates)
         WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
         WeakReferenceMessenger.Default.Register<PlaybackPreparationProgressMessage>(this);
-        
+
         // Initialize from current state
         UpdateFromState();
 
@@ -90,7 +90,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             OnPropertyChanged(nameof(IsBusy));
             // Give UI time to render the progress indicator before starting dismiss operation
             await Task.Delay(100);
-            
+
             await _playbackService.StopAsync();
 
             try
@@ -199,7 +199,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                     count--;
                 }
 
-                if (!isRunning) Dispose();
+                if (!isRunning)
+                {
+                    Dispose();
+                }
             }
         });
     }
@@ -323,7 +326,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     public void OnSliderTapped(double targetValue)
     {
         _logger?.Debug("[Slider] Tap detected - TargetValue: {TargetValue}", targetValue);
-        
+
         if (!AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
         {
             return;
@@ -332,12 +335,12 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         // Clamp value to valid range (0.0 to 1.0)
         var progress = Math.Max(0.0, Math.Min(1.0, targetValue));
         _targetSeekProgress = progress;
-        
+
         // Update visual position directly (bypass Progress setter to avoid feedback loop)
         _isUserInteracting = true;
         _progress = progress;
         OnPropertyChanged(nameof(Progress));
-        
+
         // Perform seek immediately for tap
         PerformSeek();
     }
@@ -357,21 +360,21 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     public void OnSliderDragCompleted(double finalValue)
     {
         _logger?.Debug("[Slider] Drag completed - FinalValue: {FinalValue}", finalValue);
-        
+
         if (!AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
         {
             _isUserInteracting = false;
             return;
         }
-        
+
         // Update target and perform seek immediately
         var progress = Math.Max(0.0, Math.Min(1.0, finalValue));
         _targetSeekProgress = progress;
-        
+
         // Update visual position (bypass Progress setter to avoid feedback loop)
         _progress = progress;
         OnPropertyChanged(nameof(Progress));
-        
+
         PerformSeek();
     }
 
@@ -390,14 +393,14 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         try
         {
             var seekPosition = TimeSpan.FromSeconds(_currentDuration.TotalSeconds * _targetSeekProgress.Value);
-            _logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}", 
+            _logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}",
                 seekPosition, _targetSeekProgress.Value);
-            
+
             if (SeekCommand != null && SeekCommand.CanExecute(seekPosition))
             {
                 SeekCommand.Execute(seekPosition);
             }
-            
+
             // Reset interaction flag after delay to allow seek to complete
             Task.Delay(500).ContinueWith(_ =>
             {
@@ -471,11 +474,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         _playbackState.Value.Status != PlayStatus.Loading;
 
     public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
-    
+
     public double PreparationProgress { get; private set; }
 
     private string _errorMessage = string.Empty;
-    
+
     public string ErrorMessage
     {
         get => _errorMessage;
@@ -488,37 +491,37 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             }
         }
     }
-    
+
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
         UpdateFromState();
     }
-    
+
     private void UpdateFromState()
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var state = _playbackState.Value;
-            
+
             // Detect track change by comparing current metadata with previous
             var currentTitle = state.Title ?? "";
             var currentArtist = state.Artist ?? "";
             var currentAlbum = state.Album ?? "";
-            
-            var trackChanged = _hasReceivedInitialState && 
-                               (_previousTrackTitle != currentTitle || 
-                                _previousTrackArtist != currentArtist || 
+
+            var trackChanged = _hasReceivedInitialState &&
+                               (_previousTrackTitle != currentTitle ||
+                                _previousTrackArtist != currentArtist ||
                                 _previousTrackAlbum != currentAlbum);
-            
+
             if (trackChanged)
             {
                 // Track has changed - disable controls until we receive play-related event for new track
                 _hasReceivedInitialState = false;
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
-            
+
             // Mark that we've received initial state when playback is meaningfully active (Playing or Paused).
             // We intentionally do NOT treat Loading as "ready" for interactive controls.
             if (!_hasReceivedInitialState &&
@@ -527,7 +530,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 _hasReceivedInitialState = true;
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
-            
+
             // Update previous track metadata only after we've received initial state for the new track
             // This ensures we can detect the next track change correctly
             if (_hasReceivedInitialState)
@@ -536,16 +539,16 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 _previousTrackArtist = currentArtist;
                 _previousTrackAlbum = currentAlbum;
             }
-            
+
             // Update navigation controls
             NextEnabled = state.CanPlayNext;
             PreviousEnabled = state.CanPlayPrevious;
-            
+
             // Update metadata
             Title = currentTitle;
             SubTitle = currentArtist;
             Description = currentAlbum;
-            
+
             // Update artwork - force update if track changed, even if URL appears the same
             // (artwork may be saved to same cache file path but content is different)
             var artworkUrl = state.ArtworkUrl;
@@ -560,17 +563,17 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 }
                 UpdateArtwork(artworkUrl);
             }
-            
+
             // Update duration (from Fluxor state, only changes when track changes)
             var duration = state.Duration;
             _currentDuration = duration;
             EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
-            
+
             // Note: Position and PreparationProgress are updated via messages (high-frequency updates)
-            
+
             // Update error message
             ErrorMessage = state.ErrorMessage ?? "";
-            
+
             // Update play/pause visibility based on status
             var isPlaying = state.Status == PlayStatus.Playing;
             PlayVisible = !isPlaying;
@@ -594,7 +597,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             {
                 var actualProgress = message.CurrentPosition.Value.TotalSeconds / _currentDuration.TotalSeconds;
                 var progressDiff = Math.Abs(actualProgress - _targetSeekProgress.Value);
-                
+
                 // If position matches target (within 2%), allow updates to resume
                 if (progressDiff < 0.02)
                 {
@@ -612,14 +615,14 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 return;
             }
         }
-            
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (message.CurrentPosition.HasValue)
             {
                 var position = message.CurrentPosition.Value;
                 CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
-                
+
                 // Update progress based on current position and duration
                 if (_currentDuration.TotalSeconds > 0)
                 {
@@ -640,7 +643,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 CurrentTime = "00:00";
                 Progress = 0.0;
             }
-            
+
             // Notify property changes
             OnPropertyChanged(nameof(ProgressText));
         });
@@ -655,7 +658,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             _totalTracks = message.TotalTracks;
             PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
             IsPreparing = _totalTracks > 0 && _loadedTracks < _totalTracks;
-            
+
             // Notify property changes
             OnPropertyChanged(nameof(ProgressText));
             OnPropertyChanged(nameof(PreparationProgress));
@@ -672,7 +675,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
         var previousUrl = _lastArtworkUrl;
         _lastArtworkUrl = artworkUrl;
-        
+
         if (string.IsNullOrEmpty(artworkUrl))
         {
             // Only clear if we currently have artwork displayed
@@ -726,7 +729,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     private bool TryLoadFromUri(string artworkUrl)
     {
-        if (!Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) || 
+        if (!Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) ||
             (uri.Scheme != "http" && uri.Scheme != "https"))
         {
             return false;
@@ -855,8 +858,8 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             _playbackState.StateChanged -= OnPlaybackStateChanged;
             WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
             WeakReferenceMessenger.Default.Unregister<PlaybackPreparationProgressMessage>(this);
-            
-            
+
+
             _isDisposed = true;
         }
     }

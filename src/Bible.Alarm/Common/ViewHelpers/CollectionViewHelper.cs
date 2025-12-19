@@ -2,8 +2,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 #endif
-using System.Runtime.InteropServices;
 using System.Collections;
+using System.Runtime.InteropServices;
 using Polly;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
@@ -19,7 +19,9 @@ public static class CollectionViewHelper
     public static async Task ScrollToWhenReadyAsync(MauiCollectionView collectionView, object item, ScrollToPosition position = ScrollToPosition.Center, bool animated = false, CancellationToken cancellationToken = default)
     {
         if (collectionView == null || item == null)
+        {
             return;
+        }
 
         try
         {
@@ -28,7 +30,7 @@ public static class CollectionViewHelper
 
             // Wait for the CollectionView to be ready on all platforms
             var isReady = await WaitForCollectionViewReadyAsync(collectionView, item, cancellationToken);
-            
+
             if (!isReady)
             {
                 Log.Logger.Debug("CollectionView not ready for scrolling or item not found in ItemsSource");
@@ -46,7 +48,7 @@ public static class CollectionViewHelper
                 canScroll = await CanSafelyScrollWindows(collectionView, cancellationToken);
             }
 #endif
-            
+
             if (canScroll)
             {
                 // Wrap in Task.Run to catch async exceptions that might escape
@@ -141,26 +143,34 @@ public static class CollectionViewHelper
         {
             // Check cancellation before each delay
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             await Task.Delay(delayMs, cancellationToken);
-            
+
             try
             {
                 // Check if CollectionView has items
                 if (collectionView.ItemsSource == null)
+                {
                     continue;
+                }
 
                 // Check if ItemsSource has any items
                 if (!HasItems(collectionView.ItemsSource))
+                {
                     continue;
+                }
 
                 // Check if handler is available
                 if (collectionView.Handler == null)
+                {
                     continue;
+                }
 
                 // Verify item exists in ItemsSource
                 if (!ItemExistsInSource(collectionView.ItemsSource, item))
+                {
                     continue;
+                }
 
 #if WINDOWS
                 if (DeviceInfo.Platform == DevicePlatform.WinUI)
@@ -202,7 +212,9 @@ public static class CollectionViewHelper
     private static bool HasItems(object itemsSource)
     {
         if (itemsSource == null)
+        {
             return false;
+        }
 
         try
         {
@@ -234,7 +246,9 @@ public static class CollectionViewHelper
     private static bool ItemExistsInSource(object itemsSource, object item)
     {
         if (itemsSource == null || item == null)
+        {
             return false;
+        }
 
         try
         {
@@ -245,11 +259,15 @@ public static class CollectionViewHelper
                 {
                     // Use reference equality first (fastest)
                     if (ReferenceEquals(sourceItem, item))
+                    {
                         return true;
-                    
+                    }
+
                     // Use Equals for value comparison
                     if (sourceItem?.Equals(item) == true)
+                    {
                         return true;
+                    }
                 }
             }
         }
@@ -269,11 +287,13 @@ public static class CollectionViewHelper
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             if (collectionView.Handler?.PlatformView is FrameworkElement frameworkElement)
             {
                 if (!frameworkElement.IsLoaded)
+                {
                     return false;
+                }
 
                 // Wait longer to ensure ScrollViewer is fully initialized
                 // The ScrollViewer needs time to be created and added to the visual tree
@@ -304,14 +324,18 @@ public static class CollectionViewHelper
     public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 5, int delayMs = 100, CancellationToken cancellationToken = default)
     {
         if (isBusyGetter == null)
+        {
             return false;
+        }
 
         // Check immediately first - if not busy, return immediately
         if (!isBusyGetter())
+        {
             return true;
+        }
 
         var maxRetries = (maxWaitSeconds * 1000) / delayMs;
-        
+
         // Use Polly to retry checking the condition until it becomes false
         var retryPolicy = Policy
             .Handle<InvalidOperationException>() // Throw when still busy, retry
@@ -320,7 +344,7 @@ public static class CollectionViewHelper
                 sleepDurationProvider: _ => TimeSpan.FromMilliseconds(delayMs),
                 onRetry: (exception, timeSpan, retryCount, context) =>
                 {
-                    Log.Logger.Debug("Waiting for IsBusy to become false (attempt {RetryCount}/{MaxRetries})", 
+                    Log.Logger.Debug("Waiting for IsBusy to become false (attempt {RetryCount}/{MaxRetries})",
                         retryCount, maxRetries);
                 });
 

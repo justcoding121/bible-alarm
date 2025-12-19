@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,13 +28,16 @@ public sealed class AsyncQueue<T> : IDisposable
         CancellationToken taskCancellationToken = default)
     {
         ThrowIfDisposed();
-        
+
         await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
-        
+
         try
         {
-            if (_disposed) return;
-            
+            if (_disposed)
+            {
+                return;
+            }
+
             if (_consumerQueue.Count > 0)
             {
                 var consumer = _consumerQueue.Dequeue();
@@ -59,16 +62,18 @@ public sealed class AsyncQueue<T> : IDisposable
         CancellationToken taskCancellationToken = default)
     {
         ThrowIfDisposed();
-        
+
         await _consumerQueueLock.WaitAsync(millisecondsTimeout, taskCancellationToken);
 
         TaskCompletionSource<T> consumer;
 
         try
         {
-            if (_disposed) 
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(nameof(AsyncQueue<T>));
-                
+            }
+
             if (_queue.Count > 0)
             {
                 var result = _queue.Dequeue();
@@ -90,15 +95,20 @@ public sealed class AsyncQueue<T> : IDisposable
     public async Task<T> PeekAsync()
     {
         ThrowIfDisposed();
-        
+
         await _consumerQueueLock.WaitAsync();
 
         try
         {
-            if (_disposed) 
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(nameof(AsyncQueue<T>));
-                
-            if (_queue.Count == 0) return default;
+            }
+
+            if (_queue.Count == 0)
+            {
+                return default;
+            }
 
             return _queue.Peek();
         }
@@ -111,7 +121,9 @@ public sealed class AsyncQueue<T> : IDisposable
     private void ThrowIfDisposed()
     {
         if (_disposed)
+        {
             throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+        }
     }
 
     public void Dispose()
@@ -124,7 +136,7 @@ public sealed class AsyncQueue<T> : IDisposable
                 var consumer = _consumerQueue.Dequeue();
                 consumer.TrySetCanceled();
             }
-            
+
             _consumerQueueLock?.Dispose();
             _disposed = true;
         }

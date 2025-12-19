@@ -13,9 +13,9 @@ namespace Bible.Alarm.Platforms.Android;
 [Activity(Label = "Bible Alarm", Theme = "@style/MainTheme", LaunchMode = LaunchMode.SingleTop, MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
-    private static readonly ILogger Logger = Log.ForContext<MainActivity>();
-    private IAndroidAlarmHandler _alarmHandler;
-    private DateTime? _lastResumeTime;
+    private static readonly ILogger logger = Log.ForContext<MainActivity>();
+    private IAndroidAlarmHandler alarmHandler;
+    private DateTime? lastResumeTime;
 
     protected override void OnCreate(Bundle savedInstanceState)
     {
@@ -37,24 +37,24 @@ public class MainActivity : MauiAppCompatActivity
                 var hasFragmentState = false;
                 foreach (var key in savedInstanceState.KeySet())
                 {
-                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") || 
+                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
                         key.Contains("androidx.lifecycle") || key.Contains("android:support")))
                     {
                         hasFragmentState = true;
                         break;
                     }
                 }
-                
+
                 if (hasFragmentState)
                 {
-                    Logger.Information("Detected fragment state in savedInstanceState - ignoring to prevent NavigationRootManager crash");
+                    logger.Information("Detected fragment state in savedInstanceState - ignoring to prevent NavigationRootManager crash");
                     // Pass null to prevent fragment restoration - MAUI will recreate navigation from scratch
                     safeSavedInstanceState = null;
                 }
             }
             catch (Exception ex)
             {
-                Logger.Warning(ex, "Error checking fragment state - ignoring savedInstanceState to be safe");
+                logger.Warning(ex, "Error checking fragment state - ignoring savedInstanceState to be safe");
                 safeSavedInstanceState = null;
             }
         }
@@ -78,18 +78,22 @@ public class MainActivity : MauiAppCompatActivity
 
     private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        Logger.Error(e.Exception, "Unobserved task exception.");
+        logger.Error(e.Exception, "Unobserved task exception.");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
     private void HandleIncomingIntent()
     {
-        if (Intent?.Extras == null) return;
+        if (Intent?.Extras == null)
+        {
+            return;
+        }
+
         var scheduleId = Intent.Extras.GetInt("schedule_id", int.MinValue);
         if (scheduleId != int.MinValue)
         {
@@ -102,16 +106,16 @@ public class MainActivity : MauiAppCompatActivity
                     MauiAppHolder.CreateAndStore();
                     // Run bootstrapper after CreateAndStore for background launch
                     MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                    
+
                     // Wait for bootstrap to complete before using database services
                     await MauiProgram.WaitForBootstrapAsync();
 
-                    _alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
-                    await _alarmHandler.HandleAsync(scheduleId, false);
+                    alarmHandler ??= ServiceProviderManager.GetService<IAndroidAlarmHandler>();
+                    await alarmHandler.HandleAsync(scheduleId, false);
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Error handling incoming alarm intent");
+                    logger.Error(e, "Error handling incoming alarm intent");
                 }
             });
         }
@@ -123,7 +127,7 @@ public class MainActivity : MauiAppCompatActivity
         {
             try
             {
-                if (_lastResumeTime.HasValue && DateTime.Now.Subtract(_lastResumeTime.Value).TotalSeconds >= 3)
+                if (lastResumeTime.HasValue && DateTime.Now.Subtract(lastResumeTime.Value).TotalSeconds >= 3)
                 {
                     var intent = new Intent(this, typeof(AlarmSetupService));
                     intent.PutExtra("Action", "SetupBackgroundTasks");
@@ -132,7 +136,7 @@ public class MainActivity : MauiAppCompatActivity
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Error setting up background tasks");
+                logger.Error(ex, "Error setting up background tasks");
             }
         });
     }
@@ -149,7 +153,7 @@ public class MainActivity : MauiAppCompatActivity
         catch (Java.Lang.IllegalArgumentException ex) when (ex.Message?.Contains("No view found for id") == true && ex.Message?.Contains("legacy") == true)
         {
             // Fragment restoration failed due to stale state - clear fragments and retry
-            Logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");
+            logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");
             try
             {
                 var fragmentManager = SupportFragmentManager;
@@ -171,13 +175,13 @@ public class MainActivity : MauiAppCompatActivity
                         fragmentManager.ExecutePendingTransactions();
                     }
                 }
-                
+
                 // Retry base.OnStart() after clearing fragments
                 base.OnStart();
             }
             catch (Exception retryEx)
             {
-                Logger.Error(retryEx, "Failed to recover from fragment restoration error - app may be in inconsistent state");
+                logger.Error(retryEx, "Failed to recover from fragment restoration error - app may be in inconsistent state");
                 // Re-throw to let Android handle it
                 throw;
             }
@@ -187,13 +191,13 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnResume()
     {
         base.OnResume();
-        _lastResumeTime = DateTime.Now;
+        lastResumeTime = DateTime.Now;
     }
 
     protected override void OnPause()
     {
         base.OnPause();
-        _lastResumeTime = null;
+        lastResumeTime = null;
     }
 
     protected override void OnSaveInstanceState(Bundle outState)
@@ -206,34 +210,34 @@ public class MainActivity : MauiAppCompatActivity
         {
             // Call base to save other state (like activity state)
             base.OnSaveInstanceState(outState);
-            
+
             // Remove fragment state keys to prevent stale fragment restoration
             if (outState != null)
             {
                 var keysToRemove = new List<string>();
                 foreach (var key in outState.KeySet())
                 {
-                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") || 
+                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
                         key.Contains("androidx.lifecycle") || key.Contains("android:support")))
                     {
                         keysToRemove.Add(key);
                     }
                 }
-                
+
                 foreach (var key in keysToRemove)
                 {
                     outState.Remove(key);
                 }
-                
+
                 if (keysToRemove.Count > 0)
                 {
-                    Logger.Information("Prevented saving {Count} fragment state keys to avoid NavigationRootManager crash", keysToRemove.Count);
+                    logger.Information("Prevented saving {Count} fragment state keys to avoid NavigationRootManager crash", keysToRemove.Count);
                 }
             }
         }
         catch (Exception ex)
         {
-            Logger.Warning(ex, "Error in OnSaveInstanceState - proceeding anyway");
+            logger.Warning(ex, "Error in OnSaveInstanceState - proceeding anyway");
             // Still call base to ensure other state is saved
             try
             {
@@ -268,10 +272,10 @@ public class MainActivity : MauiAppCompatActivity
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error in MainActivity.OnDestroy while attempting to dismiss player");
+            logger.Error(ex, "Error in MainActivity.OnDestroy while attempting to dismiss player");
         }
 
-     
+
     }
 
 }

@@ -26,7 +26,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
                 logger.Error(e, "Windows database initialization encountered an error (non-fatal).");
                 // Don't re-throw - allow app to continue running even if bootstrap has issues
             }
-            
+
             // Fire-and-forget: SetupBackgroundTask runs synchronously and completes immediately
             _ = Task.Run(SetupBackgroundTask);
         }
@@ -37,12 +37,12 @@ namespace Bible.Alarm.Platforms.Windows.Helpers
             // Instead, we'll use a different approach for scheduled tasks
             // Background execution is generally available for desktop apps
             IsBackgroundTaskEnabled = true;
-            
+
             // Note: Media index update background task handler is available at:
             // Platforms.Windows.Services.BackgroundTasks.UpdateMediaIndexBackgroundTask
             // This can be called from Windows Task Scheduler or app lifecycle events
             // WinUI 3 doesn't support UWP background tasks the same way as UWP
-            
+
             return Task.CompletedTask;
         }
     }

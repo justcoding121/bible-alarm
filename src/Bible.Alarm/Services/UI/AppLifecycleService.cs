@@ -67,16 +67,16 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
             }
         });
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // No event handlers to unsubscribe, but dispose any non-singleton injected services if needed
         // All injected services are singletons, so no disposal needed
     }

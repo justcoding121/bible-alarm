@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 using Bible.Alarm.VersionPatcher.Services.Infrastructure;
@@ -15,7 +15,7 @@ internal class Program
             // Create service collection and register services
             var services = new ServiceCollection();
             services.AddVersionPatchingServices();
-            
+
             // Build service provider
             await using var serviceProvider = services.BuildServiceProvider();
 

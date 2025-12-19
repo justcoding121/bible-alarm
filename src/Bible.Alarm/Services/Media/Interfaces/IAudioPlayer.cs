@@ -25,7 +25,7 @@ public interface IAudioPlayer : IDisposable
     TimeSpan Duration { get; }
 
     PlayStatus Status { get; }
-    
+
     /// <summary>
     /// Gets the actual current state of the MediaElement, not just the cached Status
     /// This checks the MediaElement's CurrentState property directly

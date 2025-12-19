@@ -34,14 +34,14 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var query = dbContext.AlarmMusic.AsQueryable();
-        
+
         if (predicate != null)
         {
             query = query.Where(predicate);
         }
-        
+
         return await query.ToListAsync(cancellationToken);
     }
 
@@ -49,7 +49,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.AlarmMusic
             .FirstOrDefaultAsync(x => x.Id == musicId, cancellationToken);
     }
@@ -58,7 +58,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.AlarmMusic
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
@@ -68,11 +68,11 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         await dbContext.AlarmMusic.AddAsync(music, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
-        
-        return await GetMusicByIdAsync(music.Id, cancellationToken) 
+
+        return await GetMusicByIdAsync(music.Id, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to reload music {music.Id} after adding");
     }
 
@@ -80,11 +80,11 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         dbContext.AlarmMusic.Update(music);
         await dbContext.SaveChangesAsync(cancellationToken);
-        
-        return await GetMusicByIdAsync(music.Id, cancellationToken) 
+
+        return await GetMusicByIdAsync(music.Id, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to reload music {music.Id} after updating");
     }
 
@@ -92,7 +92,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var music = await dbContext.AlarmMusic.FindAsync(new object[] { musicId }, cancellationToken);
         if (music != null)
         {
@@ -105,7 +105,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.AlarmMusic.AnyAsync(x => x.Id == musicId, cancellationToken);
     }
 
@@ -115,9 +115,9 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();
@@ -128,7 +128,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
             // Ignore errors during disposal
             _logger.Warning(ex, "Error during cancellation token source disposal in AlarmMusicService");
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
     }
 }

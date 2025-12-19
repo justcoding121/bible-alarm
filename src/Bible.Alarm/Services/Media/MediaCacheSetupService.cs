@@ -25,16 +25,16 @@ public class MediaCacheSetupService(
             _logger.Error(ex, "Error setting up alarm cache for schedule {ScheduleId}", scheduleId);
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe
     }

@@ -1,15 +1,11 @@
 #nullable enable
-using System;
 using AutoMapper;
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Messaging;
@@ -40,7 +36,7 @@ public class ScheduleEffects
     private readonly IState<ApplicationState>? _state;
 
     public ScheduleEffects(
-        IMapper mapper, 
+        IMapper mapper,
         IBibleTranslationService? bibleTranslationService = null,
         IBibleBookService? bibleBookService = null,
         IAlarmScheduleService? alarmScheduleService = null,
@@ -193,21 +189,21 @@ public class ScheduleEffects
 
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
             var dbSchedule = _mapper.Map<AlarmSchedule>(action.Schedule);
-            
+
             Log.Debug("ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
                 dbSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
                 dbSchedule.BibleReadingSchedule?.LanguageCode ?? "null");
-            
+
             // Set ID to 0 for new schedule (EF Core will generate it)
             dbSchedule.Id = 0;
 
             // Save to database
             var savedSchedule = await _alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None);
-            
+
             Log.Debug("ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
                 savedSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
                 savedSchedule.BibleReadingSchedule?.LanguageCode ?? "null");
-            
+
             Log.Information("ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}", savedSchedule.Id);
 
             // Create alarm if enabled
@@ -218,7 +214,7 @@ public class ScheduleEffects
 
             // Map DB entity → domain model (ScheduleStateItem)
             var scheduleStateItem = _mapper.Map<ScheduleStateItem>(savedSchedule);
-            
+
             // Populate TranslationName and BookName if BibleReadingSchedule exists
             await PopulateTranslationNameAsync(scheduleStateItem, savedSchedule);
             await PopulateBookNameAsync(scheduleStateItem, savedSchedule);
@@ -341,7 +337,7 @@ public class ScheduleEffects
             // 2. Language code changed (TranslationName needs update)
             // 3. Book number, language code, or publication code changed (BookName needs update)
             var existingItem = _state?.Value.Schedules?.FirstOrDefault(s => s.Id == action.Schedule.Id);
-            
+
             if (existingItem != null)
             {
                 // Check if language code changed
@@ -349,16 +345,16 @@ public class ScheduleEffects
                     existingItem.BibleReadingLanguageCode ?? string.Empty,
                     scheduleStateItem.BibleReadingLanguageCode ?? string.Empty,
                     StringComparison.OrdinalIgnoreCase);
-                
+
                 // Check if book-related codes changed
                 var bookNumberChanged = existingItem.BibleReadingBookNumber != scheduleStateItem.BibleReadingBookNumber;
                 var publicationCodeChanged = !string.Equals(
                     existingItem.BibleReadingPublicationCode ?? string.Empty,
                     scheduleStateItem.BibleReadingPublicationCode ?? string.Empty,
                     StringComparison.OrdinalIgnoreCase);
-                
+
                 // Repopulate TranslationName if missing or language code changed
-                if (string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName) || 
+                if (string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName) ||
                     languageCodeChanged ||
                     scheduleStateItem.TranslationName == scheduleStateItem.BibleReadingLanguageCode)
                 {
@@ -466,13 +462,17 @@ public class ScheduleEffects
     private async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
         if (schedule.BibleReadingSchedule == null || _bibleTranslationService == null)
+        {
             return;
+        }
 
         try
         {
             var languageCode = schedule.BibleReadingSchedule.LanguageCode;
             if (string.IsNullOrWhiteSpace(languageCode))
+            {
                 return;
+            }
 
             var languagesDict = await _bibleTranslationService.GetDistinctLanguagesAsync();
             if (languagesDict.TryGetValue(languageCode, out var language))
@@ -502,7 +502,9 @@ public class ScheduleEffects
     private async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem)
     {
         if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode) || _bibleTranslationService == null)
+        {
             return;
+        }
 
         try
         {
@@ -534,21 +536,25 @@ public class ScheduleEffects
     private async Task PopulateBookNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
         if (schedule.BibleReadingSchedule == null || _bibleBookService == null)
+        {
             return;
+        }
 
         try
         {
             var bibleReading = schedule.BibleReadingSchedule;
-            if (bibleReading.BookNumber <= 0 || 
+            if (bibleReading.BookNumber <= 0 ||
                 string.IsNullOrWhiteSpace(bibleReading.LanguageCode) ||
                 string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
+            {
                 return;
+            }
 
             var bookName = await _bibleBookService.GetBookNameAsync(
                 bibleReading.LanguageCode,
                 bibleReading.PublicationCode,
                 bibleReading.BookNumber);
-            
+
             if (!string.IsNullOrWhiteSpace(bookName))
             {
                 scheduleStateItem.BookName = bookName;

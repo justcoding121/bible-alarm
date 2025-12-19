@@ -26,7 +26,7 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.GeneralSettings
             .FirstOrDefaultAsync(x => x.Key == key, cancellationToken);
     }
@@ -35,16 +35,16 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var setting = await dbContext.GeneralSettings
             .FirstOrDefaultAsync(x => x.Key == key, cancellationToken);
-        
+
         if (setting == null)
         {
             setting = new GeneralSettings { Key = key };
             await dbContext.GeneralSettings.AddAsync(setting, cancellationToken);
         }
-        
+
         setting.Value = value;
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -53,7 +53,7 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.GeneralSettings.AnyAsync(x => x.Key == key, cancellationToken);
     }
 
@@ -63,9 +63,9 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();
@@ -76,7 +76,7 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
             // Ignore errors during disposal
             _logger.Warning(ex, "Error during cancellation token source disposal in GeneralSettingsService");
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
     }
 }

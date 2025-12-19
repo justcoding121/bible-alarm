@@ -1,5 +1,5 @@
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
@@ -26,7 +26,10 @@ public class ScheduleSelectionService(
             {
                 var music = await _alarmMusicService.GetMusicByScheduleIdAsync(scheduleId, _cancellationTokenSource.Token);
                 if (music == null)
+                {
                     throw new InvalidOperationException($"Music not found for schedule {scheduleId}");
+                }
+
                 return music;
             }
 
@@ -48,7 +51,10 @@ public class ScheduleSelectionService(
             {
                 var bibleReading = await _bibleReadingScheduleService.GetBibleReadingScheduleByScheduleIdAsync(scheduleId, _cancellationTokenSource.Token);
                 if (bibleReading == null)
+                {
                     throw new InvalidOperationException($"BibleReadingSchedule not found for schedule {scheduleId}");
+                }
+
                 return bibleReading;
             }
 
@@ -60,16 +66,16 @@ public class ScheduleSelectionService(
             return currentBibleReading;
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -81,7 +87,7 @@ public class ScheduleSelectionService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe
     }

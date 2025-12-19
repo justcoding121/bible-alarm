@@ -1,14 +1,14 @@
+using BackgroundTasks;
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Foundation;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using UIKit;
 using UserNotifications;
-using BackgroundTasks;
 
 namespace Bible.Alarm.Platforms.iOS
 {
@@ -35,7 +35,7 @@ namespace Bible.Alarm.Platforms.iOS
 
         private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+            Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
                 e.IsTerminating);
         }
 
@@ -66,7 +66,7 @@ namespace Bible.Alarm.Platforms.iOS
             {
                 // BootstrapHelper is already initialized in MauiProgram.cs
                 // No need to call it again here for foreground scenarios
-                
+
                 //once every hour
                 // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+
                 if (UIDevice.CurrentDevice.CheckSystemVersion(13, 0))
@@ -128,10 +128,10 @@ namespace Bible.Alarm.Platforms.iOS
                                 MauiAppHolder.CreateAndStore();
                                 // Run bootstrapper after CreateAndStore for background launch
                                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                                
+
                                 // Wait for bootstrap to complete before using database services
                                 await MauiProgram.WaitForBootstrapAsync();
-                                
+
                                 // Use GeneralSettingsService to check and set the setting
                                 var generalSettingsService = ServiceProviderManager.GetService<IGeneralSettingsService>();
                                 if (generalSettingsService != null)
@@ -221,7 +221,7 @@ namespace Bible.Alarm.Platforms.iOS
                 MauiAppHolder.CreateAndStore();
                 // Run bootstrapper after CreateAndStore for background launch
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                
+
                 // Wait for bootstrap to complete before using database services
                 await MauiProgram.WaitForBootstrapAsync();
 
@@ -263,7 +263,10 @@ namespace Bible.Alarm.Platforms.iOS
         /// </summary>
         private void HandleMediaIndexUpdateBackgroundTask(BGAppRefreshTask task)
         {
-            if (task == null) return;
+            if (task == null)
+            {
+                return;
+            }
 
             task.ExpirationHandler = () =>
             {

@@ -39,7 +39,7 @@ public class AlarmModalService(
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
         var shouldShowModal = _playbackState.Value.IsPreparingOrPlaying;
-        
+
         if (shouldShowModal && !_isModalOpen)
         {
             _ = MainThread.InvokeOnMainThreadAsync(async () =>
@@ -50,7 +50,7 @@ public class AlarmModalService(
                     await _navigationService.OpenAlarmModalAsync();
                     _isModalOpen = true;
                     _logger.Information("AlarmModal opened");
-                    
+
                     // Set IsBusy to false for the schedule item after modal is shown
                     _scheduleItemStateService.SetScheduleItemBusyToFalse(_playbackState.Value.CurrentScheduleId);
                     // Note: Home page overlay will be hidden when Alarm Modal Appearing event fires
@@ -78,16 +78,16 @@ public class AlarmModalService(
             });
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Unsubscribe from playback state changes
         _playbackState.StateChanged -= OnPlaybackStateChanged;
     }

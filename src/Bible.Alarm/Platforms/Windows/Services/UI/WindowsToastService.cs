@@ -69,7 +69,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         private static async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
-            
+
             await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
                 try
@@ -118,7 +118,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                     }
                 }
             });
-            
+
             clearRequest = null;
         }
 
@@ -126,7 +126,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         {
             // First try Window.Current (works in some contexts)
             var currentWindow = Window.Current;
-            
+
             // If Window.Current is null, try to get it from MAUI Application
             if (currentWindow is null)
             {
@@ -141,7 +141,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                     }
                 }
             }
-            
+
             return currentWindow;
         }
 
@@ -224,7 +224,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
         private static async Task ShowFlyoutAsync(Popup popup, Window currentWindow, double seconds)
         {
             FrameworkElement? windowContent = null;
-            
+
             try
             {
                 // Attach popup to the window and get window content for positioning
@@ -260,7 +260,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                     // Estimate popup size (will be adjusted after render)
                     var estimatedPopupWidth = 300;
                     var estimatedPopupHeight = 50;
-                    
+
                     popup.HorizontalOffset = (windowWidth - estimatedPopupWidth) / 2;
                     popup.VerticalOffset = windowHeight - estimatedPopupHeight - 50;
                 }
@@ -350,10 +350,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 {
                     Log.Warning(ex, "Exception occurred while closing popup in ShowFlyoutAsync finally block");
                 }
-                
+
                 // Clean up after a brief delay to allow animation to complete
                 await Task.Delay(200);
-                
+
                 CleanupPopup(popup);
             }
         }
@@ -366,7 +366,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 var windowHeight = content.ActualHeight;
                 var borderWidth = border.ActualWidth;
                 var borderHeight = border.ActualHeight;
-                
+
                 if (windowWidth > 0 && windowHeight > 0 && borderWidth > 0 && borderHeight > 0)
                 {
                     try
@@ -385,7 +385,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
 
         private static void CleanupPopup(Popup? popup)
         {
-            if (popup == null) return;
+            if (popup == null)
+            {
+                return;
+            }
 
             try
             {
@@ -400,20 +403,20 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             {
                 Log.Debug(ex, "Exception occurred while clearing popup child");
             }
-            
+
             // Don't try to set XamlRoot to null - it can fail if already set or popup is disposed
             // The popup will be garbage collected anyway, and setting it to null can cause COM exceptions
         }
-        
+
         public new void Dispose()
         {
             if (_isDisposed)
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // TaskScheduler is a singleton, so don't dispose it
             // No event handlers to unsubscribe
         }

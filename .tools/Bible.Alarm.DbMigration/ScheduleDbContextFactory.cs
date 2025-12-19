@@ -1,8 +1,8 @@
+using System.IO;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using System.IO;
 
 namespace Bible.Alarm.DbMigration;
 
@@ -18,14 +18,14 @@ public class ScheduleDbContextFactory : IDesignTimeDbContextFactory<ScheduleDbCo
         var dbPath = Path.Combine(
             Directory.GetCurrentDirectory(),
             AppConstants.Database.ScheduleDatabaseFileName);
-        
+
         var connectionString = string.Format(
             AppConstants.Database.ScheduleDatabaseConnectionStringFormat,
             dbPath);
-        
+
         var optionsBuilder = new DbContextOptionsBuilder<ScheduleDbContext>();
-            optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
-        
+        optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+
         return new ScheduleDbContext(optionsBuilder.Options);
     }
 }

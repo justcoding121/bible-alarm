@@ -1,4 +1,3 @@
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Bible;
@@ -37,7 +36,9 @@ public static class ApplicationReducer
             action.Schedule?.Name, state.Schedules?.Count ?? 0);
 
         if (action.Schedule == null)
+        {
             return state;
+        }
 
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         if (state.Schedules != null)
@@ -104,7 +105,9 @@ public static class ApplicationReducer
     public static ApplicationState OnUpdateScheduleFromViewModel(ApplicationState state, UpdateScheduleFromViewModelAction action)
     {
         if (action.Schedule == null || state.Schedules == null)
+        {
             return state;
+        }
 
         Log.Information("ApplicationReducer: OnUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}",
             action.Schedule.Id, action.Schedule.Name);
@@ -124,7 +127,7 @@ public static class ApplicationReducer
             {
                 action.Schedule.BookName = existingScheduleItem.BookName;
             }
-            
+
             // Remove old and add updated
             state.Schedules.Remove(existingScheduleItem);
             state.Schedules.Add(action.Schedule);
@@ -161,7 +164,9 @@ public static class ApplicationReducer
     public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
     {
         if (state.Schedules == null)
+        {
             return state;
+        }
 
         Log.Information("ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}", action.ScheduleId);
 
@@ -193,7 +198,9 @@ public static class ApplicationReducer
     public static ApplicationState OnCreateScheduleFailure(ApplicationState state, CreateScheduleFailureAction action)
     {
         if (action.Schedule == null || state.Schedules == null)
+        {
             return state;
+        }
 
         Log.Warning("ApplicationReducer: OnCreateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
             action.Schedule.Id, action.Error);
@@ -265,7 +272,9 @@ public static class ApplicationReducer
             action.Schedule?.Id, action.Schedule?.Name);
 
         if (action.Schedule == null || state.Schedules == null)
+        {
             return state;
+        }
 
         // Remove optimistic schedule (by ID or temporary ID -1) and add confirmed one
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
@@ -301,7 +310,7 @@ public static class ApplicationReducer
     {
         Log.Information("ApplicationReducer: OnAddScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
             action.Schedule?.Id, action.Schedule?.Name, state.Schedules?.Count ?? 0);
-        
+
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         if (state.Schedules != null)
         {
@@ -312,9 +321,9 @@ public static class ApplicationReducer
         }
         // Add the DTO (already transformed by Effect)
         newSchedules.Add(action.Schedule);
-        
+
         Log.Information("ApplicationReducer: OnAddScheduleSuccess - NewSchedulesCount: {NewCount}", newSchedules.Count);
-        
+
         return new ApplicationState(
             schedules: newSchedules,
             // Set CurrentSchedule to the newly added schedule (already a DTO)
@@ -335,7 +344,9 @@ public static class ApplicationReducer
     public static ApplicationState OnRemoveScheduleSuccess(ApplicationState state, RemoveScheduleSuccessAction action)
     {
         if (state.Schedules == null)
+        {
             return state;
+        }
 
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         foreach (var scheduleItem in state.Schedules)
@@ -345,7 +356,7 @@ public static class ApplicationReducer
                 newSchedules.Add(scheduleItem);
             }
         }
-        
+
         return new ApplicationState(
             schedules: newSchedules,
             currentSchedule: state.CurrentSchedule?.Id == action.ScheduleId ? null : state.CurrentSchedule,
@@ -365,25 +376,27 @@ public static class ApplicationReducer
     public static ApplicationState OnUpdateScheduleSuccess(ApplicationState state, UpdateScheduleSuccessAction action)
     {
         if (state.Schedules == null)
+        {
             return state;
+        }
 
         // Update the existing collection in place to avoid creating a new collection reference
         // This prevents the entire list from reloading when only one item is updated
         var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
-        
+
         Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, TranslationName: '{TranslationName}', BookName: '{BookName}'",
             action.Schedule.Id, action.Schedule.TranslationName ?? "null", action.Schedule.BookName ?? "null");
-        
+
         if (existingScheduleItem != null)
         {
             Log.Debug("ApplicationReducer: Existing item TranslationName: '{TranslationName}', BookName: '{BookName}'",
                 existingScheduleItem.TranslationName ?? "null", existingScheduleItem.BookName ?? "null");
-            
+
             // Always replace the existing item with the updated one from the action
             // This ensures TranslationName and BookName are updated even if other properties haven't changed
             state.Schedules.Remove(existingScheduleItem);
             state.Schedules.Add(action.Schedule);
-            
+
             Log.Debug("ApplicationReducer: Replaced schedule item in state");
         }
         else
@@ -392,7 +405,7 @@ public static class ApplicationReducer
             state.Schedules.Add(action.Schedule);
             Log.Debug("ApplicationReducer: Added new schedule item to state");
         }
-        
+
         // Update CurrentSchedule if it matches the updated schedule
         ScheduleStateItem? updatedCurrentSchedule = state.CurrentSchedule;
         if (state.CurrentSchedule?.Id == action.Schedule.Id)
@@ -401,7 +414,7 @@ public static class ApplicationReducer
             var updatedItemFromCollection = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
             updatedCurrentSchedule = updatedItemFromCollection ?? action.Schedule;
         }
-        
+
         return new ApplicationState(
             // Reuse the same collection reference
             schedules: state.Schedules,

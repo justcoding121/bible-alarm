@@ -32,14 +32,14 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 {
                     // Title: Book name + Chapter number
                     meta.Title = $"{book.Name} {trackMetadata.ChapterNumber}";
-                    
+
                     // Description: Language name
                     var languages = await _mediaService.GetBibleLanguages();
                     if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
                     {
                         meta.Album = language.Name;
                     }
-                    
+
                     // SubTitle: Translation name + (jw.org)
                     var translations = await _mediaService.GetBibleTranslations(trackMetadata.LanguageCode);
                     if (translations.TryGetValue(trackMetadata.PublicationCode, out var translation))
@@ -55,7 +55,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 {
                     meta.Title = $"Book {trackMetadata.BookNumber} Chapter {trackMetadata.ChapterNumber}";
                 }
-                
+
                 // Try to extract artwork from Bible audio files as well
                 try
                 {
@@ -93,7 +93,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                         // Description: Publication name
                         meta.Album = vocalRelease.Name;
                     }
-                    
+
                     var tracks = await _mediaService.GetVocalMusicTracks(
                         trackMetadata.LanguageCode,
                         trackMetadata.PublicationCode);
@@ -178,8 +178,8 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 var meta = new MetaData
                 {
                     Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : "Unknown Title",
-                    Artist = !string.IsNullOrEmpty(tag.FirstPerformer) ? tag.FirstPerformer : 
-                             !string.IsNullOrEmpty(tag.FirstAlbumArtist) ? tag.FirstAlbumArtist : 
+                    Artist = !string.IsNullOrEmpty(tag.FirstPerformer) ? tag.FirstPerformer :
+                             !string.IsNullOrEmpty(tag.FirstAlbumArtist) ? tag.FirstAlbumArtist :
                              null,
                     Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
                 };
@@ -189,9 +189,9 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 {
                     TagLib.IPicture? largestPicture = null;
                     int largestSize = 0;
-                    
+
                     _logger.Debug($"Found {tag.Pictures.Length} picture(s) in {uri}");
-                    
+
                     // Find the picture with the largest data size
                     foreach (TagLib.IPicture picture in tag.Pictures)
                     {
@@ -199,7 +199,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                         {
                             var size = picture.Data.Data.Length;
                             _logger.Debug($"  Picture Size={size} bytes");
-                            
+
                             // Select the largest picture
                             if (largestPicture == null || size > largestSize)
                             {
@@ -208,7 +208,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                             }
                         }
                     }
-                    
+
                     if (largestPicture != null && largestPicture.Data != null && largestPicture.Data.Data != null)
                     {
                         meta.ArtworkBytes = largestPicture.Data.Data;
@@ -229,7 +229,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
             catch (Exception ex)
             {
                 _logger.Warning(ex, $"Failed to extract metadata from {uri}");
-                
+
                 // Return fallback metadata
                 return new MetaData
                 {
@@ -239,16 +239,16 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
             }
         });
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

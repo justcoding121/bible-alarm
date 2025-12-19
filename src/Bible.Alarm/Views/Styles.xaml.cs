@@ -8,18 +8,18 @@ public partial class Styles : ResourceDictionary
     public Styles()
     {
         InitializeComponent();
-        
+
         // Update font size resources with actual scaled values from FontService
         // This must be done after InitializeComponent() but the resources are already
         // available for StaticResource bindings to resolve correctly
         UpdateFontSizeResources();
     }
-    
+
     private void UpdateFontSizeResources()
     {
         // Get FontService from FontServiceHelper (initialized in MauiProgram)
         var fontService = FontServiceHelper.GetFontService();
-        
+
         // Update resources with actual scaled values
         this["StandardFontSize"] = fontService.StandardFontSize;
         this["HeaderFontSize"] = fontService.HeaderFontSize;

@@ -60,16 +60,16 @@ public class ScheduleMigrationService(
             _logger.Error(e, "An error happened while migrating Bible Gateway schedules.");
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -81,7 +81,7 @@ public class ScheduleMigrationService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe
     }

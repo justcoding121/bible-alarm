@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
+namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 
 /// <summary>
 /// This base behavior class is aware of the binding context of its associated view,
@@ -20,7 +20,9 @@ public class BindableBehavior<T> : Behavior<T> where T : BindableObject
         AssociatedObject = visualElement;
 
         if (visualElement.BindingContext != null)
+        {
             BindingContext = visualElement.BindingContext;
+        }
 
         visualElement.BindingContextChanged += OnBindingContextChanged;
     }

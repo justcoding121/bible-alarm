@@ -20,7 +20,10 @@ public class SchedulePlaybackService(
 
     public async Task PlayScheduleAsync(int scheduleId)
     {
-        if (scheduleId <= 0) return;
+        if (scheduleId <= 0)
+        {
+            return;
+        }
 
         using var scope = _scopeFactory.CreateScope();
         var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
@@ -44,23 +47,26 @@ public class SchedulePlaybackService(
     {
         using var scope = _scopeFactory.CreateScope();
 
-        if (!_playbackState.Value.IsPreparingOrPlaying || _playbackState.Value.CurrentScheduleId != scheduleId) return true;
+        if (!_playbackState.Value.IsPreparingOrPlaying || _playbackState.Value.CurrentScheduleId != scheduleId)
+        {
+            return true;
+        }
 
         var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
         await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
 
         return false;
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

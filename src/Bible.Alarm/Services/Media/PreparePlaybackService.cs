@@ -34,7 +34,7 @@ public class PreparePlaybackService(
         foreach (var playItem in playItems)
         {
             var audioPlayerTrack = await PrepareSingleTrackAsync(playItem);
-            
+
             if (audioPlayerTrack == null)
             {
                 _logger.Warning($"Failed to download {playItem.Url}");
@@ -50,7 +50,7 @@ public class PreparePlaybackService(
                 LoadedTracks = loadedTracks,
                 TotalTracks = totalTracks
             });
-            
+
             // Add delay to ensure each progress state (1/3, 2/3, 3/3) is visible on UI
             if (loadedTracks < totalTracks)
             {
@@ -68,7 +68,7 @@ public class PreparePlaybackService(
     public async Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem)
     {
         var uri = await _cacheService.GetOrDownloadTrackUriAsync(playItem);
-        
+
         if (uri == null)
         {
             _logger.Warning("Failed to download track: {Url}", playItem.Url);
@@ -81,16 +81,16 @@ public class PreparePlaybackService(
             PlayItem = playItem
         };
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

@@ -1,4 +1,4 @@
-﻿using Android.Content;
+using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
@@ -36,7 +36,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}", 
+        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
@@ -53,17 +53,17 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
                 // Initialize DI container for background service
                 MauiAppHolder.CreateAndStore();
-                
+
                 // Run bootstrapper asynchronously to avoid blocking the receiver thread
                 // This is critical for BroadcastReceivers which must not block
                 await Task.Run(() =>
                 {
                     MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 });
-                
+
                 // Wait for bootstrap to complete before using database services
                 await MauiProgram.WaitForBootstrapAsync();
-                
+
                 var scheduleId = intent.GetStringExtra("ScheduleId");
                 var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
 
@@ -96,7 +96,10 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     protected override void Dispose(bool disposing)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         if (_alarmHandler is AndroidAlarmHandler concreteHandler)
         {

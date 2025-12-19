@@ -1,8 +1,8 @@
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 
@@ -153,9 +153,9 @@ public class MediaService(
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -167,7 +167,7 @@ public class MediaService(
             // Ignore errors during cancellation/disposal
             Log.Logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // Note: DbContext is now created via IServiceScopeFactory and disposed by the scope
         // mediaLookUpService (MediaIndexService) and IServiceScopeFactory are singletons
         // and should not be disposed here as they are managed by the DI container

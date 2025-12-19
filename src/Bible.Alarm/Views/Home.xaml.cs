@@ -1,7 +1,7 @@
 #nullable enable
 using Bible.Alarm.ViewModels;
-using Syncfusion.Maui.Buttons;
 using Serilog;
+using Syncfusion.Maui.Buttons;
 
 namespace Bible.Alarm.Views;
 
@@ -15,18 +15,18 @@ public partial class Home : BaseContentPage, IDisposable
     {
         var constructorStartTime = DateTime.UtcNow;
         Log.Information("[PERF] Home page: Constructor started at {StartTime}", constructorStartTime);
-        
+
         var initComponentStartTime = DateTime.UtcNow;
         InitializeComponent();
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
         Log.Information("[PERF] Home page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
-        
+
         BindingContext = vm;
         _viewModel = vm;
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
-        
+
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
         Log.Information("[PERF] Home page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
     }
@@ -34,7 +34,11 @@ public partial class Home : BaseContentPage, IDisposable
     private async void OnPageLoaded(object? sender, EventArgs e)
     {
         // Only handle once per page instance
-        if (_hasHandledFirstLoad) return;
+        if (_hasHandledFirstLoad)
+        {
+            return;
+        }
+
         _hasHandledFirstLoad = true;
 
         // Unsubscribe to avoid multiple calls
@@ -42,7 +46,7 @@ public partial class Home : BaseContentPage, IDisposable
 
         // Wait a bit to ensure the page is fully rendered and visible
         await Task.Delay(100);
-        
+
         // Hide Schedule page overlay after Home page is fully rendered and visible
         _viewModel?.HideSchedulePageOverlay();
     }
@@ -103,7 +107,7 @@ public partial class Home : BaseContentPage, IDisposable
                         var relativePoint = new Point(
                             tapPosition.X - childBounds.X,
                             tapPosition.Y - childBounds.Y);
-                        
+
                         // Recursively check this child
                         if (IsTapOnInteractiveControl(childView, relativePoint))
                         {

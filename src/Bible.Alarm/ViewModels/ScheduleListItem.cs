@@ -1,20 +1,18 @@
 #nullable enable
 using System.Windows.Input;
-using Bible.Alarm.Services.Media.Interfaces;
+using AutoMapper;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Models;
-using AutoMapper;
-using IDispatcher = Fluxor.IDispatcher;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using Bible.Alarm.Common.Messenger;
 using Fluxor;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -35,7 +33,7 @@ public class ScheduleListItem(
     private AlarmSchedule? _lastKnownSchedule;
     private string? _lastKnownTranslationName;
     private string? _lastKnownBookName;
-    private bool _isBusy;
+    private bool isBusy;
     private Action? _onPlayStarted;
     private Action? _onPlaybackStarted;
 
@@ -85,7 +83,7 @@ public class ScheduleListItem(
         applicationState.StateChanged += OnApplicationStateChanged;
         // Store initial state for comparison
         _lastKnownSchedule = Schedule;
-        
+
         // Initialize tracked subtitle values from state
         var initialStateItem = applicationState.Value.Schedules.FirstOrDefault(s => s.Id == schedule.Id);
         _lastKnownTranslationName = initialStateItem?.TranslationName;
@@ -138,8 +136,10 @@ public class ScheduleListItem(
         DeleteCommand = new AsyncRelayCommand(async () =>
         {
             if (Schedule?.Id <= 0)
+            {
                 return;
-            
+            }
+
             // Check if this is the last schedule - prevent deletion if it is
             var scheduleCount = applicationState.Value.Schedules?.Count ?? 0;
             if (scheduleCount <= 1)
@@ -148,7 +148,7 @@ public class ScheduleListItem(
                 WeakReferenceMessenger.Default.Send(new Common.Messenger.ShowToastMessage("Cannot delete last schedule"));
                 return;
             }
-            
+
             // Dispatch DeleteScheduleAction (following Fluxor best practices)
             // The Effect will handle the actual DB deletion and dispatch success/failure actions
             logger.Information("ScheduleListItem: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", Schedule.Id);
@@ -184,9 +184,9 @@ public class ScheduleListItem(
         {
             // Immediately notify UI that This property changed so day button colors update instantly
             OnPropertyChanged(nameof(This));
-            
+
             var success = await scheduleStateService.UpdateScheduleEnabledStateAsync(ScheduleId, newValue);
-            
+
             if (!success)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -206,7 +206,7 @@ public class ScheduleListItem(
         catch (Exception ex)
         {
             logger.Error(ex, "An error occurred while handling IsEnabled change for schedule {ScheduleId}", ScheduleId);
-            
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 _isEnabled = !newValue;
@@ -238,8 +238,8 @@ public class ScheduleListItem(
 
     public bool IsBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
     public void RaisePropertiesChangedEvent()
@@ -260,7 +260,11 @@ public class ScheduleListItem(
     /// </summary>
     private void RefreshSubTitleFromState()
     {
-        if (Schedule?.Id <= 0) return;
+        if (Schedule?.Id <= 0)
+        {
+            return;
+        }
+
         var scheduleId = Schedule.Id;
 
         try
@@ -337,10 +341,17 @@ public class ScheduleListItem(
     /// </summary>
     public async Task RefreshChapterNameAsync(bool force = false)
     {
-        if (Schedule?.Id <= 0) return;
+        if (Schedule?.Id <= 0)
+        {
+            return;
+        }
         // Capture to avoid null reference
         var schedule = Schedule;
-        if (schedule == null) return;
+        if (schedule == null)
+        {
+            return;
+        }
+
         var scheduleId = schedule.Id;
 
         try
@@ -348,7 +359,7 @@ public class ScheduleListItem(
             // Try to get Language from state first (synchronous)
             var scheduleStateItem = applicationState.Value.Schedules
                 .FirstOrDefault(s => s.Id == scheduleId);
-            
+
             string language = string.Empty;
             if (scheduleStateItem != null)
             {
@@ -365,7 +376,7 @@ public class ScheduleListItem(
             // Run database operations off UI thread
             var displayName = await Task.Run(async () =>
                 await displayService.GetChapterDisplayNameAsync(scheduleId, force));
-            
+
             // Update UI on main thread
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -374,7 +385,7 @@ public class ScheduleListItem(
                     SubTitle = displayName;
                     OnPropertyChanged(nameof(SubTitle));
                 }
-                
+
                 // Update Language property
                 Language = language;
                 OnPropertyChanged(nameof(Language));
@@ -399,17 +410,27 @@ public class ScheduleListItem(
 
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {
-        if (Schedule?.Id <= 0) return;
+        if (Schedule?.Id <= 0)
+        {
+            return;
+        }
         // Capture to avoid null reference
         var schedule = Schedule;
-        if (schedule == null) return;
+        if (schedule == null)
+        {
+            return;
+        }
+
         var scheduleId = schedule.Id;
 
         // Find the updated schedule in the state (ScheduleStateItem DTO)
         var updatedScheduleItem = applicationState.Value.Schedules
             .FirstOrDefault(s => s.Id == scheduleId);
 
-        if (updatedScheduleItem == null) return;
+        if (updatedScheduleItem == null)
+        {
+            return;
+        }
 
         // Store old subtitle-related values BEFORE updating
         // Get current values from SubTitle property (which reflects what's currently displayed)
@@ -447,17 +468,17 @@ public class ScheduleListItem(
         var oldName = Schedule?.Name ?? string.Empty;
         var oldHour = Schedule?.Hour ?? 0;
         var oldMinute = Schedule?.Minute ?? 0;
-        
+
         // Update the schedule reference
         Schedule = updatedSchedule;
         _lastKnownSchedule = updatedSchedule;
-        
+
         // Check if properties changed by comparing old values with new values
         var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
         var isEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled;
         var nameChanged = oldName != updatedSchedule.Name;
         var timeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute;
-        
+
         // Check if subtitle-related properties changed
         var newTranslationName = updatedScheduleItem.TranslationName;
         var newBookName = updatedScheduleItem.BookName;
@@ -465,9 +486,9 @@ public class ScheduleListItem(
         var chapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber;
         var translationNameChanged = _lastKnownTranslationName != newTranslationName;
         var bookNameChanged = _lastKnownBookName != newBookName;
-        
+
         // Only refresh subtitle if subtitle-related properties actually changed
-        var subtitleChanged = trackChanged || bookNumberChanged || chapterNumberChanged || 
+        var subtitleChanged = trackChanged || bookNumberChanged || chapterNumberChanged ||
                              translationNameChanged || bookNameChanged;
 
         if (subtitleChanged)
@@ -489,7 +510,7 @@ public class ScheduleListItem(
             OnPropertyChanged(nameof(DaysOfWeek));
             // Also notify This for day indicator bindings
             OnPropertyChanged(nameof(This));
-            
+
             if (isEnabledChanged)
             {
                 OnPropertyChanged(nameof(IsEnabled));

@@ -17,7 +17,10 @@ public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateServic
     /// </summary>
     public void SetScheduleItemBusyToFalse(int? scheduleId)
     {
-        if (scheduleId == null || scheduleId <= 0) return;
+        if (scheduleId == null || scheduleId <= 0)
+        {
+            return;
+        }
 
         try
         {
@@ -37,7 +40,7 @@ public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateServic
                         {
                             scheduleItem.IsBusy = false;
                         }
-                        
+
                         // Note: Home page overlay is now managed via Fluxor state (SetHomePageOverlayAction)
                         // and is hidden by AlarmModalService after the modal is shown
                     }
@@ -87,16 +90,16 @@ public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateServic
             _logger.Warning(ex, "Could not hide Home page overlay");
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }
 }

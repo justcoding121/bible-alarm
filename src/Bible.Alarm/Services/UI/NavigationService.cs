@@ -4,8 +4,8 @@ using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
-using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.General;
+using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using Polly;
@@ -489,7 +489,7 @@ public class NavigationService(
                 }
             }
 
-            _logger?.Information("NavigationService.PopAllModalsAndPages - Finished disposing modals and pages. Modal count: {ModalCount}, Page count: {PageCount}", 
+            _logger?.Information("NavigationService.PopAllModalsAndPages - Finished disposing modals and pages. Modal count: {ModalCount}, Page count: {PageCount}",
                 modalStack.Count, navigationStack.Count);
         }
         catch (Exception ex)

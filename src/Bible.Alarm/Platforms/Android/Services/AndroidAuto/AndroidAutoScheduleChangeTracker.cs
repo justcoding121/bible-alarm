@@ -1,5 +1,4 @@
 #nullable enable
-using System.Collections.Generic;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -36,7 +35,9 @@ public class AndroidAutoScheduleChangeTracker
     public bool CheckForChanges()
     {
         if (_applicationState?.Value?.Schedules == null)
+        {
             return false;
+        }
 
         var currentScheduleCount = _applicationState.Value.Schedules.Count;
         var currentSignatures = BuildScheduleSignatures(_applicationState.Value.Schedules);
@@ -66,7 +67,9 @@ public class AndroidAutoScheduleChangeTracker
     {
         var signatures = new Dictionary<int, string>();
         if (schedules == null)
+        {
             return signatures;
+        }
 
         foreach (var schedule in schedules)
         {
@@ -84,12 +87,16 @@ public class AndroidAutoScheduleChangeTracker
     private static bool AreSignaturesEqual(Dictionary<int, string> oldSignatures, Dictionary<int, string> newSignatures)
     {
         if (oldSignatures.Count != newSignatures.Count)
+        {
             return false;
+        }
 
         foreach (var kvp in newSignatures)
         {
             if (!oldSignatures.TryGetValue(kvp.Key, out var oldValue) || oldValue != kvp.Value)
+            {
                 return false;
+            }
         }
 
         return true;

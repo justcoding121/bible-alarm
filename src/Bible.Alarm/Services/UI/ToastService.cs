@@ -1,5 +1,5 @@
-using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.UI.Interfaces;
 
 namespace Bible.Alarm.Services.UI;
 
@@ -13,10 +13,14 @@ public abstract class ToastService : IToastService, IDisposable
         var timeSpan = nextFire - DateTimeOffset.Now;
 
         if (timeSpan.Days > 0)
+        {
             await ShowMessage(
                 $"Reminder set for {timeSpan.Days} days, {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
+        }
         else
+        {
             await ShowMessage($"Reminder set for {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
+        }
     }
 
     public void Dispose()

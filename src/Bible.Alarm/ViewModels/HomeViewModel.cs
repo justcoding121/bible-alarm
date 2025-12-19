@@ -1,14 +1,14 @@
 using System.Windows.Input;
-using Bible.Alarm.Services.UI.Interfaces;
+using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
-using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -61,7 +61,7 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             // Show overlay immediately via state
             _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
-            
+
             // Wait for state to update and UI to reflect the change
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
@@ -70,7 +70,7 @@ public class HomeViewModel : ObservableObject, IDisposable
                 // Wait longer to ensure UI has fully rendered the overlay before navigation
                 await Task.Delay(150);
             });
-            
+
             // Reset schedule state before creating a new schedule
             // This ensures only one schedule is in state at any time
             _dispatcher.Dispatch(new ResetScheduleStateAction());
@@ -80,11 +80,14 @@ public class HomeViewModel : ObservableObject, IDisposable
 
         ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
         {
-            if (x == null || x.Schedule == null) return;
-            
+            if (x == null || x.Schedule == null)
+            {
+                return;
+            }
+
             // Show overlay immediately via state
             _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
-            
+
             // Wait for state to update and UI to reflect the change
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
@@ -93,7 +96,7 @@ public class HomeViewModel : ObservableObject, IDisposable
                 // Wait longer to ensure UI has fully rendered the overlay before navigation
                 await Task.Delay(150);
             });
-            
+
             x.Schedule.IsEnabled = x.IsEnabled;
             // Start navigation immediately (don't await yet)
             var navigationTask = navigationService.NavigateToScheduleAsync();
@@ -107,11 +110,11 @@ public class HomeViewModel : ObservableObject, IDisposable
         });
 
         _state.StateChanged += OnStateChanged;
-        
+
         // Immediately process current state when ViewModel is created
         // This ensures the ListView is populated with fresh data when a new Home page is created
         OnStateChanged(this, EventArgs.Empty);
-        
+
         // Don't set IsBusy = false here - it will be set after initialization completes
         // IsBusy starts as true and will be set to false in OnStateChanged after schedules are populated
     }
@@ -145,7 +148,7 @@ public class HomeViewModel : ObservableObject, IDisposable
             // ScheduleListItem needs AlarmSchedule entity (not DTO)
             var schedule = _mapper.Map<AlarmSchedule>(scheduleItem);
             currentViewModelIds.Add(schedule.Id);
-            
+
             if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
             {
                 // Existing view model - just update it in place
@@ -189,7 +192,11 @@ public class HomeViewModel : ObservableObject, IDisposable
         var toRemove = _scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
         foreach (var id in toRemove)
         {
-            if (!_scheduleViewModels.TryGetValue(id, out var viewModel)) continue;
+            if (!_scheduleViewModels.TryGetValue(id, out var viewModel))
+            {
+                continue;
+            }
+
             schedulesToRemove.Add(id);
             viewModel.Dispose();
             _scheduleViewModels.Remove(id);
@@ -202,10 +209,10 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             // Create new collection only when items are added/removed
             var newSchedules = new ObservableHashSet<ScheduleListItem>();
-            
+
             // Create a snapshot of current Schedules to avoid "Collection was modified" exception
             var currentSchedulesSnapshot = Schedules.ToList();
-            
+
             // Add all existing items that aren't being removed
             foreach (var item in currentSchedulesSnapshot)
             {
@@ -214,13 +221,13 @@ public class HomeViewModel : ObservableObject, IDisposable
                     newSchedules.Add(item);
                 }
             }
-            
+
             // Add new items
             foreach (var item in schedulesToAdd)
             {
                 newSchedules.Add(item);
             }
-            
+
             Schedules = newSchedules;
         }
         // If no adds/removes, the collection stays the same and only individual item properties are updated
@@ -286,12 +293,12 @@ public class HomeViewModel : ObservableObject, IDisposable
     private void OnStateChanged(object sender, EventArgs e)
     {
         var stateValue = _state.Value;
-        
+
         _ = MainThread.InvokeOnMainThreadAsync(() =>
         {
             // Always notify about overlay visibility changes
             OnPropertyChanged(nameof(IsHomePageOverlayVisible));
-            
+
             if (stateValue.Schedules != null)
             {
                 UpdateScheduleViewModels(stateValue.Schedules);
@@ -303,7 +310,7 @@ public class HomeViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _state.StateChanged -= OnStateChanged;
-        
+
         if (Schedules != null)
         {
             foreach (var item in Schedules)

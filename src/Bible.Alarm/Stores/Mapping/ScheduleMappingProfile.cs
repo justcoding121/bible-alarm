@@ -3,7 +3,6 @@ using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
-using System;
 
 namespace Bible.Alarm.Stores.Mapping;
 
@@ -30,7 +29,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
             .ForMember(dest => dest.TranslationName, opt => opt.Ignore()) // Set manually during bootstrap
             .ForMember(dest => dest.BookName, opt => opt.Ignore()); // Set manually during bootstrap
-        
+
         // Map ScheduleStateItem back to AlarmSchedule (for when we need the entity)
         // Note: This creates a new AlarmSchedule but won't have EF tracking
         CreateMap<ScheduleStateItem, AlarmSchedule>()
@@ -59,18 +58,18 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MeridianHour, opt => opt.Ignore()) // Computed property
             .ForMember(dest => dest.Meridian, opt => opt.Ignore()) // Computed property
             .ForMember(dest => dest.TimeText, opt => opt.Ignore()); // Computed property
-        
+
         // Map AlarmMusic to MusicStateItem
         CreateMap<AlarmMusic, MusicStateItem>();
-        
+
         // Map MusicStateItem back to AlarmMusic
         CreateMap<MusicStateItem, AlarmMusic>()
             .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
-        
+
         // Map BibleReadingSchedule to BibleReadingStateItem
         CreateMap<BibleReadingSchedule, BibleReadingStateItem>()
             .ForMember(dest => dest.TranslationName, opt => opt.Ignore()); // Set manually during bootstrap
-        
+
         // Map BibleReadingStateItem back to BibleReadingSchedule
         CreateMap<BibleReadingStateItem, BibleReadingSchedule>()
             .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state

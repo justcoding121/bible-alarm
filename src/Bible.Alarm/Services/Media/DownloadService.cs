@@ -26,17 +26,17 @@ public class DownloadService : IDownloadService, IDisposable
         _handler = handler;
         _logger = logger;
         _cancellationTokenSource = new CancellationTokenSource();
-        
+
         _downloadRetryPolicy = Policy<byte[]>
-            .Handle<Exception>(ex => 
+            .Handle<Exception>(ex =>
             {
                 // Don't retry on HTTP errors like 403, 404 (permanent failures)
                 if (ex is HttpRequestException httpEx)
                 {
                     var message = httpEx.Message;
                     // Check for permanent HTTP errors that shouldn't be retried
-                    if (message.Contains("403") || 
-                        message.Contains("404") || 
+                    if (message.Contains("403") ||
+                        message.Contains("404") ||
                         message.Contains("Forbidden") ||
                         message.Contains("Not Found"))
                     {
@@ -56,8 +56,8 @@ public class DownloadService : IDownloadService, IDisposable
                     // Log retry attempts
                     var exception = outcome?.Exception;
                     var exceptionMessage = exception?.Message ?? "Unknown error";
-                    _logger.Warning(exception, "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}", 
-                        retryCount, 
+                    _logger.Warning(exception, "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}",
+                        retryCount,
                         AppConstants.CacheSettings.DownloadRetryAttempts,
                         timespan.TotalSeconds,
                         exceptionMessage);
@@ -84,7 +84,7 @@ public class DownloadService : IDownloadService, IDisposable
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.UserAgent.ParseAdd(UserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-                
+
                 using var client = new HttpClient(_handler, false);
                 using var response = await client.SendAsync(request, ct);
                 response.EnsureSuccessStatusCode();
@@ -93,7 +93,7 @@ public class DownloadService : IDownloadService, IDisposable
             catch (Exception ex)
             {
                 _logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
-                
+
                 if (alternativeUrl == null)
                 {
                     _logger.Error(ex, "No alternative URL provided for failed download: {Url}", url);
@@ -101,13 +101,13 @@ public class DownloadService : IDownloadService, IDisposable
                 }
 
                 _logger.Information("Attempting to download from alternative URL: {AlternativeUrl}", alternativeUrl);
-                
+
                 try
                 {
                     using var request = new HttpRequestMessage(HttpMethod.Get, alternativeUrl);
                     request.Headers.UserAgent.ParseAdd(UserAgent);
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-                    
+
                     using var client = new HttpClient(_handler, false);
                     using var response = await client.SendAsync(request, ct);
                     response.EnsureSuccessStatusCode();
@@ -136,11 +136,14 @@ public class DownloadService : IDownloadService, IDisposable
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.UserAgent.ParseAdd(UserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-                
+
                 var result = await client.SendAsync(request, ct);
                 var statusCode = result.StatusCode;
 
-                if (statusCode == HttpStatusCode.OK) return true;
+                if (statusCode == HttpStatusCode.OK)
+                {
+                    return true;
+                }
 
                 return false;
             };
@@ -150,12 +153,14 @@ public class DownloadService : IDownloadService, IDisposable
                 using var request = new HttpRequestMessage(HttpMethod.Head, url);
                 request.Headers.UserAgent.ParseAdd(UserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-                
+
                 var result = await client.SendAsync(request, ct);
                 var statusCode = result.StatusCode;
 
                 if (statusCode is HttpStatusCode.Accepted or HttpStatusCode.OK)
+                {
                     return true;
+                }
 
                 return await getRequest();
             }
@@ -166,16 +171,16 @@ public class DownloadService : IDownloadService, IDisposable
             }
         }, _cancellationTokenSource.Token);
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -187,7 +192,7 @@ public class DownloadService : IDownloadService, IDisposable
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // HttpMessageHandler is registered as a singleton and should not be disposed here
         // It will be disposed by MauiAppHolder.Dispose()
     }

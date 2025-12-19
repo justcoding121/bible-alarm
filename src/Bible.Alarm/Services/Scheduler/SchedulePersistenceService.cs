@@ -1,7 +1,7 @@
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -45,12 +45,15 @@ public class SchedulePersistenceService(
                 _logger.Debug("SaveScheduleAsync: Saving new schedule to database");
                 _logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
                     schedule.Id, schedule.Name);
-                
+
                 savedSchedule = await _alarmScheduleService.AddScheduleAsync(schedule, _cancellationTokenSource.Token);
-                
+
                 _logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", savedSchedule.Id);
-                
-                if (savedSchedule.IsEnabled) await _alarmService.Create(savedSchedule);
+
+                if (savedSchedule.IsEnabled)
+                {
+                    await _alarmService.Create(savedSchedule);
+                }
 
                 _logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
                     savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
@@ -128,10 +131,10 @@ public class SchedulePersistenceService(
         {
             // Check if this is the last schedule - prevent deletion if it is
             var allSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
-                includeMusic: false, 
-                includeBibleReading: false, 
+                includeMusic: false,
+                includeBibleReading: false,
                 _cancellationTokenSource.Token);
-            
+
             if (allSchedules.Count <= 1)
             {
                 _logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule in the database", scheduleId);
@@ -167,16 +170,16 @@ public class SchedulePersistenceService(
             _logger.Error(ex, "Error deleting schedule {ScheduleId}", scheduleId);
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -188,7 +191,7 @@ public class SchedulePersistenceService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

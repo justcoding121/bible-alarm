@@ -34,7 +34,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
         private static async Task ShowAlert(string message, double seconds)
         {
             clearRequest = new TaskCompletionSource<bool>();
-            
+
             await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
                 // Validate platform compatibility
@@ -48,11 +48,11 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                 }
 
                 var containerView = window.RootViewController.View;
-                
+
                 // Create a non-blocking toast view
                 var toastView = CreateToastView(message);
                 containerView.AddSubview(toastView);
-                
+
                 // Position at bottom center
                 toastView.TranslatesAutoresizingMaskIntoConstraints = false;
                 NSLayoutConstraint.ActivateConstraints(
@@ -62,14 +62,14 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                     toastView.LeadingAnchor.ConstraintGreaterThanOrEqualTo(containerView.LeadingAnchor, 20),
                     toastView.TrailingAnchor.ConstraintLessThanOrEqualTo(containerView.TrailingAnchor, -20)
                 ]);
-                
+
                 // Animate in
                 toastView.Alpha = 0;
                 UIView.Animate(0.3, () => toastView.Alpha = 1);
-                
+
                 // Wait for duration or clear request
                 await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000)));
-                
+
                 // Animate out and remove - ensure UIView operations run on main thread
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -80,7 +80,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                     });
                 });
             });
-            
+
             clearRequest = null;
         }
 
@@ -96,15 +96,15 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                 LineBreakMode = UILineBreakMode.WordWrap,
                 BackgroundColor = UIColor.Black.ColorWithAlpha(0.8f)
             };
-            
+
             label.Layer.CornerRadius = 10;
             label.Layer.MasksToBounds = true;
-            
+
             var containerView = new UIView
             {
                 BackgroundColor = UIColor.Clear
             };
-            
+
             containerView.AddSubview(label);
             label.TranslatesAutoresizingMaskIntoConstraints = false;
             NSLayoutConstraint.ActivateConstraints(
@@ -114,7 +114,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
                 label.LeadingAnchor.ConstraintEqualTo(containerView.LeadingAnchor, 16),
                 label.TrailingAnchor.ConstraintEqualTo(containerView.TrailingAnchor, -16)
             ]);
-            
+
             return containerView;
         }
 

@@ -1,10 +1,10 @@
 #nullable enable
 
-using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
+using Windows.ApplicationModel.Activation;
 using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
 
 namespace Bible.Alarm.WinUI
@@ -43,10 +43,10 @@ namespace Bible.Alarm.WinUI
             }
             else
             {
-                Logger.Fatal("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}", 
+                Logger.Fatal("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
                     e.ExceptionObject, e.IsTerminating);
             }
-            
+
             // Note: In WinUI 3, we cannot prevent app termination for unhandled exceptions.
             // The app will restart when you click "Continue" in Visual Studio debugger
             // because the exception is still unhandled. To prevent crashes, ensure all

@@ -2,10 +2,10 @@
 using System.Collections.Concurrent;
 using System.Text;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
-using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -69,7 +69,10 @@ public class MediaCacheService(
         {
             try
             {
-                if (!await networkStatusService.IsInternetAvailable()) return;
+                if (!await networkStatusService.IsInternetAvailable())
+                {
+                    return;
+                }
 
                 var playlist = await mediaPlayService.NextTracks(alarmScheduleId);
                 downloaded = await ProcessPlaylistAsync(playlist);
@@ -89,12 +92,18 @@ public class MediaCacheService(
 
         foreach (var playItem in playlist)
         {
-            if (await ExistsAsync(playItem.Url)) continue;
+            if (await ExistsAsync(playItem.Url))
+            {
+                continue;
+            }
 
             downloaded = true;
 
             var cachedUrl = await DownloadAndCacheTrackAsync(playItem);
-            if (cachedUrl == null) break;
+            if (cachedUrl == null)
+            {
+                break;
+            }
         }
 
         return downloaded;
@@ -160,7 +169,7 @@ public class MediaCacheService(
         catch (Exception ex)
         {
             _logger.Error(ex, "Exception while downloading track: {Url}", playItem.Url);
-            
+
             // Try refreshing URL and retrying
             try
             {
@@ -180,13 +189,18 @@ public class MediaCacheService(
         var refreshedUrl = await _urlRefreshService.RefreshUrlAsync(trackMetadata);
 
         if (refreshedUrl == null || refreshedUrl == playItem.Url)
+        {
             return null;
+        }
 
         await mediaService.UpdateTrackUrlAsync(trackMetadata, refreshedUrl);
         _logger.Warning($"Refreshed URL from {playItem.Url} to {refreshedUrl} for {playItem}");
 
         var bytes = await downloadService.DownloadAsync(refreshedUrl);
-        if (bytes == null) return null;
+        if (bytes == null)
+        {
+            return null;
+        }
 
         await storageService.SaveFile(_cacheRoot, GetCacheFileName(refreshedUrl), bytes);
         _logger.Warning($"Downloaded using updated URL {refreshedUrl} for {playItem}");
@@ -269,9 +283,9 @@ public class MediaCacheService(
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -283,7 +297,7 @@ public class MediaCacheService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
         // storageService, downloadService, mediaPlayService, networkStatusService, 
         // mediaService, urlRefreshService, and IServiceScopeFactory are singletons

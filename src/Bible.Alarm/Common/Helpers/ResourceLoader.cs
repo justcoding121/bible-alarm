@@ -22,16 +22,22 @@ public static class ResourceLoader
             .ToArray();
 
         if (!resourcePaths.Any())
+        {
             throw new Exception(string.Format("Resource ending with {0} not found.", resourceFileName));
+        }
 
         if (resourcePaths.Count() > 1)
+        {
             throw new Exception(string.Format("Multiple resources ending with {0} found: {1}{2}", resourceFileName,
                 Environment.NewLine, string.Join(Environment.NewLine, resourcePaths)));
+        }
 
         var stream = assembly.GetManifestResourceStream(resourcePaths.Single());
         if (stream == null)
+        {
             throw new Exception(string.Format("Resource stream for {0} is null.", resourceFileName));
-        
+        }
+
         return stream;
     }
 

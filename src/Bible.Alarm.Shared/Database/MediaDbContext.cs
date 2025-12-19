@@ -25,15 +25,15 @@ namespace Bible.Alarm.Shared.Database
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
-            
+
             // Suppress pending model changes warning - migrations are only needed for users upgrading from older app versions
             // The app is packaged with the latest database schema, so pending changes are expected during migration
-            optionsBuilder.ConfigureWarnings(warnings => 
+            optionsBuilder.ConfigureWarnings(warnings =>
                 warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 
-//#if DEBUG
-//            optionsBuilder.UseSqlite("DataSource=media_migration.db");
-//#endif
+            //#if DEBUG
+            //            optionsBuilder.UseSqlite("DataSource=media_migration.db");
+            //#endif
         }
 
     }

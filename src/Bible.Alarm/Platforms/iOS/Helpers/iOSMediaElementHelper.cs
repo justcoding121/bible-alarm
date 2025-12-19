@@ -18,7 +18,7 @@ public static class iOSMediaElementHelper
     public static string ProcessUriForMediaElement(string uri, ILogger logger)
     {
         logger.Debug("Original track URI: {Uri}", uri);
-        
+
         // If it's already a file:// URI, convert it back to a plain path
         if (uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
         {
@@ -51,7 +51,7 @@ public static class iOSMediaElementHelper
         {
             var normalizedPath = NormalizeFilePath(filePath);
             logger.Debug("Normalized path: {Path} (original: {Original})", normalizedPath, filePath);
-            
+
             // Verify file exists
             if (!File.Exists(normalizedPath))
             {
@@ -68,7 +68,7 @@ public static class iOSMediaElementHelper
                     throw new FileNotFoundException($"File not found: {normalizedPath}");
                 }
             }
-            
+
             // Return plain file path (not file:// URI) for iOS MediaElement
             return normalizedPath;
         }
@@ -97,7 +97,7 @@ public static class iOSMediaElementHelper
         var isAbsolute = path.StartsWith("/");
         var pathParts = path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
         var normalizedParts = new List<string>();
-        
+
         foreach (var part in pathParts)
         {
             if (part == "..")
@@ -112,7 +112,7 @@ public static class iOSMediaElementHelper
                 normalizedParts.Add(part);
             }
         }
-        
+
         return isAbsolute ? "/" + string.Join("/", normalizedParts) : string.Join("/", normalizedParts);
     }
 
@@ -138,8 +138,8 @@ public static class iOSMediaElementHelper
         return await MainThread.InvokeOnMainThreadAsync(() =>
         {
             var state = mediaElement.CurrentState;
-            logger.Debug("MediaElement state: {CurrentState}, Source: {Source}", 
-                state, 
+            logger.Debug("MediaElement state: {CurrentState}, Source: {Source}",
+                state,
                 mediaElement.Source?.ToString() ?? "null");
             return state;
         });
@@ -156,7 +156,7 @@ public static class iOSMediaElementHelper
         if (stateString == "Paused")
         {
             logger.Debug("MediaElement is in Paused state on iOS, attempting to stop first then play");
-            
+
             try
             {
                 // Stop() internally tries to seek to zero, which can fail if the player isn't ready
@@ -174,9 +174,9 @@ public static class iOSMediaElementHelper
                         logger.Debug(ex, "Stop() failed because player isn't ready to seek, will proceed with Play() anyway");
                     }
                 });
-                
+
                 await Task.Delay(50);
-                
+
                 var stateAfterStop = await GetCurrentStateAsync(mediaElement, logger);
                 logger.Debug("MediaElement state after Stop(): {State}", stateAfterStop);
             }
@@ -196,7 +196,7 @@ public static class iOSMediaElementHelper
     {
         mediaElement.Source = processedUri;
         mediaElement.Volume = 1.0;
-        logger.Debug("Set MediaElement Source and Volume on iOS. Source: {Source}, CurrentState: {State}", 
+        logger.Debug("Set MediaElement Source and Volume on iOS. Source: {Source}, CurrentState: {State}",
             mediaElement.Source?.ToString() ?? "null",
             mediaElement.CurrentState);
     }
@@ -208,16 +208,16 @@ public static class iOSMediaElementHelper
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            logger.Debug("About to call MediaElement.Play(). Current state: {State}, Source: {Source}", 
-                mediaElement.CurrentState, 
+            logger.Debug("About to call MediaElement.Play(). Current state: {State}, Source: {Source}",
+                mediaElement.CurrentState,
                 mediaElement.Source?.ToString() ?? "null");
-            
+
             mediaElement.Play();
-            
+
             // Ensure volume is set to 1.0 before playing on iOS
             mediaElement.Volume = 1.0;
-            logger.Debug("Set MediaElement Volume to 1.0 before Play() on iOS. Current Volume: {Volume}, State after Play(): {State}", 
-                mediaElement.Volume, 
+            logger.Debug("Set MediaElement Volume to 1.0 before Play() on iOS. Current Volume: {Volume}, State after Play(): {State}",
+                mediaElement.Volume,
                 mediaElement.CurrentState);
         });
     }
@@ -230,16 +230,16 @@ public static class iOSMediaElementHelper
         // Check if state is Playing or Buffering by comparing string representation
         var stateString = stateAfterPlay.ToString();
         var isPlayingOrBuffering = stateString == "Playing" || stateString == "Buffering";
-        
+
         if (!isPlayingOrBuffering)
         {
             logger.Debug("MediaElement not in Playing/Buffering state after Play(), waiting longer and retrying. Current state: {State}", stateAfterPlay);
             await Task.Delay(200);
-            
+
             var stateAfterWait = await GetCurrentStateAsync(mediaElement, logger);
             var waitStateString = stateAfterWait.ToString();
             var isStillPlayingOrBuffering = waitStateString == "Playing" || waitStateString == "Buffering";
-            
+
             if (!isStillPlayingOrBuffering)
             {
                 logger.Debug("MediaElement still not playing after wait, attempting Play() again. State: {State}", stateAfterWait);

@@ -29,16 +29,16 @@ public partial class BookSelection : BaseContentPage, IDisposable
     private async void OnAppearing(object sender, EventArgs e)
     {
         Appearing -= OnAppearing;
-        
+
         // Wait for the page to be fully loaded and data to be ready before attempting to scroll
         if (ViewModel != null)
         {
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
             await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: _cancellationTokenSource.Token);
-            
+
             // Small additional delay to ensure CollectionView is rendered
             await Task.Delay(200, _cancellationTokenSource.Token);
-            
+
             if (ViewModel.SelectedBook != null && bookCollectionView != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook, cancellationToken: _cancellationTokenSource.Token);
@@ -67,7 +67,7 @@ public partial class BookSelection : BaseContentPage, IDisposable
                 // Ignore errors during cancellation/disposal
                 Log.Logger.Warning(ex, "Error during cancellation token source disposal");
             }
-            
+
             // ViewModel was injected via constructor, so dispose it
             if (_viewModel is IDisposable disposable)
             {

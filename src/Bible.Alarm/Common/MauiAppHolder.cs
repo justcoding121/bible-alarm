@@ -19,8 +19,11 @@ public static class MauiAppHolder
         get
         {
             if (app == null)
+            {
                 throw new InvalidOperationException(
                     "MauiApp has not been created. Call CreateAndStore() first from an entry point.");
+            }
+
             return app;
         }
     }

@@ -1,8 +1,8 @@
 #nullable enable
-using Windows.Media.Core;
-using Windows.Media.Playback;
 using Bible.Alarm.Common.Interfaces.Media;
 using Serilog;
+using Windows.Media.Core;
+using Windows.Media.Playback;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Media
 {
@@ -17,10 +17,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media
         {
             _mediaPlayer = player;
             _logger = logger;
-            
+
             // Configure audio category for proper playback
             _mediaPlayer.AudioCategory = MediaPlayerAudioCategory.Media;
-            
+
             _mediaPlayer.MediaEnded += MediaEndHandler;
             _mediaPlayer.CurrentStateChanged += BufferingStartedHandler;
         }
@@ -84,7 +84,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
 
             try
             {

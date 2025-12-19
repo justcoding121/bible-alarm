@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -81,10 +81,21 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-        if (array == null) throw new ArgumentNullException(nameof(array));
-        if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-        if (array.Length - arrayIndex < Count) throw new ArgumentException("Array is too small");
-        
+        if (array == null)
+        {
+            throw new ArgumentNullException(nameof(array));
+        }
+
+        if (arrayIndex < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        }
+
+        if (array.Length - arrayIndex < Count)
+        {
+            throw new ArgumentException("Array is too small");
+        }
+
         var index = 0;
         foreach (var item in _sortedSet)
         {
@@ -95,10 +106,21 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
 
     public void CopyTo(Array array, int index)
     {
-        if (array == null) throw new ArgumentNullException(nameof(array));
-        if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
-        if (array.Length - index < Count) throw new ArgumentException("Array is too small");
-        
+        if (array == null)
+        {
+            throw new ArgumentNullException(nameof(array));
+        }
+
+        if (index < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        if (array.Length - index < Count)
+        {
+            throw new ArgumentException("Array is too small");
+        }
+
         var i = 0;
         foreach (var item in _sortedSet)
         {

@@ -7,20 +7,13 @@ using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using AndroidX.Car.App.Validation;
 using Bible.Alarm.Common;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -55,7 +48,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
     public override void OnCreate()
     {
         base.OnCreate();
-        
+
         Logger.Information("CarAppService.OnCreate() called - Ensuring MauiApp is created");
 
         // Create the DI container immediately (fast) so ServiceProviderManager is available synchronously.
@@ -71,7 +64,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         {
             Logger.Warning(ex, "CarAppService.OnCreate: failed to create MauiApp / initialize MediaSession loading state");
         }
-        
+
         // Ensure MauiApp is created and bootstrap is initialized (idempotent - safe to call multiple times)
         // Bootstrap initialization is thread-safe and will only run once even if called from multiple services
         _ = Task.Run(async () =>
@@ -80,7 +73,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
             {
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 Logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialization started");
-                
+
                 // Wait for bootstrap to complete and set initial metadata
                 // Use a longer timeout for OnCreate since it's not blocking the UI
                 try
@@ -100,22 +93,22 @@ public class CarAppService : AndroidX.Car.App.CarAppService
             }
         });
     }
-    
+
     private async Task SetInitialScheduleMetadataAsync()
     {
         try
         {
             Logger.Debug("SetInitialScheduleMetadataAsync: Setting metadata to first schedule after bootstrap");
-            
+
             var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
             if (defaultScheduleService == null)
             {
                 Logger.Warning("SetInitialScheduleMetadataAsync: IDefaultScheduleService not available");
                 return;
             }
-            
+
             var metadata = await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
-            
+
             // Update metadata on main thread
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -125,7 +118,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
                     Logger.Warning("SetInitialScheduleMetadataAsync: MediaSessionManager is null");
                     return;
                 }
-                
+
                 // Set metadata using MediaSessionManager
                 mediaSessionManager.UpdateMetadata(
                     metadata.Title,
@@ -135,7 +128,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
 
                 // Return to stopped state (idle) with normal actions once metadata is ready.
                 mediaSessionManager.UpdatePlaybackStateForStop();
-                
+
                 Logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
                     metadata.ScheduleId, metadata.Title, metadata.Artist);
             });
@@ -194,10 +187,10 @@ public class ModernMediaSession : Session
     public override AndroidX.Car.App.Screen OnCreateScreen(Intent intent)
     {
         Logger.Information("✅ ModernMediaSession.OnCreateScreen() called with intent: {Action}", intent?.Action);
-        
+
         // The media session is attached via the template in MainCarScreen
         Logger.Information("✅ Modern Android Auto connected — will attach shared MediaSession via template");
-        
+
         return new MainCarScreen(CarContext, _mediaSessionManager);
     }
 }
@@ -218,7 +211,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
     {
         _mediaSessionManager = mediaSessionManager ?? throw new ArgumentNullException(nameof(mediaSessionManager));
         Logger.Information("✅ MainCarScreen created");
-        
+
         // Subscribe to state changes to refresh the template when schedules are added/updated/removed
         try
         {
@@ -228,7 +221,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
                 // Initialize schedule change tracker
                 _scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
                 _scheduleChangeTracker.Initialize(_applicationState);
-                
+
                 _applicationState.StateChanged += OnApplicationStateChanged;
                 Logger.Information("✅ MainCarScreen subscribed to schedule list changes");
             }
@@ -242,19 +235,21 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             Logger.Error(ex, "Error subscribing to ApplicationState changes in MainCarScreen");
         }
     }
-    
+
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {
         try
         {
             if (_scheduleChangeTracker == null)
+            {
                 return;
-            
+            }
+
             // Check if schedules changed using the shared tracker
             if (_scheduleChangeTracker.CheckForChanges())
             {
                 Logger.Debug("Schedule list changed - invalidating template to refresh Android Auto UI");
-                
+
                 // Invalidate the template to force Android Auto to call OnGetTemplate() again
                 Invalidate();
             }
@@ -264,12 +259,14 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             Logger.Error(ex, "Error checking schedule list changes");
         }
     }
-    
+
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
-        
+        }
+
         try
         {
             if (_applicationState != null)
@@ -282,35 +279,35 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         {
             Logger.Error(ex, "Error unsubscribing from ApplicationState changes in MainCarScreen");
         }
-        
+
         _disposed = true;
     }
 
     public override ITemplate OnGetTemplate()
     {
         Logger.Information("✅ MainCarScreen.OnGetTemplate() called - Head unit is requesting the UI!");
-        
+
         try
         {
             // CRITICAL: Don't block OnGetTemplate() - return template immediately to prevent "Getting your selection" message
             // Bootstrap should already be complete from Android Auto connection, but if not, proceed with available data
             // This ensures Android Auto shows the list immediately instead of the loading message
-            
+
             // Load schedules from state (fast, no database access)
             // Schedules are already loaded during bootstrap
             LoadSchedules();
-            
+
             if (_scheduleItems == null || _scheduleItems.Count == 0)
             {
                 Logger.Information("No schedules found in state - showing empty list");
                 return CreateEmptyListTemplate();
             }
-            
+
             Logger.Information("Creating ListTemplate with {Count} schedules from state", _scheduleItems.Count);
-            
+
             // Create list of Row items for each schedule
             var rows = new List<Row>();
-            
+
             foreach (var scheduleItem in _scheduleItems.OrderBy(s => s.Name))
             {
                 try
@@ -326,32 +323,32 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
                     Logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
                 }
             }
-            
+
             if (rows.Count == 0)
             {
                 Logger.Warning("No rows created from schedules - showing empty list");
                 return CreateEmptyListTemplate();
             }
-            
+
             // Create ItemList with all rows
             // Each row has its own OnClickListener set in CreateRowForSchedule
             var itemListBuilder = new ItemList.Builder()
                 .SetNoItemsMessage("No schedules available");
-            
+
             foreach (var row in rows)
             {
                 itemListBuilder.AddItem(row);
             }
-            
+
             var itemList = itemListBuilder.Build();
-            
+
             // Create ListTemplate with the item list
             var listTemplate = new ListTemplate.Builder()
                 .SetTitle("Bible Alarm")
                 .SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
                 .SetSingleList(itemList)
                 .Build();
-            
+
             Logger.Information("✅ ListTemplate created successfully with {Count} schedules", rows.Count);
             return listTemplate;
         }
@@ -374,12 +371,12 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             }
         }
     }
-    
+
     private void LoadSchedules()
     {
         _scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
     }
-    
+
     private Row? CreateRowForSchedule(ScheduleStateItem scheduleItem)
     {
         try
@@ -387,10 +384,10 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             // Use shared helper to build title and subtitle from ScheduleStateItem DTO
             var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
             var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
-            
+
             // Create headphone icon for the row
             var headphoneIcon = CreateHeadphoneIcon();
-            
+
             // Create Row with title, subtitle, icon, and click callback
             // Store schedule ID in a closure so we can access it when clicked
             var scheduleId = scheduleItem.Id;
@@ -398,15 +395,15 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
                 .SetTitle(title)
                 .AddText(subtitle)
                 .SetOnClickListener(new ScheduleClickCallback(this, scheduleId));
-            
+
             // Add headphone icon if available
             if (headphoneIcon != null)
             {
                 rowBuilder.SetImage(headphoneIcon);
             }
-            
+
             var row = rowBuilder.Build();
-            
+
             return row;
         }
         catch (Exception ex)
@@ -429,28 +426,28 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         // Example implementation:
         // var iconCompat = IconCompat.CreateWithResource(CarContext, Android.Resource.Drawable.IcMediaPlay);
         // return new CarIcon.Builder(iconCompat).Build();
-        
+
         Logger.Debug("Icon creation skipped - AndroidX.Core.Graphics.Drawables.IconCompat not available");
         return null;
     }
-    
+
     private ITemplate CreateEmptyListTemplate()
     {
         var itemList = new ItemList.Builder()
             .SetNoItemsMessage("No schedules available")
             .Build();
-        
+
         return new ListTemplate.Builder()
             .SetTitle("Bible Alarm")
             .SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
             .SetSingleList(itemList)
             .Build();
     }
-    
+
     internal void OnScheduleItemClicked(int scheduleId)
     {
         Logger.Information("Schedule {ScheduleId} clicked - starting playback", scheduleId);
-        
+
         try
         {
             // Immediately update MediaSession to a non-interactive Buffering state.
@@ -464,7 +461,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             {
                 Logger.Warning(mediaEx, "Failed to update MediaSession state on click - continuing anyway");
             }
-            
+
             // Get playback service and play the schedule
             var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
             if (playbackService != null)

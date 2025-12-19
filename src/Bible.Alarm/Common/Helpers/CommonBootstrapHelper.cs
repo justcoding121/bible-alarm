@@ -1,15 +1,16 @@
+using AutoMapper;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Database.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Models;
-using AutoMapper;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
@@ -23,17 +24,17 @@ namespace Bible.Alarm.Common.Helpers;
 
 public static class CommonBootstrapHelper
 {
-    private static readonly SemaphoreSlim Lock = new(1);
-    private static volatile bool _servicesVerified = false;
-    
+    private static readonly SemaphoreSlim @lock = new(1);
+    private static volatile bool servicesVerified = false;
+
     public static async Task VerifyServices(bool initializeUI = false)
     {
-        Log.Logger.Information("VerifyServices called with initializeUI={InitializeUI}, _servicesVerified={ServicesVerified}", 
-            initializeUI, _servicesVerified);
-        
-        await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+        Log.Logger.Information("VerifyServices called with initializeUI={InitializeUI}, _servicesVerified={ServicesVerified}",
+            initializeUI, servicesVerified);
+
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
-            if (_servicesVerified)
+            if (servicesVerified)
             {
                 Log.Logger.Information("Services already verified, skipping database operations");
             }
@@ -48,12 +49,12 @@ public static class CommonBootstrapHelper
                     var task3 = InitializeFluxorStore();
 
                     await Task.WhenAll(task1, task2, task3);
-                    
+
                     // After database and Fluxor store are initialized, load schedules into state
                     // This ensures schedules are available for both Android Auto services and main UI
                     await InitializeSchedules();
                 });
-                _servicesVerified = true;
+                servicesVerified = true;
                 Log.Logger.Information("Database and IO operations completed");
             }
         });
@@ -65,11 +66,11 @@ public static class CommonBootstrapHelper
         // and the UI needs to navigate away from BootstrapPage
         if (initializeUI)
         {
-            Log.Logger.Information("Sending InitializedMessage to trigger navigation (services verified: {ServicesVerified})", _servicesVerified);
-            
+            Log.Logger.Information("Sending InitializedMessage to trigger navigation (services verified: {ServicesVerified})", servicesVerified);
+
             // If services were already verified (bootstrap completed by Android Auto), add a small delay
             // to ensure MessageHandlingService.RegisterMessageHandlers() has been called in App.xaml.cs
-            if (_servicesVerified)
+            if (servicesVerified)
             {
                 // Small delay to ensure message handlers are registered before sending message
                 _ = Task.Run(async () =>
@@ -110,11 +111,11 @@ public static class CommonBootstrapHelper
         // This ensures proper lifetime management and prevents disposal issues
         var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
         await using var scope = scopeFactory.CreateAsyncScope();
-        
+
         // Migrate Schedule database (always safe - app owns this DB)
         var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         await scheduleDb.Database.MigrateAsync();
-        
+
         // Migrate Media database if it exists and is from a previous app version
         // Note: App is packaged with latest media index database, so this primarily
         // handles users upgrading from previous app versions
@@ -125,7 +126,7 @@ public static class CommonBootstrapHelper
     private static async Task InitializeFluxorStore()
     {
         Log.Logger.Information("Initializing Fluxor store");
-        
+
         // Get the store from service provider
         var store = ServiceProviderManager.GetService<IStore>();
         if (store == null)
@@ -133,10 +134,10 @@ public static class CommonBootstrapHelper
             Log.Logger.Warning("IStore service not found - Fluxor store initialization skipped");
             return;
         }
-        
+
         // Initialize store asynchronously
         await store.InitializeAsync();
-        
+
         // Set the static store reference
         ReduxContainer.Store = store;
 
@@ -155,14 +156,14 @@ public static class CommonBootstrapHelper
             Log.Logger.Warning(ex, "Failed to register MediaSessionEffect message handlers (bootstrap)");
         }
 #endif
-        
+
         Log.Logger.Information("Fluxor store initialized successfully");
     }
-    
+
     private static async Task InitializeSchedules()
     {
         Log.Logger.Information("Initializing schedules in state");
-        
+
         try
         {
             // Get services needed for schedule initialization
@@ -170,25 +171,25 @@ public static class CommonBootstrapHelper
             var scheduleMigrationService = ServiceProviderManager.GetService<IScheduleMigrationService>();
             var alarmScheduleService = ServiceProviderManager.GetService<IAlarmScheduleService>();
             var dispatcher = ServiceProviderManager.GetService<IDispatcher>();
-            
-            if (databaseSeedService == null || scheduleMigrationService == null || 
+
+            if (databaseSeedService == null || scheduleMigrationService == null ||
                 alarmScheduleService == null || dispatcher == null)
             {
                 Log.Logger.Warning("Required services not available for schedule initialization - skipping");
                 return;
             }
-            
+
             // Run seed and migration first (same as HomeViewModel)
             await databaseSeedService.SeedDefaultAlarmAsync();
             await scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
-            
+
             // Load all schedules from database
             var alarmSchedules = await alarmScheduleService.GetAllSchedulesAsync(
                 includeMusic: true,
                 includeBibleReading: true);
-            
+
             Log.Logger.Information("Loaded {Count} schedules from database during bootstrap", alarmSchedules.Count);
-            
+
             // Load language dictionary for translation names
             Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>? languagesDict = null;
             var bibleTranslationService = ServiceProviderManager.GetService<IBibleTranslationService>();
@@ -208,14 +209,14 @@ public static class CommonBootstrapHelper
             {
                 Log.Logger.Warning("IBibleTranslationService is null - translation names will not be populated");
             }
-            
+
             // Get BibleBookService for book name lookup
             var bibleBookService = ServiceProviderManager.GetService<IBibleBookService>();
             if (bibleBookService == null)
             {
                 Log.Logger.Warning("IBibleBookService is null - book names will not be populated");
             }
-            
+
             // Get AutoMapper instance
             var mapper = ServiceProviderManager.GetService<IMapper>();
             if (mapper == null)
@@ -223,7 +224,7 @@ public static class CommonBootstrapHelper
                 Log.Logger.Error("IMapper service not found - cannot map schedules to state items");
                 return;
             }
-            
+
             // Create ObservableHashSet of ScheduleStateItem for state using AutoMapper
             // Include TranslationName from language dictionary and BookName from BibleBookService
             var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
@@ -231,17 +232,17 @@ public static class CommonBootstrapHelper
             {
                 // Map AlarmSchedule to ScheduleStateItem using AutoMapper
                 var scheduleStateItem = mapper.Map<ScheduleStateItem>(schedule);
-                
+
                 // Set TranslationName and BookName from services
                 if (schedule.BibleReadingSchedule != null)
                 {
                     var bibleReading = schedule.BibleReadingSchedule;
-                    
+
                     // Set TranslationName from language dictionary
                     if (languagesDict != null)
                     {
                         var languageCode = bibleReading.LanguageCode;
-                        if (!string.IsNullOrWhiteSpace(languageCode) && 
+                        if (!string.IsNullOrWhiteSpace(languageCode) &&
                             languagesDict.TryGetValue(languageCode, out var language))
                         {
                             scheduleStateItem.TranslationName = language.Name;
@@ -256,7 +257,7 @@ public static class CommonBootstrapHelper
                                 languageCode, schedule.Id);
                         }
                     }
-                    
+
                     // Set BookName from BibleBookService
                     if (bibleBookService != null && bibleReading.BookNumber > 0)
                     {
@@ -266,7 +267,7 @@ public static class CommonBootstrapHelper
                                 bibleReading.LanguageCode,
                                 bibleReading.PublicationCode,
                                 bibleReading.BookNumber);
-                            
+
                             if (!string.IsNullOrWhiteSpace(bookName))
                             {
                                 scheduleStateItem.BookName = bookName;
@@ -281,10 +282,10 @@ public static class CommonBootstrapHelper
                         }
                     }
                 }
-                
+
                 initialSchedules.Add(scheduleStateItem);
             }
-            
+
             // Dispatch InitializeAction to populate state
             // This must be done on main thread since Fluxor dispatcher may require UI context
             await MainThread.InvokeOnMainThreadAsync(() =>

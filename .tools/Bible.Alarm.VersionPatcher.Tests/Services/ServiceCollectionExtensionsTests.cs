@@ -24,7 +24,7 @@ public class ServiceCollectionExtensionsTests
         serviceProvider.GetService<IVersionService>().Should().NotBeNull();
         serviceProvider.GetService<IFileService>().Should().NotBeNull();
         serviceProvider.GetService<IVersionPatchingService>().Should().NotBeNull();
-        
+
         var platformPatchers = serviceProvider.GetServices<IPlatformVersionPatcher>();
         platformPatchers.Should().HaveCount(3);
         platformPatchers.Should().Contain(p => p.PlatformName == "Android");

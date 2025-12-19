@@ -7,8 +7,8 @@ using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
-using IDispatcher = Fluxor.IDispatcher;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 #if IOS
 using Bible.Alarm.Platforms.iOS.Helpers;
 #endif
@@ -98,7 +98,9 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
     {
         ArgumentNullException.ThrowIfNull(track);
         if (string.IsNullOrEmpty(track.Uri))
+        {
             throw new ArgumentException("Track URI cannot be null or empty", nameof(track));
+        }
 
         // Get MediaElement from service if it's null, or if it was recreated
         var newMediaElement = await _mediaElementService.GetMediaElementAsync();
@@ -219,7 +221,10 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
 
     private async void OnMediaOpened(object? sender, EventArgs e)
     {
-        if (_currentTrack == null) return;
+        if (_currentTrack == null)
+        {
+            return;
+        }
 
         // Signal that media is ready
         _mediaOpenedCompletionSource?.TrySetResult(true);
@@ -272,7 +277,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
                 _logger.Warning(ex, "Failed to save artwork to file");
             }
         }
-        
+
         // Dispatch Fluxor action
         _dispatcher.Dispatch(new PlaybackMetadataChangedAction
         {
@@ -281,7 +286,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
             Album = meta.Album,
             ArtworkUrl = artworkUrl
         });
-        
+
         if (!string.IsNullOrEmpty(artworkUrl))
         {
             _logger.Debug($"Dispatched metadata with ArtworkUrl: {artworkUrl}");
@@ -416,7 +421,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         // Removed verbose logging to reduce CPU usage - only log if seeking
         if (_isSeeking)
         {
-            _logger.Debug("[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}", 
+            _logger.Debug("[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}",
                 CurrentPosition?.ToString() ?? "null");
         }
         SendPositionUpdate();
@@ -442,8 +447,11 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
     {
         return MainThread.InvokeOnMainThreadAsync(() =>
         {
-            if (_mediaElement == null) return;
-            
+            if (_mediaElement == null)
+            {
+                return;
+            }
+
             try
             {
                 _mediaElement.Stop();
@@ -507,11 +515,11 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
                 }
             });
             _logger.Information("ReleaseMediaSession called - notification should be removed");
-            
+
             // Wait for DestroyMediaElementMessage to be processed and MediaElement to be cleared
             // This ensures MediaElement is set to null before ResetAsync completes
             await Task.Delay(200);
-            
+
             // Clear the MediaElement reference after it's been disposed
             // The DestroyMediaElementMessage handler will set _mediaElement = null, but we ensure it here too
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -540,10 +548,10 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         // Track that we're seeking to prevent state flickering during seek
         _isSeeking = true;
         _statusBeforeSeek = Status;
-        
-        _logger.Debug("[AudioPlayer] SeekToAsync called - Position: {Position}, StatusBeforeSeek: {Status}, Setting _isSeeking = true", 
+
+        _logger.Debug("[AudioPlayer] SeekToAsync called - Position: {Position}, StatusBeforeSeek: {Status}, Setting _isSeeking = true",
             position, _statusBeforeSeek);
-        
+
         return MainThread.InvokeOnMainThreadAsync(() =>
         {
             _logger.Debug("[AudioPlayer] About to call MediaElement.SeekTo({Position})", position);
@@ -558,7 +566,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         // Seek has completed - reset the seeking flag
         // This allows position updates to resume and status changes to be processed normally
         var currentPosition = CurrentPosition;
-        _logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false", 
+        _logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false",
             currentPosition?.ToString() ?? "null");
         _isSeeking = false;
         _logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates. _isSeeking: {IsSeeking}", _isSeeking);
@@ -574,7 +582,10 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
     {
         return MainThread.InvokeOnMainThreadAsync(() =>
         {
-            if (_mediaElement == null) return;
+            if (_mediaElement == null)
+            {
+                return;
+            }
 
             // Only call Stop() if MediaElement is in a valid state (Playing, Paused, or Buffering)
             // On Android, calling Stop() when in IDLE or ERROR states causes errors
@@ -610,16 +621,16 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
 
 
     private bool _isDisposed;
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<DestroyMediaElementMessage>(this);
 
@@ -628,7 +639,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         {
             UnsubscribeFromMediaElement(_mediaElement);
         }
-        
+
         // All injected services (_mediaElementService, _displayMetadataService, _dispatcher, 
         // _androidPlayerNotificationService) are singletons, so don't dispose them
     }

@@ -20,16 +20,16 @@ namespace Bible.Alarm.Platforms.iOS.Services.Storage
         public override string CacheRoot => cacheRoot;
 
         public override Assembly MainAssembly => typeof(iOSStorageService).Assembly;
-        
+
         public void Dispose()
         {
             if (_isDisposed)
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // No resources to dispose
         }
     }

@@ -269,9 +269,12 @@ csharp_preserve_single_line_blocks = true
 #### Code Style Rules ####
 
 # var preferences
-csharp_style_var_for_built_in_types = false
+csharp_style_var_for_built_in_types = true
 csharp_style_var_when_type_is_apparent = true
-csharp_style_var_elsewhere = false
+csharp_style_var_elsewhere = true
+
+# Target-typed new expressions (C# 9+)
+csharp_style_prefer_target_typed_new = true:suggestion
 
 # Expression-bodied members
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion

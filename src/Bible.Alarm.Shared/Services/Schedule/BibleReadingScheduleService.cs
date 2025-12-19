@@ -34,14 +34,14 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var query = dbContext.BibleReadingSchedules.AsQueryable();
-        
+
         if (predicate != null)
         {
             query = query.Where(predicate);
         }
-        
+
         return await query.ToListAsync(cancellationToken);
     }
 
@@ -49,7 +49,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.BibleReadingSchedules
             .FirstOrDefaultAsync(x => x.Id == bibleReadingScheduleId, cancellationToken);
     }
@@ -58,7 +58,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.BibleReadingSchedules
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
@@ -68,11 +68,11 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         await dbContext.BibleReadingSchedules.AddAsync(bibleReadingSchedule, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
-        
-        return await GetBibleReadingScheduleByIdAsync(bibleReadingSchedule.Id, cancellationToken) 
+
+        return await GetBibleReadingScheduleByIdAsync(bibleReadingSchedule.Id, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {bibleReadingSchedule.Id} after adding");
     }
 
@@ -80,11 +80,11 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         dbContext.BibleReadingSchedules.Update(bibleReadingSchedule);
         await dbContext.SaveChangesAsync(cancellationToken);
-        
-        return await GetBibleReadingScheduleByIdAsync(bibleReadingSchedule.Id, cancellationToken) 
+
+        return await GetBibleReadingScheduleByIdAsync(bibleReadingSchedule.Id, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {bibleReadingSchedule.Id} after updating");
     }
 
@@ -92,7 +92,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var bibleReadingSchedule = await dbContext.BibleReadingSchedules.FindAsync(new object[] { bibleReadingScheduleId }, cancellationToken);
         if (bibleReadingSchedule != null)
         {
@@ -105,7 +105,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.BibleReadingSchedules.AnyAsync(x => x.Id == bibleReadingScheduleId, cancellationToken);
     }
 
@@ -115,9 +115,9 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();
@@ -128,7 +128,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
             // Ignore errors during disposal
             _logger.Warning(ex, "Error during cancellation token source disposal in BibleReadingScheduleService");
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
     }
 }

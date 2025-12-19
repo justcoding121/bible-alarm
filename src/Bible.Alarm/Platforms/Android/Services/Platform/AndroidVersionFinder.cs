@@ -19,16 +19,16 @@ public class AndroidVersionFinder : IVersionFinder, IDisposable
         return "Android " + AndroidApplication.Context.ApplicationContext.PackageManager
             .GetPackageInfo(AndroidApplication.Context.ApplicationContext.PackageName, 0).VersionName;
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // No resources to dispose
     }
 }

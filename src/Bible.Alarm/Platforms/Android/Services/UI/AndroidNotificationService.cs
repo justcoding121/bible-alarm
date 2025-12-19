@@ -14,10 +14,10 @@ using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Java.Lang;
 using Serilog;
-using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
 using AndroidApplication = Android.App.Application;
 using AndroidNet = Android.Net;
 using Exception = System.Exception;
+using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
@@ -75,7 +75,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
         catch (SecurityException ex)
         {
             _logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", schedule.Id);
-            
+
             // Show user-friendly message
             try
             {
@@ -83,7 +83,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
                 if (toastService != null)
                 {
                     await toastService.ShowMessage(
-                        "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.", 
+                        "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.",
                         7);
                 }
             }
@@ -91,7 +91,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
             {
                 _logger.Warning(toastEx, "Failed to show toast message for exact alarm permission error");
             }
-            
+
             // Re-throw to be handled by caller
             throw;
         }
@@ -144,15 +144,22 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
         if (drawable is BitmapDrawable)
         {
             var bitmapDrawable = (BitmapDrawable)drawable;
-            if (bitmapDrawable.Bitmap != null) return bitmapDrawable.Bitmap;
+            if (bitmapDrawable.Bitmap != null)
+            {
+                return bitmapDrawable.Bitmap;
+            }
         }
 
         Bitmap bitmap;
         if (drawable.IntrinsicWidth <= 0 || drawable.IntrinsicHeight <= 0)
+        {
             // Single color bitmap will be created of 1x1 pixel
             bitmap = Bitmap.CreateBitmap(1, 1, Bitmap.Config.Argb8888);
+        }
         else
+        {
             bitmap = Bitmap.CreateBitmap(drawable.IntrinsicWidth, drawable.IntrinsicHeight, Bitmap.Config.Argb8888);
+        }
 
         var canvas = new Canvas(bitmap);
         drawable.SetBounds(0, 0, canvas.Width, canvas.Height);
@@ -218,9 +225,9 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }
 }

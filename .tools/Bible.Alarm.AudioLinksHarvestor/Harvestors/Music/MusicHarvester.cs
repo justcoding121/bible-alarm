@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Models.Music;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
-using System.Text.Json;
 using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music
@@ -51,12 +51,12 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music
 
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
-                
+
                 if (root.ValueKind != JsonValueKind.Object)
                 {
                     continue;
                 }
-                
+
                 if (!root.TryGetProperty("languages", out var languages))
                 {
                     continue;
@@ -66,12 +66,12 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music
                 foreach (var item in languages.EnumerateObject())
                 {
                     var languageCode = item.Name;
-                    
+
                     if (!item.Value.TryGetProperty("name", out var nameElement))
                     {
                         continue;
                     }
-                    
+
                     var language = nameElement.GetString();
                     if (string.IsNullOrEmpty(language))
                     {
@@ -179,7 +179,9 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music
                     for (var i = 1; i <= 9; i++)
                     {
                         if (i is 7 or 8)
+                        {
                             continue;
+                        }
 
                         downloadCodes.Add($"{publication.Key}-{i}");
                     }
@@ -276,7 +278,9 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music
                     var track = trackElement.GetInt32();
 
                     if (track == 0 || url.EndsWith(".zip"))
+                    {
                         continue;
+                    }
 
                     if (!musicFile.TryGetProperty("duration", out var durationElement))
                     {

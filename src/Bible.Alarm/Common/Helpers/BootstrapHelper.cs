@@ -32,16 +32,16 @@ public static class BootstrapHelper
     {
         // Log caller information to help debug which code path is calling bootstrap
         var caller = new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.Name ?? "Unknown";
-        Log.Logger.Information("InitializePlatformBootstrap called from {Caller} with isForeground={IsForeground}, BootstrapCompleted={BootstrapCompleted}", 
+        Log.Logger.Information("InitializePlatformBootstrap called from {Caller} with isForeground={IsForeground}, BootstrapCompleted={BootstrapCompleted}",
             caller, isForeground, BootstrapCompleted);
-        
+
         if (IsBootstrapCompleted())
         {
             return;
         }
 
         var lockAcquired = TryAcquireBootstrapLock(isForeground, services);
-        
+
         if (lockAcquired)
         {
             HandleBootstrapWithLock(services, isForeground);
@@ -65,11 +65,11 @@ public static class BootstrapHelper
         }
 
         Log.Logger.Information("Waiting synchronously for bootstrap to complete (timeout: {TimeoutMs}ms)", timeoutMs);
-        
+
         // Use Task.Run to avoid deadlock issues when called from synchronization contexts
         // Task.Run executes on a thread pool thread (no synchronization context), so ConfigureAwait is not needed
         var waitTask = Task.Run(async () => await WaitForBootstrapAsync(timeoutMs));
-        
+
         // Wait for the task to complete with timeout to prevent indefinite blocking
         // Use a slightly longer timeout than the async version to account for Task.Run overhead
         if (!waitTask.Wait(timeoutMs + 1000))
@@ -98,7 +98,7 @@ public static class BootstrapHelper
         }
 
         Log.Logger.Information("Waiting for bootstrap to complete (timeout: {TimeoutMs}ms)", timeoutMs);
-        
+
         Task<bool> waitTask;
         lock (BootstrapWaitLock)
         {
@@ -108,7 +108,7 @@ public static class BootstrapHelper
                 Log.Logger.Debug("Bootstrap completed while waiting for lock, returning immediately");
                 return;
             }
-            
+
             // Create or reuse the completion source
             // If bootstrap already completed, the source should already be set
             // If it's null or completed, create a new one (bootstrap is still running)
@@ -180,7 +180,7 @@ public static class BootstrapHelper
             }
 
             Log.Logger.Information("Acquired bootstrap lock, isForeground={IsForeground}", isForeground);
-            
+
             if (isForeground)
             {
                 // For foreground, start bootstrap in background task (fire and forget)
@@ -193,7 +193,7 @@ public static class BootstrapHelper
                 // This prevents holding BootstrapLock while VerifyServices waits for its own lock
                 Log.Logger.Information("Background service: will run bootstrap outside lock");
             }
-            
+
             return true;
         }
         finally
@@ -222,14 +222,14 @@ public static class BootstrapHelper
     private static void HandleBootstrapWithoutLock(IServiceProvider services, bool isForeground)
     {
         Log.Logger.Information("Bootstrap lock not acquired, isForeground={IsForeground}", isForeground);
-        
+
         if (isForeground)
         {
             // For foreground, don't block - just return and let the other bootstrap complete
             Log.Logger.Information("Foreground launch: returning without blocking, letting other bootstrap complete");
             return;
         }
-        
+
         // For background services, wait for the lock and check if bootstrap completed
         WaitForBootstrapLock(services, isForeground);
     }
@@ -254,7 +254,7 @@ public static class BootstrapHelper
                 Log.Logger.Information("Bootstrap completed while waiting for lock");
                 return;
             }
-            
+
             // Previous bootstrap may have failed or was interrupted, continue to run bootstrap
             // Run asynchronously on a background task to avoid blocking
             Log.Logger.Information("Previous bootstrap may have failed, running bootstrap");
@@ -272,7 +272,7 @@ public static class BootstrapHelper
             Log.Logger.Information("Running bootstrap {Context}", context);
             await RunBootstrap(services, isForeground);
             BootstrapCompleted = true;
-            
+
             // Signal waiting tasks that bootstrap is complete
             // CRITICAL: Always ensure completion source exists and is set, even if no one was waiting
             // This prevents issues where WaitForBootstrap() is called after bootstrap completes
@@ -289,13 +289,13 @@ public static class BootstrapHelper
                     _bootstrapCompletionSource.TrySetResult(true);
                 }
             }
-            
+
             Log.Logger.Information("Bootstrap completed {Context}", context);
         }
         catch (Exception ex)
         {
             Log.Logger.Error(ex, "Error in bootstrap initialization {Context}", context);
-            
+
             // Signal failure to waiting tasks
             lock (BootstrapWaitLock)
             {

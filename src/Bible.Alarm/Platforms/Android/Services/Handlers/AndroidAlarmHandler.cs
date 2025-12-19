@@ -1,7 +1,7 @@
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Platforms.Android.Services.UI;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Handlers;
@@ -33,6 +33,7 @@ public class AndroidAlarmHandler(
 
         //local notification for android
         if (!isAlarm)
+        {
             if (schedule.NotificationEnabled)
             {
                 AndroidNotificationService.RemoveLocalNotification(schedule.Id);
@@ -42,8 +43,12 @@ public class AndroidAlarmHandler(
                 Dispose();
                 return;
             }
+        }
 
-        if (schedule.NotificationEnabled) AndroidNotificationService.RemoveLocalNotification(schedule.Id);
+        if (schedule.NotificationEnabled)
+        {
+            AndroidNotificationService.RemoveLocalNotification(schedule.Id);
+        }
 
         // MediaManager removed - using MediaElement instead
 
@@ -76,7 +81,7 @@ public class AndroidAlarmHandler(
         {
             return;
         }
-        
+
         _isDisposed = true;
 
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope

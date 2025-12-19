@@ -2,8 +2,6 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels;
-using Bible.Alarm.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
@@ -46,28 +44,28 @@ public class MessageHandlingService(
         {
             try
             {
-                    // Navigate to the initialized home page (this creates a new Home instance)
-                    await _navigationService.NavigateToHomeAsync();
+                // Navigate to the initialized home page (this creates a new Home instance)
+                await _navigationService.NavigateToHomeAsync();
 
-                    // After Home is visible, if playback was already started (prepare+play), open the alarm modal.
-                    // AlarmModalService defers opening while Bootstrap is on top, so we "catch up" here.
-                    if (_playbackState.Value.IsPreparingOrPlaying)
-                    {
-                        _logger.Information("Home is visible and playback is already started; opening AlarmModal.");
-                        await _navigationService.OpenAlarmModalAsync();
-                    }
+                // After Home is visible, if playback was already started (prepare+play), open the alarm modal.
+                // AlarmModalService defers opening while Bootstrap is on top, so we "catch up" here.
+                if (_playbackState.Value.IsPreparingOrPlaying)
+                {
+                    _logger.Information("Home is visible and playback is already started; opening AlarmModal.");
+                    await _navigationService.OpenAlarmModalAsync();
+                }
 
                 _ = Task.Run(async () =>
                 {
                     try
                     {
                         _logger.Information("Starting service initialization...");
-                        
+
                         // Modal visibility is now handled reactively via PlaybackState subscription
                         // No need to manually send ShowAlarmModalMessage here
-                        
-                        await Task.Delay(100); 
-                        
+
+                        await Task.Delay(100);
+
                         _logger.Information("Service initialization completed!");
 
                     }
@@ -83,16 +81,16 @@ public class MessageHandlingService(
             }
         });
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<InitializedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<ShowToastMessage>(this);

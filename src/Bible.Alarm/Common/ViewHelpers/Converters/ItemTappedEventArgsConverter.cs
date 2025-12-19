@@ -12,7 +12,7 @@ public class ItemTappedEventArgsConverter : IValueConverter
             // Return the first selected item (CollectionView supports single selection in our use case)
             return selectionChangedEventArgs.CurrentSelection?.FirstOrDefault();
         }
-        
+
         // Handle ItemTappedEventArgs from ListView (for backward compatibility)
         if (value is ItemTappedEventArgs itemTappedEventArgs)
         {

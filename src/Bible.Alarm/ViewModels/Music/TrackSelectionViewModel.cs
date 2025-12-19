@@ -1,17 +1,17 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
+using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
-using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -58,14 +58,14 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         _downloadService = downloadService;
         _urlRefreshService = urlRefreshService;
         _mapper = mapper;
-        
+
         _state = state;
         _dispatcher = dispatcher;
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            
+
             // Stop any ongoing preview playback before navigating away
             _playService.Stop();
             if (_currentlyPlaying != null)
@@ -74,15 +74,18 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
             }
-            
+
             await navigationService.PopAsync();
             IsBusy = false;
         });
 
         SetTrackCommand = new RelayCommand<MusicTrackListViewItemModel>(x =>
         {
-            if (x == null) return;
-            
+            if (x == null)
+            {
+                return;
+            }
+
             // Ensure _tentative is set from state if it's null
             if (_tentative == null)
             {
@@ -101,7 +104,10 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                 }
             }
 
-            if (_tentative == null) return;
+            if (_tentative == null)
+            {
+                return;
+            }
 
             IsBusy = true;
             if (SelectedTrack != null)
@@ -135,11 +141,18 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private void OnMusicInitialized(object o, EventArgs eventArgs)
     {
-        if (_initComplete) return;
+        if (_initComplete)
+        {
+            return;
+        }
+
         var stateValue = _state.Value;
         // For track selection, we only need TentativeMusic to initialize
         // CurrentMusic might be null when navigating directly to track selection
-        if (stateValue.TentativeMusic == null) return;
+        if (stateValue.TentativeMusic == null)
+        {
+            return;
+        }
         // Map DTOs to entities
         _tentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
         // Use TentativeMusic as CurrentMusic if CurrentMusic is null
@@ -156,12 +169,12 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
-            
+
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following book selection pattern)
             // Give CollectionView time to render
             await Task.Delay(100);
-            
+
             // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
@@ -214,7 +227,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                 }
             }
 
-            if (e.OldItems == null) return;
+            if (e.OldItems == null)
+            {
+                return;
+            }
+
             {
                 foreach (MusicTrackListViewItemModel item in e.OldItems)
                 {
@@ -231,7 +248,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     {
         PropertyChangedEventHandler handler = (sender, e) =>
         {
-            if (sender is not MusicTrackListViewItemModel item) return;
+            if (sender is not MusicTrackListViewItemModel item)
+            {
+                return;
+            }
+
             switch (e.PropertyName)
             {
                 case "Play" when item.Play:
@@ -252,7 +273,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private void UnsubscribeFromTrackEvents(MusicTrackListViewItemModel track)
     {
-        if (!_propertyChangedHandlers.TryGetValue(track, out var handler)) return;
+        if (!_propertyChangedHandlers.TryGetValue(track, out var handler))
+        {
+            return;
+        }
+
         track.PropertyChanged -= handler;
         _propertyChangedHandlers.Remove(track);
     }
@@ -275,11 +300,17 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
                 await Task.Run(async () =>
                 {
-                    if (_tentative == null) return;
+                    if (_tentative == null)
+                    {
+                        return;
+                    }
+
                     if (!await _downloadService.FileExists(url))
+                    {
                         url = await _urlRefreshService.GetMusicTrackUrl(
                             _tentative.LanguageCode,
                             track.LookUpPath);
+                    }
 
                     await _playService.Play(url);
                 });
@@ -297,7 +328,10 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private void HandleRepeatChanged(MusicTrackListViewItemModel track)
     {
-        if (_tentative == null) return;
+        if (_tentative == null)
+        {
+            return;
+        }
 
         _tentative.Repeat = track.Repeat;
         _tentative.TrackNumber = track.Number;
@@ -313,7 +347,10 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         };
         _dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
-        if (track.Repeat) _toastService.ShowMessage("Reminder will always repeat this track.");
+        if (track.Repeat)
+        {
+            _toastService.ShowMessage("Reminder will always repeat this track.");
+        }
     }
 
     private async void OnPlayServiceStopped()
@@ -322,7 +359,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         {
             await ConcurrencyHelper.ExecuteAsync(_lock, () =>
             {
-                if (_currentlyPlaying == null) return Task.CompletedTask;
+                if (_currentlyPlaying == null)
+                {
+                    return Task.CompletedTask;
+                }
+
                 _currentlyPlaying.Play = false;
                 _currentlyPlaying.IsBusy = false;
                 _currentlyPlaying = null;
@@ -355,12 +396,20 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
             trackViewModelList.Add(musicTrackListViewItemViewModel);
 
-            if (_current == null || _tentative == null) continue;
+            if (_current == null || _tentative == null)
+            {
+                continue;
+            }
+
             if (_current.MusicType != _tentative.MusicType
                 || _current.TrackNumber != track.Number
                 || (_current.MusicType != MusicType.Melodies &&
                     (_current.LanguageCode != _tentative.LanguageCode
-                     || _current.PublicationCode != _tentative.PublicationCode))) continue;
+                     || _current.PublicationCode != _tentative.PublicationCode)))
+            {
+                continue;
+            }
+
             selectedTrack = musicTrackListViewItemViewModel;
             selectedTrack.IsSelected = true;
             selectedTrack.Repeat = _current.Repeat;
@@ -384,10 +433,10 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     {
         _state.StateChanged -= OnMusicInitialized;
         _playService.OnStopped -= OnPlayServiceStopped;
-        
+
         // Stop any ongoing preview playback when navigating away
         _playService.Stop();
-        
+
         if (Tracks != null)
         {
             foreach (var track in Tracks)

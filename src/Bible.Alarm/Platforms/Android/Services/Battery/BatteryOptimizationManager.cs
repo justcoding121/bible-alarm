@@ -2,9 +2,9 @@ using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Serilog;
+using AndroidApplication = Android.App.Application;
 using AndroidBuild = Android.OS.Build;
 using AndroidProvider = Android.Provider;
-using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Battery;
 

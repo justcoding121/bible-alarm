@@ -74,16 +74,16 @@ public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundServ
             return null;
         }
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }
 }

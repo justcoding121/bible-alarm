@@ -4,7 +4,6 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
@@ -63,10 +62,10 @@ public class DefaultScheduleService(
     {
         // Get the first track from the schedule
         var firstPlayItem = await playlistService.NextTrack(scheduleId);
-        
+
         // Prepare the first track using PreparePlaybackService (downloads and creates AudioPlayerTrack)
         var audioPlayerTrack = await preparePlaybackService.PrepareSingleTrackAsync(firstPlayItem);
-        
+
         if (audioPlayerTrack == null)
         {
             logger.Warning("Failed to prepare first track for schedule {ScheduleId}, using fallback metadata", scheduleId);
@@ -76,7 +75,7 @@ public class DefaultScheduleService(
         // Use DisplayMetadataService to get full metadata (same as AudioPlayer does)
         var metadata = await displayMetadataService.GetDisplayMetadataAsync(audioPlayerTrack);
 
-        logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}", 
+        logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}",
             scheduleId, metadata.Title, metadata.Artist, metadata.Album);
 
         return new ScheduleTrackMetadata
@@ -107,9 +106,9 @@ public class DefaultScheduleService(
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -121,7 +120,7 @@ public class DefaultScheduleService(
             // Ignore errors during cancellation/disposal
             logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
     }
 }

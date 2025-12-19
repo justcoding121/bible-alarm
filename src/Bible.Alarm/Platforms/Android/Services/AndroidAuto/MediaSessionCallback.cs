@@ -8,7 +8,6 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
-using Bible.Alarm.Common.Helpers;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -20,10 +19,10 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 {
     private readonly IPlaybackService _playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    
+
     private IState<ApplicationState>? _applicationState;
     private IState<PlaybackState>? _playbackState;
-    
+
     private IState<ApplicationState> ApplicationState
     {
         get
@@ -35,7 +34,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             return _applicationState ?? throw new InvalidOperationException("ApplicationState not available");
         }
     }
-    
+
     private IState<PlaybackState> PlaybackState
     {
         get
@@ -61,25 +60,25 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                     // Wait for bootstrap to complete before accessing schedules/database
                     // This ensures Application.Current.Dispatcher is available and database is initialized
                     await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
-                    
+
                     var playbackStateValue = PlaybackState.Value;
-                    
+
                     // If playback is stopped, get scheduleId from metadata or use first schedule
                     if (playbackStateValue.Status == PlayStatus.Stopped)
                     {
                         int? scheduleId = null;
-                        
+
                         // Try to get scheduleId from MediaSession metadata
                         var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
                         var mediaSession = mediaSessionManager.GetOrCreate();
                         var mediaId = mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-                        
+
                         if (!string.IsNullOrEmpty(mediaId) && int.TryParse(mediaId, out int parsedScheduleId))
                         {
                             scheduleId = parsedScheduleId;
                             _logger.Debug("OnPlay: Got scheduleId {ScheduleId} from MediaSession metadata", scheduleId);
                         }
-                        
+
                         // Validate scheduleId exists in state, or get first schedule
                         if (!scheduleId.HasValue || scheduleId.Value <= 0)
                         {
@@ -100,7 +99,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                             // Validate scheduleId exists in state
                             var schedules = ApplicationState.Value.Schedules;
                             var scheduleExists = schedules?.Any(s => s.Id == scheduleId.Value) ?? false;
-                            
+
                             if (!scheduleExists)
                             {
                                 _logger.Warning("OnPlay: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
@@ -115,7 +114,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                                 }
                             }
                         }
-                        
+
                         // Play the schedule
                         await _playbackService.PrepareAndPlayAsync(scheduleId.Value, isAlarm: false);
                     }
@@ -225,7 +224,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                 // Fall through to use first schedule
                 scheduleId = 0;
             }
-            
+
             // Fire and forget - don't block the callback thread
             _ = Task.Run(async () =>
             {
@@ -234,22 +233,22 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                     // Wait for bootstrap to complete before accessing schedules/database
                     // This ensures Application.Current.Dispatcher is available and database is initialized
                     await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
-                    
+
                     int scheduleIdToPlay = scheduleId;
-                    
+
                     // Validate scheduleId exists in state
                     if (scheduleIdToPlay > 0)
                     {
                         var schedules = ApplicationState.Value.Schedules;
                         var scheduleExists = schedules?.Any(s => s.Id == scheduleIdToPlay) ?? false;
-                        
+
                         if (!scheduleExists)
                         {
                             _logger.Warning("OnPlayFromMediaId: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleIdToPlay);
                             scheduleIdToPlay = 0; // Will use first schedule below
                         }
                     }
-                    
+
                     // If scheduleId is invalid or not found, use first schedule from state
                     if (scheduleIdToPlay <= 0)
                     {
@@ -265,7 +264,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                             return;
                         }
                     }
-                    
+
                     // Use isAlarm=false for Android Auto playback
                     await _playbackService.PrepareAndPlayAsync(scheduleIdToPlay, isAlarm: false);
                 }

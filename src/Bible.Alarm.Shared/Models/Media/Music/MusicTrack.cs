@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -22,7 +22,11 @@ namespace Bible.Alarm.Shared.Models.Media.Music
 
         public int CompareTo(object obj)
         {
-            if (obj is not MusicTrack other) return 1;
+            if (obj is not MusicTrack other)
+            {
+                return 1;
+            }
+
             return Number.CompareTo(other.Number);
         }
     }

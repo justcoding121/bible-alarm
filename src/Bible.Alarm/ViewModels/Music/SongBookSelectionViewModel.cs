@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
-using Bible.Alarm.ViewModels.Interfaces;
+using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -10,8 +10,8 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
-using AutoMapper;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -44,7 +44,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
         _state.StateChanged += OnMusicInitialized;
         _state.StateChanged += OnMusicChanged;
-        
+
         // Check current state immediately in case state is already set
         var currentState = _state.Value;
         if (currentState.CurrentMusic != null && currentState.TentativeMusic != null)
@@ -54,8 +54,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
         TrackSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
-            if (x == null) return;
-            
+            if (x == null)
+            {
+                return;
+            }
+
             IsBusy = true;
 
             // Ensure _current is set from state if it's null
@@ -86,13 +89,13 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-            
+
             // Ensure languages are populated before opening the modal
             if (Languages == null || Languages.Count == 0)
             {
                 await PopulateLanguages();
             }
-            
+
             await navigationService.OpenLanguageModalAsync(this);
             IsBusy = false;
         });
@@ -113,10 +116,16 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
         {
-            if (x == null) return;
-            
+            if (x == null)
+            {
+                return;
+            }
+
             IsBusy = true;
-            if (CurrentLanguage != null) CurrentLanguage.IsSelected = false;
+            if (CurrentLanguage != null)
+            {
+                CurrentLanguage.IsSelected = false;
+            }
 
             CurrentLanguage = x;
             CurrentLanguage!.IsSelected = true;
@@ -134,29 +143,42 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     private void OnMusicChanged(object? sender, EventArgs e)
     {
         var stateValue = _state.Value;
-        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
-        
+        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null)
+        {
+            return;
+        }
+
         // Map DTOs to entities
         var newCurrent = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
         var newTentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
-        
+
         // Compare by ID to avoid unnecessary updates
-        if (_lastCurrent?.Id == newCurrent.Id && _lastTentative?.Id == newTentative.Id) return;
-        
+        if (_lastCurrent?.Id == newCurrent.Id && _lastTentative?.Id == newTentative.Id)
+        {
+            return;
+        }
+
         _current = newCurrent;
         _tentative = newTentative;
         _lastCurrent = _current;
         _lastTentative = _tentative;
-        
+
         // Update selected song book when state changes (e.g., after navigating back)
         MainThread.BeginInvokeOnMainThread(SetSelectedSongBook);
     }
 
     private void OnMusicInitialized(object? o, EventArgs eventArgs)
     {
-        if (_initComplete) return;
+        if (_initComplete)
+        {
+            return;
+        }
+
         var stateValue = _state.Value;
-        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null) return;
+        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null)
+        {
+            return;
+        }
         // Map DTOs to entities
         _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
         _tentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
@@ -165,12 +187,12 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize();
-            
+
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
             // Give CollectionView time to render
             await Task.Delay(100);
-            
+
             // Set IsBusy to false after collection is assigned and rendered
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
@@ -178,11 +200,21 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private void SetSelectedSongBook()
     {
-        if (_current == null || _tentative == null || _current.LanguageCode != _tentative.LanguageCode) return;
-        if (SelectedSongBook != null) SelectedSongBook!.IsSelected = false;
+        if (_current == null || _tentative == null || _current.LanguageCode != _tentative.LanguageCode)
+        {
+            return;
+        }
 
-        if (!_songBookVMsMapping.TryGetValue(_current.PublicationCode, out var songBook)) return;
-        
+        if (SelectedSongBook != null)
+        {
+            SelectedSongBook!.IsSelected = false;
+        }
+
+        if (!_songBookVMsMapping.TryGetValue(_current.PublicationCode, out var songBook))
+        {
+            return;
+        }
+
         SelectedSongBook = songBook;
         SelectedSongBook!.IsSelected = true;
     }
@@ -239,7 +271,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     private async Task Initialize()
     {
-        if (_tentative == null) return;
+        if (_tentative == null)
+        {
+            return;
+        }
+
         var languageCode = _tentative.LanguageCode;
 
         if (languageCode == null)
@@ -282,7 +318,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
             languageVMs.Add(languageVm);
 
-            if (_tentative == null || languageVm.Code != _tentative.LanguageCode) continue;
+            if (_tentative == null || languageVm.Code != _tentative.LanguageCode)
+            {
+                continue;
+            }
+
             languageVm.IsSelected = true;
             CurrentLanguage = languageVm;
         }
@@ -315,7 +355,11 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
             if (_current == null
                 || _current.MusicType != MusicType.Vocals
                 || _current.LanguageCode != languageCode
-                || _current.PublicationCode != release.Code) continue;
+                || _current.PublicationCode != release.Code)
+            {
+                continue;
+            }
+
             songBookListViewItemModel.IsSelected = true;
             SelectedSongBook = songBookListViewItemModel;
         }
@@ -331,7 +375,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
     {
         _state.StateChanged -= OnMusicInitialized;
         _state.StateChanged -= OnMusicChanged;
-        
+
         // Unsubscribe from PropertyChanged self-subscription
         if (_propertyChangedHandler is not null)
         {

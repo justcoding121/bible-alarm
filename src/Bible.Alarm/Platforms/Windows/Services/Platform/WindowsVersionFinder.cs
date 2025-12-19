@@ -23,19 +23,19 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform
                 // For WinUI 3 desktop apps, we can get version from the assembly
                 var assembly = Assembly.GetExecutingAssembly();
                 var version = assembly.GetName().Version;
-                
+
                 if (version != null)
                 {
                     return $"Windows {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
                 }
-                
+
                 // Fallback to file version if assembly version is not available
                 var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
                 if (!string.IsNullOrEmpty(fileVersionInfo.FileVersion))
                 {
                     return $"Windows {fileVersionInfo.FileVersion}";
                 }
-                
+
                 return "Windows 1.0.0.0";
             }
             catch (Exception ex)
@@ -45,16 +45,16 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform
                 return "Windows 1.0.0.0";
             }
         }
-        
+
         public void Dispose()
         {
             if (_isDisposed)
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // No resources to dispose
         }
     }

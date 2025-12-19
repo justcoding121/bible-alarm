@@ -8,7 +8,10 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is null) return ThemeColors.Day.DefaultBackground;
+        if (value is null)
+        {
+            return ThemeColors.Day.DefaultBackground;
+        }
 
         DaysOfWeek daysOfWeek;
         // Default to enabled for ScheduleViewModel
@@ -51,10 +54,20 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values == null || values.Length < 2) return ThemeColors.Day.DefaultBackground;
-        
-        if (values[0] is not DaysOfWeek daysOfWeek) return ThemeColors.Day.DefaultBackground;
-        if (values[1] is not bool isEnabled) return ThemeColors.Day.DefaultBackground;
+        if (values == null || values.Length < 2)
+        {
+            return ThemeColors.Day.DefaultBackground;
+        }
+
+        if (values[0] is not DaysOfWeek daysOfWeek)
+        {
+            return ThemeColors.Day.DefaultBackground;
+        }
+
+        if (values[1] is not bool isEnabled)
+        {
+            return ThemeColors.Day.DefaultBackground;
+        }
 
         var dayParameter = ParseDayParameter(parameter);
         var isDayEnabled = (daysOfWeek & dayParameter) == dayParameter;
@@ -76,14 +89,21 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
 
     private static DaysOfWeek ParseDayParameter(object parameter)
     {
-        if (parameter == null) return (DaysOfWeek)0;
-        
+        if (parameter == null)
+        {
+            return (DaysOfWeek)0;
+        }
+
         if (parameter is DaysOfWeek day)
+        {
             return day;
-        
+        }
+
         if (parameter is string dayString && Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay))
+        {
             return parsedDay;
-        
+        }
+
         return (DaysOfWeek)0;
     }
 }

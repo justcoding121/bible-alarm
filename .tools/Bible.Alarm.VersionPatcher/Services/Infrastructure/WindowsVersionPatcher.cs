@@ -13,7 +13,7 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
     public async Task PatchVersionAsync()
     {
         var manifestFile = pathService.GetWindowsManifestPath();
-        
+
         if (!fileService.FileExists(manifestFile))
         {
             Console.WriteLine($"Windows Package.appxmanifest file not found: {manifestFile}");
@@ -22,7 +22,7 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
 
         var content = await fileService.ReadFileAsync(manifestFile);
         var doc = new XmlDocument();
-        
+
         try
         {
             doc.LoadXml(content);

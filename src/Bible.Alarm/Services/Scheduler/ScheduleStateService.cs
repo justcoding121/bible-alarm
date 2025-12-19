@@ -1,7 +1,7 @@
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Serilog;
@@ -36,13 +36,17 @@ public class ScheduleStateService(
             && !await _notificationService.CanScheduleAsync())
         {
             if (DeviceInfo.Platform == DevicePlatform.iOS)
+            {
                 await _toastService.ShowMessage(
                     "Cannot schedule reminder because you've disabled notifications. " +
                     "Please enable notification for this app under system settings.", 7);
+            }
             else
+            {
                 await _toastService.ShowMessage(
                     "Cannot schedule reminder because you've denied background apps permission. " +
                     "Please grant background apps permission for this app under system settings.", 7);
+            }
 
             // Indicates the state change was rejected
             return false;
@@ -69,19 +73,19 @@ public class ScheduleStateService(
             if (exceptionType == "Java.Lang.SecurityException" || ex.Message.Contains("SCHEDULE_EXACT_ALARM") || ex.Message.Contains("USE_EXACT_ALARM"))
             {
                 _logger.Error(ex, "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
-                
+
                 // Show user-friendly message for Android
                 if (DeviceInfo.Platform == DevicePlatform.Android)
                 {
                     await _toastService.ShowMessage(
-                        "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.", 
+                        "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.",
                         7);
                 }
-                
+
                 // Return false to indicate the state change was rejected
                 return false;
             }
-            
+
             // Re-throw if it's a different exception
             throw;
         }
@@ -101,16 +105,16 @@ public class ScheduleStateService(
         // Indicates the state change was successful
         return true;
     }
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         // Cancel and dispose cancellation token source
         try
         {
@@ -122,7 +126,7 @@ public class ScheduleStateService(
             // Ignore errors during cancellation/disposal
             _logger.Warning(ex, "Error during cancellation token source disposal");
         }
-        
+
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe
     }

@@ -32,24 +32,24 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var query = dbContext.AlarmSchedules.AsQueryable();
-        
+
         if (includeMusic)
         {
             query = query.Include(x => x.Music);
         }
-        
+
         if (includeBibleReading)
         {
             query = query.Include(x => x.BibleReadingSchedule);
         }
-        
+
         if (predicate != null)
         {
             query = query.Where(predicate);
         }
-        
+
         return await query.ToListAsync(cancellationToken);
     }
 
@@ -57,19 +57,19 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var query = dbContext.AlarmSchedules.AsQueryable();
-        
+
         if (includeMusic)
         {
             query = query.Include(x => x.Music);
         }
-        
+
         if (includeBibleReading)
         {
             query = query.Include(x => x.BibleReadingSchedule);
         }
-        
+
         return await query.FirstOrDefaultAsync(x => x.Id == scheduleId, cancellationToken);
     }
 
@@ -77,19 +77,19 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var query = dbContext.AlarmSchedules.AsQueryable();
-        
+
         if (includeMusic)
         {
             query = query.Include(x => x.Music);
         }
-        
+
         if (includeBibleReading)
         {
             query = query.Include(x => x.BibleReadingSchedule);
         }
-        
+
         return await query.FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -97,12 +97,12 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         await dbContext.AlarmSchedules.AddAsync(schedule, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
-        
+
         // Reload with includes
-        return await GetScheduleByIdAsync(schedule.Id, true, true, cancellationToken) 
+        return await GetScheduleByIdAsync(schedule.Id, true, true, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to reload schedule {schedule.Id} after adding");
     }
 
@@ -110,12 +110,12 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         dbContext.AlarmSchedules.Update(schedule);
         await dbContext.SaveChangesAsync(cancellationToken);
-        
+
         // Reload with includes
-        return await GetScheduleByIdAsync(schedule.Id, true, true, cancellationToken) 
+        return await GetScheduleByIdAsync(schedule.Id, true, true, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to reload schedule {schedule.Id} after updating");
     }
 
@@ -123,17 +123,17 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var schedule = await dbContext.AlarmSchedules
             .Include(x => x.Music)
             .Include(x => x.BibleReadingSchedule)
             .FirstAsync(x => x.Id == scheduleId, cancellationToken);
-        
+
         updateAction(schedule);
         await dbContext.SaveChangesAsync(cancellationToken);
-        
+
         // Reload with includes to ensure all changes are reflected
-        return await GetScheduleByIdAsync(scheduleId, true, true, cancellationToken) 
+        return await GetScheduleByIdAsync(scheduleId, true, true, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to reload schedule {scheduleId} after updating");
     }
 
@@ -141,7 +141,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         var schedule = await dbContext.AlarmSchedules.FindAsync(new object[] { scheduleId }, cancellationToken);
         if (schedule != null)
         {
@@ -154,7 +154,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.AlarmSchedules.AnyAsync(x => x.Id == scheduleId, cancellationToken);
     }
 
@@ -162,7 +162,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.AlarmSchedules.AnyAsync(cancellationToken);
     }
 
@@ -170,7 +170,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -178,7 +178,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.AlarmMusic
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
@@ -188,7 +188,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        
+
         return await dbContext.BibleReadingSchedules
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
@@ -200,9 +200,9 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();
@@ -212,7 +212,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
         {
             // Ignore errors during disposal
         }
-        
+
         // IServiceScopeFactory is a singleton, so don't dispose it
     }
 }

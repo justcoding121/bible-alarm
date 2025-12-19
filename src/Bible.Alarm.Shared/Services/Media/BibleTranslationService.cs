@@ -30,7 +30,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.BibleTranslations
                 .AsNoTracking()
                 .Include(x => x.Books)
@@ -39,7 +39,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleTranslation with Books. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}", 
+            _logger.Error(ex, "Error getting BibleTranslation with Books. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -51,7 +51,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.BibleTranslations
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode)
@@ -70,7 +70,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            
+
             return await dbContext.BibleTranslations
                 .AsNoTracking()
                 .Select(x => x.Language)
@@ -90,9 +90,9 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             _cancellationTokenSource?.Cancel();

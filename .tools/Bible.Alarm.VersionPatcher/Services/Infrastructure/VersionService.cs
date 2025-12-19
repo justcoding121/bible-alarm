@@ -8,9 +8,11 @@ public class VersionService : IVersionService
     public string IncrementVersion(string currentVersion)
     {
         var versionParts = currentVersion.Split('.');
-        
+
         if (versionParts.Length < 2)
+        {
             throw new ArgumentException("Version must have at least major.minor format", nameof(currentVersion));
+        }
 
         var major = int.Parse(versionParts[0]);
         var minor = int.Parse(versionParts[1]);
@@ -27,7 +29,7 @@ public class VersionService : IVersionService
         {
             return (versionCode + 1).ToString();
         }
-        
+
         throw new ArgumentException("Version code must be a valid integer", nameof(currentVersionCode));
     }
 }

@@ -8,7 +8,10 @@ public class DayShadowConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is null || parameter == null) return null;
+        if (value is null || parameter == null)
+        {
+            return null;
+        }
 
         DaysOfWeek daysOfWeek;
 
@@ -52,14 +55,21 @@ public class DayShadowConverter : IValueConverter
 
     private static DaysOfWeek ParseDayParameter(object parameter)
     {
-        if (parameter == null) return (DaysOfWeek)0;
-        
+        if (parameter == null)
+        {
+            return (DaysOfWeek)0;
+        }
+
         if (parameter is DaysOfWeek day)
+        {
             return day;
-        
+        }
+
         if (parameter is string dayString && Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay))
+        {
             return parsedDay;
-        
+        }
+
         return (DaysOfWeek)0;
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.S3;
@@ -12,15 +13,14 @@ using Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
 using Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
 using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
-using System.Text.Json;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.Sqlite;
 using Serilog;
-using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Constants;
 using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.AudioLinksHarvestor
@@ -46,7 +46,7 @@ namespace Bible.Alarm.AudioLinksHarvestor
                 builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
             });
             services.AddSingleton<Serilog.ILogger>(_ => Log.Logger);
-            
+
             services.AddDbContext<MediaDbContext>(options =>
             {
                 var indexDir = DirectoryHelper.IndexDirectory;
@@ -66,17 +66,17 @@ namespace Bible.Alarm.AudioLinksHarvestor
                     b.CommandTimeout(60);
                 });
             });
-            
+
             services.AddTransient<JwBibleHarvester>();
             services.AddTransient<MusicHarvester>();
             services.AddTransient<DbSeeder>();
             services.AddTransient<Bible.Alarm.AudioLinksHarvestor.Utility.DownloadUtility>();
-            
+
             await using var serviceProvider = services.BuildServiceProvider();
             var logger = serviceProvider.GetRequiredService<Serilog.ILogger>();
 
             bool isTestRun = args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
-            
+
             if (isTestRun)
             {
                 logger.Information("=== TEST RUN MODE: Processing only English language per publication ===");
@@ -98,7 +98,7 @@ namespace Bible.Alarm.AudioLinksHarvestor
                 {
                     var bibleHarvester = harvesterScope.ServiceProvider.GetRequiredService<JwBibleHarvester>();
                     var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarvester>();
-                    
+
                     bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
 
                     var musicTasks = new List<Task>
@@ -169,7 +169,7 @@ namespace Bible.Alarm.AudioLinksHarvestor
                     logger.Error("Harvesting failed to create zip file.");
                     throw new Exception("Harvesting failed to create zip file.");
                 }
-                
+
                 if (serviceProvider is IDisposable disposable)
                 {
                     disposable.Dispose();
@@ -178,7 +178,7 @@ namespace Bible.Alarm.AudioLinksHarvestor
                 {
                     await asyncDisposable.DisposeAsync();
                 }
-                
+
                 Log.CloseAndFlush();
             }
         }

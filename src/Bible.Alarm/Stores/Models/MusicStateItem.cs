@@ -17,14 +17,17 @@ public class MusicStateItem : IComparable
     public int TrackNumber { get; set; }
     public bool Repeat { get; set; }
     public int AlarmScheduleId { get; set; }
-    
+
     /// <summary>
     /// Compare by ID for ObservableHashSet ordering.
     /// </summary>
     public int CompareTo(object? obj)
     {
         if (obj is not MusicStateItem other)
+        {
             return 1;
+        }
+
         return Id.CompareTo(other.Id);
     }
 }

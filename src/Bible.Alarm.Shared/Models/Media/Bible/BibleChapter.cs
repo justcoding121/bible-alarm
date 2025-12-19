@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +29,11 @@ namespace Bible.Alarm.Shared.Models.Media.Bible
 
         public int CompareTo(object obj)
         {
-            if (obj is not BibleChapter other) return 1;
+            if (obj is not BibleChapter other)
+            {
+                return 1;
+            }
+
             return Number.CompareTo(other.Number);
         }
     }

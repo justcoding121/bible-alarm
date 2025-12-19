@@ -4,10 +4,10 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
+using Serilog;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
-using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI
 {
@@ -73,7 +73,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 var notifier = GetToastNotifier();
-                if (notifier is null) return Task.CompletedTask;
+                if (notifier is null)
+                {
+                    return Task.CompletedTask;
+                }
 
                 var toRemove = FindScheduledToast(notifier, scheduleId);
                 if (toRemove is not null)
@@ -94,7 +97,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 var notifier = GetToastNotifier();
-                if (notifier is null) return Task.FromResult(false);
+                if (notifier is null)
+                {
+                    return Task.FromResult(false);
+                }
 
                 return Task.FromResult(IsNotificationScheduled(notifier, scheduleId));
             }
@@ -182,10 +188,16 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
             try
             {
                 var notifier = TryCreateNotifierWithoutParameters();
-                if (notifier is not null) return notifier;
+                if (notifier is not null)
+                {
+                    return notifier;
+                }
 
                 notifier = TryCreateNotifierWithAumid();
-                if (notifier is not null) return notifier;
+                if (notifier is not null)
+                {
+                    return notifier;
+                }
 
                 Serilog.Log.Warning(
                     "Unable to create toast notifier. Scheduled notifications will not work. " +
@@ -270,7 +282,10 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI
                 foreach (var aumid in aumidFormats)
                 {
                     var notifier = TryCreateNotifierWithAumid(aumid);
-                    if (notifier is not null) return notifier;
+                    if (notifier is not null)
+                    {
+                        return notifier;
+                    }
                 }
 
                 Serilog.Log.Warning(

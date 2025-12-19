@@ -1,19 +1,15 @@
 #nullable enable
-using Android.Content;
-using Android.App;
-using Android.Provider;
+using System.Reflection;
 using AndroidX.Media3.Common;
 using AndroidX.Media3.Common.Text;
-using Java.Lang;
+using AndroidX.Media3.DataSource;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.ExoPlayer.Source;
-using AndroidX.Media3.DataSource;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
-using System.Reflection;
 using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
@@ -27,7 +23,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
 {
     private ExoPlayerListener? _exoPlayerListener;
     private IExoPlayer? _currentPlayer;
-    
+
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer using SetMediaSources to enable both Next and Previous buttons.
     /// Uses distinct MediaItems (dummy previous, current, dummy next) with different MediaIds and URI fragments pointing to the same file.
@@ -457,7 +453,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
 
             // 1. Remove our ExoPlayer listener first (best effort) to stop intercepting callbacks.
             RemoveExoPlayerListener();
-            
+
             // 3. Send message to MediaElementService to destroy MediaElement and disconnect handler
             // MediaElementService.DestroyMediaElement() will handle handler disconnect and disposal
             // This centralizes MediaElement lifecycle management in one place
@@ -471,16 +467,16 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     }
 
     private bool _isDisposed;
-    
+
     public void Dispose()
     {
         if (_isDisposed)
         {
             return;
         }
-        
+
         _isDisposed = true;
-        
+
         try
         {
             // Note: ReleaseMediaSession is now called from AudioPlayer with MediaElement instance
@@ -493,7 +489,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         {
             logger.Debug(ex, "Error disposing AndroidPlayerNotificationService");
         }
-        
+
         // All injected services (logger) are singletons, so don't dispose them
     }
 

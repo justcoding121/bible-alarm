@@ -59,11 +59,11 @@ public class AndroidArtworkService
                 float scale = Math.Min((float)maxSize / originalWidth, (float)maxSize / originalHeight);
                 int scaledWidth = (int)(originalWidth * scale);
                 int scaledHeight = (int)(originalHeight * scale);
-                
+
                 var scaledBitmap = Bitmap.CreateScaledBitmap(bitmap, scaledWidth, scaledHeight, true);
                 bitmap.Recycle(); // Recycle original bitmap to free memory
                 bitmap = scaledBitmap;
-                Logger.Debug("Scaled artwork bitmap from {OriginalWidth}x{OriginalHeight} to {ScaledWidth}x{ScaledHeight}", 
+                Logger.Debug("Scaled artwork bitmap from {OriginalWidth}x{OriginalHeight} to {ScaledWidth}x{ScaledHeight}",
                     originalWidth, originalHeight, scaledWidth, scaledHeight);
             }
 

@@ -1,7 +1,7 @@
+using System.Timers;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
-using System.Timers;
 using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Views.General;
@@ -25,7 +25,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
 
         // Set theme-aware background color
         this.SetAppThemeColor(ContentPage.BackgroundColorProperty, ThemeColors.Bootstrap.LightBackground, ThemeColors.Bootstrap.DarkBackground);
-        
+
         // Set theme-aware text colors for dots
         var lightColor = ThemeColors.Primary.SlateBlue;
         var darkColor = ThemeColors.Primary.LightPurpleForDark;
@@ -79,7 +79,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        
+
         // Reattach MediaElement to container when BootstrapPage becomes available
         // This handles the case where MediaElement was created while app was backgrounded
         try

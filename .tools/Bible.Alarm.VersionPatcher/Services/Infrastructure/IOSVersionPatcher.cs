@@ -14,7 +14,7 @@ public class IOSVersionPatcher(IVersionService versionService, IFileService file
     public async Task PatchVersionAsync()
     {
         var manifestFile = pathService.GetIOSInfoPlistPath();
-        
+
         if (!fileService.FileExists(manifestFile))
         {
             Console.WriteLine($"iOS Info.plist file not found: {manifestFile}");
@@ -29,7 +29,7 @@ public class IOSVersionPatcher(IVersionService versionService, IFileService file
         for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
-            
+
             if (line.Trim() == "<key>CFBundleVersion</key>")
             {
                 output.AppendLine(line);
@@ -38,7 +38,7 @@ public class IOSVersionPatcher(IVersionService versionService, IFileService file
                 {
                     var nextLine = lines[i + 1];
                     var oldVersion = ExtractVersionFromLine(nextLine);
-                    
+
                     if (!string.IsNullOrEmpty(oldVersion))
                     {
                         var newVersion = versionService.IncrementVersion(oldVersion);
@@ -47,7 +47,7 @@ public class IOSVersionPatcher(IVersionService versionService, IFileService file
                         output.AppendLine(newLine);
                         i++; // Skip the next line since we processed it
                         versionFound = true;
-                        
+
                         Console.WriteLine($"iOS version updated: {oldVersion} -> {newVersion}");
                     }
                     else

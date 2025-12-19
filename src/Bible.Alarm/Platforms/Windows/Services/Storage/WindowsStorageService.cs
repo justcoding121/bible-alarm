@@ -14,16 +14,16 @@ namespace Bible.Alarm.Platforms.Windows.Services.Storage
         private static readonly string cacheRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bible.Alarm", "Cache");
         public override string CacheRoot => cacheRoot;
         public override Assembly MainAssembly => typeof(WindowsStorageService).Assembly;
-        
+
         public new void Dispose()
         {
             if (_isDisposed)
             {
                 return;
             }
-            
+
             _isDisposed = true;
-            
+
             // No resources to dispose
         }
     }

@@ -18,17 +18,17 @@ public static class AppConstants
         /// Primary JW.org index service base URL
         /// </summary>
         public const string JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS";
-        
+
         /// <summary>
         /// Alternative JW.org index service URL
         /// </summary>
         public const string JwOrgAlternativeIndexServiceUrl = "https://apps.jw.org/GETPUBMEDIALINKS";
-        
+
         /// <summary>
         /// Media index download base URL
         /// </summary>
         public const string MediaIndexDownloadBaseUrl = "https://jthomas.info/bible-alarm/media-index";
-        
+
         /// <summary>
         /// Media index file name prefix for new format (v2+)
         /// Old format files don't have this prefix and will be preserved for backward compatibility
@@ -49,17 +49,17 @@ public static class AppConstants
         /// Schedule database filename
         /// </summary>
         public const string ScheduleDatabaseFileName = "bibleAlarm.db";
-        
+
         /// <summary>
         /// Media index database filename
         /// </summary>
         public const string MediaIndexDatabaseFileName = "mediaIndex.db";
-        
+
         /// <summary>
         /// SQLite connection string format for schedule database
         /// </summary>
         public const string ScheduleDatabaseConnectionStringFormat = "Filename={0}";
-        
+
         /// <summary>
         /// SQLite connection string format for media index database
         /// </summary>
@@ -79,22 +79,22 @@ public static class AppConstants
         /// Media cache root directory name
         /// </summary>
         public const string MediaCacheDirectoryName = "MediaCache";
-        
+
         /// <summary>
         /// Logs directory name
         /// </summary>
         public const string LogsDirectoryName = "logs";
-        
+
         /// <summary>
         /// Log file name pattern
         /// </summary>
         public const string LogFileNamePattern = "bible-alarm-.log";
-        
+
         /// <summary>
         /// Media index zip file name
         /// </summary>
         public const string MediaIndexZipFileName = "index.zip";
-        
+
         /// <summary>
         /// Temporary extraction directory name
         /// </summary>
@@ -114,17 +114,17 @@ public static class AppConstants
         /// Application name for logging
         /// </summary>
         public const string ApplicationName = "Bible-Alarm";
-        
+
         /// <summary>
         /// Default font family name
         /// </summary>
         public const string DefaultFontFamily = "OpenSans-Regular";
-        
+
         /// <summary>
         /// Default font file name
         /// </summary>
         public const string DefaultFontFileName = "OpenSans-Regular.ttf";
-        
+
         /// <summary>
         /// Default font resource name
         /// </summary>
@@ -146,22 +146,22 @@ public static class AppConstants
         /// </summary>
         // Weekly
         public const int MediaIndexUpdateCheckDays = 7;
-        
+
         /// <summary>
         /// Download retry attempts
         /// </summary>
         public const int DownloadRetryAttempts = 3;
-        
+
         /// <summary>
         /// File exists check retry attempts
         /// </summary>
         public const int FileExistsCheckRetryAttempts = 3;
-        
+
         /// <summary>
         /// Download timeout in seconds
         /// </summary>
         public const int DownloadTimeoutSeconds = 3;
-        
+
         /// <summary>
         /// Log file retention limit in days
         /// </summary>
@@ -181,22 +181,22 @@ public static class AppConstants
         /// Key for alarm seeded flag
         /// </summary>
         public const string AlarmSeeded = "AlarmSeeded";
-        
+
         /// <summary>
         /// Key for last played schedule ID
         /// </summary>
         public const string LastPlayedScheduleId = "LastPlayedScheduleId";
-        
+
         /// <summary>
         /// Key for review requested flag
         /// </summary>
         public const string ReviewRequested = "ReviewRequested";
-        
+
         /// <summary>
         /// Key for dismiss count
         /// </summary>
         public const string DismissCount = "DismissCount";
-        
+
         /// <summary>
         /// Key for Android battery optimization exclusion prompt shown flag
         /// </summary>
@@ -216,12 +216,12 @@ public static class AppConstants
         /// Console output template for logging
         /// </summary>
         public const string ConsoleOutputTemplate = "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}";
-        
+
         /// <summary>
         /// File output template for logging
         /// </summary>
         public const string FileOutputTemplate = "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}";
-        
+
         /// <summary>
         /// Debug environment identifier
         /// </summary>
@@ -241,17 +241,17 @@ public static class AppConstants
         /// Default language code for English
         /// </summary>
         public const string DefaultLanguageCode = "E";
-        
+
         /// <summary>
         /// Language code patch for bad data (LAH -> LAHU)
         /// </summary>
         public const string LanguageCodePatchFrom = "LAH";
-        
+
         /// <summary>
         /// Language code patch for bad data (LAH -> LAHU)
         /// </summary>
         public const string LanguageCodePatchTo = "LAHU";
-        
+
         /// <summary>
         /// Media file extension for cached files
         /// </summary>
@@ -271,12 +271,12 @@ public static class AppConstants
         /// Android platform identifier
         /// </summary>
         public const string Android = "Android";
-        
+
         /// <summary>
         /// iOS platform identifier
         /// </summary>
         public const string IOs = "iOS";
-        
+
         /// <summary>
         /// Windows platform identifier
         /// </summary>

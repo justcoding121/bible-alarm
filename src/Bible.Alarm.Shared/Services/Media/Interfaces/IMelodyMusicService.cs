@@ -16,17 +16,17 @@ public interface IMelodyMusicService : IDisposable
     /// Gets a MelodyMusic release by publication code, with Tracks included.
     /// </summary>
     Task<MelodyMusic?> GetByCodeWithTracksAsync(string publicationCode, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets all MelodyMusic releases.
     /// </summary>
     Task<Dictionary<string, MelodyMusic>> GetAllAsync(CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Gets all tracks for a MelodyMusic release by publication code, with Source included.
     /// </summary>
     Task<SortedDictionary<int, MusicTrack>> GetTracksByCodeAsync(string publicationCode, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Updates the URL for a MelodyMusic track's audio source.
     /// </summary>

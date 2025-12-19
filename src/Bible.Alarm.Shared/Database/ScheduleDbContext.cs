@@ -1,8 +1,8 @@
+using System.IO;
 using Bible.Alarm.Models;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
-using System.IO;
 
 namespace Bible.Alarm.Shared.Database;
 
@@ -37,11 +37,11 @@ public class ScheduleDbContext : DbContext
             var dbPath = Path.Combine(
                 Directory.GetCurrentDirectory(),
                 AppConstants.Database.ScheduleDatabaseFileName);
-            
+
             var connectionString = string.Format(
                 AppConstants.Database.ScheduleDatabaseConnectionStringFormat,
                 dbPath);
-            
+
             optionsBuilder.UseSqlite(connectionString);
         }
 #endif

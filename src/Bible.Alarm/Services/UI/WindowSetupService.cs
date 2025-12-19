@@ -83,7 +83,10 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
     /// </summary>
     public static void UpdateNavigationBarColors()
     {
-        if (_mainNavPage == null) return;
+        if (_mainNavPage == null)
+        {
+            return;
+        }
 
         try
         {
