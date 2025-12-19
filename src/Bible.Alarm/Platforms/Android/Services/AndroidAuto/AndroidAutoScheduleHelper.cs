@@ -50,10 +50,39 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Returns schedule name if not empty, otherwise "Unnamed schedule".
+    /// Format: BookName Chapter Number (e.g., "Joshua 22")
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
+        if (scheduleItem.BibleReadingScheduleId.HasValue)
+        {
+            // Build title as "BookName ChapterNumber" (e.g., "Joshua 22")
+            var titleParts = new List<string>();
+
+            // Add book name (populated during bootstrap) or fallback to book number
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BookName))
+            {
+                titleParts.Add(scheduleItem.BookName);
+            }
+            else if (scheduleItem.BibleReadingBookNumber.HasValue && scheduleItem.BibleReadingBookNumber.Value > 0)
+            {
+                // Fallback to book number if book name is not available
+                titleParts.Add($"Book {scheduleItem.BibleReadingBookNumber.Value}");
+            }
+
+            // Add chapter number
+            if (scheduleItem.BibleReadingChapterNumber.HasValue && scheduleItem.BibleReadingChapterNumber.Value > 0)
+            {
+                titleParts.Add(scheduleItem.BibleReadingChapterNumber.Value.ToString());
+            }
+
+            if (titleParts.Count > 0)
+            {
+                return string.Join(" ", titleParts);
+            }
+        }
+
+        // Fallback: return schedule name if no Bible reading schedule
         return !string.IsNullOrWhiteSpace(scheduleItem.Name)
             ? scheduleItem.Name
             : "Unnamed schedule";
@@ -61,14 +90,19 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Uses TranslationName from the ScheduleStateItem.
-    /// Returns formatted subtitle with Language, Book, Chapter if BibleReadingSchedule exists,
-    /// otherwise returns status and time.
+    /// Format: • Schedule Name • Language (schedule name omitted if empty)
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
         var subtitleParts = new List<string>();
 
+        // Add schedule name with bullet points only if not empty
+        if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
+        {
+            subtitleParts.Add($"• {scheduleItem.Name} •");
+        }
+
+        // Add language if Bible reading schedule exists
         if (scheduleItem.BibleReadingScheduleId.HasValue)
         {
             // Use TranslationName from ScheduleStateItem (populated during bootstrap)
@@ -77,35 +111,15 @@ public static class AndroidAutoScheduleHelper
                 ? scheduleItem.TranslationName
                 : scheduleItem.BibleReadingLanguageCode ?? string.Empty;
 
-            // Build subtitle with Language, Book Number, Chapter Number
-            // Use data directly from DTO to avoid any async calls that could block
             if (!string.IsNullOrWhiteSpace(languageName))
             {
                 subtitleParts.Add(languageName);
             }
-
-            // Add book name (populated during bootstrap) or fallback to book number
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BookName))
-            {
-                subtitleParts.Add(scheduleItem.BookName);
-            }
-            else if (scheduleItem.BibleReadingBookNumber.HasValue && scheduleItem.BibleReadingBookNumber.Value > 0)
-            {
-                // Fallback to book number if book name is not available
-                subtitleParts.Add($"Book {scheduleItem.BibleReadingBookNumber.Value}");
-            }
-
-            // Add chapter number
-            if (scheduleItem.BibleReadingChapterNumber.HasValue && scheduleItem.BibleReadingChapterNumber.Value > 0)
-            {
-                subtitleParts.Add($"Chapter {scheduleItem.BibleReadingChapterNumber.Value}");
-            }
         }
 
-        // Set subtitle - Language, Book, Chapter (or status/time if no Bible reading)
         if (subtitleParts.Count > 0)
         {
-            return string.Join(" • ", subtitleParts);
+            return string.Join(" ", subtitleParts);
         }
         else
         {
