@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace Bible.Alarm.Services.UI.Interfaces;
 
 public interface IWindowSetupService : IDisposable

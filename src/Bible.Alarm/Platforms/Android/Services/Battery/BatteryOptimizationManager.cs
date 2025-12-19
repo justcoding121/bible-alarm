@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common.Interfaces.Battery;
@@ -16,15 +17,10 @@ public class AndroidBatteryOptimizationManager : IBatteryOptimizationManager, ID
     {
         try
         {
-            if (AndroidBuild.VERSION.SdkInt >= BuildVersionCodes.M)
-            {
-                var intent = new Intent();
-
-#pragma warning disable CA1416
-                intent.SetAction(AndroidProvider.Settings.ActionIgnoreBatteryOptimizationSettings);
-#pragma warning restore CA1416
-                AndroidApplication.Context.StartActivity(intent);
-            }
+            // Minimum supported is API 26, so this is always available
+            var intent = new Intent();
+            intent.SetAction(AndroidProvider.Settings.ActionIgnoreBatteryOptimizationSettings);
+            AndroidApplication.Context.StartActivity(intent);
         }
         catch (Exception e)
         {

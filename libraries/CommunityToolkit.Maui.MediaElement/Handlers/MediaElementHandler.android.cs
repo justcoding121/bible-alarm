@@ -1,3 +1,5 @@
+#nullable enable
+
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui;

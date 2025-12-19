@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Versioning;
 using Android.App;
@@ -181,6 +183,7 @@ sealed partial class MediaControlsService : Service
 
         CreateNotificationChannel(NotificationManager);
 
+		// ForegroundService.TypeMediaPlayback requires API 29+, minimum supported is API 26
 		if (OperatingSystem.IsAndroidVersionAtLeast(29))
 		{
 			if (notificationBuilder.Build() is Notification notification)

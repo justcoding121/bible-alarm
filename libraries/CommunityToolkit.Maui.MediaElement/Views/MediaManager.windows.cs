@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Diagnostics;
 using System.Numerics;
 using CommunityToolkit.Maui.Core.Primitives;

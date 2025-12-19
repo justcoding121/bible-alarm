@@ -1,4 +1,6 @@
-﻿using Bible.Alarm.Stores.Models;
+﻿#nullable enable
+
+using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions.Schedule;
 

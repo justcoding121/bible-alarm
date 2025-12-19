@@ -1,3 +1,5 @@
+#nullable enable
+
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;

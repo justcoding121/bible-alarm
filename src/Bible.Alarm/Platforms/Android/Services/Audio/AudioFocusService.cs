@@ -11,19 +11,19 @@ namespace Bible.Alarm.Platforms.Android.Services.Audio;
 /// </summary>
 public sealed class AudioFocusService
 {
-    private static readonly ILogger Logger = Log.ForContext<AudioFocusService>();
-    private readonly AudioFocusListener _audioFocusListener;
-    private readonly AudioManager _audioManager;
-    private AudioFocusRequestClass? _audioFocusRequest;
+    private static readonly ILogger logger = Log.ForContext<AudioFocusService>();
+    private readonly AudioFocusListener audioFocusListener;
+    private readonly AudioManager audioManager;
+    private AudioFocusRequestClass? audioFocusRequest;
 
-    private readonly object _lock = new();
+    private readonly object @lock = new();
 
     /// <summary>
     /// Initializes the audio focus service with the global audio focus listener.
     /// </summary>
     public AudioFocusService(AudioFocusListener audioFocusListener)
     {
-        _audioFocusListener = audioFocusListener ?? throw new ArgumentNullException(nameof(audioFocusListener));
+        this.audioFocusListener = audioFocusListener ?? throw new ArgumentNullException(nameof(audioFocusListener));
 
         // Initialize AudioManager in constructor - Application.Context is available at this point
         var context = global::Android.App.Application.Context;
@@ -32,13 +32,13 @@ public sealed class AudioFocusService
             throw new InvalidOperationException("Android Application.Context is null - cannot initialize AudioFocusService");
         }
 
-        _audioManager = context.GetSystemService(global::Android.Content.Context.AudioService) as AudioManager;
-        if (_audioManager == null)
+        audioManager = context.GetSystemService(global::Android.Content.Context.AudioService) as AudioManager;
+        if (audioManager == null)
         {
             throw new InvalidOperationException("Failed to get AudioManager from Application.Context");
         }
 
-        Logger.Debug("AudioFocusService initialized with AudioManager");
+        logger.Debug("AudioFocusService initialized with AudioManager");
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public sealed class AudioFocusService
     /// </summary>
     public void RequestAudioFocus()
     {
-        lock (_lock)
+        lock (@lock)
         {
             try
             {
@@ -59,44 +59,44 @@ public sealed class AudioFocusService
                         .SetContentType(AudioContentType.Music)
                         .Build();
 
-                    _audioFocusRequest = new AudioFocusRequestClass.Builder(AudioFocus.Gain)
+                    audioFocusRequest = new AudioFocusRequestClass.Builder(AudioFocus.Gain)
                         .SetAudioAttributes(audioAttributes)
                         .SetAcceptsDelayedFocusGain(true)
-                        .SetOnAudioFocusChangeListener(_audioFocusListener)
+                        .SetOnAudioFocusChangeListener(audioFocusListener)
                         .Build();
 
-                    var result = _audioManager.RequestAudioFocus(_audioFocusRequest);
+                    var result = audioManager.RequestAudioFocus(audioFocusRequest);
 
                     if (result == AudioFocusRequest.Granted)
                     {
-                        Logger.Information("Audio focus granted - playback can start");
+                        logger.Information("Audio focus granted - playback can start");
                     }
                     else
                     {
-                        Logger.Warning("Audio focus request returned: {Result}", result);
+                        logger.Warning("Audio focus request returned: {Result}", result);
                     }
                 }
                 else
                 {
                     // Android 7.1 and below - use legacy API
-                    var result = _audioManager.RequestAudioFocus(
-                        _audioFocusListener,
+                    var result = audioManager.RequestAudioFocus(
+                        audioFocusListener,
                         MediaStream.Music,
                         AudioFocus.Gain);
 
                     if (result == AudioFocusRequest.Granted)
                     {
-                        Logger.Information("Audio focus granted (legacy API) - playback can start");
+                        logger.Information("Audio focus granted (legacy API) - playback can start");
                     }
                     else
                     {
-                        Logger.Warning("Audio focus request returned: {Result}", result);
+                        logger.Warning("Audio focus request returned: {Result}", result);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Error requesting audio focus");
+                logger.Error(ex, "Error requesting audio focus");
             }
         }
     }
@@ -106,7 +106,7 @@ public sealed class AudioFocusService
     /// </summary>
     public void ReleaseAudioFocus()
     {
-        lock (_lock)
+        lock (@lock)
         {
             ReleaseAudioFocusInternal();
         }
@@ -122,28 +122,28 @@ public sealed class AudioFocusService
             if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
             {
                 // Android 8.0+ (API 26+)
-                if (_audioFocusRequest != null)
+                if (audioFocusRequest != null)
                 {
-                    _audioManager.AbandonAudioFocusRequest(_audioFocusRequest);
-                    _audioFocusRequest = null;
-                    Logger.Debug("Audio focus released");
+                    audioManager.AbandonAudioFocusRequest(audioFocusRequest);
+                    audioFocusRequest = null;
+                    logger.Debug("Audio focus released");
                 }
             }
             else
             {
                 // Android 7.1 and below - use legacy API
                 // Safe to call even if we don't have focus
-                _audioManager.AbandonAudioFocus(_audioFocusListener);
-                Logger.Debug("Audio focus released (legacy API)");
+                audioManager.AbandonAudioFocus(audioFocusListener);
+                logger.Debug("Audio focus released (legacy API)");
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error releasing audio focus");
+            logger.Error(ex, "Error releasing audio focus");
             // Reset flag on error to prevent getting stuck
             if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
             {
-                _audioFocusRequest = null;
+                audioFocusRequest = null;
             }
         }
     }

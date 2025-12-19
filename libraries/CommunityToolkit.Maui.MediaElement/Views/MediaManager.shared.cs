@@ -1,3 +1,5 @@
+#nullable enable
+
 #if !(ANDROID || IOS || WINDOWS || MACCATALYST || TIZEN)
 global using PlatformMediaElement = System.Object;
 #elif ANDROID

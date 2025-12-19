@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;

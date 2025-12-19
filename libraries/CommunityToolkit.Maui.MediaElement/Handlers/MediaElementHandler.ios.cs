@@ -1,4 +1,6 @@
-﻿using AVKit;
+﻿#nullable enable
+
+using AVKit;
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Handlers;

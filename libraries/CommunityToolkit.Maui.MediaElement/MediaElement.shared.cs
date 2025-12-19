@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.ComponentModel;
 using CommunityToolkit.Maui.Converters;
 using CommunityToolkit.Maui.Core;

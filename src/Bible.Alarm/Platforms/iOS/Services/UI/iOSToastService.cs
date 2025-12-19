@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
@@ -37,11 +38,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI
 
             await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
-                // Validate platform compatibility
-#pragma warning disable CA1422
                 var window = UIApplication.SharedApplication.KeyWindow;
-                // Validate platform compatibility
-#pragma warning restore CA1422
                 if (window?.RootViewController?.View == null)
                 {
                     return;

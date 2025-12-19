@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Android.App.Job;
 using Android.Content;
 using Android.OS;
@@ -15,12 +16,8 @@ public static class JobSchedulerHelper
         var builder = new JobInfo.Builder(jobId, componentName);
         builder.SetRequiredNetworkType(NetworkType.Any);
 
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
-        {
-#pragma warning disable CA1416
-            builder.SetRequiresBatteryNotLow(true);
-#pragma warning restore CA1416
-        }
+        // Minimum supported is API 26, so this is always available
+        builder.SetRequiresBatteryNotLow(true);
 
         builder.SetPeriodic(1000 * 60 * intervalMinutes);
 

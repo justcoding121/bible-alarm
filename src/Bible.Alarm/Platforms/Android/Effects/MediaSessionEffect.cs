@@ -24,7 +24,7 @@ public class MediaSessionEffect(
     IState<PlaybackState> playbackState,
     AndroidArtworkService artworkService) : IRecipient<PlaybackPositionChangedMessage>
 {
-    private static readonly ILogger Logger = Log.ForContext<MediaSessionEffect>();
+    private static readonly ILogger logger = Log.ForContext<MediaSessionEffect>();
 
     public void RegisterMessageHandlers()
     {
@@ -40,7 +40,7 @@ public class MediaSessionEffect(
             var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
-                Logger.Warning("MediaSessionCompat is null, cannot update playback state");
+                logger.Warning("MediaSessionCompat is null, cannot update playback state");
                 return Task.CompletedTask;
             }
 
@@ -53,7 +53,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error updating MediaSessionCompat playback state");
+            logger.Error(ex, "Error updating MediaSessionCompat playback state");
         }
 
         return Task.CompletedTask;
@@ -68,7 +68,7 @@ public class MediaSessionEffect(
             var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
-                Logger.Warning("MediaSessionCompat is null, cannot update metadata");
+                logger.Warning("MediaSessionCompat is null, cannot update metadata");
                 return Task.CompletedTask;
             }
 
@@ -101,7 +101,7 @@ public class MediaSessionEffect(
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
+                        logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
                     }
                 }
 
@@ -110,7 +110,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error updating MediaSessionCompat metadata");
+            logger.Error(ex, "Error updating MediaSessionCompat metadata");
         }
 
         return Task.CompletedTask;
@@ -125,7 +125,7 @@ public class MediaSessionEffect(
             var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
-                Logger.Warning("MediaSessionCompat is null, cannot update duration");
+                logger.Warning("MediaSessionCompat is null, cannot update duration");
                 return Task.CompletedTask;
             }
 
@@ -144,7 +144,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error updating MediaSessionCompat duration");
+            logger.Error(ex, "Error updating MediaSessionCompat duration");
         }
 
         return Task.CompletedTask;
@@ -159,7 +159,7 @@ public class MediaSessionEffect(
             var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
-                Logger.Warning("MediaSessionCompat is null, cannot update navigation state");
+                logger.Warning("MediaSessionCompat is null, cannot update navigation state");
                 return Task.CompletedTask;
             }
 
@@ -183,7 +183,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error updating MediaSessionCompat navigation state");
+            logger.Error(ex, "Error updating MediaSessionCompat navigation state");
         }
 
         return Task.CompletedTask;
@@ -218,7 +218,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error updating MediaSessionCompat playback position");
+            logger.Error(ex, "Error updating MediaSessionCompat playback position");
         }
     }
 }

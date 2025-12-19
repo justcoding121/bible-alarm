@@ -1,3 +1,5 @@
+#nullable enable
+
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Bible;

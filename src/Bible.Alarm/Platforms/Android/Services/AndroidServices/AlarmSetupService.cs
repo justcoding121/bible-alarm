@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Android.App;
 using Android.Content;
 using Android.OS;
@@ -144,9 +145,8 @@ public class AlarmSetupService : Service, IDisposable
             using var alarmService = (AlarmManager)context.GetSystemService(AlarmService);
 
             // Check if exact alarms can be scheduled (Android 12+)
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.S)
+            if (OperatingSystem.IsAndroidVersionAtLeast(31))
             {
-#pragma warning disable CA1416
                 if (!alarmService.CanScheduleExactAlarms())
                 {
                     Logger.Warning("Cannot schedule exact alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may have been revoked by user.", scheduleId);
@@ -154,7 +154,6 @@ public class AlarmSetupService : Service, IDisposable
                     // The app should guide users to Settings > Apps > Bible Alarm > Alarms & reminders
                     return;
                 }
-#pragma warning restore CA1416
             }
 
             // Figure out the alarm in milliseconds.

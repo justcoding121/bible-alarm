@@ -1,4 +1,6 @@
-﻿using Bible.Alarm.Shared.DataStructures;
+﻿#nullable enable
+
+using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions;

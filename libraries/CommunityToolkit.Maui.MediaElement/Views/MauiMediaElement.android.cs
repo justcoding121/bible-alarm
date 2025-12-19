@@ -1,4 +1,6 @@
-﻿using Android.App;
+﻿#nullable enable
+
+using Android.App;
 using Android.Content;
 using Android.Runtime;
 using Android.Views;
@@ -20,25 +22,23 @@ namespace CommunityToolkit.Maui.Core.Views;
 /// </summary>
 public class MauiMediaElement : CoordinatorLayout
 {
-	readonly RelativeLayout relativeLayout;
-	readonly PlayerView playerView;
+	readonly RelativeLayout? relativeLayout;
+	readonly PlayerView? playerView;
 
 	int defaultSystemUiVisibility;
 	bool isSystemBarVisible;
 	bool isFullScreen;
 
-	// Non-nullable field is uninitialized. Consider declaring as nullable.
-#pragma warning disable CS8618
-	// Remove unused parameter
-#pragma warning disable IDE0060
-	public MauiMediaElement(nint ptr, JniHandleOwnership jni) : base(Platform.AppContext)
+	public MauiMediaElement(nint ptr, JniHandleOwnership _) : base(Platform.AppContext)
 	{
 		//Fixes no constructor found exception: https://github.com/CommunityToolkit/Maui/pull/1692#issuecomment-1955099758
+		// JNI constructor - fields will be initialized in the proper constructor
+		relativeLayout = null;
+		playerView = null;
+		defaultSystemUiVisibility = 0;
+		isSystemBarVisible = false;
+		isFullScreen = false;
 	}
-	// Non-nullable field is uninitialized. Consider declaring as nullable.
-#pragma warning restore CS8618
-	// Remove unused parameter
-#pragma warning restore IDE0060
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class.
@@ -61,6 +61,11 @@ public class MauiMediaElement : CoordinatorLayout
 		relativeLayout.AddView(playerView);
 
 		AddView(relativeLayout);
+		
+		// Initialize fields
+		defaultSystemUiVisibility = 0;
+		isSystemBarVisible = false;
+		isFullScreen = false;
 	}
 
 	public override void OnDetachedFromWindow()
@@ -96,14 +101,14 @@ public class MauiMediaElement : CoordinatorLayout
 		{
 			try
 			{
-				if (playerView.Player is not null)
+				if (playerView?.Player is not null)
 				{
 					playerView.Player.PlayWhenReady = false;
 				}
 				// https://github.com/google/ExoPlayer/issues/1855#issuecomment-251041500
-				playerView.Player?.Release();
-				playerView.Player?.Dispose();
-				playerView.Dispose();
+				playerView?.Player?.Release();
+				playerView?.Player?.Dispose();
+				playerView?.Dispose();
 			}
 			catch (ObjectDisposedException)
 			{
@@ -117,9 +122,9 @@ public class MauiMediaElement : CoordinatorLayout
 	void OnFullscreenButtonClick(object? sender, PlayerView.FullscreenButtonClickEventArgs e)
 	{
 		// Ensure there is a player view
-		if (playerView is null)
+		if (playerView is null || relativeLayout is null)
 		{
-			throw new InvalidOperationException("UpdatedPlayerView cannot be null when the FullScreen button is tapped");
+			throw new InvalidOperationException("PlayerView and RelativeLayout cannot be null when the FullScreen button is tapped");
 		}
 		var layout = CurrentPlatformContext.CurrentWindow.DecorView as ViewGroup;
 		// `p0` is the boolean value of isFullScreen being passed into the method. 

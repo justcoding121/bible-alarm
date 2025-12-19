@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Bible.Alarm.Common.Helpers;
@@ -41,11 +42,16 @@ public static class ResourceLoader
         return stream;
     }
 
+    [RequiresDynamicCode("Assembly.Location may not be available in AOT scenarios. Consider using GetManifestResourceStream instead.")]
     public static FileInfo GetFileInfo(Assembly assembly)
     {
-#pragma warning disable IL3000
+        // Assembly.Location is not available in AOT/trimmed scenarios
+        // This method should only be used when AOT is not enabled
+        if (string.IsNullOrEmpty(assembly.Location))
+        {
+            throw new InvalidOperationException("Assembly.Location is not available. This method cannot be used in AOT/trimmed scenarios.");
+        }
         return new FileInfo(assembly.Location);
-#pragma warning restore IL3000
     }
 }
 

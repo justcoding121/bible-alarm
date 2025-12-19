@@ -1,3 +1,5 @@
+#nullable enable
+
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
