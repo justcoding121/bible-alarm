@@ -433,7 +433,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         descriptionBuilder.SetSubtitle(subtitle);
         descriptionBuilder.SetDescription(description);
 
-        var bookIconBitmap = CreateBookIconBitmap();
+        var bookIconBitmap = CreateBookIconBitmap(scheduleItem.MusicEnabled);
         if (bookIconBitmap != null)
         {
             descriptionBuilder.SetIconBitmap(bookIconBitmap);
@@ -541,16 +541,17 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     /// <summary>
     /// Creates a bitmap icon for playlist items to display in Android Auto.
     /// Uses a custom open book icon to represent Bible reading schedules.
+    /// When music is enabled, creates a composite icon with a music note in the top left.
     /// Android Auto requires icons to be at least 64x64 pixels for proper display.
     /// </summary>
-    private Bitmap? CreateBookIconBitmap()
+    private Bitmap? CreateBookIconBitmap(bool musicEnabled)
     {
         try
         {
             // Use custom open book icon from app resources
             // This provides a recognizable icon for Bible reading content in Android Auto
-            var drawable = ContextCompat.GetDrawable(this, Resource.Drawable.ic_book_open);
-            if (drawable == null)
+            var bookDrawable = ContextCompat.GetDrawable(this, Resource.Drawable.ic_book_open);
+            if (bookDrawable == null)
             {
                 logger.Warning("Could not get app drawable for book icon");
                 return null;
@@ -558,18 +559,42 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
             // Android Auto requires icons to be at least 64x64 pixels for proper display
             // Use a larger size to ensure good quality on high-DPI displays
-            const int IconSize = 128;
+            // Calculate consistent bitmap size and book position for both music enabled/disabled
+            const int BookIconSize = 128;
+            const int MusicIconSize = BookIconSize / 2; // Music icon (twice the previous size)
+            const int MusicOffset = 4; // Offset from top-left corner
+            const int BookOffset = MusicIconSize - 8; // Offset book closer to music icon (reduced gap)
+            const int BitmapSize = BookIconSize + BookOffset; // Total bitmap size (same for both cases)
+            
             var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
-            var bitmap = Bitmap.CreateBitmap(IconSize, IconSize, config);
+            var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
 
             // Clear the bitmap with transparent background
             bitmap.EraseColor(global::Android.Graphics.Color.Transparent);
 
             var canvas = new Canvas(bitmap);
-            drawable.SetBounds(0, 0, IconSize, IconSize);
-            drawable.Draw(canvas);
+            
+            // If music is enabled, add music note in top left (outside book icon)
+            if (musicEnabled)
+            {
+                var musicDrawable = ContextCompat.GetDrawable(this, Resource.Drawable.ic_music_note);
+                if (musicDrawable != null)
+                {
+                    // Draw music note in top left corner (outside and separate from book icon)
+                    musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
+                    musicDrawable.Draw(canvas);
+                }
+                else
+                {
+                    logger.Warning("Could not get app drawable for music note icon");
+                }
+            }
+            
+            // Draw book icon at the same position regardless of music (for consistent appearance)
+            bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
+            bookDrawable.Draw(canvas);
 
-            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}", IconSize, IconSize);
+            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}, MusicEnabled: {MusicEnabled}", BitmapSize, BitmapSize, musicEnabled);
             return bitmap;
         }
         catch (Exception ex)

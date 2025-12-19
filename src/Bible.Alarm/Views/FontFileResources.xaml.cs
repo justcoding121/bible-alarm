@@ -102,4 +102,6 @@ public class GlyphNames
     public static string Trash = "\uf2ed";
     // Font Awesome circle-info icon
     public static string InfoCircle = "\uf05a";
+    // Font Awesome music note icon
+    public static string Music = "\uf001";
 }

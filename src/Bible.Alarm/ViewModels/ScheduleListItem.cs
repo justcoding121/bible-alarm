@@ -78,6 +78,7 @@ public class ScheduleListItem(
         OnPropertyChanged(nameof(MeridianText));
         OnPropertyChanged(nameof(DaysOfWeek));
         OnPropertyChanged(nameof(IsEnabled));
+        OnPropertyChanged(nameof(MusicEnabled));
 
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
@@ -163,6 +164,8 @@ public class ScheduleListItem(
     public string SubTitle { get; private set; } = string.Empty;
 
     public string Language { get; private set; } = string.Empty;
+
+    public bool MusicEnabled => Schedule?.MusicEnabled ?? false;
 
     private bool isEnabled;
 
@@ -468,6 +471,7 @@ public class ScheduleListItem(
         var oldName = Schedule?.Name ?? string.Empty;
         var oldHour = Schedule?.Hour ?? 0;
         var oldMinute = Schedule?.Minute ?? 0;
+        var oldMusicEnabled = Schedule?.MusicEnabled ?? false;
 
         // Update the schedule reference
         Schedule = updatedSchedule;
@@ -478,6 +482,7 @@ public class ScheduleListItem(
         var isEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled;
         var nameChanged = oldName != updatedSchedule.Name;
         var timeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute;
+        var musicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled;
 
         // Check if subtitle-related properties changed
         var newTranslationName = updatedScheduleItem.TranslationName;
@@ -526,6 +531,10 @@ public class ScheduleListItem(
                 OnPropertyChanged(nameof(Minute));
                 OnPropertyChanged(nameof(Meridian));
                 OnPropertyChanged(nameof(MeridianText));
+            }
+            if (musicEnabledChanged)
+            {
+                OnPropertyChanged(nameof(MusicEnabled));
             }
         });
     }
