@@ -9,333 +9,332 @@ using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
 
-namespace Bible.Alarm.Platforms.Windows.Services.UI
+namespace Bible.Alarm.Platforms.Windows.Services.UI;
+
+public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : INotificationService, IDisposable
 {
-    public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : INotificationService, IDisposable
+    private bool isDisposed;
+    private readonly IServiceProvider serviceProvider = serviceProvider;
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+    public async Task ShowNotificationAsync(int scheduleId)
     {
-        private bool _isDisposed;
-        private readonly IServiceProvider _serviceProvider = serviceProvider;
-        private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        // Resolve WindowsAlarmHandler lazily to break circular dependency
+        // WindowsNotificationService -> WindowsAlarmHandler -> IPlaybackService -> INotificationService
+        var windowsAlarmHandler = serviceProvider.GetRequiredService<IWindowsAlarmHandler>();
+        await windowsAlarmHandler.HandleAsync(scheduleId, true);
+    }
 
-        public async Task ShowNotificationAsync(int scheduleId)
+    public Task ScheduleNotificationAsync(AlarmSchedule schedule,
+        string title, string body)
+    {
+        try
         {
-            // Resolve WindowsAlarmHandler lazily to break circular dependency
-            // WindowsNotificationService -> WindowsAlarmHandler -> IPlaybackService -> INotificationService
-            var windowsAlarmHandler = _serviceProvider.GetRequiredService<IWindowsAlarmHandler>();
-            await windowsAlarmHandler.HandleAsync(scheduleId, true);
+            var scheduleId = schedule.Id;
+            var time = schedule.NextFireDate();
+
+            if (time <= DateTimeOffset.Now)
+            {
+                logger.Warning("Cannot schedule notification for schedule {ScheduleId}: time {Time} is in the past", scheduleId, time);
+                return Task.CompletedTask;
+            }
+
+            logger.Information("Scheduling notification for schedule {ScheduleId} at {Time}", scheduleId, time);
+
+            var notifier = GetToastNotifier();
+            if (notifier == null)
+            {
+                logger.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications.", scheduleId);
+                return Task.CompletedTask;
+            }
+
+            var toast = CreateScheduledToast(scheduleId, title, body, time);
+            notifier.AddToSchedule(toast);
+
+            if (IsNotificationScheduled(notifier, scheduleId))
+            {
+                logger.Information("Successfully scheduled notification for schedule {ScheduleId} at {Time}", scheduleId, time);
+            }
+            else
+            {
+                logger.Warning("Notification may not have been scheduled for schedule {ScheduleId}. Check Windows notification settings.", scheduleId);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error scheduling notification for schedule {ScheduleId}", schedule.Id);
         }
 
-        public Task ScheduleNotificationAsync(AlarmSchedule schedule,
-            string title, string body)
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveAsync(int scheduleId)
+    {
+        try
         {
-            try
+            var notifier = GetToastNotifier();
+            if (notifier is null)
             {
-                var scheduleId = schedule.Id;
-                var time = schedule.NextFireDate();
-
-                if (time <= DateTimeOffset.Now)
-                {
-                    _logger.Warning("Cannot schedule notification for schedule {ScheduleId}: time {Time} is in the past", scheduleId, time);
-                    return Task.CompletedTask;
-                }
-
-                _logger.Information("Scheduling notification for schedule {ScheduleId} at {Time}", scheduleId, time);
-
-                var notifier = GetToastNotifier();
-                if (notifier == null)
-                {
-                    _logger.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications.", scheduleId);
-                    return Task.CompletedTask;
-                }
-
-                var toast = CreateScheduledToast(scheduleId, title, body, time);
-                notifier.AddToSchedule(toast);
-
-                if (IsNotificationScheduled(notifier, scheduleId))
-                {
-                    _logger.Information("Successfully scheduled notification for schedule {ScheduleId} at {Time}", scheduleId, time);
-                }
-                else
-                {
-                    _logger.Warning("Notification may not have been scheduled for schedule {ScheduleId}. Check Windows notification settings.", scheduleId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error scheduling notification for schedule {ScheduleId}", schedule.Id);
+                return Task.CompletedTask;
             }
 
-            return Task.CompletedTask;
+            var toRemove = FindScheduledToast(notifier, scheduleId);
+            if (toRemove is not null)
+            {
+                notifier.RemoveFromSchedule(toRemove);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error removing notification for schedule {ScheduleId}", scheduleId);
         }
 
-        public Task RemoveAsync(int scheduleId)
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> IsScheduledAsync(int scheduleId)
+    {
+        try
         {
-            try
+            var notifier = GetToastNotifier();
+            if (notifier is null)
             {
-                var notifier = GetToastNotifier();
-                if (notifier is null)
-                {
-                    return Task.CompletedTask;
-                }
-
-                var toRemove = FindScheduledToast(notifier, scheduleId);
-                if (toRemove is not null)
-                {
-                    notifier.RemoveFromSchedule(toRemove);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error removing notification for schedule {ScheduleId}", scheduleId);
-            }
-
-            return Task.CompletedTask;
-        }
-
-        public Task<bool> IsScheduledAsync(int scheduleId)
-        {
-            try
-            {
-                var notifier = GetToastNotifier();
-                if (notifier is null)
-                {
-                    return Task.FromResult(false);
-                }
-
-                return Task.FromResult(IsNotificationScheduled(notifier, scheduleId));
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error checking if notification is scheduled for schedule {ScheduleId}", scheduleId);
                 return Task.FromResult(false);
             }
+
+            return Task.FromResult(IsNotificationScheduled(notifier, scheduleId));
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error checking if notification is scheduled for schedule {ScheduleId}", scheduleId);
+            return Task.FromResult(false);
+        }
+    }
+
+    public Task<bool> CanScheduleAsync()
+    {
+        return Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
+    }
+
+    private static ScheduledToastNotification CreateScheduledToast(int scheduleId, string title, string body, DateTimeOffset time)
+    {
+        var toastXml = CreateToastXml(title, body, scheduleId);
+        return new ScheduledToastNotification(toastXml, time)
+        {
+            Id = scheduleId.ToString()
+        };
+    }
+
+    private static XmlDocument CreateToastXml(string title, string body, int scheduleId)
+    {
+        var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
+
+        var textElements = toastXml.GetElementsByTagName("text");
+        if (textElements.Length > 0)
+        {
+            textElements[0].AppendChild(toastXml.CreateTextNode(title));
         }
 
-        public Task<bool> CanScheduleAsync()
+        if (textElements.Length > 1)
         {
-            return Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
+            textElements[1].AppendChild(toastXml.CreateTextNode(body));
         }
 
-        private static ScheduledToastNotification CreateScheduledToast(int scheduleId, string title, string body, DateTimeOffset time)
+        var toastNode = toastXml.SelectSingleNode("/toast");
+        if (toastNode?.Attributes != null)
         {
-            var toastXml = CreateToastXml(title, body, scheduleId);
-            return new ScheduledToastNotification(toastXml, time)
+            var launchAttribute = toastXml.CreateAttribute("launch");
+            launchAttribute.Value = scheduleId.ToString();
+            toastNode.Attributes.SetNamedItem(launchAttribute);
+        }
+
+        var audioNode = toastXml.CreateElement("audio");
+        audioNode.SetAttribute("src", "ms-winsoundevent:Notification.Default");
+        toastNode?.AppendChild(audioNode);
+
+        return toastXml;
+    }
+
+    private static bool IsNotificationScheduled(ToastNotifier notifier, int scheduleId)
+    {
+        var scheduledToasts = notifier.GetScheduledToastNotifications();
+        var scheduleIdString = scheduleId.ToString();
+        foreach (var toast in scheduledToasts)
+        {
+            if (toast.Id == scheduleIdString)
             {
-                Id = scheduleId.ToString()
-            };
+                return true;
+            }
         }
+        return false;
+    }
 
-        private static XmlDocument CreateToastXml(string title, string body, int scheduleId)
+    private static ScheduledToastNotification? FindScheduledToast(ToastNotifier notifier, int scheduleId)
+    {
+        var scheduledToasts = notifier.GetScheduledToastNotifications();
+        var scheduleIdString = scheduleId.ToString();
+        foreach (var toast in scheduledToasts)
         {
-            var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
-
-            var textElements = toastXml.GetElementsByTagName("text");
-            if (textElements.Length > 0)
+            if (toast.Id == scheduleIdString)
             {
-                textElements[0].AppendChild(toastXml.CreateTextNode(title));
+                return toast;
+            }
+        }
+        return null;
+    }
+
+    private static ToastNotifier? GetToastNotifier()
+    {
+        try
+        {
+            var notifier = TryCreateNotifierWithoutParameters();
+            if (notifier is not null)
+            {
+                return notifier;
             }
 
-            if (textElements.Length > 1)
+            notifier = TryCreateNotifierWithAumid();
+            if (notifier is not null)
             {
-                textElements[1].AppendChild(toastXml.CreateTextNode(body));
+                return notifier;
             }
 
-            var toastNode = toastXml.SelectSingleNode("/toast");
-            if (toastNode?.Attributes != null)
-            {
-                var launchAttribute = toastXml.CreateAttribute("launch");
-                launchAttribute.Value = scheduleId.ToString();
-                toastNode.Attributes.SetNamedItem(launchAttribute);
-            }
-
-            var audioNode = toastXml.CreateElement("audio");
-            audioNode.SetAttribute("src", "ms-winsoundevent:Notification.Default");
-            toastNode?.AppendChild(audioNode);
-
-            return toastXml;
+            Serilog.Log.Warning(
+                "Unable to create toast notifier. Scheduled notifications will not work. " +
+                "This is common in debug mode or when the app is not properly registered for notifications. " +
+                "Try running the app from an installed package instead of Visual Studio.");
+        }
+        catch (Exception ex)
+        {
+            // Catch any unexpected exceptions during notifier creation
+            Serilog.Log.Warning(ex, "Unexpected error creating toast notifier. Scheduled notifications will not work.");
         }
 
-        private static bool IsNotificationScheduled(ToastNotifier notifier, int scheduleId)
+        return null;
+    }
+
+    private static ToastNotifier? TryCreateNotifierWithoutParameters()
+    {
+        try
         {
-            var scheduledToasts = notifier.GetScheduledToastNotifications();
-            var scheduleIdString = scheduleId.ToString();
-            foreach (var toast in scheduledToasts)
+            Serilog.Log.Debug("Attempting to create toast notifier without parameters...");
+            var notifier = ToastNotificationManager.CreateToastNotifier();
+            if (notifier is not null)
             {
-                if (toast.Id == scheduleIdString)
+                Serilog.Log.Debug("Successfully created toast notifier without parameters");
+                return notifier;
+            }
+            Serilog.Log.Warning("ToastNotificationManager.CreateToastNotifier() returned null");
+        }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            // Check HResult - 0x80070490 = Element not found
+            // This is common in debug mode or when app is not registered for notifications
+            if (ex.HResult == unchecked((int)0x80070490))
+            {
+                // This is expected and handled gracefully - no need to log as error
+                Serilog.Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
+            }
+            else
+            {
+                // Catch any other COM exceptions
+                Serilog.Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Catch any other exceptions - safely get HResult if available
+            var hResult = 0;
+            if (ex is System.Runtime.InteropServices.COMException comEx)
+            {
+                hResult = comEx.HResult;
+            }
+            else
+            {
+                try
                 {
-                    return true;
+                    hResult = ex.HResult;
+                }
+                catch
+                {
+                    // HResult not available on this exception type
                 }
             }
-            return false;
+            Serilog.Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", hResult);
         }
+        return null;
+    }
 
-        private static ScheduledToastNotification? FindScheduledToast(ToastNotifier notifier, int scheduleId)
+    private static ToastNotifier? TryCreateNotifierWithAumid()
+    {
+        try
         {
-            var scheduledToasts = notifier.GetScheduledToastNotifications();
-            var scheduleIdString = scheduleId.ToString();
-            foreach (var toast in scheduledToasts)
-            {
-                if (toast.Id == scheduleIdString)
-                {
-                    return toast;
-                }
-            }
-            return null;
-        }
+            var package = Package.Current;
+            var packageId = package.Id;
 
-        private static ToastNotifier? GetToastNotifier()
-        {
-            try
+            string[] aumidFormats =
+            [
+                $"{packageId.FamilyName}!App",
+                packageId.FamilyName,
+                packageId.Name,
+            ];
+
+            foreach (var aumid in aumidFormats)
             {
-                var notifier = TryCreateNotifierWithoutParameters();
+                var notifier = TryCreateNotifierWithAumid(aumid);
                 if (notifier is not null)
                 {
                     return notifier;
                 }
-
-                notifier = TryCreateNotifierWithAumid();
-                if (notifier is not null)
-                {
-                    return notifier;
-                }
-
-                Serilog.Log.Warning(
-                    "Unable to create toast notifier. Scheduled notifications will not work. " +
-                    "This is common in debug mode or when the app is not properly registered for notifications. " +
-                    "Try running the app from an installed package instead of Visual Studio.");
-            }
-            catch (Exception ex)
-            {
-                // Catch any unexpected exceptions during notifier creation
-                Serilog.Log.Warning(ex, "Unexpected error creating toast notifier. Scheduled notifications will not work.");
             }
 
-            return null;
+            Serilog.Log.Warning(
+                "Failed to create toast notifier with any AUMID format. " +
+                "Package: {PackageName}, FamilyName: {FamilyName}, Publisher: {Publisher}",
+                packageId.Name, packageId.FamilyName, packageId.Publisher);
         }
-
-        private static ToastNotifier? TryCreateNotifierWithoutParameters()
+        catch (InvalidOperationException)
         {
-            try
-            {
-                Serilog.Log.Debug("Attempting to create toast notifier without parameters...");
-                var notifier = ToastNotificationManager.CreateToastNotifier();
-                if (notifier is not null)
-                {
-                    Serilog.Log.Debug("Successfully created toast notifier without parameters");
-                    return notifier;
-                }
-                Serilog.Log.Warning("ToastNotificationManager.CreateToastNotifier() returned null");
-            }
-            catch (System.Runtime.InteropServices.COMException ex)
-            {
-                // Check HResult - 0x80070490 = Element not found
-                // This is common in debug mode or when app is not registered for notifications
-                if (ex.HResult == unchecked((int)0x80070490))
-                {
-                    // This is expected and handled gracefully - no need to log as error
-                    Serilog.Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
-                }
-                else
-                {
-                    // Catch any other COM exceptions
-                    Serilog.Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Catch any other exceptions - safely get HResult if available
-                var hResult = 0;
-                if (ex is System.Runtime.InteropServices.COMException comEx)
-                {
-                    hResult = comEx.HResult;
-                }
-                else
-                {
-                    try
-                    {
-                        hResult = ex.HResult;
-                    }
-                    catch
-                    {
-                        // HResult not available on this exception type
-                    }
-                }
-                Serilog.Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", hResult);
-            }
-            return null;
+            Serilog.Log.Warning(
+                "Package.Current is not available. This is expected in debug mode or unpackaged WinUI 3 apps. " +
+                "Scheduled notifications require the app to be properly packaged and installed.");
         }
-
-        private static ToastNotifier? TryCreateNotifierWithAumid()
+        catch (Exception ex)
         {
-            try
-            {
-                var package = Package.Current;
-                var packageId = package.Id;
-
-                string[] aumidFormats =
-                [
-                    $"{packageId.FamilyName}!App",
-                    packageId.FamilyName,
-                    packageId.Name,
-                ];
-
-                foreach (var aumid in aumidFormats)
-                {
-                    var notifier = TryCreateNotifierWithAumid(aumid);
-                    if (notifier is not null)
-                    {
-                        return notifier;
-                    }
-                }
-
-                Serilog.Log.Warning(
-                    "Failed to create toast notifier with any AUMID format. " +
-                    "Package: {PackageName}, FamilyName: {FamilyName}, Publisher: {Publisher}",
-                    packageId.Name, packageId.FamilyName, packageId.Publisher);
-            }
-            catch (InvalidOperationException)
-            {
-                Serilog.Log.Warning(
-                    "Package.Current is not available. This is expected in debug mode or unpackaged WinUI 3 apps. " +
-                    "Scheduled notifications require the app to be properly packaged and installed.");
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Error(ex, "Exception while trying to create toast notifier with AUMID");
-            }
-            return null;
+            Serilog.Log.Error(ex, "Exception while trying to create toast notifier with AUMID");
         }
+        return null;
+    }
 
-        private static ToastNotifier? TryCreateNotifierWithAumid(string aumid)
+    private static ToastNotifier? TryCreateNotifierWithAumid(string aumid)
+    {
+        try
         {
-            try
+            Serilog.Log.Debug("Trying to create toast notifier with AUMID: {AUMID}", aumid);
+            var notifier = ToastNotificationManager.CreateToastNotifier(aumid);
+            if (notifier is not null)
             {
-                Serilog.Log.Debug("Trying to create toast notifier with AUMID: {AUMID}", aumid);
-                var notifier = ToastNotificationManager.CreateToastNotifier(aumid);
-                if (notifier is not null)
-                {
-                    Serilog.Log.Information("Successfully created toast notifier with AUMID: {AUMID}", aumid);
-                    return notifier;
-                }
+                Serilog.Log.Information("Successfully created toast notifier with AUMID: {AUMID}", aumid);
+                return notifier;
             }
-            catch (Exception ex)
-            {
-                Serilog.Log.Debug(ex, "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}", aumid, ex.HResult);
-            }
-            return null;
         }
-
-        public void Dispose()
+        catch (Exception ex)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            _isDisposed = true;
-
-            // IServiceProvider is a singleton, so don't dispose it
-            // No event handlers to unsubscribe
+            Serilog.Log.Debug(ex, "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}", aumid, ex.HResult);
         }
+        return null;
+    }
+
+    public void Dispose()
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        isDisposed = true;
+
+        // IServiceProvider is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }

@@ -7,9 +7,9 @@ namespace Bible.Alarm.Views;
 
 public partial class Home : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
-    private bool _hasHandledFirstLoad;
-    private readonly HomeViewModel _viewModel;
+    private bool isDisposed;
+    private bool hasHandledFirstLoad;
+    private readonly HomeViewModel viewModel;
 
     public Home(HomeViewModel vm)
     {
@@ -22,7 +22,7 @@ public partial class Home : BaseContentPage, IDisposable
         Log.Information("[PERF] Home page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
 
         BindingContext = vm;
-        _viewModel = vm;
+        viewModel = vm;
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
@@ -34,12 +34,12 @@ public partial class Home : BaseContentPage, IDisposable
     private async void OnPageLoaded(object? sender, EventArgs e)
     {
         // Only handle once per page instance
-        if (_hasHandledFirstLoad)
+        if (hasHandledFirstLoad)
         {
             return;
         }
 
-        _hasHandledFirstLoad = true;
+        hasHandledFirstLoad = true;
 
         // Unsubscribe to avoid multiple calls
         Loaded -= OnPageLoaded;
@@ -48,7 +48,7 @@ public partial class Home : BaseContentPage, IDisposable
         await Task.Delay(100);
 
         // Hide Schedule page overlay after Home page is fully rendered and visible
-        _viewModel?.HideSchedulePageOverlay();
+        viewModel?.HideSchedulePageOverlay();
     }
 
     private void OnScheduleItemTapped(object? sender, TappedEventArgs e)
@@ -64,7 +64,7 @@ public partial class Home : BaseContentPage, IDisposable
         if (!tapPosition.HasValue)
         {
             // If we can't get position, navigate (fallback behavior)
-            _viewModel.ViewScheduleCommand.Execute(item);
+            viewModel.ViewScheduleCommand.Execute(item);
             return;
         }
 
@@ -76,14 +76,14 @@ public partial class Home : BaseContentPage, IDisposable
         }
 
         // Tap was not on a button or switch - navigate to schedule view
-        _viewModel.ViewScheduleCommand.Execute(item);
+        viewModel.ViewScheduleCommand.Execute(item);
     }
 
     private bool IsTapOnInteractiveControl(View view, Point tapPosition)
     {
         // Check if this view itself is a Button, SfButton, or Switch and contains the tap
         // Bounds are relative to the parent, and tapPosition is in the same coordinate space
-        if ((view is Button || view is SfButton || view is Switch))
+        if ((view is Button or SfButton or Switch))
         {
             var bounds = view.Bounds;
             if (bounds.Contains(tapPosition))
@@ -126,9 +126,9 @@ public partial class Home : BaseContentPage, IDisposable
         base.OnAppearing();
         // Reset schedule state when navigating back to home
         // This ensures only one schedule is in state at any time
-        _viewModel?.ResetScheduleState();
+        viewModel?.ResetScheduleState();
         // Reset flag when page appears again (e.g., navigating back to it)
-        _hasHandledFirstLoad = false;
+        hasHandledFirstLoad = false;
         Loaded += OnPageLoaded;
     }
 
@@ -140,16 +140,16 @@ public partial class Home : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // ViewModel was injected via constructor, so dispose it
-            if (_viewModel is IDisposable disposable)
+            if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

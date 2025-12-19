@@ -6,84 +6,107 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Utility
+namespace Bible.Alarm.AudioLinksHarvestor.Utility;
+
+public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 {
-    public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
+    private readonly ILogger _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+
+    public async Task Seed()
     {
-        private readonly ILogger _logger = logger;
-        private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-
-        public async Task Seed()
+        using (var scope = _scopeFactory.CreateScope())
         {
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = DELETE;");
-                await db.Database.MigrateAsync();
-            }
-
-            var indexDir = DirectoryHelper.IndexDirectory;
-            var mediaDir = Path.Combine(indexDir, "media");
-            await SeedBibleTranslations(mediaDir);
-            await SeedMelodies(mediaDir);
-            await SeedVocals(mediaDir);
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = DELETE;");
+            await db.Database.MigrateAsync();
         }
 
-        private async Task SeedBibleTranslations(string indexDir)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        var indexDir = DirectoryHelper.IndexDirectory;
+        var mediaDir = Path.Combine(indexDir, "media");
+        await SeedBibleTranslations(mediaDir);
+        await SeedMelodies(mediaDir);
+        await SeedVocals(mediaDir);
+    }
 
-            var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-            if (displayLanguage == null)
+    private async Task SeedBibleTranslations(string indexDir)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
+        if (displayLanguage == null)
+        {
+            displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
             {
-                displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+                Code = "E",
+                Name = "English"
+            };
+            db.Languages.Add(displayLanguage);
+            await db.SaveChangesAsync();
+        }
+
+        var mediaReader = new MediaReader(indexDir);
+
+        Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Language> bibleLanguages;
+        try
+        {
+            bibleLanguages = await mediaReader.GetBibleLanguages();
+        }
+        catch (FileNotFoundException)
+        {
+            return;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return;
+        }
+
+        if (bibleLanguages == null || bibleLanguages.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var language in bibleLanguages)
+        {
+            var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
+                                                                    && x.Name == language.Value.Name);
+            if (newLanguage == null)
+            {
+                newLanguage = new Bible.Alarm.Shared.Models.Media.Language
                 {
-                    Code = "E",
-                    Name = "English"
+                    Code = language.Value.Code,
+                    Name = language.Value.Name
                 };
-                db.Languages.Add(displayLanguage);
-                await db.SaveChangesAsync();
             }
 
-            var mediaReader = new MediaReader(indexDir);
-
-            Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Language> bibleLanguages;
+            Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> translations;
             try
             {
-                bibleLanguages = await mediaReader.GetBibleLanguages();
+                translations = await mediaReader.GetBibleTranslations(language.Key);
             }
             catch (FileNotFoundException)
             {
-                return;
+                continue;
             }
             catch (DirectoryNotFoundException)
             {
-                return;
+                continue;
             }
 
-            if (bibleLanguages == null || bibleLanguages.Count == 0)
+            if (translations == null || translations.Count == 0)
             {
-                return;
+                continue;
             }
 
-            foreach (var language in bibleLanguages)
+            foreach (var translation in translations)
             {
-                var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
-                                                                        && x.Name == language.Value.Name);
-                if (newLanguage == null)
-                {
-                    newLanguage = new Bible.Alarm.Shared.Models.Media.Language
-                    {
-                        Code = language.Value.Code,
-                        Name = language.Value.Name
-                    };
-                }
+                _logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
 
-                Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> translations;
+                SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook> books;
                 try
                 {
-                    translations = await mediaReader.GetBibleTranslations(language.Key);
+                    books = await mediaReader.GetBibleBooks(language.Key, translation.Key);
                 }
                 catch (FileNotFoundException)
                 {
@@ -94,19 +117,33 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                     continue;
                 }
 
-                if (translations == null || translations.Count == 0)
+                if (books == null || books.Count == 0)
                 {
                     continue;
                 }
 
-                foreach (var translation in translations)
+                var bibleTranslation = new Bible.Alarm.Shared.Models.Media.Bible.BibleTranslation
                 {
-                    _logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
+                    Name = translation.Value.Name,
+                    Code = translation.Value.Code,
+                    Language = newLanguage,
+                    DisplayLanguage = displayLanguage
+                };
 
-                    SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook> books;
+                foreach (var book in books)
+                {
+                    var newBook = new Bible.Alarm.Shared.Models.Media.Bible.BibleBook
+                    {
+                        Name = book.Value.Name,
+                        Number = book.Value.Number
+                    };
+
+                    bibleTranslation.Books.Add(newBook);
+
+                    SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleChapter> chapters;
                     try
                     {
-                        books = await mediaReader.GetBibleBooks(language.Key, translation.Key);
+                        chapters = await mediaReader.GetBibleChapters(language.Key, translation.Key, book.Key);
                     }
                     catch (FileNotFoundException)
                     {
@@ -117,130 +154,216 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                         continue;
                     }
 
-                    if (books == null || books.Count == 0)
+                    if (chapters == null || chapters.Count == 0)
                     {
                         continue;
                     }
 
-                    var bibleTranslation = new Bible.Alarm.Shared.Models.Media.Bible.BibleTranslation
+                    foreach (var chapter in chapters)
                     {
-                        Name = translation.Value.Name,
-                        Code = translation.Value.Code,
-                        Language = newLanguage,
-                        DisplayLanguage = displayLanguage
-                    };
+                        string lookUpPath;
 
-                    foreach (var book in books)
-                    {
-                        var newBook = new Bible.Alarm.Shared.Models.Media.Bible.BibleBook
+                        lookUpPath = $"?output=json&pub={bibleTranslation.Code}" +
+                                         $"&fileformat=MP3&langwritten={bibleTranslation.Language.Code}" +
+                                         $"&txtCMSLang=E&booknum={newBook.Number}&track={chapter.Value.Number}";
+
+
+                        var newChapter = new Bible.Alarm.Shared.Models.Media.Bible.BibleChapter
                         {
-                            Name = book.Value.Name,
-                            Number = book.Value.Number
+                            Number = chapter.Value.Number,
+                            Source = new Bible.Alarm.Shared.Models.Media.AudioSource
+                            {
+                                Url = chapter.Value.Url,
+                                LookUpPath = lookUpPath
+                            }
                         };
 
-                        bibleTranslation.Books.Add(newBook);
-
-                        SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleChapter> chapters;
-                        try
-                        {
-                            chapters = await mediaReader.GetBibleChapters(language.Key, translation.Key, book.Key);
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            continue;
-                        }
-                        catch (DirectoryNotFoundException)
-                        {
-                            continue;
-                        }
-
-                        if (chapters == null || chapters.Count == 0)
-                        {
-                            continue;
-                        }
-
-                        foreach (var chapter in chapters)
-                        {
-                            string lookUpPath;
-
-                            lookUpPath = $"?output=json&pub={bibleTranslation.Code}" +
-                                             $"&fileformat=MP3&langwritten={bibleTranslation.Language.Code}" +
-                                             $"&txtCMSLang=E&booknum={newBook.Number}&track={chapter.Value.Number}";
-
-
-                            var newChapter = new Bible.Alarm.Shared.Models.Media.Bible.BibleChapter
-                            {
-                                Number = chapter.Value.Number,
-                                Source = new Bible.Alarm.Shared.Models.Media.AudioSource
-                                {
-                                    Url = chapter.Value.Url,
-                                    LookUpPath = lookUpPath
-                                }
-                            };
-
-                            newBook.Chapters.Add(newChapter);
-                        }
+                        newBook.Chapters.Add(newChapter);
                     }
-
-                    await db.BibleTranslations.AddAsync(bibleTranslation);
-                    await db.SaveChangesAsync();
                 }
-            }
-        }
 
-        private async Task SeedMelodies(string indexDir)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-            if (displayLanguage == null)
-            {
-                displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
-                {
-                    Code = "E",
-                    Name = "English"
-                };
-                db.Languages.Add(displayLanguage);
+                await db.BibleTranslations.AddAsync(bibleTranslation);
                 await db.SaveChangesAsync();
             }
+        }
+    }
 
-            var mediaReader = new MediaReader(indexDir);
+    private async Task SeedMelodies(string indexDir)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> melodyMusicReleases;
+        var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
+        if (displayLanguage == null)
+        {
+            displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+            {
+                Code = "E",
+                Name = "English"
+            };
+            db.Languages.Add(displayLanguage);
+            await db.SaveChangesAsync();
+        }
+
+        var mediaReader = new MediaReader(indexDir);
+
+        Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> melodyMusicReleases;
+        try
+        {
+            melodyMusicReleases = await mediaReader.GetMelodyMusicReleases();
+        }
+        catch (FileNotFoundException)
+        {
+            return;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return;
+        }
+
+        if (melodyMusicReleases == null || melodyMusicReleases.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var melodyMusicRelease in melodyMusicReleases)
+        {
+            _logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
+
+            var newMelodyMusic = new Bible.Alarm.Shared.Models.Media.Music.MelodyMusic
+            {
+                Code = melodyMusicRelease.Value.Code,
+                Name = melodyMusicRelease.Value.Name,
+                DisplayLanguage = displayLanguage
+            };
+
+            SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack> tracks;
             try
             {
-                melodyMusicReleases = await mediaReader.GetMelodyMusicReleases();
+                tracks = await mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key);
             }
             catch (FileNotFoundException)
             {
-                return;
+                continue;
             }
             catch (DirectoryNotFoundException)
             {
-                return;
+                continue;
             }
 
-            if (melodyMusicReleases == null || melodyMusicReleases.Count == 0)
+            if (tracks == null || tracks.Count == 0)
             {
-                return;
+                continue;
             }
 
-            foreach (var melodyMusicRelease in melodyMusicReleases)
+            foreach (var track in tracks)
             {
-                _logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
-
-                var newMelodyMusic = new Bible.Alarm.Shared.Models.Media.Music.MelodyMusic
+                var newTrack = new Bible.Alarm.Shared.Models.Media.Music.MusicTrack
                 {
-                    Code = melodyMusicRelease.Value.Code,
-                    Name = melodyMusicRelease.Value.Name,
-                    DisplayLanguage = displayLanguage
+                    Number = track.Value.Number,
+                    Title = track.Value.Title,
+                    Source = new Bible.Alarm.Shared.Models.Media.AudioSource
+                    {
+                        Url = track.Value.Url,
+                        LookUpPath = track.Value.LookUpPath
+                    }
+                };
+
+                newMelodyMusic.Tracks.Add(newTrack);
+            }
+
+            await db.MelodyMusic.AddAsync(newMelodyMusic);
+            await db.SaveChangesAsync();
+        }
+
+    }
+
+    private async Task SeedVocals(string indexDir)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
+        if (displayLanguage == null)
+        {
+            displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+            {
+                Code = "E",
+                Name = "English"
+            };
+            db.Languages.Add(displayLanguage);
+            await db.SaveChangesAsync();
+        }
+
+        var mediaReader = new MediaReader(indexDir);
+
+        Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Language> melodyLanguages;
+        try
+        {
+            melodyLanguages = await mediaReader.GetVocalMusicLanguages();
+        }
+        catch (FileNotFoundException)
+        {
+            return;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return;
+        }
+
+        if (melodyLanguages == null || melodyLanguages.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var language in melodyLanguages)
+        {
+            var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
+                                                                    && x.Name == language.Value.Name);
+            if (newLanguage == null)
+            {
+                newLanguage = new Bible.Alarm.Shared.Models.Media.Language
+                {
+                    Code = language.Value.Code,
+                    Name = language.Value.Name
+                };
+            }
+
+            Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> vocalMusicReleases;
+            try
+            {
+                vocalMusicReleases = await mediaReader.GetVocalMusicReleases(language.Value.Code);
+            }
+            catch (FileNotFoundException)
+            {
+                continue;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                continue;
+            }
+
+            if (vocalMusicReleases == null || vocalMusicReleases.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var vocalMusicRelease in vocalMusicReleases)
+            {
+                _logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
+
+                var newVocalMusic = new Bible.Alarm.Shared.Models.Media.Music.VocalMusic
+                {
+                    Code = vocalMusicRelease.Value.Code,
+                    Name = vocalMusicRelease.Value.Name,
+                    DisplayLanguage = displayLanguage,
+                    Language = newLanguage
                 };
 
                 SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack> tracks;
                 try
                 {
-                    tracks = await mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key);
+                    tracks = await mediaReader.GetVocalMusicTracks(language.Value.Code, vocalMusicRelease.Key);
                 }
                 catch (FileNotFoundException)
                 {
@@ -269,135 +392,11 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility
                         }
                     };
 
-                    newMelodyMusic.Tracks.Add(newTrack);
+                    newVocalMusic.Tracks.Add(newTrack);
                 }
 
-                await db.MelodyMusic.AddAsync(newMelodyMusic);
+                await db.VocalMusic.AddAsync(newVocalMusic);
                 await db.SaveChangesAsync();
-            }
-
-        }
-
-        private async Task SeedVocals(string indexDir)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-            if (displayLanguage == null)
-            {
-                displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
-                {
-                    Code = "E",
-                    Name = "English"
-                };
-                db.Languages.Add(displayLanguage);
-                await db.SaveChangesAsync();
-            }
-
-            var mediaReader = new MediaReader(indexDir);
-
-            Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Language> melodyLanguages;
-            try
-            {
-                melodyLanguages = await mediaReader.GetVocalMusicLanguages();
-            }
-            catch (FileNotFoundException)
-            {
-                return;
-            }
-            catch (DirectoryNotFoundException)
-            {
-                return;
-            }
-
-            if (melodyLanguages == null || melodyLanguages.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var language in melodyLanguages)
-            {
-                var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
-                                                                        && x.Name == language.Value.Name);
-                if (newLanguage == null)
-                {
-                    newLanguage = new Bible.Alarm.Shared.Models.Media.Language
-                    {
-                        Code = language.Value.Code,
-                        Name = language.Value.Name
-                    };
-                }
-
-                Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> vocalMusicReleases;
-                try
-                {
-                    vocalMusicReleases = await mediaReader.GetVocalMusicReleases(language.Value.Code);
-                }
-                catch (FileNotFoundException)
-                {
-                    continue;
-                }
-                catch (DirectoryNotFoundException)
-                {
-                    continue;
-                }
-
-                if (vocalMusicReleases == null || vocalMusicReleases.Count == 0)
-                {
-                    continue;
-                }
-
-                foreach (var vocalMusicRelease in vocalMusicReleases)
-                {
-                    _logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
-
-                    var newVocalMusic = new Bible.Alarm.Shared.Models.Media.Music.VocalMusic
-                    {
-                        Code = vocalMusicRelease.Value.Code,
-                        Name = vocalMusicRelease.Value.Name,
-                        DisplayLanguage = displayLanguage,
-                        Language = newLanguage
-                    };
-
-                    SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack> tracks;
-                    try
-                    {
-                        tracks = await mediaReader.GetVocalMusicTracks(language.Value.Code, vocalMusicRelease.Key);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        continue;
-                    }
-                    catch (DirectoryNotFoundException)
-                    {
-                        continue;
-                    }
-
-                    if (tracks == null || tracks.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    foreach (var track in tracks)
-                    {
-                        var newTrack = new Bible.Alarm.Shared.Models.Media.Music.MusicTrack
-                        {
-                            Number = track.Value.Number,
-                            Title = track.Value.Title,
-                            Source = new Bible.Alarm.Shared.Models.Media.AudioSource
-                            {
-                                Url = track.Value.Url,
-                                LookUpPath = track.Value.LookUpPath
-                            }
-                        };
-
-                        newVocalMusic.Tracks.Add(newTrack);
-                    }
-
-                    await db.VocalMusic.AddAsync(newVocalMusic);
-                    await db.SaveChangesAsync();
-                }
             }
         }
     }

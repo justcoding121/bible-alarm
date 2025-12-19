@@ -1,16 +1,15 @@
-﻿namespace Bible.Alarm.Shared.Models.Media
+namespace Bible.Alarm.Shared.Models.Media;
+
+public class PlayItem(TrackMetadata metadata, string url)
 {
-    public class PlayItem(TrackMetadata metadata, string url)
+    public TrackMetadata Metadata { get; set; } = metadata;
+
+    public string Url { get; set; } = url;
+
+    public override string ToString()
     {
-        public TrackMetadata Metadata { get; set; } = metadata;
-
-        public string Url { get; set; } = url;
-
-        public override string ToString()
-        {
-            return Metadata.LanguageCode + " " + Metadata.PublicationCode + " "
-                + (Metadata.IsAlarmMusic ? Metadata.TrackNumber.ToString()
-                : Metadata.BookNumber + " " + Metadata.ChapterNumber);
-        }
+        return Metadata.LanguageCode + " " + Metadata.PublicationCode + " "
+            + (Metadata.IsAlarmMusic ? Metadata.TrackNumber.ToString()
+            : Metadata.BookNumber + " " + Metadata.ChapterNumber);
     }
 }

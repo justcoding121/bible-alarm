@@ -17,35 +17,35 @@ namespace Bible.Alarm.ViewModels.Bible;
 
 public class BookSelectionViewModel : ObservableObject, IDisposable
 {
-    private BibleReadingSchedule _current;
-    private BibleReadingSchedule _tentative;
+    private BibleReadingSchedule current;
+    private BibleReadingSchedule tentative;
 
-    private readonly IMediaService _mediaService;
-    private readonly IState<ApplicationState> _state;
-    private readonly IDispatcher _dispatcher;
-    private readonly IMapper _mapper;
-    private bool _initComplete;
-    private BibleReadingSchedule _lastCurrent;
+    private readonly IMediaService mediaService;
+    private readonly IState<ApplicationState> state;
+    private readonly IDispatcher dispatcher;
+    private readonly IMapper mapper;
+    private bool initComplete;
+    private BibleReadingSchedule lastCurrent;
 
     public ICommand BackCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
     public BookSelectionViewModel(IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
-        _mediaService = mediaService;
-        _state = state;
-        _dispatcher = dispatcher;
-        _mapper = mapper;
+        mediaService = mediaService;
+        state = state;
+        dispatcher = dispatcher;
+        mapper = mapper;
 
-        // Initialize _current and _tentative from state if available (map DTOs to entities)
-        var currentState = _state.Value;
+        // Initialize current and tentative from state if available (map DTOs to entities)
+        var currentState = state.Value;
         if (currentState.CurrentBibleReadingSchedule != null)
         {
-            _current = _mapper.Map<BibleReadingSchedule>(currentState.CurrentBibleReadingSchedule);
+            current = mapper.Map<BibleReadingSchedule>(currentState.CurrentBibleReadingSchedule);
         }
         if (currentState.TentativeBibleReadingSchedule != null)
         {
-            _tentative = _mapper.Map<BibleReadingSchedule>(currentState.TentativeBibleReadingSchedule);
+            tentative = mapper.Map<BibleReadingSchedule>(currentState.TentativeBibleReadingSchedule);
         }
 
         BackCommand = new AsyncRelayCommand(async () =>
@@ -64,17 +64,17 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
             IsBusy = true;
 
-            // Ensure _tentative is set from state if it's null
-            if (_tentative == null)
+            // Ensure tentative is set from state if it's null
+            if (tentative == null)
             {
-                var tentativeItem = _state.Value.TentativeBibleReadingSchedule;
+                var tentativeItem = state.Value.TentativeBibleReadingSchedule;
                 if (tentativeItem != null)
                 {
-                    _tentative = _mapper.Map<BibleReadingSchedule>(tentativeItem);
+                    tentative = mapper.Map<BibleReadingSchedule>(tentativeItem);
                 }
             }
 
-            if (_tentative == null)
+            if (tentative == null)
             {
                 IsBusy = false;
                 return;
@@ -84,36 +84,36 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             // Map entity to DTO before dispatching
             var chapterSelectionItem = new BibleReadingStateItem
             {
-                LanguageCode = _tentative.LanguageCode,
-                PublicationCode = _tentative.PublicationCode,
+                LanguageCode = tentative.LanguageCode,
+                PublicationCode = tentative.PublicationCode,
                 BookNumber = x.Number
             };
-            _dispatcher.Dispatch(new ChapterSelectionAction(chapterSelectionItem));
+            dispatcher.Dispatch(new ChapterSelectionAction(chapterSelectionItem));
             IsBusy = false;
         });
 
-        _state.StateChanged += OnBibleReadingInitialized;
-        _state.StateChanged += OnBibleReadingChanged;
+        state.StateChanged += OnBibleReadingInitialized;
+        state.StateChanged += OnBibleReadingChanged;
     }
 
     private void OnBibleReadingChanged(object sender, EventArgs e)
     {
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
         if (stateValue.CurrentBibleReadingSchedule == null)
         {
             return;
         }
 
         // Map DTO to entity
-        var newCurrent = _mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+        var newCurrent = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
         // Compare by ID to avoid unnecessary updates
-        if (_lastCurrent?.Id == newCurrent.Id)
+        if (lastCurrent?.Id == newCurrent.Id)
         {
             return;
         }
 
-        _current = newCurrent;
-        _lastCurrent = _current;
+        current = newCurrent;
+        lastCurrent = current;
 
         // Update selected book when state changes (e.g., after navigating back)
         MainThread.BeginInvokeOnMainThread(SetSelectedBook);
@@ -121,24 +121,24 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     private void OnBibleReadingInitialized(object o, EventArgs eventArgs)
     {
-        if (_initComplete)
+        if (initComplete)
         {
             return;
         }
 
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
         if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null)
         {
             return;
         }
         // Map DTOs to entities
-        _current = _mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
-        _tentative = _mapper.Map<BibleReadingSchedule>(stateValue.TentativeBibleReadingSchedule);
-        _initComplete = true;
+        current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+        tentative = mapper.Map<BibleReadingSchedule>(stateValue.TentativeBibleReadingSchedule);
+        initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+            await Initialize(tentative.LanguageCode, tentative.PublicationCode);
 
             // Set IsBusy to false after collection is assigned - the busy overlay will hide instantly
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
@@ -147,19 +147,19 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _state.StateChanged -= OnBibleReadingChanged;
-        _state.StateChanged -= OnBibleReadingInitialized;
+        state.StateChanged -= OnBibleReadingChanged;
+        state.StateChanged -= OnBibleReadingInitialized;
     }
 
     private void SetSelectedBook()
     {
-        if (_current == null || _tentative == null)
+        if (current == null || tentative == null)
         {
             return;
         }
 
-        if (_current.LanguageCode != _tentative.LanguageCode ||
-            _current.PublicationCode != _tentative.PublicationCode)
+        if (current.LanguageCode != tentative.LanguageCode ||
+            current.PublicationCode != tentative.PublicationCode)
         {
             return;
         }
@@ -169,7 +169,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             SelectedBook.IsSelected = false;
         }
 
-        if (!_bookVMsMapping.TryGetValue(_current.BookNumber, out var book))
+        if (!_bookVMsMapping.TryGetValue(current.BookNumber, out var book))
         {
             return;
         }
@@ -181,12 +181,12 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     public BibleBookListViewItemModel SelectedBook { get; set; }
 
     // Start as true to show busy indicator immediately
-    private bool _isBusy = true;
+    private bool isBusy = true;
 
     public bool IsBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
     private ObservableCollection<BibleBookListViewItemModel> _books;
@@ -210,7 +210,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
         // Run database operations off UI thread
         var books = await Task.Run(async () =>
-            await _mediaService.GetBibleBooks(languageCode, publicationCode));
+            await mediaService.GetBibleBooks(languageCode, publicationCode));
         var bookVMs = new ObservableCollection<BibleBookListViewItemModel>();
 
         foreach (var book in books.Select(x => x.Value))
@@ -220,14 +220,14 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             bookVMs.Add(bookVm);
             _bookVMsMapping.Add(bookVm.Number, bookVm);
 
-            if (_current == null || _tentative == null)
+            if (current == null || tentative == null)
             {
                 continue;
             }
 
-            if (_current.LanguageCode != _tentative.LanguageCode
-                || _current.PublicationCode != _tentative.PublicationCode
-                || _current.BookNumber != book.Number)
+            if (current.LanguageCode != tentative.LanguageCode
+                || current.PublicationCode != tentative.PublicationCode
+                || current.BookNumber != book.Number)
             {
                 continue;
             }
@@ -246,12 +246,12 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
 public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, IComparable
 {
-    private bool _isSelected;
+    private bool isSelected;
 
     public bool IsSelected
     {
-        get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        get => isSelected;
+        set => SetProperty(ref isSelected, value);
     }
 
     public string Name => book.Name;

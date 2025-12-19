@@ -22,42 +22,35 @@ public class PlaylistService(
     IAlarmScheduleService alarmScheduleService,
     IGeneralSettingsService generalSettingsService,
     IBibleTranslationService bibleTranslationService,
-    IMelodyMusicService melodyMusicService)
-    : IPlaylistService, IDisposable
+    IMelodyMusicService melodyMusicService) : IPlaylistService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly IGeneralSettingsService _generalSettingsService = generalSettingsService;
-    private readonly IBibleTranslationService _bibleTranslationService = bibleTranslationService;
-    private readonly IMelodyMusicService _melodyMusicService = melodyMusicService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-    private bool _isDisposed;
+    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private bool isDisposed;
 
     public async Task<int> GetRelevantScheduleToPlay()
     {
         // Query directly by Key - unique index ensures efficient lookup
-        var lastSchedule = await _generalSettingsService.GetGeneralSettingAsync(
-            AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, _cancellationTokenSource.Token);
+        var lastSchedule = await generalSettingsService.GetGeneralSettingAsync(
+            AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, cancellationTokenSource.Token);
 
         AlarmSchedule? schedule = null;
 
         if (!string.IsNullOrEmpty(lastSchedule?.Value))
         {
-            schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-                int.Parse(lastSchedule.Value), false, false, _cancellationTokenSource.Token);
+            schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                int.Parse(lastSchedule.Value), false, false, cancellationTokenSource.Token);
         }
 
         if (schedule == null)
         {
-            schedule = await _alarmScheduleService.GetFirstScheduleOrDefaultAsync(
-                false, false, _cancellationTokenSource.Token);
+            schedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
+                false, false, cancellationTokenSource.Token);
         }
 
         if (schedule == null)
         {
-            schedule = await AlarmSchedule.GetSampleSchedule(false, _bibleTranslationService, _melodyMusicService);
-            schedule = await _alarmScheduleService.AddScheduleAsync(schedule, _cancellationTokenSource.Token);
+            schedule = await AlarmSchedule.GetSampleSchedule(false, bibleTranslationService, melodyMusicService);
+            schedule = await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
         }
 
         return schedule.Id;
@@ -65,10 +58,10 @@ public class PlaylistService(
 
     public async Task SaveLastPlayed(int scheduleId)
     {
-        await _generalSettingsService.SetGeneralSettingAsync(
+        await generalSettingsService.SetGeneralSettingAsync(
             AppConstants.GeneralSettingsKeys.LastPlayedScheduleId,
             scheduleId.ToString(),
-            _cancellationTokenSource.Token);
+            cancellationTokenSource.Token);
     }
 
     public async Task MarkTrackAsPlayed(TrackMetadata trackMetadata)
@@ -79,8 +72,8 @@ public class PlaylistService(
         // Get schedule before update to check if chapter changed
         if (trackMetadata.PlayType == PlayType.Bible)
         {
-            scheduleBeforeUpdate = await _alarmScheduleService.GetScheduleByIdAsync(
-                (int)trackMetadata.ScheduleId, false, true, _cancellationTokenSource.Token);
+            scheduleBeforeUpdate = await alarmScheduleService.GetScheduleByIdAsync(
+                (int)trackMetadata.ScheduleId, false, true, cancellationTokenSource.Token);
 
             if (scheduleBeforeUpdate?.BibleReadingSchedule != null)
             {
@@ -98,8 +91,8 @@ public class PlaylistService(
         int? nextTrackNumber = null;
         if (trackMetadata.PlayType == PlayType.Music)
         {
-            var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-                (int)trackMetadata.ScheduleId, true, false, _cancellationTokenSource.Token);
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
             if (schedule?.Music != null && !schedule.Music.Repeat)
             {
                 var next = await NextMusicUrlToPlay(schedule, true);
@@ -108,7 +101,7 @@ public class PlaylistService(
         }
 
         // Update schedule using service
-        var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+        var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
             schedule =>
             {
@@ -135,14 +128,14 @@ public class PlaylistService(
                     bibleReadingSchedule.FinishedDuration = trackMetadata.FinishedDuration;
                 }
             },
-            _cancellationTokenSource.Token);
+            cancellationTokenSource.Token);
 
         if (trackChanged)
         {
             // Only update state when chapter/track actually changed (not just progress)
             // Update the Fluxor store to trigger state change and UI refresh
             // ScheduleListItem now subscribes to ApplicationState changes instead of TrackChangedMessage
-            _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+            dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
         }
     }
 
@@ -154,8 +147,8 @@ public class PlaylistService(
 
         if (trackMetadata.PlayType == PlayType.Music)
         {
-            var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-                (int)trackMetadata.ScheduleId, true, false, _cancellationTokenSource.Token);
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
             if (schedule?.Music != null && !schedule.Music.Repeat)
             {
                 var next = await NextMusicUrlToPlay(schedule, true);
@@ -169,7 +162,7 @@ public class PlaylistService(
         }
 
         // Update schedule using service
-        var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+        var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
             schedule =>
             {
@@ -201,17 +194,17 @@ public class PlaylistService(
                     bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                 }
             },
-            _cancellationTokenSource.Token);
+            cancellationTokenSource.Token);
 
         // Update the Fluxor store to trigger state change and UI refresh
         // ScheduleListItem now subscribes to ApplicationState changes instead of TrackChangedMessage
-        _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
     public async Task<PlayItem> NextTrack(int scheduleId)
     {
-        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, true, true, _cancellationTokenSource.Token);
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, true, true, cancellationTokenSource.Token);
 
         if (schedule == null)
         {
@@ -233,7 +226,7 @@ public class PlaylistService(
 
         if (chapterDetail == null)
         {
-            _logger.Error(
+            logger.Error(
                 $"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
         }
 
@@ -260,8 +253,8 @@ public class PlaylistService(
     {
         var result = new List<PlayItem>();
 
-        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, true, true, _cancellationTokenSource.Token);
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, true, true, cancellationTokenSource.Token);
 
         if (schedule == null)
         {
@@ -288,7 +281,7 @@ public class PlaylistService(
 
         if (!chapters.ContainsKey(chapter))
         {
-            _logger.Error(
+            logger.Error(
                 $"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
             throw new InvalidOperationException($"Chapter {chapter} not found in book {bookNumber}");
         }
@@ -361,8 +354,8 @@ public class PlaylistService(
     public async Task MoveToNextBibleChapter(int scheduleId)
     {
         // Get current schedule and next chapter before updating
-        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, false, true, _cancellationTokenSource.Token);
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, false, true, cancellationTokenSource.Token);
 
         if (schedule?.BibleReadingSchedule == null)
         {
@@ -376,7 +369,7 @@ public class PlaylistService(
             bibleReadingSchedule.BookNumber,
             bibleReadingSchedule.ChapterNumber);
 
-        var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+        var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
@@ -390,17 +383,17 @@ public class PlaylistService(
                 brs.ChapterNumber = next.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },
-            _cancellationTokenSource.Token);
+            cancellationTokenSource.Token);
 
         // Update the Fluxor store to trigger state change and UI refresh
-        _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
     public async Task MoveToPreviousBibleChapter(int scheduleId)
     {
         // Get current schedule and previous chapter before updating
-        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, false, true, _cancellationTokenSource.Token);
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, false, true, cancellationTokenSource.Token);
 
         if (schedule?.BibleReadingSchedule == null)
         {
@@ -419,7 +412,7 @@ public class PlaylistService(
             throw new InvalidOperationException($"Previous chapter Key or Value is null");
         }
 
-        var updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+        var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
@@ -433,10 +426,10 @@ public class PlaylistService(
                 brs.ChapterNumber = previous.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },
-            _cancellationTokenSource.Token);
+            cancellationTokenSource.Token);
 
         // Update the Fluxor store to trigger state change and UI refresh
-        _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetNextBibleChapter(string languageCode,
@@ -628,8 +621,8 @@ public class PlaylistService(
 
     public async Task<bool> ShouldResumeFromLastPositionAsync(int scheduleId)
     {
-        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, false, false, _cancellationTokenSource.Token);
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, false, false, cancellationTokenSource.Token);
 
         if (schedule == null)
         {
@@ -642,23 +635,23 @@ public class PlaylistService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope

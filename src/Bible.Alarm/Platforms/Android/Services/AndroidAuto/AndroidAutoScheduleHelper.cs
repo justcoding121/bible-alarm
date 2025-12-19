@@ -13,7 +13,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// </summary>
 public static class AndroidAutoScheduleHelper
 {
-    private static readonly ILogger Logger = Log.ForContext(typeof(AndroidAutoScheduleHelper));
+    private static readonly ILogger logger = Log.ForContext(typeof(AndroidAutoScheduleHelper));
 
     /// <summary>
     /// Loads schedule state items from Fluxor ApplicationState.
@@ -23,7 +23,7 @@ public static class AndroidAutoScheduleHelper
     {
         try
         {
-            Logger.Debug("Loading schedules from state for Android Auto");
+            logger.Debug("Loading schedules from state for Android Auto");
 
             // Get state from service provider - schedules are already loaded during bootstrap
             var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
@@ -32,18 +32,18 @@ public static class AndroidAutoScheduleHelper
             {
                 // Return ScheduleStateItem list which includes TranslationName
                 var scheduleItems = state.Value.Schedules.ToList();
-                Logger.Information("Loaded {Count} schedules from state for Android Auto", scheduleItems.Count);
+                logger.Information("Loaded {Count} schedules from state for Android Auto", scheduleItems.Count);
                 return scheduleItems;
             }
             else
             {
-                Logger.Warning("No schedules found in state - state may not be initialized yet");
+                logger.Warning("No schedules found in state - state may not be initialized yet");
                 return new List<ScheduleStateItem>();
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error loading schedules from state for Android Auto");
+            logger.Error(ex, "Error loading schedules from state for Android Auto");
             return new List<ScheduleStateItem>();
         }
     }

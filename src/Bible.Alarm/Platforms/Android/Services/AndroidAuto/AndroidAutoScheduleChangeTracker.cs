@@ -12,7 +12,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// </summary>
 public class AndroidAutoScheduleChangeTracker
 {
-    private static readonly ILogger Logger = Log.ForContext<AndroidAutoScheduleChangeTracker>();
+    private static readonly ILogger logger = Log.ForContext<AndroidAutoScheduleChangeTracker>();
     private int _lastScheduleCount = -1;
     private Dictionary<int, string> _lastScheduleSignatures = new();
     private IState<ApplicationState>? _applicationState;
@@ -25,7 +25,7 @@ public class AndroidAutoScheduleChangeTracker
         _applicationState = applicationState ?? throw new System.ArgumentNullException(nameof(applicationState));
         _lastScheduleCount = applicationState.Value.Schedules?.Count ?? 0;
         _lastScheduleSignatures = BuildScheduleSignatures(applicationState.Value.Schedules);
-        Logger.Debug("AndroidAutoScheduleChangeTracker initialized with {Count} schedules", _lastScheduleCount);
+        logger.Debug("AndroidAutoScheduleChangeTracker initialized with {Count} schedules", _lastScheduleCount);
     }
 
     /// <summary>
@@ -48,7 +48,7 @@ public class AndroidAutoScheduleChangeTracker
 
         if (countChanged || propertiesChanged)
         {
-            Logger.Debug("Schedule list changed (count: {OldCount} -> {NewCount}, properties changed: {PropertiesChanged})",
+            logger.Debug("Schedule list changed (count: {OldCount} -> {NewCount}, properties changed: {PropertiesChanged})",
                 _lastScheduleCount, currentScheduleCount, propertiesChanged);
 
             _lastScheduleCount = currentScheduleCount;

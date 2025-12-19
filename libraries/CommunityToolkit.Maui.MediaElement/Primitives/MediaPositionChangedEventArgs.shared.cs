@@ -9,8 +9,8 @@ namespace CommunityToolkit.Maui.Core;
 /// <param name="position">The position associated to this event.</param>
 public sealed class MediaPositionChangedEventArgs(TimeSpan position) : EventArgs
 {
-    /// <summary>
-    /// Gets the position the media has progressed to.
-    /// </summary>
-    public TimeSpan Position { get; } = position;
+	/// <summary>
+	/// Gets the position the media has progressed to.
+	/// </summary>
+	public TimeSpan Position { get; } = position;
 }

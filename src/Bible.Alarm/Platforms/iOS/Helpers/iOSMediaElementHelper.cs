@@ -229,7 +229,7 @@ public static class iOSMediaElementHelper
     {
         // Check if state is Playing or Buffering by comparing string representation
         var stateString = stateAfterPlay.ToString();
-        var isPlayingOrBuffering = stateString == "Playing" || stateString == "Buffering";
+        var isPlayingOrBuffering = stateString is "Playing" or "Buffering";
 
         if (!isPlayingOrBuffering)
         {
@@ -238,7 +238,7 @@ public static class iOSMediaElementHelper
 
             var stateAfterWait = await GetCurrentStateAsync(mediaElement, logger);
             var waitStateString = stateAfterWait.ToString();
-            var isStillPlayingOrBuffering = waitStateString == "Playing" || waitStateString == "Buffering";
+            var isStillPlayingOrBuffering = waitStateString is "Playing" or "Buffering";
 
             if (!isStillPlayingOrBuffering)
             {

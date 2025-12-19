@@ -5,76 +5,75 @@ using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
 
-namespace Bible.Alarm.Platforms.Windows.Services.Handlers
+namespace Bible.Alarm.Platforms.Windows.Services.Handlers;
+
+public class WindowsAlarmHandler(
+    ILogger logger,
+    IPlaybackService playbackService,
+    IState<PlaybackState> playbackState) : IWindowsAlarmHandler
 {
-    public class WindowsAlarmHandler(
-        ILogger logger,
-        IPlaybackService playbackService,
-        IState<PlaybackState> playbackState) : IWindowsAlarmHandler
+    private readonly ILogger _logger = logger;
+    private readonly IState<PlaybackState> _playbackState = playbackState;
+
+
+    private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
+
+    public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
-        private readonly ILogger _logger = logger;
-        private readonly IState<PlaybackState> _playbackState = playbackState;
-
-
-        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
-
-        public async Task HandleAsync(int scheduleId, bool isAlarm)
+        try
         {
-            try
+            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
             {
-                await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+                if (_playbackState.Value.IsPreparingOrPlaying)
                 {
-                    if (_playbackState.Value.IsPreparingOrPlaying)
+                    Dispose();
+                    return;
+                }
+
+                await Task.Run(async () =>
+                {
+                    try
                     {
-                        Dispose();
-                        return;
+                        await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
                     }
-
-                    await Task.Run(async () =>
+                    catch (Exception e)
                     {
-                        try
-                        {
-                            await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.Error(e, "An error happened when ringing the alarm.");
-                            throw;
-                        }
-                    });
+                        _logger.Error(e, "An error happened when ringing the alarm.");
+                        throw;
+                    }
                 });
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "An error happened when creating the task to ring the alarm.");
-                Dispose();
-            }
+            });
         }
-
-        private bool _isDisposed;
-
-        public void Dispose()
+        catch (Exception e)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            _isDisposed = true;
-
-            // Dispose static semaphore
-            try
-            {
-                Lock.Dispose();
-            }
-            catch (Exception ex)
-            {
-                // Ignore if already disposed
-                _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
-            }
-
-            // All injected services (playbackService, IState<PlaybackState>) are singletons
-            // and should not be disposed here as they are managed by the DI container
+            _logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            Dispose();
         }
+    }
+
+    private bool _isDisposed;
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+
+        // Dispose static semaphore
+        try
+        {
+            Lock.Dispose();
+        }
+        catch (Exception ex)
+        {
+            // Ignore if already disposed
+            _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+        }
+
+        // All injected services (playbackService, IState<PlaybackState>) are singletons
+        // and should not be disposed here as they are managed by the DI container
     }
 }

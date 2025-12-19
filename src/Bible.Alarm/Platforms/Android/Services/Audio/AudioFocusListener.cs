@@ -11,7 +11,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Audio;
 /// </summary>
 public sealed class AudioFocusListener : Java.Lang.Object, AudioManager.IOnAudioFocusChangeListener
 {
-    private static readonly ILogger Logger = Log.ForContext<AudioFocusListener>();
+    private static readonly ILogger logger = Log.ForContext<AudioFocusListener>();
     private readonly IPlaybackService _playbackService;
 
     /// <summary>
@@ -20,7 +20,7 @@ public sealed class AudioFocusListener : Java.Lang.Object, AudioManager.IOnAudio
     public AudioFocusListener(IPlaybackService playbackService)
     {
         _playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
-        Logger.Information("AudioFocusListener initialized");
+        logger.Information("AudioFocusListener initialized");
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public sealed class AudioFocusListener : Java.Lang.Object, AudioManager.IOnAudio
     {
         try
         {
-            Logger.Debug("Audio focus changed: {FocusChange}", focusChange);
+            logger.Debug("Audio focus changed: {FocusChange}", focusChange);
 
             switch (focusChange)
             {
@@ -39,7 +39,7 @@ public sealed class AudioFocusListener : Java.Lang.Object, AudioManager.IOnAudio
                 case AudioFocus.LossTransient:
                 case AudioFocus.Loss:
                     // Permanent loss of audio focus - pause playback
-                    Logger.Information("Audio focus lost - pausing playback");
+                    logger.Information("Audio focus lost - pausing playback");
 
                     _ = Task.Run(async () => await _playbackService.PauseAsync());
                     break;
@@ -47,17 +47,17 @@ public sealed class AudioFocusListener : Java.Lang.Object, AudioManager.IOnAudio
 
                 case AudioFocus.Gain:
                     // Audio focus regained - don't auto-resume, let user control playback
-                    Logger.Debug("Audio focus regained");
+                    logger.Debug("Audio focus regained");
                     break;
 
                 default:
-                    Logger.Debug("Unknown audio focus change: {FocusChange}", focusChange);
+                    logger.Debug("Unknown audio focus change: {FocusChange}", focusChange);
                     break;
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error handling audio focus change: {FocusChange}", focusChange);
+            logger.Error(ex, "Error handling audio focus change: {FocusChange}", focusChange);
         }
     }
 }

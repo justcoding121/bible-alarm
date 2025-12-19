@@ -1,18 +1,17 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Shared.Models.Media.Bible
-{
-    [Table("BibleTranslations")]
-    [Index(nameof(Code), nameof(LanguageId), IsUnique = true)]
-    public class BibleTranslation : TranslatedPublication
-    {
-        [Key]
-        public int Id { get; set; }
+namespace Bible.Alarm.Shared.Models.Media.Bible;
 
-        [Required]
-        public List<BibleBook> Books { get; set; } = [];
-    }
+[Table("BibleTranslations")]
+[Index(nameof(Code), nameof(LanguageId), IsUnique = true)]
+public class BibleTranslation : TranslatedPublication
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    public List<BibleBook> Books { get; set; } = [];
 }

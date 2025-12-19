@@ -30,16 +30,18 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 		// Use the handler's MauiContext - guaranteed to be available when PrepareAndPlayAsync is called
 		// (bootstrap completes before PrepareAndPlayAsync is called)
 		if (MauiContext == null)
+		{
 			throw new InvalidOperationException("MauiContext is null - ensure bootstrap has completed before calling PrepareAndPlayAsync");
+		}
 
 		var dispatcher = GetDispatcher();
 		MediaManager ??= new MediaManager(MauiContext, VirtualView, dispatcher);
-		
+
 		// Always use None (headless mode) for audio-only playback
 		// This app plays Bible readings and music (audio-only), so no UI view is needed
 		// ExoPlayer works perfectly in headless mode for audio playback
 		var (_, playerView) = MediaManager.CreatePlatformView(AndroidViewType.None);
-		
+
 		// Return null view for headless, or wrap PlayerView if UI exists
 		if (playerView == null)
 		{
@@ -49,12 +51,14 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 
 		// UI mode - we have a real context and PlayerView
 		if (Context == null)
+		{
 			throw new InvalidOperationException("Context is null but PlayerView was created");
+		}
 
 		return new MauiMediaElement(Context, playerView);
 	}
 
-	private IDispatcher GetDispatcher()
+	IDispatcher GetDispatcher()
 	{
 		// Get dispatcher - try current thread first, then Application.Current dispatcher
 		// After bootstrap completes, Application.Current.Dispatcher should always be available
@@ -64,7 +68,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 			// Try to get dispatcher from Application.Current (works in background services after bootstrap)
 			dispatcher = Microsoft.Maui.Controls.Application.Current?.Dispatcher;
 		}
-		
+
 		if (dispatcher == null)
 		{
 			throw new InvalidOperationException("Dispatcher cannot be null - ensure bootstrap has completed before calling CreatePlatformView");

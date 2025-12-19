@@ -50,7 +50,7 @@ public partial class FontFileResources : ResourceDictionary
         }
 
         var label = new Label();
-        if (!(Instance[resourceKey] is OnPlatform<string> resource))
+        if (Instance[resourceKey] is not OnPlatform<string> resource)
         {
             return string.Empty;
         }

@@ -18,14 +18,14 @@ public class ScheduleStateService(
     IDispatcher dispatcher)
     : IScheduleStateService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly IAlarmService _alarmService = alarmService;
-    private readonly INotificationService _notificationService = notificationService;
-    private readonly IToastService _toastService = toastService;
-    private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
+    private readonly IAlarmService alarmService = alarmService;
+    private readonly INotificationService notificationService = notificationService;
+    private readonly IToastService toastService = toastService;
+    private readonly IDispatcher dispatcher = dispatcher;
+    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private bool isDisposed;
 
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {
@@ -33,17 +33,17 @@ public class ScheduleStateService(
         if (isEnabled &&
             (DeviceInfo.Platform == DevicePlatform.iOS
              || DeviceInfo.Platform == DevicePlatform.WinUI)
-            && !await _notificationService.CanScheduleAsync())
+            && !await notificationService.CanScheduleAsync())
         {
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
-                await _toastService.ShowMessage(
+                await toastService.ShowMessage(
                     "Cannot schedule reminder because you've disabled notifications. " +
                     "Please enable notification for this app under system settings.", 7);
             }
             else
             {
-                await _toastService.ShowMessage(
+                await toastService.ShowMessage(
                     "Cannot schedule reminder because you've denied background apps permission. " +
                     "Please grant background apps permission for this app under system settings.", 7);
             }
@@ -56,14 +56,14 @@ public class ScheduleStateService(
         AlarmSchedule updatedSchedule = null;
         try
         {
-            updatedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+            updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
                 scheduleId,
                 schedule => schedule.IsEnabled = isEnabled,
-                _cancellationTokenSource.Token);
+                cancellationTokenSource.Token);
 
             await Task.Run(() =>
             {
-                _alarmService.Update(updatedSchedule);
+                alarmService.Update(updatedSchedule);
             });
         }
         catch (Exception ex)
@@ -72,12 +72,12 @@ public class ScheduleStateService(
             var exceptionType = ex.GetType().FullName;
             if (exceptionType == "Java.Lang.SecurityException" || ex.Message.Contains("SCHEDULE_EXACT_ALARM") || ex.Message.Contains("USE_EXACT_ALARM"))
             {
-                _logger.Error(ex, "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
+                logger.Error(ex, "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
 
                 // Show user-friendly message for Android
                 if (DeviceInfo.Platform == DevicePlatform.Android)
                 {
-                    await _toastService.ShowMessage(
+                    await toastService.ShowMessage(
                         "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.",
                         7);
                 }
@@ -93,13 +93,13 @@ public class ScheduleStateService(
         // Update the Fluxor store to trigger state change and UI refresh
         if (updatedSchedule != null)
         {
-            _dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+            dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
         }
 
         // Show notification if enabled
         if (isEnabled && updatedSchedule != null)
         {
-            await _toastService.ShowScheduledNotification(updatedSchedule);
+            await toastService.ShowScheduledNotification(updatedSchedule);
         }
 
         // Indicates the state change was successful
@@ -108,23 +108,23 @@ public class ScheduleStateService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // All injected services are singletons, so don't dispose them

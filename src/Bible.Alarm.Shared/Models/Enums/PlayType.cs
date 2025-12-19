@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Shared.Models.Enums;
+namespace Bible.Alarm.Shared.Models.Enums;
 
 public enum PlayType
 {

@@ -17,7 +17,7 @@ public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateServic
     /// </summary>
     public void SetScheduleItemBusyToFalse(int? scheduleId)
     {
-        if (scheduleId == null || scheduleId <= 0)
+        if (scheduleId is null or <= 0)
         {
             return;
         }

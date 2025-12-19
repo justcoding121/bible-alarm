@@ -64,9 +64,9 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
 
             // Only return true if actually playing, paused, or buffering
             // If it's Stopped, None, Opening, or Failed, return false
-            return actualState == MediaElementState.Playing ||
-                   actualState == MediaElementState.Paused ||
-                   actualState == MediaElementState.Buffering;
+            return actualState is MediaElementState.Playing or
+                   MediaElementState.Paused or
+                   MediaElementState.Buffering;
         }
     }
 
@@ -188,7 +188,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         var stateAfterPlay = await iOSMediaElementHelper.GetCurrentStateAsync(_mediaElement, _logger);
         // Check state using string comparison since helper returns object
         var stateString = stateAfterPlay.ToString();
-        if (stateString == "Playing" || stateString == "Buffering")
+        if (stateString is "Playing" or "Buffering")
         {
             _logger.Debug("MediaElement is in {State} state after Play()", stateAfterPlay);
         }
@@ -378,7 +378,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         // Also, if Source is null, force status to Stopped regardless of the state change
         if (_mediaElement?.Source == null)
         {
-            if (e.NewState != MediaElementState.Stopped && e.NewState != MediaElementState.None)
+            if (e.NewState is not MediaElementState.Stopped and not MediaElementState.None)
             {
                 _logger.Debug("Ignoring state change to {NewState} because Source is null, forcing Status to Stopped", e.NewState);
                 Status = PlayStatus.Stopped;
@@ -484,9 +484,9 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
 
             // Force stop again if still in a valid state to stop
             var actualState = await MainThread.InvokeOnMainThreadAsync(() => _mediaElement?.CurrentState ?? MediaElementState.None);
-            if (actualState == MediaElementState.Playing ||
-                actualState == MediaElementState.Paused ||
-                actualState == MediaElementState.Buffering)
+            if (actualState is MediaElementState.Playing or
+                MediaElementState.Paused or
+                MediaElementState.Buffering)
             {
                 _logger.Debug("MediaElement still in {State} state after first stop, forcing stop again", actualState);
                 await SafeStopMediaElementAsync(clearSource: true);
@@ -590,9 +590,9 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
             // Only call Stop() if MediaElement is in a valid state (Playing, Paused, or Buffering)
             // On Android, calling Stop() when in IDLE or ERROR states causes errors
             var currentState = _mediaElement.CurrentState;
-            if (currentState == MediaElementState.Playing ||
-                currentState == MediaElementState.Paused ||
-                currentState == MediaElementState.Buffering)
+            if (currentState is MediaElementState.Playing or
+                MediaElementState.Paused or
+                MediaElementState.Buffering)
             {
                 try
                 {

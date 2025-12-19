@@ -167,7 +167,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             await _audioPlayer.ResumeAsync();
             StartProgressTimerIfBibleTrack();
         }
-        else if (_audioPlayer.Status == PlayStatus.Stopped || _audioPlayer.Status == PlayStatus.Ended)
+        else if (_audioPlayer.Status is PlayStatus.Stopped or PlayStatus.Ended)
         {
             await PlayCurrentTrackAsync();
         }

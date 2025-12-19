@@ -496,17 +496,10 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
 /// <summary>
 /// Click callback for schedule items in the Car App list.
 /// </summary>
-internal class ScheduleClickCallback : Java.Lang.Object, IOnClickListener
+internal class ScheduleClickCallback(MainCarScreen screen, int scheduleId) : Java.Lang.Object, IOnClickListener
 {
-    private readonly MainCarScreen screen;
-    private readonly int scheduleId;
+    private readonly MainCarScreen screen = screen ?? throw new ArgumentNullException(nameof(screen));
     private static readonly ILogger logger = Log.ForContext<ScheduleClickCallback>();
-
-    public ScheduleClickCallback(MainCarScreen screen, int scheduleId)
-    {
-        this.screen = screen ?? throw new ArgumentNullException(nameof(screen));
-        this.scheduleId = scheduleId;
-    }
 
     public void OnClick()
     {

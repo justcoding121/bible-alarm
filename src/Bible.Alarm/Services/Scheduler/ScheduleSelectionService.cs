@@ -11,11 +11,11 @@ public class ScheduleSelectionService(
     IBibleReadingScheduleService bibleReadingScheduleService)
     : IScheduleSelectionService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IAlarmMusicService _alarmMusicService = alarmMusicService;
-    private readonly IBibleReadingScheduleService _bibleReadingScheduleService = bibleReadingScheduleService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IAlarmMusicService alarmMusicService = alarmMusicService;
+    private readonly IBibleReadingScheduleService bibleReadingScheduleService = bibleReadingScheduleService;
+    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private bool isDisposed;
 
     public async Task<AlarmMusic> LoadMusicForSelectionAsync(int scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic)
     {
@@ -24,7 +24,7 @@ public class ScheduleSelectionService(
             // Get the latest music track if needed
             if (currentMusic == null || (!isNewSchedule && !musicUpdated))
             {
-                var music = await _alarmMusicService.GetMusicByScheduleIdAsync(scheduleId, _cancellationTokenSource.Token);
+                var music = await alarmMusicService.GetMusicByScheduleIdAsync(scheduleId, cancellationTokenSource.Token);
                 if (music == null)
                 {
                     throw new InvalidOperationException($"Music not found for schedule {scheduleId}");
@@ -37,7 +37,7 @@ public class ScheduleSelectionService(
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error loading music for selection for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, "Error loading music for selection for schedule {ScheduleId}", scheduleId);
             return currentMusic;
         }
     }
@@ -49,7 +49,7 @@ public class ScheduleSelectionService(
             // Get the latest bible track if needed
             if (currentBibleReading == null || (!isNewSchedule && !bibleReadingUpdated))
             {
-                var bibleReading = await _bibleReadingScheduleService.GetBibleReadingScheduleByScheduleIdAsync(scheduleId, _cancellationTokenSource.Token);
+                var bibleReading = await bibleReadingScheduleService.GetBibleReadingScheduleByScheduleIdAsync(scheduleId, cancellationTokenSource.Token);
                 if (bibleReading == null)
                 {
                     throw new InvalidOperationException($"BibleReadingSchedule not found for schedule {scheduleId}");
@@ -62,30 +62,30 @@ public class ScheduleSelectionService(
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error loading bible reading for selection for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, "Error loading bible reading for selection for schedule {ScheduleId}", scheduleId);
             return currentBibleReading;
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

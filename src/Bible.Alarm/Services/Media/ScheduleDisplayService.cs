@@ -15,12 +15,12 @@ public class ScheduleDisplayService(
     IBibleBookService bibleBookService)
     : IScheduleDisplayService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IState<PlaybackState> _playbackState = playbackState;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly IBibleBookService _bibleBookService = bibleBookService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IState<PlaybackState> playbackState = playbackState;
+    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
+    private readonly IBibleBookService bibleBookService = bibleBookService;
+    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private bool isDisposed;
 
     public async Task<string> GetChapterDisplayNameAsync(int scheduleId, bool force = false)
     {
@@ -38,14 +38,14 @@ public class ScheduleDisplayService(
             {
                 if (!force)
                 {
-                    if (!_playbackState.Value.IsPreparingOrPlaying)
+                    if (!playbackState.Value.IsPreparingOrPlaying)
                     {
                         return string.Empty;
                     }
                 }
 
-                var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
-                    scheduleId, false, true, _cancellationTokenSource.Token);
+                var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                    scheduleId, false, true, cancellationTokenSource.Token);
 
                 if (schedule?.BibleReadingSchedule == null)
                 {
@@ -60,11 +60,11 @@ public class ScheduleDisplayService(
                 return string.Empty;
             }
 
-            var bookName = await _bibleBookService.GetBookNameAsync(
+            var bookName = await bibleBookService.GetBookNameAsync(
                 scheduleToUse.LanguageCode,
                 scheduleToUse.PublicationCode,
                 scheduleToUse.BookNumber,
-                _cancellationTokenSource.Token);
+                cancellationTokenSource.Token);
 
             if (bookName == null)
             {
@@ -75,30 +75,30 @@ public class ScheduleDisplayService(
         }
         catch (Exception e)
         {
-            _logger.Error(e, "An error happened while getting chapter display name for schedule {ScheduleId}", scheduleId);
+            logger.Error(e, "An error happened while getting chapter display name for schedule {ScheduleId}", scheduleId);
             return string.Empty;
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // All injected services are singletons, so don't dispose them

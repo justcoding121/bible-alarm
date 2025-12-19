@@ -25,33 +25,21 @@ namespace Bible.Alarm.Stores.Effects;
 /// - Map DB entity → domain model
 /// - Dispatch success/failure actions
 /// </summary>
-public class ScheduleEffects
+public class ScheduleEffects(
+    IMapper mapper,
+    IBibleTranslationService? bibleTranslationService = null,
+    IBibleBookService? bibleBookService = null,
+    IAlarmScheduleService? alarmScheduleService = null,
+    IAlarmService? alarmService = null,
+    IMediaCacheService? mediaCacheService = null,
+    IState<ApplicationState>? state = null)
 {
-    private readonly IMapper _mapper;
-    private readonly IBibleTranslationService? _bibleTranslationService;
-    private readonly IBibleBookService? _bibleBookService;
-    private readonly IAlarmScheduleService? _alarmScheduleService;
-    private readonly IAlarmService? _alarmService;
-    private readonly IMediaCacheService? _mediaCacheService;
-    private readonly IState<ApplicationState>? _state;
-
-    public ScheduleEffects(
-        IMapper mapper,
-        IBibleTranslationService? bibleTranslationService = null,
-        IBibleBookService? bibleBookService = null,
-        IAlarmScheduleService? alarmScheduleService = null,
-        IAlarmService? alarmService = null,
-        IMediaCacheService? mediaCacheService = null,
-        IState<ApplicationState>? state = null)
-    {
-        _mapper = mapper;
-        _bibleTranslationService = bibleTranslationService ?? ServiceProviderManager.GetService<IBibleTranslationService>();
-        _bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
-        _alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
-        _alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
-        _mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
-        _state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
-    }
+    private readonly IBibleTranslationService? _bibleTranslationService = bibleTranslationService ?? ServiceProviderManager.GetService<IBibleTranslationService>();
+    private readonly IBibleBookService? _bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
+    private readonly IAlarmScheduleService? _alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
+    private readonly IAlarmService? _alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
+    private readonly IMediaCacheService? _mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
+    private readonly IState<ApplicationState>? _state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
 
     /// <summary>
     /// Effect: Transform DB entity to DTO and dispatch success action.
@@ -72,7 +60,7 @@ public class ScheduleEffects
             }
 
             // Transform DB entity to State DTO (following Fluxor best practices)
-            var scheduleStateItem = _mapper.Map<ScheduleStateItem>(action.Schedule);
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
             // Populate TranslationName and BookName if BibleReadingSchedule exists
             await PopulateTranslationNameAsync(scheduleStateItem, action.Schedule);
@@ -109,7 +97,7 @@ public class ScheduleEffects
             }
 
             // Transform DB entity to State DTO
-            var scheduleStateItem = _mapper.Map<ScheduleStateItem>(action.Schedule);
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
             // Populate TranslationName and BookName if missing
             // (Note: This is for UpdateScheduleAction which doesn't go through the optimistic reducer)
@@ -188,7 +176,7 @@ public class ScheduleEffects
             }
 
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
-            var dbSchedule = _mapper.Map<AlarmSchedule>(action.Schedule);
+            var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule);
 
             Log.Debug("ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
                 dbSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
@@ -213,7 +201,7 @@ public class ScheduleEffects
             }
 
             // Map DB entity → domain model (ScheduleStateItem)
-            var scheduleStateItem = _mapper.Map<ScheduleStateItem>(savedSchedule);
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
 
             // Populate TranslationName and BookName if BibleReadingSchedule exists
             await PopulateTranslationNameAsync(scheduleStateItem, savedSchedule);
@@ -258,7 +246,7 @@ public class ScheduleEffects
             }
 
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
-            var dbSchedule = _mapper.Map<AlarmSchedule>(action.Schedule);
+            var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule);
 
             // Update in database using UpdateScheduleByIdAsync to handle nested entities properly
             var savedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
@@ -329,7 +317,7 @@ public class ScheduleEffects
             }
 
             // Map DB entity → domain model (ScheduleStateItem)
-            var scheduleStateItem = _mapper.Map<ScheduleStateItem>(savedSchedule);
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
 
             // TranslationName and BookName are preserved by the reducer during optimistic update.
             // Here we need to repopulate them if:

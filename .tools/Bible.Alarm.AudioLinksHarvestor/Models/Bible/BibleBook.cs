@@ -1,15 +1,14 @@
-﻿using System;
+using System;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Models.Bible
+namespace Bible.Alarm.AudioLinksHarvestor.Models.Bible;
+
+public class BibleBook : IComparable
 {
-    public class BibleBook : IComparable
-    {
-        public string Name { get; set; }
-        public int Number { get; set; }
+    public string Name { get; set; }
+    public int Number { get; set; }
 
-        public int CompareTo(object obj)
-        {
-            return Number.CompareTo((obj as BibleBook).Number);
-        }
+    public int CompareTo(object obj)
+    {
+        return Number.CompareTo((obj as BibleBook).Number);
     }
 }

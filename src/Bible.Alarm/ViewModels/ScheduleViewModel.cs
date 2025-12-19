@@ -27,27 +27,27 @@ namespace Bible.Alarm.ViewModels;
 
 public class ScheduleViewModel : ObservableObject, IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly ILogger logger;
 
-    private readonly IToastService _popUpService;
-    private readonly IMediaCacheSetupService _mediaCacheSetupService;
-    private readonly INavigationService _navigationService;
-    private readonly IScheduleDisplayService _scheduleDisplayService;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IState<ApplicationState> _state;
-    private readonly IState<PlaybackState> _playbackState;
-    private readonly IDispatcher _dispatcher;
-    private readonly IBibleTranslationService _bibleTranslationService;
-    private readonly IMelodyMusicService _melodyMusicService;
-    private readonly IMapper _mapper;
+    private readonly IToastService popUpService;
+    private readonly IMediaCacheSetupService mediaCacheSetupService;
+    private readonly INavigationService navigationService;
+    private readonly IScheduleDisplayService scheduleDisplayService;
+    private readonly IServiceProvider serviceProvider;
+    private readonly IState<ApplicationState> state;
+    private readonly IState<PlaybackState> playbackState;
+    private readonly IDispatcher dispatcher;
+    private readonly IBibleTranslationService bibleTranslationService;
+    private readonly IMelodyMusicService melodyMusicService;
+    private readonly IMapper mapper;
 
-    private int _lastScheduleId = -1;
-    private bool _modelInitialized;
-    private bool _isInitializingNewSchedule;
-    private bool _isSaving;
-    private AlarmMusic _lastMusic;
-    private BibleReadingSchedule _lastBibleReading;
-    private bool _isScrolledToBottom;
+    private int lastScheduleId = -1;
+    private bool modelInitialized;
+    private bool isInitializingNewSchedule;
+    private bool isSaving;
+    private AlarmMusic lastMusic;
+    private BibleReadingSchedule lastBibleReading;
+    private bool isScrolledToBottom;
 
     public ICommand BatteryOptimizationExcludeCommand { get; private set; }
     public ICommand BatteryOptimizationDismissCommand { get; private set; }
@@ -58,7 +58,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     public ICommand PreviousChapterCommand { get; set; }
     public ICommand NextChapterCommand { get; set; }
 
-    private readonly IScheduleItemStateService _scheduleItemStateService;
+    private readonly IScheduleItemStateService scheduleItemStateService;
 
     public ScheduleViewModel(
         ILogger logger,
@@ -80,28 +80,28 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         IMapper mapper)
     {
         var constructorStartTime = DateTime.UtcNow;
-        _logger = logger;
-        _logger.Information("[PERF] ScheduleViewModel: Constructor started at {StartTime}", constructorStartTime);
-        _popUpService = popUpService;
-        _bibleTranslationService = bibleTranslationService;
-        _melodyMusicService = melodyMusicService;
-        _mapper = mapper;
+        this.logger = logger;
+        logger.Information("[PERF] ScheduleViewModel: Constructor started at {StartTime}", constructorStartTime);
+        this.popUpService = popUpService;
+        this.bibleTranslationService = bibleTranslationService;
+        this.melodyMusicService = melodyMusicService;
+        this.mapper = mapper;
 
-        _state = state;
-        _playbackState = playbackState;
-        _dispatcher = dispatcher;
-        _scheduleItemStateService = scheduleItemStateService;
+        this.state = state;
+        this.playbackState = playbackState;
+        this.dispatcher = dispatcher;
+        this.scheduleItemStateService = scheduleItemStateService;
 
         var bibleNavigationService1 = bibleNavigationService;
-        _mediaCacheSetupService = mediaCacheSetupService;
-        _navigationService = navigationService;
+        this.mediaCacheSetupService = mediaCacheSetupService;
+        this.navigationService = navigationService;
         var scheduleSelectionService1 = scheduleSelectionService;
-        _scheduleDisplayService = scheduleDisplayService;
-        _serviceProvider = serviceProvider;
+        this.scheduleDisplayService = scheduleDisplayService;
+        this.serviceProvider = serviceProvider;
 
-        _state.StateChanged += OnStateChanged;
-        _state.StateChanged += OnMusicChanged;
-        _state.StateChanged += OnBibleReadingChanged;
+        state.StateChanged += OnStateChanged;
+        state.StateChanged += OnMusicChanged;
+        state.StateChanged += OnBibleReadingChanged;
 
         // Set IsBusy to true by default so the page shows loading indicator immediately
         IsBusy = true;
@@ -110,37 +110,37 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         // This ensures we load the schedule immediately if it's already available
         // Check synchronously first, then also set up a delayed check as fallback
         var checkStateStartTime = DateTime.UtcNow;
-        var currentState = _state.Value;
+        var currentState = state.Value;
         var checkStateElapsed = (DateTime.UtcNow - checkStateStartTime).TotalMilliseconds;
-        _logger.Information("[PERF] ScheduleViewModel: State check took {ElapsedMs}ms, CurrentSchedule={HasSchedule}", checkStateElapsed, currentState.CurrentSchedule != null);
+            logger.Information("[PERF] ScheduleViewModel: State check took {ElapsedMs}ms, CurrentSchedule={HasSchedule}", checkStateElapsed, currentState.CurrentSchedule != null);
 
         if (currentState.CurrentSchedule != null)
         {
             // Schedule is already in state, trigger the handler immediately on main thread
-            _logger.Information("[PERF] ScheduleViewModel: Schedule already in state, triggering OnCurrentScheduleChanged");
+            logger.Information("[PERF] ScheduleViewModel: Schedule already in state, triggering OnCurrentScheduleChanged");
             MainThread.BeginInvokeOnMainThread(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
         }
         else
         {
             // Schedule not in state yet, set up a delayed check as fallback
             // This handles the case where the action is dispatched but state hasn't updated yet
-            _logger.Information("[PERF] ScheduleViewModel: Schedule not in state, setting up delayed check");
+            logger.Information("[PERF] ScheduleViewModel: Schedule not in state, setting up delayed check");
             _ = Task.Run(async () =>
             {
                 // Wait a bit for the state to update after action dispatch
                 await Task.Delay(100);
-                var delayedState = _state.Value;
-                if (delayedState.CurrentSchedule != null && !_modelInitialized)
+                var delayedState = state.Value;
+                if (delayedState.CurrentSchedule != null && !modelInitialized)
                 {
                     // Schedule is now in state, trigger the handler
-                    _logger.Information("[PERF] ScheduleViewModel: Schedule found after delay, triggering OnCurrentScheduleChanged");
+                    logger.Information("[PERF] ScheduleViewModel: Schedule found after delay, triggering OnCurrentScheduleChanged");
                     await MainThread.InvokeOnMainThreadAsync(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
                 }
             });
         }
 
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
-        _logger.Information("[PERF] ScheduleViewModel: Constructor completed in {ElapsedMs}ms", constructorElapsed);
+        logger.Information("[PERF] ScheduleViewModel: Constructor completed in {ElapsedMs}ms", constructorElapsed);
 
         // Safety fallback: ensure IsBusy is set to false after a maximum delay
         // This prevents the overlay from staying visible indefinitely if something goes wrong
@@ -148,13 +148,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             // 2 second timeout
             await Task.Delay(2000);
-            if (IsBusy && !_modelInitialized)
+            if (IsBusy && !modelInitialized)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     IsBusy = false;
                     // Hide Home page overlay as safety fallback
-                    _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+                    dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
                 });
             }
         });
@@ -162,21 +162,21 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         CancelCommand = new AsyncRelayCommand(async () =>
         {
             // Cancel just navigates back, no need for progress indicator
-            await _navigationService.NavigateToHomeAsync();
+            await navigationService.NavigateToHomeAsync();
         });
 
         SaveCommand = new AsyncRelayCommand(async () =>
         {
-            _logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
-                IsNewSchedule, _scheduleId, Name);
+            logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
+                IsNewSchedule, scheduleId, Name);
 
             // Set saving flag to prevent ViewModel reset during save
-            _isSaving = true;
+            isSaving = true;
 
             try
             {
                 // Show overlay immediately via state
-                _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
                 // Wait for state to update and UI to reflect the change
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
@@ -196,8 +196,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
                 if (!IsNewSchedule)
                 {
-                    if (_playbackState.Value.IsPreparingOrPlaying
-                        && _scheduleId == _playbackState.Value.CurrentScheduleId)
+                    if (playbackState.Value.IsPreparingOrPlaying
+                        && scheduleId == playbackState.Value.CurrentScheduleId)
                     {
                         await playbackService.StopAsync();
                     }
@@ -207,36 +207,36 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
                 if (saved)
                 {
-                    _logger.Information("SaveCommand: Save successful, navigating to home. ScheduleId={ScheduleId}", _scheduleId);
+                    logger.Information("SaveCommand: Save successful, navigating to home. ScheduleId={ScheduleId}", scheduleId);
                     // Wait a bit to ensure the state update from AddScheduleAction has propagated
                     // This ensures the new schedule appears in the Home page list
                     await Task.Delay(100);
-                    await _navigationService.NavigateToHomeAsync();
+                    await navigationService.NavigateToHomeAsync();
                     // Note: Schedule page overlay will be hidden when Home page Appearing event fires
                 }
                 else
                 {
-                    _logger.Error("SaveCommand: Save failed, hiding overlay. ScheduleId={ScheduleId}", _scheduleId);
+                    logger.Error("SaveCommand: Save failed, hiding overlay. ScheduleId={ScheduleId}", scheduleId);
                     // Hide overlay if save failed
-                    _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
                 }
 
                 if (saved && IsEnabled)
                 {
-                    await _popUpService.ShowScheduledNotification(Model);
+                    await popUpService.ShowScheduledNotification(Model);
                 }
             }
             finally
             {
                 // Reset saving flag after save completes
-                _isSaving = false;
+                isSaving = false;
             }
         });
 
         DeleteCommand = new AsyncRelayCommand(async () =>
         {
             // Show overlay immediately via state
-            _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
             // Wait for state to update and UI to reflect the change
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
@@ -249,21 +249,21 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             // If it's a new schedule, just navigate back without deleting
             if (IsNewSchedule)
             {
-                await _navigationService.NavigateToHomeAsync();
+                await navigationService.NavigateToHomeAsync();
                 // Note: Schedule page overlay will be hidden when navigating back
                 return;
             }
 
             // For existing schedules, delete and then navigate back
-            if (_playbackState.Value.IsPreparingOrPlaying
-                && _scheduleId == _playbackState.Value.CurrentScheduleId)
+            if (playbackState.Value.IsPreparingOrPlaying
+                && scheduleId == playbackState.Value.CurrentScheduleId)
             {
                 await playbackService.StopAsync();
             }
 
             await DeleteAsync();
 
-            await _navigationService.NavigateToHomeAsync();
+            await navigationService.NavigateToHomeAsync();
             // Note: Schedule page overlay will be hidden when navigating back
         });
 
@@ -275,13 +275,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             // Run database operations off UI thread
             Music = await Task.Run(async () =>
-                await scheduleSelectionService1.LoadMusicForSelectionAsync(_scheduleId, IsNewSchedule, _musicUpdated, Music));
+                await scheduleSelectionService1.LoadMusicForSelectionAsync(scheduleId, IsNewSchedule, musicUpdated, Music));
 
-            await _navigationService.NavigateToMusicSelectionAsync();
+            await navigationService.NavigateToMusicSelectionAsync();
 
             // Map entity to DTO before dispatching
-            var musicStateItem = _mapper.Map<MusicStateItem>(Music);
-            _dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
+            var musicStateItem = mapper.Map<MusicStateItem>(Music);
+            dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
         });
 
         SelectBibleCommand = new AsyncRelayCommand(async () =>
@@ -289,18 +289,18 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             // Run database operations off UI thread
             BibleReadingSchedule = await Task.Run(async () =>
                 await scheduleSelectionService1.LoadBibleReadingForSelectionAsync(
-                    _scheduleId, IsNewSchedule, _bibleReadingUpdated, BibleReadingSchedule));
+                    scheduleId, IsNewSchedule, bibleReadingUpdated, BibleReadingSchedule));
 
             if (BibleReadingSchedule != null)
             {
                 RefreshChapterName();
             }
 
-            await _navigationService.NavigateToBibleSelectionAsync();
+            await navigationService.NavigateToBibleSelectionAsync();
 
             // Map entities to DTOs before dispatching
             var currentBibleReadingItem = BibleReadingSchedule != null
-                ? _mapper.Map<BibleReadingStateItem>(BibleReadingSchedule)
+                ? mapper.Map<BibleReadingStateItem>(BibleReadingSchedule)
                 : null;
             var tentativeBibleReadingItem = new BibleReadingStateItem
             {
@@ -310,18 +310,18 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             if (currentBibleReadingItem != null)
             {
-                _dispatcher.Dispatch(new BibleSelectionAction(currentBibleReadingItem, tentativeBibleReadingItem));
+                dispatcher.Dispatch(new BibleSelectionAction(currentBibleReadingItem, tentativeBibleReadingItem));
             }
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
-            await _navigationService.OpenNumberOfChaptersModalAsync(this);
+            await navigationService.OpenNumberOfChaptersModalAsync(this);
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            await _navigationService.PopModalAsync();
+            await navigationService.PopModalAsync();
         });
 
         SelectNumberOfChaptersCommand = new AsyncRelayCommand<NumberOfChaptersListViewItemModel>(async x =>
@@ -345,7 +345,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(CurrentNumberOfChapters));
             OnPropertyChanged(nameof(CurrentNumberOfChaptersText));
 
-            await _navigationService.PopModalAsync();
+            await navigationService.PopModalAsync();
         });
 
         NotificationEnabledCommand = new RelayCommand(() => { NotificationEnabled = !NotificationEnabled; });
@@ -354,11 +354,11 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             if (DeviceInfo.Platform == DevicePlatform.Android)
             {
-                var batteryService = _serviceProvider.GetService<IBatteryOptimizationService>();
+                var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
                 if (batteryService != null)
                 {
                     await MarkBatteryOptimizationModalAsShown();
-                    await _navigationService.PopModalAsync();
+                    await navigationService.PopModalAsync();
                     batteryService.ShowOptimizationSettingsPage();
                 }
             }
@@ -367,7 +367,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         BatteryOptimizationDismissCommand = new AsyncRelayCommand(async () =>
         {
             await MarkBatteryOptimizationModalAsShown();
-            await _navigationService.PopModalAsync();
+            await navigationService.PopModalAsync();
         });
 
         PreviousBookCommand = new AsyncRelayCommand(async () =>
@@ -383,7 +383,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             if (moved)
             {
-                _bibleReadingUpdated = true;
+                bibleReadingUpdated = true;
                 RefreshChapterName();
             }
         });
@@ -401,7 +401,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             if (moved)
             {
-                _bibleReadingUpdated = true;
+                bibleReadingUpdated = true;
                 RefreshChapterName();
             }
         });
@@ -419,7 +419,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             if (moved)
             {
-                _bibleReadingUpdated = true;
+                bibleReadingUpdated = true;
                 RefreshChapterName();
             }
         });
@@ -437,7 +437,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
             if (moved)
             {
-                _bibleReadingUpdated = true;
+                bibleReadingUpdated = true;
                 RefreshChapterName();
             }
         });
@@ -445,7 +445,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private void OnStateChanged(object sender, EventArgs e)
     {
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
 
         // Notify about overlay visibility changes
         MainThread.BeginInvokeOnMainThread(() =>
@@ -460,23 +460,23 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     private void OnCurrentScheduleChanged(object sender, EventArgs e)
     {
         var handlerStartTime = DateTime.UtcNow;
-        _logger.Information("[PERF] OnCurrentScheduleChanged: Handler started at {StartTime}", handlerStartTime);
+        logger.Information("[PERF] OnCurrentScheduleChanged: Handler started at {StartTime}", handlerStartTime);
 
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
 
         // Handle when CurrentSchedule is set (new or existing schedule)
         if (stateValue.CurrentSchedule != null)
         {
             var currentScheduleId = stateValue.CurrentSchedule.Id;
-            _logger.Information("[PERF] OnCurrentScheduleChanged: Processing schedule Id={ScheduleId}, LastScheduleId={LastScheduleId}, ModelInitialized={ModelInitialized}",
-                currentScheduleId, _lastScheduleId, _modelInitialized);
+            logger.Information("[PERF] OnCurrentScheduleChanged: Processing schedule Id={ScheduleId}, LastScheduleId={LastScheduleId}, ModelInitialized={ModelInitialized}",
+                currentScheduleId, lastScheduleId, modelInitialized);
 
-            if (currentScheduleId == _lastScheduleId && _modelInitialized)
+            if (currentScheduleId == lastScheduleId && modelInitialized)
             {
                 // Don't update the model if we're currently saving, as this would overwrite user changes
-                if (_isSaving)
+                if (isSaving)
                 {
-                    _logger.Debug("OnCurrentScheduleChanged: Skipping model update during save operation. ScheduleId={ScheduleId}", currentScheduleId);
+                    logger.Debug("OnCurrentScheduleChanged: Skipping model update during save operation. ScheduleId={ScheduleId}", currentScheduleId);
                     return;
                 }
 
@@ -485,7 +485,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 if (updatedScheduleItem != null)
                 {
                     // Map DTO to entity for SetModel
-                    var updatedSchedule = _mapper.Map<AlarmSchedule>(updatedScheduleItem);
+                    var updatedSchedule = mapper.Map<AlarmSchedule>(updatedScheduleItem);
                     if (updatedSchedule.Id != Model.Id)
                     {
                         // Schedule was updated externally (e.g., next/prev from home view)
@@ -500,33 +500,33 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            _isInitializingNewSchedule = false;
+            isInitializingNewSchedule = false;
 
             var currentScheduleItem = stateValue.CurrentSchedule;
-            _lastScheduleId = currentScheduleId;
+            lastScheduleId = currentScheduleId;
 
             var isNew = currentScheduleItem.Id <= 0;
-            _logger.Information("[PERF] OnCurrentScheduleChanged: IsNew={IsNew}, invoking on main thread", isNew);
+            logger.Information("[PERF] OnCurrentScheduleChanged: IsNew={IsNew}, invoking on main thread", isNew);
 
             _ = MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 try
                 {
                     var mainThreadStartTime = DateTime.UtcNow;
-                    _logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler started at {StartTime}", mainThreadStartTime);
+                    logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler started at {StartTime}", mainThreadStartTime);
 
                     // IsBusy is already true from constructor, no need to set it again
                     IsNewSchedule = isNew;
 
                     // Map DTO to entity for SetModel
-                    var currentSchedule = _mapper.Map<AlarmSchedule>(currentScheduleItem);
+                    var currentSchedule = mapper.Map<AlarmSchedule>(currentScheduleItem);
 
                     var setModelStartTime = DateTime.UtcNow;
                     SetModel(currentSchedule);
                     var setModelElapsed = (DateTime.UtcNow - setModelStartTime).TotalMilliseconds;
-                    _logger.Information("[PERF] OnCurrentScheduleChanged: SetModel took {ElapsedMs}ms", setModelElapsed);
+                    logger.Information("[PERF] OnCurrentScheduleChanged: SetModel took {ElapsedMs}ms", setModelElapsed);
 
-                    _modelInitialized = true;
+                    modelInitialized = true;
                     // Small delay to ensure UI has rendered the content before hiding overlay
                     await Task.Delay(100);
                     IsBusy = false;
@@ -534,12 +534,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                     OnPropertyChanged(nameof(IsBusy));
 
                     var mainThreadElapsed = (DateTime.UtcNow - mainThreadStartTime).TotalMilliseconds;
-                    _logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler completed in {ElapsedMs}ms", mainThreadElapsed);
+                    logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler completed in {ElapsedMs}ms", mainThreadElapsed);
                     // Note: Home page overlay will be hidden when Schedule page Appearing event fires
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Error in OnCurrentScheduleChanged handler");
+                    logger.Error(ex, "Error in OnCurrentScheduleChanged handler");
                     // Ensure IsBusy is set to false even if there's an error
                     IsBusy = false;
                     OnPropertyChanged(nameof(IsBusy));
@@ -552,53 +552,53 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             // CurrentSchedule is null - this means we're creating a new schedule
             // Reset the ViewModel state to ensure it's properly initialized for a new schedule
             // BUT: Don't reset if we're currently saving, as this would interfere with the save operation
-            if (_modelInitialized && !_isSaving)
+            if (modelInitialized && !isSaving)
             {
-                _logger.Debug("OnCurrentScheduleChanged: Resetting ViewModel for new schedule. Previous ScheduleId={PreviousScheduleId}",
-                    _scheduleId);
-                _modelInitialized = false;
-                _lastScheduleId = -1;
-                _scheduleId = 0;
+                logger.Debug("OnCurrentScheduleChanged: Resetting ViewModel for new schedule. Previous ScheduleId={PreviousScheduleId}",
+                    scheduleId);
+                modelInitialized = false;
+                lastScheduleId = -1;
+                scheduleId = 0;
                 // Will be set to true after initialization
                 IsNewSchedule = false;
             }
 
-            if (!_modelInitialized && !_isInitializingNewSchedule)
+            if (!modelInitialized && !isInitializingNewSchedule)
             {
-                _isInitializingNewSchedule = true;
-                _logger.Information("[PERF] OnCurrentScheduleChanged: Starting new schedule initialization");
+                isInitializingNewSchedule = true;
+                logger.Information("[PERF] OnCurrentScheduleChanged: Starting new schedule initialization");
                 // Show busy indicator during initialization
                 MainThread.BeginInvokeOnMainThread(() => IsBusy = true);
                 Task.Run(async () =>
                 {
                     var getSampleStartTime = DateTime.UtcNow;
-                    _logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule started at {StartTime}", getSampleStartTime);
+                    logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule started at {StartTime}", getSampleStartTime);
 
-                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, _bibleTranslationService, _melodyMusicService);
+                    var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, bibleTranslationService, melodyMusicService);
 
                     var getSampleElapsed = (DateTime.UtcNow - getSampleStartTime).TotalMilliseconds;
-                    _logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule completed in {ElapsedMs}ms", getSampleElapsed);
+                    logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule completed in {ElapsedMs}ms", getSampleElapsed);
 
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        var currentState = _state.Value;
-                        if (_isInitializingNewSchedule && !_modelInitialized && currentState.CurrentSchedule == null)
+                        var currentState = state.Value;
+                        if (isInitializingNewSchedule && !modelInitialized && currentState.CurrentSchedule == null)
                         {
-                            _logger.Debug("OnCurrentScheduleChanged: Initializing new schedule. SampleSchedule.Id={SampleScheduleId}",
+                            logger.Debug("OnCurrentScheduleChanged: Initializing new schedule. SampleSchedule.Id={SampleScheduleId}",
                                 sampleSchedule.Id);
 
                             var setModelStartTime = DateTime.UtcNow;
                             SetModel(sampleSchedule);
                             var setModelElapsed = (DateTime.UtcNow - setModelStartTime).TotalMilliseconds;
-                            _logger.Information("[PERF] OnCurrentScheduleChanged: SetModel for new schedule took {ElapsedMs}ms", setModelElapsed);
+                            logger.Information("[PERF] OnCurrentScheduleChanged: SetModel for new schedule took {ElapsedMs}ms", setModelElapsed);
 
-                            _modelInitialized = true;
+                            modelInitialized = true;
                             IsNewSchedule = true;
-                            _logger.Information("OnCurrentScheduleChanged: New schedule initialized. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}",
-                                _scheduleId, IsNewSchedule);
+                            logger.Information("OnCurrentScheduleChanged: New schedule initialized. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}",
+                                scheduleId, IsNewSchedule);
                         }
 
-                        _isInitializingNewSchedule = false;
+                        isInitializingNewSchedule = false;
                         // Hide busy indicator after initialization
                         IsBusy = false;
                         // Note: Home page overlay will be hidden when Schedule page Appearing event fires
@@ -615,7 +615,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
         if (stateValue.CurrentBibleReadingSchedule == null)
         {
             return;
@@ -623,12 +623,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         // Check if the bible reading actually changed by comparing properties
         var newBibleReadingItem = stateValue.CurrentBibleReadingSchedule;
-        var hasChanged = _lastBibleReading == null ||
+        var hasChanged = lastBibleReading == null ||
                         BibleReadingSchedule == null ||
-                        _lastBibleReading.LanguageCode != newBibleReadingItem.LanguageCode ||
-                        _lastBibleReading.PublicationCode != newBibleReadingItem.PublicationCode ||
-                        _lastBibleReading.BookNumber != newBibleReadingItem.BookNumber ||
-                        _lastBibleReading.ChapterNumber != newBibleReadingItem.ChapterNumber ||
+                        lastBibleReading.LanguageCode != newBibleReadingItem.LanguageCode ||
+                        lastBibleReading.PublicationCode != newBibleReadingItem.PublicationCode ||
+                        lastBibleReading.BookNumber != newBibleReadingItem.BookNumber ||
+                        lastBibleReading.ChapterNumber != newBibleReadingItem.ChapterNumber ||
                         (BibleReadingSchedule != null &&
                          (BibleReadingSchedule.BookNumber != newBibleReadingItem.BookNumber ||
                           BibleReadingSchedule.ChapterNumber != newBibleReadingItem.ChapterNumber));
@@ -639,13 +639,13 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         }
 
         // Map DTO to entity
-        var newBibleReading = _mapper.Map<BibleReadingSchedule>(newBibleReadingItem);
+        var newBibleReading = mapper.Map<BibleReadingSchedule>(newBibleReadingItem);
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
             BibleReadingSchedule = newBibleReading;
-            _lastBibleReading = newBibleReading;
-            _bibleReadingUpdated = true;
+            lastBibleReading = newBibleReading;
+            bibleReadingUpdated = true;
             RefreshChapterName();
             OnPropertyChanged(nameof(BibleReadingSchedule));
             OnPropertyChanged(nameof(BibleReadingTitleText));
@@ -659,7 +659,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
         if (stateValue.CurrentMusic == null)
         {
             return;
@@ -667,12 +667,12 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         // Check if the music actually changed by comparing properties
         var newMusicItem = stateValue.CurrentMusic;
-        var hasChanged = _lastMusic == null ||
+        var hasChanged = lastMusic == null ||
                         Music == null ||
-                        _lastMusic.LanguageCode != newMusicItem.LanguageCode ||
-                        _lastMusic.PublicationCode != newMusicItem.PublicationCode ||
-                        _lastMusic.MusicType != newMusicItem.MusicType ||
-                        _lastMusic.TrackNumber != newMusicItem.TrackNumber ||
+                        lastMusic.LanguageCode != newMusicItem.LanguageCode ||
+                        lastMusic.PublicationCode != newMusicItem.PublicationCode ||
+                        lastMusic.MusicType != newMusicItem.MusicType ||
+                        lastMusic.TrackNumber != newMusicItem.TrackNumber ||
                         (Music != null &&
                          (Music.TrackNumber != newMusicItem.TrackNumber ||
                           Music.MusicType != newMusicItem.MusicType ||
@@ -685,30 +685,30 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         }
 
         // Map DTO to entity
-        var newMusic = _mapper.Map<AlarmMusic>(newMusicItem);
+        var newMusic = mapper.Map<AlarmMusic>(newMusicItem);
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
             Music = newMusic;
-            _lastMusic = newMusic;
-            _musicUpdated = true;
+            lastMusic = newMusic;
+            musicUpdated = true;
             OnPropertyChanged(nameof(Music));
         });
     }
 
-    private bool _canOptimizeBattery;
+    private bool canOptimizeBattery;
 
     public bool CanOptimizeBattery
     {
-        get => _canOptimizeBattery;
-        set => SetProperty(ref _canOptimizeBattery, value);
+        get => canOptimizeBattery;
+        set => SetProperty(ref canOptimizeBattery, value);
     }
 
     private async Task MarkBatteryOptimizationModalAsShown()
     {
         if (DeviceInfo.Platform == DevicePlatform.Android)
         {
-            var batteryService = _serviceProvider.GetService<IBatteryOptimizationService>();
+            var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
             if (batteryService != null)
             {
                 await batteryService.MarkModalAsShownAsync();
@@ -723,7 +723,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var batteryService = _serviceProvider.GetService<IBatteryOptimizationService>();
+        var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
         if (batteryService == null)
         {
             return;
@@ -736,7 +736,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
         if (await batteryService.ShouldShowModalAsync())
         {
-            await _navigationService.OpenBatteryOptimizationModalAsync(this);
+            await navigationService.OpenBatteryOptimizationModalAsync(this);
         }
     }
 
@@ -767,14 +767,14 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _numberOfChaptersList, value);
     }
 
-    private NumberOfChaptersListViewItemModel _currentNumberOfChapters;
+    private NumberOfChaptersListViewItemModel currentNumberOfChapters;
 
     public NumberOfChaptersListViewItemModel CurrentNumberOfChapters
     {
-        get => _currentNumberOfChapters;
+        get => currentNumberOfChapters;
         set
         {
-            if (SetProperty(ref _currentNumberOfChapters, value))
+            if (SetProperty(ref currentNumberOfChapters, value))
             {
                 // Notify that the Text property (computed from CurrentNumberOfChapters) has changed
                 OnPropertyChanged(nameof(CurrentNumberOfChaptersText));
@@ -818,10 +818,10 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     private AlarmSchedule GetModel()
     {
-        _logger.Debug("GetModel: Reading ViewModel properties. ViewModel.Name={ViewModelName}, ViewModel.MusicEnabled={ViewModelMusicEnabled}, ViewModel.IsEnabled={ViewModelIsEnabled}",
+        logger.Debug("GetModel: Reading ViewModel properties. ViewModel.Name={ViewModelName}, ViewModel.MusicEnabled={ViewModelMusicEnabled}, ViewModel.IsEnabled={ViewModelIsEnabled}",
             Name, MusicEnabled, IsEnabled);
 
-        Model.Id = _scheduleId;
+        Model.Id = scheduleId;
 
         Model.Name = Name;
         Model.IsEnabled = IsEnabled;
@@ -829,7 +829,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         Model.Hour = Time.Hours;
         Model.Minute = Time.Minutes;
         Model.MusicEnabled = MusicEnabled;
-        Model.NotificationEnabled = _notificationEnabled;
+        Model.NotificationEnabled = notificationEnabled;
         Model.AlwaysPlayFromStart = AlwaysPlayFromStart;
 
         // Use CurrentNumberOfChapters.Value if available, otherwise keep the Model's existing value
@@ -838,15 +838,15 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             var newValue = CurrentNumberOfChapters.Value;
             Model.NumberOfChaptersToRead = newValue;
-            _logger.Debug("GetModel: Setting NumberOfChaptersToRead from CurrentNumberOfChapters.Value = {Value} (Model had {OldValue})",
+            logger.Debug("GetModel: Setting NumberOfChaptersToRead from CurrentNumberOfChapters.Value = {Value} (Model had {OldValue})",
                 newValue, Model.NumberOfChaptersToRead);
         }
         else
         {
-            _logger.Warning("GetModel: CurrentNumberOfChapters is null, keeping existing Model.NumberOfChaptersToRead = {Value}", Model.NumberOfChaptersToRead);
+            logger.Warning("GetModel: CurrentNumberOfChapters is null, keeping existing Model.NumberOfChaptersToRead = {Value}", Model.NumberOfChaptersToRead);
         }
 
-        _logger.Debug("GetModel: After setting Model properties. Model.Id={ModelId}, Model.Name={ModelName}, Model.MusicEnabled={ModelMusicEnabled}, Model.IsEnabled={ModelIsEnabled}, Model.DaysOfWeek={ModelDaysOfWeek}",
+        logger.Debug("GetModel: After setting Model properties. Model.Id={ModelId}, Model.Name={ModelName}, Model.MusicEnabled={ModelMusicEnabled}, Model.IsEnabled={ModelIsEnabled}, Model.DaysOfWeek={ModelDaysOfWeek}",
             Model.Id, Model.Name, Model.MusicEnabled, Model.IsEnabled, Model.DaysOfWeek);
 
         return Model;
@@ -856,7 +856,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     {
         Model = model.DeepClone();
 
-        _scheduleId = model.Id;
+        scheduleId = model.Id;
         Name = model.Name;
         IsEnabled = model.IsEnabled;
         DaysOfWeek = model.DaysOfWeek;
@@ -869,51 +869,51 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         RefreshChapterName();
     }
 
-    private int _scheduleId;
+    private int scheduleId;
 
-    private bool _isBusy;
+    private bool isBusy;
 
     public bool IsBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
 
-    private string _name;
+    private string name;
 
     public string Name
     {
-        get => _name;
+        get => name;
         set
         {
-            _logger.Debug("Name: Setting value from '{OldValue}' to '{NewValue}'", _name, value);
-            SetProperty(ref _name, value);
+            logger.Debug("Name: Setting value from '{OldValue}' to '{NewValue}'", name, value);
+            SetProperty(ref name, value);
         }
     }
 
-    private bool _isEnabled;
+    private bool isEnabled;
 
     public bool IsEnabled
     {
-        get => _isEnabled;
-        set => SetProperty(ref _isEnabled, value);
+        get => isEnabled;
+        set => SetProperty(ref isEnabled, value);
     }
 
-    private DaysOfWeek _daysOfWeek;
+    private DaysOfWeek daysOfWeek;
 
     public DaysOfWeek DaysOfWeek
     {
-        get => _daysOfWeek;
-        set => SetProperty(ref _daysOfWeek, value);
+        get => daysOfWeek;
+        set => SetProperty(ref daysOfWeek, value);
     }
 
-    private TimeSpan _time;
+    private TimeSpan time;
 
     public TimeSpan Time
     {
-        get => _time;
-        set => SetProperty(ref _time, value);
+        get => time;
+        set => SetProperty(ref time, value);
     }
 
     public string Hour => (Time.Hours % 12).ToString("D2");
@@ -922,23 +922,23 @@ public class ScheduleViewModel : ObservableObject, IDisposable
 
     public Meridian Meridian => Time.Hours < 12 ? Meridian.Am : Meridian.Pm;
 
-    private bool _musicEnabled;
+    private bool musicEnabled;
 
     public bool MusicEnabled
     {
-        get => _musicEnabled;
+        get => musicEnabled;
         set
         {
-            _logger.Debug("MusicEnabled: Setting value from {OldValue} to {NewValue}", _musicEnabled, value);
-            SetProperty(ref _musicEnabled, value);
+            logger.Debug("MusicEnabled: Setting value from {OldValue} to {NewValue}", musicEnabled, value);
+            SetProperty(ref musicEnabled, value);
         }
     }
 
-    private bool _notificationEnabled;
+    private bool notificationEnabled;
 
     public bool NotificationEnabled
     {
-        get => _notificationEnabled;
+        get => notificationEnabled;
         set
         {
             if (!value)
@@ -946,19 +946,19 @@ public class ScheduleViewModel : ObservableObject, IDisposable
                 _ = ShowBatteryOptimizationExclusionPage();
             }
 
-            SetProperty(ref _notificationEnabled, value);
+            SetProperty(ref notificationEnabled, value);
         }
     }
 
-    private bool _alwaysPlayFromStart;
+    private bool alwaysPlayFromStart;
 
     public bool AlwaysPlayFromStart
     {
-        get => _alwaysPlayFromStart;
-        set => SetProperty(ref _alwaysPlayFromStart, value);
+        get => alwaysPlayFromStart;
+        set => SetProperty(ref alwaysPlayFromStart, value);
     }
 
-    private bool _musicUpdated;
+    private bool musicUpdated;
 
     public AlarmMusic Music
     {
@@ -966,7 +966,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         set => Model.Music = value;
     }
 
-    private bool _bibleReadingUpdated;
+    private bool bibleReadingUpdated;
 
     public BibleReadingSchedule BibleReadingSchedule
     {
@@ -974,37 +974,37 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         set => Model.BibleReadingSchedule = value;
     }
 
-    private string _bibleReadingTitleText;
+    private string bibleReadingTitleText;
 
     public string BibleReadingTitleText
     {
-        get => _bibleReadingTitleText;
-        set => SetProperty(ref _bibleReadingTitleText, value);
+        get => bibleReadingTitleText;
+        set => SetProperty(ref bibleReadingTitleText, value);
     }
 
-    private bool _isNewSchedule;
-    private bool _isExistingSchedule;
+    private bool isNewSchedule;
+    private bool isExistingSchedule;
 
     public bool IsNewSchedule
     {
-        get => _isNewSchedule;
+        get => isNewSchedule;
         private set
         {
             IsExistingSchedule = !value;
-            SetProperty(ref _isNewSchedule, value);
+            SetProperty(ref isNewSchedule, value);
         }
     }
 
     public bool IsScrolledToBottom
     {
-        get => _isScrolledToBottom;
-        set => SetProperty(ref _isScrolledToBottom, value);
+        get => isScrolledToBottom;
+        set => SetProperty(ref isScrolledToBottom, value);
     }
 
     public bool IsExistingSchedule
     {
-        get => _isExistingSchedule;
-        private set => SetProperty(ref _isExistingSchedule, value);
+        get => isExistingSchedule;
+        private set => SetProperty(ref isExistingSchedule, value);
     }
 
     private void ToggleDay(object parameter)
@@ -1046,53 +1046,53 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             {
                 try
                 {
-                    using var scope = _serviceProvider.CreateScope();
+                    using var scope = serviceProvider.CreateScope();
                     var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
                     await mediaCacheService.DeleteScheduleCacheAsync(scheduleId);
-                    await _mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
+                    await mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Error deleting old cache and setting up new cache for schedule {ScheduleId}", scheduleId);
+                    logger.Error(ex, "Error deleting old cache and setting up new cache for schedule {ScheduleId}", scheduleId);
                 }
             });
         }
         else
         {
             // For new schedules, just cache files
-            _ = _mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
+            _ = mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
         }
     }
 
     private async Task<bool> SaveAsync()
     {
-        _logger.Information("SaveAsync: Starting save. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, ModelInitialized={ModelInitialized}",
-            IsNewSchedule, _scheduleId, Name, _modelInitialized);
+        logger.Information("SaveAsync: Starting save. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, ModelInitialized={ModelInitialized}",
+            IsNewSchedule, scheduleId, Name, modelInitialized);
 
-        if (!_modelInitialized)
+        if (!modelInitialized)
         {
-            _logger.Error("SaveAsync: Model not initialized. Cannot save.");
-            await _popUpService.ShowMessage("Schedule data is not ready. Please try again.");
+            logger.Error("SaveAsync: Model not initialized. Cannot save.");
+            await popUpService.ShowMessage("Schedule data is not ready. Please try again.");
             return false;
         }
 
         if (Model == null)
         {
-            _logger.Error("SaveAsync: Model is null. Cannot save.");
-            await _popUpService.ShowMessage("Schedule data is missing. Please try again.");
+            logger.Error("SaveAsync: Model is null. Cannot save.");
+            await popUpService.ShowMessage("Schedule data is missing. Please try again.");
             return false;
         }
 
-        if (!IsNewSchedule && _scheduleId <= 0)
+        if (!IsNewSchedule && scheduleId <= 0)
         {
-            _logger.Error("SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}", _scheduleId);
-            await _popUpService.ShowMessage("Invalid schedule ID. Please try again.");
+            logger.Error("SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}", scheduleId);
+            await popUpService.ShowMessage("Invalid schedule ID. Please try again.");
             return false;
         }
 
         if (!await Validate())
         {
-            _logger.Warning("SaveAsync: Validation failed");
+            logger.Warning("SaveAsync: Validation failed");
             return false;
         }
 
@@ -1106,37 +1106,37 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         // Ensure BibleReadingSchedule uses "nwt" (2013) as default if publication code is empty or invalid
         if (model.BibleReadingSchedule != null && string.IsNullOrWhiteSpace(model.BibleReadingSchedule.PublicationCode))
         {
-            _logger.Warning("SaveAsync: BibleReadingSchedule has empty PublicationCode, defaulting to 'nwt' (2013)");
+            logger.Warning("SaveAsync: BibleReadingSchedule has empty PublicationCode, defaulting to 'nwt' (2013)");
             model.BibleReadingSchedule.PublicationCode = "nwt";
         }
 
-        _logger.Debug("SaveAsync: Model retrieved. Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}, MusicEnabled={MusicEnabled}, PublicationCode={PublicationCode}",
+        logger.Debug("SaveAsync: Model retrieved. Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}, MusicEnabled={MusicEnabled}, PublicationCode={PublicationCode}",
             model.Id, model.Name, model.Music != null, model.BibleReadingSchedule != null, model.MusicEnabled,
             model.BibleReadingSchedule?.PublicationCode ?? "null");
 
         // Don't pass music if it wasn't updated (for existing schedules)
-        if (!IsNewSchedule && !_musicUpdated)
+        if (!IsNewSchedule && !musicUpdated)
         {
             model.Music = null;
-            _logger.Debug("SaveAsync: Music set to null for existing schedule (not updated)");
+            logger.Debug("SaveAsync: Music set to null for existing schedule (not updated)");
         }
 
-        _logger.Information("SaveAsync: Mapping AlarmSchedule to ScheduleStateItem and dispatching action. IsNewSchedule={IsNewSchedule}, MusicUpdated={MusicUpdated}, BibleReadingUpdated={BibleReadingUpdated}",
-            IsNewSchedule, _musicUpdated, _bibleReadingUpdated);
+        logger.Information("SaveAsync: Mapping AlarmSchedule to ScheduleStateItem and dispatching action. IsNewSchedule={IsNewSchedule}, MusicUpdated={MusicUpdated}, BibleReadingUpdated={BibleReadingUpdated}",
+            IsNewSchedule, musicUpdated, bibleReadingUpdated);
 
         // Map DB entity (AlarmSchedule) → domain model (ScheduleStateItem)
-        var scheduleStateItem = _mapper.Map<ScheduleStateItem>(model);
+        var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
 
         // Dispatch action with domain model (following Fluxor best practices)
         if (IsNewSchedule)
         {
-            _logger.Information("SaveAsync: Dispatching CreateScheduleAction");
-            _dispatcher.Dispatch(new CreateScheduleAction(scheduleStateItem, _musicUpdated, _bibleReadingUpdated));
+            logger.Information("SaveAsync: Dispatching CreateScheduleAction");
+            dispatcher.Dispatch(new CreateScheduleAction(scheduleStateItem, musicUpdated, bibleReadingUpdated));
         }
         else
         {
-            _logger.Information("SaveAsync: Dispatching UpdateScheduleFromViewModelAction");
-            _dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, _musicUpdated, _bibleReadingUpdated));
+            logger.Information("SaveAsync: Dispatching UpdateScheduleFromViewModelAction");
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, musicUpdated, bibleReadingUpdated));
         }
 
         // Setup media cache optimistically (will be set up even if save fails later)
@@ -1154,31 +1154,31 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             return true;
         }
 
-        await _popUpService.ShowMessage("Please select day(s) of Week.");
+        await popUpService.ShowMessage("Please select day(s) of Week.");
         return false;
 
     }
 
     private async Task DeleteAsync()
     {
-        if (_scheduleId <= 0)
+        if (scheduleId <= 0)
         {
             return;
         }
 
         // Check if this is the last schedule - prevent deletion if it is
-        var scheduleCount = _state.Value.Schedules?.Count ?? 0;
+        var scheduleCount = state.Value.Schedules?.Count ?? 0;
         if (scheduleCount <= 1)
         {
-            _logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", _scheduleId);
-            await _popUpService.ShowMessage("Cannot delete last schedule");
+            logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", scheduleId);
+            await popUpService.ShowMessage("Cannot delete last schedule");
             return;
         }
 
-        _logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", _scheduleId);
+        logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", scheduleId);
 
         // Dispatch action with schedule ID (following Fluxor best practices)
-        _dispatcher.Dispatch(new DeleteScheduleAction(_scheduleId));
+        dispatcher.Dispatch(new DeleteScheduleAction(scheduleId));
 
         // Note: The Effect will handle the actual deletion and dispatch success/failure
         // Media cache deletion is handled in the Effect
@@ -1195,8 +1195,8 @@ public class ScheduleViewModel : ObservableObject, IDisposable
         {
             try
             {
-                var displayName = await _scheduleDisplayService.GetChapterDisplayNameForBibleReadingAsync(
-                    _scheduleId, BibleReadingSchedule, true);
+                var displayName = await scheduleDisplayService.GetChapterDisplayNameForBibleReadingAsync(
+                    scheduleId, BibleReadingSchedule, true);
 
                 if (!string.IsNullOrEmpty(displayName))
                 {
@@ -1208,7 +1208,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             }
             catch (Exception e)
             {
-                _logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", _scheduleId);
+                logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", scheduleId);
             }
         });
     }
@@ -1218,27 +1218,27 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     /// </summary>
     public void HideHomePageOverlay()
     {
-        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
     }
 
     /// <summary>
     /// Gets the overlay visibility from application state.
     /// This property is bound to the Schedule page overlay.
     /// </summary>
-    public bool IsSchedulePageOverlayVisible => _state.Value.IsSchedulePageOverlayVisible;
+    public bool IsSchedulePageOverlayVisible => state.Value.IsSchedulePageOverlayVisible;
 
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
     /// </summary>
     public void HideSchedulePageOverlay()
     {
-        _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
     }
 
     public void Dispose()
     {
-        _state.StateChanged -= OnStateChanged;
-        _state.StateChanged -= OnMusicChanged;
-        _state.StateChanged -= OnBibleReadingChanged;
+        state.StateChanged -= OnStateChanged;
+        state.StateChanged -= OnMusicChanged;
+        state.StateChanged -= OnBibleReadingChanged;
     }
 }

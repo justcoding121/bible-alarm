@@ -10,33 +10,33 @@ namespace Bible.Alarm.Services.Media;
 
 public class MediaIndexService : IMediaIndexService, IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly ILogger logger;
 
-    private readonly Lazy<string> _indexRoot;
+    private readonly Lazy<string> indexRoot;
 
-    private readonly IStorageService _storageService;
-    private readonly IVersionFinder _versionFinder;
-    private readonly IDownloadService _downloadService;
+    private readonly IStorageService storageService;
+    private readonly IVersionFinder versionFinder;
+    private readonly IDownloadService downloadService;
 
-    public string IndexRoot => _indexRoot.Value;
+    public string IndexRoot => indexRoot.Value;
 
     public MediaIndexService(ILogger logger, IStorageService storageService, IVersionFinder versionFinder,
         IDownloadService downloadService)
     {
-        _logger = logger;
-        _storageService = storageService;
-        _versionFinder = versionFinder;
-        _downloadService = downloadService;
+        this.logger = logger;
+        this.storageService = storageService;
+        this.versionFinder = versionFinder;
+        this.downloadService = downloadService;
 
-        _indexRoot = new Lazy<string>(() => _storageService.StorageRoot);
+        indexRoot = new Lazy<string>(() => storageService.StorageRoot);
     }
 
-    private readonly SemaphoreSlim _lock = new(1);
+    private readonly SemaphoreSlim @lock = new(1);
     private static bool verified;
 
     public async Task Verify()
     {
-        await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             if (verified)
             {
@@ -49,7 +49,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
             }
 
             verified = true;
-        }, ex => _logger.Error(ex, "MediaIndexService: @lock disposed error."));
+        }, ex => logger.Error(ex, "MediaIndexService: @lock disposed error."));
     }
 
     public async Task UpdateMediaIndex()
@@ -59,30 +59,30 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
     public async Task<bool> UpdateIndexIfAvailable()
     {
-        return await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
+        return await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             try
             {
                 var mediaIndexPath = Path.Combine(IndexRoot, "mediaIndex.db");
-                var indexExists = await _storageService.FileExists(mediaIndexPath);
+                var indexExists = await storageService.FileExists(mediaIndexPath);
 
                 if (!indexExists)
                 {
-                    _logger.Information("Media index does not exist, attempting to download");
+                    logger.Information("Media index does not exist, attempting to download");
                 }
                 else
                 {
-                    var creationDate = await _storageService.GetFileCreationDate(mediaIndexPath, false);
+                    var creationDate = await storageService.GetFileCreationDate(mediaIndexPath, false);
 
                     //if downloaded within last week (harvester runs weekly on Sundays)
                     if (creationDate.UtcDateTime > DateTime.UtcNow.AddDays(-AppConstants.CacheSettings.MediaIndexUpdateCheckDays))
                     {
-                        _logger.Debug("Media index is up to date (downloaded within last {Days} days)",
+                        logger.Debug("Media index is up to date (downloaded within last {Days} days)",
                             AppConstants.CacheSettings.MediaIndexUpdateCheckDays);
                         return false;
                     }
 
-                    _logger.Information("Media index is older than {Days} days (created: {CreationDate}), attempting to update",
+                    logger.Information("Media index is older than {Days} days (created: {CreationDate}), attempting to update",
                         AppConstants.CacheSettings.MediaIndexUpdateCheckDays,
                         creationDate.UtcDateTime);
                 }
@@ -93,22 +93,22 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                 // we fall back to the existing local index (if any).
                 var checkDate = DateTime.UtcNow;
                 var url = $"{AppConstants.ApiEndpoints.MediaIndexDownloadBaseUrl}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{checkDate.Day}-{checkDate.Month}-{checkDate.Year}.zip";
-                _logger.Debug("Attempting to download media index from: {Url}", url);
+                logger.Debug("Attempting to download media index from: {Url}", url);
 
                 byte[] bytes;
                 try
                 {
-                    bytes = await _downloadService.DownloadAsync(url);
+                    bytes = await downloadService.DownloadAsync(url);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warning(ex, "Failed to download media index from {Url}, using existing index if available", url);
+                    logger.Warning(ex, "Failed to download media index from {Url}, using existing index if available", url);
                     return false;
                 }
 
                 if (bytes == null || bytes.Length == 0)
                 {
-                    _logger.Warning("Downloaded media index from {Url} is empty, using existing index if available", url);
+                    logger.Warning("Downloaded media index from {Url} is empty, using existing index if available", url);
                     return false;
                 }
 
@@ -121,35 +121,35 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
                 var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
 
-                if (await _storageService.FileExists(tmpIndexZipFilePath))
+                if (await storageService.FileExists(tmpIndexZipFilePath))
                 {
-                    await _storageService.DeleteFile(tmpIndexZipFilePath);
+                    await storageService.DeleteFile(tmpIndexZipFilePath);
                 }
 
-                await _storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
+                await storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
 
-                if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+                if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
                 {
-                    await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+                    await storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
                 }
 
                 var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
-                await _storageService.CreateDirectory(extractionDir);
+                await storageService.CreateDirectory(extractionDir);
 
                 ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
 
                 File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
                     true);
 
-                await _storageService.DeleteDirectory(extractionDir);
-                await _storageService.DeleteFile(tmpIndexZipFilePath);
+                await storageService.DeleteDirectory(extractionDir);
+                await storageService.DeleteFile(tmpIndexZipFilePath);
 
-                _logger.Information("Successfully updated media index from {Url}", url);
+                logger.Information("Successfully updated media index from {Url}", url);
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error updating media index, will use existing index if available");
+                logger.Error(ex, "Error updating media index, will use existing index if available");
                 return false;
             }
         });
@@ -159,9 +159,9 @@ public class MediaIndexService : IMediaIndexService, IDisposable
     {
         var tmpIndexFilePath = Path.Combine(IndexRoot, "index.zip");
 
-        var mediaIndexDbExists = await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db"))
+        var mediaIndexDbExists = await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db"))
                                  //verify that any previous unzipping process was not incomplete
-                                 && !await _storageService.FileExists(tmpIndexFilePath);
+                                 && !await storageService.FileExists(tmpIndexFilePath);
 
         var isOutdatedVersion = false;
 
@@ -172,15 +172,15 @@ public class MediaIndexService : IMediaIndexService, IDisposable
         }
 
         var versionFilePath = Path.Combine(IndexRoot, "version.dat");
-        var versionFileExists = await _storageService.FileExists(versionFilePath);
+        var versionFileExists = await storageService.FileExists(versionFilePath);
 
         if (!versionFileExists)
         {
             return true;
         }
 
-        var version = await _storageService.ReadFile(versionFilePath);
-        var currentVersion = _versionFinder.GetVersionName();
+        var version = await storageService.ReadFile(versionFilePath);
+        var currentVersion = versionFinder.GetVersionName();
 
         if (version != currentVersion)
         {
@@ -202,50 +202,50 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
         var tmpIndexFilePath = Path.Combine(IndexRoot, indexResourceFile);
 
-        if (await _storageService.FileExists(tmpIndexFilePath))
+        if (await storageService.FileExists(tmpIndexFilePath))
         {
-            await _storageService.DeleteFile(tmpIndexFilePath);
+            await storageService.DeleteFile(tmpIndexFilePath);
         }
 
         if (DeviceInfo.Platform == DevicePlatform.Android &&
-            await _storageService.FileExists(Path.Combine(IndexRoot, defaultAlarmFile)))
+            await storageService.FileExists(Path.Combine(IndexRoot, defaultAlarmFile)))
         {
-            await _storageService.DeleteFile(Path.Combine(IndexRoot, defaultAlarmFile));
+            await storageService.DeleteFile(Path.Combine(IndexRoot, defaultAlarmFile));
         }
 
-        await _storageService.CopyResourceFile(indexResourceFile, IndexRoot, indexResourceFile);
+        await storageService.CopyResourceFile(indexResourceFile, IndexRoot, indexResourceFile);
 
-        if (await _storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+        if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
         {
-            await _storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+            await storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
         }
 
         ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
 
         if (DeviceInfo.Platform == DevicePlatform.Android)
         {
-            await _storageService.CopyResourceFile(defaultAlarmFile, IndexRoot, defaultAlarmFile);
+            await storageService.CopyResourceFile(defaultAlarmFile, IndexRoot, defaultAlarmFile);
         }
 
-        await _storageService.DeleteFile(tmpIndexFilePath);
-        await _storageService.SaveFile(IndexRoot, "version.dat", _versionFinder.GetVersionName());
+        await storageService.DeleteFile(tmpIndexFilePath);
+        await storageService.SaveFile(IndexRoot, "version.dat", versionFinder.GetVersionName());
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
-        _lock.Dispose();
+        @lock.Dispose();
 
-        // Note: _storageService (IStorageService), _versionFinder (IVersionFinder), 
-        // and _downloadService (IDownloadService) are singletons
+        // Note: storageService (IStorageService), versionFinder (IVersionFinder), 
+        // and downloadService (IDownloadService) are singletons
         // and should not be disposed here as they are managed by the DI container
     }
 }

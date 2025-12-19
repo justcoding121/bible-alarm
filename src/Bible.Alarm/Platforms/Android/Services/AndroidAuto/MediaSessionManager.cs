@@ -19,12 +19,12 @@ public sealed class MediaSessionManager
 {
     private MediaSessionCompat? _mediaSession;
     private readonly object _lock = new();
-    private static readonly ILogger Logger = Log.ForContext<MediaSessionManager>();
+    private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
     private readonly IServiceProvider _serviceProvider;
 
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
-        Logger.Debug("MediaSessionManager constructor called with serviceProvider: {ServiceProvider}", serviceProvider != null ? "provided" : "null");
+        logger.Debug("MediaSessionManager constructor called with serviceProvider: {ServiceProvider}", serviceProvider != null ? "provided" : "null");
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
@@ -48,11 +48,11 @@ public sealed class MediaSessionManager
                     var context = global::Android.App.Application.Context;
                     if (context == null)
                     {
-                        Logger.Error("Android Application.Context is null - cannot create MediaSessionCompat");
+                        logger.Error("Android Application.Context is null - cannot create MediaSessionCompat");
                         throw new InvalidOperationException("Android Application.Context is null");
                     }
 
-                    Logger.Information("Creating shared MediaSessionCompat instance");
+                    logger.Information("Creating shared MediaSessionCompat instance");
 
                     // Create ComponentName for MediaButtonReceiver to suppress warning
                     // We handle media buttons programmatically in LegacyMediaBrowserService.OnStartCommand
@@ -62,7 +62,7 @@ public sealed class MediaSessionManager
                     _mediaSession = new MediaSessionCompat(context, "BibleAlarmSession", componentName, null);
                     if (_mediaSession == null)
                     {
-                        Logger.Error("Failed to create MediaSessionCompat instance");
+                        logger.Error("Failed to create MediaSessionCompat instance");
                         throw new InvalidOperationException("Failed to create MediaSessionCompat instance");
                     }
 
@@ -81,24 +81,24 @@ public sealed class MediaSessionManager
                     {
                         // The preferred path: if we are on the main thread, execute immediately.
                         _mediaSession.SetCallback(mediaSessionCallback);
-                        Logger.Debug("MediaSessionCallback set synchronously on main thread");
+                        logger.Debug("MediaSessionCallback set synchronously on main thread");
                     }
                     else
                     {
                         // CRITICAL: Ensure SetCallback is run on the main thread without blocking the current Binder thread.
                         // The callback will be set asynchronously. The MediaSession will be operational shortly after.
                         // Android Auto is tolerant of this slight delay, and blocking the Binder thread causes deadlocks/ANRs.
-                        Logger.Warning("MediaSession creation not on MainThread. Invoking SetCallback asynchronously to avoid blocking Binder thread.");
+                        logger.Warning("MediaSession creation not on MainThread. Invoking SetCallback asynchronously to avoid blocking Binder thread.");
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
                             try
                             {
                                 _mediaSession?.SetCallback(mediaSessionCallback);
-                                Logger.Information("Successfully set MediaSessionCallback on main thread (async)");
+                                logger.Information("Successfully set MediaSessionCallback on main thread (async)");
                             }
                             catch (Exception ex)
                             {
-                                Logger.Error(ex, "Error setting MediaSessionCallback asynchronously");
+                                logger.Error(ex, "Error setting MediaSessionCallback asynchronously");
                             }
                         });
                         // NO BLOCKING CALL HERE (e.g., .Wait() or Task.Run().Wait())
@@ -120,17 +120,17 @@ public sealed class MediaSessionManager
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warning(ex, "Failed to apply Android Auto blank loading state");
+                        logger.Warning(ex, "Failed to apply Android Auto blank loading state");
                     }
 
                     // Verify SessionToken is available
                     if (_mediaSession.SessionToken == null)
                     {
-                        Logger.Error("MediaSessionCompat.SessionToken is null after creation - this should not happen");
+                        logger.Error("MediaSessionCompat.SessionToken is null after creation - this should not happen");
                         throw new InvalidOperationException("MediaSessionCompat.SessionToken is null after creation");
                     }
 
-                    Logger.Information("MediaSessionCompat created successfully. Initial state: Stopped, Active: False, SessionToken available: {HasToken}",
+                    logger.Information("MediaSessionCompat created successfully. Initial state: Stopped, Active: False, SessionToken available: {HasToken}",
                         _mediaSession.SessionToken != null);
                 }
             }
@@ -167,7 +167,7 @@ public sealed class MediaSessionManager
             .SetState(state, position, 1.0f, SystemClock.ElapsedRealtime());
 
         _mediaSession?.SetPlaybackState(builder.Build());
-        Logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}, actions: {Actions}",
+        logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}, actions: {Actions}",
             state, position, actions);
     }
 
@@ -189,9 +189,9 @@ public sealed class MediaSessionManager
         }
 
         // Only update position if playback is active
-        var isActive = playbackState.State == PlaybackStateCompat.StatePlaying ||
-                      playbackState.State == PlaybackStateCompat.StateBuffering ||
-                      playbackState.State == PlaybackStateCompat.StatePaused;
+        var isActive = playbackState.State is PlaybackStateCompat.StatePlaying or
+                      PlaybackStateCompat.StateBuffering or
+                      PlaybackStateCompat.StatePaused;
 
         if (!isActive)
         {
@@ -239,7 +239,7 @@ public sealed class MediaSessionManager
     /// </summary>
     public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null)
     {
-        Logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}, scheduleId: {ScheduleId}",
+        logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}, scheduleId: {ScheduleId}",
             title, artist, album ?? "null", scheduleId?.ToString() ?? "null");
 
         var builder = new MediaMetadataCompat.Builder()
@@ -300,7 +300,7 @@ public sealed class MediaSessionManager
     {
         if (_mediaSession == null)
         {
-            Logger.Warning("MediaSessionCompat is null, cannot set loading state. Call GetOrCreate() first.");
+            logger.Warning("MediaSessionCompat is null, cannot set loading state. Call GetOrCreate() first.");
             return;
         }
 
@@ -310,7 +310,7 @@ public sealed class MediaSessionManager
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error setting blank loading state");
+            logger.Error(ex, "Error setting blank loading state");
         }
     }
 
@@ -322,7 +322,7 @@ public sealed class MediaSessionManager
     {
         if (_mediaSession == null)
         {
-            Logger.Warning("MediaSessionCompat is null, cannot set buffering state. Call GetOrCreate() first.");
+            logger.Warning("MediaSessionCompat is null, cannot set buffering state. Call GetOrCreate() first.");
             return;
         }
 
@@ -344,7 +344,7 @@ public sealed class MediaSessionManager
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error setting buffering no-controls state");
+            logger.Error(ex, "Error setting buffering no-controls state");
         }
     }
 
@@ -373,7 +373,7 @@ public sealed class MediaSessionManager
     {
         if (_mediaSession == null)
         {
-            Logger.Warning("MediaSessionCompat is null, cannot set playback status. Call GetOrCreate() first.");
+            logger.Warning("MediaSessionCompat is null, cannot set playback status. Call GetOrCreate() first.");
             return;
         }
 
@@ -388,14 +388,14 @@ public sealed class MediaSessionManager
             _ => PlaybackStateCompat.StateNone
         };
 
-        if (status == PlayStatus.Stopped || status == PlayStatus.Ended)
+        if (status is PlayStatus.Stopped or PlayStatus.Ended)
         {
             // When stopped/ended, set metadata for next schedule instead of clearing
             UpdatePlaybackStateForStop();
             SetNextScheduleMetadata();
             SetActive(false);
             // Note: Audio focus is released globally by AudioFocusEffect when playback stops
-            Logger.Information("MediaSessionCompat set to stopped/inactive - Android Auto shows next schedule metadata");
+            logger.Information("MediaSessionCompat set to stopped/inactive - Android Auto shows next schedule metadata");
         }
         else
         {
@@ -407,7 +407,7 @@ public sealed class MediaSessionManager
             if (status == PlayStatus.Playing)
             {
                 SetActive(true);
-                Logger.Debug("MediaSessionCompat set to active (playing) - Android Auto can now route audio");
+                logger.Debug("MediaSessionCompat set to active (playing) - Android Auto can now route audio");
             }
             // Keep session active when paused (allows resume)
         }
@@ -437,9 +437,9 @@ public sealed class MediaSessionManager
                     {
                         // Check if playback is currently active - if so, don't overwrite current schedule metadata
                         var playbackState = _mediaSession?.Controller?.PlaybackState;
-                        var isPlaying = playbackState?.State == PlaybackStateCompat.StatePlaying ||
-                                       playbackState?.State == PlaybackStateCompat.StateBuffering ||
-                                       playbackState?.State == PlaybackStateCompat.StatePaused;
+                        var isPlaying = playbackState?.State is PlaybackStateCompat.StatePlaying or
+                                       PlaybackStateCompat.StateBuffering or
+                                       PlaybackStateCompat.StatePaused;
 
                         if (isPlaying)
                         {
@@ -479,7 +479,7 @@ public sealed class MediaSessionManager
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, "Error setting next schedule metadata");
+                    logger.Error(ex, "Error setting next schedule metadata");
                     // Fallback to clearing metadata if there's an error
                     ClearMetadata();
                 }
@@ -487,7 +487,7 @@ public sealed class MediaSessionManager
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error getting default schedule service for next schedule metadata");
+            logger.Error(ex, "Error getting default schedule service for next schedule metadata");
             // Fallback to clearing metadata if there's an error
             ClearMetadata();
         }
@@ -497,7 +497,7 @@ public sealed class MediaSessionManager
     {
         if (_mediaSession == null)
         {
-            Logger.Warning("MediaSessionCompat is null, cannot set active state. Call GetOrCreate() first.");
+            logger.Warning("MediaSessionCompat is null, cannot set active state. Call GetOrCreate() first.");
             return;
         }
         _mediaSession.Active = active;

@@ -20,28 +20,28 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
 {
-    private readonly ILogger _logger;
-    private readonly IPlaybackService _playbackService;
-    private readonly IState<PlaybackState> _playbackState;
-    private readonly IDispatcher _dispatcher;
-    private readonly IGeneralSettingsService _generalSettingsService;
+    private readonly ILogger logger;
+    private readonly IPlaybackService playbackService;
+    private readonly IState<PlaybackState> playbackState;
+    private readonly IDispatcher dispatcher;
+    private readonly IGeneralSettingsService generalSettingsService;
 
-    private bool _isDisposed;
-    private bool _hasReceivedInitialState;
-    private string? _previousTrackTitle;
-    private string? _previousTrackArtist;
-    private string? _previousTrackAlbum;
-    private string? _previousArtworkUrl;
-    private TimeSpan _currentDuration = TimeSpan.Zero;
+    private bool isDisposed;
+    private bool hasReceivedInitialState;
+    private string? previousTrackTitle;
+    private string? previousTrackArtist;
+    private string? previousTrackAlbum;
+    private string? previousArtworkUrl;
+    private TimeSpan currentDuration = TimeSpan.Zero;
     // True when user is dragging or tapping the slider
-    private bool _isUserInteracting;
+    private bool isUserInteracting;
     // Track where user wants to seek to
-    private double? _targetSeekProgress;
+    private double? targetSeekProgress;
 
     /// <summary>
     /// Public property to allow code-behind to check if user is interacting
     /// </summary>
-    public bool IsUserInteracting => _isUserInteracting;
+    public bool IsUserInteracting => isUserInteracting;
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
@@ -56,11 +56,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, IGeneralSettingsService generalSettingsService)
     {
-        _logger = logger;
-        _playbackService = playbackService;
-        _playbackState = playbackState;
-        _dispatcher = dispatcher;
-        _generalSettingsService = generalSettingsService;
+        logger = logger;
+        playbackService = playbackService;
+        playbackState = playbackState;
+        dispatcher = dispatcher;
+        generalSettingsService = generalSettingsService;
 
         // Initialize string fields to avoid nullable warnings
         _title = "";
@@ -70,10 +70,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         _endTime = "00:00";
 
         // Controls are hidden until first playback state is received
-        _hasReceivedInitialState = false;
+        hasReceivedInitialState = false;
 
         // Subscribe to Fluxor state changes for reactive updates
-        _playbackState.StateChanged += OnPlaybackStateChanged;
+        playbackState.StateChanged += OnPlaybackStateChanged;
 
         // Subscribe to position and preparation progress messages (high-frequency updates)
         WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
@@ -91,22 +91,22 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             // Give UI time to render the progress indicator before starting dismiss operation
             await Task.Delay(100);
 
-            await _playbackService.StopAsync();
+            await playbackService.StopAsync();
 
             try
             {
                 // Run database operations off UI thread
                 await Task.Run(async () =>
                 {
-                    if (!await _generalSettingsService.GeneralSettingExistsAsync(
+                    if (!await generalSettingsService.GeneralSettingExistsAsync(
                             AppConstants.GeneralSettingsKeys.ReviewRequested))
                     {
-                        var dismissCount = await _generalSettingsService.GetGeneralSettingAsync(
+                        var dismissCount = await generalSettingsService.GetGeneralSettingAsync(
                             AppConstants.GeneralSettingsKeys.DismissCount);
 
                         if (dismissCount != null && int.Parse(dismissCount.Value) >= 6)
                         {
-                            await _generalSettingsService.SetGeneralSettingAsync(
+                            await generalSettingsService.SetGeneralSettingAsync(
                                 AppConstants.GeneralSettingsKeys.ReviewRequested,
                                 "True");
 
@@ -118,13 +118,13 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                         {
                             if (dismissCount != null)
                             {
-                                await _generalSettingsService.SetGeneralSettingAsync(
+                                await generalSettingsService.SetGeneralSettingAsync(
                                     AppConstants.GeneralSettingsKeys.DismissCount,
                                     (int.Parse(dismissCount.Value) + 1).ToString());
                             }
                             else
                             {
-                                await _generalSettingsService.SetGeneralSettingAsync(
+                                await generalSettingsService.SetGeneralSettingAsync(
                                     AppConstants.GeneralSettingsKeys.DismissCount,
                                     "1");
                             }
@@ -145,37 +145,37 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
         PlayCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PlayAsync();
+            await playbackService.PlayAsync();
         });
 
         PauseCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PauseAsync();
+            await playbackService.PauseAsync();
         });
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PlayPreviousAsync();
+            await playbackService.PlayPreviousAsync();
         });
 
         NextCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.PlayNextAsync();
+            await playbackService.PlayNextAsync();
         });
 
         ForwardCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.SeekForwardAsync();
+            await playbackService.SeekForwardAsync();
         });
 
         BackwardCommand = new AsyncRelayCommand(async () =>
         {
-            await _playbackService.SeekBackwardAsync();
+            await playbackService.SeekBackwardAsync();
         });
 
         SeekCommand = new AsyncRelayCommand<TimeSpan>(async (position) =>
         {
-            await _playbackService.SeekToAsync(position);
+            await playbackService.SeekToAsync(position);
         });
 
         // NOTE:
@@ -185,17 +185,17 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
         Task.Run(async () =>
         {
-            while (!_isDisposed)
+            while (!isDisposed)
             {
                 await Task.Delay(1000);
 
-                var isRunning = _playbackState.Value.IsPreparingOrPlaying;
+                var isRunning = playbackState.Value.IsPreparingOrPlaying;
 
                 var count = 6;
                 while (!isRunning && count > 0)
                 {
                     await Task.Delay(500);
-                    isRunning = _playbackState.Value.IsPreparingOrPlaying;
+                    isRunning = playbackState.Value.IsPreparingOrPlaying;
                     count--;
                 }
 
@@ -307,7 +307,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         set
         {
             // Only update if user is not interacting (to prevent feedback loops)
-            if (!_isUserInteracting)
+            if (!isUserInteracting)
             {
                 // Only update if value actually changed (reduces unnecessary UI work)
                 if (Math.Abs(_progress - value) > 0.0001) // Small threshold to avoid floating point noise
@@ -318,26 +318,26 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         }
     }
 
-    public TimeSpan Duration => _currentDuration;
+    public TimeSpan Duration => currentDuration;
 
     /// <summary>
     /// Called when user taps on the slider
     /// </summary>
     public void OnSliderTapped(double targetValue)
     {
-        _logger?.Debug("[Slider] Tap detected - TargetValue: {TargetValue}", targetValue);
+        logger?.Debug("[Slider] Tap detected - TargetValue: {TargetValue}", targetValue);
 
-        if (!AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
+        if (!AreControlsEnabled || currentDuration.TotalSeconds <= 0)
         {
             return;
         }
 
         // Clamp value to valid range (0.0 to 1.0)
         var progress = Math.Max(0.0, Math.Min(1.0, targetValue));
-        _targetSeekProgress = progress;
+        targetSeekProgress = progress;
 
         // Update visual position directly (bypass Progress setter to avoid feedback loop)
-        _isUserInteracting = true;
+        isUserInteracting = true;
         _progress = progress;
         OnPropertyChanged(nameof(Progress));
 
@@ -350,8 +350,8 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     /// </summary>
     public void OnSliderDragStarted()
     {
-        _isUserInteracting = true;
-        _logger?.Debug("[Slider] Drag started");
+        isUserInteracting = true;
+        logger?.Debug("[Slider] Drag started");
     }
 
     /// <summary>
@@ -359,17 +359,17 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     /// </summary>
     public void OnSliderDragCompleted(double finalValue)
     {
-        _logger?.Debug("[Slider] Drag completed - FinalValue: {FinalValue}", finalValue);
+        logger?.Debug("[Slider] Drag completed - FinalValue: {FinalValue}", finalValue);
 
-        if (!AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
+        if (!AreControlsEnabled || currentDuration.TotalSeconds <= 0)
         {
-            _isUserInteracting = false;
+            isUserInteracting = false;
             return;
         }
 
         // Update target and perform seek immediately
         var progress = Math.Max(0.0, Math.Min(1.0, finalValue));
-        _targetSeekProgress = progress;
+        targetSeekProgress = progress;
 
         // Update visual position (bypass Progress setter to avoid feedback loop)
         _progress = progress;
@@ -383,18 +383,18 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     /// </summary>
     private void PerformSeek()
     {
-        if (!_targetSeekProgress.HasValue || !AreControlsEnabled || _currentDuration.TotalSeconds <= 0)
+        if (!targetSeekProgress.HasValue || !AreControlsEnabled || currentDuration.TotalSeconds <= 0)
         {
-            _isUserInteracting = false;
-            _targetSeekProgress = null;
+            isUserInteracting = false;
+            targetSeekProgress = null;
             return;
         }
 
         try
         {
-            var seekPosition = TimeSpan.FromSeconds(_currentDuration.TotalSeconds * _targetSeekProgress.Value);
-            _logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}",
-                seekPosition, _targetSeekProgress.Value);
+            var seekPosition = TimeSpan.FromSeconds(currentDuration.TotalSeconds * targetSeekProgress.Value);
+            logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}",
+                seekPosition, targetSeekProgress.Value);
 
             if (SeekCommand != null && SeekCommand.CanExecute(seekPosition))
             {
@@ -404,16 +404,16 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             // Reset interaction flag after delay to allow seek to complete
             Task.Delay(500).ContinueWith(_ =>
             {
-                _isUserInteracting = false;
-                _targetSeekProgress = null;
-                _logger?.Debug("[Slider] User interaction ended");
+                isUserInteracting = false;
+                targetSeekProgress = null;
+                logger?.Debug("[Slider] User interaction ended");
             });
         }
         catch (Exception ex)
         {
-            _logger?.Error(ex, "[Slider] Error performing seek");
-            _isUserInteracting = false;
-            _targetSeekProgress = null;
+            logger?.Error(ex, "[Slider] Error performing seek");
+            isUserInteracting = false;
+            targetSeekProgress = null;
         }
     }
 
@@ -467,11 +467,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
     /// </summary>
     public bool AreControlsEnabled =>
-        _hasReceivedInitialState &&
+        hasReceivedInitialState &&
         !IsPreparing &&
         !HasError &&
         !IsBusy &&
-        _playbackState.Value.Status != PlayStatus.Loading;
+        playbackState.Value.Status != PlayStatus.Loading;
 
     public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
 
@@ -503,41 +503,41 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var state = _playbackState.Value;
+            var state = playbackState.Value;
 
             // Detect track change by comparing current metadata with previous
             var currentTitle = state.Title ?? "";
             var currentArtist = state.Artist ?? "";
             var currentAlbum = state.Album ?? "";
 
-            var trackChanged = _hasReceivedInitialState &&
-                               (_previousTrackTitle != currentTitle ||
-                                _previousTrackArtist != currentArtist ||
-                                _previousTrackAlbum != currentAlbum);
+            var trackChanged = hasReceivedInitialState &&
+                               (previousTrackTitle != currentTitle ||
+                                previousTrackArtist != currentArtist ||
+                                previousTrackAlbum != currentAlbum);
 
             if (trackChanged)
             {
                 // Track has changed - disable controls until we receive play-related event for new track
-                _hasReceivedInitialState = false;
+                hasReceivedInitialState = false;
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
 
             // Mark that we've received initial state when playback is meaningfully active (Playing or Paused).
             // We intentionally do NOT treat Loading as "ready" for interactive controls.
-            if (!_hasReceivedInitialState &&
+            if (!hasReceivedInitialState &&
                 (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
             {
-                _hasReceivedInitialState = true;
+                hasReceivedInitialState = true;
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
 
             // Update previous track metadata only after we've received initial state for the new track
             // This ensures we can detect the next track change correctly
-            if (_hasReceivedInitialState)
+            if (hasReceivedInitialState)
             {
-                _previousTrackTitle = currentTitle;
-                _previousTrackArtist = currentArtist;
-                _previousTrackAlbum = currentAlbum;
+                previousTrackTitle = currentTitle;
+                previousTrackArtist = currentArtist;
+                previousTrackAlbum = currentAlbum;
             }
 
             // Update navigation controls
@@ -552,10 +552,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             // Update artwork - force update if track changed, even if URL appears the same
             // (artwork may be saved to same cache file path but content is different)
             var artworkUrl = state.ArtworkUrl;
-            var shouldForceUpdate = trackChanged || (_previousArtworkUrl != artworkUrl);
+            var shouldForceUpdate = trackChanged || (previousArtworkUrl != artworkUrl);
             if (shouldForceUpdate)
             {
-                _previousArtworkUrl = artworkUrl;
+                previousArtworkUrl = artworkUrl;
                 // Reset last artwork URL to force reload even if URL is the same
                 if (trackChanged)
                 {
@@ -566,7 +566,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
             // Update duration (from Fluxor state, only changes when track changes)
             var duration = state.Duration;
-            _currentDuration = duration;
+            currentDuration = duration;
             EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
 
             // Note: Position and PreparationProgress are updated via messages (high-frequency updates)
@@ -590,19 +590,19 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     public void Receive(PlaybackPositionChangedMessage message)
     {
         // Ignore position updates while user is interacting with slider
-        if (_isUserInteracting)
+        if (isUserInteracting)
         {
             // Check if position matches target (seek completed)
-            if (message.CurrentPosition.HasValue && _targetSeekProgress.HasValue && _currentDuration.TotalSeconds > 0)
+            if (message.CurrentPosition.HasValue && targetSeekProgress.HasValue && currentDuration.TotalSeconds > 0)
             {
-                var actualProgress = message.CurrentPosition.Value.TotalSeconds / _currentDuration.TotalSeconds;
-                var progressDiff = Math.Abs(actualProgress - _targetSeekProgress.Value);
+                var actualProgress = message.CurrentPosition.Value.TotalSeconds / currentDuration.TotalSeconds;
+                var progressDiff = Math.Abs(actualProgress - targetSeekProgress.Value);
 
                 // If position matches target (within 2%), allow updates to resume
                 if (progressDiff < 0.02)
                 {
-                    _isUserInteracting = false;
-                    _targetSeekProgress = null;
+                    isUserInteracting = false;
+                    targetSeekProgress = null;
                     // Continue to process update below
                 }
                 else
@@ -624,9 +624,9 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
 
                 // Update progress based on current position and duration
-                if (_currentDuration.TotalSeconds > 0)
+                if (currentDuration.TotalSeconds > 0)
                 {
-                    var newProgress = position.TotalSeconds / _currentDuration.TotalSeconds;
+                    var newProgress = position.TotalSeconds / currentDuration.TotalSeconds;
                     // Only update if change is significant (reduces unnecessary UI updates)
                     if (Math.Abs(newProgress - _progress) > 0.001) // 0.1% threshold
                     {
@@ -714,7 +714,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Error updating artwork from URL: {ArtworkUrl}", artworkUrl);
+            logger.Debug(ex, "Error updating artwork from URL: {ArtworkUrl}", artworkUrl);
             ClearArtwork();
         }
     }
@@ -751,7 +751,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
+                logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
                 return null;
             }
         }
@@ -809,7 +809,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Failed to create ImageSource from stream for Android, trying FromFile fallback: {FilePath}", filePath);
+            logger.Debug(ex, "Failed to create ImageSource from stream for Android, trying FromFile fallback: {FilePath}", filePath);
             _artworkBytes = null;
             LoadFromFileFallback(filePath);
         }
@@ -824,7 +824,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Failed to create ImageSource from file for artwork: {FilePath}", filePath);
+            logger.Debug(ex, "Failed to create ImageSource from file for artwork: {FilePath}", filePath);
             ClearArtwork();
         }
     }
@@ -838,7 +838,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Failed to create ImageSource from file for artwork (fallback): {FilePath}", filePath);
+            logger.Debug(ex, "Failed to create ImageSource from file for artwork (fallback): {FilePath}", filePath);
             ClearArtwork();
         }
     }
@@ -848,19 +848,19 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     /// </summary>
     public void HideHomePageOverlay()
     {
-        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
     }
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
-            _playbackState.StateChanged -= OnPlaybackStateChanged;
+            playbackState.StateChanged -= OnPlaybackStateChanged;
             WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
             WeakReferenceMessenger.Default.Unregister<PlaybackPreparationProgressMessage>(this);
 
 
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

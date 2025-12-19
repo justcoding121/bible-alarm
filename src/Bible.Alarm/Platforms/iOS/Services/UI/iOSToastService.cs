@@ -6,125 +6,124 @@ using UIKit;
 
 [assembly: Dependency(typeof(iOSToastService))]
 
-namespace Bible.Alarm.Platforms.iOS.Services.UI
-{
-    public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
-    {
-        private readonly TaskScheduler _taskScheduler = taskScheduler;
-        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
+namespace Bible.Alarm.Platforms.iOS.Services.UI;
 
-        public override async Task ShowMessage(string message, int seconds)
+public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
+{
+    private readonly TaskScheduler taskScheduler = taskScheduler;
+    private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1);
+
+    public override async Task ShowMessage(string message, int seconds)
+    {
+        if (clearRequest != null)
         {
-            if (clearRequest != null)
+            return;
+        }
+
+        if (!MainThread.IsMainThread)
+        {
+            await Task.Delay(0)
+                .ContinueWith(async _ =>
+                    await ShowAlert(message, seconds), taskScheduler);
+        }
+        else
+        {
+            await ShowAlert(message, seconds);
+        }
+    }
+
+    private static async Task ShowAlert(string message, double seconds)
+    {
+        clearRequest = new TaskCompletionSource<bool>();
+
+        await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
+        {
+            var window = UIApplication.SharedApplication.KeyWindow;
+            if (window?.RootViewController?.View == null)
             {
                 return;
             }
 
-            if (!MainThread.IsMainThread)
-            {
-                await Task.Delay(0)
-                    .ContinueWith(async _ =>
-                        await ShowAlert(message, seconds), _taskScheduler);
-            }
-            else
-            {
-                await ShowAlert(message, seconds);
-            }
-        }
+            var containerView = window.RootViewController.View;
 
-        private static async Task ShowAlert(string message, double seconds)
-        {
-            clearRequest = new TaskCompletionSource<bool>();
+            // Create a non-blocking toast view
+            var toastView = CreateToastView(message);
+            containerView.AddSubview(toastView);
 
-            await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
-            {
-                var window = UIApplication.SharedApplication.KeyWindow;
-                if (window?.RootViewController?.View == null)
-                {
-                    return;
-                }
-
-                var containerView = window.RootViewController.View;
-
-                // Create a non-blocking toast view
-                var toastView = CreateToastView(message);
-                containerView.AddSubview(toastView);
-
-                // Position at bottom center
-                toastView.TranslatesAutoresizingMaskIntoConstraints = false;
-                NSLayoutConstraint.ActivateConstraints(
-                [
-                    toastView.CenterXAnchor.ConstraintEqualTo(containerView.CenterXAnchor),
-                    toastView.BottomAnchor.ConstraintEqualTo(containerView.SafeAreaLayoutGuide.BottomAnchor, -50),
-                    toastView.LeadingAnchor.ConstraintGreaterThanOrEqualTo(containerView.LeadingAnchor, 20),
-                    toastView.TrailingAnchor.ConstraintLessThanOrEqualTo(containerView.TrailingAnchor, -20)
-                ]);
-
-                // Animate in
-                toastView.Alpha = 0;
-                UIView.Animate(0.3, () => toastView.Alpha = 1);
-
-                // Wait for duration or clear request
-                await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000)));
-
-                // Animate out and remove - ensure UIView operations run on main thread
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    UIView.Animate(0.3, () => toastView.Alpha = 0, () =>
-                    {
-                        toastView.RemoveFromSuperview();
-                        toastView.Dispose();
-                    });
-                });
-            });
-
-            clearRequest = null;
-        }
-
-        private static UIView CreateToastView(string message)
-        {
-            var label = new UILabel
-            {
-                Text = message,
-                TextColor = UIColor.White,
-                TextAlignment = UITextAlignment.Center,
-                Font = UIFont.SystemFontOfSize(16),
-                Lines = 0,
-                LineBreakMode = UILineBreakMode.WordWrap,
-                BackgroundColor = UIColor.Black.ColorWithAlpha(0.8f)
-            };
-
-            label.Layer.CornerRadius = 10;
-            label.Layer.MasksToBounds = true;
-
-            var containerView = new UIView
-            {
-                BackgroundColor = UIColor.Clear
-            };
-
-            containerView.AddSubview(label);
-            label.TranslatesAutoresizingMaskIntoConstraints = false;
+            // Position at bottom center
+            toastView.TranslatesAutoresizingMaskIntoConstraints = false;
             NSLayoutConstraint.ActivateConstraints(
             [
-                label.TopAnchor.ConstraintEqualTo(containerView.TopAnchor, 12),
-                label.BottomAnchor.ConstraintEqualTo(containerView.BottomAnchor, -12),
-                label.LeadingAnchor.ConstraintEqualTo(containerView.LeadingAnchor, 16),
-                label.TrailingAnchor.ConstraintEqualTo(containerView.TrailingAnchor, -16)
+                toastView.CenterXAnchor.ConstraintEqualTo(containerView.CenterXAnchor),
+                toastView.BottomAnchor.ConstraintEqualTo(containerView.SafeAreaLayoutGuide.BottomAnchor, -50),
+                toastView.LeadingAnchor.ConstraintGreaterThanOrEqualTo(containerView.LeadingAnchor, 20),
+                toastView.TrailingAnchor.ConstraintLessThanOrEqualTo(containerView.TrailingAnchor, -20)
             ]);
 
-            return containerView;
-        }
+            // Animate in
+            toastView.Alpha = 0;
+            UIView.Animate(0.3, () => toastView.Alpha = 1);
 
-        private static TaskCompletionSource<bool> clearRequest;
+            // Wait for duration or clear request
+            await Task.WhenAny(clearRequest.Task, Task.Delay((int)(seconds * 1000)));
 
-        public override Task Clear()
-        {
-            if (clearRequest != null)
+            // Animate out and remove - ensure UIView operations run on main thread
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                clearRequest.SetResult(true);
-            }
+                UIView.Animate(0.3, () => toastView.Alpha = 0, () =>
+                {
+                    toastView.RemoveFromSuperview();
+                    toastView.Dispose();
+                });
+            });
+        });
 
-            return Task.CompletedTask;
+        clearRequest = null;
+    }
+
+    private static UIView CreateToastView(string message)
+    {
+        var label = new UILabel
+        {
+            Text = message,
+            TextColor = UIColor.White,
+            TextAlignment = UITextAlignment.Center,
+            Font = UIFont.SystemFontOfSize(16),
+            Lines = 0,
+            LineBreakMode = UILineBreakMode.WordWrap,
+            BackgroundColor = UIColor.Black.ColorWithAlpha(0.8f)
+        };
+
+        label.Layer.CornerRadius = 10;
+        label.Layer.MasksToBounds = true;
+
+        var containerView = new UIView
+        {
+            BackgroundColor = UIColor.Clear
+        };
+
+        containerView.AddSubview(label);
+        label.TranslatesAutoresizingMaskIntoConstraints = false;
+        NSLayoutConstraint.ActivateConstraints(
+        [
+            label.TopAnchor.ConstraintEqualTo(containerView.TopAnchor, 12),
+            label.BottomAnchor.ConstraintEqualTo(containerView.BottomAnchor, -12),
+            label.LeadingAnchor.ConstraintEqualTo(containerView.LeadingAnchor, 16),
+            label.TrailingAnchor.ConstraintEqualTo(containerView.TrailingAnchor, -16)
+        ]);
+
+        return containerView;
+    }
+
+    private static TaskCompletionSource<bool> clearRequest;
+
+    public override Task Clear()
+    {
+        if (clearRequest != null)
+        {
+            clearRequest.SetResult(true);
         }
+
+        return Task.CompletedTask;
     }
 }

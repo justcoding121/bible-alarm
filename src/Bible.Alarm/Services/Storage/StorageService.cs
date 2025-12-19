@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;
@@ -122,6 +123,7 @@ public abstract class StorageService : IStorageService, IDisposable
         return Task.FromResult(false);
     }
 
+    [RequiresAssemblyFiles()]
     public Task<DateTimeOffset> GetFileCreationDate(string pathOrName, bool isResourceFile)
     {
         FileInfo file;

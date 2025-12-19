@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Android.App;
 using Android.Content;
@@ -61,7 +61,7 @@ public class MauiMediaElement : CoordinatorLayout
 		relativeLayout.AddView(playerView);
 
 		AddView(relativeLayout);
-		
+
 		// Initialize fields
 		defaultSystemUiVisibility = 0;
 		isSystemBarVisible = false;

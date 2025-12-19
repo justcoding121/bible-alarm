@@ -1,8 +1,7 @@
-﻿namespace Bible.Alarm.AudioLinksHarvestor.Models
+namespace Bible.Alarm.AudioLinksHarvestor.Models;
+
+public class Publication
 {
-    public class Publication
-    {
-        public string Name { get; set; }
-        public string Code { get; set; }
-    }
+    public string Name { get; set; }
+    public string Code { get; set; }
 }

@@ -1,34 +1,33 @@
 using Bible.Alarm.Common.Interfaces.Platform;
 using Foundation;
 
-namespace Bible.Alarm.Platforms.iOS.Services.Platform
+namespace Bible.Alarm.Platforms.iOS.Services.Platform;
+
+public class iOSVersionFinder : IVersionFinder, IDisposable
 {
-    public class iOSVersionFinder : IVersionFinder, IDisposable
+    private bool _isDisposed;
+    private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
+    public static iOSVersionFinder Default => new iOSVersionFinder();
+
+    public string GetVersionName()
     {
-        private bool _isDisposed;
-        private static readonly Lazy<string> Version = new Lazy<string>(() => VersionName());
-        public static iOSVersionFinder Default => new iOSVersionFinder();
+        return Version.Value;
+    }
 
-        public string GetVersionName()
+    private static string VersionName()
+    {
+        return "iOS " + (NSString)NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"];
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
         {
-            return Version.Value;
+            return;
         }
 
-        private static string VersionName()
-        {
-            return "iOS " + (NSString)NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"];
-        }
+        _isDisposed = true;
 
-        public void Dispose()
-        {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            _isDisposed = true;
-
-            // No resources to dispose
-        }
+        // No resources to dispose
     }
 }

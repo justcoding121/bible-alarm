@@ -15,7 +15,7 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 /// </summary>
 public class AudioFocusEffect(AudioFocusService audioFocusService)
 {
-    private static readonly ILogger Logger = Log.ForContext<AudioFocusEffect>();
+    private static readonly ILogger logger = Log.ForContext<AudioFocusEffect>();
     private readonly AudioFocusService _audioFocusService = audioFocusService ?? throw new ArgumentNullException(nameof(audioFocusService));
 
     [EffectMethod]
@@ -35,7 +35,7 @@ public class AudioFocusEffect(AudioFocusService audioFocusService)
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error managing audio focus for playback status: {Status}", action.Status);
+            logger.Error(ex, "Error managing audio focus for playback status: {Status}", action.Status);
         }
 
         return Task.CompletedTask;

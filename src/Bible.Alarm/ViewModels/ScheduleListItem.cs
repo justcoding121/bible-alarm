@@ -28,13 +28,13 @@ public class ScheduleListItem(
     IMapper mapper)
     : ObservableObject, IComparable, IDisposable
 {
-    private readonly IMapper _mapper = mapper;
-    private bool _isInitializing;
-    private AlarmSchedule? _lastKnownSchedule;
-    private string? _lastKnownTranslationName;
-    private string? _lastKnownBookName;
+    private readonly IMapper mapper = mapper;
+    private bool isInitializing;
+    private AlarmSchedule? lastKnownSchedule;
+    private string? lastKnownTranslationName;
+    private string? lastKnownBookName;
     private bool isBusy;
-    private Action? _onPlayStarted;
+    private Action? onPlayStarted;
     private Action? _onPlaybackStarted;
 
     public AlarmSchedule? Schedule { get; private set; }
@@ -44,8 +44,8 @@ public class ScheduleListItem(
     /// </summary>
     public Action? OnPlayStarted
     {
-        get => _onPlayStarted;
-        set => _onPlayStarted = value;
+        get => onPlayStarted;
+        set => onPlayStarted = value;
     }
 
     /// <summary>
@@ -59,15 +59,15 @@ public class ScheduleListItem(
 
     public void Initialize(AlarmSchedule schedule)
     {
-        _isInitializing = true;
+        isInitializing = true;
         try
         {
             Schedule = schedule;
-            _isEnabled = schedule.IsEnabled;
+            isEnabled = schedule.IsEnabled;
         }
         finally
         {
-            _isInitializing = false;
+            isInitializing = false;
         }
 
         OnPropertyChanged(nameof(Name));
@@ -82,12 +82,12 @@ public class ScheduleListItem(
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
         // Store initial state for comparison
-        _lastKnownSchedule = Schedule;
+        lastKnownSchedule = Schedule;
 
         // Initialize tracked subtitle values from state
         var initialStateItem = applicationState.Value.Schedules.FirstOrDefault(s => s.Id == schedule.Id);
-        _lastKnownTranslationName = initialStateItem?.TranslationName;
-        _lastKnownBookName = initialStateItem?.BookName;
+        lastKnownTranslationName = initialStateItem?.TranslationName;
+        lastKnownBookName = initialStateItem?.BookName;
 
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -97,7 +97,7 @@ public class ScheduleListItem(
             if (Schedule?.Id > 0)
             {
                 // Notify HomeViewModel to show overlay immediately
-                _onPlayStarted?.Invoke();
+                onPlayStarted?.Invoke();
                 // Wait 50ms to ensure overlay is visible before starting playback
                 await Task.Delay(50);
                 await playbackService.PlayScheduleAsync(Schedule.Id);
@@ -164,14 +164,14 @@ public class ScheduleListItem(
 
     public string Language { get; private set; } = string.Empty;
 
-    private bool _isEnabled;
+    private bool isEnabled;
 
     public bool IsEnabled
     {
-        get => _isEnabled;
+        get => isEnabled;
         set
         {
-            if (SetProperty(ref _isEnabled, value) && !_isInitializing && Schedule != null)
+            if (SetProperty(ref isEnabled, value) && !isInitializing && Schedule != null)
             {
                 _ = HandleIsEnabledChanged(value);
             }
@@ -191,7 +191,7 @@ public class ScheduleListItem(
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    _isEnabled = !newValue;
+                    isEnabled = !newValue;
                     OnPropertyChanged(nameof(IsEnabled));
                     OnPropertyChanged(nameof(This));
                 });
@@ -209,7 +209,7 @@ public class ScheduleListItem(
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                _isEnabled = !newValue;
+                isEnabled = !newValue;
                 OnPropertyChanged(nameof(IsEnabled));
                 OnPropertyChanged(nameof(This));
             });
@@ -439,24 +439,24 @@ public class ScheduleListItem(
         var oldChapterNumber = Schedule?.BibleReadingSchedule?.ChapterNumber;
 
         // Map DTO to entity for comparison and storage
-        var updatedSchedule = _mapper.Map<AlarmSchedule>(updatedScheduleItem);
+        var updatedSchedule = mapper.Map<AlarmSchedule>(updatedScheduleItem);
 
         // Check if the track/chapter changed by comparing BibleReadingSchedule or Music properties
         var trackChanged = false;
 
-        if (_lastKnownSchedule?.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
+        if (lastKnownSchedule?.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
         {
             // Check if book or chapter changed
-            if (_lastKnownSchedule.BibleReadingSchedule.BookNumber != updatedSchedule.BibleReadingSchedule.BookNumber ||
-                _lastKnownSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber)
+            if (lastKnownSchedule.BibleReadingSchedule.BookNumber != updatedSchedule.BibleReadingSchedule.BookNumber ||
+                lastKnownSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber)
             {
                 trackChanged = true;
             }
         }
-        else if (_lastKnownSchedule?.Music != null && updatedSchedule.Music != null)
+        else if (lastKnownSchedule?.Music != null && updatedSchedule.Music != null)
         {
             // Check if track number changed
-            if (_lastKnownSchedule.Music.TrackNumber != updatedSchedule.Music.TrackNumber)
+            if (lastKnownSchedule.Music.TrackNumber != updatedSchedule.Music.TrackNumber)
             {
                 trackChanged = true;
             }
@@ -464,14 +464,14 @@ public class ScheduleListItem(
 
         // Store old values before updating
         var oldDaysOfWeek = Schedule?.DaysOfWeek ?? 0;
-        var oldIsEnabled = _isEnabled;
+        var oldIsEnabled = isEnabled;
         var oldName = Schedule?.Name ?? string.Empty;
         var oldHour = Schedule?.Hour ?? 0;
         var oldMinute = Schedule?.Minute ?? 0;
 
         // Update the schedule reference
         Schedule = updatedSchedule;
-        _lastKnownSchedule = updatedSchedule;
+        lastKnownSchedule = updatedSchedule;
 
         // Check if properties changed by comparing old values with new values
         var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
@@ -484,8 +484,8 @@ public class ScheduleListItem(
         var newBookName = updatedScheduleItem.BookName;
         var bookNumberChanged = oldBookNumber != updatedSchedule.BibleReadingSchedule?.BookNumber;
         var chapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber;
-        var translationNameChanged = _lastKnownTranslationName != newTranslationName;
-        var bookNameChanged = _lastKnownBookName != newBookName;
+        var translationNameChanged = lastKnownTranslationName != newTranslationName;
+        var bookNameChanged = lastKnownBookName != newBookName;
 
         // Only refresh subtitle if subtitle-related properties actually changed
         var subtitleChanged = trackChanged || bookNumberChanged || chapterNumberChanged ||
@@ -494,13 +494,13 @@ public class ScheduleListItem(
         if (subtitleChanged)
         {
             // Update tracked values
-            _lastKnownTranslationName = newTranslationName;
-            _lastKnownBookName = newBookName;
+            lastKnownTranslationName = newTranslationName;
+            lastKnownBookName = newBookName;
             RefreshChapterName();
         }
 
-        // Always update _isEnabled to match the schedule
-        _isEnabled = updatedSchedule.IsEnabled;
+        // Always update isEnabled to match the schedule
+        isEnabled = updatedSchedule.IsEnabled;
 
         // Notify property changes for updated properties on main thread
         MainThread.BeginInvokeOnMainThread(() =>

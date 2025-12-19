@@ -12,7 +12,7 @@ public static class MauiAppHolder
     private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
     private static MauiApp app;
     // Use Log.Logger directly for static classes (can't use ForContext<T> with static types)
-    private static readonly ILogger Logger = Log.Logger;
+    private static readonly ILogger logger = Log.Logger;
 
     public static MauiApp App
     {
@@ -43,7 +43,7 @@ public static class MauiAppHolder
             }
 
             // Create new app instance
-            Logger.Information("MauiAppHolder.CreateAndStore - Creating new MauiApp instance");
+            logger.Information("MauiAppHolder.CreateAndStore - Creating new MauiApp instance");
             app = MauiProgram.CreateMauiApp();
             return app;
         }

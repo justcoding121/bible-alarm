@@ -11,7 +11,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Battery;
 
 public class AndroidBatteryOptimizationManager : IBatteryOptimizationManager, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<AndroidBatteryOptimizationManager>();
+    private static readonly ILogger logger = Log.ForContext<AndroidBatteryOptimizationManager>();
 
     public void ShowBatteryOptimizationExclusionSettingsPage()
     {
@@ -24,7 +24,7 @@ public class AndroidBatteryOptimizationManager : IBatteryOptimizationManager, ID
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Failed to show batter optimization dialog.");
+            logger.Error(e, "Failed to show batter optimization dialog.");
         }
     }
 

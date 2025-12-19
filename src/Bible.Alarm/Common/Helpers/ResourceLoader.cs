@@ -43,6 +43,7 @@ public static class ResourceLoader
     }
 
     [RequiresDynamicCode("Assembly.Location may not be available in AOT scenarios. Consider using GetManifestResourceStream instead.")]
+    [RequiresAssemblyFiles()]
     public static FileInfo GetFileInfo(Assembly assembly)
     {
         // Assembly.Location is not available in AOT/trimmed scenarios

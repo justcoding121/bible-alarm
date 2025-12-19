@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// </summary>
 public class AndroidArtworkService
 {
-    private static readonly ILogger Logger = Log.ForContext<AndroidArtworkService>();
+    private static readonly ILogger logger = Log.ForContext<AndroidArtworkService>();
 
     /// <summary>
     /// Loads artwork bitmap from file path or URI.
@@ -31,7 +31,7 @@ public class AndroidArtworkService
                 }
                 catch (Exception ex)
                 {
-                    Logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
+                    logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
                     return null;
                 }
             }
@@ -39,7 +39,7 @@ public class AndroidArtworkService
             // Check if file exists
             if (!File.Exists(filePath))
             {
-                Logger.Debug("Artwork file does not exist: {FilePath}", filePath);
+                logger.Debug("Artwork file does not exist: {FilePath}", filePath);
                 return null;
             }
 
@@ -47,7 +47,7 @@ public class AndroidArtworkService
             var bitmap = BitmapFactory.DecodeFile(filePath);
             if (bitmap == null)
             {
-                Logger.Debug("Failed to decode bitmap from file: {FilePath}", filePath);
+                logger.Debug("Failed to decode bitmap from file: {FilePath}", filePath);
                 return null;
             }
 
@@ -63,7 +63,7 @@ public class AndroidArtworkService
                 var scaledBitmap = Bitmap.CreateScaledBitmap(bitmap, scaledWidth, scaledHeight, true);
                 bitmap.Recycle(); // Recycle original bitmap to free memory
                 bitmap = scaledBitmap;
-                Logger.Debug("Scaled artwork bitmap from {OriginalWidth}x{OriginalHeight} to {ScaledWidth}x{ScaledHeight}",
+                logger.Debug("Scaled artwork bitmap from {OriginalWidth}x{OriginalHeight} to {ScaledWidth}x{ScaledHeight}",
                     originalWidth, originalHeight, scaledWidth, scaledHeight);
             }
 
@@ -71,7 +71,7 @@ public class AndroidArtworkService
         }
         catch (Exception ex)
         {
-            Logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", artworkUrl);
+            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", artworkUrl);
             return null;
         }
     }

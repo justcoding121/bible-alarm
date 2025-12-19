@@ -17,7 +17,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidServices;
 [Service(Enabled = true)]
 public class AlarmSetupService : Service, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<AlarmSetupService>();
+    private static readonly ILogger logger = Log.ForContext<AlarmSetupService>();
 
 
     public static bool IsRunning;
@@ -33,12 +33,12 @@ public class AlarmSetupService : Service, IDisposable
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        Logger.Error(e.Exception, "Unobserved task exception.");
+        logger.Error(e.Exception, "Unobserved task exception.");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
+        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
@@ -74,7 +74,7 @@ public class AlarmSetupService : Service, IDisposable
             catch (Exception ex)
             {
                 // Log but don't fail - service can continue without waiting
-                Log.Logger.Warning(ex, "Failed to wait for bootstrap in AlarmSetupService");
+                Log.logger.Warning(ex, "Failed to wait for bootstrap in AlarmSetupService");
             }
         });
 
@@ -104,7 +104,7 @@ public class AlarmSetupService : Service, IDisposable
                         }
                         catch (Exception e)
                         {
-                            Logger.Error(e, "An error happened in handling scheduler task.");
+                            logger.Error(e, "An error happened in handling scheduler task.");
                         }
                     });
                     break;
@@ -118,7 +118,7 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch (Exception e)
         {
-            Logger.Error(e, "An error happened in alarm setup task.");
+            logger.Error(e, "An error happened in alarm setup task.");
             throw;
         }
     }
@@ -149,7 +149,7 @@ public class AlarmSetupService : Service, IDisposable
             {
                 if (!alarmService.CanScheduleExactAlarms())
                 {
-                    Logger.Warning("Cannot schedule exact alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may have been revoked by user.", scheduleId);
+                    logger.Warning("Cannot schedule exact alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may have been revoked by user.", scheduleId);
                     // Note: On Android 12+, user needs to grant this permission in system settings
                     // The app should guide users to Settings > Apps > Bible Alarm > Alarms & reminders
                     return;
@@ -181,17 +181,17 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch (SecurityException ex)
         {
-            Logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
+            logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
             // Re-throw to be handled by caller
             throw;
         }
     }
 
-    private bool _disposed;
+    private bool disposed;
 
     protected override void Dispose(bool disposing)
     {
-        if (_disposed)
+        if (disposed)
         {
             return;
         }
@@ -199,7 +199,7 @@ public class AlarmSetupService : Service, IDisposable
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
 
-        _disposed = true;
+        disposed = true;
 
         base.Dispose(disposing);
     }

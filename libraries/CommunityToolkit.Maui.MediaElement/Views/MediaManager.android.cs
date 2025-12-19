@@ -40,10 +40,10 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	MediaItem.Builder? mediaItem;
 	BoundServiceConnection? connection;
 
-	private static bool _globalExoPlayerCreated = false;
-	private static readonly object _globalExoPlayerLock = new object();
-	private static PlatformMediaElement? _globalPlayer;
-	private static MediaSession? _globalSession;
+	static bool _globalExoPlayerCreated = false;
+	static readonly object _globalExoPlayerLock = new object();
+	static PlatformMediaElement? _globalPlayer;
+	static MediaSession? _globalSession;
 
 	/// <summary>
 	/// The platform native counterpart of <see cref="MediaElement"/>.

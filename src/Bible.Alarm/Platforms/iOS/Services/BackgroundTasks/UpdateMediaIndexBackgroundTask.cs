@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.BackgroundTasks;
 /// </summary>
 public class UpdateMediaIndexBackgroundTask
 {
-    private static readonly ILogger Logger = Log.ForContext<UpdateMediaIndexBackgroundTask>();
+    private static readonly ILogger logger = Log.ForContext<UpdateMediaIndexBackgroundTask>();
 
     public static async Task<bool> HandleAsync()
     {
@@ -36,7 +36,7 @@ public class UpdateMediaIndexBackgroundTask
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error updating media index in iOS background task");
+            logger.Error(e, "Error updating media index in iOS background task");
             return false;
         }
     }

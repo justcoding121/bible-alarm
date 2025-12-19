@@ -1,4 +1,4 @@
-﻿using Android.Content;
+using Android.Content;
 using Android.OS;
 using CommunityToolkit.Maui.Core.Views;
 

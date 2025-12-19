@@ -5,131 +5,130 @@ using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
 using Serilog;
 using UserNotifications;
 
-namespace Bible.Alarm.Platforms.iOS.Services.UI
+namespace Bible.Alarm.Platforms.iOS.Services.UI;
+
+public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService, IDisposable
 {
-    public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService, IDisposable
+    private bool _isDisposed;
+    private readonly ILogger _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+
+    public async Task ShowNotificationAsync(int scheduleId)
     {
-        private bool _isDisposed;
-        private readonly ILogger _logger = logger;
-        private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+        using var scope = _scopeFactory.CreateScope();
+        var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IiOSAlarmHandler>();
+        await iosAlarmHandler.HandleAsync(scheduleId, true);
+    }
 
-        public async Task ShowNotificationAsync(int scheduleId)
+    public async Task ScheduleNotificationAsync(AlarmSchedule schedule,
+        string title, string body)
+    {
+        var scheduleId = schedule.Id;
+        var time = schedule.NextFireDate();
+        var daysOfWeek = schedule.DaysOfWeek;
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            using var scope = _scopeFactory.CreateScope();
-            var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IiOSAlarmHandler>();
-            await iosAlarmHandler.HandleAsync(scheduleId, true);
-        }
-
-        public async Task ScheduleNotificationAsync(AlarmSchedule schedule,
-            string title, string body)
-        {
-            var scheduleId = schedule.Id;
-            var time = schedule.NextFireDate();
-            var daysOfWeek = schedule.DaysOfWeek;
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            var @params = new Dictionary<string, string>
             {
-                var @params = new Dictionary<string, string>
-                {
-                    { "ScheduleId", scheduleId.ToString() }
-                };
+                { "ScheduleId", scheduleId.ToString() }
+            };
 
-                var content = new UNMutableNotificationContent();
-                content.Title = title;
-                content.Body = body;
-                content.Sound = UNNotificationSound.GetSound("cool-alarm-tone-notification-sound.mp3");
-                content.UserInfo = @params.ToNsDictionary();
-                content.Badge = 1;
+            var content = new UNMutableNotificationContent();
+            content.Title = title;
+            content.Body = body;
+            content.Sound = UNNotificationSound.GetSound("cool-alarm-tone-notification-sound.mp3");
+            content.UserInfo = @params.ToNsDictionary();
+            content.Badge = 1;
 
-                foreach (var day in daysOfWeek.ToWeekDays())
-                {
-                    var trigger =
-                        UNCalendarNotificationTrigger.CreateTrigger(time.LocalDateTime.ToNsDateComponents(day), true);
-
-                    var requestId = $"{scheduleId}_{day}";
-                    var request = UNNotificationRequest.FromIdentifier(requestId, content, trigger);
-
-                    UNUserNotificationCenter.Current.AddNotificationRequest(request, err =>
-                    {
-                        if (err != null)
-                        {
-                            _logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
-                        }
-                    });
-                }
-            });
-        }
-
-        public async Task RemoveAsync(int scheduleId)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            foreach (var day in daysOfWeek.ToWeekDays())
             {
-                var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
+                var trigger =
+                    UNCalendarNotificationTrigger.CreateTrigger(time.LocalDateTime.ToNsDateComponents(day), true);
 
-                if (pending != null)
+                var requestId = $"{scheduleId}_{day}";
+                var request = UNNotificationRequest.FromIdentifier(requestId, content, trigger);
+
+                UNUserNotificationCenter.Current.AddNotificationRequest(request, err =>
                 {
-                    foreach (var notification in pending)
+                    if (err != null)
                     {
-                        if (notification.Identifier.StartsWith($"{scheduleId}_")
-                            || notification.Identifier == scheduleId.ToString())
-                        {
-                            UNUserNotificationCenter.Current.RemovePendingNotificationRequests([notification.Identifier
-                            ]);
-                        }
+                        _logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
                     }
-                }
-            });
-        }
-
-        public async Task<bool> IsScheduledAsync(int scheduleId)
-        {
-            return await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
-
-                if (pending != null)
-                {
-                    foreach (var notification in pending)
-                    {
-                        if (notification.Identifier.StartsWith($"{scheduleId}_")
-                            || notification.Identifier == scheduleId.ToString())
-                        {
-                            return true;
-                        }
-                    }
-                }
-
-                return false;
-            });
-        }
-
-        public async Task<bool> CanScheduleAsync()
-        {
-            return await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                var taskCompletionSource = new TaskCompletionSource<bool>();
-
-                UNUserNotificationCenter.Current.GetNotificationSettings(settings =>
-                {
-                    var result = settings.AlertSetting == UNNotificationSetting.Enabled;
-                    taskCompletionSource.SetResult(result);
                 });
+            }
+        });
+    }
 
-                return taskCompletionSource.Task.Result;
-            });
-        }
-
-        public void Dispose()
+    public async Task RemoveAsync(int scheduleId)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            if (_isDisposed)
+            var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
+
+            if (pending != null)
             {
-                return;
+                foreach (var notification in pending)
+                {
+                    if (notification.Identifier.StartsWith($"{scheduleId}_")
+                        || notification.Identifier == scheduleId.ToString())
+                    {
+                        UNUserNotificationCenter.Current.RemovePendingNotificationRequests([notification.Identifier
+                        ]);
+                    }
+                }
+            }
+        });
+    }
+
+    public async Task<bool> IsScheduledAsync(int scheduleId)
+    {
+        return await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            var pending = UNUserNotificationCenter.Current.GetPendingNotificationRequestsAsync().Result;
+
+            if (pending != null)
+            {
+                foreach (var notification in pending)
+                {
+                    if (notification.Identifier.StartsWith($"{scheduleId}_")
+                        || notification.Identifier == scheduleId.ToString())
+                    {
+                        return true;
+                    }
+                }
             }
 
-            _isDisposed = true;
+            return false;
+        });
+    }
 
-            // IServiceScopeFactory is a singleton, so don't dispose it
-            // No event handlers to unsubscribe
+    public async Task<bool> CanScheduleAsync()
+    {
+        return await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            var taskCompletionSource = new TaskCompletionSource<bool>();
+
+            UNUserNotificationCenter.Current.GetNotificationSettings(settings =>
+            {
+                var result = settings.AlertSetting == UNNotificationSetting.Enabled;
+                taskCompletionSource.SetResult(result);
+            });
+
+            return taskCompletionSource.Task.Result;
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
         }
+
+        _isDisposed = true;
+
+        // IServiceScopeFactory is a singleton, so don't dispose it
+        // No event handlers to unsubscribe
     }
 }

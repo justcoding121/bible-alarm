@@ -12,9 +12,9 @@ namespace Bible.Alarm.Services.Media;
 
 public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IDownloadService _downloadService = downloadService;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IDownloadService downloadService = downloadService;
+    private bool isDisposed;
 
     private static readonly string[] JwOrgUrls =
     [
@@ -51,7 +51,7 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Failed to refresh URL using LookUpPath");
+            logger.Error(ex, "Failed to refresh URL using LookUpPath");
             return null;
         }
     }
@@ -63,7 +63,7 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
         {
             var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
             var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
-            var tes = await _downloadService.DownloadAsync(harvestLink1, harvestLink2);
+            var tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(tes);
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
@@ -71,39 +71,39 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
             // Check if root is an object, not an array
             if (root.ValueKind != JsonValueKind.Object)
             {
-                _logger.Warning("Root element is not an object (type: {ValueKind}) for Bible chapter URL refresh", root.ValueKind);
+                logger.Warning("Root element is not an object (type: {ValueKind}) for Bible chapter URL refresh", root.ValueKind);
                 return null;
             }
 
             if (!root.TryGetProperty("files", out var files))
             {
-                _logger.Warning("'files' property not found in JSON response for Bible chapter URL refresh");
+                logger.Warning("'files' property not found in JSON response for Bible chapter URL refresh");
                 return null;
             }
 
             if (!files.TryGetProperty(languageCode, out var languageFiles))
             {
-                _logger.Warning("Language '{LanguageCode}' not found in files for Bible chapter URL refresh", languageCode);
+                logger.Warning("Language '{LanguageCode}' not found in files for Bible chapter URL refresh", languageCode);
                 return null;
             }
 
             if (!languageFiles.TryGetProperty("MP3", out var mp3Files))
             {
-                _logger.Warning("'MP3' property not found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
+                logger.Warning("'MP3' property not found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
                 return null;
             }
 
             // Check if MP3 is an array
             if (mp3Files.ValueKind != JsonValueKind.Array)
             {
-                _logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in Bible chapter URL refresh", mp3Files.ValueKind, languageCode);
+                logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in Bible chapter URL refresh", mp3Files.ValueKind, languageCode);
                 return null;
             }
 
             var mp3Array = mp3Files.EnumerateArray().ToList();
             if (mp3Array.Count == 0)
             {
-                _logger.Warning("No MP3 files found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
+                logger.Warning("No MP3 files found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
                 return null;
             }
 
@@ -111,14 +111,14 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
             if (!firstMp3.TryGetProperty("file", out var fileElement) ||
                 !fileElement.TryGetProperty("url", out var urlElement))
             {
-                _logger.Warning("Missing 'file.url' property in MP3 file for Bible chapter URL refresh");
+                logger.Warning("Missing 'file.url' property in MP3 file for Bible chapter URL refresh");
                 return null;
             }
 
             var url = urlElement.GetString();
             if (string.IsNullOrEmpty(url))
             {
-                _logger.Warning("URL is null or empty in MP3 file for Bible chapter URL refresh");
+                logger.Warning("URL is null or empty in MP3 file for Bible chapter URL refresh");
                 return null;
             }
 
@@ -126,7 +126,7 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Exception in GetBibleChapterUrl for language '{LanguageCode}', book {BookNumber}, chapter {Chapter}", languageCode, bookNumber, chapter);
+            logger.Error(ex, "Exception in GetBibleChapterUrl for language '{LanguageCode}', book {BookNumber}, chapter {Chapter}", languageCode, bookNumber, chapter);
             return null;
         }
     }
@@ -138,7 +138,7 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
             var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
             var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
 
-            var tes = await _downloadService.DownloadAsync(harvestLink1, harvestLink2);
+            var tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(tes);
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
@@ -146,7 +146,7 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
             // Check if root is an object, not an array
             if (root.ValueKind != JsonValueKind.Object)
             {
-                _logger.Warning("Root element is not an object (type: {ValueKind}) for music track URL refresh", root.ValueKind);
+                logger.Warning("Root element is not an object (type: {ValueKind}) for music track URL refresh", root.ValueKind);
                 return null;
             }
 
@@ -159,33 +159,33 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
 
             if (!root.TryGetProperty("files", out var files))
             {
-                _logger.Warning("'files' property not found in JSON response for music track URL refresh");
+                logger.Warning("'files' property not found in JSON response for music track URL refresh");
                 return null;
             }
 
             if (!files.TryGetProperty(lc, out var languageFiles))
             {
-                _logger.Warning("Language '{LanguageCode}' not found in files for music track URL refresh", lc);
+                logger.Warning("Language '{LanguageCode}' not found in files for music track URL refresh", lc);
                 return null;
             }
 
             if (!languageFiles.TryGetProperty("MP3", out var mp3Files))
             {
-                _logger.Warning("'MP3' property not found for language '{LanguageCode}' in music track URL refresh", lc);
+                logger.Warning("'MP3' property not found for language '{LanguageCode}' in music track URL refresh", lc);
                 return null;
             }
 
             // Check if MP3 is an array
             if (mp3Files.ValueKind != JsonValueKind.Array)
             {
-                _logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in music track URL refresh", mp3Files.ValueKind, lc);
+                logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in music track URL refresh", mp3Files.ValueKind, lc);
                 return null;
             }
 
             var mp3Array = mp3Files.EnumerateArray().ToList();
             if (mp3Array.Count == 0)
             {
-                _logger.Warning("No MP3 files found for language '{LanguageCode}' in music track URL refresh", lc);
+                logger.Warning("No MP3 files found for language '{LanguageCode}' in music track URL refresh", lc);
                 return null;
             }
 
@@ -193,14 +193,14 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
             if (!firstMp3.TryGetProperty("file", out var fileElement) ||
                 !fileElement.TryGetProperty("url", out var urlElement))
             {
-                _logger.Warning("Missing 'file.url' property in MP3 file for music track URL refresh");
+                logger.Warning("Missing 'file.url' property in MP3 file for music track URL refresh");
                 return null;
             }
 
             var url = urlElement.GetString();
             if (string.IsNullOrEmpty(url))
             {
-                _logger.Warning("URL is null or empty in MP3 file for music track URL refresh");
+                logger.Warning("URL is null or empty in MP3 file for music track URL refresh");
                 return null;
             }
 
@@ -208,19 +208,19 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Exception in GetMusicTrackUrl for language '{LanguageCode}'", languageCode ?? "null");
+            logger.Error(ex, "Exception in GetMusicTrackUrl for language '{LanguageCode}'", languageCode ?? "null");
             return null;
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe

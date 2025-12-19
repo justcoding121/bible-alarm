@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Stores.Actions.Schedule;
 

@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Common;
+namespace Bible.Alarm.Common;
 
 public static class CurrentDevice
 {

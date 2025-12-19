@@ -22,20 +22,20 @@ namespace Bible.Alarm.ViewModels;
 
 public class HomeViewModel : ObservableObject, IDisposable
 {
-    private readonly ILogger _logger;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger logger;
+    private readonly IServiceScopeFactory scopeFactory;
 
-    private readonly IDatabaseSeedService _databaseSeedService;
-    private readonly IScheduleMigrationService _scheduleMigrationService;
-    private readonly IAlarmScheduleService _alarmScheduleService;
+    private readonly IDatabaseSeedService databaseSeedService;
+    private readonly IScheduleMigrationService scheduleMigrationService;
+    private readonly IAlarmScheduleService alarmScheduleService;
 
-    private readonly Dictionary<int, ScheduleListItem> _scheduleViewModels = [];
+    private readonly Dictionary<int, ScheduleListItem> scheduleViewModels = [];
 
-    private readonly Func<AlarmSchedule, ScheduleListItem> _scheduleListItemFactory;
-    private readonly IMapper _mapper;
+    private readonly Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory;
+    private readonly IMapper mapper;
 
-    private readonly IDispatcher _dispatcher;
-    private readonly IState<ApplicationState> _state;
+    private readonly IDispatcher dispatcher;
+    private readonly IState<ApplicationState> state;
 
     public HomeViewModel(
         ILogger logger,
@@ -49,20 +49,20 @@ public class HomeViewModel : ObservableObject, IDisposable
         IAlarmScheduleService alarmScheduleService,
         IMapper mapper)
     {
-        _logger = logger;
-        _scopeFactory = scopeFactory;
-        _scheduleListItemFactory = scheduleListItemFactory;
-        _state = state;
-        _dispatcher = dispatcher;
-        _databaseSeedService = databaseSeedService;
-        _scheduleMigrationService = scheduleMigrationService;
-        _alarmScheduleService = alarmScheduleService;
-        _mapper = mapper;
+        this.logger = logger;
+        this.scopeFactory = scopeFactory;
+        this.scheduleListItemFactory = scheduleListItemFactory;
+        this.state = state;
+        this.dispatcher = dispatcher;
+        this.databaseSeedService = databaseSeedService;
+        this.scheduleMigrationService = scheduleMigrationService;
+        this.alarmScheduleService = alarmScheduleService;
+        this.mapper = mapper;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
             // Show overlay immediately via state
-            _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
+            dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
 
             // Wait for state to update and UI to reflect the change
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -75,9 +75,9 @@ public class HomeViewModel : ObservableObject, IDisposable
 
             // Reset schedule state before creating a new schedule
             // This ensures only one schedule is in state at any time
-            _dispatcher.Dispatch(new ResetScheduleStateAction());
+            dispatcher.Dispatch(new ResetScheduleStateAction());
             await navigationService.NavigateToScheduleAsync();
-            _dispatcher.Dispatch(new ViewScheduleAction(null));
+            dispatcher.Dispatch(new ViewScheduleAction(null));
         });
 
         ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
@@ -88,7 +88,7 @@ public class HomeViewModel : ObservableObject, IDisposable
             }
 
             // Show overlay immediately via state
-            _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
+            dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
 
             // Wait for state to update and UI to reflect the change
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -103,15 +103,15 @@ public class HomeViewModel : ObservableObject, IDisposable
             // Start navigation immediately (don't await yet)
             var navigationTask = navigationService.NavigateToScheduleAsync();
             // Map AlarmSchedule to ScheduleStateItem before dispatching
-            var scheduleStateItem = _mapper.Map<ScheduleStateItem>(x.Schedule);
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(x.Schedule);
             // Dispatch action immediately so data loading can start
-            _dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
+            dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
             // Wait for navigation to complete
             await navigationTask;
             // Don't hide overlay here - it will be hidden by ScheduleViewModel after navigation completes
         });
 
-        _state.StateChanged += OnStateChanged;
+        state.StateChanged += OnStateChanged;
 
         // Immediately process current state when ViewModel is created
         // This ensures the ListView is populated with fresh data when a new Home page is created
@@ -122,12 +122,12 @@ public class HomeViewModel : ObservableObject, IDisposable
     }
 
 
-    private ObservableHashSet<ScheduleListItem> _schedules;
+    private ObservableHashSet<ScheduleListItem> schedules;
 
     public ObservableHashSet<ScheduleListItem> Schedules
     {
-        get => _schedules;
-        set => SetProperty(ref _schedules, value);
+        get => schedules;
+        set => SetProperty(ref schedules, value);
     }
 
     private void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems)
@@ -148,10 +148,10 @@ public class HomeViewModel : ObservableObject, IDisposable
         {
             // Map ScheduleStateItem back to AlarmSchedule for ScheduleListItem
             // ScheduleListItem needs AlarmSchedule entity (not DTO)
-            var schedule = _mapper.Map<AlarmSchedule>(scheduleItem);
+            var schedule = mapper.Map<AlarmSchedule>(scheduleItem);
             currentViewModelIds.Add(schedule.Id);
 
-            if (_scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
+            if (scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
             {
                 // Existing view model - just update it in place
                 // Initialize() will trigger property change notifications for this specific item
@@ -161,47 +161,47 @@ public class HomeViewModel : ObservableObject, IDisposable
                 {
                     existingViewModel.OnPlayStarted = () =>
                     {
-                        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
+                        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                     };
                 }
                 if (existingViewModel.OnPlaybackStarted == null)
                 {
                     existingViewModel.OnPlaybackStarted = () =>
                     {
-                        _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+                        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
                     };
                 }
             }
             else
             {
                 // New schedule - create new view model
-                var viewModel = _scheduleListItemFactory(schedule);
+                var viewModel = scheduleListItemFactory(schedule);
                 // Set callbacks to show/hide overlay when play is pressed/started
                 viewModel.OnPlayStarted = () =>
                 {
-                    _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
+                    dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                 };
                 viewModel.OnPlaybackStarted = () =>
                 {
-                    _dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+                    dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
                 };
-                _scheduleViewModels[schedule.Id] = viewModel;
+                scheduleViewModels[schedule.Id] = viewModel;
                 schedulesToAdd.Add(viewModel);
             }
         }
 
         // Identify view models to remove
-        var toRemove = _scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
+        var toRemove = scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
         foreach (var id in toRemove)
         {
-            if (!_scheduleViewModels.TryGetValue(id, out var viewModel))
+            if (!scheduleViewModels.TryGetValue(id, out var viewModel))
             {
                 continue;
             }
 
             schedulesToRemove.Add(id);
             viewModel.Dispose();
-            _scheduleViewModels.Remove(id);
+            scheduleViewModels.Remove(id);
         }
 
         // Only replace the collection if schedules were added or removed
@@ -236,15 +236,15 @@ public class HomeViewModel : ObservableObject, IDisposable
         // This prevents the entire list from reloading when a single item changes
     }
 
-    private bool _isBusy = true;
+    private bool isBusy = true;
 
     public bool IsBusy
     {
-        get => _isBusy;
+        get => isBusy;
         set
         {
-            SetProperty(ref _isBusy, value);
-            Loaded = !_isBusy;
+            SetProperty(ref isBusy, value);
+            Loaded = !isBusy;
         }
     }
 
@@ -252,14 +252,14 @@ public class HomeViewModel : ObservableObject, IDisposable
     /// Gets the overlay visibility from application state.
     /// This property is bound to the Home page overlay.
     /// </summary>
-    public bool IsHomePageOverlayVisible => _state.Value.IsHomePageOverlayVisible;
+    public bool IsHomePageOverlayVisible => state.Value.IsHomePageOverlayVisible;
 
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
     /// </summary>
     public void HideSchedulePageOverlay()
     {
-        _dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
     }
 
     /// <summary>
@@ -268,33 +268,33 @@ public class HomeViewModel : ObservableObject, IDisposable
     /// </summary>
     public void ResetScheduleState()
     {
-        _dispatcher.Dispatch(new ResetScheduleStateAction());
+        dispatcher.Dispatch(new ResetScheduleStateAction());
     }
 
 
-    private bool _loaded;
+    private bool loaded;
 
     public bool Loaded
     {
-        get => _loaded;
-        set => SetProperty(ref _loaded, value);
+        get => loaded;
+        set => SetProperty(ref loaded, value);
     }
 
     public ICommand AddScheduleCommand { get; set; }
     public ICommand ViewScheduleCommand { get; set; }
 
-    private ScheduleViewModel _selectedSchedule;
+    private ScheduleViewModel selectedSchedule;
 
     public ScheduleViewModel SelectedSchedule
     {
-        get => _selectedSchedule;
-        set => SetProperty(ref _selectedSchedule, value);
+        get => selectedSchedule;
+        set => SetProperty(ref selectedSchedule, value);
     }
 
 
     private void OnStateChanged(object sender, EventArgs e)
     {
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
 
         _ = MainThread.InvokeOnMainThreadAsync(() =>
         {
@@ -311,7 +311,7 @@ public class HomeViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _state.StateChanged -= OnStateChanged;
+        state.StateChanged -= OnStateChanged;
 
         if (Schedules != null)
         {

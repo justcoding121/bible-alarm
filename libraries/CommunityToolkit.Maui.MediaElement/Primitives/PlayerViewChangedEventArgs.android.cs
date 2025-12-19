@@ -1,4 +1,4 @@
-﻿using AndroidX.Media3.UI;
+using AndroidX.Media3.UI;
 
 namespace CommunityToolkit.Maui.Core;
 

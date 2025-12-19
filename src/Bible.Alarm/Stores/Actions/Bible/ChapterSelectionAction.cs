@@ -1,4 +1,4 @@
-﻿using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions.Bible;
 

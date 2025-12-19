@@ -10,7 +10,7 @@ namespace Bible.Alarm.Services.UI;
 public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalService alarmModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
 {
     private static NavigationPage? _mainNavPage;
-    private static readonly ILogger Logger = Log.ForContext<WindowSetupService>();
+    private static readonly ILogger logger = Log.ForContext<WindowSetupService>();
     private bool _isDisposed;
 
     public Window CreateWindow(IActivationState? activationState)
@@ -38,17 +38,17 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
 
         navigationService.ClearCache();
 
-        Logger.Information("WindowSetupService.CreateWindow: Starting VerifyServices with initializeUI=true");
+        logger.Information("WindowSetupService.CreateWindow: Starting VerifyServices with initializeUI=true");
         Task.Run(async () =>
         {
             try
             {
                 await CommonBootstrapHelper.VerifyServices(true);
-                Logger.Information("WindowSetupService.CreateWindow: VerifyServices completed");
+                logger.Information("WindowSetupService.CreateWindow: VerifyServices completed");
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "WindowSetupService.CreateWindow: Error in VerifyServices");
+                logger.Error(ex, "WindowSetupService.CreateWindow: Error in VerifyServices");
             }
         });
 
@@ -118,7 +118,7 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
         catch (Exception ex)
         {
             // Fallback to theme colors if resource lookup fails
-            Logger.Warning(ex, "Error updating navigation bar colors, using fallback theme colors");
+            logger.Warning(ex, "Error updating navigation bar colors, using fallback theme colors");
             var theme = ThemeColors.GetCurrentTheme();
             _mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
             _mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
@@ -154,21 +154,21 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
 
         if (playbackService != null)
         {
-            Logger.Information("MainActivity.OnDestroy - Calling player dismiss action");
+            logger.Information("MainActivity.OnDestroy - Calling player dismiss action");
 
             Task.Run(async () =>
             {
                 try
                 {
                     await playbackService.StopAsync();
-                    Logger.Information("MainActivity.OnDestroy - Player dismiss action completed");
+                    logger.Information("MainActivity.OnDestroy - Player dismiss action completed");
 
                     // Dispose MauiApp after StopAsync completes
-                    Logger.Information("MainActivity.OnDestroy - MauiApp disposed");
+                    logger.Information("MainActivity.OnDestroy - MauiApp disposed");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, "Error in StopAsync or disposal");
+                    logger.Error(ex, "Error in StopAsync or disposal");
                 }
             });
         }

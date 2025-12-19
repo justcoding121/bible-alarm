@@ -1,4 +1,4 @@
-﻿using AVFoundation;
+using AVFoundation;
 using CoreMedia;
 using Foundation;
 using MediaPlayer;

@@ -9,10 +9,10 @@ namespace Bible.Alarm.Views.General;
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class BootstrapPage : ContentPage, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<BootstrapPage>();
-    private bool _isDisposed;
-    private readonly Timer _animationTimer;
-    private int _currentDot;
+    private static readonly ILogger logger = Log.ForContext<BootstrapPage>();
+    private bool isDisposed;
+    private readonly Timer animationTimer;
+    private int currentDot;
 
     /// <summary>
     /// Gets the MediaElementContainer ContentView. Used by NavigationService to add MediaElement when it's recreated.
@@ -35,10 +35,10 @@ public partial class BootstrapPage : ContentPage, IDisposable
 
         // Start animated dots
         // Change dot every 500ms
-        _animationTimer = new Timer(500);
-        _animationTimer.Elapsed += OnTimerElapsed;
-        _animationTimer.AutoReset = true;
-        _animationTimer.Start();
+        animationTimer = new Timer(500);
+        animationTimer.Elapsed += OnTimerElapsed;
+        animationTimer.AutoReset = true;
+        animationTimer.Start();
 
         // Initialize first dot
         UpdateDots();
@@ -49,7 +49,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            _currentDot = (_currentDot + 1) % 3;
+            currentDot = (currentDot + 1) % 3;
             UpdateDots();
         });
     }
@@ -62,7 +62,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
         Dot3.Opacity = 0.3;
 
         // Highlight current dot
-        switch (_currentDot)
+        switch (currentDot)
         {
             case 0:
                 Dot1.Opacity = 1.0;
@@ -90,23 +90,23 @@ public partial class BootstrapPage : ContentPage, IDisposable
         catch (Exception ex)
         {
             // Service might not be available yet - that's okay, will retry on next GetMediaElement call
-            Logger.Warning(ex, "Failed to reattach MediaElement in BootstrapPage.OnAppearing - will retry on next GetMediaElement call");
+            logger.Warning(ex, "Failed to reattach MediaElement in BootstrapPage.OnAppearing - will retry on next GetMediaElement call");
         }
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _animationTimer?.Stop();
+        animationTimer?.Stop();
     }
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
-            _animationTimer?.Stop();
-            _animationTimer?.Dispose();
-            _isDisposed = true;
+            animationTimer?.Stop();
+            animationTimer?.Dispose();
+            isDisposed = true;
         }
     }
 }

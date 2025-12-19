@@ -96,20 +96,20 @@ sealed partial class MediaControlsService : Service
 		NotificationManagerCompat.From(Platform.AppContext)?.Notify(1, notificationBuilder.Build());
 	}
 
-    static PendingIntent CreateActivityPendingIntent()
-    {
-        var packageName = Platform.AppContext.PackageName ?? throw new InvalidOperationException("PackageName cannot be null");
-        var packageManager = Platform.AppContext.PackageManager ?? throw new InvalidOperationException("PackageManager cannot be null");
-        var launchIntent = packageManager.GetLaunchIntentForPackage(packageName) ?? throw new InvalidOperationException("Launch intent cannot be null");
+	static PendingIntent CreateActivityPendingIntent()
+	{
+		var packageName = Platform.AppContext.PackageName ?? throw new InvalidOperationException("PackageName cannot be null");
+		var packageManager = Platform.AppContext.PackageManager ?? throw new InvalidOperationException("PackageManager cannot be null");
+		var launchIntent = packageManager.GetLaunchIntentForPackage(packageName) ?? throw new InvalidOperationException("Launch intent cannot be null");
 
-        launchIntent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop);
+		launchIntent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop);
 
-        var flags = PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable;
-        return PendingIntent.GetActivity(Platform.AppContext, 0, launchIntent, flags)
-               ?? throw new InvalidOperationException("PendingIntent cannot be null");
-    }
+		var flags = PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable;
+		return PendingIntent.GetActivity(Platform.AppContext, 0, launchIntent, flags)
+			   ?? throw new InvalidOperationException("PendingIntent cannot be null");
+	}
 
-    [MemberNotNull(nameof(playerNotificationManager))]
+	[MemberNotNull(nameof(playerNotificationManager))]
 	public void SetLegacyNotifications(in MediaSession session, in PlatformMediaElement mediaElement)
 	{
 		ArgumentNullException.ThrowIfNull(session);
@@ -174,14 +174,14 @@ sealed partial class MediaControlsService : Service
 		NotificationManager ??= GetSystemService(NotificationService) as NotificationManager ?? throw new InvalidOperationException($"{nameof(NotificationManager)} cannot be null");
 		notificationBuilder ??= new NotificationCompat.Builder(Platform.AppContext, "1");
 
-        var pendingIntent = CreateActivityPendingIntent();
-        notificationBuilder.SetSmallIcon(Resource.Drawable.media3_notification_small_icon);
+		var pendingIntent = CreateActivityPendingIntent();
+		notificationBuilder.SetSmallIcon(Resource.Drawable.media3_notification_small_icon);
 		notificationBuilder.SetAutoCancel(false);
 		notificationBuilder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
 		notificationBuilder.SetVisibility(NotificationCompat.VisibilityPublic);
-        notificationBuilder.SetContentIntent(pendingIntent);
+		notificationBuilder.SetContentIntent(pendingIntent);
 
-        CreateNotificationChannel(NotificationManager);
+		CreateNotificationChannel(NotificationManager);
 
 		// ForegroundService.TypeMediaPlayback requires API 29+, minimum supported is API 26
 		if (OperatingSystem.IsAndroidVersionAtLeast(29))

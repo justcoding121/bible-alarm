@@ -1,4 +1,4 @@
-﻿using Fluxor;
+using Fluxor;
 
 namespace Bible.Alarm.Stores;
 

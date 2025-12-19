@@ -22,22 +22,22 @@ namespace Bible.Alarm.ViewModels.Music;
 
 public class TrackSelectionViewModel : ObservableObject, IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly ILogger logger;
 
-    private readonly IMediaService _mediaService;
-    private readonly IToastService _toastService;
-    private readonly IAudioPreviewer _playService;
-    private readonly IMediaUrlRefreshService _urlRefreshService;
-    private readonly IDownloadService _downloadService;
-    private readonly IDispatcher _dispatcher;
-    private readonly IState<ApplicationState> _state;
-    private readonly IMapper _mapper;
+    private readonly IMediaService mediaService;
+    private readonly IToastService toastService;
+    private readonly IAudioPreviewer playService;
+    private readonly IMediaUrlRefreshService urlRefreshService;
+    private readonly IDownloadService downloadService;
+    private readonly IDispatcher dispatcher;
+    private readonly IState<ApplicationState> state;
+    private readonly IMapper mapper;
 
-    private AlarmMusic _current;
-    private AlarmMusic _tentative;
-    private bool _initComplete;
+    private AlarmMusic current;
+    private AlarmMusic tentative;
+    private bool initComplete;
 
-    private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> _propertyChangedHandlers = [];
+    private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> propertyChangedHandlers = [];
 
     public TrackSelectionViewModel(
         ILogger logger,
@@ -51,28 +51,28 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         IDispatcher dispatcher,
         IMapper mapper)
     {
-        _logger = logger;
-        _mediaService = mediaService;
-        _toastService = toastService;
-        _playService = playService;
-        _downloadService = downloadService;
-        _urlRefreshService = urlRefreshService;
-        _mapper = mapper;
+        this.logger = logger;
+        this.mediaService = mediaService;
+        this.toastService = toastService;
+        this.playService = playService;
+        this.downloadService = downloadService;
+        this.urlRefreshService = urlRefreshService;
+        this.mapper = mapper;
 
-        _state = state;
-        _dispatcher = dispatcher;
+        this.state = state;
+        this.dispatcher = dispatcher;
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
 
             // Stop any ongoing preview playback before navigating away
-            _playService.Stop();
-            if (_currentlyPlaying != null)
+            playService.Stop();
+            if (currentlyPlaying != null)
             {
-                _currentlyPlaying.Play = false;
-                _currentlyPlaying.IsBusy = false;
-                _currentlyPlaying = null;
+                currentlyPlaying.Play = false;
+                currentlyPlaying.IsBusy = false;
+                currentlyPlaying = null;
             }
 
             await navigationService.PopAsync();
@@ -86,25 +86,25 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            // Ensure _tentative is set from state if it's null
-            if (_tentative == null)
+            // Ensure tentative is set from state if it's null
+            if (tentative == null)
             {
-                var stateValue = _state.Value;
+                var stateValue = state.Value;
                 if (stateValue.TentativeMusic != null)
                 {
-                    _tentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
+                    tentative = mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
                 }
                 if (stateValue.CurrentMusic != null)
                 {
-                    _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+                    current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
                 }
-                else if (_tentative != null)
+                else if (tentative != null)
                 {
-                    _current = _tentative;
+                    current = tentative;
                 }
             }
 
-            if (_tentative == null)
+            if (tentative == null)
             {
                 return;
             }
@@ -119,34 +119,34 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             SelectedTrack = x;
             SelectedTrack.IsSelected = true;
 
-            _tentative.TrackNumber = x.Number;
-            _tentative.Repeat = x.Repeat;
+            tentative.TrackNumber = x.Number;
+            tentative.Repeat = x.Repeat;
 
             // Map entity to DTO before dispatching
             var trackSelectedItem = new MusicStateItem
             {
-                MusicType = _tentative.MusicType,
-                LanguageCode = _tentative.LanguageCode,
-                PublicationCode = _tentative.PublicationCode,
-                TrackNumber = _tentative.TrackNumber,
-                Repeat = _tentative.Repeat
+                MusicType = tentative.MusicType,
+                LanguageCode = tentative.LanguageCode,
+                PublicationCode = tentative.PublicationCode,
+                TrackNumber = tentative.TrackNumber,
+                Repeat = tentative.Repeat
             };
-            _dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+            dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
             IsBusy = false;
         });
 
-        _state.StateChanged += OnMusicInitialized;
+        state.StateChanged += OnMusicInitialized;
     }
 
     private void OnMusicInitialized(object o, EventArgs eventArgs)
     {
-        if (_initComplete)
+        if (initComplete)
         {
             return;
         }
 
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
         // For track selection, we only need TentativeMusic to initialize
         // CurrentMusic might be null when navigating directly to track selection
         if (stateValue.TentativeMusic == null)
@@ -154,21 +154,21 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             return;
         }
         // Map DTOs to entities
-        _tentative = _mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
+        tentative = mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
         // Use TentativeMusic as CurrentMusic if CurrentMusic is null
         if (stateValue.CurrentMusic != null)
         {
-            _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
         }
         else
         {
-            _current = _tentative;
+            current = tentative;
         }
-        _initComplete = true;
+        initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(_tentative.LanguageCode, _tentative.PublicationCode);
+            await Initialize(tentative.LanguageCode, tentative.PublicationCode);
 
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following book selection pattern)
@@ -184,27 +184,27 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     public ICommand SetTrackCommand { get; set; }
 
     // Start as true to show busy indicator immediately
-    private bool _isBusy = true;
+    private bool isBusy = true;
 
     public bool IsBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
-    private ObservableCollection<MusicTrackListViewItemModel> _tracks = [];
+    private ObservableCollection<MusicTrackListViewItemModel> tracks = [];
 
     public ObservableCollection<MusicTrackListViewItemModel> Tracks
     {
-        get => _tracks;
-        set => SetProperty(ref _tracks, value);
+        get => tracks;
+        set => SetProperty(ref tracks, value);
     }
 
     public MusicTrackListViewItemModel SelectedTrack { get; set; }
 
-    private MusicTrackListViewItemModel _currentlyPlaying;
+    private MusicTrackListViewItemModel currentlyPlaying;
 
-    private readonly SemaphoreSlim _lock = new(1);
+    private readonly SemaphoreSlim @lock = new(1);
 
     private async Task Initialize(string languageCode, string publicationCode)
     {
@@ -241,7 +241,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         };
 
         // Subscribe to play service stopped event
-        _playService.OnStopped += OnPlayServiceStopped;
+        playService.OnStopped += OnPlayServiceStopped;
     }
 
     private void SubscribeToTrackEvents(MusicTrackListViewItemModel track)
@@ -259,7 +259,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
                     _ = HandlePlayTrack(item);
                     break;
                 case "Play":
-                    _playService.Stop();
+                    playService.Stop();
                     break;
                 case "Repeat":
                     HandleRepeatChanged(item);
@@ -268,88 +268,88 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
         };
 
         track.PropertyChanged += handler;
-        _propertyChangedHandlers[track] = handler;
+        propertyChangedHandlers[track] = handler;
     }
 
     private void UnsubscribeFromTrackEvents(MusicTrackListViewItemModel track)
     {
-        if (!_propertyChangedHandlers.TryGetValue(track, out var handler))
+        if (!propertyChangedHandlers.TryGetValue(track, out var handler))
         {
             return;
         }
 
         track.PropertyChanged -= handler;
-        _propertyChangedHandlers.Remove(track);
+        propertyChangedHandlers.Remove(track);
     }
 
     private async Task HandlePlayTrack(MusicTrackListViewItemModel track)
     {
-        await ConcurrencyHelper.ExecuteAsync(_lock, async () =>
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
-            if (_currentlyPlaying != null && _currentlyPlaying != track)
+            if (currentlyPlaying != null && currentlyPlaying != track)
             {
-                _currentlyPlaying.Play = false;
-                _currentlyPlaying.IsBusy = false;
+                currentlyPlaying.Play = false;
+                currentlyPlaying.IsBusy = false;
             }
 
-            _currentlyPlaying = track;
-            _currentlyPlaying.IsBusy = true;
+            currentlyPlaying = track;
+            currentlyPlaying.IsBusy = true;
             try
             {
                 var url = track.Url;
 
                 await Task.Run(async () =>
                 {
-                    if (_tentative == null)
+                    if (tentative == null)
                     {
                         return;
                     }
 
-                    if (!await _downloadService.FileExists(url))
+                    if (!await downloadService.FileExists(url))
                     {
-                        url = await _urlRefreshService.GetMusicTrackUrl(
-                            _tentative.LanguageCode,
+                        url = await urlRefreshService.GetMusicTrackUrl(
+                            tentative.LanguageCode,
                             track.LookUpPath);
                     }
 
-                    await _playService.Play(url);
+                    await playService.Play(url);
                 });
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error playing track preview");
-                _currentlyPlaying.Play = false;
-                await _toastService.ShowMessage("Media download failed. Check your internet connection.");
+                logger.Error(ex, "Error playing track preview");
+                currentlyPlaying.Play = false;
+                await toastService.ShowMessage("Media download failed. Check your internet connection.");
             }
 
-            _currentlyPlaying.IsBusy = false;
-        }, ex => _logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
+            currentlyPlaying.IsBusy = false;
+        }, ex => logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
     }
 
     private void HandleRepeatChanged(MusicTrackListViewItemModel track)
     {
-        if (_tentative == null)
+        if (tentative == null)
         {
             return;
         }
 
-        _tentative.Repeat = track.Repeat;
-        _tentative.TrackNumber = track.Number;
+        tentative.Repeat = track.Repeat;
+        tentative.TrackNumber = track.Number;
 
         // Map entity to DTO before dispatching
         var trackSelectedItem = new MusicStateItem
         {
-            MusicType = _tentative.MusicType,
-            LanguageCode = _tentative.LanguageCode,
-            PublicationCode = _tentative.PublicationCode,
-            TrackNumber = _tentative.TrackNumber,
-            Repeat = _tentative.Repeat
+            MusicType = tentative.MusicType,
+            LanguageCode = tentative.LanguageCode,
+            PublicationCode = tentative.PublicationCode,
+            TrackNumber = tentative.TrackNumber,
+            Repeat = tentative.Repeat
         };
-        _dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+        dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
         if (track.Repeat)
         {
-            _toastService.ShowMessage("Reminder will always repeat this track.");
+            toastService.ShowMessage("Reminder will always repeat this track.");
         }
     }
 
@@ -357,22 +357,22 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     {
         try
         {
-            await ConcurrencyHelper.ExecuteAsync(_lock, () =>
+            await ConcurrencyHelper.ExecuteAsync(@lock, () =>
             {
-                if (_currentlyPlaying == null)
+                if (currentlyPlaying == null)
                 {
                     return Task.CompletedTask;
                 }
 
-                _currentlyPlaying.Play = false;
-                _currentlyPlaying.IsBusy = false;
-                _currentlyPlaying = null;
+                currentlyPlaying.Play = false;
+                currentlyPlaying.IsBusy = false;
+                currentlyPlaying = null;
                 return Task.CompletedTask;
-            }, ex => _logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
+            }, ex => logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
         }
         catch (Exception e)
         {
-            _logger.Error(e, "Error in OnPlayServiceStopped.");
+            logger.Error(e, "Error in OnPlayServiceStopped.");
         }
     }
 
@@ -382,9 +382,9 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
         // Run database operations off UI thread
         var tracks = await Task.Run(async () => isVocal
-            ? await _mediaService.GetVocalMusicTracks(languageCode, publicationCode)
-            : await _mediaService.GetMelodyMusicTracks(
-                (await _mediaService.GetMelodyMusicReleases()).FirstOrDefault().Value?.Code ?? "iam"));
+            ? await mediaService.GetVocalMusicTracks(languageCode, publicationCode)
+            : await mediaService.GetMelodyMusicTracks(
+                (await mediaService.GetMelodyMusicReleases()).FirstOrDefault().Value?.Code ?? "iam"));
 
         // Build the list of track view models
         var trackViewModelList = new List<MusicTrackListViewItemModel>();
@@ -396,23 +396,23 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
             trackViewModelList.Add(musicTrackListViewItemViewModel);
 
-            if (_current == null || _tentative == null)
+            if (current == null || tentative == null)
             {
                 continue;
             }
 
-            if (_current.MusicType != _tentative.MusicType
-                || _current.TrackNumber != track.Number
-                || (_current.MusicType != MusicType.Melodies &&
-                    (_current.LanguageCode != _tentative.LanguageCode
-                     || _current.PublicationCode != _tentative.PublicationCode)))
+            if (current.MusicType != tentative.MusicType
+                || current.TrackNumber != track.Number
+                || (current.MusicType != MusicType.Melodies &&
+                    (current.LanguageCode != tentative.LanguageCode
+                     || current.PublicationCode != tentative.PublicationCode)))
             {
                 continue;
             }
 
             selectedTrack = musicTrackListViewItemViewModel;
             selectedTrack.IsSelected = true;
-            selectedTrack.Repeat = _current.Repeat;
+            selectedTrack.Repeat = current.Repeat;
         }
 
         // Assign the complete collection on main thread to ensure CollectionView refreshes
@@ -431,11 +431,11 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _state.StateChanged -= OnMusicInitialized;
-        _playService.OnStopped -= OnPlayServiceStopped;
+        state.StateChanged -= OnMusicInitialized;
+        playService.OnStopped -= OnPlayServiceStopped;
 
         // Stop any ongoing preview playback when navigating away
-        _playService.Stop();
+        playService.Stop();
 
         if (Tracks != null)
         {
@@ -445,62 +445,62 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
             }
         }
 
-        _propertyChangedHandlers.Clear();
+        propertyChangedHandlers.Clear();
 
-        _lock.Dispose();
+        @lock.Dispose();
     }
 }
 
 public class MusicTrackListViewItemModel : ObservableObject, IComparable
 {
-    private readonly MusicTrack _track;
-    private readonly bool _isMelody;
+    private readonly MusicTrack track;
+    private readonly bool isMelody;
 
     public MusicTrackListViewItemModel(MusicTrack track, bool isMelody)
     {
-        _track = track;
-        _isMelody = isMelody;
+        this.track = track;
+        this.isMelody = isMelody;
 
         TogglePlayCommand = new RelayCommand(() => Play = !Play);
         ToggleRepeatCommand = new RelayCommand(() => Repeat = !Repeat);
     }
 
-    private bool _isSelected;
+    private bool isSelected;
 
     public bool IsSelected
     {
-        get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        get => isSelected;
+        set => SetProperty(ref isSelected, value);
     }
 
-    public string LookUpPath => _track.Source.LookUpPath;
-    public int Number => _track.Number;
+    public string LookUpPath => track.Source.LookUpPath;
+    public int Number => track.Number;
 
-    public string Title => _isMelody ? $"Melody Number(s) {_track.Title}" : _track.Title;
-    public string Url => _track.Source.Url;
+    public string Title => isMelody ? $"Melody Number(s) {track.Title}" : track.Title;
+    public string Url => track.Source.Url;
 
-    private bool _play;
+    private bool play;
 
     public bool Play
     {
-        get => _play;
-        set => SetProperty(ref _play, value);
+        get => play;
+        set => SetProperty(ref play, value);
     }
 
-    private bool _repeat;
+    private bool repeat;
 
     public bool Repeat
     {
-        get => _repeat;
-        set => SetProperty(ref _repeat, value);
+        get => repeat;
+        set => SetProperty(ref repeat, value);
     }
 
-    private bool _isBusy;
+    private bool isBusy;
 
     public bool IsBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
     public ICommand TogglePlayCommand { get; set; }

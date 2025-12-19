@@ -8,7 +8,7 @@ namespace Bible.Alarm.Platforms.Android.Services.UI;
 
 public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {
-    private readonly TaskScheduler _taskScheduler = taskScheduler;
+    private readonly TaskScheduler taskScheduler = taskScheduler;
     private static readonly SemaphoreSlim Lock = new(1);
     private static Toast latest;
 
@@ -21,7 +21,7 @@ public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, ID
             {
                 await Task.Delay(0)
                     .ContinueWith(_ =>
-                        ShowToast(message, seconds), _taskScheduler);
+                        ShowToast(message, seconds), taskScheduler);
             }
             else
             {
@@ -55,7 +55,7 @@ public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, ID
             {
                 await Task.Delay(0)
                     .ContinueWith(_ =>
-                        latest?.Cancel(), _taskScheduler);
+                        latest?.Cancel(), taskScheduler);
             }
             else
             {

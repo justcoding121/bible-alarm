@@ -133,7 +133,7 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
             // Phone (portrait or landscape)
             bool isPhone = widthDp < 600;
             // Tablet or small desktop window
-            bool isTablet = widthDp >= 600 && widthDp < 960;
+            bool isTablet = widthDp is >= 600 and < 960;
 
             if (isPhone)
             {

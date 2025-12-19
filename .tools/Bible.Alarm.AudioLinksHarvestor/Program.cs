@@ -23,303 +23,302 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 
-namespace Bible.Alarm.AudioLinksHarvestor
+namespace Bible.Alarm.AudioLinksHarvestor;
+
+public class Program
 {
-    public class Program
+
+    private static readonly Dictionary<string, string> _biblePublicationCodeToNameMappings =
+        JwSourceHelper.PublicationCodeToNameMappings;
+
+
+    public static async Task Main(string[] args)
     {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+            .CreateLogger();
 
-        private static readonly Dictionary<string, string> _biblePublicationCodeToNameMappings =
-            JwSourceHelper.PublicationCodeToNameMappings;
-
-
-        public static async Task Main(string[] args)
+        var services = new ServiceCollection();
+        services.AddLogging(builder =>
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-                .CreateLogger();
+            builder.AddSerilog(Log.Logger);
+            builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+        });
+        services.AddSingleton<Serilog.ILogger>(_ => Log.Logger);
 
-            var services = new ServiceCollection();
-            services.AddLogging(builder =>
+        services.AddDbContext<MediaDbContext>(options =>
+        {
+            var indexDir = DirectoryHelper.IndexDirectory;
+            var dbDir = Path.Combine(new DirectoryInfo(indexDir).FullName, "db");
+            if (!Directory.Exists(dbDir))
             {
-                builder.AddSerilog(Log.Logger);
-                builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
-            });
-            services.AddSingleton<Serilog.ILogger>(_ => Log.Logger);
-
-            services.AddDbContext<MediaDbContext>(options =>
-            {
-                var indexDir = DirectoryHelper.IndexDirectory;
-                var dbDir = Path.Combine(new DirectoryInfo(indexDir).FullName, "db");
-                if (!Directory.Exists(dbDir))
-                {
-                    Directory.CreateDirectory(dbDir);
-                }
-                var dbPath = Path.Combine(dbDir, "mediaIndex.db");
-
-                var connectionString = $"Data Source={dbPath};";
-
-                // Specify migrations assembly so EF Core can find and apply all migrations
-                options.UseSqlite(connectionString, b =>
-                {
-                    b.MigrationsAssembly("Bible.Alarm.Shared");
-                    b.CommandTimeout(60);
-                });
-            });
-
-            services.AddTransient<JwBibleHarvester>();
-            services.AddTransient<MusicHarvester>();
-            services.AddTransient<DbSeeder>();
-            services.AddTransient<Bible.Alarm.AudioLinksHarvestor.Utility.DownloadUtility>();
-
-            await using var serviceProvider = services.BuildServiceProvider();
-            var logger = serviceProvider.GetRequiredService<Serilog.ILogger>();
-
-            bool isTestRun = args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
-
-            if (isTestRun)
-            {
-                logger.Information("=== TEST RUN MODE: Processing only English language per publication ===");
+                Directory.CreateDirectory(dbDir);
             }
+            var dbPath = Path.Combine(dbDir, "mediaIndex.db");
 
-            try
+            var connectionString = $"Data Source={dbPath};";
+
+            // Specify migrations assembly so EF Core can find and apply all migrations
+            options.UseSqlite(connectionString, b =>
             {
-                var originalIndexFileSize =
-                    (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
+                b.MigrationsAssembly("Bible.Alarm.Shared");
+                b.CommandTimeout(60);
+            });
+        });
 
-                DeleteDirectory(DirectoryHelper.IndexDirectory);
+        services.AddTransient<JwBibleHarvester>();
+        services.AddTransient<MusicHarvester>();
+        services.AddTransient<DbSeeder>();
+        services.AddTransient<Bible.Alarm.AudioLinksHarvestor.Utility.DownloadUtility>();
 
-                var bibleTasks = new List<Task>();
+        await using var serviceProvider = services.BuildServiceProvider();
+        var logger = serviceProvider.GetRequiredService<Serilog.ILogger>();
 
-                var languageCodeToNameMappings = new ConcurrentDictionary<string, string>();
-                var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>();
+        bool isTestRun = args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
 
-                await using (var harvesterScope = serviceProvider.CreateAsyncScope())
+        if (isTestRun)
+        {
+            logger.Information("=== TEST RUN MODE: Processing only English language per publication ===");
+        }
+
+        try
+        {
+            var originalIndexFileSize =
+                (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
+
+            DeleteDirectory(DirectoryHelper.IndexDirectory);
+
+            var bibleTasks = new List<Task>();
+
+            var languageCodeToNameMappings = new ConcurrentDictionary<string, string>();
+            var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>();
+
+            await using (var harvesterScope = serviceProvider.CreateAsyncScope())
+            {
+                var bibleHarvester = harvesterScope.ServiceProvider.GetRequiredService<JwBibleHarvester>();
+                var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarvester>();
+
+                bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
+
+                var musicTasks = new List<Task>
                 {
-                    var bibleHarvester = harvesterScope.ServiceProvider.GetRequiredService<JwBibleHarvester>();
-                    var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarvester>();
-
-                    bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
-
-                    var musicTasks = new List<Task>
-                    {
-                        musicHarvester.HarvestVocalMusicLinks(isTestRun),
-                        musicHarvester.HarvestMusicMelodyLinks(isTestRun)
-                    };
-
-                    await Task.WhenAll([.. bibleTasks, .. musicTasks]);
-                }
-
-                WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
-
-                var index = new
-                {
-                    ReleaseDate = DateTime.Now.Ticks
+                    musicHarvester.HarvestVocalMusicLinks(isTestRun),
+                    musicHarvester.HarvestMusicMelodyLinks(isTestRun)
                 };
 
-                var indexFile = $"{DirectoryHelper.IndexDirectory}/media/index.json";
-                if (File.Exists(indexFile))
-                {
-                    File.Delete(indexFile);
-                }
-
-                await File.WriteAllTextAsync(indexFile, JsonSerializer.Serialize(index));
-
-                await using (var seederScope = serviceProvider.CreateAsyncScope())
-                {
-                    var dbSeeder = seederScope.ServiceProvider.GetRequiredService<DbSeeder>();
-                    await dbSeeder.Seed();
-                }
-
-                SqliteConnection.ClearAllPools();
-                logger.Information("All SQLite connections closed. Safe to zip database.");
-
-                ZipFiles();
-
-                var newIndexFileSize =
-                    (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
-
-                logger.Information("Old size: {OldSize}kb", originalIndexFileSize / 1024);
-                logger.Information("New size: {NewSize}kb", newIndexFileSize / 1024);
-
-                if (!isTestRun && Math.Abs(originalIndexFileSize - newIndexFileSize) > (1024 * 700))
-                {
-                    throw new ApplicationException("New index file size is strangely smaller than old index file size.");
-                }
-
-                if (!isTestRun)
-                {
-                    await PublishToCloudFront(logger);
-                }
-                else
-                {
-                    logger.Information("=== TEST RUN: Skipping cloud publishing ===");
-                }
+                await Task.WhenAll([.. bibleTasks, .. musicTasks]);
             }
-            catch (Exception ex)
+
+            WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
+
+            var index = new
             {
-                logger.Error(ex, "Error during harvesting");
-                throw;
+                ReleaseDate = DateTime.Now.Ticks
+            };
+
+            var indexFile = $"{DirectoryHelper.IndexDirectory}/media/index.json";
+            if (File.Exists(indexFile))
+            {
+                File.Delete(indexFile);
             }
-            finally
+
+            await File.WriteAllTextAsync(indexFile, JsonSerializer.Serialize(index));
+
+            await using (var seederScope = serviceProvider.CreateAsyncScope())
             {
-                var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
-                if (!File.Exists(zipIndex))
-                {
-                    logger.Error("Harvesting failed to create zip file.");
-                    throw new Exception("Harvesting failed to create zip file.");
-                }
+                var dbSeeder = seederScope.ServiceProvider.GetRequiredService<DbSeeder>();
+                await dbSeeder.Seed();
+            }
 
-                if (serviceProvider is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-                else if (serviceProvider is IAsyncDisposable asyncDisposable)
-                {
-                    await asyncDisposable.DisposeAsync();
-                }
+            SqliteConnection.ClearAllPools();
+            logger.Information("All SQLite connections closed. Safe to zip database.");
 
-                Log.CloseAndFlush();
+            ZipFiles();
+
+            var newIndexFileSize =
+                (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
+
+            logger.Information("Old size: {OldSize}kb", originalIndexFileSize / 1024);
+            logger.Information("New size: {NewSize}kb", newIndexFileSize / 1024);
+
+            if (!isTestRun && Math.Abs(originalIndexFileSize - newIndexFileSize) > (1024 * 700))
+            {
+                throw new ApplicationException("New index file size is strangely smaller than old index file size.");
+            }
+
+            if (!isTestRun)
+            {
+                await PublishToCloudFront(logger);
+            }
+            else
+            {
+                logger.Information("=== TEST RUN: Skipping cloud publishing ===");
             }
         }
-
-        private static void WriteBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
-                ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
+        catch (Exception ex)
         {
-            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
-            {
-                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible");
-            }
-
-            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonSerializer.Serialize(
-                languageCodeToEditionsMapping.Select(x =>
-                new Language
-                {
-                    Code = x.Key,
-                    Name = languageCodeToNameMappings[x.Key]
-
-                }).OrderBy(x => x.Code).ToList()));
-
-            foreach (var languageEditionsMap in languageCodeToEditionsMapping)
-            {
-                if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}"))
-                {
-                    Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}");
-                }
-
-                File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonSerializer.Serialize(
-                languageEditionsMap.Value.Select(x =>
-                new Publication
-                {
-                    Code = x,
-                    Name = _biblePublicationCodeToNameMappings[x]
-                }).OrderBy(x => x.Code)));
-            }
-
+            logger.Error(ex, "Error during harvesting");
+            throw;
         }
-
-
-        private static void ZipFiles()
+        finally
         {
             var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
-            if (File.Exists(zipIndex))
+            if (!File.Exists(zipIndex))
             {
-                File.Delete(zipIndex);
+                logger.Error("Harvesting failed to create zip file.");
+                throw new Exception("Harvesting failed to create zip file.");
             }
 
-            ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex);
+            if (serviceProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+            else if (serviceProvider is IAsyncDisposable asyncDisposable)
+            {
+                await asyncDisposable.DisposeAsync();
+            }
+
+            Log.CloseAndFlush();
+        }
+    }
+
+    private static void WriteBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
+            ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
+    {
+        if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
+        {
+            Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible");
         }
 
-        private static void DeleteDirectory(string path)
+        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonSerializer.Serialize(
+            languageCodeToEditionsMapping.Select(x =>
+            new Language
+            {
+                Code = x.Key,
+                Name = languageCodeToNameMappings[x.Key]
+
+            }).OrderBy(x => x.Code).ToList()));
+
+        foreach (var languageEditionsMap in languageCodeToEditionsMapping)
         {
-            if (!Directory.Exists(path))
+            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}"))
             {
-                return;
+                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}");
             }
 
-            foreach (var directory in Directory.GetDirectories(path))
+            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonSerializer.Serialize(
+            languageEditionsMap.Value.Select(x =>
+            new Publication
             {
-                DeleteDirectory(directory);
-            }
+                Code = x,
+                Name = _biblePublicationCodeToNameMappings[x]
+            }).OrderBy(x => x.Code)));
+        }
 
-            var files = Directory.GetFiles(path);
+    }
 
-            foreach (var file in files)
-            {
-                if (!file.EndsWith("index.zip"))
-                {
-                    File.Delete(file);
-                }
-            }
 
-            if (Directory.GetFiles(path).Length > 0
-                || Directory.GetDirectories(path).Length > 0)
-            {
-                return;
-            }
+    private static void ZipFiles()
+    {
+        var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
+        if (File.Exists(zipIndex))
+        {
+            File.Delete(zipIndex);
+        }
 
-            try
+        ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex);
+    }
+
+    private static void DeleteDirectory(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            return;
+        }
+
+        foreach (var directory in Directory.GetDirectories(path))
+        {
+            DeleteDirectory(directory);
+        }
+
+        var files = Directory.GetFiles(path);
+
+        foreach (var file in files)
+        {
+            if (!file.EndsWith("index.zip"))
             {
-                Directory.Delete(path);
-            }
-            catch (IOException)
-            {
-                Directory.Delete(path);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                Directory.Delete(path);
+                File.Delete(file);
             }
         }
 
-        private static async Task PublishToCloudFront(Serilog.ILogger logger)
+        if (Directory.GetFiles(path).Length > 0
+            || Directory.GetDirectories(path).Length > 0)
         {
-            var keyPrefix = "bible-alarm/media-index";
-            var bucketName = "jthomas.info";
-            using var s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName("ca-central-1"));
+            return;
+        }
 
-            var listObjectsResponse = await s3Client.ListObjectsAsync(new ListObjectsRequest
+        try
+        {
+            Directory.Delete(path);
+        }
+        catch (IOException)
+        {
+            Directory.Delete(path);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Directory.Delete(path);
+        }
+    }
+
+    private static async Task PublishToCloudFront(Serilog.ILogger logger)
+    {
+        var keyPrefix = "bible-alarm/media-index";
+        var bucketName = "jthomas.info";
+        using var s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName("ca-central-1"));
+
+        var listObjectsResponse = await s3Client.ListObjectsAsync(new ListObjectsRequest
+        {
+            Prefix = $"{keyPrefix}/",
+            BucketName = bucketName
+        });
+
+        var utcTime = DateTime.UtcNow;
+        // Use new file name format with prefix (e.g., "v2-7-1-2024.zip")
+        var fileName = $"{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
+        var keyName = $"{keyPrefix}/{fileName}";
+        await s3Client.PutObjectAsync(new PutObjectRequest
+        {
+            BucketName = bucketName,
+            Key = keyName,
+            FilePath = $"{DirectoryHelper.IndexDirectory}/index.zip",
+
+        });
+
+        // Only delete files with the new prefix format to preserve pre-migration files
+        if (listObjectsResponse.S3Objects.Count > 0)
+        {
+            var deleteObjectsRequest = new DeleteObjectsRequest
             {
-                Prefix = $"{keyPrefix}/",
                 BucketName = bucketName
-            });
+            };
 
-            var utcTime = DateTime.UtcNow;
-            // Use new file name format with prefix (e.g., "v2-7-1-2024.zip")
-            var fileName = $"{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
-            var keyName = $"{keyPrefix}/{fileName}";
-            await s3Client.PutObjectAsync(new PutObjectRequest
+            listObjectsResponse.S3Objects.ForEach(x =>
             {
-                BucketName = bucketName,
-                Key = keyName,
-                FilePath = $"{DirectoryHelper.IndexDirectory}/index.zip",
-
-            });
-
-            // Only delete files with the new prefix format to preserve pre-migration files
-            if (listObjectsResponse.S3Objects.Count > 0)
-            {
-                var deleteObjectsRequest = new DeleteObjectsRequest
+                // Only delete files with the new prefix format (v2-), preserve old format files
+                if (x.Key != keyName && x.Key.Contains($"{keyPrefix}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}"))
                 {
-                    BucketName = bucketName
-                };
-
-                listObjectsResponse.S3Objects.ForEach(x =>
-                {
-                    // Only delete files with the new prefix format (v2-), preserve old format files
-                    if (x.Key != keyName && x.Key.Contains($"{keyPrefix}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}"))
-                    {
-                        deleteObjectsRequest.AddKey(x.Key);
-                    }
-                });
-
-                if (deleteObjectsRequest.Objects.Count > 0)
-                {
-                    await s3Client.DeleteObjectsAsync(deleteObjectsRequest);
+                    deleteObjectsRequest.AddKey(x.Key);
                 }
+            });
 
+            if (deleteObjectsRequest.Objects.Count > 0)
+            {
+                await s3Client.DeleteObjectsAsync(deleteObjectsRequest);
             }
 
         }
+
     }
 }

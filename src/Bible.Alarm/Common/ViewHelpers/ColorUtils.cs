@@ -1,4 +1,4 @@
-﻿namespace Bible.Alarm.Common.ViewHelpers;
+namespace Bible.Alarm.Common.ViewHelpers;
 
 public static class ColorUtils
 {

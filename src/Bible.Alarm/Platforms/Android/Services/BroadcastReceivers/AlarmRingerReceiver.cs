@@ -12,7 +12,7 @@ namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 [BroadcastReceiver(Enabled = true)]
 public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<AlarmRingerReceiver>();
+    private static readonly ILogger logger = Log.ForContext<AlarmRingerReceiver>();
 
     private Context _context;
     private Intent _intent;
@@ -31,12 +31,12 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        Logger.Error(e.Exception, "Unobserved task exception.");
+        logger.Error(e.Exception, "Unobserved task exception.");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
+        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
@@ -78,7 +78,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         }
         catch (Exception e)
         {
-            Logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            logger.Error(e, "An error happened when creating the task to ring the alarm.");
             Dispose();
         }
         finally
