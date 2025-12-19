@@ -50,7 +50,8 @@ public class DefaultScheduleService(
                 ScheduleId = scheduleId ?? 0,
                 Title = "",
                 Artist = "",
-                Album = ""
+                Album = "",
+                ArtworkUrl = null
             };
         }
 
@@ -75,15 +76,33 @@ public class DefaultScheduleService(
         // Use DisplayMetadataService to get full metadata (same as AudioPlayer does)
         var metadata = await displayMetadataService.GetDisplayMetadataAsync(audioPlayerTrack);
 
-        logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}",
-            scheduleId, metadata.Title, metadata.Artist, metadata.Album);
+        // Save artwork bytes to file and create ArtworkUrl (same as AudioPlayer.SendMetadataMessage does)
+        string? artworkUrl = metadata.ArtworkUrl;
+        if (metadata.ArtworkBytes != null && metadata.ArtworkBytes.Length > 0 && string.IsNullOrEmpty(artworkUrl))
+        {
+            try
+            {
+                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
+                System.IO.File.WriteAllBytes(artworkPath, metadata.ArtworkBytes);
+                artworkUrl = artworkPath;
+                logger.Debug("Saved artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to save artwork to file");
+            }
+        }
+
+        logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}",
+            scheduleId, metadata.Title, metadata.Artist, metadata.Album, !string.IsNullOrEmpty(artworkUrl));
 
         return new ScheduleTrackMetadata
         {
             ScheduleId = scheduleId,
             Title = metadata.Title ?? "",
             Artist = metadata.Artist ?? "",
-            Album = metadata.Album
+            Album = metadata.Album,
+            ArtworkUrl = artworkUrl
         };
     }
 
@@ -96,7 +115,8 @@ public class DefaultScheduleService(
                 ? $"Book {firstPlayItem.Metadata.BookNumber} Chapter {firstPlayItem.Metadata.ChapterNumber}"
                 : $"Track {firstPlayItem.Metadata?.TrackNumber ?? 1}",
             Artist = firstPlayItem.Metadata?.PublicationCode ?? "",
-            Album = firstPlayItem.Metadata?.LanguageCode
+            Album = firstPlayItem.Metadata?.LanguageCode,
+            ArtworkUrl = null
         };
     }
 

@@ -10,5 +10,6 @@ public class ScheduleTrackMetadata
     public string Title { get; init; } = string.Empty;
     public string Artist { get; init; } = string.Empty;
     public string? Album { get; init; }
+    public string? ArtworkUrl { get; init; }
 }
 

@@ -636,13 +636,14 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                     metadata.Title,
                     metadata.Artist,
                     metadata.Album,
-                    metadata.ScheduleId);
+                    metadata.ScheduleId,
+                    metadata.ArtworkUrl);
 
                 // Return to stopped state (idle) with normal actions once metadata is ready.
                 mediaSessionManager.UpdatePlaybackStateForStop();
 
-                logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
-                    metadata.ScheduleId, metadata.Title, metadata.Artist);
+                logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}, HasArtwork={HasArtwork}",
+                    metadata.ScheduleId, metadata.Title, metadata.Artist, !string.IsNullOrEmpty(metadata.ArtworkUrl));
             });
         }
         catch (Exception ex)

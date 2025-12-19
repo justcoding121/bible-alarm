@@ -3,6 +3,7 @@ using Android.Content;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -285,10 +286,10 @@ public sealed class MediaSessionManager
     /// Updates the metadata of the shared MediaSessionCompat.
     /// Preserves existing artwork and MediaId if present to prevent them from disappearing.
     /// </summary>
-    public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null)
+    public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null, string? artworkUrl = null)
     {
-        logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}, scheduleId: {ScheduleId}",
-            title, artist, album ?? "null", scheduleId?.ToString() ?? "null");
+        logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}, scheduleId: {ScheduleId}, artworkUrl: {ArtworkUrl}",
+            title, artist, album ?? "null", scheduleId?.ToString() ?? "null", artworkUrl ?? "null");
 
         if (mediaSession == null)
         {
@@ -303,7 +304,7 @@ public sealed class MediaSessionManager
             return;
         }
 
-        PreserveExistingMetadata(builder, scheduleId);
+        PreserveExistingMetadata(builder, scheduleId, artworkUrl);
         ApplyMetadata(builder);
     }
 
@@ -315,18 +316,23 @@ public sealed class MediaSessionManager
             ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, album ?? "");
     }
 
-    private void PreserveExistingMetadata(MediaMetadataCompat.Builder builder, int? scheduleId)
+    private void PreserveExistingMetadata(MediaMetadataCompat.Builder builder, int? scheduleId, string? artworkUrl)
     {
         if (mediaSession?.Controller?.Metadata != null)
         {
             var existingMetadata = mediaSession.Controller.Metadata;
             PreserveMediaId(builder, existingMetadata, scheduleId);
-            PreserveArtwork(builder, existingMetadata);
+            PreserveOrLoadArtwork(builder, existingMetadata, artworkUrl);
         }
-        else if (scheduleId.HasValue)
+        else
         {
-            // Set MediaId if no existing metadata and scheduleId is provided
-            builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+            if (scheduleId.HasValue)
+            {
+                // Set MediaId if no existing metadata and scheduleId is provided
+                builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+            }
+            // Load artwork from URL if provided and no existing metadata
+            LoadArtworkFromUrl(builder, artworkUrl);
         }
     }
 
@@ -345,13 +351,52 @@ public sealed class MediaSessionManager
         }
     }
 
-    private void PreserveArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata)
+    private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
     {
-        // Preserve existing artwork
+        // Preserve existing artwork if present
         global::Android.Graphics.Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
         if (existingArtwork != null)
         {
             builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+        }
+        else if (!string.IsNullOrEmpty(artworkUrl))
+        {
+            // Load artwork from URL if no existing artwork
+            LoadArtworkFromUrl(builder, artworkUrl);
+        }
+    }
+
+    private void LoadArtworkFromUrl(MediaMetadataCompat.Builder builder, string? artworkUrl)
+    {
+        if (string.IsNullOrEmpty(artworkUrl))
+        {
+            return;
+        }
+
+        try
+        {
+            var artworkService = serviceProvider.GetService<AndroidArtworkService>();
+            if (artworkService != null)
+            {
+                var artworkBitmap = artworkService.LoadArtworkBitmap(artworkUrl);
+                if (artworkBitmap != null)
+                {
+                    builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
+                    logger.Debug("Loaded artwork bitmap from: {ArtworkUrl}", artworkUrl);
+                }
+                else
+                {
+                    logger.Debug("Failed to load artwork bitmap from: {ArtworkUrl}", artworkUrl);
+                }
+            }
+            else
+            {
+                logger.Warning("AndroidArtworkService not available - cannot load artwork");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", artworkUrl);
         }
     }
 
@@ -592,10 +637,14 @@ public sealed class MediaSessionManager
             ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, metadata.Album ?? "")
             ?.PutString(MediaMetadataCompat.MetadataKeyMediaId, metadata.ScheduleId.ToString());
 
-        // Preserve existing artwork if present
+        // Preserve existing artwork if present, otherwise load from URL
         if (existingArtwork != null)
         {
             metadataBuilder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+        }
+        else if (!string.IsNullOrEmpty(metadata.ArtworkUrl))
+        {
+            LoadArtworkFromUrl(metadataBuilder, metadata.ArtworkUrl);
         }
 
         return metadataBuilder;
