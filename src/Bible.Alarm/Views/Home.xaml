@@ -118,6 +118,20 @@
                                     ColumnSpacing="{OnPlatform iOS='0'}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Center">
+                                    <!-- Music icon positioned at top right corner of list item -->
+                                    <Label
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="3"
+                                            Grid.Row="0"
+                                            Margin="0,0,0,0"
+                                            HorizontalOptions="End"
+                                            VerticalOptions="Start"
+                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="10"
+                                            Text="{x:Static fn:GlyphNames.Music}"
+                                            TextColor="{DynamicResource PrimaryTextColor}"
+                                            Opacity="0.8"
+                                            IsVisible="{Binding MusicEnabled}" />
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer 
                                             Tapped="OnScheduleItemTapped" />
@@ -147,12 +161,13 @@
                                                      Tablet={OnPlatform Default='0,0,12,0'}}"
                                                  Padding="0"
                                                  Orientation="Vertical">
-                                    <Button
+                                    <buttons:SfButton
                                             Margin="0,0,0,8"
-                                            BackgroundColor="{StaticResource PrimaryColor}"
-                                            CornerRadius="10"
+                                            Background="{StaticResource PrimaryColor}"
+                                            CornerRadius="{OnPlatform iOS='28', WinUI='24', Default='28'}"
                                             Command="{Binding PlayCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                            FontSize="24"
                                             HorizontalOptions="Center"
                                             HeightRequest="{OnPlatform iOS='56',
                                                                       WinUI='48',
@@ -164,13 +179,13 @@
                                             Text="{x:Static fn:GlyphNames.Play}"
                                             TextColor="White"
                                             VerticalOptions="Center">
-                                        <Button.Shadow>
-                                            <Shadow Brush="#40000000" 
-                                                        Offset="0,2" 
-                                                        Radius="4" 
-                                                        Opacity="0.25" />
-                                        </Button.Shadow>
-                                    </Button>
+                                        <buttons:SfButton.Shadow>
+                                            <Shadow Brush="#60000000" 
+                                                        Offset="0,4" 
+                                                        Radius="8" 
+                                                        Opacity="0.4" />
+                                        </buttons:SfButton.Shadow>
+                                    </buttons:SfButton>
                                     <StackLayout
                                             Margin="0"
                                             Padding="0"
@@ -365,16 +380,16 @@
                                     <!-- Windows-specific delete button -->
                                     <Button
                                             Margin="0,0,0,8"
-                                            Padding="8,0"
+                                            Padding="0"
                                             BackgroundColor="{StaticResource ErrorColor}"
-                                            CornerRadius="20"
+                                            CornerRadius="16"
                                             Command="{Binding DeleteCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                             FontSize="14"
                                             HeightRequest="32"
-                                            MinimumWidthRequest="40"
-                                            HorizontalOptions="Fill"
-                                            VerticalOptions="Fill"
+                                            WidthRequest="32"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
                                             Text="{x:Static fn:GlyphNames.Trash}"
                                             TextColor="White"
                                             IsVisible="{OnPlatform WinUI='True', Default='False'}">
@@ -390,20 +405,6 @@
                                             IsToggled="{Binding IsEnabled, Mode=TwoWay}"
                                             Scale="1" />
                                 </StackLayout>
-                                <!-- Music icon positioned at top right -->
-                                <Label
-                                        Grid.Column="1"
-                                        Grid.ColumnSpan="2"
-                                        Grid.Row="0"
-                                        Margin="0,0,0,0"
-                                        HorizontalOptions="End"
-                                        VerticalOptions="Start"
-                                        HorizontalTextAlignment="End"
-                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        FontSize="16"
-                                        Text="{x:Static fn:GlyphNames.Music}"
-                                        TextColor="{DynamicResource PrimaryTextColor}"
-                                        IsVisible="{Binding MusicEnabled}" />
                                 <!-- Language label positioned at bottom right, can overlap navigation buttons -->
                                 <Label
                                         Grid.Column="1"
