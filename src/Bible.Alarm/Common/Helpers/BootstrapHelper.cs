@@ -151,11 +151,15 @@ public static class BootstrapHelper
         }
     }
 
-    private static bool IsBootstrapCompleted()
+    /// <summary>
+    /// Checks if bootstrap has completed.
+    /// Can be used to prevent operations that should only run after bootstrap (e.g., media index updates).
+    /// </summary>
+    public static bool IsBootstrapCompleted()
     {
         if (BootstrapCompleted)
         {
-            Log.Logger.Information("Bootstrap already completed, returning early");
+            Log.Logger.Debug("Bootstrap already completed");
             return true;
         }
         return false;

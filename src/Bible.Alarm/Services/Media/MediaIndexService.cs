@@ -4,6 +4,8 @@ using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Polly;
+using Polly.Retry;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -34,6 +36,20 @@ public class MediaIndexService : IMediaIndexService, IDisposable
     private readonly SemaphoreSlim @lock = new(1);
     private static bool verified;
 
+    // Polly retry policy for file operations that may fail due to file locking
+    // Retries with exponential backoff to handle cases where database connections haven't fully closed
+    private readonly AsyncRetryPolicy fileOperationRetryPolicy = Policy
+        .Handle<IOException>() // File locked, access denied, etc.
+        .Or<UnauthorizedAccessException>() // Permission denied
+        .WaitAndRetryAsync(
+            retryCount: 5,
+            sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(100 * Math.Pow(2, retryAttempt - 1)), // 100ms, 200ms, 400ms, 800ms, 1600ms
+            onRetry: (exception, timespan, retryCount, context) =>
+            {
+                Log.Logger.Warning(exception, "File operation failed (likely locked), retrying (attempt {RetryCount}/5) after {DelayMs}ms",
+                    retryCount, timespan.TotalMilliseconds);
+            });
+
     public async Task Verify()
     {
         await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
@@ -63,6 +79,14 @@ public class MediaIndexService : IMediaIndexService, IDisposable
         {
             try
             {
+                // Do not update media index during bootstrap - it should only be updated by scheduled jobs
+                // Check if bootstrap is complete to prevent updates during app startup
+                if (!BootstrapHelper.IsBootstrapCompleted())
+                {
+                    logger.Debug("Skipping media index update - bootstrap not yet complete. Update will be handled by scheduled job.");
+                    return false;
+                }
+
                 var mediaIndexPath = Path.Combine(IndexRoot, "mediaIndex.db");
                 var indexExists = await storageService.FileExists(mediaIndexPath);
 
@@ -128,18 +152,79 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
                 await storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
 
-                if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
-                {
-                    await storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
-                }
-
                 var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
                 await storageService.CreateDirectory(extractionDir);
 
                 ZipFile.ExtractToDirectory(tmpIndexZipFilePath, extractionDir);
 
-                File.Copy(Path.Combine(extractionDir, "mediaIndex.db"), Path.Combine(IndexRoot, "mediaIndex.db"),
-                    true);
+                // Use atomic swap pattern to avoid race conditions:
+                // 1. Copy new database to temporary name
+                // 2. Delete SQLite auxiliary files (WAL, journal, shm) - safe to delete while DB is in use
+                // 3. Atomically replace old database with new one using File.Move with overwrite
+                var newDbPath = Path.Combine(extractionDir, "mediaIndex.db");
+                var tempDbPath = Path.Combine(IndexRoot, "mediaIndex.db.new");
+                var finalDbPath = Path.Combine(IndexRoot, "mediaIndex.db");
+
+                // Copy new database to temporary name in final location
+                // Use retry policy in case of file locking issues
+                await fileOperationRetryPolicy.ExecuteAsync(async () =>
+                {
+                    File.Copy(newDbPath, tempDbPath, overwrite: true);
+                    await Task.CompletedTask;
+                });
+
+                // Delete SQLite auxiliary files (WAL mode files) - these can be safely deleted
+                // even if the database is in use, as they'll be recreated if needed
+                var walPath = finalDbPath + "-wal";
+                var shmPath = finalDbPath + "-shm";
+                var journalPath = finalDbPath + "-journal";
+
+                if (await storageService.FileExists(walPath))
+                {
+                    await storageService.DeleteFile(walPath);
+                }
+
+                if (await storageService.FileExists(shmPath))
+                {
+                    await storageService.DeleteFile(shmPath);
+                }
+
+                if (await storageService.FileExists(journalPath))
+                {
+                    await storageService.DeleteFile(journalPath);
+                }
+
+                // Atomically replace old database with new one using Polly retry policy
+                // File.Move with overwrite=true should atomically replace the file on most platforms
+                // This ensures the file always exists - no gap between delete and copy
+                // Retry logic handles cases where database connections haven't fully closed yet
+                try
+                {
+                    await fileOperationRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        File.Move(tempDbPath, finalDbPath, overwrite: true);
+                        await Task.CompletedTask;
+                    });
+                }
+                catch (Exception moveEx) when (!(moveEx is IOException || moveEx is UnauthorizedAccessException))
+                {
+                    // Fallback for platforms where Move with overwrite might not work
+                    // Only catch non-locking exceptions (Polly will retry locking exceptions)
+                    logger.Warning(moveEx, "File.Move with overwrite failed, using delete+copy fallback");
+                    if (await storageService.FileExists(finalDbPath))
+                    {
+                        await fileOperationRetryPolicy.ExecuteAsync(async () =>
+                        {
+                            await storageService.DeleteFile(finalDbPath);
+                        });
+                    }
+                    await fileOperationRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        File.Copy(tempDbPath, finalDbPath, overwrite: true);
+                        await Task.CompletedTask;
+                    });
+                    File.Delete(tempDbPath);
+                }
 
                 await storageService.DeleteDirectory(extractionDir);
                 await storageService.DeleteFile(tmpIndexZipFilePath);
