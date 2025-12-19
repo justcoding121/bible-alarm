@@ -278,7 +278,6 @@ public class MediaIndexService : IMediaIndexService, IDisposable
     private async Task ClearCopyIndexFromResource()
     {
         const string indexResourceFile = "index.zip";
-        const string defaultAlarmFile = "cool-alarm-tone-notification-sound.mp3";
 
         if (!Directory.Exists(IndexRoot))
         {
@@ -292,12 +291,6 @@ public class MediaIndexService : IMediaIndexService, IDisposable
             await storageService.DeleteFile(tmpIndexFilePath);
         }
 
-        if (DeviceInfo.Platform == DevicePlatform.Android &&
-            await storageService.FileExists(Path.Combine(IndexRoot, defaultAlarmFile)))
-        {
-            await storageService.DeleteFile(Path.Combine(IndexRoot, defaultAlarmFile));
-        }
-
         await storageService.CopyResourceFile(indexResourceFile, IndexRoot, indexResourceFile);
 
         if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
@@ -306,11 +299,6 @@ public class MediaIndexService : IMediaIndexService, IDisposable
         }
 
         ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
-
-        if (DeviceInfo.Platform == DevicePlatform.Android)
-        {
-            await storageService.CopyResourceFile(defaultAlarmFile, IndexRoot, defaultAlarmFile);
-        }
 
         await storageService.DeleteFile(tmpIndexFilePath);
         await storageService.SaveFile(IndexRoot, "version.dat", versionFinder.GetVersionName());

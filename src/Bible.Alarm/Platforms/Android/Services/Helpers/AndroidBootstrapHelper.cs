@@ -116,8 +116,8 @@ public class AndroidBootstrapHelper
             ?.SetContentType(AudioContentType.Sonification)
             ?.Build();
 
-        var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName + "/" +
-                                            ResourceConstant.Raw.cool_alarm_tone_notification_sound);
+        // Use default alarm sound
+        var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Alarm);
 
         channel.Description = AndroidNotificationService.ChannelDescription;
         channel.EnableLights(true);

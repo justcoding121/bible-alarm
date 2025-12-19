@@ -37,7 +37,7 @@ public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFa
             var content = new UNMutableNotificationContent();
             content.Title = title;
             content.Body = body;
-            content.Sound = UNNotificationSound.GetSound("cool-alarm-tone-notification-sound.mp3");
+            content.Sound = UNNotificationSound.Default;
             content.UserInfo = @params.ToNsDictionary();
             content.Badge = 1;
 

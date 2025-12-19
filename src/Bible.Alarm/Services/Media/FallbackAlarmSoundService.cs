@@ -43,36 +43,11 @@ public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundServ
 
     private async Task<string?> GetFallbackAlarmSoundUriAsync()
     {
-        try
-        {
-            const string resourceFileName = "cool_alarm_tone_notification_sound.mp3";
-            var cacheDir = FileSystem.CacheDirectory;
-            var cachedFilePath = Path.Combine(cacheDir, resourceFileName);
-
-            // Check if already cached
-            if (File.Exists(cachedFilePath))
-            {
-                return new Uri(cachedFilePath).AbsoluteUri;
-            }
-
-            // Copy from app package to cache
-            using var stream = await FileSystem.OpenAppPackageFileAsync(resourceFileName);
-            if (stream == null)
-            {
-                _logger.Error($"Failed to open app package file: {resourceFileName}");
-                return null;
-            }
-
-            using var fileStream = File.Create(cachedFilePath);
-            await stream.CopyToAsync(fileStream);
-
-            return new Uri(cachedFilePath).AbsoluteUri;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error getting fallback alarm sound URI");
-            return null;
-        }
+        // No longer using custom alarm sound file - return null to use platform default
+        // The error handling in PlaybackService will display an appropriate message
+        _logger.Debug("Fallback alarm sound service returning null - using platform default");
+        await Task.CompletedTask;
+        return null;
     }
 
     public void Dispose()

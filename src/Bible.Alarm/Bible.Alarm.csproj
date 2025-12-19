@@ -140,8 +140,8 @@
 		<EmbeddedResource Include="..\..\.tools\_index\index.zip">
 			<Link>Resources\index.zip</Link>
 		</EmbeddedResource>
-		<EmbeddedResource Include="Resources\cool_alarm_tone_notification_sound.mp3">
-			<Link>Resources\cool-alarm-tone-notification-sound.mp3</Link>
+		<EmbeddedResource Include="Resources\silent.mp3">
+			<Link>Resources\silent.mp3</Link>
 		</EmbeddedResource>
 	</ItemGroup>
 
@@ -205,8 +205,7 @@
 
 	<!-- Platform-specific resources -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
-		<AndroidResource Include="Platforms\Android\Resources\**" Exclude="Platforms\Android\Resources\raw\cool_alarm_tone_notification_sound.mp3" />
-		<AndroidResource Include="Resources\cool_alarm_tone_notification_sound.mp3" Link="Resources\raw\cool_alarm_tone_notification_sound.mp3" />
+		<AndroidResource Include="Platforms\Android\Resources\**" />
 		<!-- Include assets (car-app-api.level is no longer needed - using metadata approach in AndroidManifest.xml) -->
 		<AndroidAsset Include="Platforms\Android\Assets\**" />
 	</ItemGroup>
@@ -215,12 +214,10 @@
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-ios'))">
 		<BundleResource Include="Platforms\iOS\Resources\**" />
 		<BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
-		<BundleResource Include="Resources\cool_alarm_tone_notification_sound.mp3" />
 		<!-- Fonts are automatically handled by MAUI SDK from Resources/Fonts/ -->
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-windows'))">
 		<Content Include="Platforms\Windows\Assets\**" />
-		<Content Include="Resources\cool_alarm_tone_notification_sound.mp3" />
 	</ItemGroup>
 </Project>

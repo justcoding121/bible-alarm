@@ -1,10 +1,13 @@
 #nullable enable
 
+using System.IO;
 using AutoMapper;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Media;
@@ -49,8 +52,9 @@ public static class CommonBootstrapHelper
                     var task1 = VerifyMediaLookUpService();
                     var task2 = InitializeDatabase();
                     var task3 = InitializeFluxorStore();
+                    var task4 = CopySilentMp3ToStorage();
 
-                    await Task.WhenAll(task1, task2, task3);
+                    await Task.WhenAll(task1, task2, task3, task4);
 
                     // After database and Fluxor store are initialized, load schedules into state
                     // This ensures schedules are available for both Android Auto services and main UI
@@ -300,5 +304,49 @@ public static class CommonBootstrapHelper
         {
             Log.Logger.Error(ex, "Error initializing schedules in bootstrap");
         }
+    }
+
+    /// <summary>
+    /// Copies silent.mp3 from embedded resources to storage directory (same as schedule database).
+    /// This ensures the file is available for Android Auto dummy tracks.
+    /// Only runs on Android platform. Fast exits if file already exists.
+    /// </summary>
+    private static async Task CopySilentMp3ToStorage()
+    {
+#if ANDROID
+        try
+        {
+            const string resourceFileName = "silent.mp3";
+            var storageService = ServiceProviderManager.GetService<IStorageService>();
+            if (storageService == null)
+            {
+                Log.Logger.Warning("IStorageService not available - skipping silent MP3 copy");
+                return;
+            }
+
+            // Copy to StorageRoot (same directory as schedule database) instead of CacheRoot
+            // because cache can get deleted by the system
+            var storageDir = storageService.StorageRoot;
+            var filePath = Path.Combine(storageDir, resourceFileName);
+
+            // Fast exit: Check if file already exists synchronously first
+            if (File.Exists(filePath))
+            {
+                Log.Logger.Debug("Silent MP3 already exists in storage: {FilePath}", filePath);
+                return;
+            }
+
+            // Copy from embedded resource to storage directory
+            await storageService.CopyResourceFile(resourceFileName, storageDir, resourceFileName);
+            Log.Logger.Information("Silent MP3 copied to storage: {FilePath}", filePath);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Failed to copy silent MP3 to storage - will attempt to copy on-demand");
+        }
+#else
+        // Only needed on Android for Android Auto dummy tracks
+        await Task.CompletedTask;
+#endif
     }
 }

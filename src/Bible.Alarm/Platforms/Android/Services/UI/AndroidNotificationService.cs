@@ -3,6 +3,7 @@ using Android.App;
 using Android.Content;
 using Android.Graphics;
 using Android.Graphics.Drawables;
+using Android.Media;
 using Android.OS;
 using AndroidX.Core.App;
 using AndroidX.Core.Content;
@@ -129,9 +130,8 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
 
         if (Build.VERSION.SdkInt < BuildVersionCodes.O)
         {
-            var soundUri = AndroidNet.Uri.Parse("android.resource://" + AndroidApplication.Context.PackageName +
-                                                "/" + ResourceConstant.Raw.cool_alarm_tone_notification_sound);
-
+            // Use default alarm sound
+            var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Alarm);
             builder.SetSound(soundUri);
             builder.SetDefaults(0);
         }

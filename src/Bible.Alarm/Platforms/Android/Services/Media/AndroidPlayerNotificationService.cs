@@ -1,14 +1,19 @@
 #nullable enable
+using System.IO;
 using System.Reflection;
 using AndroidX.Media3.Common;
 using AndroidX.Media3.Common.Text;
 using AndroidX.Media3.DataSource;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.ExoPlayer.Source;
+using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Storage.Interfaces;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Maui.Storage;
 using Serilog;
 using Exception = System.Exception;
 
@@ -79,7 +84,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             // Add previous dummy only if not first track
             if (!isFirstTrack)
             {
-                var previousSource = CreateDummyMediaSource(androidUri, "previous", "bible_alarm_previous_dummy", dataSourceFactory);
+                var previousSource = CreateDummyMediaSource("bible_alarm_previous_dummy", dataSourceFactory);
                 if (previousSource == null)
                 {
                     return;
@@ -93,7 +98,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             // Add next dummy only if not last track
             if (!isLastTrack)
             {
-                var nextSource = CreateDummyMediaSource(androidUri, "next", "bible_alarm_next_dummy", dataSourceFactory);
+                var nextSource = CreateDummyMediaSource("bible_alarm_next_dummy", dataSourceFactory);
                 if (nextSource == null)
                 {
                     return;
@@ -159,35 +164,33 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     }
 
     /// <summary>
-    /// Creates a dummy media source with a fragment identifier for creating a multi-item queue.
+    /// Creates a dummy media source using a silent MP3 file for creating a multi-item queue.
     /// </summary>
     private IMediaSource? CreateDummyMediaSource(
-        global::Android.Net.Uri androidUri,
-        string fragment,
         string mediaId,
         DefaultDataSource.Factory dataSourceFactory)
     {
-        var uriBuilder = androidUri.BuildUpon();
-        if (uriBuilder == null)
+        var silentMp3Uri = GetSilentMp3Uri();
+        if (string.IsNullOrEmpty(silentMp3Uri))
         {
-            logger.Error("Failed to create URI builder for dummy {Fragment} URI", fragment);
+            logger.Error("Failed to get silent MP3 URI for dummy item");
             return null;
         }
 
-        var dummyUri = uriBuilder!.Fragment(fragment)?.Build();
+        var dummyUri = global::Android.Net.Uri.Parse(silentMp3Uri);
         if (dummyUri == null)
         {
-            logger.Error("Failed to create dummy {Fragment} URI", fragment);
+            logger.Error("Failed to parse silent MP3 URI: {Uri}", silentMp3Uri);
             return null;
         }
 
         var dummyItemBuilder = new MediaItem.Builder();
-        dummyItemBuilder.SetUri(dummyUri!);
+        dummyItemBuilder.SetUri(dummyUri);
         dummyItemBuilder.SetMediaId(mediaId);
         var dummyItem = dummyItemBuilder.Build();
         if (dummyItem == null)
         {
-            logger.Error("Failed to build MediaItem for dummy {Fragment} item", fragment);
+            logger.Error("Failed to build MediaItem for dummy item with MediaId: {MediaId}", mediaId);
             return null;
         }
 
@@ -195,11 +198,50 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             .CreateMediaSource(dummyItem);
         if (source == null)
         {
-            logger.Error("Failed to create MediaSource for dummy {Fragment} item", fragment);
+            logger.Error("Failed to create MediaSource for dummy item with MediaId: {MediaId}", mediaId);
             return null;
         }
 
         return source;
+    }
+
+    /// <summary>
+    /// Gets the URI of the silent MP3 file from the storage directory (same as schedule database).
+    /// The file is copied from embedded resources during bootstrap.
+    /// </summary>
+    private string? GetSilentMp3Uri()
+    {
+        try
+        {
+            const string ResourceFileName = "silent.mp3";
+            var storageService = ServiceProviderManager.GetService<IStorageService>();
+            if (storageService == null)
+            {
+                logger.Error("IStorageService not available - cannot get silent MP3 URI");
+                return null;
+            }
+
+            // Use StorageRoot (same directory as schedule database) instead of CacheRoot
+            // because cache can get deleted by the system
+            var storageDir = storageService.StorageRoot;
+            var filePath = Path.Combine(storageDir, ResourceFileName);
+
+            // Check if file exists (should be copied during bootstrap)
+            if (!File.Exists(filePath))
+            {
+                logger.Warning("Silent MP3 not found in storage: {FilePath}. It should have been copied during bootstrap.", filePath);
+                return null;
+            }
+
+            var uri = new Uri(filePath).AbsoluteUri;
+            logger.Debug("Using silent MP3 from storage: {FilePath}", filePath);
+            return uri;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting silent MP3 URI");
+            return null;
+        }
     }
 
     /// <summary>
