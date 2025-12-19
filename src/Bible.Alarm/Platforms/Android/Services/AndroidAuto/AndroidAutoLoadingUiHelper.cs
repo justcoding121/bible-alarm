@@ -26,24 +26,33 @@ public static class AndroidAutoLoadingUiHelper
             {
                 var metadataBuilder = new MediaMetadataCompat.Builder()
                     .PutBitmap(MediaMetadataCompat.MetadataKeyArt, bitmap);
-                mediaSession.SetMetadata(metadataBuilder.Build());
+                mediaSession?.SetMetadata(metadataBuilder?.Build());
             }
             else
             {
-                mediaSession.SetMetadata(null);
+                mediaSession?.SetMetadata(null);
             }
         }
         catch
         {
-            mediaSession.SetMetadata(null);
+            mediaSession?.SetMetadata(null);
         }
 
-        var builder = new PlaybackStateCompat.Builder()
-            .SetActions(0)
-            .SetState(PlaybackStateCompat.StateNone, 0, 0.0f, SystemClock.ElapsedRealtime());
-
-        mediaSession.SetPlaybackState(builder.Build());
-        mediaSession.Active = false;
+        var builder = new PlaybackStateCompat.Builder();
+        if (builder != null)
+        {
+            builder.SetActions(0);
+            builder.SetState(PlaybackStateCompat.StateNone, 0, 0.0f, SystemClock.ElapsedRealtime());
+            var playbackState = builder.Build();
+            if (playbackState != null)
+            {
+                mediaSession?.SetPlaybackState(playbackState);
+            }
+        }
+        if (mediaSession != null)
+        {
+            mediaSession.Active = false;
+        }
     }
 
     private static Bitmap? DrawableToBitmap(Drawable? drawable)
@@ -61,7 +70,7 @@ public static class AndroidAutoLoadingUiHelper
         var width = drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 256;
         var height = drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 256;
 
-        var bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888);
+        var bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888 ?? Bitmap.Config.Argb8888!);
         using var canvas = new Canvas(bitmap);
         drawable.SetBounds(0, 0, canvas.Width, canvas.Height);
         drawable.Draw(canvas);

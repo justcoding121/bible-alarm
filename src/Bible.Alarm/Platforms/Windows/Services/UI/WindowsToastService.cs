@@ -249,7 +249,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
             }
 
             // Store the current window for size change handling
-            currentWindow = currentWindow;
+            WindowsToastService.currentWindow = currentWindow;
 
             // Set initial position before showing to prevent it appearing at top first
             // Use estimated position based on window size
@@ -332,7 +332,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
                     sizeChangedHandler = null;
                 }
             }
-            currentWindow = null;
+            WindowsToastService.currentWindow = null;
 
             try
             {
@@ -408,7 +408,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         // The popup will be garbage collected anyway, and setting it to null can cause COM exceptions
     }
 
-    public new void Dispose()
+    public override void Dispose()
     {
         if (isDisposed)
         {
@@ -419,5 +419,6 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
         // TaskScheduler is a singleton, so don't dispose it
         // No event handlers to unsubscribe
+        base.Dispose();
     }
 }

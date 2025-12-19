@@ -1,3 +1,4 @@
+#nullable enable
 using System.Runtime.Versioning;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
@@ -38,7 +39,31 @@ public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDispo
 
         await ConcurrencyHelper.ExecuteAsync(Lock, async () =>
         {
-            var window = UIApplication.SharedApplication.KeyWindow;
+            UIWindow? window = null;
+            
+            // Use modern API to get window from connected scenes (iOS 13+)
+            if (UIDevice.CurrentDevice.CheckSystemVersion(13, 0))
+            {
+                var scenes = UIApplication.SharedApplication.ConnectedScenes;
+                if (scenes != null)
+                {
+                    foreach (var scene in scenes)
+                    {
+                        if (scene is UIWindowScene windowScene && windowScene.Windows != null)
+                        {
+                            window = windowScene.Windows.FirstOrDefault(w => w.IsKeyWindow);
+                            if (window != null)
+                                break;
+                        }
+                    }
+                }
+            }
+            
+            // Fallback to KeyWindow for older iOS versions (suppress warning)
+#pragma warning disable CA1422
+            window ??= UIApplication.SharedApplication.KeyWindow;
+#pragma warning restore CA1422
+            
             if (window?.RootViewController?.View == null)
             {
                 return;
@@ -115,7 +140,7 @@ public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDispo
         return containerView;
     }
 
-    private static TaskCompletionSource<bool> clearRequest;
+    private static TaskCompletionSource<bool>? clearRequest;
 
     public override Task Clear()
     {

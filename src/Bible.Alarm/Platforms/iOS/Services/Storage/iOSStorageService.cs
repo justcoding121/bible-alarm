@@ -21,7 +21,7 @@ public class iOSStorageService : StorageService, IDisposable
 
     public override Assembly MainAssembly => typeof(iOSStorageService).Assembly;
 
-    public void Dispose()
+    public override void Dispose()
     {
         if (_isDisposed)
         {
@@ -31,5 +31,6 @@ public class iOSStorageService : StorageService, IDisposable
         _isDisposed = true;
 
         // No resources to dispose
+        base.Dispose();
     }
 }

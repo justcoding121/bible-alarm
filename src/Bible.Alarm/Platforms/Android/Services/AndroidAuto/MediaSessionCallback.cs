@@ -212,7 +212,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         base.OnSkipToPrevious();
     }
 
-    public override void OnPlayFromMediaId(string mediaId, Bundle? extras)
+    public override void OnPlayFromMediaId(string? mediaId, Bundle? extras)
     {
         _logger.Information("MediaSessionCallback.OnPlayFromMediaId() called with mediaId: {MediaId}", mediaId);
         try

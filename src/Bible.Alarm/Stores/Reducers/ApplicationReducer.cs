@@ -322,7 +322,10 @@ public static class ApplicationReducer
             }
         }
         // Add the DTO (already transformed by Effect)
-        newSchedules.Add(action.Schedule);
+        if (action.Schedule != null)
+        {
+            newSchedules.Add(action.Schedule);
+        }
 
         Log.Information("ApplicationReducer: OnAddScheduleSuccess - NewSchedulesCount: {NewCount}", newSchedules.Count);
 

@@ -16,10 +16,10 @@ namespace Bible.Alarm.Platforms.Android;
 public class MainActivity : MauiAppCompatActivity
 {
     private static readonly ILogger logger = Log.ForContext<MainActivity>();
-    private IAndroidAlarmHandler alarmHandler;
+    private IAndroidAlarmHandler? alarmHandler;
     private DateTime? lastResumeTime;
 
-    protected override void OnCreate(Bundle savedInstanceState)
+    protected override void OnCreate(Bundle? savedInstanceState)
     {
         // IMPORTANT: Create MAUI app BEFORE calling base.OnCreate()
         // This ensures the service provider is available when MAUI's lifecycle events try to access it
@@ -37,7 +37,7 @@ public class MainActivity : MauiAppCompatActivity
             {
                 // Check if savedInstanceState contains fragment state that might be stale
                 var hasFragmentState = false;
-                foreach (var key in savedInstanceState.KeySet())
+                foreach (var key in savedInstanceState?.KeySet() ?? [])
                 {
                     if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
                         key.Contains("androidx.lifecycle") || key.Contains("android:support")))
@@ -78,7 +78,7 @@ public class MainActivity : MauiAppCompatActivity
         SetupBackgroundTasks();
     }
 
-    private void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         logger.Error(e.Exception, "Unobserved task exception.");
     }
@@ -217,7 +217,7 @@ public class MainActivity : MauiAppCompatActivity
             if (outState != null)
             {
                 var keysToRemove = new List<string>();
-                foreach (var key in outState.KeySet())
+                foreach (var key in outState?.KeySet() ?? [])
                 {
                     if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
                         key.Contains("androidx.lifecycle") || key.Contains("android:support")))
@@ -228,7 +228,7 @@ public class MainActivity : MauiAppCompatActivity
 
                 foreach (var key in keysToRemove)
                 {
-                    outState.Remove(key);
+                    outState?.Remove(key);
                 }
 
                 if (keysToRemove.Count > 0)
@@ -268,7 +268,7 @@ public class MainActivity : MauiAppCompatActivity
                 if (serviceProvider != null)
                 {
                     var windowSetupService = serviceProvider.GetService<IWindowSetupService>();
-                    windowSetupService.TearDown();
+                    windowSetupService?.TearDown();
                 }
             }
         }

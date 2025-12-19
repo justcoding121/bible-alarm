@@ -74,7 +74,7 @@ public class AlarmSetupService : Service, IDisposable
             catch (Exception ex)
             {
                 // Log but don't fail - service can continue without waiting
-                Log.logger.Warning(ex, "Failed to wait for bootstrap in AlarmSetupService");
+                logger.Warning(ex, "Failed to wait for bootstrap in AlarmSetupService");
             }
         });
 

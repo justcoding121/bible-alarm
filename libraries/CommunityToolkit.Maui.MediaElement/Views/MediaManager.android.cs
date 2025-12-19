@@ -40,10 +40,10 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	MediaItem.Builder? mediaItem;
 	BoundServiceConnection? connection;
 
-	static bool _globalExoPlayerCreated = false;
-	static readonly object _globalExoPlayerLock = new object();
-	static PlatformMediaElement? _globalPlayer;
-	static MediaSession? _globalSession;
+	static bool globalExoPlayerCreated = false;
+	static readonly object globalExoPlayerLock = new object();
+	static PlatformMediaElement? globalPlayer;
+	static MediaSession? globalSession;
 
 	/// <summary>
 	/// The platform native counterpart of <see cref="MediaElement"/>.
@@ -144,23 +144,23 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	{
 		RunOnMainThread(() =>
 		{
-			lock (_globalExoPlayerLock)
+			lock (globalExoPlayerLock)
 			{
 				// If another MediaManager already created the shared player, just reuse it.
-				if (_globalExoPlayerCreated && _globalPlayer is not null && _globalSession is not null)
+				if (globalExoPlayerCreated && globalPlayer is not null && globalSession is not null)
 				{
-					Player = _globalPlayer;
-					session = _globalSession;
+					Player = globalPlayer;
+					session = globalSession;
 					return;
 				}
 
-				if (_globalExoPlayerCreated)
+				if (globalExoPlayerCreated)
 				{
 					// Defensive: created flag is set but shared instances are missing. Reset and recreate.
-					_globalExoPlayerCreated = false;
+					globalExoPlayerCreated = false;
 				}
 
-				_globalExoPlayerCreated = true;
+				globalExoPlayerCreated = true;
 			}
 
 			// Use MauiContext.Context - guaranteed to be available when PrepareAndPlayAsync is called
@@ -168,9 +168,9 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 			var context = MauiContext.Context;
 			if (context == null)
 			{
-				lock (_globalExoPlayerLock)
+				lock (globalExoPlayerLock)
 				{
-					_globalExoPlayerCreated = false;
+					globalExoPlayerCreated = false;
 				}
 				throw new InvalidOperationException("Cannot create ExoPlayer - MauiContext.Context is null. Ensure bootstrap has completed before calling PrepareAndPlayAsync.");
 			}
@@ -180,6 +180,11 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 			// Direct creation - no reflection needed
 			// Xamarin.AndroidX.Media3 bindings expose ExoPlayer.Builder as ExoPlayerBuilder
 			var exoPlayer = new ExoPlayerBuilder(context).Build();
+
+			if (exoPlayer == null)
+			{
+				throw new InvalidOperationException("Failed to create ExoPlayer");
+			}
 
 			Player = exoPlayer;
 			Player.AddListener(this);
@@ -195,15 +200,20 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 			session ??= mediaSession.Build() ?? throw new InvalidOperationException("Session cannot be null");
 			ArgumentNullException.ThrowIfNull(session.Id);
 
-			lock (_globalExoPlayerLock)
+			lock (globalExoPlayerLock)
 			{
-				_globalPlayer = Player;
-				_globalSession = session;
+				globalPlayer = Player;
+				globalSession = session;
 			}
 		});
 
 		// Always headless mode - no PlayerView needed for audio-only playback
 		PlayerView? playerView = null;
+		// Player and session are guaranteed to be non-null due to [MemberNotNull] attribute and initialization in RunOnMainThread
+		if (Player == null || session == null)
+		{
+			throw new InvalidOperationException("Player or session is null after initialization");
+		}
 		return (Player, playerView);
 	}
 
@@ -217,7 +227,12 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 
 		Exception? ex = null;
 		using var evt = new ManualResetEventSlim(false);
-		var handler = new Android.OS.Handler(Android.OS.Looper.MainLooper);
+		var mainLooper = Android.OS.Looper.MainLooper;
+		if (mainLooper == null)
+		{
+			throw new InvalidOperationException("MainLooper is null");
+		}
+		var handler = new Android.OS.Handler(mainLooper);
 		handler.Post(() =>
 		{
 			try
@@ -596,11 +611,11 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 
 			client.Dispose();
 
-			lock (_globalExoPlayerLock)
+			lock (globalExoPlayerLock)
 			{
-				_globalExoPlayerCreated = false;
-				_globalPlayer = null;
-				_globalSession = null;
+				globalExoPlayerCreated = false;
+				globalPlayer = null;
+				globalSession = null;
 			}
 		}
 	}

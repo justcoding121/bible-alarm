@@ -97,13 +97,17 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             {
                 // check for a local notification
                 // UIApplication.LaunchOptionsLocalNotificationKey is obsolete but needed for compatibility
+#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with iOS < 10
                 if (launchOptions.ContainsKey(UIApplication.LaunchOptionsLocalNotificationKey))
                 {
                     if (launchOptions[UIApplication.LaunchOptionsLocalNotificationKey] is UILocalNotification localNotification)
                     {
+#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility
                         HandleNotification(localNotification.UserInfo);
+#pragma warning restore CA1422
                     }
                 }
+#pragma warning restore CA1422
             }
             catch (Exception e)
             {
@@ -179,7 +183,17 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                 UNUserNotificationCenter.Current.RemoveAllDeliveredNotifications();
             }
 
-            UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
+            // Use modern API for setting badge (iOS 17+)
+            if (UIDevice.CurrentDevice.CheckSystemVersion(17, 0))
+            {
+                UNUserNotificationCenter.Current.SetBadgeCount(0, null);
+            }
+            else
+            {
+#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with iOS < 17
+                UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
+#pragma warning restore CA1422
+            }
         }
         catch (Exception e)
         {
@@ -195,7 +209,17 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         try
         {
             // reset our badge
-            UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
+            // Use modern API for setting badge (iOS 17+)
+            if (UIDevice.CurrentDevice.CheckSystemVersion(17, 0))
+            {
+                UNUserNotificationCenter.Current.SetBadgeCount(0, null);
+            }
+            else
+            {
+#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with iOS < 17
+                UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
+#pragma warning restore CA1422
+            }
         }
         catch (Exception e)
         {

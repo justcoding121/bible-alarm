@@ -6,7 +6,7 @@ namespace Bible.Alarm.Common;
 public class LogSetup
 {
     private static bool initialized;
-    private static readonly object Lock = new();
+    private static readonly Lock @lock = new();
 
     public static void Initialize(IVersionFinder versionFinder,
         string[] tags, string device, bool isLoggingEnabled = true)
@@ -15,7 +15,7 @@ public class LogSetup
 
         if (isLoggingEnabled)
         {
-            lock (Lock)
+            lock (@lock)
             {
                 if (!initialized)
                 {

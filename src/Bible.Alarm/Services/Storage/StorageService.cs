@@ -140,7 +140,7 @@ public abstract class StorageService : IStorageService, IDisposable
             new DateTimeOffset(new[] { file.LastAccessTime, file.LastWriteTime, file.CreationTime }.Max()));
     }
 
-    public void Dispose()
+    public virtual void Dispose()
     {
     }
 }

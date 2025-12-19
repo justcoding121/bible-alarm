@@ -32,10 +32,10 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
 
     public BookSelectionViewModel(IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
-        mediaService = mediaService;
-        state = state;
-        dispatcher = dispatcher;
-        mapper = mapper;
+        this.mediaService = mediaService;
+        this.state = state;
+        this.dispatcher = dispatcher;
+        this.mapper = mapper;
 
         // Initialize current and tentative from state if available (map DTOs to entities)
         var currentState = state.Value;

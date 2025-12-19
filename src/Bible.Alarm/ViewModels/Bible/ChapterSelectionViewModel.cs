@@ -299,7 +299,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
     {
         try
         {
-            await ConcurrencyHelper.ExecuteAsync(_lock, () =>
+            await ConcurrencyHelper.ExecuteAsync(@lock, () =>
             {
                 if (currentlyPlaying is null)
                 {
@@ -415,11 +415,11 @@ public partial class BibleChapterListViewItemModel : ObservableObject, IComparab
 
     public ICommand TogglePlayCommand { get; set; }
 
-    public string LookUpPath => _chapter.Source.LookUpPath;
+    public string LookUpPath => _chapter.Source?.LookUpPath ?? string.Empty;
     public int Number => _chapter.Number;
 
     public string Title => _chapter.Title;
-    public string Url => _chapter.Source.Url;
+    public string Url => _chapter.Source?.Url ?? string.Empty;
 
     private bool play;
 

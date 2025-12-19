@@ -17,7 +17,7 @@ public class AndroidStorageService : StorageService, IDisposable
 
     public override Assembly MainAssembly => typeof(AndroidStorageService).Assembly;
 
-    public void Dispose()
+    public override void Dispose()
     {
         if (_isDisposed)
         {
@@ -27,5 +27,6 @@ public class AndroidStorageService : StorageService, IDisposable
         _isDisposed = true;
 
         // No resources to dispose
+        base.Dispose();
     }
 }

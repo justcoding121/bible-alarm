@@ -298,14 +298,17 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                             // Create MediaBrowserCompat.MediaItem with FLAG_PLAYABLE flag
                             // This indicates the item can be played when selected
                             // Note: MediaBrowserCompat is in Android.Support.V4.Media namespace
-                            var mediaItem = new MediaBrowserCompat.MediaItem(
-                                mediaDescription,
-                                MediaBrowserCompat.MediaItem.FlagPlayable);
+                            if (mediaDescription != null)
+                            {
+                                var mediaItem = new MediaBrowserCompat.MediaItem(
+                                    mediaDescription,
+                                    MediaBrowserCompat.MediaItem.FlagPlayable);
 
-                            mediaItems.Add(mediaItem);
+                                mediaItems.Add(mediaItem);
+                            }
 
                             logger.Debug("Added MediaItem for schedule: {ScheduleId} - Title: {Title}, Subtitle: {Subtitle}",
-                                scheduleItem.Id, title, mediaDescription.Subtitle);
+                                scheduleItem.Id, title, mediaDescription?.Subtitle ?? "");
                         }
                         catch (Exception ex)
                         {
@@ -447,10 +450,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             }
 
             // If not a BitmapDrawable, create a bitmap from the drawable
+            var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
             var bitmap = Bitmap.CreateBitmap(
                 drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 64,
                 drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 64,
-                Bitmap.Config.Argb8888);
+                config);
 
             var canvas = new Canvas(bitmap);
             drawable.SetBounds(0, 0, canvas.Width, canvas.Height);

@@ -56,11 +56,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     public AlarmViewModal(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, IGeneralSettingsService generalSettingsService)
     {
-        logger = logger;
-        playbackService = playbackService;
-        playbackState = playbackState;
-        dispatcher = dispatcher;
-        generalSettingsService = generalSettingsService;
+        this.logger = logger;
+        this.playbackService = playbackService;
+        this.playbackState = playbackState;
+        this.dispatcher = dispatcher;
+        this.generalSettingsService = generalSettingsService;
 
         // Initialize string fields to avoid nullable warnings
         _title = "";
@@ -104,7 +104,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                         var dismissCount = await generalSettingsService.GetGeneralSettingAsync(
                             AppConstants.GeneralSettingsKeys.DismissCount);
 
-                        if (dismissCount != null && int.Parse(dismissCount.Value) >= 6)
+                        if (dismissCount != null && dismissCount.Value != null && int.Parse(dismissCount.Value) >= 6)
                         {
                             await generalSettingsService.SetGeneralSettingAsync(
                                 AppConstants.GeneralSettingsKeys.ReviewRequested,
@@ -118,9 +118,12 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                         {
                             if (dismissCount != null)
                             {
-                                await generalSettingsService.SetGeneralSettingAsync(
-                                    AppConstants.GeneralSettingsKeys.DismissCount,
-                                    (int.Parse(dismissCount.Value) + 1).ToString());
+                                if (dismissCount.Value != null)
+                                {
+                                    await generalSettingsService.SetGeneralSettingAsync(
+                                        AppConstants.GeneralSettingsKeys.DismissCount,
+                                        (int.Parse(dismissCount.Value) + 1).ToString());
+                                }
                             }
                             else
                             {

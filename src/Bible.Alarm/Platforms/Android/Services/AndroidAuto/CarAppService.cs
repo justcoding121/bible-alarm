@@ -139,7 +139,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         }
     }
 
-    public override HostValidator CreateHostValidator()
+    public override HostValidator? CreateHostValidator()
     {
         logger.Information("✅ CarAppService.CreateHostValidator() called");
         return HostValidator.AllowAllHostsValidator; // TODO: Replace with proper host validation in production
@@ -184,12 +184,18 @@ public class ModernMediaSession : Session
         logger.Information("✅ ModernMediaSession created");
     }
 
-    public override AndroidX.Car.App.Screen OnCreateScreen(Intent intent)
+    public override AndroidX.Car.App.Screen OnCreateScreen(Intent? intent)
     {
         logger.Information("✅ ModernMediaSession.OnCreateScreen() called with intent: {Action}", intent?.Action);
 
         // The media session is attached via the template in MainCarScreen
         logger.Information("✅ Modern Android Auto connected — will attach shared MediaSession via template");
+
+        if (CarContext == null)
+        {
+            logger.Error("CarContext is null, cannot create MainCarScreen");
+            throw new InvalidOperationException("CarContext is null");
+        }
 
         return new MainCarScreen(CarContext, mediaSessionManager);
     }
@@ -260,7 +266,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         }
     }
 
-    public void Dispose()
+    public new void Dispose()
     {
         if (disposed)
         {
@@ -337,17 +343,30 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
 
             foreach (var row in rows)
             {
-                itemListBuilder.AddItem(row);
+                itemListBuilder?.AddItem(row);
             }
 
-            var itemList = itemListBuilder.Build();
+            var itemList = itemListBuilder?.Build();
+            if (itemList == null)
+            {
+                logger.Warning("Failed to build item list, returning empty template");
+                return CreateEmptyListTemplate();
+            }
 
             // Create ListTemplate with the item list
+#pragma warning disable CS0618 // Obsolete API from AndroidX.Car.App library
             var listTemplate = new ListTemplate.Builder()
-                .SetTitle("Bible Alarm")
-                .SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
-                .SetSingleList(itemList)
-                .Build();
+                ?.SetTitle("Bible Alarm")
+                ?.SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+                ?.SetSingleList(itemList)
+                ?.Build();
+#pragma warning restore CS0618
+
+            if (listTemplate == null)
+            {
+                logger.Warning("Failed to build list template, returning empty template");
+                return CreateEmptyListTemplate();
+            }
 
             logger.Information("✅ ListTemplate created successfully with {Count} schedules", rows.Count);
             return listTemplate;
@@ -358,16 +377,24 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             // Fallback to message template on error
             try
             {
-                return new MessageTemplate.Builder("Bible Alarm")
-                    .SetTitle("Bible Alarm")
-                    .SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
-                    .Build();
+#pragma warning disable CS0618 // Obsolete API from AndroidX.Car.App library
+                var messageTemplate = new MessageTemplate.Builder("Bible Alarm")
+                    ?.SetTitle("Bible Alarm")
+                    ?.SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+                    ?.Build();
+                if (messageTemplate != null)
+                {
+                    return messageTemplate;
+                }
+#pragma warning restore CS0618
+                // If messageTemplate is null, fall through to return empty template
+                return CreateEmptyListTemplate();
             }
             catch (Exception fallbackEx)
             {
                 logger.Error(fallbackEx, "❌ Failed to create fallback MessageTemplate");
-                // Last resort - return null and let Android Auto handle it
-                return null;
+                // Last resort - return empty template
+                return CreateEmptyListTemplate();
             }
         }
     }
@@ -392,17 +419,22 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             // Store schedule ID in a closure so we can access it when clicked
             var scheduleId = scheduleItem.Id;
             var rowBuilder = new Row.Builder()
-                .SetTitle(title)
-                .AddText(subtitle)
-                .SetOnClickListener(new ScheduleClickCallback(this, scheduleId));
+                ?.SetTitle(title)
+                ?.AddText(subtitle)
+                ?.SetOnClickListener(new ScheduleClickCallback(this, scheduleId));
 
             // Add headphone icon if available
             if (headphoneIcon != null)
             {
-                rowBuilder.SetImage(headphoneIcon);
+                rowBuilder?.SetImage(headphoneIcon);
             }
 
-            var row = rowBuilder.Build();
+            var row = rowBuilder?.Build();
+            if (row == null)
+            {
+                logger.Warning("Failed to build row for schedule {ScheduleId}", scheduleItem.Id);
+                throw new InvalidOperationException("Failed to build row");
+            }
 
             return row;
         }
@@ -434,14 +466,26 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
     private ITemplate CreateEmptyListTemplate()
     {
         var itemList = new ItemList.Builder()
-            .SetNoItemsMessage("No schedules available")
-            .Build();
+            ?.SetNoItemsMessage("No schedules available")
+            ?.Build();
+        
+        if (itemList == null)
+        {
+            throw new InvalidOperationException("Failed to build empty item list");
+        }
 
-        return new ListTemplate.Builder()
-            .SetTitle("Bible Alarm")
-            .SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
-            .SetSingleList(itemList)
-            .Build();
+#pragma warning disable CS0618 // Obsolete API from AndroidX.Car.App library
+        var template = new ListTemplate.Builder()
+            ?.SetTitle("Bible Alarm")
+            ?.SetHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+            ?.SetSingleList(itemList)
+            ?.Build();
+        if (template == null)
+        {
+            throw new InvalidOperationException("Failed to build empty list template");
+        }
+        return template;
+#pragma warning restore CS0618
     }
 
     internal void OnScheduleItemClicked(int scheduleId)

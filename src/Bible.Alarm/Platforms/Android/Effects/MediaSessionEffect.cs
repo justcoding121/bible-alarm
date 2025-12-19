@@ -75,37 +75,41 @@ public class MediaSessionEffect(
             if (!string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist))
             {
                 // Update metadata with scheduleId from state for OnPlayFromMediaId
-                var metadataBuilder = new MediaMetadataCompat.Builder()
-                    .PutString(MediaMetadataCompat.MetadataKeyTitle, action.Title ?? "")
-                    .PutString(MediaMetadataCompat.MetadataKeyArtist, action.Artist ?? "")
-                    .PutString(MediaMetadataCompat.MetadataKeyAlbum, action.Album ?? "");
-
-                // Include scheduleId from state as mediaId for OnPlayFromMediaId callback
-                var scheduleId = playbackState.Value.CurrentScheduleId;
-                if (scheduleId.HasValue)
+                var metadataBuilder = new MediaMetadataCompat.Builder();
+                if (metadataBuilder != null)
                 {
-                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId,
-                        scheduleId.Value.ToString());
-                }
+                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyTitle, action.Title ?? "");
+                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyArtist, action.Artist ?? "");
+                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyAlbum, action.Album ?? "");
 
-                // Load and set artwork bitmap if available
-                if (!string.IsNullOrEmpty(action.ArtworkUrl))
-                {
-                    try
+                    // Include scheduleId from state as mediaId for OnPlayFromMediaId callback
+                    var scheduleId = playbackState.Value?.CurrentScheduleId;
+                    if (scheduleId.HasValue)
                     {
-                        var artworkBitmap = artworkService.LoadArtworkBitmap(action.ArtworkUrl);
-                        if (artworkBitmap != null)
+                        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId,
+                            scheduleId.Value.ToString());
+                    }
+
+                    // Load and set artwork bitmap if available
+                    if (!string.IsNullOrEmpty(action.ArtworkUrl))
+                    {
+                        try
                         {
-                            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
+                            var artworkBitmap = artworkService?.LoadArtworkBitmap(action.ArtworkUrl);
+                            if (artworkBitmap != null)
+                            {
+                                metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
-                    }
-                }
 
-                session.SetMetadata(metadataBuilder.Build());
+                    var metadata = metadataBuilder.Build();
+                    session?.SetMetadata(metadata);
+                }
             }
         }
         catch (Exception ex)

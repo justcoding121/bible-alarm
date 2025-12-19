@@ -24,11 +24,6 @@
         <!-- Style for selected/unselected item background using DynamicResource -->
         <Style x:Key="ChaptersItemBorderStyle" TargetType="Border">
             <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
-            <Style.Triggers>
-                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
-                </DataTrigger>
-            </Style.Triggers>
         </Style>
     </ContentPage.Resources>
     <ContentPage.Content>
@@ -103,6 +98,11 @@
                                     Style="{StaticResource ChaptersItemBorderStyle}"
                                     StrokeThickness="0"
                                     Padding="0">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                                    </DataTrigger>
+                                </Border.Triggers>
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>

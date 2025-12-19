@@ -15,7 +15,7 @@ public class WindowsStorageService : StorageService, IDisposable
     public override string CacheRoot => cacheRoot;
     public override Assembly MainAssembly => typeof(WindowsStorageService).Assembly;
 
-    public new void Dispose()
+    public override void Dispose()
     {
         if (_isDisposed)
         {
@@ -25,5 +25,6 @@ public class WindowsStorageService : StorageService, IDisposable
         _isDisposed = true;
 
         // No resources to dispose
+        base.Dispose();
     }
 }

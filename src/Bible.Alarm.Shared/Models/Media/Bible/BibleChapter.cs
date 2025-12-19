@@ -29,7 +29,7 @@ public class BibleChapter : IComparable
     [Required]
     public virtual BibleBook Book { get; set; } = null!;
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
         if (obj is not BibleChapter other)
         {

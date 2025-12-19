@@ -122,7 +122,7 @@ public class HomeViewModel : ObservableObject, IDisposable
     }
 
 
-    private ObservableHashSet<ScheduleListItem> schedules;
+    private ObservableHashSet<ScheduleListItem> schedules = [];
 
     public ObservableHashSet<ScheduleListItem> Schedules
     {
@@ -283,16 +283,16 @@ public class HomeViewModel : ObservableObject, IDisposable
     public ICommand AddScheduleCommand { get; set; }
     public ICommand ViewScheduleCommand { get; set; }
 
-    private ScheduleViewModel selectedSchedule;
+    private ScheduleViewModel? selectedSchedule;
 
-    public ScheduleViewModel SelectedSchedule
+    public ScheduleViewModel? SelectedSchedule
     {
         get => selectedSchedule;
         set => SetProperty(ref selectedSchedule, value);
     }
 
 
-    private void OnStateChanged(object sender, EventArgs e)
+    private void OnStateChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
 

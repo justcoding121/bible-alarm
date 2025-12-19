@@ -15,9 +15,6 @@ public class AndroidAlarmHandler(
     private readonly ILogger _logger = logger;
     private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
 
-
-    private bool _playbackServiceInitialized;
-
     public event EventHandler<bool> Disposed;
 
     public async Task HandleAsync(int scheduleId, bool isAlarm)
@@ -57,8 +54,6 @@ public class AndroidAlarmHandler(
             try
             {
                 await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
-
-                _playbackServiceInitialized = true;
 
                 // Notification manager removed - using MediaElement instead
             }

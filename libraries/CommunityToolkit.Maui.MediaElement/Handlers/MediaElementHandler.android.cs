@@ -25,7 +25,8 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 		handler.MediaManager?.UpdateShouldLoopPlayback();
 	}
 
-	protected override MauiMediaElement? CreatePlatformView()
+
+	protected override MauiMediaElement CreatePlatformView()
 	{
 		// Use the handler's MauiContext - guaranteed to be available when PrepareAndPlayAsync is called
 		// (bootstrap completes before PrepareAndPlayAsync is called)
@@ -42,11 +43,15 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 		// ExoPlayer works perfectly in headless mode for audio playback
 		var (_, playerView) = MediaManager.CreatePlatformView(AndroidViewType.None);
 
-		// Return null view for headless, or wrap PlayerView if UI exists
+		// Return lightweight view for headless, or wrap PlayerView if UI exists
 		if (playerView == null)
 		{
-			// Headless mode - perfectly valid
-			return null;
+			// Headless mode - create lightweight MauiMediaElement without PlayerView
+			if (Context == null)
+			{
+				throw new InvalidOperationException("Context is null - cannot create platform view");
+			}
+			return new MauiMediaElement(Context);
 		}
 
 		// UI mode - we have a real context and PlayerView
@@ -77,7 +82,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 		return dispatcher;
 	}
 
-	protected override void DisconnectHandler(MauiMediaElement? platformView)
+	protected override void DisconnectHandler(MauiMediaElement platformView)
 	{
 		// Handle headless mode where platformView may be null
 		if (platformView != null)

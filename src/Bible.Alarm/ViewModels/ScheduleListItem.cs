@@ -85,7 +85,7 @@ public class ScheduleListItem(
         lastKnownSchedule = Schedule;
 
         // Initialize tracked subtitle values from state
-        var initialStateItem = applicationState.Value.Schedules.FirstOrDefault(s => s.Id == schedule.Id);
+        var initialStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == schedule.Id);
         lastKnownTranslationName = initialStateItem?.TranslationName;
         lastKnownBookName = initialStateItem?.BookName;
 
@@ -135,7 +135,7 @@ public class ScheduleListItem(
 
         DeleteCommand = new AsyncRelayCommand(async () =>
         {
-            if (Schedule?.Id <= 0)
+            if (Schedule == null || Schedule.Id <= 0)
             {
                 return;
             }
@@ -260,7 +260,7 @@ public class ScheduleListItem(
     /// </summary>
     private void RefreshSubTitleFromState()
     {
-        if (Schedule?.Id <= 0)
+        if (Schedule == null || Schedule.Id <= 0)
         {
             return;
         }
@@ -270,7 +270,7 @@ public class ScheduleListItem(
         try
         {
             // Get ScheduleStateItem from state (BookName is pre-populated during bootstrap)
-            var scheduleStateItem = applicationState.Value.Schedules
+            var scheduleStateItem = applicationState.Value.Schedules?
                 .FirstOrDefault(s => s.Id == scheduleId);
 
             if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)

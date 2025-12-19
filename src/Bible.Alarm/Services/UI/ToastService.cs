@@ -23,7 +23,7 @@ public abstract class ToastService : IToastService, IDisposable
         }
     }
 
-    public void Dispose()
+    public virtual void Dispose()
     {
     }
 

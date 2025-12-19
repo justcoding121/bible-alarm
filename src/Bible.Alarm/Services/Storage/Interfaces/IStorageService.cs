@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Bible.Alarm.Services.Storage.Interfaces;
 
 public interface IStorageService : IDisposable
@@ -8,6 +10,7 @@ public interface IStorageService : IDisposable
     Task<bool> DirectoryExists(string path);
     Task<bool> FileExists(string path);
     Task<List<string>> GetAllFiles(string path);
+    [RequiresAssemblyFiles]
     Task<DateTimeOffset> GetFileCreationDate(string path, bool isResourceFile);
 
     Task<string> ReadFile(string path);

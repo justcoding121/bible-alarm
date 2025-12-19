@@ -22,7 +22,7 @@ public class MusicTrack : IComparable
 
     public AudioSource? Source { get; set; }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
         if (obj is not MusicTrack other)
         {

@@ -32,11 +32,12 @@ public sealed class AudioFocusService
             throw new InvalidOperationException("Android Application.Context is null - cannot initialize AudioFocusService");
         }
 
-        audioManager = context.GetSystemService(global::Android.Content.Context.AudioService) as AudioManager;
-        if (audioManager == null)
+        var audioManagerService = context.GetSystemService(global::Android.Content.Context.AudioService) as AudioManager;
+        if (audioManagerService == null)
         {
             throw new InvalidOperationException("Failed to get AudioManager from Application.Context");
         }
+        audioManager = audioManagerService;
 
         logger.Debug("AudioFocusService initialized with AudioManager");
     }
@@ -54,16 +55,46 @@ public sealed class AudioFocusService
                 if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.O)
                 {
                     // Android 8.0+ (API 26+)
-                    var audioAttributes = new AudioAttributes.Builder()
-                        .SetUsage(AudioUsageKind.Media)
-                        .SetContentType(AudioContentType.Music)
-                        .Build();
+                    var audioAttributesBuilder = new AudioAttributes.Builder();
+                    if (audioAttributesBuilder == null)
+                    {
+                        logger.Warning("Failed to create AudioAttributes.Builder");
+                        return;
+                    }
+                    
+                    audioAttributesBuilder.SetUsage(AudioUsageKind.Media);
+                    audioAttributesBuilder.SetContentType(AudioContentType.Music);
+                    var audioAttributes = audioAttributesBuilder.Build();
 
-                    audioFocusRequest = new AudioFocusRequestClass.Builder(AudioFocus.Gain)
-                        .SetAudioAttributes(audioAttributes)
-                        .SetAcceptsDelayedFocusGain(true)
-                        .SetOnAudioFocusChangeListener(audioFocusListener)
-                        .Build();
+                    if (audioAttributes == null)
+                    {
+                        logger.Warning("Failed to create AudioAttributes");
+                        return;
+                    }
+
+                    var audioFocusRequestBuilder = new AudioFocusRequestClass.Builder(AudioFocus.Gain);
+                    if (audioFocusRequestBuilder == null)
+                    {
+                        logger.Warning("Failed to create AudioFocusRequest.Builder");
+                        return;
+                    }
+                    
+                    audioFocusRequestBuilder.SetAudioAttributes(audioAttributes);
+                    audioFocusRequestBuilder.SetAcceptsDelayedFocusGain(true);
+                    audioFocusRequestBuilder.SetOnAudioFocusChangeListener(audioFocusListener);
+                    audioFocusRequest = audioFocusRequestBuilder.Build();
+
+                    if (audioFocusRequest == null)
+                    {
+                        logger.Warning("Failed to create AudioFocusRequest");
+                        return;
+                    }
+
+                    if (audioManager == null)
+                    {
+                        logger.Warning("AudioManager is null");
+                        return;
+                    }
 
                     var result = audioManager.RequestAudioFocus(audioFocusRequest);
 
@@ -79,10 +110,12 @@ public sealed class AudioFocusService
                 else
                 {
                     // Android 7.1 and below - use legacy API
+#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with Android < 26
                     var result = audioManager.RequestAudioFocus(
                         audioFocusListener,
                         MediaStream.Music,
                         AudioFocus.Gain);
+#pragma warning restore CA1422
 
                     if (result == AudioFocusRequest.Granted)
                     {
@@ -133,7 +166,9 @@ public sealed class AudioFocusService
             {
                 // Android 7.1 and below - use legacy API
                 // Safe to call even if we don't have focus
+#pragma warning disable CA1422 // Obsolete API - needed for backward compatibility with Android < 26
                 audioManager.AbandonAudioFocus(audioFocusListener);
+#pragma warning restore CA1422
                 logger.Debug("Audio focus released (legacy API)");
             }
         }

@@ -217,6 +217,10 @@ public class PlaylistService(
         }
 
         var bibleReadingSchedule = schedule.BibleReadingSchedule;
+        if (bibleReadingSchedule == null)
+        {
+            throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
+        }
 
         var bookNumber = bibleReadingSchedule.BookNumber;
         var chapter = bibleReadingSchedule.ChapterNumber;
@@ -228,12 +232,13 @@ public class PlaylistService(
         {
             logger.Error(
                 $"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
+            throw new InvalidOperationException($"Chapter not found: {chapter}, book: {bookNumber}");
         }
 
         var publicationCode = bibleReadingSchedule.PublicationCode;
         var languageCode = bibleReadingSchedule.LanguageCode;
-        var url = chapterDetail.Source.Url;
-        var lookUpPath = chapterDetail.Source.LookUpPath;
+        var url = chapterDetail.Source?.Url ?? string.Empty;
+        var lookUpPath = chapterDetail.Source?.LookUpPath ?? string.Empty;
 
         var trackMetadata = new TrackMetadata
         {

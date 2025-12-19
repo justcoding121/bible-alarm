@@ -93,7 +93,7 @@ public class AlarmSchedule : IComparable
         var expression = new CronExpression(CronExpression);
 
         ValidateNextFire(expression);
-        return expression.GetNextValidTimeAfter(DateTimeOffset.Now).Value;
+        return expression.GetNextValidTimeAfter(DateTimeOffset.Now)!.Value;
     }
 
     public DateTimeOffset NextFireDate(DateTimeOffset after)
@@ -103,7 +103,7 @@ public class AlarmSchedule : IComparable
         var expression = new CronExpression(CronExpression);
 
         ValidateNextFire(expression);
-        return expression.GetNextValidTimeAfter(after).Value;
+        return expression.GetNextValidTimeAfter(after)!.Value;
     }
 
     private string GetCronExpression()
@@ -141,7 +141,7 @@ public class AlarmSchedule : IComparable
         }
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
         if (obj is not AlarmSchedule other)
         {

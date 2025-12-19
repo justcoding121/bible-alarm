@@ -23,24 +23,30 @@ namespace Bible.Alarm.Services.Media;
 /// </summary>
 public class MediaElementService : IMediaElementService, IRecipient<DestroyMediaElementMessage>, IDisposable
 {
-    private readonly INavigationService _navigationService;
-    private readonly ILogger _logger;
+    private readonly INavigationService navigationService;
+    private readonly ILogger logger;
     // Local lock for this service
-    private readonly object _lockObject = new object();
+    private readonly object lockObject = new object();
     // Store MediaElement instance independently of BootstrapPage container
     // This allows MediaElement to exist when app is backgrounded (no UI)
-    private MediaElement? _mediaElementInstance;
+    private MediaElement? mediaElementInstance;
+#if ANDROID
     // Track if handler has been created to prevent duplicate ExoPlayer creation
-    private bool _handlerCreated = false;
+    // Used in debug logging and conditional checks
+    private bool handlerCreated = false;
+#endif
 
+#if ANDROID
     // STATIC flag to prevent duplicate ExoPlayer creation across entire application
     // This is critical because MediaElementService might be instantiated multiple times
-    private static bool _globalHandlerCreated = false;
+    // Used in conditional checks to prevent duplicate ExoPlayer creation
+    private static bool globalHandlerCreated = false;
+#endif
 
     public MediaElementService(INavigationService navigationService, ILogger logger)
     {
-        _navigationService = navigationService;
-        _logger = logger;
+        this.navigationService = navigationService;
+        this.logger = logger;
 
         // Register for DestroyMediaElementMessage to handle MediaElement disposal
         WeakReferenceMessenger.Default.Register<DestroyMediaElementMessage>(this);
@@ -51,15 +57,15 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         MediaElement? existingInstance;
 
         // Use local lock to synchronize access to MediaElement
-        lock (_lockObject)
+        lock (lockObject)
         {
             // First, check if we already have a MediaElement instance (even if not attached to UI)
-            existingInstance = _mediaElementInstance;
+            existingInstance = mediaElementInstance;
         }
 
         if (existingInstance != null)
         {
-            _logger.Debug("MediaElement instance found in service");
+            logger.Debug("MediaElement instance found in service");
 
 #if !ANDROID
             // Try to attach to BootstrapPage if it's available (iOS/Windows only)
@@ -75,7 +81,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
 
         // MediaElement doesn't exist, create a new one
         // MUST be done on main thread - MediaElement creation must be on UI thread
-        _logger.Information("MediaElement not found, creating new instance on main thread");
+        logger.Information("MediaElement not found, creating new instance on main thread");
 
         MediaElement? newMediaElement = null;
 
@@ -96,17 +102,17 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
 
         if (newMediaElement == null)
         {
-            _logger.Error("Failed to create MediaElement on main thread");
+            logger.Error("Failed to create MediaElement on main thread");
             throw new InvalidOperationException("Failed to create MediaElement - could not create on main thread");
         }
 
         // Store the instance immediately - MediaElement can work without UI attachment
-        lock (_lockObject)
+        lock (lockObject)
         {
-            _mediaElementInstance = newMediaElement;
+            mediaElementInstance = newMediaElement;
         }
 
-        _logger.Information("New MediaElement created and stored in service (will attempt UI attachment separately)");
+        logger.Information("New MediaElement created and stored in service (will attempt UI attachment separately)");
 
 #if ANDROID
         // Android: Create handler immediately for headless mode
@@ -132,7 +138,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         // This method must be called on the main thread
         if (!MainThread.IsMainThread)
         {
-            _logger.Warning("CreateMediaElementOnMainThread called from non-main thread - this should not happen");
+            logger.Warning("CreateMediaElementOnMainThread called from non-main thread - this should not happen");
         }
 
         var newMediaElement = new MediaElement
@@ -153,31 +159,31 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     /// </summary>
     private async Task EnsureHandlerCreatedAsync(MediaElement mediaElement)
     {
-        _logger.Debug($"EnsureHandlerCreated called - _handlerCreated={_handlerCreated}, _globalHandlerCreated={_globalHandlerCreated}, mediaElement.Handler != null: {mediaElement.Handler != null}");
+        logger.Debug($"EnsureHandlerCreated called - handlerCreated={handlerCreated}, globalHandlerCreated={globalHandlerCreated}, mediaElement.Handler != null: {mediaElement.Handler != null}");
 
         // CRITICAL: Check STATIC flag first to prevent duplicate ExoPlayer creation across entire application
-        lock (_lockObject)
+        lock (lockObject)
         {
-            if (_globalHandlerCreated)
+            if (globalHandlerCreated)
             {
-                _logger.Debug("GLOBAL: Handler already created (static flag check), skipping duplicate creation");
+                logger.Debug("GLOBAL: Handler already created (static flag check), skipping duplicate creation");
                 return;
             }
         }
 
         if (mediaElement.Handler != null)
         {
-            lock (_lockObject)
+            lock (lockObject)
             {
-                _handlerCreated = true;
+                handlerCreated = true;
             }
-            _logger.Debug("MediaElement handler already exists");
+            logger.Debug("MediaElement handler already exists");
             return;
         }
 
         if (!MainThread.IsMainThread)
         {
-            _logger.Debug("EnsureHandlerCreated called from non-main thread - marshalling to main thread");
+            logger.Debug("EnsureHandlerCreated called from non-main thread - marshalling to main thread");
             await MainThread.InvokeOnMainThreadAsync(() => EnsureHandlerCreatedAsync(mediaElement)).ConfigureAwait(false);
             return;
         }
@@ -188,7 +194,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             var appHandler = Microsoft.Maui.Controls.Application.Current?.Handler;
             if (appHandler?.MauiContext == null)
             {
-                _logger.Warning("Cannot create handler - Application.Current.Handler.MauiContext is null. Bootstrap may not have completed.");
+                logger.Warning("Cannot create handler - Application.Current.Handler.MauiContext is null. Bootstrap may not have completed.");
                 return;
             }
 
@@ -196,7 +202,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             var dispatcher = Microsoft.Maui.Controls.Application.Current?.Dispatcher;
             if (dispatcher == null)
             {
-                _logger.Warning("Cannot create handler - Application.Current.Dispatcher is null. Bootstrap may not have completed.");
+                logger.Warning("Cannot create handler - Application.Current.Dispatcher is null. Bootstrap may not have completed.");
                 return;
             }
 
@@ -213,7 +219,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             {
                 //In headless mode, SetVirtualView may fail due to gesture manager setup
                 // Use reflection to set VirtualView directly
-                _logger.Debug(ex, "SetVirtualView failed (expected in headless mode) - using reflection fallback");
+                logger.Debug(ex, "SetVirtualView failed (expected in headless mode) - using reflection fallback");
                 var virtualViewField = typeof(Microsoft.Maui.Handlers.ElementHandler).GetField("_virtualView",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 virtualViewField?.SetValue(handler, mediaElement);
@@ -234,24 +240,24 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             catch (Exception ex)
             {
                 // Gesture manager setup may fail - use reflection fallback
-                _logger.Debug(ex, "Failed to set handler via property (expected in headless mode) - using reflection fallback");
+                logger.Debug(ex, "Failed to set handler via property (expected in headless mode) - using reflection fallback");
                 var handlerField = typeof(Microsoft.Maui.Controls.Element).GetField("_handler",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 handlerField?.SetValue(mediaElement, handler);
             }
 
             // Mark handler as created to prevent duplicate ExoPlayer creation
-            lock (_lockObject)
+            lock (lockObject)
             {
-                _handlerCreated = true;
-                _globalHandlerCreated = true; // STATIC flag prevents creation across entire app
+                handlerCreated = true;
+                globalHandlerCreated = true; // STATIC flag prevents creation across entire app
             }
 
-            _logger.Information("MediaElement handler created successfully for headless Android operation");
+            logger.Information("MediaElement handler created successfully for headless Android operation");
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Failed to create MediaElement handler - handler will be created when Source is set");
+            logger.Warning(ex, "Failed to create MediaElement handler - handler will be created when Source is set");
         }
     }
 #endif
@@ -269,17 +275,17 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         try
         {
             // Pass shouldRetry=false to avoid blocking when navigation is not available (e.g., app is backgrounded)
-            var bootstrapPage = _navigationService.GetBootstrapPage(shouldRetry: false);
+            var bootstrapPage = navigationService.GetBootstrapPage(shouldRetry: false);
             if (bootstrapPage == null)
             {
-                _logger.Debug("BootstrapPage not available - MediaElement will work without UI container (background mode)");
+                logger.Debug("BootstrapPage not available - MediaElement will work without UI container (background mode)");
                 return;
             }
 
             var mediaElementContainer = bootstrapPage.MediaElementContainerInstance;
             if (mediaElementContainer == null)
             {
-                _logger.Warning("MediaElementContainerInstance is null on BootstrapPage");
+                logger.Warning("MediaElementContainerInstance is null on BootstrapPage");
                 return;
             }
 
@@ -301,7 +307,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warning(ex, "Failed to attach MediaElement to container on main thread");
+                        logger.Warning(ex, "Failed to attach MediaElement to container on main thread");
                     }
                 });
             }
@@ -309,7 +315,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         catch (Exception ex)
         {
             // Log but don't fail - MediaElement can work without UI container
-            _logger.Warning(ex, "Failed to attach MediaElement to BootstrapPage - MediaElement will work without UI container");
+            logger.Warning(ex, "Failed to attach MediaElement to BootstrapPage - MediaElement will work without UI container");
         }
     }
 
@@ -324,7 +330,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             // If the handler is null or disposed, the MauiContext is no longer available
             if (mediaElementContainer.Handler == null)
             {
-                _logger.Debug("MediaElementContainer handler is null - container may be disposed, skipping attachment");
+                logger.Debug("MediaElementContainer handler is null - container may be disposed, skipping attachment");
                 return;
             }
 
@@ -335,7 +341,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
                 var mauiContext = mediaElementContainer.Handler.MauiContext;
                 if (mauiContext == null)
                 {
-                    _logger.Debug("MediaElementContainer MauiContext is null - container may be disposed, skipping attachment");
+                    logger.Debug("MediaElementContainer MauiContext is null - container may be disposed, skipping attachment");
                     return;
                 }
 
@@ -345,14 +351,14 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             }
             catch (ObjectDisposedException)
             {
-                _logger.Debug("MediaElementContainer MauiContext is disposed - skipping attachment");
+                logger.Debug("MediaElementContainer MauiContext is disposed - skipping attachment");
                 return;
             }
 
             // Only attach if not already attached - prevents re-attachment and potential circular calls
             if (mediaElementContainer.Content != mediaElement)
             {
-                _logger.Debug("Attaching MediaElement to BootstrapPage container");
+                logger.Debug("Attaching MediaElement to BootstrapPage container");
 
                 // Wrap in try-catch because setting Content might fail if MauiContext is disposed
                 // This can happen if the page was disposed between getting the reference and setting Content
@@ -362,22 +368,22 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    _logger.Warning(ex, "MediaElementContainer MauiContext was disposed while setting Content - MediaElement will work without UI container");
+                    logger.Warning(ex, "MediaElementContainer MauiContext was disposed while setting Content - MediaElement will work without UI container");
                     return;
                 }
             }
             else
             {
-                _logger.Debug("MediaElement already attached to BootstrapPage container - skipping");
+                logger.Debug("MediaElement already attached to BootstrapPage container - skipping");
             }
         }
         catch (ObjectDisposedException ex)
         {
-            _logger.Warning(ex, "MediaElementContainer or its context is disposed - skipping attachment");
+            logger.Warning(ex, "MediaElementContainer or its context is disposed - skipping attachment");
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Error attaching MediaElement to container - MediaElement will work without UI container");
+            logger.Warning(ex, "Error attaching MediaElement to container - MediaElement will work without UI container");
         }
     }
 
@@ -389,12 +395,12 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     {
 #if !ANDROID
         // Android: Skip UI attachment - MediaElement runs headlessly
-        lock (_lockObject)
+        lock (lockObject)
         {
-            if (_mediaElementInstance != null)
+            if (mediaElementInstance != null)
             {
-                _logger.Information("Reattaching MediaElement to BootstrapPage container");
-                TryAttachToBootstrapPage(_mediaElementInstance);
+                logger.Information("Reattaching MediaElement to BootstrapPage container");
+                TryAttachToBootstrapPage(mediaElementInstance);
             }
         }
 #endif
@@ -420,108 +426,110 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     private void DestroyMediaElement()
     {
         // Use local lock to synchronize with GetMediaElement
-        lock (_lockObject)
+        lock (lockObject)
         {
             try
             {
                 // First, detach MediaElement from UI container (iOS/Windows) before disposing
                 // This ensures proper cleanup order
-                if (_mediaElementInstance != null)
+                if (mediaElementInstance != null)
                 {
 #if !ANDROID
                     // Detach from BootstrapPage container if attached (iOS/Windows only)
-                    var bootstrapPage = _navigationService.GetBootstrapPage(shouldRetry: false);
+                    var bootstrapPage = navigationService.GetBootstrapPage(shouldRetry: false);
                     if (bootstrapPage != null)
                     {
                         var mediaElementContainer = bootstrapPage.MediaElementContainerInstance;
-                        if (mediaElementContainer != null && mediaElementContainer.Content == _mediaElementInstance)
+                        if (mediaElementContainer != null && mediaElementContainer.Content == mediaElementInstance)
                         {
                             mediaElementContainer.Content = null;
-                            _logger.Information("MediaElement detached from BootstrapPage container");
+                            logger.Information("MediaElement detached from BootstrapPage container");
                         }
                     }
 #endif
                 }
 
                 // Now dispose the stored MediaElement instance
-                if (_mediaElementInstance != null)
+                if (mediaElementInstance != null)
                 {
-                    _logger.Information("Disposing MediaElement instance");
+                    logger.Information("Disposing MediaElement instance");
 
                     // Clear handler reference before disposing MediaElement
                     // This ensures handler is properly cleaned up
                     // CRITICAL: Call Dispose() directly instead of DisconnectHandler() because
                     // DisconnectHandler() override may not be called in headless mode when PlatformView is null.
                     // Direct disposal bypasses the DisconnectHandler issue and ensures cleanup happens.
-                    if (_mediaElementInstance.Handler != null)
+                    if (mediaElementInstance.Handler != null)
                     {
                         try
                         {
-                            if (_mediaElementInstance.Handler is IDisposable disposableHandler)
+                            if (mediaElementInstance.Handler is IDisposable disposableHandler)
                             {
                                 // Prefer disconnect first to allow MediaElementHandler to detach Media3 listeners cleanly.
                                 // Direct disposal here can lead to Media3 callbacks firing into disposed managed peers.
                                 try
                                 {
-                                    _mediaElementInstance.Handler.DisconnectHandler();
-                                    _logger.Debug("Handler disconnected via DisconnectHandler()");
+                                    mediaElementInstance.Handler.DisconnectHandler();
+                                    logger.Debug("Handler disconnected via DisconnectHandler()");
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.Debug(ex, "DisconnectHandler threw; continuing with handler disposal (best-effort)");
+                                    logger.Debug(ex, "DisconnectHandler threw; continuing with handler disposal (best-effort)");
                                 }
 
                                 disposableHandler.Dispose();
-                                _logger.Debug("Handler disposed");
+                                logger.Debug("Handler disposed");
                             }
                             else
                             {
                                 // Fallback to DisconnectHandler if handler doesn't implement IDisposable
-                                _mediaElementInstance.Handler.DisconnectHandler();
-                                _logger.Debug("Handler disconnected via DisconnectHandler()");
+                                mediaElementInstance.Handler.DisconnectHandler();
+                                logger.Debug("Handler disconnected via DisconnectHandler()");
                             }
-                            _mediaElementInstance.Handler = null;
+                            mediaElementInstance.Handler = null;
 
                             // Reset handler created flag so a new one can be created later
-                            _handlerCreated = false;
-                            _globalHandlerCreated = false; // Reset STATIC flag
+#if ANDROID
+                            handlerCreated = false;
+                            globalHandlerCreated = false; // Reset STATIC flag
+#endif
                         }
                         catch (Exception handlerEx)
                         {
-                            _logger.Warning(handlerEx, "Error disposing handler during MediaElement disposal");
+                            logger.Warning(handlerEx, "Error disposing handler during MediaElement disposal");
                         }
                     }
 
-                    if (_mediaElementInstance is IDisposable disposable)
+                    if (mediaElementInstance is IDisposable disposable)
                     {
                         disposable.Dispose();
                     }
-                    _mediaElementInstance = null;
+                    mediaElementInstance = null;
                 }
             }
             catch (Exception ex)
             {
                 // Log error but don't crash - MediaElement will be recreated when needed
-                _logger.Error(ex, "Error disposing MediaElement");
+                logger.Error(ex, "Error disposing MediaElement");
             }
         }
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<DestroyMediaElementMessage>(this);
 
-        // All injected services (_navigationService) are singletons, so don't dispose them
+        // All injected services (navigationService) are singletons, so don't dispose them
     }
 }
 

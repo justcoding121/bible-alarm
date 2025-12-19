@@ -10,7 +10,7 @@ public partial class BibleSelection : BaseContentPage, IDisposable
     private readonly BibleSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
-    public BibleSelectionViewModel ViewModel => BindingContext as BibleSelectionViewModel;
+    public BibleSelectionViewModel? ViewModel => BindingContext as BibleSelectionViewModel;
 
     public BibleSelection(BibleSelectionViewModel viewModel)
     {
@@ -24,7 +24,7 @@ public partial class BibleSelection : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 
@@ -43,7 +43,7 @@ public partial class BibleSelection : BaseContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        ViewModel.BackCommand.Execute(null);
+        viewModel.BackCommand.Execute(null);
         return true;
     }
 

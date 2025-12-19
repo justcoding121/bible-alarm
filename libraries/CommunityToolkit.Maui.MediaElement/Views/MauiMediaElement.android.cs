@@ -41,6 +41,20 @@ public class MauiMediaElement : CoordinatorLayout
 	}
 
 	/// <summary>
+	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class for headless mode (no UI).
+	/// </summary>
+	/// <param name="context">The application's <see cref="Context"/>.</param>
+	public MauiMediaElement(Context context) : base(context)
+	{
+		// Headless mode - no PlayerView needed
+		relativeLayout = null;
+		playerView = null;
+		defaultSystemUiVisibility = 0;
+		isSystemBarVisible = false;
+		isFullScreen = false;
+	}
+
+	/// <summary>
 	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class.
 	/// </summary>
 	/// <param name="context">The application's <see cref="Context"/>.</param>

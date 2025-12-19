@@ -8,7 +8,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
     private bool _isDisposed;
     private readonly SongBookSelectionViewModel _viewModel;
 
-    public SongBookSelectionViewModel ViewModel => BindingContext as SongBookSelectionViewModel;
+    public SongBookSelectionViewModel? ViewModel => BindingContext as SongBookSelectionViewModel;
 
     public SongBookSelection(SongBookSelectionViewModel viewModel)
     {
@@ -22,7 +22,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        ViewModel.BackCommand.Execute(null);
+        _viewModel.BackCommand.Execute(null);
         return true;
     }
 
