@@ -411,7 +411,7 @@ public sealed class MediaSessionManager
             // IMPORTANT:
             // When switching schedules, Android Auto will otherwise keep showing the previous schedule's
             // title/artwork until the new track's metadata arrives. Force the UI into a neutral state
-            // (art-only, no text) during buffering.
+            // (no artwork, no text) during buffering - shows "Tap to play" message.
             AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, global::Android.App.Application.Context);
 
             // Disable all controls while buffering so AA doesn't show tappable UI.

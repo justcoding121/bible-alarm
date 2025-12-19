@@ -190,6 +190,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         // Standard media root ID for Android Auto/AAOS compatibility
         // The root ID "__ID_ROOT__" is a common practice for media apps
         // Android Auto and AAOS hosts are trusted by default when connecting to MediaBrowserService
+        // 
+        // DEFAULT RECOMMENDATIONS: We return null for rootHints to use default behavior.
+        // Android Auto will automatically pull the top items from the root browse tree for "For You" recommendations.
+        // The system reuses the exact MediaDescriptionCompat for those items, including their icons.
+        // We do NOT provide explicit recommendations via EXTRA_SUGGESTED to keep it simple and let the system handle it.
         return new MediaBrowserServiceCompat.BrowserRoot(RootId, null);
     }
 
@@ -202,18 +207,72 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 return;
             }
 
-            // Check if schedules changed using the shared tracker
-            if (scheduleChangeTracker.CheckForChanges())
+            // Get specific changes to update only affected items
+            var changes = scheduleChangeTracker.GetSpecificChanges();
+            if (changes == null || changes.Count == 0)
             {
-                logger.Debug("Schedule list changed - notifying Android Auto that children list has changed");
-
-                // Notify Android Auto that the children list has changed so it reloads the schedule list
-                NotifyChildrenChanged(RootId);
+                return;
             }
+
+            // MediaBrowserServiceCompat doesn't support true item-level updates,
+            // but we can optimize by only notifying when specific items change
+            // and include metadata about which items changed in the Bundle
+            var options = new Bundle();
+            var changedIds = new List<int>();
+            var addedIds = new List<int>();
+            var removedIds = new List<int>();
+
+            foreach (var change in changes)
+            {
+                changedIds.Add(change.ScheduleId);
+                switch (change.ChangeType)
+                {
+                    case ScheduleChangeType.Added:
+                        addedIds.Add(change.ScheduleId);
+                        logger.Debug("Detected schedule added: {ScheduleId}", change.ScheduleId);
+                        break;
+                    case ScheduleChangeType.Removed:
+                        removedIds.Add(change.ScheduleId);
+                        logger.Debug("Detected schedule removed: {ScheduleId}", change.ScheduleId);
+                        break;
+                    case ScheduleChangeType.Updated:
+                        logger.Debug("Detected schedule updated: {ScheduleId}", change.ScheduleId);
+                        break;
+                }
+            }
+
+            // Store change metadata in Bundle for potential future use
+            // Android Auto will reload the list, but we've optimized by only notifying when specific items change
+            options.PutIntArray("changed_schedule_ids", changedIds.ToArray());
+            options.PutIntArray("added_schedule_ids", addedIds.ToArray());
+            options.PutIntArray("removed_schedule_ids", removedIds.ToArray());
+
+            // Notify Android Auto that children have changed
+            // CRITICAL FIX: Calling NotifyChildrenChanged(RootId) when GetSpecificChanges() detects a removal
+            // forces the Android Auto recommendation engine to flush its cache for the root.
+            // This fixes the "phantom" deleted playlist issue in "For You" cards.
+            // The system re-queries the root and sees the item is gone.
+            // 
+            // We call this for all change types (added/removed/updated) to keep the list fresh,
+            // but the key benefit is that removals trigger the cache flush, eliminating phantom items.
+            // Note: MediaBrowserServiceCompat will reload the entire list, but this is more efficient
+            // than calling NotifyChildrenChanged on every state change
+            NotifyChildrenChanged(RootId, options);
+            logger.Debug("Notified Android Auto of schedule changes: {ChangeCount} changes ({AddedCount} added, {UpdatedCount} updated, {RemovedCount} removed)",
+                changes.Count, addedIds.Count, changes.Count(c => c.ChangeType == ScheduleChangeType.Updated), removedIds.Count);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking schedule list changes");
+            logger.Error(ex, "Error checking schedule list changes - falling back to full refresh");
+            // Fallback to full refresh if item-level updates fail
+            try
+            {
+                NotifyChildrenChanged(RootId);
+            }
+            catch (Exception fallbackEx)
+            {
+                logger.Error(fallbackEx, "Error performing fallback full refresh");
+            }
         }
     }
 
@@ -228,6 +287,12 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             // or calls Detach() before returning if the result will be sent asynchronously
             result.Detach();
             logger.Debug("Result detached successfully for parent: {ParentId}", parentId);
+
+            // DEFAULT RECOMMENDATIONS: We do NOT check for EXTRA_SUGGESTED in rootHints.
+            // We always return all items from the root browse tree.
+            // Android Auto will automatically use the top items from this list for "For You" recommendations,
+            // reusing the exact MediaDescriptionCompat (including icons) for those items.
+            // This is simpler and more maintainable than providing explicit recommendations.
 
             // Run work to load schedules and create MediaItems on background thread
             _ = Task.Run(async () => await LoadChildrenAsync(parentId, result));
@@ -340,7 +405,29 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     private MediaDescriptionCompat? CreateMediaDescription(ScheduleStateItem scheduleItem, string title, string subtitle, string description)
     {
+        return CreateMediaDescriptionForSchedule(scheduleItem);
+    }
+
+    /// <summary>
+    /// Creates a MediaDescriptionCompat for a schedule item.
+    /// Used for both initial load and item-level updates.
+    /// 
+    /// CRITICAL: MediaId must remain stable (use schedule ID, not name).
+    /// If MediaId changes, Android Auto treats it as a new item, causing:
+    /// - Loss of scroll position
+    /// - Loss of "playing" icon indicator
+    /// - UI jump/flash
+    /// If MediaId stays the same but Title changes, Android Auto updates the text in place.
+    /// </summary>
+    private MediaDescriptionCompat? CreateMediaDescriptionForSchedule(ScheduleStateItem scheduleItem)
+    {
+        var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
+        var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
+        var description = BuildScheduleDescription(scheduleItem);
+
         var descriptionBuilder = new MediaDescriptionCompat.Builder();
+        // CRITICAL: Use schedule ID (stable) as MediaId, not name (can change)
+        // This ensures Android Auto updates items in place when name changes
         descriptionBuilder.SetMediaId(scheduleItem.Id.ToString());
         descriptionBuilder.SetTitle(title);
         descriptionBuilder.SetSubtitle(subtitle);

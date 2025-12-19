@@ -7,6 +7,26 @@ using Serilog;
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
 /// <summary>
+/// Represents a specific change to a schedule in the Android Auto list.
+/// </summary>
+public enum ScheduleChangeType
+{
+    Added,
+    Removed,
+    Updated
+}
+
+/// <summary>
+/// Represents a specific schedule change detected by the tracker.
+/// </summary>
+public class ScheduleChange
+{
+    public ScheduleChangeType ChangeType { get; set; }
+    public int ScheduleId { get; set; }
+    public ScheduleStateItem? Schedule { get; set; }
+}
+
+/// <summary>
 /// Helper class to track schedule changes for Android Auto services.
 /// Detects when schedules are added, removed, or their properties change.
 /// </summary>
@@ -57,6 +77,85 @@ public class AndroidAutoScheduleChangeTracker
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Detects specific schedule changes (added, removed, or updated) and returns a list of changes.
+    /// Returns null if no changes detected, or an empty list if changes detected but couldn't determine specifics.
+    /// </summary>
+    public List<ScheduleChange>? GetSpecificChanges()
+    {
+        if (_applicationState?.Value?.Schedules == null)
+        {
+            return null;
+        }
+
+        var currentSchedules = _applicationState.Value.Schedules;
+        var currentScheduleCount = currentSchedules.Count;
+        var currentSignatures = BuildScheduleSignatures(currentSchedules);
+
+        // If count hasn't changed and signatures are equal, no changes
+        if (_lastScheduleCount == currentScheduleCount && AreSignaturesEqual(_lastScheduleSignatures, currentSignatures))
+        {
+            return null;
+        }
+
+        var changes = new List<ScheduleChange>();
+
+        // Find added schedules (in current but not in last)
+        foreach (var schedule in currentSchedules)
+        {
+            if (!_lastScheduleSignatures.ContainsKey(schedule.Id))
+            {
+                changes.Add(new ScheduleChange
+                {
+                    ChangeType = ScheduleChangeType.Added,
+                    ScheduleId = schedule.Id,
+                    Schedule = schedule
+                });
+                logger.Debug("Detected schedule added: {ScheduleId}", schedule.Id);
+            }
+        }
+
+        // Find removed schedules (in last but not in current)
+        foreach (var kvp in _lastScheduleSignatures)
+        {
+            if (!currentSignatures.ContainsKey(kvp.Key))
+            {
+                changes.Add(new ScheduleChange
+                {
+                    ChangeType = ScheduleChangeType.Removed,
+                    ScheduleId = kvp.Key,
+                    Schedule = null
+                });
+                logger.Debug("Detected schedule removed: {ScheduleId}", kvp.Key);
+            }
+        }
+
+        // Find updated schedules (in both but signature changed)
+        foreach (var kvp in currentSignatures)
+        {
+            if (_lastScheduleSignatures.TryGetValue(kvp.Key, out var oldSignature) && oldSignature != kvp.Value)
+            {
+                var schedule = currentSchedules.FirstOrDefault(s => s.Id == kvp.Key);
+                if (schedule != null)
+                {
+                    changes.Add(new ScheduleChange
+                    {
+                        ChangeType = ScheduleChangeType.Updated,
+                        ScheduleId = kvp.Key,
+                        Schedule = schedule
+                    });
+                    logger.Debug("Detected schedule updated: {ScheduleId}", kvp.Key);
+                }
+            }
+        }
+
+        // Update tracked state
+        _lastScheduleCount = currentScheduleCount;
+        _lastScheduleSignatures = currentSignatures;
+
+        return changes;
     }
 
     /// <summary>

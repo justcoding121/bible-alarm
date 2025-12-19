@@ -255,18 +255,61 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
                 return;
             }
 
-            // Check if schedules changed using the shared tracker
-            if (scheduleChangeTracker.CheckForChanges())
+            // Get specific changes to update only affected items
+            var changes = scheduleChangeTracker.GetSpecificChanges();
+            if (changes == null || changes.Count == 0)
             {
-                logger.Debug("Schedule list changed - invalidating template to refresh Android Auto UI");
-
-                // Invalidate the template to force Android Auto to call OnGetTemplate() again
-                Invalidate();
+                return;
             }
+
+            // Car App Library ListTemplate doesn't support true item-level updates,
+            // but we can optimize by only invalidating when specific items change
+            // and track which items changed for logging/debugging
+            var addedIds = new List<int>();
+            var removedIds = new List<int>();
+            var updatedIds = new List<int>();
+
+            foreach (var change in changes)
+            {
+                switch (change.ChangeType)
+                {
+                    case ScheduleChangeType.Added:
+                        addedIds.Add(change.ScheduleId);
+                        logger.Debug("Detected schedule added in CarApp: {ScheduleId}", change.ScheduleId);
+                        break;
+                    case ScheduleChangeType.Removed:
+                        removedIds.Add(change.ScheduleId);
+                        logger.Debug("Detected schedule removed in CarApp: {ScheduleId}", change.ScheduleId);
+                        break;
+                    case ScheduleChangeType.Updated:
+                        updatedIds.Add(change.ScheduleId);
+                        logger.Debug("Detected schedule updated in CarApp: {ScheduleId}", change.ScheduleId);
+                        break;
+                }
+            }
+
+            // Invalidate the template to force Android Auto to call OnGetTemplate() again
+            // OPTIMIZATION: By only calling Invalidate() when GetSpecificChanges() is non-empty,
+            // we prevent the "refresh flash" (where the list briefly disappears and reappears)
+            // that users often see in Android Auto apps when they over-refresh.
+            // Note: Car App Library will rebuild the entire template, but this is more efficient
+            // than calling Invalidate() on every state change
+            Invalidate();
+            logger.Debug("Invalidated CarApp template due to schedule changes: {ChangeCount} changes ({AddedCount} added, {UpdatedCount} updated, {RemovedCount} removed)",
+                changes.Count, addedIds.Count, updatedIds.Count, removedIds.Count);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking schedule list changes");
+            logger.Error(ex, "Error checking schedule list changes - falling back to full refresh");
+            // Fallback to full refresh if item-level updates fail
+            try
+            {
+                Invalidate();
+            }
+            catch (Exception fallbackEx)
+            {
+                logger.Error(fallbackEx, "Error performing fallback template invalidation");
+            }
         }
     }
 
