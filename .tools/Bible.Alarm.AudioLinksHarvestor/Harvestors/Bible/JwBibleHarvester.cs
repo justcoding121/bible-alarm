@@ -38,10 +38,6 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             {
                 continue;
             }
-            catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
-            {
-                continue;
-            }
             catch (Exception ex)
             {
                 logger.Error(ex, "Failed to discover languages for publication {PublicationCode} ({PublicationName}). Skipping.", publicationCode, publication.Value);
@@ -248,10 +244,9 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 doc?.Dispose();
             }
 
-            if (harvestLink.Contains("booknum="))
-            {
-                bookNumber++;
-            }
+            // Always increment bookNumber at the end of each iteration
+            // harvestLink always contains "booknum=" so the condition was redundant
+            bookNumber++;
 
             harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
         }

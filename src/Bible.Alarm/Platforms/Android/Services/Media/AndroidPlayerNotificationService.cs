@@ -42,8 +42,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
         try
         {
             // Get ExoPlayer instance and cast to IExoPlayer interface
-            var player = GetExoPlayer(mediaElement) as IExoPlayer;
-            if (player == null)
+            if (GetExoPlayer(mediaElement) is not IExoPlayer player)
             {
                 logger.Error("Failed to get ExoPlayer instance");
                 return;
@@ -65,10 +64,11 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
             var sources = new List<IMediaSource>();
 
             // Create current item (always needed)
-            var currentItemBuilder = new MediaItem.Builder();
-            currentItemBuilder.SetUri(androidUri!);
-            currentItemBuilder.SetMediaId("bible_alarm_current");
-            var currentItem = currentItemBuilder.Build();
+            var currentItemBuilder = new MediaItem.Builder()
+                .SetUri(androidUri!)?
+                .SetMediaId("bible_alarm_current");
+
+            var currentItem = currentItemBuilder?.Build();
             if (currentItem == null)
             {
                 logger.Error("Failed to build MediaItem for current item");
@@ -185,10 +185,10 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
             return null;
         }
 
-        var dummyItemBuilder = new MediaItem.Builder();
-        dummyItemBuilder.SetUri(dummyUri);
-        dummyItemBuilder.SetMediaId(mediaId);
-        var dummyItem = dummyItemBuilder.Build();
+        var dummyItemBuilder = new MediaItem.Builder()
+                .SetUri(dummyUri)?
+                .SetMediaId(mediaId);
+        var dummyItem = dummyItemBuilder?.Build();
         if (dummyItem == null)
         {
             logger.Error("Failed to build MediaItem for dummy item with MediaId: {MediaId}", mediaId);
@@ -354,7 +354,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
                     var removeMethod = currentPlayer.GetType().GetMethod("RemoveListener", [typeof(IPlayerListener)]);
                     if (removeMethod != null)
                     {
-                        removeMethod.Invoke(currentPlayer, [exoPlayerListener]);
+                        _ = removeMethod.Invoke(currentPlayer, [exoPlayerListener]);
                         logger.Debug("Removed ExoPlayer listener from player");
                     }
                 }
@@ -409,13 +409,13 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
 
             // Create and add new listener
             currentPlayer = player;
-            exoPlayerListener = new ExoPlayerListener(this, logger);
+            exoPlayerListener = new ExoPlayerListener(logger);
 
             // Use reflection to call AddListener with IPlayerListener parameter
             var addMethod = player.GetType().GetMethod("AddListener", [typeof(IPlayerListener)]);
             if (addMethod != null)
             {
-                addMethod.Invoke(player, [exoPlayerListener]);
+                _ = addMethod.Invoke(player, [exoPlayerListener]);
                 logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
             }
             else
@@ -433,7 +433,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     /// Sends NextButtonPressedMessage via Messenger.
     /// Simply sends the message - let PlaybackService handle the state management.
     /// </summary>
-    internal void OnNextButtonPressed() =>
+    internal static void OnNextButtonPressed() =>
         // Just send the message - don't try to manipulate ExoPlayer here
         // PlaybackService will handle stopping and preparing the next track
         WeakReferenceMessenger.Default.Send(new NextButtonPressedMessage());
@@ -442,7 +442,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     /// Sends PreviousButtonPressedMessage via Messenger.
     /// Simply sends the message - let PlaybackService handle the state management.
     /// </summary>
-    internal void OnPreviousButtonPressed() =>
+    internal static void OnPreviousButtonPressed() =>
         // Just send the message - don't try to manipulate ExoPlayer here
         // PlaybackService will handle stopping and preparing the previous track
         WeakReferenceMessenger.Default.Send(new PreviousButtonPressedMessage());
@@ -466,10 +466,10 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
 
             // Add a small delay to ensure MediaElement has finished its internal stopping process
             // This helps ensure the notification is in a stable state before we try to remove it
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 await Task.Delay(100);
-                await MainThread.InvokeOnMainThreadAsync(async () => await ReleaseMediaSessionInternalAsync(mediaElement));
+                await MainThread.InvokeOnMainThreadAsync(async () => await ReleaseMediaSessionInternalAsync());
             });
         }
         catch (Exception ex)
@@ -484,7 +484,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     /// This method focuses on Android-specific cleanup: removing ExoPlayer listener and canceling notifications.
     /// MediaElement 7.0.0 on Android uses notification ID = 1 (confirmed from MediaControlsService.android.cs source code).
     /// </summary>
-    private async Task ReleaseMediaSessionInternalAsync(MediaElement mediaElement)
+    private async Task ReleaseMediaSessionInternalAsync()
     {
         try
         {
@@ -496,7 +496,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
             // 3. Send message to MediaElementService to destroy MediaElement and disconnect handler
             // MediaElementService.DestroyMediaElement() will handle handler disconnect and disposal
             // This centralizes MediaElement lifecycle management in one place
-            WeakReferenceMessenger.Default.Send(new DestroyMediaElementMessage());
+            _ = WeakReferenceMessenger.Default.Send(new DestroyMediaElementMessage());
             logger.Information("Sent DestroyMediaElementMessage - MediaElementService will handle handler disconnect and disposal");
         }
         catch (Exception ex)
@@ -536,7 +536,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     /// ExoPlayer listener that intercepts Next/Previous button presses from system controls.
     /// Implements IPlayerListener interface (7.0.0 compatible).
     /// </summary>
-    private class ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger) : Object, IPlayerListener
+    private class ExoPlayerListener(ILogger logger) : Object, IPlayerListener
     {
         private DateTime lastButtonPressTime = DateTime.MinValue;
         private string? lastMediaId;
@@ -589,12 +589,12 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
                     if (mediaId == "bible_alarm_next_dummy")
                     {
                         logger.Information("NEXT BUTTON PRESSED — BLOCKING DUMMY TRACK");
-                        parent.OnNextButtonPressed();
+                        OnNextButtonPressed();
                     }
                     else if (mediaId == "bible_alarm_previous_dummy")
                     {
                         logger.Information("PREVIOUS BUTTON PRESSED — BLOCKING DUMMY TRACK");
-                        parent.OnPreviousButtonPressed();
+                        OnPreviousButtonPressed();
                     }
                 }
                 else if (reason == AutomaticTransitionReason
@@ -606,7 +606,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
                     }
 
                     logger.Information("AUTOMATIC TRANSITION - BLOCKING DUMMY NEXT TRACK");
-                    parent.OnNextButtonPressed();
+                    OnNextButtonPressed();
                 }
             }
         }

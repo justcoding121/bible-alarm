@@ -226,10 +226,17 @@ public static class CollectionViewHelper
             // Handle IEnumerable - check if it has any items
             if (itemsSource is IEnumerable enumerable)
             {
-                foreach (var _ in enumerable)
+                var enumerator = enumerable.GetEnumerator();
+                try
                 {
-                    // At least one item exists
-                    return true;
+                    return enumerator.MoveNext();
+                }
+                finally
+                {
+                    if (enumerator is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                    }
                 }
             }
         }

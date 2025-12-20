@@ -236,34 +236,41 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
     }
 
-    public async override void PerformFetch(UIApplication application,
+    public override void PerformFetch(UIApplication application,
         Action<UIBackgroundFetchResult> completionHandler)
     {
-        var downloaded = false;
-
-        try
+        // Use Task.Run to handle async operations without async void
+        // The base class requires void return type, so we can't use async Task
+        _ = Task.Run(async () =>
         {
-            // Ensure MauiApp is created exactly once (thread-safe)
-            // This is the iOS background fetch entry point for scheduler only
-            // Media index update is handled separately via UpdateMediaIndexBackgroundTask
-            MauiAppHolder.CreateAndStore();
-            // Run bootstrapper after CreateAndStore for background launch
-            MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+            var downloaded = false;
 
-            // Wait for bootstrap to complete before using database services
-            await MauiProgram.WaitForBootstrapAsync();
+            try
+            {
+                // Ensure MauiApp is created exactly once (thread-safe)
+                // This is the iOS background fetch entry point for scheduler only
+                // Media index update is handled separately via UpdateMediaIndexBackgroundTask
+                MauiAppHolder.CreateAndStore();
+                // Run bootstrapper after CreateAndStore for background launch
+                MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
 
-            // ISchedulerService is a singleton, so don't dispose it
-            var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
-            downloaded = await schedulerService.HandleAsync();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "An error occurred in doing perform fetch task.");
-        }
+                // Wait for bootstrap to complete before using database services
+                await MauiProgram.WaitForBootstrapAsync();
 
-        // Inform system of fetch results
-        completionHandler(downloaded ? UIBackgroundFetchResult.NewData : UIBackgroundFetchResult.NoData);
+                // ISchedulerService is a singleton, so don't dispose it
+                var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
+                downloaded = await schedulerService.HandleAsync();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "An error occurred in doing perform fetch task.");
+            }
+            finally
+            {
+                // Inform system of fetch results
+                completionHandler(downloaded ? UIBackgroundFetchResult.NewData : UIBackgroundFetchResult.NoData);
+            }
+        });
     }
 
     private const string MediaIndexUpdateTaskIdentifier = "com.jthomas.info.Bible.Alarm.MediaIndexUpdate";

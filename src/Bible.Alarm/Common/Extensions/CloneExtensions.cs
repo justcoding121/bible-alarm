@@ -15,7 +15,7 @@ public static class CloneExtensions
 
     public static T DeepClone<T>(this T obj)
     {
-        if (obj == null)
+        if (EqualityComparer<T>.Default.Equals(obj, default(T)))
         {
             throw new ArgumentNullException(nameof(obj));
         }

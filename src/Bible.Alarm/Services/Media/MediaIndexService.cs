@@ -23,6 +23,7 @@ public sealed class MediaIndexService(
 
     private readonly SemaphoreSlim @lock = new(1);
     private static bool verified;
+    private static DateTime? appLaunchTime;
 
     // Polly retry policy for file operations that may fail due to file locking
     // Retries with exponential backoff to handle cases where database connections haven't fully closed
@@ -69,6 +70,21 @@ public sealed class MediaIndexService(
                 if (!BootstrapHelper.IsBootstrapCompleted())
                 {
                     logger.Debug("Skipping media index update - bootstrap not yet complete. Update will be handled by scheduled job.");
+                    return false;
+                }
+
+                // Do not update media index on app launch - prevent updates for 5 minutes after app launch
+                // This prevents automatic updates when scheduled jobs run immediately after bootstrap
+                if (appLaunchTime == null)
+                {
+                    appLaunchTime = DateTime.UtcNow;
+                }
+
+                var timeSinceLaunch = DateTime.UtcNow - appLaunchTime.Value;
+                if (timeSinceLaunch.TotalMinutes < 5)
+                {
+                    logger.Debug("Skipping media index update - app launched {Seconds} seconds ago. Update will be handled by scheduled job after launch period.", 
+                        timeSinceLaunch.TotalSeconds);
                     return false;
                 }
 

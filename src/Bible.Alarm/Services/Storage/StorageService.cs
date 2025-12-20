@@ -49,7 +49,7 @@ public abstract class StorageService : IStorageService, IDisposable
             await CreateDirectoryInternal(directoryPath);
         }
 
-        File.WriteAllText(Path.Combine(directoryPath, name), contents);
+        await File.WriteAllTextAsync(Path.Combine(directoryPath, name), contents);
     }
 
     public async Task SaveFile(string directoryPath, string name, byte[] contents)
@@ -59,7 +59,7 @@ public abstract class StorageService : IStorageService, IDisposable
             await CreateDirectoryInternal(directoryPath);
         }
 
-        File.WriteAllBytes(Path.Combine(directoryPath, name), contents);
+        await File.WriteAllBytesAsync(Path.Combine(directoryPath, name), contents);
     }
 
     public async Task CopyResourceFile(string resourceFileName,

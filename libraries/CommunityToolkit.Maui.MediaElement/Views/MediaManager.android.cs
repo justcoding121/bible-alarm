@@ -656,12 +656,8 @@ public partial class MediaManager : Object, IPlayerListener
 
 			if (stream is not null)
 			{
-				if (!contentLength.HasValue)
-				{
-					throw new InvalidOperationException($"{nameof(contentLength)} must be set when {nameof(stream)} is not null");
-				}
-
-				artworkData = new byte[contentLength.Value];
+				// contentLength is always set when stream is not null (set in the conditions above)
+				artworkData = new byte[contentLength!.Value];
 				using var memoryStream = new MemoryStream(artworkData);
 				await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
 			}
@@ -670,7 +666,7 @@ public partial class MediaManager : Object, IPlayerListener
 		}
 		catch (Exception e)
 		{
-			Trace.WriteLine($"Unable to retrieve {nameof(MediaElement.MetadataArtworkUrl)} for {url}.{e}\n");
+			System.Diagnostics.Debug.WriteLine($"Unable to retrieve {nameof(MediaElement.MetadataArtworkUrl)} for {url}.{e}\n");
 			return [];
 		}
 		finally

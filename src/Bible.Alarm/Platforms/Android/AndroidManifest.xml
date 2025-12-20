@@ -16,7 +16,7 @@
 	<!-- Remove deprecated permission if it exists in merged manifest -->
 	<uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" tools:node="remove" />
 	
-	<application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:label="Bible Alarm">
+	<application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:label="Bible Alarm" android:usesCleartextTraffic="false">
 		<!-- CRITICAL: Application-level legacy metadata for Android Auto discovery -->
 		<!-- This is required for Android Auto to discover and list the app -->
 		<!-- Spotify uses this approach - application-level metadata for discovery -->

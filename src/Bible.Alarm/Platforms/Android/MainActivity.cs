@@ -216,22 +216,26 @@ public class MainActivity : MauiAppCompatActivity
             if (outState != null)
             {
                 var keysToRemove = new List<string>();
-                foreach (var key in outState?.KeySet() ?? [])
+                var keySet = outState.KeySet();
+                if (keySet != null)
                 {
-                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
-                        key.Contains("androidx.lifecycle") || key.Contains("android:support")))
+                    foreach (var key in keySet)
                     {
-                        keysToRemove.Add(key);
+                        if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
+                            key.Contains("androidx.lifecycle") || key.Contains("android:support")))
+                        {
+                            keysToRemove.Add(key);
+                        }
                     }
-                }
-
-                foreach (var key in keysToRemove)
-                {
-                    outState?.Remove(key);
                 }
 
                 if (keysToRemove.Count > 0)
                 {
+                    foreach (var key in keysToRemove)
+                    {
+                        outState.Remove(key);
+                    }
+
                     logger.Information("Prevented saving {Count} fragment state keys to avoid NavigationRootManager crash", keysToRemove.Count);
                 }
             }

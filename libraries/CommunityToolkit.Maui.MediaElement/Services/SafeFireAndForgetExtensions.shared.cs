@@ -13,7 +13,7 @@ static class SafeFireAndForgetExtensions
 	/// <param name="continueOnCapturedContext">If set to <c>true</c>, continue on captured context; this will ensure that the Synchronization Context returns to the calling thread. If set to <c>false</c>, continue on a different context; this will allow the Synchronization Context to continue on a different thread</param>
 	public static void SafeFireAndForget(this ValueTask task, in Action<Exception>? onException = null, in bool continueOnCapturedContext = false)
 	{
-		HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
+		_ = HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
 	}
 
 	/// <summary>
@@ -25,7 +25,7 @@ static class SafeFireAndForgetExtensions
 	/// <typeparam name="T">The return value of the ValueTask.</typeparam>
 	public static void SafeFireAndForget<T>(this ValueTask<T> task, in Action<Exception>? onException = null, in bool continueOnCapturedContext = false)
 	{
-		HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
+		_ = HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
 	}
 
 	/// <summary>
@@ -37,7 +37,7 @@ static class SafeFireAndForgetExtensions
 	/// <typeparam name="TException">Exception type. If an exception is thrown of a different type, it will not be handled</typeparam>
 	public static void SafeFireAndForget<TException>(this ValueTask task, in Action<TException>? onException = null, in bool continueOnCapturedContext = false) where TException : Exception
 	{
-		HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
+		_ = HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
 	}
 
 	/// <summary>
@@ -50,7 +50,7 @@ static class SafeFireAndForgetExtensions
 	/// <typeparam name="TException">Exception type. If an exception is thrown of a different type, it will not be handled</typeparam>
 	public static void SafeFireAndForget<T, TException>(this ValueTask<T> task, in Action<TException>? onException = null, in bool continueOnCapturedContext = false) where TException : Exception
 	{
-		HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
+		_ = HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
 	}
 
 #if NET8_0_OR_GREATER
@@ -62,7 +62,7 @@ static class SafeFireAndForgetExtensions
 	/// <param name="configureAwaitOptions">Options to control behavior when awaiting</param>
 	public static void SafeFireAndForget(this Task task, in ConfigureAwaitOptions configureAwaitOptions, in Action<Exception>? onException = null)
 	{
-		HandleSafeFireAndForget(task, configureAwaitOptions, onException);
+		_ = HandleSafeFireAndForget(task, configureAwaitOptions, onException);
 	}
 
 	/// <summary>
@@ -74,7 +74,7 @@ static class SafeFireAndForgetExtensions
 	/// <typeparam name="TException">Exception type. If an exception is thrown of a different type, it will not be handled</typeparam>
 	public static void SafeFireAndForget<TException>(this Task task, in ConfigureAwaitOptions configureAwaitOptions, in Action<TException>? onException = null) where TException : Exception
 	{
-		HandleSafeFireAndForget(task, configureAwaitOptions, onException);
+		_ = HandleSafeFireAndForget(task, configureAwaitOptions, onException);
 	}
 #endif
 
@@ -86,7 +86,7 @@ static class SafeFireAndForgetExtensions
 	/// <param name="continueOnCapturedContext">If set to <c>true</c>, continue on captured context; this will ensure that the Synchronization Context returns to the calling thread. If set to <c>false</c>, continue on a different context; this will allow the Synchronization Context to continue on a different thread</param>
 	public static void SafeFireAndForget(this Task task, in Action<Exception>? onException = null, in bool continueOnCapturedContext = false)
 	{
-		HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
+		_ = HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
 	}
 
 	/// <summary>
@@ -98,10 +98,10 @@ static class SafeFireAndForgetExtensions
 	/// <typeparam name="TException">Exception type. If an exception is thrown of a different type, it will not be handled</typeparam>
 	public static void SafeFireAndForget<TException>(this Task task, in Action<TException>? onException = null, in bool continueOnCapturedContext = false) where TException : Exception
 	{
-		HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
+		_ = HandleSafeFireAndForget(task, continueOnCapturedContext, onException);
 	}
 
-	static async void HandleSafeFireAndForget<TException>(ValueTask valueTask, bool continueOnCapturedContext, Action<TException>? onException) where TException : Exception
+	static async Task HandleSafeFireAndForget<TException>(ValueTask valueTask, bool continueOnCapturedContext, Action<TException>? onException) where TException : Exception
 	{
 		try
 		{
@@ -113,7 +113,7 @@ static class SafeFireAndForgetExtensions
 		}
 	}
 
-	static async void HandleSafeFireAndForget<T, TException>(ValueTask<T> valueTask, bool continueOnCapturedContext, Action<TException>? onException) where TException : Exception
+	static async Task HandleSafeFireAndForget<T, TException>(ValueTask<T> valueTask, bool continueOnCapturedContext, Action<TException>? onException) where TException : Exception
 	{
 		try
 		{
@@ -125,7 +125,7 @@ static class SafeFireAndForgetExtensions
 		}
 	}
 
-	static async void HandleSafeFireAndForget<TException>(Task task,
+	static async Task HandleSafeFireAndForget<TException>(Task task,
 															bool continueOnCapturedContext,
 															Action<TException>? onException) where TException : Exception
 	{
@@ -140,7 +140,7 @@ static class SafeFireAndForgetExtensions
 	}
 
 #if NET8_0_OR_GREATER
-	static async void HandleSafeFireAndForget<TException>(Task task, ConfigureAwaitOptions configureAwaitOptions, Action<TException>? onException) where TException : Exception
+	static async Task HandleSafeFireAndForget<TException>(Task task, ConfigureAwaitOptions configureAwaitOptions, Action<TException>? onException) where TException : Exception
 	{
 		try
 		{

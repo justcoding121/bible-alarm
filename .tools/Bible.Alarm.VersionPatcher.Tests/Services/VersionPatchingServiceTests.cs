@@ -77,8 +77,9 @@ public class VersionPatchingServiceTests
         var service = new VersionPatchingService(emptyPatchers);
 
         // Act
-        await service.PatchAllPlatformsAsync();
+        var act = async () => await service.PatchAllPlatformsAsync();
 
         // Assert - Should complete without throwing
+        await act.Should().NotThrowAsync();
     }
 }

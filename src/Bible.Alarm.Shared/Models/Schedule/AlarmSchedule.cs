@@ -188,8 +188,9 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("Bible translation not found for sample schedule");
         }
 
-        var rnd = new Random();
-        var book = bible.Books[rnd.Next() % bible.Books.Count];
+        // Use Random.Shared for thread-safe random number generation
+        // Safe for non-cryptographic use (selecting sample books/tracks)
+        var book = bible.Books[Random.Shared.Next(bible.Books.Count)];
         if (sample.BibleReadingSchedule == null)
         {
             throw new InvalidOperationException("BibleReadingSchedule is null in sample schedule");
@@ -212,7 +213,7 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("Melody music not found for sample schedule");
         }
 
-        var track = music.Tracks[rnd.Next() % music.Tracks.Count];
+        var track = music.Tracks[Random.Shared.Next(music.Tracks.Count)];
         sample.Music.TrackNumber = track.Number;
 
         var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
