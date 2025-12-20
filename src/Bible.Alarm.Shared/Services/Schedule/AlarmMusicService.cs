@@ -25,10 +25,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<List<AlarmMusic>> GetAllMusicAsync(CancellationToken cancellationToken = default)
-    {
-        return await GetMusicAsync(null, cancellationToken);
-    }
+    public async Task<List<AlarmMusic>> GetAllMusicAsync(CancellationToken cancellationToken = default) => await GetMusicAsync(null, cancellationToken);
 
     public async Task<List<AlarmMusic>> GetMusicAsync(Expression<Func<AlarmMusic, bool>>? predicate = null, CancellationToken cancellationToken = default)
     {

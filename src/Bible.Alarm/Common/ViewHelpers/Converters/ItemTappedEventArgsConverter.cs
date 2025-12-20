@@ -22,8 +22,5 @@ public class ItemTappedEventArgsConverter : IValueConverter
         throw new ArgumentException($"Expected SelectionChangedEventArgs or ItemTappedEventArgs as value, got {value?.GetType().Name}", "value");
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

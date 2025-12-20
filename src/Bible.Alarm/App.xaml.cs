@@ -1,10 +1,12 @@
 #nullable enable
+using System.ComponentModel;
 using Bible.Alarm.Common;
+using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
-#if ANDROID
-using Bible.Alarm.Platforms.Android.Effects;
-#endif
+using Bible.Alarm.Views;
 using Serilog;
+#if ANDROID
+#endif
 
 namespace Bible.Alarm;
 
@@ -52,7 +54,7 @@ public partial class App : Application
         // Subscribe to font size changes for display changes (rotation/resize)
         // PropertyChanged with empty string only fires on actual display changes (via Recalculate())
         // This does NOT fire during Hot Reload, so it's safe to update resources here
-        if (this.fontService is System.ComponentModel.INotifyPropertyChanged notifyPropertyChanged)
+        if (this.fontService is INotifyPropertyChanged notifyPropertyChanged)
         {
             notifyPropertyChanged.PropertyChanged += (sender, e) =>
             {
@@ -80,7 +82,7 @@ public partial class App : Application
         {
             // Set font size resources as DynamicResource values for hot reload compatibility
             // Update the merged Styles dictionary where the resources are actually defined
-            var stylesDict = Resources.MergedDictionaries.OfType<Views.Styles>().FirstOrDefault();
+            var stylesDict = Resources.MergedDictionaries.OfType<Styles>().FirstOrDefault();
             if (stylesDict != null)
             {
                 stylesDict["StandardFontSize"] = fontService.StandardFontSize;
@@ -115,10 +117,7 @@ public partial class App : Application
         }
     }
 
-    protected override Window CreateWindow(IActivationState? activationState)
-    {
-        return windowSetupService.CreateWindow(activationState);
-    }
+    protected override Window CreateWindow(IActivationState? activationState) => windowSetupService.CreateWindow(activationState);
 
     protected override void OnStart()
     {
@@ -129,7 +128,7 @@ public partial class App : Application
     protected override void OnSleep()
     {
         base.OnSleep();
-        Services.UI.AppLifecycleService.OnSleep();
+        AppLifecycleService.OnSleep();
     }
 
     protected override void OnResume()
@@ -142,10 +141,7 @@ public partial class App : Application
     /// Initializes theme-aware color resources at the Application level.
     /// These resources are available globally via DynamicResource for automatic theme updates.
     /// </summary>
-    private void InitializeThemeAwareColorResources()
-    {
-        UpdateThemeAwareColorResources();
-    }
+    private void InitializeThemeAwareColorResources() => UpdateThemeAwareColorResources();
 
     /// <summary>
     /// Updates theme-aware color resources based on the current theme.
@@ -190,7 +186,7 @@ public partial class App : Application
 
         // Navigation bar colors are updated automatically by WindowSetupService
         // which listens to RequestedThemeChanged
-        Services.UI.WindowSetupService.UpdateNavigationBarColors();
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
 }

@@ -1,7 +1,8 @@
 #nullable enable
+using Android.Content;
 using Android.Media;
 using Serilog;
-using MediaStream = Android.Media.Stream;
+using Application = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Audio;
 
@@ -26,13 +27,13 @@ public sealed class AudioFocusService
         this.audioFocusListener = audioFocusListener ?? throw new ArgumentNullException(nameof(audioFocusListener));
 
         // Initialize AudioManager in constructor - Application.Context is available at this point
-        var context = global::Android.App.Application.Context;
+        var context = Application.Context;
         if (context == null)
         {
             throw new InvalidOperationException("Android Application.Context is null - cannot initialize AudioFocusService");
         }
 
-        var audioManagerService = context.GetSystemService(global::Android.Content.Context.AudioService) as AudioManager;
+        var audioManagerService = context.GetSystemService(Context.AudioService) as AudioManager;
         if (audioManagerService == null)
         {
             throw new InvalidOperationException("Failed to get AudioManager from Application.Context");

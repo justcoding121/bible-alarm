@@ -1,13 +1,14 @@
 #nullable enable
 
+using System.Runtime.InteropServices;
+using Windows.ApplicationModel;
+using Windows.Data.Xml.Dom;
+using Windows.UI.Notifications;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Serilog;
-using Windows.ApplicationModel;
-using Windows.Data.Xml.Dom;
-using Windows.UI.Notifications;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
 
@@ -110,10 +111,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         }
     }
 
-    public Task<bool> CanScheduleAsync()
-    {
-        return Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
-    }
+    public Task<bool> CanScheduleAsync() => Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
 
     private static ScheduledToastNotification CreateScheduledToast(int scheduleId, string title, string body, DateTimeOffset time)
     {
@@ -198,7 +196,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 return notifier;
             }
 
-            Serilog.Log.Warning(
+            Log.Warning(
                 "Unable to create toast notifier. Scheduled notifications will not work. " +
                 "This is common in debug mode or when the app is not properly registered for notifications. " +
                 "Try running the app from an installed package instead of Visual Studio.");
@@ -206,7 +204,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         catch (Exception ex)
         {
             // Catch any unexpected exceptions during notifier creation
-            Serilog.Log.Warning(ex, "Unexpected error creating toast notifier. Scheduled notifications will not work.");
+            Log.Warning(ex, "Unexpected error creating toast notifier. Scheduled notifications will not work.");
         }
 
         return null;
@@ -216,35 +214,35 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
     {
         try
         {
-            Serilog.Log.Debug("Attempting to create toast notifier without parameters...");
+            Log.Debug("Attempting to create toast notifier without parameters...");
             var notifier = ToastNotificationManager.CreateToastNotifier();
             if (notifier is not null)
             {
-                Serilog.Log.Debug("Successfully created toast notifier without parameters");
+                Log.Debug("Successfully created toast notifier without parameters");
                 return notifier;
             }
-            Serilog.Log.Warning("ToastNotificationManager.CreateToastNotifier() returned null");
+            Log.Warning("ToastNotificationManager.CreateToastNotifier() returned null");
         }
-        catch (System.Runtime.InteropServices.COMException ex)
+        catch (COMException ex)
         {
             // Check HResult - 0x80070490 = Element not found
             // This is common in debug mode or when app is not registered for notifications
             if (ex.HResult == unchecked((int)0x80070490))
             {
                 // This is expected and handled gracefully - no need to log as error
-                Serilog.Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
+                Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
             }
             else
             {
                 // Catch any other COM exceptions
-                Serilog.Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
+                Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
             }
         }
         catch (Exception ex)
         {
             // Catch any other exceptions - safely get HResult if available
             var hResult = 0;
-            if (ex is System.Runtime.InteropServices.COMException comEx)
+            if (ex is COMException comEx)
             {
                 hResult = comEx.HResult;
             }
@@ -259,7 +257,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                     // HResult not available on this exception type
                 }
             }
-            Serilog.Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", hResult);
+            Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", hResult);
         }
         return null;
     }
@@ -287,20 +285,20 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 }
             }
 
-            Serilog.Log.Warning(
+            Log.Warning(
                 "Failed to create toast notifier with any AUMID format. " +
                 "Package: {PackageName}, FamilyName: {FamilyName}, Publisher: {Publisher}",
                 packageId.Name, packageId.FamilyName, packageId.Publisher);
         }
         catch (InvalidOperationException)
         {
-            Serilog.Log.Warning(
+            Log.Warning(
                 "Package.Current is not available. This is expected in debug mode or unpackaged WinUI 3 apps. " +
                 "Scheduled notifications require the app to be properly packaged and installed.");
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "Exception while trying to create toast notifier with AUMID");
+            Log.Error(ex, "Exception while trying to create toast notifier with AUMID");
         }
         return null;
     }
@@ -309,17 +307,17 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
     {
         try
         {
-            Serilog.Log.Debug("Trying to create toast notifier with AUMID: {AUMID}", aumid);
+            Log.Debug("Trying to create toast notifier with AUMID: {AUMID}", aumid);
             var notifier = ToastNotificationManager.CreateToastNotifier(aumid);
             if (notifier is not null)
             {
-                Serilog.Log.Information("Successfully created toast notifier with AUMID: {AUMID}", aumid);
+                Log.Information("Successfully created toast notifier with AUMID: {AUMID}", aumid);
                 return notifier;
             }
         }
         catch (Exception ex)
         {
-            Serilog.Log.Debug(ex, "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}", aumid, ex.HResult);
+            Log.Debug(ex, "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}", aumid, ex.HResult);
         }
         return null;
     }

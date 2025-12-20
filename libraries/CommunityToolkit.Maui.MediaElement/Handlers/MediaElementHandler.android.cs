@@ -1,13 +1,7 @@
-#nullable enable
-
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
-using Microsoft.Maui;
-using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Handlers;
 #if ANDROID
-using Android.App;
-using Android.Content;
 #endif
 
 namespace CommunityToolkit.Maui.Core.Handlers;
@@ -71,7 +65,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 		if (dispatcher == null)
 		{
 			// Try to get dispatcher from Application.Current (works in background services after bootstrap)
-			dispatcher = Microsoft.Maui.Controls.Application.Current?.Dispatcher;
+			dispatcher = Application.Current?.Dispatcher;
 		}
 
 		if (dispatcher == null)

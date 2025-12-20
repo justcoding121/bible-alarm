@@ -1,11 +1,6 @@
-#nullable enable
-
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Android.Content;
-using Android.Views;
-using Android.Widget;
+using Android.OS;
 using AndroidX.Media3.Common;
 using AndroidX.Media3.Common.Text;
 using AndroidX.Media3.Common.Util;
@@ -15,18 +10,23 @@ using AndroidX.Media3.UI;
 using CommunityToolkit.Maui.Media.Services;
 using CommunityToolkit.Maui.Services;
 using CommunityToolkit.Maui.Views;
+using Java.Lang;
 using Microsoft.Extensions.Logging;
+using Application = Android.App.Application;
 using AudioAttributes = AndroidX.Media3.Common.AudioAttributes;
 using DeviceInfo = AndroidX.Media3.Common.DeviceInfo;
+using Exception = System.Exception;
 using MediaMetadata = AndroidX.Media3.Common.MediaMetadata;
+using Object = Java.Lang.Object;
+using Trace = System.Diagnostics.Trace;
 
 namespace CommunityToolkit.Maui.Core.Views;
 
-public partial class MediaManager : Java.Lang.Object, IPlayerListener
+public partial class MediaManager : Object, IPlayerListener
 {
-	const int BufferState = 2;
-	const int ReadyState = 3;
-	const int EndedState = 4;
+	const int bufferState = 2;
+	const int readyState = 3;
+	const int endedState = 4;
 
 	static readonly HttpClient client = new();
 	readonly SemaphoreSlim seekToSemaphoreSlim = new(1, 1);
@@ -40,7 +40,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	MediaItem.Builder? mediaItem;
 	BoundServiceConnection? connection;
 
-	static bool globalExoPlayerCreated = false;
+	static bool globalExoPlayerCreated;
 	static readonly object globalExoPlayerLock = new();
 	static PlatformMediaElement? globalPlayer;
 	static MediaSession? globalSession;
@@ -73,7 +73,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	{
 		if (connection?.Binder?.Service is null)
 		{
-			System.Diagnostics.Trace.TraceInformation("Notification Service not running.");
+			Trace.TraceInformation("Notification Service not running.");
 			return;
 		}
 
@@ -126,7 +126,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 		};
 
 		MediaElement.CurrentStateChanged(newState);
-		if (playbackState is ReadyState)
+		if (playbackState is readyState)
 		{
 			MediaElement.Duration = TimeSpan.FromMilliseconds(Player.Duration < 0 ? 0 : Player.Duration);
 			MediaElement.Position = TimeSpan.FromMilliseconds(Player.CurrentPosition < 0 ? 0 : Player.CurrentPosition);
@@ -219,7 +219,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 
 	static void RunOnMainThread(Action action)
 	{
-		if (Microsoft.Maui.ApplicationModel.MainThread.IsMainThread)
+		if (MainThread.IsMainThread)
 		{
 			action();
 			return;
@@ -227,12 +227,12 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 
 		Exception? ex = null;
 		using var evt = new ManualResetEventSlim(false);
-		var mainLooper = Android.OS.Looper.MainLooper;
+		var mainLooper = Looper.MainLooper;
 		if (mainLooper == null)
 		{
 			throw new InvalidOperationException("MainLooper is null");
 		}
-		var handler = new Android.OS.Handler(mainLooper);
+		var handler = new Handler(mainLooper);
 		handler.Post(() =>
 		{
 			try
@@ -274,14 +274,14 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 		MediaElementState newState = MediaElement.CurrentState;
 		switch (playbackState)
 		{
-			case BufferState:
+			case bufferState:
 				newState = MediaElementState.Buffering;
 				break;
-			case EndedState:
+			case endedState:
 				newState = MediaElementState.Stopped;
 				MediaElement.MediaEnded();
 				break;
-			case ReadyState:
+			case readyState:
 				seekToTaskCompletionSource?.TrySetResult();
 				break;
 		}
@@ -717,12 +717,12 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 	[MemberNotNull(nameof(connection))]
 	void StartService()
 	{
-		var intent = new Intent(Android.App.Application.Context, typeof(MediaControlsService));
+		var intent = new Intent(Application.Context, typeof(MediaControlsService));
 		connection = new BoundServiceConnection(this);
 		connection.MediaControlsServiceTaskRemoved += HandleMediaControlsServiceTaskRemoved;
 
-		Android.App.Application.Context.StartForegroundService(intent);
-		Android.App.Application.Context.ApplicationContext?.BindService(intent, connection, Bind.AutoCreate);
+		Application.Context.StartForegroundService(intent);
+		Application.Context.ApplicationContext?.BindService(intent, connection, Bind.AutoCreate);
 	}
 
 	void StopService(in BoundServiceConnection boundServiceConnection)
@@ -730,11 +730,14 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 		boundServiceConnection.MediaControlsServiceTaskRemoved -= HandleMediaControlsServiceTaskRemoved;
 
 		var serviceIntent = new Intent(Platform.AppContext, typeof(MediaControlsService));
-		Android.App.Application.Context.StopService(serviceIntent);
+		Application.Context.StopService(serviceIntent);
 		Platform.AppContext.UnbindService(boundServiceConnection);
 	}
 
-	void HandleMediaControlsServiceTaskRemoved(object? sender, EventArgs e) => Player?.Stop();
+	void HandleMediaControlsServiceTaskRemoved(object? sender, EventArgs e)
+	{
+		Player?.Stop();
+	}
 
 	async Task<MediaItem.Builder?> SetPlayerData(CancellationToken cancellationToken = default)
 	{
@@ -792,7 +795,7 @@ public partial class MediaManager : Java.Lang.Object, IPlayerListener
 		var data = await GetBytesFromMetadataArtworkUrl(MediaElement.MetadataArtworkUrl, cancellationToken).ConfigureAwait(true);
 		if (data is not null && data.Length > 0)
 		{
-			mediaMetaData.SetArtworkData(data, (Java.Lang.Integer)MediaMetadata.PictureTypeFrontCover);
+			mediaMetaData.SetArtworkData(data, (Integer)MediaMetadata.PictureTypeFrontCover);
 		}
 
 		mediaItem = new MediaItem.Builder();

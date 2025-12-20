@@ -24,7 +24,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
         InitializeComponent();
 
         // Set theme-aware background color
-        this.SetAppThemeColor(ContentPage.BackgroundColorProperty, ThemeColors.Bootstrap.LightBackground, ThemeColors.Bootstrap.DarkBackground);
+        this.SetAppThemeColor(BackgroundColorProperty, ThemeColors.Bootstrap.LightBackground, ThemeColors.Bootstrap.DarkBackground);
 
         // Set theme-aware text colors for dots
         var lightColor = ThemeColors.Primary.SlateBlue;

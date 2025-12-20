@@ -2,9 +2,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.Bible;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using BibleBook = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook;
+using BibleChapter = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleChapter;
+using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack;
+using Publication = Bible.Alarm.AudioLinksHarvestor.Models.Publication;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
@@ -34,7 +41,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
         if (displayLanguage == null)
         {
-            displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+            displayLanguage = new Language
             {
                 Code = "E",
                 Name = "English"
@@ -45,7 +52,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         var mediaReader = new MediaReader(indexDir);
 
-        Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Language> bibleLanguages;
+        Dictionary<string, Models.Language> bibleLanguages;
         try
         {
             bibleLanguages = await mediaReader.GetBibleLanguages();
@@ -70,14 +77,14 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                                                                     && x.Name == language.Value.Name);
             if (newLanguage == null)
             {
-                newLanguage = new Bible.Alarm.Shared.Models.Media.Language
+                newLanguage = new Language
                 {
                     Code = language.Value.Code,
                     Name = language.Value.Name
                 };
             }
 
-            Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> translations;
+            Dictionary<string, Publication> translations;
             try
             {
                 translations = await mediaReader.GetBibleTranslations(language.Key);
@@ -100,7 +107,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             {
                 logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
 
-                SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook> books;
+                SortedDictionary<int, BibleBook> books;
                 try
                 {
                     books = await mediaReader.GetBibleBooks(language.Key, translation.Key);
@@ -119,7 +126,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                     continue;
                 }
 
-                var bibleTranslation = new Bible.Alarm.Shared.Models.Media.Bible.BibleTranslation
+                var bibleTranslation = new BibleTranslation
                 {
                     Name = translation.Value.Name,
                     Code = translation.Value.Code,
@@ -129,7 +136,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
                 foreach (var book in books)
                 {
-                    var newBook = new Bible.Alarm.Shared.Models.Media.Bible.BibleBook
+                    var newBook = new Shared.Models.Media.Bible.BibleBook
                     {
                         Name = book.Value.Name,
                         Number = book.Value.Number
@@ -137,7 +144,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
                     bibleTranslation.Books.Add(newBook);
 
-                    SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleChapter> chapters;
+                    SortedDictionary<int, BibleChapter> chapters;
                     try
                     {
                         chapters = await mediaReader.GetBibleChapters(language.Key, translation.Key, book.Key);
@@ -165,10 +172,10 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                                          $"&txtCMSLang=E&booknum={newBook.Number}&track={chapter.Value.Number}";
 
 
-                        var newChapter = new Bible.Alarm.Shared.Models.Media.Bible.BibleChapter
+                        var newChapter = new Shared.Models.Media.Bible.BibleChapter
                         {
                             Number = chapter.Value.Number,
-                            Source = new Bible.Alarm.Shared.Models.Media.AudioSource
+                            Source = new AudioSource
                             {
                                 Url = chapter.Value.Url,
                                 LookUpPath = lookUpPath
@@ -193,7 +200,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
         if (displayLanguage == null)
         {
-            displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+            displayLanguage = new Language
             {
                 Code = "E",
                 Name = "English"
@@ -204,7 +211,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         var mediaReader = new MediaReader(indexDir);
 
-        Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> melodyMusicReleases;
+        Dictionary<string, Publication> melodyMusicReleases;
         try
         {
             melodyMusicReleases = await mediaReader.GetMelodyMusicReleases();
@@ -227,14 +234,14 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         {
             logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
 
-            var newMelodyMusic = new Bible.Alarm.Shared.Models.Media.Music.MelodyMusic
+            var newMelodyMusic = new MelodyMusic
             {
                 Code = melodyMusicRelease.Value.Code,
                 Name = melodyMusicRelease.Value.Name,
                 DisplayLanguage = displayLanguage
             };
 
-            SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack> tracks;
+            SortedDictionary<int, MusicTrack> tracks;
             try
             {
                 tracks = await mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key);
@@ -255,11 +262,11 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
             foreach (var track in tracks)
             {
-                var newTrack = new Bible.Alarm.Shared.Models.Media.Music.MusicTrack
+                var newTrack = new Shared.Models.Media.Music.MusicTrack
                 {
                     Number = track.Value.Number,
                     Title = track.Value.Title,
-                    Source = new Bible.Alarm.Shared.Models.Media.AudioSource
+                    Source = new AudioSource
                     {
                         Url = track.Value.Url,
                         LookUpPath = track.Value.LookUpPath
@@ -283,7 +290,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
         if (displayLanguage == null)
         {
-            displayLanguage = new Bible.Alarm.Shared.Models.Media.Language
+            displayLanguage = new Language
             {
                 Code = "E",
                 Name = "English"
@@ -294,7 +301,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         var mediaReader = new MediaReader(indexDir);
 
-        Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Language> melodyLanguages;
+        Dictionary<string, Models.Language> melodyLanguages;
         try
         {
             melodyLanguages = await mediaReader.GetVocalMusicLanguages();
@@ -319,14 +326,14 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                                                                     && x.Name == language.Value.Name);
             if (newLanguage == null)
             {
-                newLanguage = new Bible.Alarm.Shared.Models.Media.Language
+                newLanguage = new Language
                 {
                     Code = language.Value.Code,
                     Name = language.Value.Name
                 };
             }
 
-            Dictionary<string, Bible.Alarm.AudioLinksHarvestor.Models.Publication> vocalMusicReleases;
+            Dictionary<string, Publication> vocalMusicReleases;
             try
             {
                 vocalMusicReleases = await mediaReader.GetVocalMusicReleases(language.Value.Code);
@@ -349,7 +356,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             {
                 logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
 
-                var newVocalMusic = new Bible.Alarm.Shared.Models.Media.Music.VocalMusic
+                var newVocalMusic = new VocalMusic
                 {
                     Code = vocalMusicRelease.Value.Code,
                     Name = vocalMusicRelease.Value.Name,
@@ -357,7 +364,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                     Language = newLanguage
                 };
 
-                SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack> tracks;
+                SortedDictionary<int, MusicTrack> tracks;
                 try
                 {
                     tracks = await mediaReader.GetVocalMusicTracks(language.Value.Code, vocalMusicRelease.Key);
@@ -378,11 +385,11 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
                 foreach (var track in tracks)
                 {
-                    var newTrack = new Bible.Alarm.Shared.Models.Media.Music.MusicTrack
+                    var newTrack = new Shared.Models.Media.Music.MusicTrack
                     {
                         Number = track.Value.Number,
                         Title = track.Value.Title,
-                        Source = new Bible.Alarm.Shared.Models.Media.AudioSource
+                        Source = new AudioSource
                         {
                             Url = track.Value.Url,
                             LookUpPath = track.Value.LookUpPath

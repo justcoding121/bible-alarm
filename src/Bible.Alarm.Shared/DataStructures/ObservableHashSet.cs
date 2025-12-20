@@ -23,10 +23,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
 
     public event NotifyCollectionChangedEventHandler CollectionChanged;
 
-    public void Add(T item)
-    {
-        AddItem(item);
-    }
+    public void Add(T item) => AddItem(item);
 
     private int AddItem(T item)
     {
@@ -45,10 +42,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
         OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
 
-    public bool Contains(T item)
-    {
-        return sortedSet.Contains(item);
-    }
+    public bool Contains(T item) => sortedSet.Contains(item);
 
     public bool Remove(T item)
     {
@@ -63,10 +57,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
         return false;
     }
 
-    public T ElementAt(int index)
-    {
-        return sortedSet.ElementAt(index);
-    }
+    public T ElementAt(int index) => sortedSet.ElementAt(index);
 
     public int IndexOf(T item)
     {
@@ -74,10 +65,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
             .FirstOrDefault(x => x.value.CompareTo(item) == 0)?.index ?? -1;
     }
 
-    private void OnNotifyCollectionChanged(NotifyCollectionChangedEventArgs args)
-    {
-        CollectionChanged?.Invoke(this, args);
-    }
+    private void OnNotifyCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
 
     public void CopyTo(T[] array, int arrayIndex)
     {
@@ -129,13 +117,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
         }
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public IEnumerator<T> GetEnumerator()
-    {
-        return sortedSet.GetEnumerator();
-    }
+    public IEnumerator<T> GetEnumerator() => sortedSet.GetEnumerator();
 }

@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Versioning;
 using Android.App;
@@ -10,14 +8,13 @@ using AndroidX.Core.App;
 using AndroidX.Media3.Session;
 using AndroidX.Media3.UI;
 using CommunityToolkit.Maui.Services;
-using Resource = Microsoft.Maui.Controls.Resource;
 
 namespace CommunityToolkit.Maui.Media.Services;
 
 [SupportedOSPlatform("Android26.0")]
 [IntentFilter(["androidx.media3.session.MediaSessionService"])]
 [Service(Exported = false, Enabled = true, Name = "communityToolkit.maui.media.services", ForegroundServiceType = ForegroundService.TypeMediaPlayback)]
-sealed partial class MediaControlsService : Service
+sealed class MediaControlsService : Service
 {
 	readonly WeakEventManager taskRemovedEventManager = new();
 
@@ -48,7 +45,9 @@ sealed partial class MediaControlsService : Service
 	}
 
 	public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
-		=> StartCommandResult.NotSticky;
+	{
+		return StartCommandResult.NotSticky;
+	}
 
 	public override void OnTaskRemoved(Intent? rootIntent)
 	{
@@ -124,14 +123,14 @@ sealed partial class MediaControlsService : Service
 		playerNotificationManager.SetUseNextActionInCompactView(true);
 		playerNotificationManager.SetUsePlayPauseActions(true);
 		playerNotificationManager.SetUsePreviousAction(true);
-		playerNotificationManager.SetColor(Resource.Color.abc_primary_text_material_dark);
+		playerNotificationManager.SetColor(_Microsoft.Android.Resource.Designer.Resource.Color.abc_primary_text_material_dark);
 		playerNotificationManager.SetUsePreviousActionInCompactView(true);
 		playerNotificationManager.SetVisibility(NotificationCompat.VisibilityPublic);
 		playerNotificationManager.SetMediaSessionToken(session.PlatformToken);
 		playerNotificationManager.SetPlayer(mediaElement);
 		playerNotificationManager.SetColorized(true);
 		playerNotificationManager.SetShowPlayButtonIfPlaybackIsSuppressed(true);
-		playerNotificationManager.SetSmallIcon(Resource.Drawable.media3_notification_small_icon);
+		playerNotificationManager.SetSmallIcon(_Microsoft.Android.Resource.Designer.Resource.Drawable.media3_notification_small_icon);
 		playerNotificationManager.SetPriority(NotificationCompat.PriorityDefault);
 		playerNotificationManager.SetUseChronometer(true);
 	}
@@ -175,7 +174,7 @@ sealed partial class MediaControlsService : Service
 		notificationBuilder ??= new NotificationCompat.Builder(Platform.AppContext, "1");
 
 		var pendingIntent = CreateActivityPendingIntent();
-		notificationBuilder.SetSmallIcon(Resource.Drawable.media3_notification_small_icon);
+		notificationBuilder.SetSmallIcon(_Microsoft.Android.Resource.Designer.Resource.Drawable.media3_notification_small_icon);
 		notificationBuilder.SetAutoCancel(false);
 		notificationBuilder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
 		notificationBuilder.SetVisibility(NotificationCompat.VisibilityPublic);

@@ -55,7 +55,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         return true;
     }
 
-    private bool isDragging = false;
+    private bool isDragging;
 
     private void OnSliderValueChanged(object? sender, ValueChangedEventArgs e)
     {

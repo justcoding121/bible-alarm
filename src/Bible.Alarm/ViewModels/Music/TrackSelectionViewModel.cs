@@ -506,8 +506,5 @@ public class MusicTrackListViewItemModel : ObservableObject, IComparable
     public ICommand TogglePlayCommand { get; set; }
     public ICommand ToggleRepeatCommand { get; set; }
 
-    public int CompareTo(object obj)
-    {
-        return Number.CompareTo((obj as MusicTrackListViewItemModel)?.Number);
-    }
+    public int CompareTo(object obj) => Number.CompareTo((obj as MusicTrackListViewItemModel)?.Number);
 }

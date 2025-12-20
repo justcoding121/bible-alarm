@@ -48,16 +48,13 @@ public class DayShadowConverter : IValueConverter
         return null;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
     private static DaysOfWeek ParseDayParameter(object parameter)
     {
         if (parameter == null)
         {
-            return (DaysOfWeek)0;
+            return 0;
         }
 
         if (parameter is DaysOfWeek day)
@@ -70,7 +67,7 @@ public class DayShadowConverter : IValueConverter
             return parsedDay;
         }
 
-        return (DaysOfWeek)0;
+        return 0;
     }
 }
 

@@ -35,11 +35,9 @@ public static class AndroidAutoScheduleHelper
                 logger.Information("Loaded {Count} schedules from state for Android Auto", scheduleItems.Count);
                 return scheduleItems;
             }
-            else
-            {
-                logger.Warning("No schedules found in state - state may not be initialized yet");
-                return new List<ScheduleStateItem>();
-            }
+
+            logger.Warning("No schedules found in state - state may not be initialized yet");
+            return new List<ScheduleStateItem>();
         }
         catch (Exception ex)
         {
@@ -121,13 +119,11 @@ public static class AndroidAutoScheduleHelper
         {
             return string.Join(" ", subtitleParts);
         }
-        else
-        {
-            // Fallback: show status and time if no Bible reading schedule
-            var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
-            var timeText = scheduleItem.TimeText;
-            return $"{statusText} • {timeText}";
-        }
+
+        // Fallback: show status and time if no Bible reading schedule
+        var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+        var timeText = scheduleItem.TimeText;
+        return $"{statusText} • {timeText}";
     }
 }
 

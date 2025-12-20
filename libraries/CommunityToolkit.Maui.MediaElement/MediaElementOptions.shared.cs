@@ -25,5 +25,8 @@ public class MediaElementOptions
 	/// <summary>
 	/// Set Android View type for MediaElement as SurfaceView or TextureView on construction
 	/// </summary>
-	public void SetDefaultAndroidViewType(AndroidViewType androidViewType) => DefaultAndroidViewType = androidViewType;
+	public void SetDefaultAndroidViewType(AndroidViewType androidViewType)
+	{
+		DefaultAndroidViewType = androidViewType;
+	}
 }

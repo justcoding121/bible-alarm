@@ -100,10 +100,7 @@ public class IOsAudioPreviewer(IDownloadService downloadService, ILogger logger)
         }
     }
 
-    private void ConfigureAudioSession()
-    {
-        IOsAudioSessionHelper.ConfigureAudioSession(logger, "preview");
-    }
+    private void ConfigureAudioSession() => IOsAudioSessionHelper.ConfigureAudioSession(logger, "preview");
 
     public void Stop()
     {
@@ -136,10 +133,7 @@ public class IOsAudioPreviewer(IDownloadService downloadService, ILogger logger)
         }
     }
 
-    private void OnPlaybackEnded(object? sender, AVStatusEventArgs e)
-    {
-        OnStopped?.Invoke();
-    }
+    private void OnPlaybackEnded(object? sender, AVStatusEventArgs e) => OnStopped?.Invoke();
 
     public void Dispose()
     {

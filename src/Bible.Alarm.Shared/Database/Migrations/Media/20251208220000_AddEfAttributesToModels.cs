@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore.Migrations;
 
-#nullable disable
-
 namespace Bible.Alarm.Shared.Database.Migrations.Media;
 
 /// <inheritdoc />

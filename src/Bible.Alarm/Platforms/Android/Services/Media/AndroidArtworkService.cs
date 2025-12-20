@@ -23,11 +23,11 @@ public class AndroidArtworkService
         {
             // Handle file:// URIs
             string filePath = artworkUrl;
-            if (artworkUrl.StartsWith("file://", System.StringComparison.OrdinalIgnoreCase))
+            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    filePath = new System.Uri(artworkUrl).LocalPath;
+                    filePath = new Uri(artworkUrl).LocalPath;
                 }
                 catch (Exception ex)
                 {

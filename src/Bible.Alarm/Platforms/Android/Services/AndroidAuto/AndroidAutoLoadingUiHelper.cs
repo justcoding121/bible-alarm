@@ -1,4 +1,5 @@
 #nullable enable
+using Android.Content;
 using Android.OS;
 using Android.Support.V4.Media.Session;
 
@@ -10,7 +11,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// </summary>
 public static class AndroidAutoLoadingUiHelper
 {
-    public static void ApplyBlankLoadingState(MediaSessionCompat mediaSession, global::Android.Content.Context context)
+    public static void ApplyBlankLoadingState(MediaSessionCompat mediaSession, Context context)
     {
         // Clear metadata (no artwork, no title/subtitle) + disable all controls.
         // Following standard practice (like YouTube): shows "Tap to play" message without artwork.

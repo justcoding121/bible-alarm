@@ -24,11 +24,9 @@ public class IosVersionPatcherTests
     }
 
     [Fact]
-    public void PlatformName_ShouldReturnIOS()
-    {
+    public void PlatformName_ShouldReturnIOS() =>
         // Act & Assert
         patcher.PlatformName.Should().Be("iOS");
-    }
 
     [Fact]
     public async Task PatchVersionAsync_WithValidPlist_ShouldUpdateVersion()

@@ -1,5 +1,4 @@
-#nullable enable
-
+using Android;
 using Android.App;
 using Android.Content;
 using Android.Runtime;
@@ -9,11 +8,14 @@ using AndroidX.CoordinatorLayout.Widget;
 using AndroidX.Core.View;
 using AndroidX.Media3.UI;
 using CommunityToolkit.Maui.Views;
+using Color = Android.Graphics.Color;
+using View = Android.Views.View;
+using Window = Android.Views.Window;
 
-[assembly: UsesPermission(Android.Manifest.Permission.ForegroundServiceMediaPlayback)]
-[assembly: UsesPermission(Android.Manifest.Permission.ForegroundService)]
-[assembly: UsesPermission(Android.Manifest.Permission.MediaContentControl)]
-[assembly: UsesPermission(Android.Manifest.Permission.PostNotifications)]
+[assembly: UsesPermission(Manifest.Permission.ForegroundServiceMediaPlayback)]
+[assembly: UsesPermission(Manifest.Permission.ForegroundService)]
+[assembly: UsesPermission(Manifest.Permission.MediaContentControl)]
+[assembly: UsesPermission(Manifest.Permission.PostNotifications)]
 
 namespace CommunityToolkit.Maui.Core.Views;
 
@@ -62,7 +64,7 @@ public class MauiMediaElement : CoordinatorLayout
 	public MauiMediaElement(Context context, PlayerView playerView) : base(context)
 	{
 		this.playerView = playerView;
-		this.playerView.SetBackgroundColor(Android.Graphics.Color.Black);
+		this.playerView.SetBackgroundColor(Color.Black);
 		playerView.FullscreenButtonClick += OnFullscreenButtonClick;
 		var layout = new RelativeLayout.LayoutParams(LayoutParams.WrapContent, LayoutParams.WrapContent);
 		layout.AddRule(LayoutRules.CenterInParent);
@@ -96,7 +98,7 @@ public class MauiMediaElement : CoordinatorLayout
 	/// </summary>
 	/// <param name="changedView"></param>
 	/// <param name="visibility"></param>
-	protected override void OnVisibilityChanged(Android.Views.View changedView, [GeneratedEnum] ViewStates visibility)
+	protected override void OnVisibilityChanged(View changedView, [GeneratedEnum] ViewStates visibility)
 	{
 		base.OnVisibilityChanged(changedView, visibility);
 		if (isFullScreen && visibility is ViewStates.Visible)
@@ -243,7 +245,7 @@ public class MauiMediaElement : CoordinatorLayout
 			}
 		}
 
-		public static Android.Views.Window CurrentWindow
+		public static Window CurrentWindow
 		{
 			get
 			{

@@ -50,23 +50,18 @@ public class IsEnabledColorConverter : IValueConverter
                 ? Colors.White
                 : Colors.Black;
         }
-        else
+
+        // When disabled: read from Application resources for automatic theme updates
+        if (Application.Current?.Resources.TryGetValue("DisabledTextColor", out var disabledColor) == true &&
+            disabledColor is Color disabledTextColor)
         {
-            // When disabled: read from Application resources for automatic theme updates
-            if (Application.Current?.Resources.TryGetValue("DisabledTextColor", out var disabledColor) == true &&
-                disabledColor is Color disabledTextColor)
-            {
-                return disabledTextColor;
-            }
-
-            // Fallback if resource not found
-            var theme = ThemeColors.GetCurrentTheme();
-            return ThemeColors.Fallback.DisabledText.Get(theme);
+            return disabledTextColor;
         }
+
+        // Fallback if resource not found
+        var theme = ThemeColors.GetCurrentTheme();
+        return ThemeColors.Fallback.DisabledText.Get(theme);
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

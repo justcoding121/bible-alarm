@@ -35,10 +35,8 @@ public static class IOsMediaElementHelper
                 return ProcessFilePath(uri, logger);
             }
         }
-        else
-        {
-            return ProcessFilePath(uri, logger);
-        }
+
+        return ProcessFilePath(uri, logger);
     }
 
     /// <summary>
@@ -62,11 +60,9 @@ public static class IOsMediaElementHelper
                     logger.Warning("File exists at original path, using original: {Path}", filePath);
                     return filePath;
                 }
-                else
-                {
-                    logger.Error("File does not exist at original path either: {Path}", filePath);
-                    throw new FileNotFoundException($"File not found: {normalizedPath}");
-                }
+
+                logger.Error("File does not exist at original path either: {Path}", filePath);
+                throw new FileNotFoundException($"File not found: {normalizedPath}");
             }
 
             // Return plain file path (not file:// URI) for iOS MediaElement
@@ -81,11 +77,9 @@ public static class IOsMediaElementHelper
                 logger.Warning("Using original path as fallback: {Path}", filePath);
                 return filePath;
             }
-            else
-            {
-                logger.Error("Original path also does not exist: {Path}", filePath);
-                throw;
-            }
+
+            logger.Error("Original path also does not exist: {Path}", filePath);
+            throw;
         }
     }
 

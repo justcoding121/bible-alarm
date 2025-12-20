@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using Android.App;
 using Android.Content;
 using Android.OS;
@@ -31,10 +30,7 @@ public class AlarmSetupService : Service, IDisposable
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
-    {
-        logger.Error(e.Exception, "Unobserved task exception.");
-    }
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
@@ -42,10 +38,7 @@ public class AlarmSetupService : Service, IDisposable
             e.IsTerminating);
     }
 
-    public override IBinder OnBind(Intent intent)
-    {
-        return null;
-    }
+    public override IBinder OnBind(Intent intent) => null;
 
     public override void OnCreate()
     {
@@ -123,10 +116,7 @@ public class AlarmSetupService : Service, IDisposable
         }
     }
 
-    public override void OnDestroy()
-    {
-        IsRunning = false;
-    }
+    public override void OnDestroy() => IsRunning = false;
 
     public static void ScheduleNotification(Context context, int scheduleId, DateTimeOffset time,
         string title, string body)
@@ -139,7 +129,7 @@ public class AlarmSetupService : Service, IDisposable
 
             using var pIntent = PendingIntent.GetBroadcast(
                 context,
-                (int)scheduleId,
+                scheduleId,
                 alarmIntent,
                 PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
             using var alarmService = (AlarmManager)context.GetSystemService(AlarmService);

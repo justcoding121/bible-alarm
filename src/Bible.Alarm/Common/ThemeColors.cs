@@ -145,9 +145,6 @@ public static class ThemeColors
     /// <summary>
     /// Helper method to get the current theme
     /// </summary>
-    public static AppTheme GetCurrentTheme()
-    {
-        return Application.Current?.RequestedTheme ?? AppTheme.Light;
-    }
+    public static AppTheme GetCurrentTheme() => Application.Current?.RequestedTheme ?? AppTheme.Light;
 }
 

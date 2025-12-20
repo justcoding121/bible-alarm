@@ -10,6 +10,7 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using Serilog;
 
 namespace Bible.Alarm.Models.Schedule;
 
@@ -154,7 +155,7 @@ public class AlarmSchedule : IComparable
     public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, IBibleTranslationService bibleTranslationService, IMelodyMusicService melodyMusicService)
     {
         var startTime = DateTime.UtcNow;
-        Serilog.Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
+        Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
 
         // Create sample schedule disabled by default - user must explicitly enable it
         var sample = new AlarmSchedule
@@ -185,7 +186,7 @@ public class AlarmSchedule : IComparable
             sample.BibleReadingSchedule.LanguageCode,
             sample.BibleReadingSchedule.PublicationCode);
         var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;
-        Serilog.Log.Information("[PERF] GetSampleSchedule: Bible query took {ElapsedMs}ms", bibleQueryElapsed);
+        Log.Information("[PERF] GetSampleSchedule: Bible query took {ElapsedMs}ms", bibleQueryElapsed);
 
         if (bible == null)
         {
@@ -209,7 +210,7 @@ public class AlarmSchedule : IComparable
         var musicQueryStartTime = DateTime.UtcNow;
         var music = await melodyMusicService.GetByCodeWithTracksAsync(sample.Music.PublicationCode);
         var musicQueryElapsed = (DateTime.UtcNow - musicQueryStartTime).TotalMilliseconds;
-        Serilog.Log.Information("[PERF] GetSampleSchedule: Music query took {ElapsedMs}ms", musicQueryElapsed);
+        Log.Information("[PERF] GetSampleSchedule: Music query took {ElapsedMs}ms", musicQueryElapsed);
 
         if (music == null)
         {
@@ -220,7 +221,7 @@ public class AlarmSchedule : IComparable
         sample.Music.TrackNumber = track.Number;
 
         var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-        Serilog.Log.Information("[PERF] GetSampleSchedule: Completed in {ElapsedMs}ms", totalElapsed);
+        Log.Information("[PERF] GetSampleSchedule: Completed in {ElapsedMs}ms", totalElapsed);
 
         return sample;
     }

@@ -45,15 +45,9 @@ public class BatteryOptimizationService(
         }
     }
 
-    public void ShowOptimizationSettingsPage()
-    {
-        batteryOptimizationManager?.ShowBatteryOptimizationExclusionSettingsPage();
-    }
+    public void ShowOptimizationSettingsPage() => batteryOptimizationManager?.ShowBatteryOptimizationExclusionSettingsPage();
 
-    public bool CanShowOptimizeActivity()
-    {
-        return batteryOptimizationManager?.CanShowOptimizeActivity() ?? false;
-    }
+    public bool CanShowOptimizeActivity() => batteryOptimizationManager?.CanShowOptimizeActivity() ?? false;
 
     public void Dispose()
     {

@@ -197,10 +197,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref books, value);
     }
 
-    private async Task Initialize(string languageCode, string publicationCode)
-    {
-        await PopulateBooks(languageCode, publicationCode);
-    }
+    private async Task Initialize(string languageCode, string publicationCode) => await PopulateBooks(languageCode, publicationCode);
 
     private readonly Dictionary<int, BibleBookListViewItemModel> bookVMsMapping = [];
 
@@ -257,8 +254,5 @@ public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, ICom
     public string Name => book.Name;
     public int Number => book.Number;
 
-    public int CompareTo(object obj)
-    {
-        return obj is not BibleBookListViewItemModel other ? 1 : Number.CompareTo(other.Number);
-    }
+    public int CompareTo(object obj) => obj is not BibleBookListViewItemModel other ? 1 : Number.CompareTo(other.Number);
 }

@@ -6,7 +6,6 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Foundation;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using UIKit;
 using UserNotifications;
@@ -29,10 +28,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
-    {
-        logger.Error(e.Exception, "Unobserved task exception.");
-    }
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
@@ -163,7 +159,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
             // In 2025, SetBadgeCount is the standard for 95%+ of the iOS market (iOS 16+)
             // This avoids CA1422 entirely and uses the modern asynchronous pattern.
-            UNUserNotificationCenter.Current.SetBadgeCount(0, (error) =>
+            UNUserNotificationCenter.Current.SetBadgeCount(0, error =>
             {
                 if (error != null)
                 {
@@ -222,7 +218,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             // reset our badge
             // In 2025, SetBadgeCount is the standard for 95%+ of the iOS market (iOS 16+)
             // This avoids CA1422 entirely and uses the modern asynchronous pattern.
-            UNUserNotificationCenter.Current.SetBadgeCount(0, (error) =>
+            UNUserNotificationCenter.Current.SetBadgeCount(0, error =>
             {
                 if (error != null)
                 {

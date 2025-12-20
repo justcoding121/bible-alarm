@@ -1,10 +1,11 @@
 using Android.Content;
 using Android.OS;
 using CommunityToolkit.Maui.Core.Views;
+using Object = Java.Lang.Object;
 
 namespace CommunityToolkit.Maui.Services;
 
-sealed partial class BoundServiceConnection(MediaManager mediaManager) : Java.Lang.Object, IServiceConnection
+sealed class BoundServiceConnection(MediaManager mediaManager) : Object, IServiceConnection
 {
 	readonly WeakEventManager taskRemovedEventManager = new();
 

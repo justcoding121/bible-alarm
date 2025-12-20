@@ -34,10 +34,7 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
         Recalculate();
     }
 
-    private void OnDisplayInfoChanged(object? sender, DisplayInfoChangedEventArgs e)
-    {
-        Recalculate();
-    }
+    private void OnDisplayInfoChanged(object? sender, DisplayInfoChangedEventArgs e) => Recalculate();
 
     private void Recalculate()
     {
@@ -183,11 +180,9 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
         RaiseAllPropertiesChanged();
     }
 
-    private void RaiseAllPropertiesChanged()
-    {
+    private void RaiseAllPropertiesChanged() =>
         // Notify that all properties changed - forces all bindings to re-evaluate
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
-    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

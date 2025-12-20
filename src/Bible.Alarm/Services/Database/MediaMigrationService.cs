@@ -26,7 +26,7 @@ public class MediaMigrationService(
 
             // Check if database file exists
             var dbPath = mediaDb.Database.GetDbConnection().DataSource;
-            if (!System.IO.File.Exists(dbPath))
+            if (!File.Exists(dbPath))
             {
                 // Database doesn't exist yet - will be created from bundled resource by MediaIndexService
                 // The bundled database already has the latest schema matching this app version
@@ -51,7 +51,6 @@ public class MediaMigrationService(
                     pendingMigrations.Count());
                 await mediaDb.Database.MigrateAsync();
                 logger.Information("Media database migration completed successfully");
-                return;
             }
 
             // Database is up to date - no migration needed

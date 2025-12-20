@@ -20,10 +20,7 @@ public class SchedulerService(
 
     private static readonly SemaphoreSlim @lock = new(1);
 
-    public async Task ProcessScheduledTasksAsync()
-    {
-        await HandleAsync();
-    }
+    public async Task ProcessScheduledTasksAsync() => await HandleAsync();
 
     public async Task<bool> HandleAsync()
     {

@@ -1,5 +1,4 @@
 #nullable enable
-using System.Runtime.Versioning;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;

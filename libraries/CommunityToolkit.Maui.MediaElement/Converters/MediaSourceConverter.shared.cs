@@ -14,11 +14,15 @@ public sealed class MediaSourceConverter : TypeConverter
 
 	/// <inheritdoc/>
 	public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
-			=> sourceType == typeof(string);
+	{
+		return sourceType == typeof(string);
+	}
 
 	/// <inheritdoc/>
 	public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
-		=> destinationType == typeof(string);
+	{
+		return destinationType == typeof(string);
+	}
 
 	/// <inheritdoc/>
 	public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object? value)
@@ -49,12 +53,15 @@ public sealed class MediaSourceConverter : TypeConverter
 	}
 
 	/// <inheritdoc/>
-	public override object ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType) => value switch
+	public override object ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
 	{
-		UriMediaSource uriMediaSource => uriMediaSource.ToString(),
-		FileMediaSource fileMediaSource => fileMediaSource.ToString(),
-		ResourceMediaSource resourceMediaSource => resourceMediaSource.ToString(),
-		MediaSource => string.Empty,
-		_ => throw new ArgumentException($"Invalid Media Source", nameof(value))
-	};
+		return value switch
+		{
+			UriMediaSource uriMediaSource => uriMediaSource.ToString(),
+			FileMediaSource fileMediaSource => fileMediaSource.ToString(),
+			ResourceMediaSource resourceMediaSource => resourceMediaSource.ToString(),
+			MediaSource => string.Empty,
+			_ => throw new ArgumentException("Invalid Media Source", nameof(value))
+		};
+	}
 }

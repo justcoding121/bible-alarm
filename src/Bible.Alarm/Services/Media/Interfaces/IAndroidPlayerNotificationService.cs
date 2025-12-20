@@ -1,4 +1,6 @@
 #nullable enable
+using CommunityToolkit.Maui.Views;
+
 namespace Bible.Alarm.Services.Media.Interfaces;
 
 /// <summary>
@@ -11,12 +13,12 @@ public interface IAndroidPlayerNotificationService : IDisposable
     /// Sets a multi-item queue via ExoPlayer to enable the Next and Previous buttons in system controls.
     /// Uses SetMediaSources with dummy items to create a proper multi-item timeline.
     /// </summary>
-    void SetSourceWithDummyQueue(CommunityToolkit.Maui.Views.MediaElement mediaElement, string uri, bool isFirstTrack = false, bool isLastTrack = false);
+    void SetSourceWithDummyQueue(MediaElement mediaElement, string uri, bool isFirstTrack = false, bool isLastTrack = false);
 
     /// <summary>
     /// Releases the MediaSession to hide the media notification.
     /// Should be called when playback stops.
     /// </summary>
-    void ReleaseMediaSession(CommunityToolkit.Maui.Views.MediaElement mediaElement);
+    void ReleaseMediaSession(MediaElement mediaElement);
 }
 

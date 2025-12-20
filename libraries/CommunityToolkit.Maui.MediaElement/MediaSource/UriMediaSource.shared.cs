@@ -6,7 +6,7 @@ namespace CommunityToolkit.Maui.Views;
 /// <summary>
 /// Represents a source, loaded from a remote URI, that can be played by <see cref="MediaElement"/>.
 /// </summary>
-public sealed partial class UriMediaSource : MediaSource
+public sealed class UriMediaSource : MediaSource
 {
 	/// <summary>
 	/// Backing store for the <see cref="Uri"/> property.
@@ -39,11 +39,18 @@ public sealed partial class UriMediaSource : MediaSource
 	}
 
 	/// <inheritdoc/>
-	public override string ToString() => $"Uri: {Uri}";
+	public override string ToString()
+	{
+		return $"Uri: {Uri}";
+	}
 
-	static bool UriValueValidator(BindableObject bindable, object value) =>
-		value is null || ((Uri)value).IsAbsoluteUri;
+	static bool UriValueValidator(BindableObject bindable, object value)
+	{
+		return value is null || ((Uri)value).IsAbsoluteUri;
+	}
 
-	static void OnUriSourceChanged(BindableObject bindable, object oldValue, object newValue) =>
+	static void OnUriSourceChanged(BindableObject bindable, object oldValue, object newValue)
+	{
 		((UriMediaSource)bindable).OnSourceChanged();
+	}
 }

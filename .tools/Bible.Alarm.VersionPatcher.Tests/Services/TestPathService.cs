@@ -13,18 +13,9 @@ public class TestPathService : IPathService
         testResourcesPath = Path.Combine(testOutputDir ?? "", "TestResources");
     }
 
-    public string GetAndroidManifestPath()
-    {
-        return Path.Combine(testResourcesPath, "AndroidManifest.xml");
-    }
+    public string GetAndroidManifestPath() => Path.Combine(testResourcesPath, "AndroidManifest.xml");
 
-    public string GetIosInfoPlistPath()
-    {
-        return Path.Combine(testResourcesPath, "Info.plist");
-    }
+    public string GetIosInfoPlistPath() => Path.Combine(testResourcesPath, "Info.plist");
 
-    public string GetWindowsManifestPath()
-    {
-        return Path.Combine(testResourcesPath, "Package.appxmanifest");
-    }
+    public string GetWindowsManifestPath() => Path.Combine(testResourcesPath, "Package.appxmanifest");
 }

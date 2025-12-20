@@ -68,10 +68,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
         }, ex => logger.Error(ex, "MediaIndexService: @lock disposed error."));
     }
 
-    public async Task UpdateMediaIndex()
-    {
-        await UpdateIndexIfAvailable();
-    }
+    public async Task UpdateMediaIndex() => await UpdateIndexIfAvailable();
 
     public async Task<bool> UpdateIndexIfAvailable()
     {

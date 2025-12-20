@@ -7,10 +7,8 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -45,10 +43,7 @@ public class MediaCacheService(
         return Convert.ToBase64String(plainTextBytes) + AppConstants.Media.MediaFileExtension;
     }
 
-    public string GetCacheFilePath(string url)
-    {
-        return Path.Combine(cacheRoot, GetCacheFileName(url));
-    }
+    public string GetCacheFilePath(string url) => Path.Combine(cacheRoot, GetCacheFileName(url));
 
     public async Task<bool> ExistsAsync(string url)
     {

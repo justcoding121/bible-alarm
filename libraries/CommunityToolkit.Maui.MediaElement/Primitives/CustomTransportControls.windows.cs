@@ -1,16 +1,18 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Visibility = Microsoft.UI.Xaml.Visibility;
+
 namespace CommunityToolkit.Maui.Primitives;
 
 sealed partial class CustomTransportControls : MediaTransportControls
 {
 	public event EventHandler<EventArgs>? OnTemplateLoaded;
 	public AppBarButton FullScreenButton = new();
-	bool isFullScreen = false;
+	bool isFullScreen;
 
 	public CustomTransportControls()
 	{
-		this.DefaultStyleKey = typeof(CustomTransportControls);
+		DefaultStyleKey = typeof(CustomTransportControls);
 	}
 
 	protected override void OnApplyTemplate()
@@ -20,7 +22,7 @@ sealed partial class CustomTransportControls : MediaTransportControls
 		if (GetTemplateChild("FullWindowButton") is AppBarButton appBarButton)
 		{
 			FullScreenButton = appBarButton;
-			FullScreenButton.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+			FullScreenButton.Visibility = Visibility.Visible;
 			OnTemplateLoaded?.Invoke(this, EventArgs.Empty);
 			FullScreenButton.Click += FullScreenButton_Click;
 		}

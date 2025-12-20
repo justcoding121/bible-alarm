@@ -1,10 +1,11 @@
 #nullable enable
 
+using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
-using Windows.ApplicationModel.Activation;
 using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
 
 namespace Bible.Alarm.WinUI;
@@ -29,10 +30,7 @@ public partial class App : MauiWinUIApplication
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
     }
 
-    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
-    {
-        logger.Error(e.Exception, "Unobserved task exception.");
-    }
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
@@ -137,7 +135,7 @@ public partial class App : MauiWinUIApplication
 
                         // Reschedule the next occurrence for recurring alarms
                         // WinUI 3 doesn't have background tasks, so we reschedule immediately when notification fires
-                        var schedulerService = MauiAppHolder.Services.GetRequiredService<Bible.Alarm.Services.Scheduler.Interfaces.ISchedulerService>();
+                        var schedulerService = MauiAppHolder.Services.GetRequiredService<ISchedulerService>();
                         await schedulerService.RescheduleNextOccurrenceAsync(scheduleId);
                     }
                     catch (Exception e)

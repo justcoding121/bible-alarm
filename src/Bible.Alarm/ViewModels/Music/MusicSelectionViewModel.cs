@@ -179,10 +179,7 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref selectedMusicType, value);
     }
 
-    public void Dispose()
-    {
-        state.StateChanged -= OnStateOnStateChanged;
-    }
+    public void Dispose() => state.StateChanged -= OnStateOnStateChanged;
 }
 
 public class MusicTypeListItemViewModel : ObservableObject, IComparable
@@ -198,8 +195,5 @@ public class MusicTypeListItemViewModel : ObservableObject, IComparable
         set => SetProperty(ref isSelected, value);
     }
 
-    public int CompareTo(object obj)
-    {
-        return obj is not MusicTypeListItemViewModel other ? 1 : string.Compare(Name, other.Name, StringComparison.Ordinal);
-    }
+    public int CompareTo(object obj) => obj is not MusicTypeListItemViewModel other ? 1 : string.Compare(Name, other.Name, StringComparison.Ordinal);
 }

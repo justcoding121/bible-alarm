@@ -1,8 +1,10 @@
 using Android.Media;
 using Bible.Alarm.Common.Interfaces.Media;
+using Java.Lang;
 using Serilog;
 using AndroidApplication = Android.App.Application;
 using AndroidNet = Android.Net;
+using Exception = System.Exception;
 using Object = Java.Lang.Object;
 
 
@@ -34,7 +36,7 @@ public class AndroidAudioPreviewer(MediaPlayer player, ILogger logger) : Object,
                 player.Reset();
             }
         }
-        catch (Java.Lang.IllegalStateException ex)
+        catch (IllegalStateException ex)
         {
             // Player is in an invalid state (IDLE, INITIALIZED, or ERROR)
             // Just reset it to clear the state
@@ -51,10 +53,7 @@ public class AndroidAudioPreviewer(MediaPlayer player, ILogger logger) : Object,
         }
     }
 
-    public void OnCompletion(MediaPlayer mp)
-    {
-        OnStopped?.Invoke();
-    }
+    public void OnCompletion(MediaPlayer mp) => OnStopped?.Invoke();
 
     Task IAudioPreviewer.Play(string url)
     {

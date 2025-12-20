@@ -20,8 +20,5 @@ public class Language : IComparable
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
-    public int CompareTo(object obj)
-    {
-        return Name.CompareTo((obj as Language).Name);
-    }
+    public int CompareTo(object obj) => Name.CompareTo((obj as Language).Name);
 }

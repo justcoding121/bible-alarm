@@ -1,5 +1,3 @@
-#nullable enable
-
 #if !(ANDROID || IOS || WINDOWS || MACCATALYST || TIZEN)
 global using PlatformMediaElement = System.Object;
 #elif ANDROID
@@ -27,7 +25,7 @@ public partial class MediaManager
 	/// <param name="context">This application's <see cref="IMauiContext"/>.</param>
 	/// <param name="mediaElement">The <see cref="IMediaElement"/> instance that is managed through this class.</param>
 	/// <param name="dispatcher">The <see cref="IDispatcher"/> instance that allows propagation to the main thread.</param>
-	public MediaManager(Microsoft.Maui.IMauiContext context, IMediaElement mediaElement, IDispatcher dispatcher)
+	public MediaManager(IMauiContext context, IMediaElement mediaElement, IDispatcher dispatcher)
 	{
 		ArgumentNullException.ThrowIfNull(context);
 		ArgumentNullException.ThrowIfNull(mediaElement);
@@ -48,12 +46,12 @@ public partial class MediaManager
 	/// <summary>
 	/// The <see cref="IMauiContext"/> used by this class.
 	/// </summary>
-	protected Microsoft.Maui.IMauiContext MauiContext { get; }
+	protected IMauiContext MauiContext { get; }
 
 	/// <summary>
 	/// The <see cref="IDispatcher"/> that allows propagation to the main thread
 	/// </summary>
-	protected Microsoft.Maui.Dispatching.IDispatcher Dispatcher { get; }
+	protected IDispatcher Dispatcher { get; }
 
 	/// <summary>
 	/// Gets the <see cref="ILogger"/> instance for logging purposes.
@@ -75,7 +73,10 @@ public partial class MediaManager
 	/// <param name="number2"></param>
 	/// <param name="tolerance"></param>
 	/// <returns></returns>
-	public static bool AreFloatingPointNumbersEqual(in double number1, in double number2, double tolerance = 0.01) => Math.Abs(number1 - number2) > tolerance;
+	public static bool AreFloatingPointNumbersEqual(in double number1, in double number2, double tolerance = 0.01)
+	{
+		return Math.Abs(number1 - number2) > tolerance;
+	}
 
 	/// <summary>
 	/// Invokes the play operation on the platform element.
@@ -122,7 +123,10 @@ public partial class MediaManager
 	/// <summary>
 	/// Update the media source.
 	/// </summary>
-	public ValueTask UpdateSource() => PlatformUpdateSource();
+	public ValueTask UpdateSource()
+	{
+		return PlatformUpdateSource();
+	}
 
 	/// <summary>
 	/// Update the media playback speed.
@@ -262,7 +266,11 @@ partial class MediaManager
 	protected virtual partial void PlatformPause() { }
 	protected virtual partial void PlatformStop() { }
 	protected virtual partial void PlatformUpdateAspect() { }
-	protected virtual partial ValueTask PlatformUpdateSource() => ValueTask.CompletedTask;
+	protected virtual partial ValueTask PlatformUpdateSource()
+	{
+		return ValueTask.CompletedTask;
+	}
+
 	protected virtual partial void PlatformUpdateSpeed() { }
 	protected virtual partial void PlatformUpdateShouldShowPlaybackControls() { }
 	protected virtual partial void PlatformUpdatePosition() { }

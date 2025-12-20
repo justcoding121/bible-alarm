@@ -51,7 +51,7 @@ public class DownloadService : IDownloadService, IDisposable
             .WaitAndRetryAsync(
                 retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
-                onRetry: (DelegateResult<byte[]> outcome, TimeSpan timespan, int retryCount, Context context) =>
+                onRetry: (outcome, timespan, retryCount, context) =>
                 {
                     // Log retry attempts
                     var exception = outcome?.Exception;
@@ -77,7 +77,7 @@ public class DownloadService : IDownloadService, IDisposable
 
     public async Task<byte[]> DownloadAsync(string url, string alternativeUrl = null)
     {
-        return await downloadRetryPolicy.ExecuteAsync(async (ct) =>
+        return await downloadRetryPolicy.ExecuteAsync(async ct =>
         {
             try
             {
@@ -124,7 +124,7 @@ public class DownloadService : IDownloadService, IDisposable
 
     public async Task<bool> FileExists(string url)
     {
-        return await fileExistsRetryPolicy.ExecuteAsync(async (ct) =>
+        return await fileExistsRetryPolicy.ExecuteAsync(async ct =>
         {
             using var client = new HttpClient(handler, false)
             {

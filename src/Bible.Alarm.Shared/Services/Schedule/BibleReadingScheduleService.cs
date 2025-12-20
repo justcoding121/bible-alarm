@@ -25,10 +25,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<List<BibleReadingSchedule>> GetAllBibleReadingSchedulesAsync(CancellationToken cancellationToken = default)
-    {
-        return await GetBibleReadingSchedulesAsync(null, cancellationToken);
-    }
+    public async Task<List<BibleReadingSchedule>> GetAllBibleReadingSchedulesAsync(CancellationToken cancellationToken = default) => await GetBibleReadingSchedulesAsync(null, cancellationToken);
 
     public async Task<List<BibleReadingSchedule>> GetBibleReadingSchedulesAsync(Expression<Func<BibleReadingSchedule, bool>>? predicate = null, CancellationToken cancellationToken = default)
     {

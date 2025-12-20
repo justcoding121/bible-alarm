@@ -140,11 +140,12 @@ class Program
     {
         if (typeof(TContext) == typeof(ScheduleDbContext))
         {
-            return (IDesignTimeDbContextFactory<TContext>)(object)new ScheduleDbContextFactory();
+            return (IDesignTimeDbContextFactory<TContext>)new ScheduleDbContextFactory();
         }
-        else if (typeof(TContext) == typeof(MediaDbContext))
+
+        if (typeof(TContext) == typeof(MediaDbContext))
         {
-            return (IDesignTimeDbContextFactory<TContext>)(object)new MediaDbContextFactory();
+            return (IDesignTimeDbContextFactory<TContext>)new MediaDbContextFactory();
         }
 
         throw new NotSupportedException($"No factory found for context type {typeof(TContext).Name}");

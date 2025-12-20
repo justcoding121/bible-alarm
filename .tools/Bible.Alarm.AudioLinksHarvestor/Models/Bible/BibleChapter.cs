@@ -11,8 +11,5 @@ public class BibleChapter : IComparable
     [JsonIgnore]
     public string Title => $"Chapter {Number}";
 
-    public int CompareTo(object obj)
-    {
-        return Number.CompareTo((obj as BibleChapter).Number);
-    }
+    public int CompareTo(object obj) => Number.CompareTo((obj as BibleChapter).Number);
 }

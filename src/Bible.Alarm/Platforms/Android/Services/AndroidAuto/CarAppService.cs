@@ -1,23 +1,26 @@
 #nullable enable
+using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
-using Android.Runtime;
-using Android.Support.V4.Media.Session;
 using Android.Graphics;
 using Android.Graphics.Drawables;
+using Android.Runtime;
+using Android.Support.V4.Media.Session;
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using AndroidX.Car.App.Validation;
 using AndroidX.Core.Content;
+using AndroidX.Core.Graphics.Drawable;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
-using AndroidX.Core.Graphics.Drawable;
+using Action = AndroidX.Car.App.Model.Action;
+using Color = Android.Graphics.Color;
+using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -188,7 +191,7 @@ public class ModernMediaSession : Session
         logger.Information("✅ ModernMediaSession created");
     }
 
-    public override AndroidX.Car.App.Screen OnCreateScreen(Intent? intent)
+    public override Screen OnCreateScreen(Intent? intent)
     {
         logger.Information("✅ ModernMediaSession.OnCreateScreen() called with intent: {Action}", intent?.Action);
 
@@ -208,7 +211,7 @@ public class ModernMediaSession : Session
 /// <summary>
 /// Main car screen that displays the schedule list with playback controls.
 /// </summary>
-public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
+public class MainCarScreen : Screen, IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<MainCarScreen>();
     private readonly MediaSessionManager mediaSessionManager;
@@ -434,7 +437,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
     {
         return new Header.Builder()
             ?.SetTitle("Bible Alarm")
-            ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+            ?.SetStartHeaderAction(Action.AppIcon)
             ?.Build();
     }
 
@@ -475,10 +478,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         }
     }
 
-    private void LoadSchedules()
-    {
-        scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
-    }
+    private void LoadSchedules() => scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
 
     private Row? CreateRowForSchedule(ScheduleStateItem scheduleItem)
     {
@@ -537,7 +537,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
             const int BookOffset = MusicIconSize - 8; // Offset book closer to music icon (reduced gap)
             const int BitmapSize = BookIconSize + BookOffset; // Total bitmap size (same for both cases)
             
-            var bookDrawable = ContextCompat.GetDrawable(CarContext, Resource.Drawable.ic_book_open);
+            var bookDrawable = ContextCompat.GetDrawable(CarContext, ResourceConstant.Drawable.ic_book_open);
             if (bookDrawable == null)
             {
                 logger.Warning("Could not get app drawable for book icon");
@@ -546,14 +546,14 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
 
             var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
             var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
-            bitmap.EraseColor(global::Android.Graphics.Color.Transparent);
+            bitmap.EraseColor(Color.Transparent);
 
             var canvas = new Canvas(bitmap);
             
             // Draw music note in top left corner if music is enabled
             if (musicEnabled)
             {
-                var musicDrawable = ContextCompat.GetDrawable(CarContext, Resource.Drawable.ic_music_note);
+                var musicDrawable = ContextCompat.GetDrawable(CarContext, ResourceConstant.Drawable.ic_music_note);
                 if (musicDrawable != null)
                 {
                     musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
@@ -619,7 +619,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
         // 2025 Modern Header: Title and HeaderAction are now part of a Header object
         var header = new Header.Builder()
             ?.SetTitle("Bible Alarm")
-            ?.SetStartHeaderAction(AndroidX.Car.App.Model.Action.AppIcon)
+            ?.SetStartHeaderAction(Action.AppIcon)
             ?.Build();
 
         if (header == null)
@@ -698,7 +698,7 @@ public class MainCarScreen : AndroidX.Car.App.Screen, IDisposable
 /// <summary>
 /// Click callback for schedule items in the Car App list.
 /// </summary>
-internal class ScheduleClickCallback(MainCarScreen screen, int scheduleId) : Java.Lang.Object, IOnClickListener
+internal class ScheduleClickCallback(MainCarScreen screen, int scheduleId) : Object, IOnClickListener
 {
     private readonly MainCarScreen screen = screen ?? throw new ArgumentNullException(nameof(screen));
     private static readonly ILogger logger = Log.ForContext<ScheduleClickCallback>();

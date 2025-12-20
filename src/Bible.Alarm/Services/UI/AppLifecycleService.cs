@@ -7,6 +7,7 @@ namespace Bible.Alarm.Services.UI;
 
 public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService
 {
+    private readonly IServiceProvider serviceProvider = serviceProvider;
     private bool isDisposed;
 
     public void OnStart()
@@ -37,10 +38,7 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
         });
     }
 
-    public static void OnSleep()
-    {
-        App.IsInForeground = false;
-    }
+    public static void OnSleep() => App.IsInForeground = false;
 
     public void OnResume()
     {

@@ -9,7 +9,6 @@ using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -183,7 +182,7 @@ public class PlaylistService(
 
                     if (nextChapter == null || nextChapter.Value.Key == null || nextChapter.Value.Value == null)
                     {
-                        throw new InvalidOperationException($"Next chapter Key or Value is null");
+                        throw new InvalidOperationException("Next chapter Key or Value is null");
                     }
 
                     // Update book, chapter, AND translation to match the track that just finished
@@ -344,12 +343,12 @@ public class PlaylistService(
 
             if (next.Key == null || next.Value == null)
             {
-                throw new InvalidOperationException($"Next chapter Key or Value is null");
+                throw new InvalidOperationException("Next chapter Key or Value is null");
             }
 
             if (next.Value.Source == null)
             {
-                throw new InvalidOperationException($"Next chapter Source is null");
+                throw new InvalidOperationException("Next chapter Source is null");
             }
 
             bookNumber = next.Key.Number;
@@ -419,7 +418,7 @@ public class PlaylistService(
 
         if (previous.Key == null || previous.Value == null)
         {
-            throw new InvalidOperationException($"Previous chapter Key or Value is null");
+            throw new InvalidOperationException("Previous chapter Key or Value is null");
         }
 
         var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(

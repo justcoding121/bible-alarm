@@ -1,8 +1,7 @@
-#nullable enable
-
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Handlers;
+using Microsoft.UI.Xaml;
 
 namespace CommunityToolkit.Maui.Core.Handlers;
 
@@ -49,7 +48,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 			platformView.Dispose();
 		}
 
-		static void OnPlatformViewUnloaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+		static void OnPlatformViewUnloaded(object sender, RoutedEventArgs e)
 		{
 			var mediaElement = (MauiMediaElement)sender;
 

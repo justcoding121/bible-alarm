@@ -1,7 +1,5 @@
-using System.Runtime.Versioning;
 using Android.App.Job;
 using Android.Content;
-using Android.OS;
 using Java.Lang;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;

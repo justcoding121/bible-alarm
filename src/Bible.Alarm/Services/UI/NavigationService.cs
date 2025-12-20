@@ -12,7 +12,6 @@ using Polly;
 using Polly.Retry;
 using Serilog;
 
-
 namespace Bible.Alarm.Services.UI;
 
 public class NavigationService(

@@ -9,15 +9,9 @@ public class IOsVersionFinder : IVersionFinder, IDisposable
     private static readonly Lazy<string> version = new(() => VersionName());
     public static IOsVersionFinder Default => new();
 
-    public string GetVersionName()
-    {
-        return version.Value;
-    }
+    public string GetVersionName() => version.Value;
 
-    private static string VersionName()
-    {
-        return "iOS " + (NSString)NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"];
-    }
+    private static string VersionName() => "iOS " + (NSString)NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"];
 
     public void Dispose()
     {

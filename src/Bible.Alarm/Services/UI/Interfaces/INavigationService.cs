@@ -1,4 +1,6 @@
 #nullable enable
+using Bible.Alarm.Views.General;
+
 namespace Bible.Alarm.Services.UI.Interfaces;
 
 public interface INavigationService : IDisposable
@@ -21,7 +23,7 @@ public interface INavigationService : IDisposable
     /// <summary>
     /// Gets the BootstrapPage from the navigation stack.
     /// </summary>
-    Views.General.BootstrapPage? GetBootstrapPage(bool shouldRetry = true);
+    BootstrapPage? GetBootstrapPage(bool shouldRetry = true);
 
     /// <summary>
     /// Pops all modals and pages from the navigation stack, disposing them if they implement IDisposable.

@@ -1,6 +1,7 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -409,7 +410,7 @@ public class ScheduleEffects(
             {
                 Log.Warning("ScheduleEffects: HandleDeleteSchedule - Cannot delete schedule {ScheduleId} - it is the last schedule", action.ScheduleId);
                 // Show toast message to user
-                WeakReferenceMessenger.Default.Send(new Common.Messenger.ShowToastMessage("Cannot delete last schedule"));
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
                 dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Cannot delete last schedule"));
                 return;
             }

@@ -14,10 +14,7 @@ public class ExceptionHandlingService(ILogger logger) : IExceptionHandlingServic
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
     }
 
-    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
-    {
-        logger.Error(e.Exception, "Unobserved task exception.");
-    }
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {

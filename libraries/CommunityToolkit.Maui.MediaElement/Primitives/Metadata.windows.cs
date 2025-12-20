@@ -1,4 +1,5 @@
 using Windows.Media;
+using Windows.Storage.Streams;
 
 namespace CommunityToolkit.Maui.Core.Primitives;
 
@@ -62,7 +63,7 @@ sealed class Metadata
 
 		if (!string.IsNullOrEmpty(mp.MetadataArtworkUrl))
 		{
-			systemMediaControls.DisplayUpdater.Thumbnail = Windows.Storage.Streams.RandomAccessStreamReference.CreateFromUri(new Uri(mp.MetadataArtworkUrl ?? string.Empty));
+			systemMediaControls.DisplayUpdater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(mp.MetadataArtworkUrl ?? string.Empty));
 		}
 		systemMediaControls.DisplayUpdater.Type = MediaPlaybackType.Music;
 		systemMediaControls.DisplayUpdater.MusicProperties.Artist = mp.MetadataTitle;

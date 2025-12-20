@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
+using Serilog;
 
 namespace Bible.Alarm.Views.Schedule;
 
@@ -67,7 +68,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
             catch (Exception ex)
             {
                 // Ignore errors during cancellation/disposal
-                Serilog.Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
             }
 
             // This modal uses parent page view model, so do NOT dispose it

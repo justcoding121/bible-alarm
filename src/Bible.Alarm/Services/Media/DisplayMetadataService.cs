@@ -4,6 +4,8 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
+using File = TagLib.File;
+using IPicture = TagLib.IPicture;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -129,7 +131,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, $"Failed to get display metadata for track");
+            logger.Warning(ex, "Failed to get display metadata for track");
         }
 
         // Fallback to file metadata if title is still empty
@@ -170,7 +172,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                     : uri;
 
                 // Extract metadata using TagLibSharp
-                using var file = TagLib.File.Create(filePath);
+                using var file = File.Create(filePath);
                 var tag = file.Tag;
 
                 var meta = new MetaData
@@ -185,13 +187,13 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 // Extract artwork if available - find the largest picture
                 if (tag.Pictures != null && tag.Pictures.Length > 0)
                 {
-                    TagLib.IPicture? largestPicture = null;
+                    IPicture? largestPicture = null;
                     int largestSize = 0;
 
                     logger.Debug($"Found {tag.Pictures.Length} picture(s) in {uri}");
 
                     // Find the picture with the largest data size
-                    foreach (TagLib.IPicture picture in tag.Pictures)
+                    foreach (IPicture picture in tag.Pictures)
                     {
                         if (picture != null && picture.Data != null && picture.Data.Data != null)
                         {

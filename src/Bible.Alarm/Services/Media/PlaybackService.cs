@@ -1,4 +1,5 @@
 #nullable enable
+using System.Timers;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -9,6 +10,7 @@ using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -27,7 +29,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     private int currentTrackIndex = -1;
     private int? currentScheduleId;
     private bool isAlarm;
-    private readonly System.Timers.Timer? progressSaveTimer;
+    private readonly Timer? progressSaveTimer;
     private readonly HashSet<int> manuallyVisitedTrackIndices = [];
 
     private bool IsPreparingOrPlayingInternal
@@ -360,10 +362,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         await audioPlayer.SeekToAsync(position);
     }
 
-    public async Task StopAsync()
-    {
-        await StopAsyncInternal(skipMarkAsPlayed: false);
-    }
+    public async Task StopAsync() => await StopAsyncInternal(skipMarkAsPlayed: false);
 
     private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false)
     {
@@ -576,10 +575,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         }
     }
 
-    private void OnProgressSaveTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
-    {
-        _ = SaveProgressAsync();
-    }
+    private void OnProgressSaveTimerElapsed(object? sender, ElapsedEventArgs e) => _ = SaveProgressAsync();
 
     private async Task SaveProgressAsync()
     {

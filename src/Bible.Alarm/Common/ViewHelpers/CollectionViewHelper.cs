@@ -1,6 +1,5 @@
 #if WINDOWS
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 #endif
 using System.Collections;
 using System.Runtime.InteropServices;
@@ -350,7 +349,7 @@ public static class CollectionViewHelper
 
         try
         {
-            await retryPolicy.ExecuteAsync(async (ct) =>
+            await retryPolicy.ExecuteAsync(async ct =>
             {
                 // Small delay before checking to avoid tight loop
                 await Task.Delay(10, ct);

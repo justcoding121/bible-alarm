@@ -26,10 +26,7 @@ public class MediaSessionEffect(
 {
     private static readonly ILogger logger = Log.ForContext<MediaSessionEffect>();
 
-    public void RegisterMessageHandlers()
-    {
-        WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
-    }
+    public void RegisterMessageHandlers() => WeakReferenceMessenger.Default.Register(this);
 
     [EffectMethod]
     public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)

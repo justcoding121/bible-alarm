@@ -83,7 +83,7 @@ public class DefaultScheduleService(
             try
             {
                 var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
-                System.IO.File.WriteAllBytes(artworkPath, metadata.ArtworkBytes);
+                File.WriteAllBytes(artworkPath, metadata.ArtworkBytes);
                 artworkUrl = artworkPath;
                 logger.Debug("Saved artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);
             }

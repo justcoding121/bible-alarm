@@ -16,8 +16,5 @@ public class PublicationListViewItemModel(Publication publication) : ObservableO
     public string Name => publication.Name;
     public string Code => publication.Code;
 
-    public int CompareTo(object obj)
-    {
-        return string.Compare(Name, (obj as PublicationListViewItemModel)?.Name, StringComparison.Ordinal);
-    }
+    public int CompareTo(object obj) => string.Compare(Name, (obj as PublicationListViewItemModel)?.Name, StringComparison.Ordinal);
 }

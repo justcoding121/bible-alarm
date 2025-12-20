@@ -8,7 +8,9 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Services.UI.Interfaces;
+using Java.Lang;
 using Serilog;
+using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android;
 
@@ -78,10 +80,7 @@ public class MainActivity : MauiAppCompatActivity
         SetupBackgroundTasks();
     }
 
-    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
-    {
-        logger.Error(e.Exception, "Unobserved task exception.");
-    }
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
@@ -152,7 +151,7 @@ public class MainActivity : MauiAppCompatActivity
         {
             base.OnStart();
         }
-        catch (Java.Lang.IllegalArgumentException ex) when (ex.Message?.Contains("No view found for id") == true && ex.Message?.Contains("legacy") == true)
+        catch (IllegalArgumentException ex) when (ex.Message?.Contains("No view found for id") == true && ex.Message?.Contains("legacy") == true)
         {
             // Fragment restoration failed due to stale state - clear fragments and retry
             logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");

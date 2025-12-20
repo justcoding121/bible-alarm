@@ -28,15 +28,9 @@ public class UpdateMediaIndexJob : JobService
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
-    {
-        logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
-    }
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
 
-    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
-    {
-        logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
-    }
+    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e) => logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
 
     public override bool OnStartJob(JobParameters @params)
     {
@@ -69,8 +63,5 @@ public class UpdateMediaIndexJob : JobService
         return true;
     }
 
-    public override bool OnStopJob(JobParameters @params)
-    {
-        return false;
-    }
+    public override bool OnStopJob(JobParameters @params) => false;
 }

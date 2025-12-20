@@ -40,12 +40,10 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
                     trackMetadata.ChapterNumber,
                     lookUpPath);
             }
-            else
-            {
-                return await GetMusicTrackUrl(
-                    trackMetadata.LanguageCode,
-                    lookUpPath);
-            }
+
+            return await GetMusicTrackUrl(
+                trackMetadata.LanguageCode,
+                lookUpPath);
         }
         catch (Exception ex)
         {

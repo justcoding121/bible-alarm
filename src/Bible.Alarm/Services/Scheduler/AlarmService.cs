@@ -9,7 +9,7 @@ namespace Bible.Alarm.Services.Scheduler;
 /// Schedules OS toast notifications only when the alarm is enabled.
 /// Flyout messages are shown separately via ToastService.ShowScheduledNotification.
 /// </summary>
-public sealed partial class AlarmService(
+public sealed class AlarmService(
     INotificationService notificationService)
     : IAlarmService, IDisposable
 {
@@ -65,10 +65,7 @@ public sealed partial class AlarmService(
             "Press to start listening now.");
     }
 
-    private async Task RemoveNotification(int scheduleId)
-    {
-        await notificationService.RemoveAsync(scheduleId);
-    }
+    private async Task RemoveNotification(int scheduleId) => await notificationService.RemoveAsync(scheduleId);
 
     private bool isDisposed;
 

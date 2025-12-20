@@ -71,10 +71,7 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
     /// <summary>
     /// Handles theme changes and updates navigation bar colors.
     /// </summary>
-    private static void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
-    {
-        UpdateNavigationBarColors();
-    }
+    private static void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e) => UpdateNavigationBarColors();
 
     /// <summary>
     /// Updates NavigationPage bar colors from theme-aware resources.

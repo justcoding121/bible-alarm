@@ -62,8 +62,5 @@ public class IsSelectedColorConverter : IValueConverter
         return ThemeColors.CardBackground.Get(theme);
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

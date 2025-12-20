@@ -1,18 +1,16 @@
-#nullable enable
-
 using System.Diagnostics;
 using System.Numerics;
-using CommunityToolkit.Maui.Core.Primitives;
-using CommunityToolkit.Maui.Extensions;
-using CommunityToolkit.Maui.Views;
-using Microsoft.Extensions.Logging;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Media;
 using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.System.Display;
+using CommunityToolkit.Maui.Core.Primitives;
+using CommunityToolkit.Maui.Extensions;
+using CommunityToolkit.Maui.Views;
+using Microsoft.Extensions.Logging;
+using Microsoft.UI.Xaml.Media.Imaging;
 using ParentWindow = CommunityToolkit.Maui.Extensions.PageExtensions.ParentWindow;
+using Stretch = Microsoft.UI.Xaml.Media.Stretch;
 using WindowsMediaElement = Windows.Media.Playback.MediaPlayer;
 using WinMediaSource = Windows.Media.Core.MediaSource;
 
@@ -35,10 +33,10 @@ partial class MediaManager : IDisposable
 	bool displayActiveRequested;
 
 	/// <summary>
-	/// The <see cref="DisplayRequest"/> is used to enable the <see cref="MediaElement.ShouldKeepScreenOn"/> functionality.
+	/// The <see cref="DisplayRequest"/> is used to enable the <see cref="Maui.Views.MediaElement.ShouldKeepScreenOn"/> functionality.
 	/// </summary>
 	/// <remarks>
-	/// Calls to <see cref="DisplayRequest.RequestActive"/> and <see cref="DisplayRequest.RequestRelease"/> should be in balance.
+	/// Calls to <see cref="Windows.System.Display.DisplayRequest.RequestActive"/> and <see cref="DisplayRequest.RequestRelease"/> should be in balance.
 	/// Not doing so will result in the screen staying on and negatively impacting the environment :(
 	/// </remarks>
 	protected DisplayRequest DisplayRequest { get; } = new();
@@ -116,7 +114,7 @@ partial class MediaManager : IDisposable
 			}
 		}
 
-		static void UpdatePosition(in MediaPlayerElement mediaPlayerElement, in TimeSpan position) => mediaPlayerElement.MediaPlayer.Position = position;
+		static void UpdatePosition(in PlatformMediaElement mediaPlayerElement, in TimeSpan position) => mediaPlayerElement.MediaPlayer.Position = position;
 	}
 
 	protected virtual partial void PlatformStop()
@@ -148,9 +146,9 @@ partial class MediaManager : IDisposable
 
 		Player.Stretch = MediaElement.Aspect switch
 		{
-			Aspect.Fill => Microsoft.UI.Xaml.Media.Stretch.Fill,
-			Aspect.AspectFill => Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
-			_ => Microsoft.UI.Xaml.Media.Stretch.Uniform,
+			Aspect.Fill => Stretch.Fill,
+			Aspect.AspectFill => Stretch.UniformToFill,
+			_ => Stretch.Uniform,
 		};
 	}
 
@@ -165,12 +163,12 @@ partial class MediaManager : IDisposable
 		Player.MediaPlayer.PlaybackRate = MediaElement.Speed;
 
 		// Only trigger once when going to the paused state
-		if (IsZero<double>(MediaElement.Speed) && previousSpeed > 0)
+		if (IsZero(MediaElement.Speed) && previousSpeed > 0)
 		{
 			Player.MediaPlayer.Pause();
 		}
 		// Only trigger once when we move from the paused state
-		else if (MediaElement.Speed > 0 && IsZero<double>(previousSpeed))
+		else if (MediaElement.Speed > 0 && IsZero(previousSpeed))
 		{
 			MediaElement.Play();
 		}
@@ -229,7 +227,7 @@ partial class MediaManager : IDisposable
 			UpdateVolume(Player, MediaElement.Volume);
 		}
 
-		static void UpdateVolume(in MediaPlayerElement mediaPlayerElement, in double volume) => mediaPlayerElement.MediaPlayer.Volume = volume;
+		static void UpdateVolume(in PlatformMediaElement mediaPlayerElement, in double volume) => mediaPlayerElement.MediaPlayer.Volume = volume;
 	}
 
 	protected virtual partial void PlatformUpdateShouldKeepScreenOn()
@@ -404,7 +402,7 @@ partial class MediaManager : IDisposable
 			UpdatePosterSource(Player, metadataArtworkUri);
 		}
 
-		static void UpdatePosterSource(in MediaPlayerElement player, in Uri metadataArtworkUri)
+		static void UpdatePosterSource(in PlatformMediaElement player, in Uri metadataArtworkUri)
 		{
 			player.PosterSource = new BitmapImage(metadataArtworkUri);
 		}
@@ -430,7 +428,7 @@ partial class MediaManager : IDisposable
 
 		await UpdateMetadata();
 
-		static void SetDuration(in IMediaElement mediaElement, in MediaPlayerElement mediaPlayerElement)
+		static void SetDuration(in IMediaElement mediaElement, in PlatformMediaElement mediaPlayerElement)
 		{
 			mediaElement.Duration = mediaPlayerElement.MediaPlayer.NaturalDuration == TimeSpan.MaxValue
 				? TimeSpan.Zero
@@ -516,7 +514,7 @@ partial class MediaManager : IDisposable
 		};
 
 		MediaElement?.CurrentStateChanged(newState);
-		if (sender.PlaybackState == MediaPlaybackState.Playing && IsZero<double>(sender.PlaybackRate))
+		if (sender.PlaybackState == MediaPlaybackState.Playing && IsZero(sender.PlaybackRate))
 		{
 			Dispatcher.Dispatch(() =>
 			{

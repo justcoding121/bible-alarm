@@ -18,20 +18,11 @@ public abstract class StorageService : IStorageService, IDisposable
         return Task.FromResult(false);
     }
 
-    public Task<bool> FileExists(string path)
-    {
-        return Task.FromResult(File.Exists(path));
-    }
+    public Task<bool> FileExists(string path) => Task.FromResult(File.Exists(path));
 
-    public Task<bool> DirectoryExists(string path)
-    {
-        return Task.FromResult(Directory.Exists(path));
-    }
+    public Task<bool> DirectoryExists(string path) => Task.FromResult(Directory.Exists(path));
 
-    public Task<DirectoryInfo> CreateDirectory(string path)
-    {
-        return Task.FromResult(Directory.CreateDirectory(path));
-    }
+    public Task<DirectoryInfo> CreateDirectory(string path) => Task.FromResult(Directory.CreateDirectory(path));
 
     public Task DeleteDirectory(string path)
     {
@@ -49,10 +40,7 @@ public abstract class StorageService : IStorageService, IDisposable
         return [.. Directory.GetFiles(path)];
     }
 
-    public Task<string> ReadFile(string path)
-    {
-        return Task.FromResult(File.ReadAllText(path));
-    }
+    public Task<string> ReadFile(string path) => Task.FromResult(File.ReadAllText(path));
 
     public async Task SaveFile(string directoryPath, string name, string contents)
     {
@@ -130,7 +118,7 @@ public abstract class StorageService : IStorageService, IDisposable
             new DateTimeOffset(new[] { file.LastAccessTime, file.LastWriteTime, file.CreationTime }.Max()));
     }
 
-    [RequiresAssemblyFiles()]
+    [RequiresAssemblyFiles]
     public Task<DateTimeOffset> GetFileCreationDateFromResource(string resourceName)
     {
         var file = ResourceLoader.GetFileInfo(MainAssembly);

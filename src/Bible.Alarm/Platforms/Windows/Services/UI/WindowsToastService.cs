@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Runtime.InteropServices;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI;
 using Microsoft.UI.Xaml;
@@ -7,7 +8,15 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Serilog;
+using Application = Microsoft.Maui.Controls.Application;
+using Border = Microsoft.UI.Xaml.Controls.Border;
+using Colors = Microsoft.UI.Colors;
+using CornerRadius = Microsoft.UI.Xaml.CornerRadius;
 using Frame = Microsoft.UI.Xaml.Controls.Frame;
+using HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment;
+using SolidColorBrush = Microsoft.UI.Xaml.Media.SolidColorBrush;
+using Thickness = Microsoft.UI.Xaml.Thickness;
+using VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment;
 using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
@@ -103,7 +112,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
                 currentPopup = popup;
                 await ShowFlyoutAsync(popup, currentWindow, seconds);
             }
-            catch (System.Runtime.InteropServices.COMException ex)
+            catch (COMException ex)
             {
                 // COM exceptions can occur when manipulating UI elements from wrong thread or during cleanup
                 Log.Warning(ex, "COM exception occurred while showing toast message. This can happen when manipulating UI elements from wrong thread or during cleanup");
@@ -129,7 +138,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         // If Window.Current is null, try to get it from MAUI Application
         if (currentWindow is null)
         {
-            var windows = Microsoft.Maui.Controls.Application.Current?.Windows;
+            var windows = Application.Current?.Windows;
             if (windows is not null && windows.Count > 0)
             {
                 var mauiWindow = windows[0];
@@ -188,25 +197,25 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         var textBlock = new TextBlock
         {
             Text = message,
-            TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
-            Padding = new Microsoft.UI.Xaml.Thickness(16, 12, 16, 12),
-            Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White),
-            HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
-            VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            Padding = new Thickness(16, 12, 16, 12),
+            Foreground = new SolidColorBrush(Colors.White),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
             // Limit width for better appearance
             MaxWidth = 400
         };
 
         // Create a Border for the toast background
-        var border = new Microsoft.UI.Xaml.Controls.Border
+        var border = new Border
         {
-            Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Black)
+            Background = new SolidColorBrush(Colors.Black)
             {
                 Opacity = 0.8
             },
-            CornerRadius = new Microsoft.UI.Xaml.CornerRadius(8),
+            CornerRadius = new CornerRadius(8),
             Child = textBlock,
-            HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center
         };
 
         // Create the Popup
@@ -240,7 +249,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
                     }
                 }
             }
-            catch (System.Runtime.InteropServices.COMException ex)
+            catch (COMException ex)
             {
                 // Window content may not be accessible if window is being disposed or during navigation
                 Log.Debug(ex, "Window content not accessible when setting up popup (window may be disposed)");
@@ -299,7 +308,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
                 await Task.Delay((int)(seconds * 1000));
             }
         }
-        catch (System.Runtime.InteropServices.COMException ex)
+        catch (COMException ex)
         {
             // COM exceptions can occur when manipulating UI elements
             Log.Warning(ex, "COM exception occurred while showing popup flyout. Closing popup and continuing");
@@ -317,7 +326,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
                         content.SizeChanged -= sizeChangedHandler;
                     }
                 }
-                catch (System.Runtime.InteropServices.COMException ex)
+                catch (COMException ex)
                 {
                     // Window may be disposed or in invalid state during navigation
                     Log.Debug(ex, "Window content not accessible during cleanup (window may be disposed)");
@@ -340,7 +349,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
                     popup.IsOpen = false;
                 }
             }
-            catch (System.Runtime.InteropServices.COMException ex)
+            catch (COMException ex)
             {
                 // Popup may be disposed or in invalid state - this is expected during cleanup
                 Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
@@ -359,7 +368,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
     private static void UpdatePopupPosition(Popup popup, Window? currentWindow)
     {
-        if (currentWindow?.Content is FrameworkElement content && popup.Child is Microsoft.UI.Xaml.Controls.Border border)
+        if (currentWindow?.Content is FrameworkElement content && popup.Child is Border border)
         {
             var windowWidth = content.ActualWidth;
             var windowHeight = content.ActualHeight;
@@ -393,7 +402,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         {
             popup.Child = null;
         }
-        catch (System.Runtime.InteropServices.COMException ex)
+        catch (COMException ex)
         {
             // Popup may be disposed or in invalid state - this is expected during cleanup
             Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");

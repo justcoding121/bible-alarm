@@ -24,11 +24,9 @@ public class WindowsVersionPatcherTests
     }
 
     [Fact]
-    public void PlatformName_ShouldReturnWindows()
-    {
+    public void PlatformName_ShouldReturnWindows() =>
         // Act & Assert
         patcher.PlatformName.Should().Be("Windows");
-    }
 
     [Fact]
     public async Task PatchVersionAsync_WithValidManifest_ShouldUpdateVersion()

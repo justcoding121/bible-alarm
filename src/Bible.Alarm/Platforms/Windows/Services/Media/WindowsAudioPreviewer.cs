@@ -1,8 +1,8 @@
 #nullable enable
-using Bible.Alarm.Common.Interfaces.Media;
-using Serilog;
 using Windows.Media.Core;
 using Windows.Media.Playback;
+using Bible.Alarm.Common.Interfaces.Media;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Media;
 
@@ -25,10 +25,7 @@ public class WindowsAudioPreviewer : IAudioPreviewer, IDisposable
         mediaPlayer.CurrentStateChanged += BufferingStartedHandler;
     }
 
-    private void MediaEndHandler(MediaPlayer sender, object? args)
-    {
-        OnStopped?.Invoke();
-    }
+    private void MediaEndHandler(MediaPlayer sender, object? args) => OnStopped?.Invoke();
 
     private void BufferingStartedHandler(MediaPlayer sender, object? args)
     {

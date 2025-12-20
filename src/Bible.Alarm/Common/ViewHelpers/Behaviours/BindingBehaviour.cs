@@ -27,16 +27,10 @@ public class BindableBehavior<T> : Behavior<T> where T : BindableObject
         visualElement.BindingContextChanged += OnBindingContextChanged;
     }
 
-    private void OnBindingContextChanged(object sender, EventArgs e)
-    {
-        OnBindingContextChanged();
-    }
+    private void OnBindingContextChanged(object sender, EventArgs e) => OnBindingContextChanged();
 
     /// <inheritdoc />
-    protected override void OnDetachingFrom(T view)
-    {
-        view.BindingContextChanged -= OnBindingContextChanged;
-    }
+    protected override void OnDetachingFrom(T view) => view.BindingContextChanged -= OnBindingContextChanged;
 
     /// <summary>
     /// Track any changes of the view's binding context

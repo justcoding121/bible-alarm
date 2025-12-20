@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
+using Serilog;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -82,7 +83,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
             catch (Exception ex)
             {
                 // Ignore errors during cancellation/disposal
-                Serilog.Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
             }
 
             // ViewModel was injected via constructor, so dispose it

@@ -62,7 +62,10 @@ sealed class Metadata
 	/// <summary>
 	/// Clears the metadata for the currently playing media.
 	/// </summary>
-	public static void ClearNowPlaying() => MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfoDefault;
+	public static void ClearNowPlaying()
+	{
+		MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfoDefault;
+	}
 
 	/// <summary>
 	/// Sets the data for the currently playing media from the media element.
@@ -73,7 +76,7 @@ sealed class Metadata
 	{
 		if (mediaElement is null)
 		{
-			Metadata.ClearNowPlaying();
+			ClearNowPlaying();
 			return;
 		}
 

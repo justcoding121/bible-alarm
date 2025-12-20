@@ -1222,10 +1222,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Hides the Home page overlay. Called when the Schedule page is fully rendered and visible.
     /// </summary>
-    public void HideHomePageOverlay()
-    {
-        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
-    }
+    public void HideHomePageOverlay() => dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
 
     /// <summary>
     /// Gets the overlay visibility from application state.
@@ -1236,10 +1233,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
     /// </summary>
-    public void HideSchedulePageOverlay()
-    {
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-    }
+    public void HideSchedulePageOverlay() => dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
 
     public void Dispose()
     {

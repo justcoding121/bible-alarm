@@ -24,11 +24,9 @@ public class AndroidVersionPatcherTests
     }
 
     [Fact]
-    public void PlatformName_ShouldReturnAndroid()
-    {
+    public void PlatformName_ShouldReturnAndroid() =>
         // Act & Assert
         patcher.PlatformName.Should().Be("Android");
-    }
 
     [Fact]
     public async Task PatchVersionAsync_WithValidManifest_ShouldUpdateVersion()

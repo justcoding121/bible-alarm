@@ -6,18 +6,9 @@ namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
 public class PathService : IPathService
 {
-    public string GetAndroidManifestPath()
-    {
-        return Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.Droid", "Properties", "AndroidManifest.xml");
-    }
+    public string GetAndroidManifestPath() => Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.Droid", "Properties", "AndroidManifest.xml");
 
-    public string GetIosInfoPlistPath()
-    {
-        return Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.iOS", "Info.plist");
-    }
+    public string GetIosInfoPlistPath() => Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.iOS", "Info.plist");
 
-    public string GetWindowsManifestPath()
-    {
-        return Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Platforms", "Windows", "Package.appxmanifest");
-    }
+    public string GetWindowsManifestPath() => Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Platforms", "Windows", "Package.appxmanifest");
 }

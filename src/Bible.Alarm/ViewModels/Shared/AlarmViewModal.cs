@@ -11,7 +11,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
 using Plugin.StoreReview;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -176,7 +175,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
             await playbackService.SeekBackwardAsync();
         });
 
-        SeekCommand = new AsyncRelayCommand<TimeSpan>(async (position) =>
+        SeekCommand = new AsyncRelayCommand<TimeSpan>(async position =>
         {
             await playbackService.SeekToAsync(position);
         });
@@ -497,10 +496,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
-    private void OnPlaybackStateChanged(object? sender, EventArgs e)
-    {
-        UpdateFromState();
-    }
+    private void OnPlaybackStateChanged(object? sender, EventArgs e) => UpdateFromState();
 
     private void UpdateFromState()
     {
@@ -849,10 +845,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     /// <summary>
     /// Hides the Home page overlay. Called when the Alarm Modal is fully rendered and visible.
     /// </summary>
-    public void HideHomePageOverlay()
-    {
-        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
-    }
+    public void HideHomePageOverlay() => dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
 
     public void Dispose()
     {

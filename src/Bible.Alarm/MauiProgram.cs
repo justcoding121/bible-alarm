@@ -1,44 +1,23 @@
-using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Services.UI;
-using Bible.Alarm.Common;
-using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Shared.Constants;
-using CommunityToolkit.Maui;
-using Syncfusion.Licensing;
-using Syncfusion.Maui.Core.Hosting;
-using Microsoft.EntityFrameworkCore;
-using Serilog;
 #if IOS
-using Bible.Alarm.Platforms.iOS.Services.Storage;
-using Bible.Alarm.Platforms.iOS.Services.UI;
-using Bible.Alarm.Platforms.iOS.Helpers;
-using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
-using Bible.Alarm.Platforms.iOS.Services.Media;
 using Bible.Alarm.Platforms.iOS.Handlers;
 #endif
 
 #if ANDROID
-using Bible.Alarm.Platforms.Android.Services.Media;
-using Bible.Alarm.Platforms.Android.Services.UI;
-using Bible.Alarm.Platforms.Android.Services.Handlers;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
-using Bible.Alarm.Platforms.Android.Services.Battery;
+using Bible.Alarm.Platforms.Android.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
-using Bible.Alarm.Platforms.Android.Services.Storage;
-#if ANDROID
-using Android.App;
 #endif
-using Microsoft.Maui.ApplicationModel;
-#endif
+using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Services.UI;
+using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
+using CommunityToolkit.Maui;
+using Serilog;
+using Syncfusion.Licensing;
+using Syncfusion.Maui.Core.Hosting;
 #if WINDOWS
-using Bible.Alarm.Platforms.Windows.Services.UI;
-using Bible.Alarm.Platforms.Windows.Services.Handlers;
-using Bible.Alarm.Platforms.Windows.Services.Media;
-using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
-using Bible.Alarm.Platforms.Windows.Helpers;
-using Windows.Media.Playback;
 #endif
 
 namespace Bible.Alarm;
@@ -84,13 +63,13 @@ public static class MauiProgram
 #if ANDROID
             .ConfigureMauiHandlers(handlers =>
             {
-                handlers.AddHandler<Microsoft.Maui.Controls.Entry, Bible.Alarm.Platforms.Android.Handlers.EntryHandler>();
-                handlers.AddHandler<Microsoft.Maui.Controls.TimePicker, Bible.Alarm.Platforms.Android.Handlers.TimePickerHandler>();
+                handlers.AddHandler<Entry, EntryHandler>();
+                handlers.AddHandler<TimePicker, TimePickerHandler>();
             })
 #elif IOS
             .ConfigureMauiHandlers(handlers =>
             {
-                handlers.AddHandler<Microsoft.Maui.Controls.SearchBar, SearchBarHandler>();
+                handlers.AddHandler<SearchBar, SearchBarHandler>();
             })
 #endif
             .ConfigureFonts(fonts =>
@@ -127,26 +106,17 @@ public static class MauiProgram
     /// This should be called after MauiApp is created to ensure databases and services are initialized.
     /// Thread-safe: ensures bootstrap runs only once, even if called from multiple entry points concurrently.
     /// </summary>
-    public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false)
-    {
-        BootstrapHelper.InitializePlatformBootstrap(services, isForeground);
-    }
+    public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false) => BootstrapHelper.InitializePlatformBootstrap(services, isForeground);
 
     /// <summary>
     /// Synchronously waits for bootstrap to complete before allowing database access.
     /// Use this method when you must wait synchronously (e.g., in framework override methods).
     /// </summary>
-    public static void WaitForBootstrap(int timeoutMs = 30000)
-    {
-        BootstrapHelper.WaitForBootstrap(timeoutMs);
-    }
+    public static void WaitForBootstrap(int timeoutMs = 30000) => BootstrapHelper.WaitForBootstrap(timeoutMs);
 
     /// <summary>
     /// Waits for bootstrap to complete before allowing database access.
     /// This ensures database migrations are finished before services use the database.
     /// </summary>
-    public static async Task WaitForBootstrapAsync(int timeoutMs = 30000)
-    {
-        await BootstrapHelper.WaitForBootstrapAsync(timeoutMs);
-    }
+    public static async Task WaitForBootstrapAsync(int timeoutMs = 30000) => await BootstrapHelper.WaitForBootstrapAsync(timeoutMs);
 }

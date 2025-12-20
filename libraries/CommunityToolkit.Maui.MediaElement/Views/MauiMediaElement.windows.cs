@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Reflection;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Maui.Extensions;
@@ -8,12 +6,16 @@ using CommunityToolkit.Maui.Views;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Markup;
 using Application = Microsoft.Maui.Controls.Application;
 using Grid = Microsoft.UI.Xaml.Controls.Grid;
+using HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment;
+using MediaSource = Windows.Media.Core.MediaSource;
 using Page = Microsoft.Maui.Controls.Page;
+using ResourceDictionary = Microsoft.UI.Xaml.ResourceDictionary;
+using Style = Microsoft.UI.Xaml.Style;
+using VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment;
 
 namespace CommunityToolkit.Maui.Core.Views;
 
@@ -35,7 +37,7 @@ public partial class MauiMediaElement : Grid, IDisposable
 	}
 	readonly Popup popup = new();
 	readonly Grid fullScreenGrid = new();
-	readonly MediaPlayerElement mediaPlayerElement;
+	readonly PlatformMediaElement mediaPlayerElement;
 	readonly CustomTransportControls? customTransportControls;
 	bool doesNavigationBarExistBeforeFullScreen;
 	bool isDisposed;
@@ -44,7 +46,7 @@ public partial class MauiMediaElement : Grid, IDisposable
 	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class.
 	/// </summary>
 	/// <param name="mediaPlayerElement"></param>
-	public MauiMediaElement(MediaPlayerElement mediaPlayerElement)
+	public MauiMediaElement(PlatformMediaElement mediaPlayerElement)
 	{
 		LoadResourceDictionary();
 		this.mediaPlayerElement = mediaPlayerElement;
@@ -62,17 +64,17 @@ public partial class MauiMediaElement : Grid, IDisposable
 		}
 		using StreamReader reader = new(stream);
 		var xaml = reader.ReadToEnd();
-		var resourceDictionary = (Microsoft.UI.Xaml.ResourceDictionary)XamlReader.Load(xaml);
+		var resourceDictionary = (ResourceDictionary)XamlReader.Load(xaml);
 		if (resourceDictionary is null)
 		{
 			return;
 		}
-		this.Resources.MergedDictionaries.Add(resourceDictionary);
+		Resources.MergedDictionaries.Add(resourceDictionary);
 	}
 	void ApplyCustomStyle()
 	{
-		if (this.Resources.TryGetValue("customTransportcontrols", out object styleObj) &&
-			styleObj is Microsoft.UI.Xaml.Style customStyle && mediaPlayerElement is not null && mediaPlayerElement.TransportControls is not null)
+		if (Resources.TryGetValue("customTransportcontrols", out object styleObj) &&
+			styleObj is Style customStyle && mediaPlayerElement is not null && mediaPlayerElement.TransportControls is not null)
 		{
 			mediaPlayerElement.TransportControls.Style = customStyle;
 		}
@@ -81,7 +83,7 @@ public partial class MauiMediaElement : Grid, IDisposable
 	CustomTransportControls SetTransportControls()
 	{
 		mediaPlayerElement.TransportControls.IsEnabled = false;
-		var temp = new CustomTransportControls()
+		var temp = new CustomTransportControls
 		{
 			IsZoomButtonVisible = true,
 			IsZoomEnabled = true,
@@ -133,7 +135,7 @@ public partial class MauiMediaElement : Grid, IDisposable
 	/// Gets the presented page.
 	/// </summary>
 	protected static Page CurrentPage =>
-		PageExtensions.GetCurrentPage(Application.Current?.Windows[0].Page ?? throw new InvalidOperationException($"{nameof(Page)} cannot be null."));
+		(Application.Current?.Windows[0].Page ?? throw new InvalidOperationException($"{nameof(Page)} cannot be null.")).GetCurrentPage();
 
 	/// <summary>
 	/// Releases the managed and unmanaged resources used by the <see cref="MauiMediaElement"/>.
@@ -153,7 +155,7 @@ public partial class MauiMediaElement : Grid, IDisposable
 		{
 			mediaPlayerElement.MediaPlayer.Pause();
 
-			if (mediaPlayerElement.MediaPlayer.Source is Windows.Media.Core.MediaSource mediaSource)
+			if (mediaPlayerElement.MediaPlayer.Source is MediaSource mediaSource)
 			{
 				// Dispose the MediaSource to release the resources
 				// https://learn.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer Shows how to dispose the MediaSource
@@ -213,8 +215,8 @@ public partial class MauiMediaElement : Grid, IDisposable
 			popup.HorizontalOffset = 0;
 			popup.VerticalOffset = 0;
 			popup.ShouldConstrainToRootBounds = false;
-			popup.VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center;
-			popup.HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center;
+			popup.VerticalAlignment = VerticalAlignment.Center;
+			popup.HorizontalAlignment = HorizontalAlignment.Center;
 			popup.Child = fullScreenGrid;
 
 			if (!popup.IsOpen)

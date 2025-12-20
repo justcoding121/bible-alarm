@@ -1,5 +1,6 @@
 #nullable enable
 using Android.Content;
+using Android.Graphics;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
@@ -9,6 +10,7 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Serilog;
+using Application = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -70,7 +72,7 @@ public sealed class MediaSessionManager
 
     private Context GetApplicationContext()
     {
-        var context = global::Android.App.Application.Context;
+        var context = Application.Context;
         if (context == null)
         {
             logger.Error("Android Application.Context is null - cannot create MediaSessionCompat");
@@ -331,8 +333,12 @@ public sealed class MediaSessionManager
                 // Set MediaId if no existing metadata and scheduleId is provided
                 builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
             }
+
             // Load artwork from URL if provided and no existing metadata
-            LoadArtworkFromUrl(builder, artworkUrl);
+            if (builder != null)
+            {
+                LoadArtworkFromUrl(builder, artworkUrl);
+            }
         }
     }
 
@@ -354,7 +360,7 @@ public sealed class MediaSessionManager
     private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
     {
         // Preserve existing artwork if present
-        global::Android.Graphics.Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+        Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
         if (existingArtwork != null)
         {
             builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
@@ -410,10 +416,7 @@ public sealed class MediaSessionManager
     /// Clears the metadata from MediaSessionCompat.
     /// This is recommended when playback stops to clean up the Android Auto interface.
     /// </summary>
-    public void ClearMetadata()
-    {
-        mediaSession?.SetMetadata(null);
-    }
+    public void ClearMetadata() => mediaSession?.SetMetadata(null);
 
     /// <summary>
     /// Sets a blank "loading" state for Android Auto:
@@ -431,7 +434,7 @@ public sealed class MediaSessionManager
 
         try
         {
-            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, global::Android.App.Application.Context);
+            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, Application.Context);
         }
         catch (Exception ex)
         {
@@ -457,7 +460,7 @@ public sealed class MediaSessionManager
             // When switching schedules, Android Auto will otherwise keep showing the previous schedule's
             // title/artwork until the new track's metadata arrives. Force the UI into a neutral state
             // (no artwork, no text) during buffering - shows "Tap to play" message.
-            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, global::Android.App.Application.Context);
+            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, Application.Context);
 
             // Disable all controls while buffering so AA doesn't show tappable UI.
             var builder = new PlaybackStateCompat.Builder()
@@ -618,7 +621,7 @@ public sealed class MediaSessionManager
         return false;
     }
 
-    private global::Android.Graphics.Bitmap? GetExistingArtwork()
+    private Bitmap? GetExistingArtwork()
     {
         // Preserve existing artwork if present
         if (mediaSession?.Controller?.Metadata != null)
@@ -628,7 +631,7 @@ public sealed class MediaSessionManager
         return null;
     }
 
-    private MediaMetadataCompat.Builder? BuildNextScheduleMetadata(ScheduleTrackMetadata metadata, global::Android.Graphics.Bitmap? existingArtwork)
+    private MediaMetadataCompat.Builder? BuildNextScheduleMetadata(ScheduleTrackMetadata metadata, Bitmap? existingArtwork)
     {
         // Set mediaId to scheduleId for OnPlayFromMediaId
         var metadataBuilder = new MediaMetadataCompat.Builder()
@@ -642,7 +645,7 @@ public sealed class MediaSessionManager
         {
             metadataBuilder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
         }
-        else if (!string.IsNullOrEmpty(metadata.ArtworkUrl))
+        else if (!string.IsNullOrEmpty(metadata.ArtworkUrl) && metadataBuilder != null)
         {
             LoadArtworkFromUrl(metadataBuilder, metadata.ArtworkUrl);
         }

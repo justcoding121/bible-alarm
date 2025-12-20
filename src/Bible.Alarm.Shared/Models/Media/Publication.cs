@@ -21,10 +21,7 @@ public class Publication : IComparable
     [Required]
     public virtual Language DisplayLanguage { get; set; } = null!;
 
-    public int CompareTo(object obj)
-    {
-        return Name.CompareTo((obj as Publication).Name);
-    }
+    public int CompareTo(object obj) => Name.CompareTo((obj as Publication).Name);
 }
 
 public class TranslatedPublication : Publication

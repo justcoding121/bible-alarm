@@ -21,7 +21,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
+public class ChapterSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
 
@@ -395,7 +395,7 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
     }
 }
 
-public partial class BibleChapterListViewItemModel : ObservableObject, IComparable
+public class BibleChapterListViewItemModel : ObservableObject, IComparable
 {
     private readonly BibleChapter chapter;
 
@@ -437,8 +437,5 @@ public partial class BibleChapterListViewItemModel : ObservableObject, IComparab
         set => SetProperty(ref isBusy, value);
     }
 
-    public int CompareTo(object? obj)
-    {
-        return Number.CompareTo((obj as BibleChapterListViewItemModel)?.Number);
-    }
+    public int CompareTo(object? obj) => Number.CompareTo((obj as BibleChapterListViewItemModel)?.Number);
 }

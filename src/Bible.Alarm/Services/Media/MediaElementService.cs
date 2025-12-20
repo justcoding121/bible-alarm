@@ -1,14 +1,14 @@
 #nullable enable
+using System.Reflection;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using CommunityToolkit.Maui.Core.Handlers;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Maui.Handlers;
 using Serilog;
 #if ANDROID
-using Android.App;
-using Android.Content;
 #endif
 
 namespace Bible.Alarm.Services.Media;
@@ -33,14 +33,14 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
 #if ANDROID
     // Track if handler has been created to prevent duplicate ExoPlayer creation
     // Used in debug logging and conditional checks
-    private bool handlerCreated = false;
+    private bool handlerCreated;
 #endif
 
 #if ANDROID
     // STATIC flag to prevent duplicate ExoPlayer creation across entire application
     // This is critical because MediaElementService might be instantiated multiple times
     // Used in conditional checks to prevent duplicate ExoPlayer creation
-    private static bool globalHandlerCreated = false;
+    private static bool globalHandlerCreated;
 #endif
 
     public MediaElementService(INavigationService navigationService, ILogger logger)
@@ -49,7 +49,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         this.logger = logger;
 
         // Register for DestroyMediaElementMessage to handle MediaElement disposal
-        WeakReferenceMessenger.Default.Register<DestroyMediaElementMessage>(this);
+        WeakReferenceMessenger.Default.Register(this);
     }
 
     public async Task<MediaElement> GetMediaElementAsync()
@@ -191,7 +191,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
         try
         {
             // Get MauiContext from Application.Current (available after bootstrap)
-            var appHandler = Microsoft.Maui.Controls.Application.Current?.Handler;
+            var appHandler = Application.Current?.Handler;
             if (appHandler?.MauiContext == null)
             {
                 logger.Warning("Cannot create handler - Application.Current.Handler.MauiContext is null. Bootstrap may not have completed.");
@@ -199,7 +199,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             }
 
             var mauiContext = appHandler.MauiContext;
-            var dispatcher = Microsoft.Maui.Controls.Application.Current?.Dispatcher;
+            var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher == null)
             {
                 logger.Warning("Cannot create handler - Application.Current.Dispatcher is null. Bootstrap may not have completed.");
@@ -220,8 +220,8 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
                 //In headless mode, SetVirtualView may fail due to gesture manager setup
                 // Use reflection to set VirtualView directly
                 logger.Debug(ex, "SetVirtualView failed (expected in headless mode) - using reflection fallback");
-                var virtualViewField = typeof(Microsoft.Maui.Handlers.ElementHandler).GetField("_virtualView",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var virtualViewField = typeof(ElementHandler).GetField("_virtualView",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
                 virtualViewField?.SetValue(handler, mediaElement);
             }
 
@@ -229,7 +229,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             // This will return null in headless mode (expected)
             // Use reflection since CreatePlatformView is protected
             var createPlatformViewMethod = typeof(MediaElementHandler).GetMethod("CreatePlatformView",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                BindingFlags.NonPublic | BindingFlags.Instance);
             createPlatformViewMethod?.Invoke(handler, null);
 
             // Attach handler to MediaElement
@@ -241,8 +241,8 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
             {
                 // Gesture manager setup may fail - use reflection fallback
                 logger.Debug(ex, "Failed to set handler via property (expected in headless mode) - using reflection fallback");
-                var handlerField = typeof(Microsoft.Maui.Controls.Element).GetField("_handler",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var handlerField = typeof(Element).GetField("_handler",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
                 handlerField?.SetValue(mediaElement, handler);
             }
 
@@ -322,7 +322,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     /// <summary>
     /// Attaches MediaElement to container. Must be called on main thread.
     /// </summary>
-    private void AttachMediaElementToContainer(MediaElement mediaElement, Microsoft.Maui.Controls.ContentView mediaElementContainer)
+    private void AttachMediaElementToContainer(MediaElement mediaElement, ContentView mediaElementContainer)
     {
         try
         {
@@ -369,7 +369,6 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
                 catch (ObjectDisposedException ex)
                 {
                     logger.Warning(ex, "MediaElementContainer MauiContext was disposed while setting Content - MediaElement will work without UI container");
-                    return;
                 }
             }
             else

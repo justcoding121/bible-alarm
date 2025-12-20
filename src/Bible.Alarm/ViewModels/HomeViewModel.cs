@@ -14,7 +14,6 @@ using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -257,19 +256,13 @@ public class HomeViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
     /// </summary>
-    public void HideSchedulePageOverlay()
-    {
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-    }
+    public void HideSchedulePageOverlay() => dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
 
     /// <summary>
     /// Resets all schedule-related state when navigating back to home.
     /// This ensures only one schedule is in state at any time.
     /// </summary>
-    public void ResetScheduleState()
-    {
-        dispatcher.Dispatch(new ResetScheduleStateAction());
-    }
+    public void ResetScheduleState() => dispatcher.Dispatch(new ResetScheduleStateAction());
 
 
     private bool loaded;

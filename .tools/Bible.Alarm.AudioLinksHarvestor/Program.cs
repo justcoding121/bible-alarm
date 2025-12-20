@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
+using ILogger = Serilog.ILogger;
 
 namespace Bible.Alarm.AudioLinksHarvestor;
 
@@ -45,7 +46,7 @@ public class Program
             builder.AddSerilog(Log.Logger);
             builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
         });
-        services.AddSingleton<Serilog.ILogger>(_ => Log.Logger);
+        services.AddSingleton(_ => Log.Logger);
 
         services.AddDbContext<MediaDbContext>(options =>
         {
@@ -70,10 +71,10 @@ public class Program
         services.AddTransient<JwBibleHarvester>();
         services.AddTransient<MusicHarvester>();
         services.AddTransient<DbSeeder>();
-        services.AddTransient<Bible.Alarm.AudioLinksHarvestor.Utility.DownloadUtility>();
+        services.AddTransient<DownloadUtility>();
 
         await using var serviceProvider = services.BuildServiceProvider();
-        var logger = serviceProvider.GetRequiredService<Serilog.ILogger>();
+        var logger = serviceProvider.GetRequiredService<ILogger>();
 
         bool isTestRun = args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
 
@@ -282,7 +283,7 @@ public class Program
         }
     }
 
-    private static async Task PublishToCloudFront(Serilog.ILogger logger)
+    private static async Task PublishToCloudFront(ILogger logger)
     {
         var keyPrefix = "bible-alarm/media-index";
         var bucketName = "jthomas.info";

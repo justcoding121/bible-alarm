@@ -1,10 +1,7 @@
 #nullable enable
 
-using System.IO;
 using AutoMapper;
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
@@ -30,7 +27,7 @@ namespace Bible.Alarm.Common.Helpers;
 public static class CommonBootstrapHelper
 {
     private static readonly SemaphoreSlim @lock = new(1);
-    private static volatile bool servicesVerified = false;
+    private static volatile bool servicesVerified;
 
     public static async Task VerifyServices(bool initializeUi = false)
     {
@@ -197,7 +194,7 @@ public static class CommonBootstrapHelper
             Log.Logger.Information("Loaded {Count} schedules from database during bootstrap", alarmSchedules.Count);
 
             // Load language dictionary for translation names
-            Dictionary<string, Bible.Alarm.Shared.Models.Media.Language>? languagesDict = null;
+            Dictionary<string, Language>? languagesDict = null;
             var bibleTranslationService = ServiceProviderManager.GetService<IBibleTranslationService>();
             if (bibleTranslationService != null)
             {
@@ -311,8 +308,7 @@ public static class CommonBootstrapHelper
     /// This ensures the file is available for Android Auto dummy tracks.
     /// Only runs on Android platform. Fast exits if file already exists.
     /// </summary>
-    private static async Task CopySilentMp3ToStorage()
-    {
+    private static async Task CopySilentMp3ToStorage() =>
 #if ANDROID
         try
         {
@@ -348,5 +344,5 @@ public static class CommonBootstrapHelper
         // Only needed on Android for Android Auto dummy tracks
         await Task.CompletedTask;
 #endif
-    }
+
 }

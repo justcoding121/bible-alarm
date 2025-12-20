@@ -10,7 +10,7 @@ public class DayColorConverter : IValueConverter
     {
         if (parameter == null)
         {
-            return (DaysOfWeek)0;
+            return 0;
         }
 
         if (parameter is DaysOfWeek day)
@@ -23,7 +23,7 @@ public class DayColorConverter : IValueConverter
             return parsedDay;
         }
 
-        return (DaysOfWeek)0;
+        return 0;
     }
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -56,17 +56,12 @@ public class DayColorConverter : IValueConverter
                 // When alarm is enabled: light text on dark background for enabled days, darker text for disabled days
                 return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
             }
-            else
-            {
-                // When alarm is disabled: flip the colors - enabled days get white text (on blue), disabled days get darker text (on gray)
-                // White for enabled days, darker text for disabled days
-                return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
-            }
+
+            // When alarm is disabled: flip the colors - enabled days get white text (on blue), disabled days get darker text (on gray)
+            // White for enabled days, darker text for disabled days
+            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
         }
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

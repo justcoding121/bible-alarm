@@ -9,10 +9,7 @@ public class AndroidVersionFinder : IVersionFinder, IDisposable
     private static readonly Lazy<string> version = new(() => GetVersionNameInternal());
     public static AndroidVersionFinder Default => new();
 
-    public string GetVersionName()
-    {
-        return version.Value;
-    }
+    public string GetVersionName() => version.Value;
 
     private static string GetVersionNameInternal()
     {

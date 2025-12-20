@@ -10,7 +10,7 @@ namespace Bible.Alarm.Services.Media;
 public class PreparePlaybackService(
     ILogger logger,
     IPlaylistService playlistService,
-    IMediaCacheService cacheService) : IPreparePlaybackService, IDisposable
+    IMediaCacheService cacheService) : IPreparePlaybackService
 {
     private bool isDisposed;
 

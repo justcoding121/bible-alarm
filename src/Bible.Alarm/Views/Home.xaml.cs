@@ -132,11 +132,9 @@ public partial class Home : BaseContentPage, IDisposable
         Loaded += OnPageLoaded;
     }
 
-    protected override bool OnBackButtonPressed()
-    {
+    protected override bool OnBackButtonPressed() =>
         // Prevent back navigation on Home page - it's the root page
-        return true;
-    }
+        true;
 
     public void Dispose()
     {

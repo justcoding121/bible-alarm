@@ -23,10 +23,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
-    {
-        return await GetSchedulesAsync(null, includeMusic, includeBibleReading, cancellationToken);
-    }
+    public async Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default) => await GetSchedulesAsync(null, includeMusic, includeBibleReading, cancellationToken);
 
     public async Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null, bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
     {

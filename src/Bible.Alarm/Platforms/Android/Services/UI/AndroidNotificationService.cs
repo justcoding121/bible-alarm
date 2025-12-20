@@ -16,7 +16,6 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Java.Lang;
 using Serilog;
 using AndroidApplication = Android.App.Application;
-using AndroidNet = Android.Net;
 using Exception = System.Exception;
 using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
 
@@ -200,22 +199,16 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
 
         var pIntent = PendingIntent.GetBroadcast(
             context,
-            (int)scheduleId,
+            scheduleId,
             alarmIntent,
             PendingIntentFlags.NoCreate | PendingIntentFlags.Immutable);
 
         return pIntent;
     }
 
-    public Task<bool> CanScheduleAsync()
-    {
-        return Task.FromResult(true);
-    }
+    public Task<bool> CanScheduleAsync() => Task.FromResult(true);
 
-    private static bool IsAndroidService()
-    {
-        return AndroidApplication.Context != null;
-    }
+    private static bool IsAndroidService() => AndroidApplication.Context != null;
 
     public void Dispose()
     {

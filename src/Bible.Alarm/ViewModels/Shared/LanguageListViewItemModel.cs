@@ -16,8 +16,5 @@ public class LanguageListViewItemModel(Language language) : ObservableObject, IC
         set => SetProperty(ref isSelected, value);
     }
 
-    public int CompareTo(object obj)
-    {
-        return string.Compare(Name, (obj as LanguageListViewItemModel)?.Name, StringComparison.Ordinal);
-    }
+    public int CompareTo(object obj) => string.Compare(Name, (obj as LanguageListViewItemModel)?.Name, StringComparison.Ordinal);
 }

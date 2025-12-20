@@ -1,6 +1,7 @@
 #nullable enable
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -145,7 +146,7 @@ public class ScheduleListItem(
             if (scheduleCount <= 1)
             {
                 logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", Schedule.Id);
-                WeakReferenceMessenger.Default.Send(new Common.Messenger.ShowToastMessage("Cannot delete last schedule"));
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
                 return;
             }
 
@@ -399,16 +400,11 @@ public class ScheduleListItem(
         }
     }
 
-    public void RefreshChapterName(bool force = false)
-    {
+    public void RefreshChapterName(bool force = false) =>
         // Try state first, then fallback to async lookup
         RefreshSubTitleFromState();
-    }
 
-    public int CompareTo(object? obj)
-    {
-        return obj is not ScheduleListItem other ? 1 : ScheduleId.CompareTo(other.ScheduleId);
-    }
+    public int CompareTo(object? obj) => obj is not ScheduleListItem other ? 1 : ScheduleId.CompareTo(other.ScheduleId);
 
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {

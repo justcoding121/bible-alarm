@@ -7,7 +7,7 @@ namespace CommunityToolkit.Maui.Views;
 /// Represents a source, loaded from local filesystem, that can be played by <see cref="MediaElement"/>.
 /// </summary>
 [TypeConverter(typeof(FileMediaSourceConverter))]
-public sealed partial class FileMediaSource : MediaSource
+public sealed class FileMediaSource : MediaSource
 {
 	/// <summary>
 	/// Backing store for the <see cref="Path"/> property.
@@ -38,8 +38,13 @@ public sealed partial class FileMediaSource : MediaSource
 	}
 
 	/// <inheritdoc/>
-	public override string ToString() => $"File: {Path}";
+	public override string ToString()
+	{
+		return $"File: {Path}";
+	}
 
-	static void OnFileMediaSourceChanged(BindableObject bindable, object oldValue, object newValue) =>
+	static void OnFileMediaSourceChanged(BindableObject bindable, object oldValue, object newValue)
+	{
 		((FileMediaSource)bindable).OnSourceChanged();
+	}
 }

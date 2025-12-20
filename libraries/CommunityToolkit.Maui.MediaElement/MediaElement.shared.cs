@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.ComponentModel;
 using CommunityToolkit.Maui.Converters;
 using CommunityToolkit.Maui.Core;
@@ -9,7 +7,7 @@ namespace CommunityToolkit.Maui.Views;
 /// <summary>
 /// Represents an object used to render audio and video to the display.
 /// </summary>
-public partial class MediaElement : View, IMediaElement, IDisposable
+public class MediaElement : View, IMediaElement, IDisposable
 {
 	/// <summary>
 	/// Backing store for the <see cref="Aspect"/> property.
@@ -526,11 +524,15 @@ public partial class MediaElement : View, IMediaElement, IDisposable
 		isDisposed = true;
 	}
 
-	static void OnSourcePropertyChanged(BindableObject bindable, object oldValue, object newValue) =>
+	static void OnSourcePropertyChanged(BindableObject bindable, object oldValue, object newValue)
+	{
 		((MediaElement)bindable).OnSourcePropertyChanged((MediaSource?)newValue);
+	}
 
-	static void OnSourcePropertyChanging(BindableObject bindable, object oldValue, object newValue) =>
+	static void OnSourcePropertyChanging(BindableObject bindable, object oldValue, object newValue)
+	{
 		((MediaElement)bindable).OnSourcePropertyChanging((MediaSource?)oldValue);
+	}
 
 	static void OnCurrentStatePropertyChanged(BindableObject bindable, object oldValue, object newValue)
 	{
@@ -633,23 +635,48 @@ public partial class MediaElement : View, IMediaElement, IDisposable
 		OnSeekCompleted();
 	}
 
-	void IMediaElement.CurrentStateChanged(MediaElementState newState) => CurrentState = newState;
+	void IMediaElement.CurrentStateChanged(MediaElementState newState)
+	{
+		CurrentState = newState;
+	}
 
-	void OnPositionChanged(MediaPositionChangedEventArgs mediaPositionChangedEventArgs) =>
+	void OnPositionChanged(MediaPositionChangedEventArgs mediaPositionChangedEventArgs)
+	{
 		eventManager.HandleEvent(this, mediaPositionChangedEventArgs, nameof(PositionChanged));
+	}
 
-	void OnStateChanged(MediaStateChangedEventArgs mediaStateChangedEventArgs) =>
+	void OnStateChanged(MediaStateChangedEventArgs mediaStateChangedEventArgs)
+	{
 		eventManager.HandleEvent(this, mediaStateChangedEventArgs, nameof(StateChanged));
+	}
 
-	void OnPauseRequested() => eventManager.HandleEvent(this, EventArgs.Empty, nameof(PauseRequested));
+	void OnPauseRequested()
+	{
+		eventManager.HandleEvent(this, EventArgs.Empty, nameof(PauseRequested));
+	}
 
-	void OnPlayRequested() => eventManager.HandleEvent(this, EventArgs.Empty, nameof(PlayRequested));
+	void OnPlayRequested()
+	{
+		eventManager.HandleEvent(this, EventArgs.Empty, nameof(PlayRequested));
+	}
 
-	void OnStopRequested() => eventManager.HandleEvent(this, EventArgs.Empty, nameof(StopRequested));
+	void OnStopRequested()
+	{
+		eventManager.HandleEvent(this, EventArgs.Empty, nameof(StopRequested));
+	}
 
-	void OnSeekCompleted() => eventManager.HandleEvent(this, EventArgs.Empty, nameof(SeekCompleted));
+	void OnSeekCompleted()
+	{
+		eventManager.HandleEvent(this, EventArgs.Empty, nameof(SeekCompleted));
+	}
 
-	void OnPositionRequested() => eventManager.HandleEvent(this, EventArgs.Empty, nameof(PositionRequested));
+	void OnPositionRequested()
+	{
+		eventManager.HandleEvent(this, EventArgs.Empty, nameof(PositionRequested));
+	}
 
-	void OnUpdateStatus() => eventManager.HandleEvent(this, EventArgs.Empty, nameof(StatusUpdated));
+	void OnUpdateStatus()
+	{
+		eventManager.HandleEvent(this, EventArgs.Empty, nameof(StatusUpdated));
+	}
 }

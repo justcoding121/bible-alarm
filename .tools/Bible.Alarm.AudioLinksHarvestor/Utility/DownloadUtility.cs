@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ internal class DownloadUtility
                 ex.Message.Contains("Server busy") ||
                 !ex.Message.Contains("Response status code"))
             .Or<TaskCanceledException>()
-            .Or<System.IO.IOException>()
+            .Or<IOException>()
             .WaitAndRetryAsync(
                 retryCount: 3,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
@@ -40,7 +41,7 @@ internal class DownloadUtility
                 using var handler = new HttpClientHandler();
                 handler.AllowAutoRedirect = true;
                 handler.MaxAutomaticRedirections = 10;
-                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.Brotli;
+                handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli;
 
                 using var client = new HttpClient(handler);
                 client.Timeout = TimeSpan.FromSeconds(60);

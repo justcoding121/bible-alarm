@@ -15,7 +15,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 
 namespace Bible.Alarm.Services.Media;
 
-public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>, IDisposable
+public class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaElementService mediaElementService;
@@ -27,9 +27,9 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
 
     private AudioPlayerTrack? currentTrack;
     private TaskCompletionSource<bool>? mediaOpenedCompletionSource;
-    private bool isResetting = false;
+    private bool isResetting;
     private TimeSpan lastDuration = TimeSpan.Zero;
-    private bool isSeeking = false;
+    private bool isSeeking;
     private PlayStatus statusBeforeSeek = PlayStatus.Stopped;
     // MediaElement instance - populated in PrepareAsync
     private MediaElement? mediaElement;
@@ -91,7 +91,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         // Event handlers will be attached in PrepareAsync
 
         // Register for DestroyMediaElementMessage to unsubscribe when MediaElement is destroyed
-        WeakReferenceMessenger.Default.Register<DestroyMediaElementMessage>(this);
+        WeakReferenceMessenger.Default.Register(this);
     }
 
     public async Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false)
@@ -268,7 +268,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
             try
             {
                 var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
-                System.IO.File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 artworkUrl = artworkPath;
                 logger.Debug($"Saved artwork to {artworkPath}, size: {meta.ArtworkBytes.Length} bytes");
             }
@@ -334,7 +334,7 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
             if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
             {
                 var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
-                System.IO.File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 mediaElement.MetadataArtworkUrl = artworkPath;
             }
             else if (!string.IsNullOrEmpty(meta.ArtworkUrl))
@@ -427,21 +427,13 @@ public partial class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementM
         SendPositionUpdate();
     }
 
-    private void SendStatusMessage()
-    {
+    private void SendStatusMessage() =>
         // Dispatch status change to Fluxor state
         dispatcher.Dispatch(new PlaybackStatusChangedAction(Status));
-    }
 
-    public Task PauseAsync()
-    {
-        return MainThread.InvokeOnMainThreadAsync(() => mediaElement?.Pause());
-    }
+    public Task PauseAsync() => MainThread.InvokeOnMainThreadAsync(() => mediaElement?.Pause());
 
-    public Task ResumeAsync()
-    {
-        return MainThread.InvokeOnMainThreadAsync(() => mediaElement?.Play());
-    }
+    public Task ResumeAsync() => MainThread.InvokeOnMainThreadAsync(() => mediaElement?.Play());
 
     public Task StopAsync()
     {

@@ -1,4 +1,3 @@
-using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.App.Job;
 using Android.Content;
@@ -9,7 +8,6 @@ using Bible.Alarm.Platforms.Android.Services.Jobs;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Serilog;
 using AndroidApplication = Android.App.Application;
-using AndroidNet = Android.Net;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 

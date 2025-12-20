@@ -1,8 +1,8 @@
 #nullable enable
+using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
 using Android.Graphics;
-using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Runtime;
 using Android.Support.V4.Media;
@@ -15,7 +15,9 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
+using Java.Util;
 using Serilog;
+using Color = Android.Graphics.Color;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -175,7 +177,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         });
     }
 
-    public override MediaBrowserServiceCompat.BrowserRoot? OnGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
+    public override BrowserRoot? OnGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
     {
         logger.Information("✅ OnGetRoot called for client: {ClientPackageName} (UID: {ClientUid})",
             clientPackageName, clientUid);
@@ -195,7 +197,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         // Android Auto will automatically pull the top items from the root browse tree for "For You" recommendations.
         // The system reuses the exact MediaDescriptionCompat for those items, including their icons.
         // We do NOT provide explicit recommendations via EXTRA_SUGGESTED to keep it simple and let the system handle it.
-        return new MediaBrowserServiceCompat.BrowserRoot(RootId, null);
+        return new BrowserRoot(RootId, null);
     }
 
     private void OnApplicationStateChanged(object? sender, EventArgs e)
@@ -276,7 +278,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
     }
 
-    public override void OnLoadChildren(string parentId, MediaBrowserServiceCompat.Result result)
+    public override void OnLoadChildren(string parentId, Result result)
     {
         logger.Information("✅ OnLoadChildren called for parent: {ParentId}", parentId);
 
@@ -305,7 +307,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
     }
 
-    private async Task LoadChildrenAsync(string parentId, MediaBrowserServiceCompat.Result result)
+    private async Task LoadChildrenAsync(string parentId, Result result)
     {
         try
         {
@@ -313,7 +315,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
             if (!await WaitForBootstrapAsync(parentId))
             {
-                result.SendResult(new Java.Util.ArrayList());
+                result.SendResult(new ArrayList());
                 return;
             }
 
@@ -321,7 +323,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             if (scheduleItems.Count == 0)
             {
                 logger.Warning("No schedules found in state for parent: {ParentId} - state may not be initialized yet", parentId);
-                result.SendResult(new Java.Util.ArrayList());
+                result.SendResult(new ArrayList());
                 return;
             }
 
@@ -351,9 +353,9 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
     }
 
-    private Java.Util.ArrayList CreateMediaItemsFromSchedules(List<ScheduleStateItem> scheduleItems)
+    private ArrayList CreateMediaItemsFromSchedules(List<ScheduleStateItem> scheduleItems)
     {
-        var mediaItems = new Java.Util.ArrayList();
+        var mediaItems = new ArrayList();
 
         foreach (var scheduleItem in scheduleItems)
         {
@@ -403,10 +405,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return description;
     }
 
-    private MediaDescriptionCompat? CreateMediaDescription(ScheduleStateItem scheduleItem, string title, string subtitle, string description)
-    {
-        return CreateMediaDescriptionForSchedule(scheduleItem);
-    }
+    private MediaDescriptionCompat? CreateMediaDescription(ScheduleStateItem scheduleItem, string title, string subtitle, string description) => CreateMediaDescriptionForSchedule(scheduleItem);
 
     /// <summary>
     /// Creates a MediaDescriptionCompat for a schedule item.
@@ -448,13 +447,13 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return descriptionBuilder.Build();
     }
 
-    private void SendEmptyResultSafely(MediaBrowserServiceCompat.Result result, string parentId)
+    private void SendEmptyResultSafely(Result result, string parentId)
     {
         try
         {
             // Always send a result, even if empty, to satisfy Android's requirement
             // This prevents the IllegalStateException from occurring
-            result.SendResult(new Java.Util.ArrayList());
+            result.SendResult(new ArrayList());
             logger.Debug("Sent empty result for parent: {ParentId}", parentId);
         }
         catch (Exception sendEx)
@@ -550,7 +549,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         {
             // Use custom open book icon from app resources
             // This provides a recognizable icon for Bible reading content in Android Auto
-            var bookDrawable = ContextCompat.GetDrawable(this, Resource.Drawable.ic_book_open);
+            var bookDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_book_open);
             if (bookDrawable == null)
             {
                 logger.Warning("Could not get app drawable for book icon");
@@ -570,14 +569,14 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
 
             // Clear the bitmap with transparent background
-            bitmap.EraseColor(global::Android.Graphics.Color.Transparent);
+            bitmap.EraseColor(Color.Transparent);
 
             var canvas = new Canvas(bitmap);
             
             // If music is enabled, add music note in top left (outside book icon)
             if (musicEnabled)
             {
-                var musicDrawable = ContextCompat.GetDrawable(this, Resource.Drawable.ic_music_note);
+                var musicDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_music_note);
                 if (musicDrawable != null)
                 {
                     // Draw music note in top left corner (outside and separate from book icon)

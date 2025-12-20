@@ -31,18 +31,16 @@ public class IOsAlarmHandler(
                     Dispose();
                     return;
                 }
-                else
-                {
-                    await Task.Delay(0).ContinueWith(_ =>
-                    {
-                        if (!firstTime)
-                        {
-                            UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
-                        }
 
-                        firstTime = false;
-                    }, taskScheduler);
-                }
+                await Task.Delay(0).ContinueWith(_ =>
+                {
+                    if (!firstTime)
+                    {
+                        UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
+                    }
+
+                    firstTime = false;
+                }, taskScheduler);
 
 
                 await Task.Run(async () =>

@@ -45,11 +45,9 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
             // When alarm is enabled: dark background for enabled days, darker for disabled days
             return isDayEnabled ? ThemeColors.Day.EnabledBackground : ThemeColors.Day.DisabledBackground;
         }
-        else
-        {
-            // When alarm is disabled: flip the colors - enabled days get blue, disabled days get gray
-            return isDayEnabled ? ThemeColors.Day.EnabledBackground : ThemeColors.Day.DisabledBackground;
-        }
+
+        // When alarm is disabled: flip the colors - enabled days get blue, disabled days get gray
+        return isDayEnabled ? ThemeColors.Day.EnabledBackground : ThemeColors.Day.DisabledBackground;
     }
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
@@ -77,21 +75,15 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
         return isDayEnabled ? ThemeColors.Day.EnabledBackground : ThemeColors.Day.DisabledBackground;
     }
 
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
     private static DaysOfWeek ParseDayParameter(object parameter)
     {
         if (parameter == null)
         {
-            return (DaysOfWeek)0;
+            return 0;
         }
 
         if (parameter is DaysOfWeek day)
@@ -104,7 +96,7 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
             return parsedDay;
         }
 
-        return (DaysOfWeek)0;
+        return 0;
     }
 }
 

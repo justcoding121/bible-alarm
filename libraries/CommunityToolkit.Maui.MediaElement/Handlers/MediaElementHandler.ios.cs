@@ -1,5 +1,3 @@
-#nullable enable
-
 using AVKit;
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;

@@ -1,5 +1,4 @@
 #nullable enable
-using System.IO;
 using System.Reflection;
 using AndroidX.Media3.Common;
 using AndroidX.Media3.Common.Text;
@@ -7,15 +6,17 @@ using AndroidX.Media3.DataSource;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.ExoPlayer.Source;
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Maui.Storage;
 using Serilog;
+using Application = Android.App.Application;
+using DeviceInfo = AndroidX.Media3.Common.DeviceInfo;
 using Exception = System.Exception;
+using Object = Java.Lang.Object;
+using Uri = Android.Net.Uri;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
@@ -49,11 +50,11 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             }
 
             // Get Android context for DataSourceFactory
-            var context = global::Android.App.Application.Context;
+            var context = Application.Context;
             var dataSourceFactory = new DefaultDataSource.Factory(context);
 
             // Parse the URI
-            var androidUri = global::Android.Net.Uri.Parse(uri);
+            var androidUri = Uri.Parse(uri);
             if (androidUri == null)
             {
                 logger.Error("Failed to parse URI: {Uri}", uri);
@@ -177,7 +178,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             return null;
         }
 
-        var dummyUri = global::Android.Net.Uri.Parse(silentMp3Uri);
+        var dummyUri = Uri.Parse(silentMp3Uri);
         if (dummyUri == null)
         {
             logger.Error("Failed to parse silent MP3 URI: {Uri}", silentMp3Uri);
@@ -233,7 +234,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                 return null;
             }
 
-            var uri = new Uri(filePath).AbsoluteUri;
+            var uri = new System.Uri(filePath).AbsoluteUri;
             logger.Debug("Using silent MP3 from storage: {FilePath}", filePath);
             return uri;
         }
@@ -432,23 +433,19 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     /// Sends NextButtonPressedMessage via Messenger.
     /// Simply sends the message - let PlaybackService handle the state management.
     /// </summary>
-    internal void OnNextButtonPressed()
-    {
+    internal void OnNextButtonPressed() =>
         // Just send the message - don't try to manipulate ExoPlayer here
         // PlaybackService will handle stopping and preparing the next track
         WeakReferenceMessenger.Default.Send(new NextButtonPressedMessage());
-    }
 
     /// <summary>
     /// Sends PreviousButtonPressedMessage via Messenger.
     /// Simply sends the message - let PlaybackService handle the state management.
     /// </summary>
-    internal void OnPreviousButtonPressed()
-    {
+    internal void OnPreviousButtonPressed() =>
         // Just send the message - don't try to manipulate ExoPlayer here
         // PlaybackService will handle stopping and preparing the previous track
         WeakReferenceMessenger.Default.Send(new PreviousButtonPressedMessage());
-    }
 
     /// <summary>
     /// Releases the MediaSession and cancels the media notification.
@@ -539,7 +536,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     /// ExoPlayer listener that intercepts Next/Previous button presses from system controls.
     /// Implements IPlayerListener interface (7.0.0 compatible).
     /// </summary>
-    private class ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger) : Java.Lang.Object, IPlayerListener
+    private class ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger) : Object, IPlayerListener
     {
         private DateTime lastButtonPressTime = DateTime.MinValue;
         private string? lastMediaId;
@@ -619,7 +616,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         public void OnAudioSessionIdChanged(int audioSessionId) { }
         public void OnAvailableCommandsChanged(PlayerCommands? player) { }
         public void OnCues(CueGroup? cues) { }
-        public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo? deviceInfo) { }
+        public void OnDeviceInfoChanged(DeviceInfo? deviceInfo) { }
         public void OnDeviceVolumeChanged(int volume, bool muted) { }
         public void OnEvents(IPlayer? player, PlayerEvents? playerEvents) { }
         public void OnIsLoadingChanged(bool isLoading) { }

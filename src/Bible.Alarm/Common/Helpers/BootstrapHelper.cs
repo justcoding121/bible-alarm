@@ -1,14 +1,17 @@
 #nullable enable
-using Serilog;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Helpers;
-using Microsoft.Maui.ApplicationModel;
-using Android.App;
+using Application = Android.App.Application;
+using ILogger = Serilog.ILogger;
+
 #elif IOS
 using Bible.Alarm.Platforms.iOS.Helpers;
+
 #elif WINDOWS
 using Bible.Alarm.Platforms.Windows.Helpers;
 #endif
+using System.Diagnostics;
+using Serilog;
 
 namespace Bible.Alarm.Common.Helpers;
 
@@ -19,8 +22,8 @@ namespace Bible.Alarm.Common.Helpers;
 public static class BootstrapHelper
 {
     private static readonly object bootstrapLock = new();
-    private static volatile bool bootstrapCompleted = false;
-    private static readonly object bootstrapWaitLock = new();
+    private static volatile bool bootstrapCompleted;
+    private static readonly Lock bootstrapWaitLock = new();
     private static TaskCompletionSource<bool>? bootstrapCompletionSource;
 
     /// <summary>
@@ -31,7 +34,7 @@ public static class BootstrapHelper
     public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false)
     {
         // Log caller information to help debug which code path is calling bootstrap
-        var caller = new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.Name ?? "Unknown";
+        var caller = new StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.Name ?? "Unknown";
         Log.Logger.Information("InitializePlatformBootstrap called from {Caller} with isForeground={IsForeground}, BootstrapCompleted={BootstrapCompleted}",
             caller, isForeground, bootstrapCompleted);
 
@@ -325,17 +328,10 @@ public static class BootstrapHelper
 #if ANDROID
             // Android bootstrap initialization
             // Try Platform.CurrentActivity first, fallback to AndroidApplication.Context
-            var context = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.ApplicationContext ?? Android.App.Application.Context;
-            var application = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.Application ?? Android.App.Application.Context as Android.App.Application;
+            var context = Platform.CurrentActivity?.ApplicationContext ?? Application.Context;
+            var application = Platform.CurrentActivity?.Application ?? Application.Context as Application;
 
-            if (context != null)
-            {
-                await AndroidBootstrapHelper.Initialize(logger, context, application, isForeground);
-            }
-            else
-            {
-                logger.Warning("Android context not available for bootstrap initialization");
-            }
+            await AndroidBootstrapHelper.Initialize(logger, context, application, isForeground);
 #elif IOS
             // iOS bootstrap initialization
             await IOsBootstrapHelper.Initialize(logger, isForeground);

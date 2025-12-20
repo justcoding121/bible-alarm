@@ -42,7 +42,7 @@ public class AndroidAutoScheduleChangeTracker
     /// </summary>
     public void Initialize(IState<ApplicationState> applicationState)
     {
-        this.applicationState = applicationState ?? throw new System.ArgumentNullException(nameof(applicationState));
+        this.applicationState = applicationState ?? throw new ArgumentNullException(nameof(applicationState));
         lastScheduleCount = applicationState.Value.Schedules?.Count ?? 0;
         lastScheduleSignatures = BuildScheduleSignatures(applicationState.Value.Schedules);
         logger.Debug("AndroidAutoScheduleChangeTracker initialized with {Count} schedules", lastScheduleCount);
@@ -162,7 +162,7 @@ public class AndroidAutoScheduleChangeTracker
     /// Builds a signature dictionary from schedule collection.
     /// Each signature is a string representation of key properties that affect Android Auto display.
     /// </summary>
-    private static Dictionary<int, string> BuildScheduleSignatures(System.Collections.Generic.ICollection<ScheduleStateItem>? schedules)
+    private static Dictionary<int, string> BuildScheduleSignatures(ICollection<ScheduleStateItem>? schedules)
     {
         var signatures = new Dictionary<int, string>();
         if (schedules == null)

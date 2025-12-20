@@ -1,27 +1,49 @@
+#if IOS
+using Bible.Alarm.Platforms.iOS.Services.Storage;
+using Bible.Alarm.Platforms.iOS.Services.UI;
+using Bible.Alarm.Platforms.iOS.Services.Handlers;
+using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
+using Bible.Alarm.Platforms.iOS.Services.Platform;
+using Bible.Alarm.Platforms.iOS.Services.Media;
+#endif
+
+#if ANDROID
+using Android.Media;
 using Bible.Alarm.Common.Interfaces.Battery;
+using Bible.Alarm.Platforms.Android.Effects;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+using Bible.Alarm.Platforms.Android.Services.Audio;
+using Bible.Alarm.Platforms.Android.Services.Battery;
+using Bible.Alarm.Platforms.Android.Services.Handlers;
+using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.Platform;
+using Bible.Alarm.Platforms.Android.Services.Storage;
+using Bible.Alarm.Platforms.Android.Services.UI;
+using Bible.Alarm.Services.Battery;
+using Bible.Alarm.Services.Battery.Interfaces;
+#endif
+
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Platform;
-using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Services.Battery.Interfaces;
+using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Database;
+using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Network.Interfaces;
+using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Battery;
-using Bible.Alarm.Services.Database;
-using Bible.Alarm.Services.Database.Interfaces;
-using Bible.Alarm.Services.Media;
-using Bible.Alarm.Services.Network;
-using Bible.Alarm.Services.Scheduler;
-using Bible.Alarm.Services.UI;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
@@ -35,26 +57,6 @@ using Bible.Alarm.Views.Shared;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-#if IOS
-using AVFoundation;
-using Bible.Alarm.Platforms.iOS.Services.Storage;
-using Bible.Alarm.Platforms.iOS.Services.UI;
-using Bible.Alarm.Platforms.iOS.Services.Handlers;
-using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
-using Bible.Alarm.Platforms.iOS.Services.Platform;
-using Bible.Alarm.Platforms.iOS.Services.Media;
-#endif
-
-#if ANDROID
-using Android.Media;
-using Bible.Alarm.Platforms.Android.Services.Media;
-using Bible.Alarm.Platforms.Android.Services.UI;
-using Bible.Alarm.Platforms.Android.Services.Handlers;
-using Bible.Alarm.Platforms.Android.Services.Battery;
-using Bible.Alarm.Platforms.Android.Services.Platform;
-using Bible.Alarm.Platforms.Android.Services.Storage;
-#endif
-
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.UI;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
@@ -75,7 +77,7 @@ public static class ServiceRegistrationHelper
     public static void RegisterServices(IServiceCollection services)
     {
         // Register HttpMessageHandler (same implementation for all platforms)
-        services.AddSingleton<System.Net.Http.HttpMessageHandler, System.Net.Http.HttpClientHandler>();
+        services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
 
         // Register common services
         RegisterCommonServices(services);
@@ -165,19 +167,19 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<MediaPlayer>(),
             sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();
-        services.AddSingleton<Platforms.Android.Services.Media.AndroidArtworkService>();
+        services.AddSingleton<AndroidArtworkService>();
         // Register global audio focus listener and service as singletons
-        services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusListener>();
-        services.AddSingleton<Platforms.Android.Services.Audio.AudioFocusService>();
+        services.AddSingleton<AudioFocusListener>();
+        services.AddSingleton<AudioFocusService>();
         // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
-        services.AddSingleton<Platforms.Android.Services.AndroidAuto.MediaSessionManager>();
-        services.AddTransient<Platforms.Android.Services.AndroidAuto.ModernMediaSession>(sp =>
-            new Platforms.Android.Services.AndroidAuto.ModernMediaSession(
-                sp.GetRequiredService<Platforms.Android.Services.AndroidAuto.MediaSessionManager>()));
+        services.AddSingleton<MediaSessionManager>();
+        services.AddTransient(sp =>
+            new ModernMediaSession(
+                sp.GetRequiredService<MediaSessionManager>()));
         // Register MediaSession effect for Android Auto
-        services.AddSingleton<Platforms.Android.Effects.MediaSessionEffect>();
+        services.AddSingleton<MediaSessionEffect>();
         // Register global audio focus effect that manages audio focus based on playback state
-        services.AddSingleton<Platforms.Android.Effects.AudioFocusEffect>();
+        services.AddSingleton<AudioFocusEffect>();
 #elif IOS
         services.AddSingleton<INotificationService, IOsNotificationService>();
         services.AddSingleton<IToastService, IOsToastService>();
@@ -203,7 +205,7 @@ public static class ServiceRegistrationHelper
         services.AddDbContext<ScheduleDbContext>((sp, options) =>
         {
             var storageService = sp.GetRequiredService<IStorageService>();
-            var databasePath = System.IO.Path.Combine(storageService.StorageRoot, AppConstants.Database.ScheduleDatabaseFileName);
+            var databasePath = Path.Combine(storageService.StorageRoot, AppConstants.Database.ScheduleDatabaseFileName);
             options.UseSqlite(
                 string.Format(AppConstants.Database.ScheduleDatabaseConnectionStringFormat, databasePath),
                 b => b.MigrationsAssembly("Bible.Alarm.Shared"));
@@ -212,7 +214,7 @@ public static class ServiceRegistrationHelper
         services.AddDbContext<MediaDbContext>((sp, options) =>
         {
             var storageService = sp.GetRequiredService<IStorageService>();
-            var databasePath = System.IO.Path.Combine(storageService.StorageRoot, AppConstants.Database.MediaIndexDatabaseFileName);
+            var databasePath = Path.Combine(storageService.StorageRoot, AppConstants.Database.MediaIndexDatabaseFileName);
             options.UseSqlite(
                 string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, databasePath),
                 b => b.MigrationsAssembly("Bible.Alarm.Shared"));
@@ -267,7 +269,7 @@ public static class ServiceRegistrationHelper
 
 
         // It will be created with BootstrapPage as the root page
-        services.AddTransient<NavigationPage>(sp =>
+        services.AddTransient(sp =>
         {
             var bootstrapPage = sp.GetRequiredService<BootstrapPage>();
             var navigationPage = new NavigationPage(bootstrapPage);

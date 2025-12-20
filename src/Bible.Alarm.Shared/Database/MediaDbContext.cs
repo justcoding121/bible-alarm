@@ -2,6 +2,7 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Bible.Alarm.Shared.Database;
 
@@ -29,7 +30,7 @@ public class MediaDbContext : DbContext
         // Suppress pending model changes warning - migrations are only needed for users upgrading from older app versions
         // The app is packaged with the latest database schema, so pending changes are expected during migration
         optionsBuilder.ConfigureWarnings(warnings =>
-            warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+            warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
 
         //#if DEBUG
         //            optionsBuilder.UseSqlite("DataSource=media_migration.db");

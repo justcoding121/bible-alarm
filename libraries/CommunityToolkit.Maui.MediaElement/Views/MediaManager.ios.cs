@@ -1,5 +1,3 @@
-#nullable enable
-
 using AVFoundation;
 using AVKit;
 using CommunityToolkit.Maui.Views;
@@ -273,7 +271,7 @@ public partial class MediaManager : IDisposable
 		Player.ReplaceCurrentItemWithPlayerItem(PlayerItem);
 
 		CurrentItemErrorObserver = PlayerItem?.AddObserver("error",
-			ValueObserverOptions, (NSObservedChange change) =>
+			ValueObserverOptions, change =>
 			{
 				if (Player.CurrentItem?.Error is null)
 				{
@@ -506,7 +504,10 @@ public partial class MediaManager : IDisposable
 		}
 	}
 
-	static TimeSpan ConvertTime(CMTime cmTime) => TimeSpan.FromSeconds(double.IsNaN(cmTime.Seconds) ? 0 : cmTime.Seconds);
+	static TimeSpan ConvertTime(CMTime cmTime)
+	{
+		return TimeSpan.FromSeconds(double.IsNaN(cmTime.Seconds) ? 0 : cmTime.Seconds);
+	}
 
 	static (int Width, int Height) GetVideoDimensions(AVPlayerItem avPlayerItem)
 	{
@@ -529,17 +530,15 @@ public partial class MediaManager : IDisposable
 
 			return ((int)width, (int)height);
 		}
-		else
-		{
-			// HLS doesn't have tracks, try to get the dimensions this way
-			if (!avPlayerItem.PresentationSize.IsEmpty)
-			{
-				return ((int)avPlayerItem.PresentationSize.Width, (int)avPlayerItem.PresentationSize.Height);
-			}
 
-			// If all else fails, just return 0, 0
-			return (0, 0);
+		// HLS doesn't have tracks, try to get the dimensions this way
+		if (!avPlayerItem.PresentationSize.IsEmpty)
+		{
+			return ((int)avPlayerItem.PresentationSize.Width, (int)avPlayerItem.PresentationSize.Height);
 		}
+
+		// If all else fails, just return 0, 0
+		return (0, 0);
 	}
 
 
@@ -696,7 +695,7 @@ public partial class MediaManager : IDisposable
 			}
 			catch (Exception e)
 			{
-				Logger.LogWarning(e, "{LogMessage}", $"Failed to play media to end.");
+				Logger.LogWarning(e, "{LogMessage}", "Failed to play media to end.");
 			}
 		}
 	}

@@ -11,10 +11,7 @@ public class WindowsVersionFinder : IVersionFinder, IDisposable
     private static readonly Lazy<string> version = new(() => VersionName());
     public static WindowsVersionFinder Default => new();
 
-    public string GetVersionName()
-    {
-        return version.Value;
-    }
+    public string GetVersionName() => version.Value;
 
     private static string VersionName()
     {
