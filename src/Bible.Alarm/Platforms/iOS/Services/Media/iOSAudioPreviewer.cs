@@ -12,8 +12,6 @@ public class IOsAudioPreviewer(IDownloadService downloadService, ILogger logger)
     : IAudioPreviewer, IDisposable
 {
     private AVAudioPlayer? player;
-    private readonly IDownloadService downloadService = downloadService;
-    private readonly ILogger logger = logger;
     private bool disposed;
 
     public event Action? OnStopped;

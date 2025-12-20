@@ -12,9 +12,6 @@ public class BatteryOptimizationService(
     : IBatteryOptimizationService, IDisposable
 {
     private bool isDisposed;
-    private readonly ILogger logger = logger;
-    private readonly IGeneralSettingsService generalSettingsService = generalSettingsService;
-    private readonly IBatteryOptimizationManager batteryOptimizationManager = batteryOptimizationManager;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public async Task MarkModalAsShownAsync()

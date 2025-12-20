@@ -15,10 +15,6 @@ public class AlarmModalService(
     IDispatcher dispatcher)
     : IAlarmModalService
 {
-    private readonly ILogger logger = logger;
-    private readonly INavigationService navigationService = navigationService;
-    private readonly IState<PlaybackState> playbackState = playbackState;
-    private readonly IScheduleItemStateService scheduleItemStateService = scheduleItemStateService;
     private readonly IDispatcher dispatcher = dispatcher;
     private bool isModalOpen;
     private bool isDisposed;

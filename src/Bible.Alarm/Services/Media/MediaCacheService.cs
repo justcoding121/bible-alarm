@@ -27,10 +27,7 @@ public class MediaCacheService(
     IAlarmScheduleService alarmScheduleService)
     : IMediaCacheService, IDisposable
 {
-    private readonly ILogger logger = logger;
     private readonly IServiceScopeFactory scopeFactory = scopeFactory;
-    private readonly IMediaUrlRefreshService urlRefreshService = urlRefreshService;
-    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

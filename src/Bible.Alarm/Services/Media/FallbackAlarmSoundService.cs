@@ -7,7 +7,6 @@ namespace Bible.Alarm.Services.Media;
 
 public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundService, IDisposable
 {
-    private readonly ILogger logger = logger;
     private bool isDisposed;
 
     public async Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync()

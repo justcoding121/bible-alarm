@@ -11,8 +11,6 @@ public class ScheduleMigrationService(
     IAlarmScheduleService alarmScheduleService)
     : IScheduleMigrationService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

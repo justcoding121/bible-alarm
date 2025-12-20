@@ -14,7 +14,6 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI;
 public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : INotificationService, IDisposable
 {
     private bool isDisposed;
-    private readonly IServiceProvider serviceProvider = serviceProvider;
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task ShowNotificationAsync(int scheduleId)

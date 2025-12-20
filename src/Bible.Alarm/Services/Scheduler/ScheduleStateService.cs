@@ -18,12 +18,6 @@ public class ScheduleStateService(
     IDispatcher dispatcher)
     : IScheduleStateService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
-    private readonly IAlarmService alarmService = alarmService;
-    private readonly INotificationService notificationService = notificationService;
-    private readonly IToastService toastService = toastService;
-    private readonly IDispatcher dispatcher = dispatcher;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

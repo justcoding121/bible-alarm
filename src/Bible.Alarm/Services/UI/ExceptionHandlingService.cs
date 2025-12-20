@@ -6,7 +6,6 @@ namespace Bible.Alarm.Services.UI;
 
 public class ExceptionHandlingService(ILogger logger) : IExceptionHandlingService
 {
-    private readonly ILogger logger = logger;
     private bool isDisposed;
 
     public void SetupGlobalExceptionHandlers()

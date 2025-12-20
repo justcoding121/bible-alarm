@@ -17,8 +17,6 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
 internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 {
     private const int MaxConcurrentLanguageDownloads = 8;
-    private readonly ILogger logger = logger;
-    private readonly DownloadUtility downloadUtility = downloadUtility;
 
     internal async Task HarvestBibleLinks(
         Dictionary<string, string> biblePublicationCodeToNameMappings,

@@ -21,11 +21,6 @@ public class SchedulePersistenceService(
     IMelodyMusicService melodyMusicService)
     : ISchedulePersistenceService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IAlarmService alarmService = alarmService;
-    private readonly IDispatcher dispatcher = dispatcher;
-    private readonly IMediaCacheService mediaCacheService = mediaCacheService;
-    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
     private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService;
     private readonly IMelodyMusicService melodyMusicService = melodyMusicService;
     private readonly CancellationTokenSource cancellationTokenSource = new();

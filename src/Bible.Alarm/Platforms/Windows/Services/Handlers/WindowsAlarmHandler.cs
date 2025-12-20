@@ -12,10 +12,6 @@ public class WindowsAlarmHandler(
     IPlaybackService playbackService,
     IState<PlaybackState> playbackState) : IWindowsAlarmHandler
 {
-    private readonly ILogger logger = logger;
-    private readonly IState<PlaybackState> playbackState = playbackState;
-
-
     private static readonly SemaphoreSlim @lock = new(1);
 
     public async Task HandleAsync(int scheduleId, bool isAlarm)

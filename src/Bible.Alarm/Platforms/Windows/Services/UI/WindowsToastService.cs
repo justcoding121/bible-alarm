@@ -21,7 +21,6 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
     private static Popup? currentPopup;
     private static Window? currentWindow;
     private static SizeChangedEventHandler? sizeChangedHandler;
-    private readonly TaskScheduler taskScheduler = taskScheduler;
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public override Task Clear()

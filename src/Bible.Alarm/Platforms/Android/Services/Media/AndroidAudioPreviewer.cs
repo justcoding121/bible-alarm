@@ -12,7 +12,6 @@ public class AndroidAudioPreviewer(MediaPlayer player, ILogger logger) : Object,
     MediaPlayer.IOnCompletionListener, IAudioPreviewer, IDisposable
 {
     private MediaPlayer player = player;
-    private readonly ILogger logger = logger;
 
     public event Action OnStopped;
 

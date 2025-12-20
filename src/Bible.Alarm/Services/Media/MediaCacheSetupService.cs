@@ -8,8 +8,6 @@ public class MediaCacheSetupService(
     IServiceScopeFactory scopeFactory)
     : IMediaCacheSetupService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
     private bool isDisposed;
 
     public async Task SetupAlarmCacheAsync(int scheduleId)

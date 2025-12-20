@@ -12,9 +12,6 @@ public class PreparePlaybackService(
     IPlaylistService playlistService,
     IMediaCacheService cacheService) : IPreparePlaybackService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IPlaylistService playlistService = playlistService;
-    private readonly IMediaCacheService cacheService = cacheService;
     private bool isDisposed;
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)

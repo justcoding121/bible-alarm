@@ -15,10 +15,6 @@ public class IOsAlarmHandler(
     TaskScheduler taskScheduler)
     : IIOsAlarmHandler
 {
-    private readonly ILogger logger = logger;
-    private readonly IState<PlaybackState> playbackState = playbackState;
-
-
     private static readonly SemaphoreSlim @lock = new(1);
 
     //Need this to fix issue in XamarinMediaManager (notification stays on screen)

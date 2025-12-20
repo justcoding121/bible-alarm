@@ -9,8 +9,6 @@ namespace Bible.Alarm.Services.Media;
 
 public class DisplayMetadataService(ILogger logger, IMediaService mediaService) : IDisplayMetadataService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IMediaService mediaService = mediaService;
     private bool isDisposed;
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)

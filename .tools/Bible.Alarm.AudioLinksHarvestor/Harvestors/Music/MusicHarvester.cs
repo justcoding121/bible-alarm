@@ -17,8 +17,6 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
 internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 {
     private const int MaxConcurrentLanguageDownloads = 8;
-    private readonly ILogger logger = logger;
-    private readonly DownloadUtility downloadUtility = downloadUtility;
 
     private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new(new[]{
         new KeyValuePair<string, string>("osg","Original Songs"),

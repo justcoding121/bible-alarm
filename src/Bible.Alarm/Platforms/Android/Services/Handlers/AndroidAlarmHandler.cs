@@ -12,9 +12,6 @@ public class AndroidAlarmHandler(
     IAlarmScheduleService alarmScheduleService)
     : IAndroidAlarmHandler, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
-
     public event EventHandler<bool> Disposed;
 
     public async Task HandleAsync(int scheduleId, bool isAlarm)

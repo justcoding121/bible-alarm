@@ -28,7 +28,6 @@ public class ScheduleListItem(
     IMapper mapper)
     : ObservableObject, IComparable, IDisposable
 {
-    private readonly IMapper mapper = mapper;
     private bool isInitializing;
     private AlarmSchedule? lastKnownSchedule;
     private string? lastKnownTranslationName;

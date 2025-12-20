@@ -14,10 +14,6 @@ public class MessageHandlingService(
     INavigationService navigationService,
     IState<PlaybackState> playbackState) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>, IMessageHandlingService
 {
-    private readonly ILogger logger = logger;
-    private readonly IServiceProvider serviceProvider = serviceProvider;
-    private readonly INavigationService navigationService = navigationService;
-    private readonly IState<PlaybackState> playbackState = playbackState;
     private bool isDisposed;
 
     public void RegisterMessageHandlers()

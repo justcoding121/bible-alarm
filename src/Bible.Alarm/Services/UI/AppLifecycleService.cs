@@ -7,8 +7,6 @@ namespace Bible.Alarm.Services.UI;
 
 public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService
 {
-    private readonly ILogger logger = logger;
-    private readonly IServiceProvider serviceProvider = serviceProvider;
     private bool isDisposed;
 
     public void OnStart()

@@ -8,7 +8,6 @@ namespace Bible.Alarm.Platforms.Android.Services.UI;
 
 public class AndroidToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {
-    private readonly TaskScheduler taskScheduler = taskScheduler;
     private static readonly SemaphoreSlim @lock = new(1);
     private static Toast latest;
 

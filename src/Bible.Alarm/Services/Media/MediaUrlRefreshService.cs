@@ -12,8 +12,6 @@ namespace Bible.Alarm.Services.Media;
 
 public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IDownloadService downloadService = downloadService;
     private bool isDisposed;
 
     private static readonly string[] jwOrgUrls =

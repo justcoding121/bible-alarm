@@ -10,8 +10,6 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI;
 public class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService, IDisposable
 {
     private bool isDisposed;
-    private readonly ILogger logger = logger;
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
 
     public async Task ShowNotificationAsync(int scheduleId)
     {

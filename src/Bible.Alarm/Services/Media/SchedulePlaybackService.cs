@@ -13,9 +13,6 @@ public class SchedulePlaybackService(
     IState<PlaybackState> playbackState)
     : ISchedulePlaybackService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
-    private readonly IState<PlaybackState> playbackState = playbackState;
     private bool isDisposed;
 
     public async Task PlayScheduleAsync(int scheduleId)

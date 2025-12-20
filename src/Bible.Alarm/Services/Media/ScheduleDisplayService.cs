@@ -15,10 +15,6 @@ public class ScheduleDisplayService(
     IBibleBookService bibleBookService)
     : IScheduleDisplayService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IState<PlaybackState> playbackState = playbackState;
-    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
-    private readonly IBibleBookService bibleBookService = bibleBookService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

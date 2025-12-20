@@ -8,7 +8,6 @@ namespace Bible.Alarm.Services.UI;
 
 public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateService
 {
-    private readonly ILogger logger = logger;
     private bool isDisposed;
 
     /// <summary>

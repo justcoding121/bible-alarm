@@ -11,9 +11,6 @@ public class ScheduleSelectionService(
     IBibleReadingScheduleService bibleReadingScheduleService)
     : IScheduleSelectionService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IAlarmMusicService alarmMusicService = alarmMusicService;
-    private readonly IBibleReadingScheduleService bibleReadingScheduleService = bibleReadingScheduleService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

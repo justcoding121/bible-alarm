@@ -9,8 +9,6 @@ public class BibleNavigationService(
     IServiceScopeFactory scopeFactory)
     : IBibleNavigationService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
     private bool isDisposed;
 
     public async Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule)

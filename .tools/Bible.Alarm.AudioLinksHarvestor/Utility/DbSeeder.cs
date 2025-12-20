@@ -10,9 +10,6 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
 public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 {
-    private readonly ILogger logger = logger;
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
-
     public async Task Seed()
     {
         using (var scope = scopeFactory.CreateScope())

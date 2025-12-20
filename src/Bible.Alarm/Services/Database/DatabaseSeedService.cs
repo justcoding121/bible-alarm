@@ -13,10 +13,6 @@ public class DatabaseSeedService(
     IMelodyMusicService melodyMusicService)
     : IDatabaseSeedService, IDisposable
 {
-    private readonly ILogger logger = logger;
-    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
-    private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService;
-    private readonly IMelodyMusicService melodyMusicService = melodyMusicService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

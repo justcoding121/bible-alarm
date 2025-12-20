@@ -20,8 +20,6 @@ public class NavigationService(
     ILogger logger)
     : INavigationService, IDisposable
 {
-    private readonly IServiceProvider serviceProvider = serviceProvider;
-    private readonly ILogger logger = logger;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     // Cached navigation instance to avoid retries on every call
