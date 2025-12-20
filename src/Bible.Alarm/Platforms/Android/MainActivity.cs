@@ -11,80 +11,121 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Java.Lang;
 using Serilog;
 using Exception = System.Exception;
+using AndroidLog = Android.Util.Log;
 
 namespace Bible.Alarm.Platforms.Android;
 
 [Activity(Label = "Bible Alarm", Theme = "@style/MainTheme", LaunchMode = LaunchMode.SingleTop, MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
-    private static readonly ILogger logger = Log.ForContext<MainActivity>();
+    // Lazy logger initialization to ensure Serilog is configured first
+    private static ILogger? logger;
+    private static ILogger Logger => logger ??= Serilog.Log.ForContext<MainActivity>();
+
     private IAndroidAlarmHandler? alarmHandler;
     private DateTime? lastResumeTime;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
-        // IMPORTANT: Create MAUI app BEFORE calling base.OnCreate()
-        // This ensures the service provider is available when MAUI's lifecycle events try to access it
-        // If the app was previously disposed (swiped out), CreateAndStore() will create a new app instance
-        MauiAppHolder.CreateAndStore();
-
-        // Fix for MAUI NavigationRootManager fragment state restoration issue
-        // If savedInstanceState contains stale fragment state that references non-existent views (like id/legacy),
-        // pass null to prevent fragment restoration. This can happen after app updates or when MAUI framework
-        // tries to restore fragments with view IDs that no longer exist.
-        Bundle? safeSavedInstanceState = savedInstanceState;
-        if (savedInstanceState != null)
-        {
-            try
-            {
-                // Check if savedInstanceState contains fragment state that might be stale
-                var hasFragmentState = false;
-                foreach (var key in savedInstanceState?.KeySet() ?? [])
-                {
-                    if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
-                        key.Contains("androidx.lifecycle") || key.Contains("android:support")))
-                    {
-                        hasFragmentState = true;
-                        break;
-                    }
-                }
-
-                if (hasFragmentState)
-                {
-                    logger.Information("Detected fragment state in savedInstanceState - ignoring to prevent NavigationRootManager crash");
-                    // Pass null to prevent fragment restoration - MAUI will recreate navigation from scratch
-                    safeSavedInstanceState = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Error checking fragment state - ignoring savedInstanceState to be safe");
-                safeSavedInstanceState = null;
-            }
-        }
-
-        base.OnCreate(safeSavedInstanceState);
-
-        // Set up global exception handlers
+        // Set up global exception handlers FIRST, before any other operations
+        // This ensures we catch exceptions even if they occur during initialization
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
 
-        // NOTE: Do NOT call InitializePlatformBootstrap here for foreground launches
-        // WindowSetupService.CreateWindow() will handle bootstrap and send InitializedMessage
-        // Bootstrap is only needed here for background services/jobs, not for foreground UI launches
+        // Log early using Android log in case Serilog isn't initialized yet
+        AndroidLog.Info("MainActivity", "OnCreate started");
 
-        // Handle incoming intents (e.g., from notifications)
-        HandleIncomingIntent();
+        try
+        {
+            // IMPORTANT: Create MAUI app BEFORE calling base.OnCreate()
+            // This ensures the service provider is available when MAUI's lifecycle events try to access it
+            // If the app was previously disposed (swiped out), CreateAndStore() will create a new app instance
+            AndroidLog.Info("MainActivity", "Calling MauiAppHolder.CreateAndStore()");
+            MauiAppHolder.CreateAndStore();
+            AndroidLog.Info("MainActivity", "MauiAppHolder.CreateAndStore() completed");
 
-        // Set up background tasks
-        SetupBackgroundTasks();
+            // Fix for MAUI NavigationRootManager fragment state restoration issue
+            // If savedInstanceState contains stale fragment state that references non-existent views (like id/legacy),
+            // pass null to prevent fragment restoration. This can happen after app updates or when MAUI framework
+            // tries to restore fragments with view IDs that no longer exist.
+            Bundle? safeSavedInstanceState = savedInstanceState;
+            if (savedInstanceState != null)
+            {
+                try
+                {
+                    // Check if savedInstanceState contains fragment state that might be stale
+                    var hasFragmentState = false;
+                    foreach (var key in savedInstanceState?.KeySet() ?? [])
+                    {
+                        if (key != null && (key.Contains("fragment") || key.Contains("Fragment") ||
+                            key.Contains("androidx.lifecycle") || key.Contains("android:support")))
+                        {
+                            hasFragmentState = true;
+                            break;
+                        }
+                    }
+
+                    if (hasFragmentState)
+                    {
+                        Logger.Information("Detected fragment state in savedInstanceState - ignoring to prevent NavigationRootManager crash");
+                        // Pass null to prevent fragment restoration - MAUI will recreate navigation from scratch
+                        safeSavedInstanceState = null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning(ex, "Error checking fragment state - ignoring savedInstanceState to be safe");
+                    safeSavedInstanceState = null;
+                }
+            }
+
+            AndroidLog.Info("MainActivity", "Calling base.OnCreate()");
+            base.OnCreate(safeSavedInstanceState);
+            AndroidLog.Info("MainActivity", "base.OnCreate() completed");
+
+            // NOTE: Do NOT call InitializePlatformBootstrap here for foreground launches
+            // WindowSetupService.CreateWindow() will handle bootstrap and send InitializedMessage
+            // Bootstrap is only needed here for background services/jobs, not for foreground UI launches
+
+            AndroidLog.Info("MainActivity", "Setting up intents and background tasks");
+            // Handle incoming intents (e.g., from notifications)
+            HandleIncomingIntent();
+
+            // Set up background tasks
+            SetupBackgroundTasks();
+
+            AndroidLog.Info("MainActivity", "OnCreate completed successfully");
+        }
+        catch (Exception ex)
+        {
+            // Log the exception using Android log first (most reliable)
+            AndroidLog.Error("MainActivity", $"FATAL ERROR in OnCreate: {ex.GetType().Name}: {ex.Message}");
+            AndroidLog.Error("MainActivity", $"Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                AndroidLog.Error("MainActivity", $"Inner exception: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            }
+
+            // Also try to log with Serilog if available
+            try
+            {
+                Logger.Fatal(ex, "Fatal error in MainActivity.OnCreate - app will crash");
+            }
+            catch
+            {
+                // Serilog not available, already logged with AndroidLog
+            }
+
+            // Re-throw to let Android handle the crash (we can't recover from OnCreate failures)
+            throw;
+        }
     }
 
-    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => Logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
+        Logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
@@ -116,7 +157,7 @@ public class MainActivity : MauiAppCompatActivity
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "Error handling incoming alarm intent");
+                    Logger.Error(e, "Error handling incoming alarm intent");
                 }
             });
         }
@@ -137,7 +178,7 @@ public class MainActivity : MauiAppCompatActivity
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error setting up background tasks");
+                Logger.Error(ex, "Error setting up background tasks");
             }
         });
     }
@@ -154,7 +195,7 @@ public class MainActivity : MauiAppCompatActivity
         catch (IllegalArgumentException ex) when (ex.Message?.Contains("No view found for id") == true && ex.Message?.Contains("legacy") == true)
         {
             // Fragment restoration failed due to stale state - clear fragments and retry
-            logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");
+            Logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");
             try
             {
                 var fragmentManager = SupportFragmentManager;
@@ -182,7 +223,7 @@ public class MainActivity : MauiAppCompatActivity
             }
             catch (Exception retryEx)
             {
-                logger.Error(retryEx, "Failed to recover from fragment restoration error - app may be in inconsistent state");
+                Logger.Error(retryEx, "Failed to recover from fragment restoration error - app may be in inconsistent state");
                 // Re-throw to let Android handle it
                 throw;
             }
@@ -236,13 +277,13 @@ public class MainActivity : MauiAppCompatActivity
                         outState.Remove(key);
                     }
 
-                    logger.Information("Prevented saving {Count} fragment state keys to avoid NavigationRootManager crash", keysToRemove.Count);
+                    Logger.Information("Prevented saving {Count} fragment state keys to avoid NavigationRootManager crash", keysToRemove.Count);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error in OnSaveInstanceState - proceeding anyway");
+            Logger.Warning(ex, "Error in OnSaveInstanceState - proceeding anyway");
             // Still call base to ensure other state is saved
             try
             {
@@ -277,7 +318,7 @@ public class MainActivity : MauiAppCompatActivity
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in MainActivity.OnDestroy while attempting to dismiss player");
+            Logger.Error(ex, "Error in MainActivity.OnDestroy while attempting to dismiss player");
         }
 
 
