@@ -6,7 +6,7 @@ namespace Bible.Alarm.Views.Schedule;
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isClearingSelection;
 
@@ -31,7 +31,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
                 await Task.Delay(100);
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    if (!_isDisposed && ChaptersCollectionView != null)
+                    if (!isDisposed && ChaptersCollectionView != null)
                     {
                         isClearingSelection = true;
                         ChaptersCollectionView.SelectedItem = null;
@@ -56,7 +56,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // Cancel and dispose cancellation token source
             try
@@ -73,7 +73,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
             // This modal uses parent page view model, so do NOT dispose it
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

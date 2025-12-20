@@ -5,8 +5,8 @@ namespace Bible.Alarm.Views.General;
 
 public partial class AlarmModal : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
-    private bool _hasHandledFirstLoad;
+    private bool isDisposed;
+    private bool hasHandledFirstLoad;
     private readonly AlarmViewModal viewModel;
 
     public AlarmViewModal? ViewModel => BindingContext as AlarmViewModal;
@@ -24,12 +24,12 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     private async void OnPageLoaded(object? sender, EventArgs e)
     {
         // Only handle once per page instance
-        if (_hasHandledFirstLoad)
+        if (hasHandledFirstLoad)
         {
             return;
         }
 
-        _hasHandledFirstLoad = true;
+        hasHandledFirstLoad = true;
 
         // Unsubscribe to avoid multiple calls
         Loaded -= OnPageLoaded;
@@ -45,7 +45,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     {
         base.OnAppearing();
         // Reset flag when modal appears again
-        _hasHandledFirstLoad = false;
+        hasHandledFirstLoad = false;
         Loaded += OnPageLoaded;
     }
 
@@ -55,7 +55,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         return true;
     }
 
-    private bool _isDragging = false;
+    private bool isDragging = false;
 
     private void OnSliderValueChanged(object? sender, ValueChangedEventArgs e)
     {
@@ -71,7 +71,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         }
 
         // If user is dragging, ignore ValueChanged (drag will be handled by DragCompleted)
-        if (_isDragging)
+        if (isDragging)
         {
             return;
         }
@@ -82,13 +82,13 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
     private void OnSliderDragStarted(object? sender, EventArgs e)
     {
-        _isDragging = true;
+        isDragging = true;
         ViewModel?.OnSliderDragStarted();
     }
 
     private void OnSliderDragCompleted(object? sender, EventArgs e)
     {
-        _isDragging = false;
+        isDragging = false;
         if (sender is Slider slider && ViewModel != null)
         {
             ViewModel.OnSliderDragCompleted(slider.Value);
@@ -97,7 +97,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
@@ -106,7 +106,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

@@ -20,14 +20,14 @@ public class NavigationService(
     ILogger logger)
     : INavigationService, IDisposable
 {
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-    private readonly ILogger _logger = logger;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private readonly IServiceProvider serviceProvider = serviceProvider;
+    private readonly ILogger logger = logger;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
 
     // Cached navigation instance to avoid retries on every call
-    private INavigation? _cachedNavigation;
+    private INavigation? cachedNavigation;
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     // Helper method to create navigation retry policy
     private RetryPolicy CreateNavigationRetryPolicy() => Policy
@@ -37,15 +37,15 @@ public class NavigationService(
             sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
             onRetry: (exception, timeSpan, retryCount, context) =>
             {
-                _logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}). Error: {exception.Message}");
+                logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}). Error: {exception.Message}");
             });
 
 
     private INavigation GetNavigation(bool shouldRetry = true)
     {
-        if (_cachedNavigation is not null)
+        if (cachedNavigation is not null)
         {
-            return _cachedNavigation;
+            return cachedNavigation;
         }
 
         if (!shouldRetry)
@@ -68,34 +68,34 @@ public class NavigationService(
         if (app is null)
         {
             var errorMsg = "Application.Current is null. Cannot get INavigation.";
-            _logger?.Error(errorMsg);
+            logger?.Error(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
 
-        _logger?.Debug($"Application.Current found. Windows count: {app.Windows.Count}");
+        logger?.Debug($"Application.Current found. Windows count: {app.Windows.Count}");
 
         // Try to get navigation from windows
         if (app.Windows.Count > 0)
         {
             var window = app.Windows[0];
-            _logger?.Debug($"Window found. Page type: {window?.Page?.GetType().Name ?? "null"}");
+            logger?.Debug($"Window found. Page type: {window?.Page?.GetType().Name ?? "null"}");
 
             // Check if window.Page is NavigationPage
             if (window?.Page is NavigationPage navPage)
             {
-                _logger?.Debug("Found NavigationPage in window.Page");
-                _cachedNavigation = navPage.Navigation;
-                return _cachedNavigation;
+                logger?.Debug("Found NavigationPage in window.Page");
+                cachedNavigation = navPage.Navigation;
+                return cachedNavigation;
             }
         }
         else
         {
-            _logger?.Warning("Application.Current.Windows.Count is 0 - window may not be initialized yet");
+            logger?.Warning("Application.Current.Windows.Count is 0 - window may not be initialized yet");
         }
 
         var mainPageType = app.Windows.Count > 0 ? app.Windows[0].Page?.GetType().Name ?? "null" : "null (no windows)";
         var finalErrorMsg = $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={mainPageType}";
-        _logger?.Error(finalErrorMsg);
+        logger?.Error(finalErrorMsg);
         throw new InvalidOperationException(finalErrorMsg);
     }
 
@@ -104,8 +104,8 @@ public class NavigationService(
     /// </summary>
     public void ClearCache()
     {
-        _cachedNavigation = null;
-        _logger?.Debug("Navigation cache cleared");
+        cachedNavigation = null;
+        logger?.Debug("Navigation cache cleared");
     }
 
     public async Task NavigateToHomeAsync()
@@ -160,7 +160,7 @@ public class NavigationService(
             }
 
             // Create a new Home page via DI
-            var homePage = _serviceProvider.GetRequiredService<Home>();
+            var homePage = serviceProvider.GetRequiredService<Home>();
 
             // Set navigation bar setting
             NavigationPage.SetHasBackButton(homePage, false);
@@ -174,17 +174,17 @@ public class NavigationService(
     public async Task NavigateToScheduleAsync()
     {
         var startTime = DateTime.UtcNow;
-        _logger.Information("[PERF] NavigateToScheduleAsync: Starting navigation at {StartTime}", startTime);
+        logger.Information("[PERF] NavigateToScheduleAsync: Starting navigation at {StartTime}", startTime);
 
         var pageStartTime = DateTime.UtcNow;
-        var page = _serviceProvider.GetRequiredService<Schedule>();
+        var page = serviceProvider.GetRequiredService<Schedule>();
         var pageElapsed = (DateTime.UtcNow - pageStartTime).TotalMilliseconds;
-        _logger.Information("[PERF] NavigateToScheduleAsync: Page service resolution took {ElapsedMs}ms", pageElapsed);
+        logger.Information("[PERF] NavigateToScheduleAsync: Page service resolution took {ElapsedMs}ms", pageElapsed);
 
         var navStartTime = DateTime.UtcNow;
         var navigation = GetNavigation();
         var navElapsed = (DateTime.UtcNow - navStartTime).TotalMilliseconds;
-        _logger.Information("[PERF] NavigateToScheduleAsync: GetNavigationAsync took {ElapsedMs}ms", navElapsed);
+        logger.Information("[PERF] NavigateToScheduleAsync: GetNavigationAsync took {ElapsedMs}ms", navElapsed);
 
         // Set navigation bar setting
         NavigationPage.SetHasNavigationBar(page, false);
@@ -194,49 +194,49 @@ public class NavigationService(
         await navigation.PushAsync(page, animated: false);
         var pushElapsed = (DateTime.UtcNow - pushStartTime).TotalMilliseconds;
         var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-        _logger.Information("[PERF] NavigateToScheduleAsync: PushAsync took {ElapsedMs}ms, Total navigation took {TotalMs}ms", pushElapsed, totalElapsed);
+        logger.Information("[PERF] NavigateToScheduleAsync: PushAsync took {ElapsedMs}ms, Total navigation took {TotalMs}ms", pushElapsed, totalElapsed);
     }
 
     public async Task NavigateToMusicSelectionAsync()
     {
-        var page = _serviceProvider.GetRequiredService<MusicSelection>();
+        var page = serviceProvider.GetRequiredService<MusicSelection>();
         await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToSongBookSelectionAsync()
     {
-        var page = _serviceProvider.GetRequiredService<SongBookSelection>();
+        var page = serviceProvider.GetRequiredService<SongBookSelection>();
         await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToTrackSelectionAsync()
     {
-        var page = _serviceProvider.GetRequiredService<TrackSelection>();
+        var page = serviceProvider.GetRequiredService<TrackSelection>();
         await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToBibleSelectionAsync()
     {
-        var page = _serviceProvider.GetRequiredService<BibleSelection>();
+        var page = serviceProvider.GetRequiredService<BibleSelection>();
         await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToBookSelectionAsync()
     {
-        var page = _serviceProvider.GetRequiredService<BookSelection>();
+        var page = serviceProvider.GetRequiredService<BookSelection>();
         await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task NavigateToChapterSelectionAsync()
     {
-        var page = _serviceProvider.GetRequiredService<ChapterSelection>();
+        var page = serviceProvider.GetRequiredService<ChapterSelection>();
         await PushFreshPageAsync(page, hasNavigationBar: true);
     }
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = _serviceProvider.GetRequiredService<NumberOfChaptersModal>();
+        var modal = serviceProvider.GetRequiredService<NumberOfChaptersModal>();
         modal.BindingContext = bindingContext;
         // Disable animation for instant appearance
         await navigation.PushModalAsync(modal, animated: false);
@@ -250,11 +250,11 @@ public class NavigationService(
         // Use the appropriate modal based on the ViewModel type for compiled bindings
         if (bindingContext is BibleSelectionViewModel)
         {
-            modal = _serviceProvider.GetRequiredService<BibleLanguageModal>();
+            modal = serviceProvider.GetRequiredService<BibleLanguageModal>();
         }
         else if (bindingContext is SongBookSelectionViewModel)
         {
-            modal = _serviceProvider.GetRequiredService<MusicLanguageModal>();
+            modal = serviceProvider.GetRequiredService<MusicLanguageModal>();
         }
         else
         {
@@ -282,7 +282,7 @@ public class NavigationService(
                 }
 
 
-                var modal = _serviceProvider.GetRequiredService<AlarmModal>();
+                var modal = serviceProvider.GetRequiredService<AlarmModal>();
 
                 // Ensure modal is properly configured
                 NavigationPage.SetHasNavigationBar(modal, false);
@@ -293,7 +293,7 @@ public class NavigationService(
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error opening AlarmModal");
+                logger.Error(ex, "Error opening AlarmModal");
             }
         });
     }
@@ -302,7 +302,7 @@ public class NavigationService(
     public async Task OpenBatteryOptimizationModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = _serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
+        var modal = serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
         modal.BindingContext = bindingContext;
         // Disable animation for instant appearance
         await navigation.PushModalAsync(modal, animated: false);
@@ -372,7 +372,7 @@ public class NavigationService(
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Error getting BootstrapPage from navigation stack");
+            logger.Warning(ex, "Error getting BootstrapPage from navigation stack");
         }
 
         return null;
@@ -380,23 +380,23 @@ public class NavigationService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source (this will cancel any infinite Polly retries)
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger?.Warning(ex, "Error during cancellation token source disposal");
+            logger?.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // Clear the navigation cache
@@ -423,13 +423,13 @@ public class NavigationService(
             catch (Exception ex)
             {
                 // Navigation might not be available if fragments are already destroyed
-                _logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not get navigation, fragments may be destroyed");
+                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not get navigation, fragments may be destroyed");
                 return;
             }
 
             if (navigation == null)
             {
-                _logger?.Warning("NavigationService.PopAllModalsAndPages - Navigation is null");
+                logger?.Warning("NavigationService.PopAllModalsAndPages - Navigation is null");
                 return;
             }
 
@@ -441,7 +441,7 @@ public class NavigationService(
             }
             catch (Exception ex)
             {
-                _logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access ModalStack, fragments may be destroyed");
+                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access ModalStack, fragments may be destroyed");
                 modalStack = new List<Page>();
             }
 
@@ -452,12 +452,12 @@ public class NavigationService(
                     if (page is IDisposable disposable)
                     {
                         disposable.Dispose();
-                        _logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed modal: {PageType}", page.GetType().Name);
+                        logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed modal: {PageType}", page.GetType().Name);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing modal: {PageType}", page.GetType().Name);
+                    logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing modal: {PageType}", page.GetType().Name);
                 }
             }
 
@@ -469,7 +469,7 @@ public class NavigationService(
             }
             catch (Exception ex)
             {
-                _logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access NavigationStack, fragments may be destroyed");
+                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access NavigationStack, fragments may be destroyed");
                 navigationStack = new List<Page>();
             }
 
@@ -480,21 +480,21 @@ public class NavigationService(
                     if (page is IDisposable disposable)
                     {
                         disposable.Dispose();
-                        _logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed page: {PageType}", page.GetType().Name);
+                        logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed page: {PageType}", page.GetType().Name);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing page: {PageType}", page.GetType().Name);
+                    logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing page: {PageType}", page.GetType().Name);
                 }
             }
 
-            _logger?.Information("NavigationService.PopAllModalsAndPages - Finished disposing modals and pages. Modal count: {ModalCount}, Page count: {PageCount}",
+            logger?.Information("NavigationService.PopAllModalsAndPages - Finished disposing modals and pages. Modal count: {ModalCount}, Page count: {PageCount}",
                 modalStack.Count, navigationStack.Count);
         }
         catch (Exception ex)
         {
-            _logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error during modal/page cleanup");
+            logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error during modal/page cleanup");
         }
     }
 }

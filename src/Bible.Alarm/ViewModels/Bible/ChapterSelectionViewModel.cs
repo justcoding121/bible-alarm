@@ -397,11 +397,11 @@ public partial class ChapterSelectionViewModel : ObservableObject, IDisposable
 
 public partial class BibleChapterListViewItemModel : ObservableObject, IComparable
 {
-    private readonly BibleChapter _chapter;
+    private readonly BibleChapter chapter;
 
     public BibleChapterListViewItemModel(BibleChapter chapter)
     {
-        _chapter = chapter;
+        this.chapter = chapter;
         TogglePlayCommand = new RelayCommand(() => Play = !Play);
     }
 
@@ -415,11 +415,11 @@ public partial class BibleChapterListViewItemModel : ObservableObject, IComparab
 
     public ICommand TogglePlayCommand { get; set; }
 
-    public string LookUpPath => _chapter.Source?.LookUpPath ?? string.Empty;
-    public int Number => _chapter.Number;
+    public string LookUpPath => chapter.Source?.LookUpPath ?? string.Empty;
+    public int Number => chapter.Number;
 
-    public string Title => _chapter.Title;
-    public string Url => _chapter.Source?.Url ?? string.Empty;
+    public string Title => chapter.Title;
+    public string Url => chapter.Source?.Url ?? string.Empty;
 
     private bool play;
 

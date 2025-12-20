@@ -16,7 +16,7 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 public class AudioFocusEffect(AudioFocusService audioFocusService)
 {
     private static readonly ILogger logger = Log.ForContext<AudioFocusEffect>();
-    private readonly AudioFocusService _audioFocusService = audioFocusService ?? throw new ArgumentNullException(nameof(audioFocusService));
+    private readonly AudioFocusService audioFocusService = audioFocusService ?? throw new ArgumentNullException(nameof(audioFocusService));
 
     [EffectMethod]
     public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)
@@ -25,11 +25,11 @@ public class AudioFocusEffect(AudioFocusService audioFocusService)
         {
             if (action.Status == PlayStatus.Playing)
             {
-                _audioFocusService.RequestAudioFocus();
+                audioFocusService.RequestAudioFocus();
             }
             else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
             {
-                _audioFocusService.ReleaseAudioFocus();
+                audioFocusService.ReleaseAudioFocus();
             }
             // Note: We keep audio focus when Paused to allow quick resume
         }

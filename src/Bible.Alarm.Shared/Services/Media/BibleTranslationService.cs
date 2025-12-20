@@ -19,16 +19,16 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// </summary>
 public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleTranslationService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<BibleTranslation?> GetByLanguageAndCodeWithBooksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.BibleTranslations
@@ -39,7 +39,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleTranslation with Books. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting BibleTranslation with Books. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -49,7 +49,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.BibleTranslations
@@ -59,7 +59,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleTranslations by language code. LanguageCode={LanguageCode}", languageCode);
+            logger.Error(ex, "Error getting BibleTranslations by language code. LanguageCode={LanguageCode}", languageCode);
             throw;
         }
     }
@@ -68,7 +68,7 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.BibleTranslations
@@ -79,28 +79,28 @@ public class BibleTranslationService(IServiceScopeFactory scopeFactory, ILogger 
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting distinct Languages from BibleTranslations");
+            logger.Error(ex, "Error getting distinct Languages from BibleTranslations");
             throw;
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Error during cancellation token source disposal in BibleTranslationService");
+            logger.Warning(ex, "Error during cancellation token source disposal in BibleTranslationService");
         }
     }
 }

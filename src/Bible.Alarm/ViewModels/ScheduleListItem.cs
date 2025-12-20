@@ -35,7 +35,7 @@ public class ScheduleListItem(
     private string? lastKnownBookName;
     private bool isBusy;
     private Action? onPlayStarted;
-    private Action? _onPlaybackStarted;
+    private Action? onPlaybackStarted;
 
     public AlarmSchedule? Schedule { get; private set; }
 
@@ -53,8 +53,8 @@ public class ScheduleListItem(
     /// </summary>
     public Action? OnPlaybackStarted
     {
-        get => _onPlaybackStarted;
-        set => _onPlaybackStarted = value;
+        get => onPlaybackStarted;
+        set => onPlaybackStarted = value;
     }
 
     public void Initialize(AlarmSchedule schedule)

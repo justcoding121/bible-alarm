@@ -12,14 +12,14 @@ namespace Bible.Alarm.Platforms.Android.Services.Audio;
 public sealed class AudioFocusListener : Java.Lang.Object, AudioManager.IOnAudioFocusChangeListener
 {
     private static readonly ILogger logger = Log.ForContext<AudioFocusListener>();
-    private readonly IPlaybackService _playbackService;
+    private readonly IPlaybackService playbackService;
 
     /// <summary>
     /// Initializes the audio focus listener with playback service injection.
     /// </summary>
     public AudioFocusListener(IPlaybackService playbackService)
     {
-        _playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
+        this.playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
         logger.Information("AudioFocusListener initialized");
     }
 
@@ -41,7 +41,7 @@ public sealed class AudioFocusListener : Java.Lang.Object, AudioManager.IOnAudio
                     // Permanent loss of audio focus - pause playback
                     logger.Information("Audio focus lost - pausing playback");
 
-                    _ = Task.Run(async () => await _playbackService.PauseAsync());
+                    _ = Task.Run(async () => await playbackService.PauseAsync());
                     break;
 
 

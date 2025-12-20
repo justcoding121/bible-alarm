@@ -8,32 +8,32 @@ public class MediaCacheSetupService(
     IServiceScopeFactory scopeFactory)
     : IMediaCacheSetupService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
+    private bool isDisposed;
 
     public async Task SetupAlarmCacheAsync(int scheduleId)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
             await mediaCacheService.SetupAlarmCacheAsync(scheduleId);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error setting up alarm cache for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, "Error setting up alarm cache for schedule {ScheduleId}", scheduleId);
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe

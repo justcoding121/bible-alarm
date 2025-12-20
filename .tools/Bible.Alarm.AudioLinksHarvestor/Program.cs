@@ -28,7 +28,7 @@ namespace Bible.Alarm.AudioLinksHarvestor;
 public class Program
 {
 
-    private static readonly Dictionary<string, string> _biblePublicationCodeToNameMappings =
+    private static readonly Dictionary<string, string> biblePublicationCodeToNameMappings =
         JwSourceHelper.PublicationCodeToNameMappings;
 
 
@@ -222,7 +222,7 @@ public class Program
             new Publication
             {
                 Code = x,
-                Name = _biblePublicationCodeToNameMappings[x]
+                Name = biblePublicationCodeToNameMappings[x]
             }).OrderBy(x => x.Code)));
         }
 

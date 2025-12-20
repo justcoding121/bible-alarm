@@ -193,7 +193,7 @@ public partial class MediaElementHandler
 		var positionArgs = (MediaSeekRequestedEventArgs)args;
 		await (handler.MediaManager?.Seek(positionArgs.RequestedPosition, CancellationToken.None) ?? Task.CompletedTask);
 
-		((IMediaElement)mediaElement).SeekCompletedTCS.TrySetResult();
+		((IMediaElement)mediaElement).SeekCompletedTcs.TrySetResult();
 	}
 
 	/// <summary>

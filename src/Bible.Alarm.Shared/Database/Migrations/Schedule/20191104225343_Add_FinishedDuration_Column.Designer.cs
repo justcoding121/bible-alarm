@@ -9,7 +9,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
     [Migration("20191104225343_Add_FinishedDuration_Column")]
-    partial class Add_FinishedDuration_Column
+    partial class AddFinishedDurationColumn
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

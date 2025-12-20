@@ -136,21 +136,21 @@ public class MediaIndexService : IMediaIndexService, IDisposable
                     return false;
                 }
 
-                const string indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
+                const string IndexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
 
                 if (!Directory.Exists(IndexRoot))
                 {
                     Directory.CreateDirectory(IndexRoot);
                 }
 
-                var tmpIndexZipFilePath = Path.Combine(IndexRoot, indexZipFileName);
+                var tmpIndexZipFilePath = Path.Combine(IndexRoot, IndexZipFileName);
 
                 if (await storageService.FileExists(tmpIndexZipFilePath))
                 {
                     await storageService.DeleteFile(tmpIndexZipFilePath);
                 }
 
-                await storageService.SaveFile(IndexRoot, indexZipFileName, bytes);
+                await storageService.SaveFile(IndexRoot, IndexZipFileName, bytes);
 
                 var extractionDir = Path.Combine(IndexRoot, AppConstants.FilePaths.TempExtractionDirectoryName);
                 await storageService.CreateDirectory(extractionDir);
@@ -277,21 +277,21 @@ public class MediaIndexService : IMediaIndexService, IDisposable
 
     private async Task ClearCopyIndexFromResource()
     {
-        const string indexResourceFile = "index.zip";
+        const string IndexResourceFile = "index.zip";
 
         if (!Directory.Exists(IndexRoot))
         {
             Directory.CreateDirectory(IndexRoot);
         }
 
-        var tmpIndexFilePath = Path.Combine(IndexRoot, indexResourceFile);
+        var tmpIndexFilePath = Path.Combine(IndexRoot, IndexResourceFile);
 
         if (await storageService.FileExists(tmpIndexFilePath))
         {
             await storageService.DeleteFile(tmpIndexFilePath);
         }
 
-        await storageService.CopyResourceFile(indexResourceFile, IndexRoot, indexResourceFile);
+        await storageService.CopyResourceFile(IndexResourceFile, IndexRoot, IndexResourceFile);
 
         if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
         {

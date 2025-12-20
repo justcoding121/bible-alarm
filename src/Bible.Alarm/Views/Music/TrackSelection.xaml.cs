@@ -6,7 +6,7 @@ namespace Bible.Alarm.Views.Music;
 
 public partial class TrackSelection : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     private readonly TrackSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
@@ -53,7 +53,7 @@ public partial class TrackSelection : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // Cancel and dispose cancellation token source
             try
@@ -74,7 +74,7 @@ public partial class TrackSelection : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

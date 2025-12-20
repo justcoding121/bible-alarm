@@ -6,35 +6,35 @@ using Moq;
 
 namespace Bible.Alarm.VersionPatcher.Tests.Services;
 
-public class IOSVersionPatcherTests
+public class IosVersionPatcherTests
 {
-    private readonly Mock<IVersionService> _versionServiceMock;
-    private readonly Mock<IFileService> _fileServiceMock;
-    private readonly TestPathService _testPathService;
-    private readonly IOSVersionPatcher _patcher;
-    private readonly IFixture _fixture;
+    private readonly Mock<IVersionService> versionServiceMock;
+    private readonly Mock<IFileService> fileServiceMock;
+    private readonly TestPathService testPathService;
+    private readonly IosVersionPatcher patcher;
+    private readonly IFixture fixture;
 
-    public IOSVersionPatcherTests()
+    public IosVersionPatcherTests()
     {
-        _fixture = new Fixture();
-        _versionServiceMock = new Mock<IVersionService>();
-        _fileServiceMock = new Mock<IFileService>();
-        _testPathService = new TestPathService();
-        _patcher = new IOSVersionPatcher(_versionServiceMock.Object, _fileServiceMock.Object, _testPathService);
+        fixture = new Fixture();
+        versionServiceMock = new Mock<IVersionService>();
+        fileServiceMock = new Mock<IFileService>();
+        testPathService = new TestPathService();
+        patcher = new IosVersionPatcher(versionServiceMock.Object, fileServiceMock.Object, testPathService);
     }
 
     [Fact]
     public void PlatformName_ShouldReturnIOS()
     {
         // Act & Assert
-        _patcher.PlatformName.Should().Be("iOS");
+        patcher.PlatformName.Should().Be("iOS");
     }
 
     [Fact]
     public async Task PatchVersionAsync_WithValidPlist_ShouldUpdateVersion()
     {
         // Arrange
-        var filePath = _testPathService.GetIOSInfoPlistPath();
+        var filePath = testPathService.GetIosInfoPlistPath();
         var oldVersion = "1.2";
         var newVersion = "1.3";
 
@@ -47,40 +47,40 @@ public class IOSVersionPatcherTests
 </dict>
 </plist>";
 
-        _fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
-        _fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(plistContent);
-        _versionServiceMock.Setup(x => x.IncrementVersion(oldVersion)).Returns(newVersion);
-        _fileServiceMock.Setup(x => x.WriteFileAsync(filePath, It.IsAny<string>())).Returns(Task.CompletedTask);
+        fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
+        fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(plistContent);
+        versionServiceMock.Setup(x => x.IncrementVersion(oldVersion)).Returns(newVersion);
+        fileServiceMock.Setup(x => x.WriteFileAsync(filePath, It.IsAny<string>())).Returns(Task.CompletedTask);
 
         // Act
-        await _patcher.PatchVersionAsync();
+        await patcher.PatchVersionAsync();
 
         // Assert
-        _versionServiceMock.Verify(x => x.IncrementVersion(oldVersion), Times.Once);
-        _fileServiceMock.Verify(x => x.WriteFileAsync(filePath, It.Is<string>(s => s.Contains(newVersion))), Times.Once);
+        versionServiceMock.Verify(x => x.IncrementVersion(oldVersion), Times.Once);
+        fileServiceMock.Verify(x => x.WriteFileAsync(filePath, It.Is<string>(s => s.Contains(newVersion))), Times.Once);
     }
 
     [Fact]
     public async Task PatchVersionAsync_WithNonExistentFile_ShouldNotProcess()
     {
         // Arrange
-        var filePath = _testPathService.GetIOSInfoPlistPath();
-        _fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(false);
+        var filePath = testPathService.GetIosInfoPlistPath();
+        fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(false);
 
         // Act
-        await _patcher.PatchVersionAsync();
+        await patcher.PatchVersionAsync();
 
         // Assert
-        _fileServiceMock.Verify(x => x.ReadFileAsync(It.IsAny<string>()), Times.Never);
-        _versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
-        _fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        fileServiceMock.Verify(x => x.ReadFileAsync(It.IsAny<string>()), Times.Never);
+        versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
+        fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
     public async Task PatchVersionAsync_WithMissingCFBundleVersion_ShouldNotProcess()
     {
         // Arrange
-        var filePath = _testPathService.GetIOSInfoPlistPath();
+        var filePath = testPathService.GetIosInfoPlistPath();
         var plistContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <!DOCTYPE plist PUBLIC ""-//Apple//DTD PLIST 1.0//EN"" ""http://www.apple.com/DTDs/PropertyList-1.0.dtd"">
 <plist version=""1.0"">
@@ -89,14 +89,14 @@ public class IOSVersionPatcherTests
     <string>SomeValue</string>
 </dict>
 </plist>";
-        _fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
-        _fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(plistContent);
+        fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
+        fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(plistContent);
 
         // Act
-        await _patcher.PatchVersionAsync();
+        await patcher.PatchVersionAsync();
 
         // Assert
-        _versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
-        _fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
+        fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 }

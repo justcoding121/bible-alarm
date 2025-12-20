@@ -7,12 +7,12 @@ namespace Bible.Alarm.Views.Schedule;
 
 public partial class Schedule : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     private readonly ScheduleViewModel viewModel;
 
     public ScheduleViewModel? ViewModel => BindingContext as ScheduleViewModel;
 
-    private bool _hasHandledFirstLoad;
+    private bool hasHandledFirstLoad;
 
     public Schedule(ScheduleViewModel viewModel)
     {
@@ -63,12 +63,12 @@ public partial class Schedule : BaseContentPage, IDisposable
     private async void OnPageLoaded(object? sender, EventArgs e)
     {
         // Only handle once per page instance
-        if (_hasHandledFirstLoad)
+        if (hasHandledFirstLoad)
         {
             return;
         }
 
-        _hasHandledFirstLoad = true;
+        hasHandledFirstLoad = true;
 
         // Unsubscribe to avoid multiple calls
         Loaded -= OnPageLoaded;
@@ -89,7 +89,7 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
         base.OnAppearing();
         // Reset flag when page appears again (e.g., navigating back to it)
-        _hasHandledFirstLoad = false;
+        hasHandledFirstLoad = false;
         Loaded += OnPageLoaded;
     }
 
@@ -102,7 +102,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
@@ -111,7 +111,7 @@ public partial class Schedule : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

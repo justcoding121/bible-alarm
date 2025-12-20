@@ -6,12 +6,12 @@ namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 /// </summary>
 public class TouchFeedbackBehavior : Behavior<View>
 {
-    private View? _associatedView;
+    private View? associatedView;
 
     protected override void OnAttachedTo(View bindable)
     {
         base.OnAttachedTo(bindable);
-        _associatedView = bindable;
+        associatedView = bindable;
 
         // Find TapGestureRecognizer and add Tapped event handler
         if (bindable.GestureRecognizers != null)
@@ -38,15 +38,15 @@ public class TouchFeedbackBehavior : Behavior<View>
                 }
             }
         }
-        _associatedView = null;
+        associatedView = null;
         base.OnDetachingFrom(bindable);
     }
 
     private void OnTapped(object? sender, TappedEventArgs e)
     {
-        if (_associatedView != null)
+        if (associatedView != null)
         {
-            AnimateUtils.AnimateTouchFeedback(_associatedView);
+            AnimateUtils.AnimateTouchFeedback(associatedView);
         }
     }
 }

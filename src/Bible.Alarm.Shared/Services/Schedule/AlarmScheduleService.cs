@@ -19,9 +19,9 @@ namespace Bible.Alarm.Shared.Services.Schedule;
 /// </summary>
 public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmScheduleService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
     {
@@ -30,7 +30,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null, bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var query = dbContext.AlarmSchedules.AsQueryable();
@@ -55,7 +55,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         // Apply filter first, then include navigation properties
@@ -77,7 +77,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var query = dbContext.AlarmSchedules.AsQueryable();
@@ -97,7 +97,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         await dbContext.AlarmSchedules.AddAsync(schedule, cancellationToken);
@@ -110,7 +110,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         dbContext.AlarmSchedules.Update(schedule);
@@ -123,7 +123,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var schedule = await dbContext.AlarmSchedules
@@ -141,7 +141,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var schedule = await dbContext.AlarmSchedules.FindAsync(new object[] { scheduleId }, cancellationToken);
@@ -154,7 +154,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.AlarmSchedules.AnyAsync(x => x.Id == scheduleId, cancellationToken);
@@ -162,7 +162,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.AlarmSchedules.AnyAsync(cancellationToken);
@@ -170,7 +170,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.SaveChangesAsync(cancellationToken);
@@ -178,7 +178,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.AlarmMusic
@@ -188,7 +188,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public async Task<BibleReadingSchedule?> GetBibleReadingByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.BibleReadingSchedules
@@ -198,17 +198,17 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch
         {

@@ -18,16 +18,16 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// </summary>
 public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logger) : IMelodyMusicService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<MelodyMusic?> GetByCodeWithTracksAsync(string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.MelodyMusic
@@ -38,7 +38,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting MelodyMusic with Tracks. PublicationCode={PublicationCode}", publicationCode);
+            logger.Error(ex, "Error getting MelodyMusic with Tracks. PublicationCode={PublicationCode}", publicationCode);
             throw;
         }
     }
@@ -47,7 +47,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.MelodyMusic
@@ -56,7 +56,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting all MelodyMusic");
+            logger.Error(ex, "Error getting all MelodyMusic");
             throw;
         }
     }
@@ -65,7 +65,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var tracks = await dbContext.MelodyMusic
@@ -80,7 +80,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting MelodyMusic tracks. PublicationCode={PublicationCode}", publicationCode);
+            logger.Error(ex, "Error getting MelodyMusic tracks. PublicationCode={PublicationCode}", publicationCode);
             throw;
         }
     }
@@ -89,7 +89,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var track = await dbContext.MelodyMusic
@@ -107,7 +107,7 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error updating MelodyMusic track URL. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
+            logger.Error(ex, "Error updating MelodyMusic track URL. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
                 publicationCode, trackNumber);
             throw;
         }
@@ -115,21 +115,21 @@ public class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogger logge
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Error during cancellation token source disposal in MelodyMusicService");
+            logger.Warning(ex, "Error during cancellation token source disposal in MelodyMusicService");
         }
     }
 }

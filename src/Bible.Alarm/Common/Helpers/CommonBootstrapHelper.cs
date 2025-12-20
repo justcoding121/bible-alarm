@@ -32,10 +32,10 @@ public static class CommonBootstrapHelper
     private static readonly SemaphoreSlim @lock = new(1);
     private static volatile bool servicesVerified = false;
 
-    public static async Task VerifyServices(bool initializeUI = false)
+    public static async Task VerifyServices(bool initializeUi = false)
     {
         Log.Logger.Information("VerifyServices called with initializeUI={InitializeUI}, _servicesVerified={ServicesVerified}",
-            initializeUI, servicesVerified);
+            initializeUi, servicesVerified);
 
         await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
@@ -70,7 +70,7 @@ public static class CommonBootstrapHelper
         // CRITICAL: Send InitializedMessage even if services were already verified
         // This handles the case where Android Auto completed bootstrap first (isForeground=false)
         // and the UI needs to navigate away from BootstrapPage
-        if (initializeUI)
+        if (initializeUi)
         {
             Log.Logger.Information("Sending InitializedMessage to trigger navigation (services verified: {ServicesVerified})", servicesVerified);
 
@@ -316,7 +316,7 @@ public static class CommonBootstrapHelper
 #if ANDROID
         try
         {
-            const string resourceFileName = "silent.mp3";
+            const string ResourceFileName = "silent.mp3";
             var storageService = ServiceProviderManager.GetService<IStorageService>();
             if (storageService == null)
             {
@@ -327,7 +327,7 @@ public static class CommonBootstrapHelper
             // Copy to StorageRoot (same directory as schedule database) instead of CacheRoot
             // because cache can get deleted by the system
             var storageDir = storageService.StorageRoot;
-            var filePath = Path.Combine(storageDir, resourceFileName);
+            var filePath = Path.Combine(storageDir, ResourceFileName);
 
             // Fast exit: Check if file already exists synchronously first
             if (File.Exists(filePath))
@@ -337,7 +337,7 @@ public static class CommonBootstrapHelper
             }
 
             // Copy from embedded resource to storage directory
-            await storageService.CopyResourceFile(resourceFileName, storageDir, resourceFileName);
+            await storageService.CopyResourceFile(ResourceFileName, storageDir, ResourceFileName);
             Log.Logger.Information("Silent MP3 copied to storage: {FilePath}", filePath);
         }
         catch (Exception ex)

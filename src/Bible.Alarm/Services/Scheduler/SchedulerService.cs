@@ -16,7 +16,7 @@ public class SchedulerService(
     INotificationService notificationService,
     IStorageService storageService) : ISchedulerService, IDisposable
 {
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
 
     private static readonly SemaphoreSlim @lock = new(1);
 
@@ -41,7 +41,7 @@ public class SchedulerService(
                 }
 
                 var downloaded = false;
-                var schedules = await alarmScheduleService.GetSchedulesAsync(x => x.IsEnabled, includeMusic: false, includeBibleReading: false, _cancellationTokenSource.Token);
+                var schedules = await alarmScheduleService.GetSchedulesAsync(x => x.IsEnabled, includeMusic: false, includeBibleReading: false, cancellationTokenSource.Token);
                 foreach (var schedule in schedules)
                 {
                     if (!await notificationService.IsScheduledAsync(schedule.Id))
@@ -102,22 +102,22 @@ public class SchedulerService(
         }
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {

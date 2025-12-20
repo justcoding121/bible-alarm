@@ -10,12 +10,12 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
 public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly ILogger logger = logger;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
 
     public async Task Seed()
     {
-        using (var scope = _scopeFactory.CreateScope())
+        using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = DELETE;");
@@ -31,7 +31,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
     private async Task SeedBibleTranslations(string indexDir)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
         var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
@@ -101,7 +101,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
             foreach (var translation in translations)
             {
-                _logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
+                logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
 
                 SortedDictionary<int, Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook> books;
                 try
@@ -190,7 +190,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
     private async Task SeedMelodies(string indexDir)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
         var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
@@ -228,7 +228,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         foreach (var melodyMusicRelease in melodyMusicReleases)
         {
-            _logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
+            logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
 
             var newMelodyMusic = new Bible.Alarm.Shared.Models.Media.Music.MelodyMusic
             {
@@ -280,7 +280,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
     private async Task SeedVocals(string indexDir)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
         var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
@@ -350,7 +350,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
             foreach (var vocalMusicRelease in vocalMusicReleases)
             {
-                _logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
+                logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
 
                 var newVocalMusic = new Bible.Alarm.Shared.Models.Media.Music.VocalMusic
                 {

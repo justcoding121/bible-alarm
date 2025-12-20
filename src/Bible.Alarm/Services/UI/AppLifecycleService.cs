@@ -7,9 +7,9 @@ namespace Bible.Alarm.Services.UI;
 
 public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceProvider serviceProvider = serviceProvider;
+    private bool isDisposed;
 
     public void OnStart()
     {
@@ -28,13 +28,13 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
 #if WINDOWS
                 // Reschedule any enabled alarms that may have fired while app was closed
                 // This is a fallback for WinUI 3 which doesn't have background tasks
-                var schedulerService = _serviceProvider.GetRequiredService<ISchedulerService>();
+                var schedulerService = serviceProvider.GetRequiredService<ISchedulerService>();
                 await schedulerService.HandleAsync();
 #endif
             }
             catch (Exception e)
             {
-                _logger.Error(e, "An error happened inside OnStart task.");
+                logger.Error(e, "An error happened inside OnStart task.");
             }
         });
     }
@@ -57,25 +57,25 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
 #if WINDOWS
                 // Reschedule any enabled alarms that may have fired while app was in background
                 // This is a fallback for WinUI 3 which doesn't have background tasks
-                var schedulerService = _serviceProvider.GetRequiredService<ISchedulerService>();
+                var schedulerService = serviceProvider.GetRequiredService<ISchedulerService>();
                 await schedulerService.HandleAsync();
 #endif
             }
             catch (Exception e)
             {
-                _logger.Error(e, "An error happened inside OnResume task.");
+                logger.Error(e, "An error happened inside OnResume task.");
             }
         });
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No event handlers to unsubscribe, but dispose any non-singleton injected services if needed
         // All injected services are singletons, so no disposal needed

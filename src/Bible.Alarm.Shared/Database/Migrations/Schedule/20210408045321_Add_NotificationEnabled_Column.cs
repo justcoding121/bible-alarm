@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule;
 
-public partial class Add_NotificationEnabled_Column : Migration
+public partial class AddNotificationEnabledColumn : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {

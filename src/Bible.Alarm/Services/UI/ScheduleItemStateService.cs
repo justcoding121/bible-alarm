@@ -8,8 +8,8 @@ namespace Bible.Alarm.Services.UI;
 
 public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateService
 {
-    private readonly ILogger _logger = logger;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private bool isDisposed;
 
     /// <summary>
     /// Sets IsBusy to false for the schedule item with the given ID and hides the Home page overlay.
@@ -49,7 +49,7 @@ public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateServic
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Could not set IsBusy to false for schedule {ScheduleId}", scheduleId);
+            logger.Warning(ex, "Could not set IsBusy to false for schedule {ScheduleId}", scheduleId);
         }
     }
 
@@ -87,18 +87,18 @@ public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateServic
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Could not hide Home page overlay");
+            logger.Warning(ex, "Could not hide Home page overlay");
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }

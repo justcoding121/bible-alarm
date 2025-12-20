@@ -18,16 +18,16 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// </summary>
 public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleBookService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<string?> GetBookNameAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.BibleBook
@@ -40,7 +40,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleBook name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
+            logger.Error(ex, "Error getting BibleBook name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
                 languageCode, publicationCode, bookNumber);
             throw;
         }
@@ -50,7 +50,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var books = await dbContext.BibleTranslations
@@ -64,7 +64,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleBooks by translation. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting BibleBooks by translation. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -74,7 +74,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.BibleTranslations
@@ -86,7 +86,7 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleBook. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
+            logger.Error(ex, "Error getting BibleBook. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
                 languageCode, publicationCode, bookNumber);
             throw;
         }
@@ -94,21 +94,21 @@ public class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger)
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Error during cancellation token source disposal in BibleBookService");
+            logger.Warning(ex, "Error during cancellation token source disposal in BibleBookService");
         }
     }
 }

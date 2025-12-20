@@ -147,7 +147,7 @@ public static class ServiceRegistrationHelper
 #if ANDROID
         services.AddSingleton<IVersionFinder, AndroidVersionFinder>();
 #elif IOS
-        services.AddSingleton<IVersionFinder, iOSVersionFinder>();
+        services.AddSingleton<IVersionFinder, IOsVersionFinder>();
 #elif WINDOWS
         services.AddSingleton<IVersionFinder, WindowsVersionFinder>();
 #endif
@@ -179,15 +179,15 @@ public static class ServiceRegistrationHelper
         // Register global audio focus effect that manages audio focus based on playback state
         services.AddSingleton<Platforms.Android.Effects.AudioFocusEffect>();
 #elif IOS
-        services.AddSingleton<INotificationService, iOSNotificationService>();
-        services.AddSingleton<IToastService, iOSToastService>();
-        services.AddSingleton<IStorageService, iOSStorageService>();
+        services.AddSingleton<INotificationService, IOsNotificationService>();
+        services.AddSingleton<IToastService, IOsToastService>();
+        services.AddSingleton<IStorageService, IOsStorageService>();
         // Note: AVAudioPlayer cannot be injected as it must be created from data (AVAudioPlayer.FromData)
         // Each track creates a new player instance, unlike Android/Windows MediaPlayer which can be reused
-        services.AddSingleton<IAudioPreviewer>(sp => new iOSAudioPreviewer(
+        services.AddSingleton<IAudioPreviewer>(sp => new IOsAudioPreviewer(
             sp.GetRequiredService<IDownloadService>(),
             sp.GetRequiredService<ILogger>()));
-        services.AddSingleton<IiOSAlarmHandler, iOSAlarmHandler>();
+        services.AddSingleton<IIOsAlarmHandler, IOsAlarmHandler>();
 #elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();

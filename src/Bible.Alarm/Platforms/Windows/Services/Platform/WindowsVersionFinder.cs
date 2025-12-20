@@ -7,13 +7,13 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform;
 
 public class WindowsVersionFinder : IVersionFinder, IDisposable
 {
-    private bool _isDisposed;
-    private static readonly Lazy<string> Version = new(() => VersionName());
+    private bool isDisposed;
+    private static readonly Lazy<string> version = new(() => VersionName());
     public static WindowsVersionFinder Default => new();
 
     public string GetVersionName()
     {
-        return Version.Value;
+        return version.Value;
     }
 
     private static string VersionName()
@@ -48,12 +48,12 @@ public class WindowsVersionFinder : IVersionFinder, IDisposable
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No resources to dispose
     }

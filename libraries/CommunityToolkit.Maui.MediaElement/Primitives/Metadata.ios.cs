@@ -8,7 +8,7 @@ namespace CommunityToolkit.Maui.Core;
 
 sealed class Metadata
 {
-	static readonly UIImage defaultUIImage = new();
+	static readonly UIImage defaultUiImage = new();
 	static readonly MPNowPlayingInfo nowPlayingInfoDefault = new()
 	{
 		AlbumTitle = string.Empty,
@@ -18,7 +18,7 @@ sealed class Metadata
 		IsLiveStream = false,
 		PlaybackRate = 0,
 		ElapsedPlaybackTime = 0,
-		Artwork = new(boundsSize: new(0, 0), requestHandler: _ => defaultUIImage)
+		Artwork = new(boundsSize: new(0, 0), requestHandler: _ => defaultUiImage)
 	};
 
 	readonly PlatformMediaElement player;
@@ -93,13 +93,13 @@ sealed class Metadata
 		{
 			if (imageUri.StartsWith(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
 			{
-				return UIImage.LoadFromData(NSData.FromUrl(new NSUrl(imageUri))) ?? defaultUIImage;
+				return UIImage.LoadFromData(NSData.FromUrl(new NSUrl(imageUri))) ?? defaultUiImage;
 			}
-			return defaultUIImage;
+			return defaultUiImage;
 		}
 		catch
 		{
-			return defaultUIImage;
+			return defaultUiImage;
 		}
 	}
 

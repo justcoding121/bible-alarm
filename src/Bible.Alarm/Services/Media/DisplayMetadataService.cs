@@ -9,9 +9,9 @@ namespace Bible.Alarm.Services.Media;
 
 public class DisplayMetadataService(ILogger logger, IMediaService mediaService) : IDisplayMetadataService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IMediaService _mediaService = mediaService;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IMediaService mediaService = mediaService;
+    private bool isDisposed;
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -23,7 +23,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
             if (trackMetadata.PlayType == PlayType.Bible)
             {
                 // For Bible tracks: Get book name and chapter number
-                var book = await _mediaService.GetBibleBook(
+                var book = await mediaService.GetBibleBook(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
                     trackMetadata.BookNumber);
@@ -34,14 +34,14 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                     meta.Title = $"{book.Name} {trackMetadata.ChapterNumber}";
 
                     // Description: Language name
-                    var languages = await _mediaService.GetBibleLanguages();
+                    var languages = await mediaService.GetBibleLanguages();
                     if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
                     {
                         meta.Album = language.Name;
                     }
 
                     // SubTitle: Translation name + (jw.org)
-                    var translations = await _mediaService.GetBibleTranslations(trackMetadata.LanguageCode);
+                    var translations = await mediaService.GetBibleTranslations(trackMetadata.LanguageCode);
                     if (translations.TryGetValue(trackMetadata.PublicationCode, out var translation))
                     {
                         meta.Artist = $"{translation.Name} (jw.org)";
@@ -68,7 +68,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 catch (Exception ex)
                 {
                     // Ignore file metadata extraction errors
-                    _logger.Debug(ex, "Error extracting artwork from Bible file, ignoring");
+                    logger.Debug(ex, "Error extracting artwork from Bible file, ignoring");
                 }
             }
             else
@@ -77,7 +77,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 if (string.IsNullOrEmpty(trackMetadata.LanguageCode))
                 {
                     // Melody music (Kingdom Melodies) - prefix title with "Kingdom Melodies "
-                    var tracks = await _mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
+                    var tracks = await mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
                     if (tracks.TryGetValue(trackMetadata.TrackNumber, out var melodyTrack))
                     {
                         meta.Title = $"Kingdom Melodies {melodyTrack.Title}";
@@ -87,14 +87,14 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 else
                 {
                     // Vocal music
-                    var releases = await _mediaService.GetVocalMusicReleases(trackMetadata.LanguageCode);
+                    var releases = await mediaService.GetVocalMusicReleases(trackMetadata.LanguageCode);
                     if (releases.TryGetValue(trackMetadata.PublicationCode, out var vocalRelease))
                     {
                         // Description: Publication name
                         meta.Album = vocalRelease.Name;
                     }
 
-                    var tracks = await _mediaService.GetVocalMusicTracks(
+                    var tracks = await mediaService.GetVocalMusicTracks(
                         trackMetadata.LanguageCode,
                         trackMetadata.PublicationCode);
                     if (tracks.TryGetValue(trackMetadata.TrackNumber, out var vocalTrack))
@@ -125,13 +125,13 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                 catch (Exception ex)
                 {
                     // Ignore file metadata extraction errors
-                    _logger.Debug(ex, "Error extracting file metadata, ignoring");
+                    logger.Debug(ex, "Error extracting file metadata, ignoring");
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, $"Failed to get display metadata for track");
+            logger.Warning(ex, $"Failed to get display metadata for track");
         }
 
         // Fallback to file metadata if title is still empty
@@ -152,7 +152,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
             }
             catch (Exception ex)
             {
-                _logger.Warning(ex, $"Failed to extract metadata from file {track.Uri}");
+                logger.Warning(ex, $"Failed to extract metadata from file {track.Uri}");
                 meta.Title = "Unknown Title";
             }
         }
@@ -190,7 +190,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                     TagLib.IPicture? largestPicture = null;
                     int largestSize = 0;
 
-                    _logger.Debug($"Found {tag.Pictures.Length} picture(s) in {uri}");
+                    logger.Debug($"Found {tag.Pictures.Length} picture(s) in {uri}");
 
                     // Find the picture with the largest data size
                     foreach (TagLib.IPicture picture in tag.Pictures)
@@ -198,7 +198,7 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                         if (picture != null && picture.Data != null && picture.Data.Data != null)
                         {
                             var size = picture.Data.Data.Length;
-                            _logger.Debug($"  Picture Size={size} bytes");
+                            logger.Debug($"  Picture Size={size} bytes");
 
                             // Select the largest picture
                             if (largestPicture == null || size > largestSize)
@@ -212,23 +212,23 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
                     if (largestPicture != null && largestPicture.Data != null && largestPicture.Data.Data != null)
                     {
                         meta.ArtworkBytes = largestPicture.Data.Data;
-                        _logger.Information($"Extracted artwork from {uri}: Size={largestSize} bytes");
+                        logger.Information($"Extracted artwork from {uri}: Size={largestSize} bytes");
                     }
                     else
                     {
-                        _logger.Debug($"No valid artwork found in {uri} (checked {tag.Pictures.Length} pictures)");
+                        logger.Debug($"No valid artwork found in {uri} (checked {tag.Pictures.Length} pictures)");
                     }
                 }
                 else
                 {
-                    _logger.Debug($"No pictures found in {uri}");
+                    logger.Debug($"No pictures found in {uri}");
                 }
 
                 return meta;
             }
             catch (Exception ex)
             {
-                _logger.Warning(ex, $"Failed to extract metadata from {uri}");
+                logger.Warning(ex, $"Failed to extract metadata from {uri}");
 
                 // Return fallback metadata
                 return new MetaData
@@ -242,12 +242,12 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe

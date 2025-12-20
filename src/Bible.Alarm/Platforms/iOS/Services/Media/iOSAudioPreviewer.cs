@@ -8,7 +8,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Media;
 
-public class iOSAudioPreviewer(IDownloadService downloadService, ILogger logger)
+public class IOsAudioPreviewer(IDownloadService downloadService, ILogger logger)
     : IAudioPreviewer, IDisposable
 {
     private AVAudioPlayer? player;
@@ -104,7 +104,7 @@ public class iOSAudioPreviewer(IDownloadService downloadService, ILogger logger)
 
     private void ConfigureAudioSession()
     {
-        iOSAudioSessionHelper.ConfigureAudioSession(logger, "preview");
+        IOsAudioSessionHelper.ConfigureAudioSession(logger, "preview");
     }
 
     public void Stop()

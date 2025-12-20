@@ -8,12 +8,12 @@ public class LanguageListViewItemModel(Language language) : ObservableObject, IC
     public string Name { get; set; } = language.Name;
     public string Code { get; set; } = language.Code;
 
-    private bool _isSelected;
+    private bool isSelected;
 
     public bool IsSelected
     {
-        get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        get => isSelected;
+        set => SetProperty(ref isSelected, value);
     }
 
     public int CompareTo(object obj)

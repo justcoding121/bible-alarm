@@ -23,8 +23,8 @@ public class DefaultScheduleService(
     IPreparePlaybackService preparePlaybackService,
     IDisplayMetadataService displayMetadataService) : IDefaultScheduleService, IDisposable
 {
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<ScheduleTrackMetadata> GetNextScheduleTrackMetaDataAsync()
     {
@@ -122,18 +122,18 @@ public class DefaultScheduleService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {

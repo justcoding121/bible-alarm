@@ -13,17 +13,17 @@ namespace Bible.Alarm.Services.UI;
 /// </summary>
 public class FontService : IFontService, INotifyPropertyChanged, IDisposable
 {
-    private bool _isDisposed;
-    private double _standardFontSize;
-    private double _headerFontSize;
-    private double _buttonFontSize;
-    private double _smallFontSize;
-    private double _mediumFontSize;
-    private double _largeFontSize;
-    private double _titleFontSize;
-    private double _alarmTimeFontSize;
-    private double _alarmMeridianFontSize;
-    private double _alarmBellIconFontSize;
+    private bool isDisposed;
+    private double standardFontSize;
+    private double headerFontSize;
+    private double buttonFontSize;
+    private double smallFontSize;
+    private double mediumFontSize;
+    private double largeFontSize;
+    private double titleFontSize;
+    private double alarmTimeFontSize;
+    private double alarmMeridianFontSize;
+    private double alarmBellIconFontSize;
 
     public FontService()
     {
@@ -53,12 +53,12 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
         double widthDp;
 
         // Base sizes in points (standard practice: 12pt base)
-        const double baseStandardSize = 12.0;
-        const double baseHeaderSize = 18.0;
-        const double baseSmallSize = 10.0;
-        const double baseMediumSize = 14.0;
-        const double baseLargeSize = 16.0;
-        const double baseTitleSize = 20.0;
+        const double BaseStandardSize = 12.0;
+        const double BaseHeaderSize = 18.0;
+        const double BaseSmallSize = 10.0;
+        const double BaseMediumSize = 14.0;
+        const double BaseLargeSize = 16.0;
+        const double BaseTitleSize = 20.0;
 
         // Alarm clock style sizes - balanced for visibility without being too large
         // Platform-specific adjustments
@@ -73,7 +73,7 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
         // Smaller but still prominent AM/PM
         double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
         // Large bell icon (4x TitleFontSize of 20pt)
-        const double baseAlarmBellIconSize = 80.0;
+        const double BaseAlarmBellIconSize = 80.0;
 
         if (!hasValidDisplayInfo)
         {
@@ -84,18 +84,18 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
             {
                 // Windows desktop: Use fixed sizes for desktop readability (same as before width-in-dp change)
                 // These are larger than mobile for better desktop readability
-                _standardFontSize = 14.0;
-                _headerFontSize = 20.0;
-                _smallFontSize = 12.0;
-                _mediumFontSize = 16.0;
-                _largeFontSize = 18.0;
-                _titleFontSize = 22.0;
+                standardFontSize = 14.0;
+                headerFontSize = 20.0;
+                smallFontSize = 12.0;
+                mediumFontSize = 16.0;
+                largeFontSize = 18.0;
+                titleFontSize = 22.0;
 
                 // Alarm fonts - fixed sizes for desktop
-                _alarmTimeFontSize = 30.0;
-                _alarmMeridianFontSize = 16.0;
+                alarmTimeFontSize = 30.0;
+                alarmMeridianFontSize = 16.0;
                 // Fixed size for desktop (4x TitleFontSize)
-                _alarmBellIconFontSize = 80.0;
+                alarmBellIconFontSize = 80.0;
 
                 Log.Logger.Debug("Using Windows desktop fallback fixed font sizes (display info not available)");
             }
@@ -103,19 +103,19 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
             {
                 // Other platforms: Use base sizes directly (no scaling when display info is invalid)
                 // This is a fallback - when display info becomes available, it will recalculate
-                _standardFontSize = baseStandardSize;
-                _headerFontSize = baseHeaderSize;
-                _smallFontSize = baseSmallSize;
-                _mediumFontSize = baseMediumSize;
-                _largeFontSize = baseLargeSize;
-                _titleFontSize = baseTitleSize;
+                standardFontSize = BaseStandardSize;
+                headerFontSize = BaseHeaderSize;
+                smallFontSize = BaseSmallSize;
+                mediumFontSize = BaseMediumSize;
+                largeFontSize = BaseLargeSize;
+                titleFontSize = BaseTitleSize;
 
                 // Alarm fonts - use base sizes with reasonable caps (Android gets smaller)
                 double fallbackMaxTime = isAndroid ? 30.0 : 40.0;
                 double fallbackMaxMeridian = isAndroid ? 16.0 : 22.0;
-                _alarmTimeFontSize = Math.Min(baseAlarmTimeSize, fallbackMaxTime);
-                _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, fallbackMaxMeridian);
-                _alarmBellIconFontSize = Math.Min(baseAlarmBellIconSize, 100.0);
+                alarmTimeFontSize = Math.Min(baseAlarmTimeSize, fallbackMaxTime);
+                alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, fallbackMaxMeridian);
+                alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize, 100.0);
 
                 Log.Logger.Warning("Invalid display info detected on non-Windows platform, using base font sizes as fallback");
             }
@@ -154,12 +154,12 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
 
             // Calculate font sizes with appropriate caps
             // Standard fonts
-            _standardFontSize = Math.Min(baseStandardSize * scale, 17.0);
-            _headerFontSize = Math.Min(baseHeaderSize * scale, 26.0);
-            _smallFontSize = Math.Min(baseSmallSize * scale, 14.0);
-            _mediumFontSize = Math.Min(baseMediumSize * scale, 19.0);
-            _largeFontSize = Math.Min(baseLargeSize * scale, 22.0);
-            _titleFontSize = Math.Min(baseTitleSize * scale, 30.0);
+            standardFontSize = Math.Min(BaseStandardSize * scale, 17.0);
+            headerFontSize = Math.Min(BaseHeaderSize * scale, 26.0);
+            smallFontSize = Math.Min(BaseSmallSize * scale, 14.0);
+            mediumFontSize = Math.Min(BaseMediumSize * scale, 19.0);
+            largeFontSize = Math.Min(BaseLargeSize * scale, 22.0);
+            titleFontSize = Math.Min(BaseTitleSize * scale, 30.0);
 
             // Alarm fonts - different caps based on screen size and platform
             // Android gets smaller max caps
@@ -171,13 +171,13 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
                 : (isAndroid ? 21.0 : 28.0);
             double maxAlarmBellIconSize = isPhone ? 100.0 : 130.0;
 
-            _alarmTimeFontSize = Math.Min(baseAlarmTimeSize * scale, maxAlarmTimeSize);
-            _alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * scale, maxAlarmMeridianSize);
-            _alarmBellIconFontSize = Math.Min(baseAlarmBellIconSize * scale, maxAlarmBellIconSize);
+            alarmTimeFontSize = Math.Min(baseAlarmTimeSize * scale, maxAlarmTimeSize);
+            alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * scale, maxAlarmMeridianSize);
+            alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * scale, maxAlarmBellIconSize);
         }
 
         // Button font size is 1 point smaller than HeaderFontSize
-        _buttonFontSize = _headerFontSize - 1.0;
+        buttonFontSize = headerFontSize - 1.0;
 
         // Notify all bindings that font sizes have changed
         RaiseAllPropertiesChanged();
@@ -193,12 +193,12 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Unsubscribe from display info changes
         DeviceDisplay.MainDisplayInfoChanged -= OnDisplayInfoChanged;
@@ -207,16 +207,16 @@ public class FontService : IFontService, INotifyPropertyChanged, IDisposable
     }
 
     // Properties (not fields) so bindings work correctly and PropertyChanged can fire
-    public double StandardFontSize => _standardFontSize;
-    public double HeaderFontSize => _headerFontSize;
-    public double ButtonFontSize => _buttonFontSize;
-    public double SmallFontSize => _smallFontSize;
-    public double MediumFontSize => _mediumFontSize;
-    public double LargeFontSize => _largeFontSize;
-    public double TitleFontSize => _titleFontSize;
-    public double AlarmTimeFontSize => _alarmTimeFontSize;
-    public double AlarmMeridianFontSize => _alarmMeridianFontSize;
-    public double AlarmBellIconFontSize => _alarmBellIconFontSize;
+    public double StandardFontSize => standardFontSize;
+    public double HeaderFontSize => headerFontSize;
+    public double ButtonFontSize => buttonFontSize;
+    public double SmallFontSize => smallFontSize;
+    public double MediumFontSize => mediumFontSize;
+    public double LargeFontSize => largeFontSize;
+    public double TitleFontSize => titleFontSize;
+    public double AlarmTimeFontSize => alarmTimeFontSize;
+    public double AlarmMeridianFontSize => alarmMeridianFontSize;
+    public double AlarmBellIconFontSize => alarmBellIconFontSize;
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {

@@ -6,28 +6,28 @@ namespace Bible.Alarm.VersionPatcher.Tests.Services;
 
 public class FileServiceTests : IDisposable
 {
-    private readonly FileService _fileService;
-    private readonly IFixture _fixture;
-    private readonly string _tempDirectory;
+    private readonly FileService fileService;
+    private readonly IFixture fixture;
+    private readonly string tempDirectory;
 
     public FileServiceTests()
     {
-        _fileService = new FileService();
-        _fixture = new Fixture();
-        _tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        fileService = new FileService();
+        fixture = new Fixture();
+        tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDirectory);
     }
 
     [Fact]
     public async Task ReadFileAsync_WithExistingFile_ShouldReturnContent()
     {
         // Arrange
-        var filePath = Path.Combine(_tempDirectory, "test.txt");
+        var filePath = Path.Combine(tempDirectory, "test.txt");
         var expectedContent = "Hello, World!";
         await File.WriteAllTextAsync(filePath, expectedContent);
 
         // Act
-        var result = await _fileService.ReadFileAsync(filePath);
+        var result = await fileService.ReadFileAsync(filePath);
 
         // Assert
         result.Should().Be(expectedContent);
@@ -37,11 +37,11 @@ public class FileServiceTests : IDisposable
     public async Task WriteFileAsync_ShouldCreateFileWithContent()
     {
         // Arrange
-        var filePath = Path.Combine(_tempDirectory, "write_test.txt");
+        var filePath = Path.Combine(tempDirectory, "write_test.txt");
         var content = "Test content";
 
         // Act
-        await _fileService.WriteFileAsync(filePath, content);
+        await fileService.WriteFileAsync(filePath, content);
 
         // Assert
         var result = await File.ReadAllTextAsync(filePath);
@@ -52,11 +52,11 @@ public class FileServiceTests : IDisposable
     public void FileExists_WithExistingFile_ShouldReturnTrue()
     {
         // Arrange
-        var filePath = Path.Combine(_tempDirectory, "exists_test.txt");
+        var filePath = Path.Combine(tempDirectory, "exists_test.txt");
         File.WriteAllText(filePath, "test");
 
         // Act
-        var result = _fileService.FileExists(filePath);
+        var result = fileService.FileExists(filePath);
 
         // Assert
         result.Should().BeTrue();
@@ -66,10 +66,10 @@ public class FileServiceTests : IDisposable
     public void FileExists_WithNonExistingFile_ShouldReturnFalse()
     {
         // Arrange
-        var filePath = Path.Combine(_tempDirectory, "non_existent.txt");
+        var filePath = Path.Combine(tempDirectory, "non_existent.txt");
 
         // Act
-        var result = _fileService.FileExists(filePath);
+        var result = fileService.FileExists(filePath);
 
         // Assert
         result.Should().BeFalse();
@@ -77,9 +77,9 @@ public class FileServiceTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDirectory))
+        if (Directory.Exists(tempDirectory))
         {
-            Directory.Delete(_tempDirectory, true);
+            Directory.Delete(tempDirectory, true);
         }
     }
 }

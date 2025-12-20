@@ -5,12 +5,12 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 public class PublicationListViewItemModel(Publication publication) : ObservableObject, IComparable
 {
-    private bool _isSelected;
+    private bool isSelected;
 
     public bool IsSelected
     {
-        get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        get => isSelected;
+        set => SetProperty(ref isSelected, value);
     }
 
     public string Name => publication.Name;

@@ -19,16 +19,16 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// </summary>
 public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger) : IVocalMusicService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<VocalMusic?> GetByLanguageAndCodeAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.VocalMusic
@@ -38,7 +38,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting VocalMusic. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting VocalMusic. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -48,7 +48,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.VocalMusic
@@ -58,7 +58,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting VocalMusic by language code. LanguageCode={LanguageCode}", languageCode);
+            logger.Error(ex, "Error getting VocalMusic by language code. LanguageCode={LanguageCode}", languageCode);
             throw;
         }
     }
@@ -67,7 +67,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var languages = await dbContext.VocalMusic
@@ -80,7 +80,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting distinct Languages from VocalMusic");
+            logger.Error(ex, "Error getting distinct Languages from VocalMusic");
             throw;
         }
     }
@@ -89,7 +89,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var tracks = await dbContext.VocalMusic
@@ -104,7 +104,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting VocalMusic tracks. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting VocalMusic tracks. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -114,7 +114,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var track = await dbContext.VocalMusic
@@ -132,7 +132,7 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error updating VocalMusic track URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
+            logger.Error(ex, "Error updating VocalMusic track URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
                 languageCode, publicationCode, trackNumber);
             throw;
         }
@@ -140,21 +140,21 @@ public class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Error during cancellation token source disposal in VocalMusicService");
+            logger.Warning(ex, "Error during cancellation token source disposal in VocalMusicService");
         }
     }
 }

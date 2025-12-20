@@ -17,8 +17,8 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
 internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 {
     private const int MaxConcurrentLanguageDownloads = 8;
-    private readonly ILogger _logger = logger;
-    private readonly DownloadUtility _downloadUtility = downloadUtility;
+    private readonly ILogger logger = logger;
+    private readonly DownloadUtility downloadUtility = downloadUtility;
 
     private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new(new[]{
         new KeyValuePair<string, string>("osg","Original Songs"),
@@ -37,7 +37,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             try
             {
                 var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publication.Key}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
-                jsonString = await _downloadUtility.GetAsync(harvestLink);
+                jsonString = await downloadUtility.GetAsync(harvestLink);
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
@@ -45,7 +45,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Failed to fetch languages for publication {PublicationCode} ({PublicationName}). Skipping.", publication.Key, publication.Value);
+                logger.Error(ex, "Failed to fetch languages for publication {PublicationCode} ({PublicationName}). Skipping.", publication.Key, publication.Value);
                 continue;
             }
 
@@ -86,7 +86,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 var englishEntry = languageEntries.FirstOrDefault(e => e.Code == "E");
                 if (englishEntry.Code == "E")
                 {
-                    _logger.Information("TEST RUN: Processing only English language for publication {PublicationCode}", publication.Key);
+                    logger.Information("TEST RUN: Processing only English language for publication {PublicationCode}", publication.Key);
                     languageEntries = new List<(string Code, string Name)> { englishEntry };
                 }
                 else
@@ -102,7 +102,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 try
                 {
                     var (languageCode, language) = entry;
-                    _logger.Information("Harvesting Music track links for {PublicationName} of {Language} language.", publication.Value, language);
+                    logger.Information("Harvesting Music track links for {PublicationName} of {Language} language.", publication.Value, language);
 
                     try
                     {
@@ -123,7 +123,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                     }
                     catch (Exception e)
                     {
-                        _logger.Error(e, "Failed: Harvesting Music track links for {PublicationName} of {Language} language.", publication.Value, language);
+                        logger.Error(e, "Failed: Harvesting Music track links for {PublicationName} of {Language} language.", publication.Value, language);
                     }
                 }
                 finally
@@ -191,7 +191,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 downloadCodes.Add(publication.Key);
             }
 
-            _logger.Information("Harvesting Music track links for {PublicationName}.", publication.Value);
+            logger.Information("Harvesting Music track links for {PublicationName}.", publication.Value);
             await HarvestMusicLinks(publication.Key, downloadCodes);
         }
 
@@ -219,7 +219,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             try
             {
                 var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0{(languageCode == null ? "&langwritten=E" : $"&langwritten={languageCode}")}&txtCMSLang=E";
-                jsonString = await _downloadUtility.GetAsync(harvestLink);
+                jsonString = await downloadUtility.GetAsync(harvestLink);
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
@@ -227,7 +227,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Failed to fetch tracks for publication {PublicationCode}. Skipping.", publicationDownloadCode);
+                logger.Error(ex, "Failed to fetch tracks for publication {PublicationCode}. Skipping.", publicationDownloadCode);
                 continue;
             }
 

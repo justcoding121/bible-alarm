@@ -70,7 +70,7 @@ public static class MauiProgram
 #elif IOS
         // Initialize Serilog for iOS before registering services
         // This ensures Log.Logger is properly configured before services try to use it
-        var versionFinder = iOSVersionFinder.Default;
+        var versionFinder = IOsVersionFinder.Default;
         SerilogSetup.Initialize(versionFinder, [], "iOS", isLoggingEnabled: true);
         Log.Logger.Information("CreateMauiApp called!");
 #endif

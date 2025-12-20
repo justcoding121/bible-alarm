@@ -12,8 +12,8 @@ public class WindowsAlarmHandler(
     IPlaybackService playbackService,
     IState<PlaybackState> playbackState) : IWindowsAlarmHandler
 {
-    private readonly ILogger _logger = logger;
-    private readonly IState<PlaybackState> _playbackState = playbackState;
+    private readonly ILogger logger = logger;
+    private readonly IState<PlaybackState> playbackState = playbackState;
 
 
     private static readonly SemaphoreSlim @lock = new(1);
@@ -24,7 +24,7 @@ public class WindowsAlarmHandler(
         {
             await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
-                if (_playbackState.Value.IsPreparingOrPlaying)
+                if (playbackState.Value.IsPreparingOrPlaying)
                 {
                     Dispose();
                     return;
@@ -38,7 +38,7 @@ public class WindowsAlarmHandler(
                     }
                     catch (Exception e)
                     {
-                        _logger.Error(e, "An error happened when ringing the alarm.");
+                        logger.Error(e, "An error happened when ringing the alarm.");
                         throw;
                     }
                 });
@@ -46,21 +46,21 @@ public class WindowsAlarmHandler(
         }
         catch (Exception e)
         {
-            _logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            logger.Error(e, "An error happened when creating the task to ring the alarm.");
             Dispose();
         }
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Dispose static semaphore
         try
@@ -70,7 +70,7 @@ public class WindowsAlarmHandler(
         catch (Exception ex)
         {
             // Ignore if already disposed
-            _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+            logger.Warning(ex, "Error disposing semaphore, may already be disposed");
         }
 
         // All injected services (playbackService, IState<PlaybackState>) are singletons

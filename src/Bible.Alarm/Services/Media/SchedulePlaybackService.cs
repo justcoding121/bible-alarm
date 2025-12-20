@@ -13,10 +13,10 @@ public class SchedulePlaybackService(
     IState<PlaybackState> playbackState)
     : ISchedulePlaybackService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly IState<PlaybackState> _playbackState = playbackState;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
+    private readonly IState<PlaybackState> playbackState = playbackState;
+    private bool isDisposed;
 
     public async Task PlayScheduleAsync(int scheduleId)
     {
@@ -25,7 +25,7 @@ public class SchedulePlaybackService(
             return;
         }
 
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
         var playbackService = scope.ServiceProvider.GetRequiredService<IPlaybackService>();
         var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
@@ -38,16 +38,16 @@ public class SchedulePlaybackService(
         }
         catch (Exception e)
         {
-            _logger.Information(e, "An error happened when playing alarm.");
+            logger.Information(e, "An error happened when playing alarm.");
             await toastService.ShowMessage("Error. Network may not be available. Please try again.", 5);
         }
     }
 
     public async Task<bool> CanMoveChapterAsync(int scheduleId)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
 
-        if (!_playbackState.Value.IsPreparingOrPlaying || _playbackState.Value.CurrentScheduleId != scheduleId)
+        if (!playbackState.Value.IsPreparingOrPlaying || playbackState.Value.CurrentScheduleId != scheduleId)
         {
             return true;
         }
@@ -60,12 +60,12 @@ public class SchedulePlaybackService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe

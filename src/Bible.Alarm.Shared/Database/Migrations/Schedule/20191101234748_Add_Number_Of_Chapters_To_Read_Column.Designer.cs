@@ -8,7 +8,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
     [Migration("20191101234748_Add_Number_Of_Chapters_To_Read_Column")]
-    partial class Add_Number_Of_Chapters_To_Read_Column
+    partial class AddNumberOfChaptersToReadColumn
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

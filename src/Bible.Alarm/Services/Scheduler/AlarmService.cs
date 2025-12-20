@@ -70,16 +70,16 @@ public sealed partial class AlarmService(
         await notificationService.RemoveAsync(scheduleId);
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // All injected services (notificationService) are singletons, so don't dispose them
         // No event handlers to unsubscribe

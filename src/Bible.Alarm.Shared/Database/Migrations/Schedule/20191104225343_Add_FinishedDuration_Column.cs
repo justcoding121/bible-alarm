@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule;
 
-public partial class Add_FinishedDuration_Column : Migration
+public partial class AddFinishedDurationColumn : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {

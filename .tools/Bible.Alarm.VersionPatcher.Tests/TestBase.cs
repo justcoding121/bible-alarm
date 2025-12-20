@@ -5,9 +5,9 @@ namespace Bible.Alarm.VersionPatcher.Tests;
 
 public abstract class TestBase
 {
-    protected readonly IFixture Fixture = new Fixture();
-    protected readonly MockRepository MockRepository = new(MockBehavior.Strict);
+    protected readonly IFixture fixture = new Fixture();
+    protected readonly MockRepository mockRepository = new(MockBehavior.Strict);
 
-    protected T Create<T>() => Fixture.Create<T>();
-    protected Mock<T> CreateMock<T>() where T : class => MockRepository.Create<T>();
+    protected T Create<T>() => fixture.Create<T>();
+    protected Mock<T> CreateMock<T>() where T : class => mockRepository.Create<T>();
 }

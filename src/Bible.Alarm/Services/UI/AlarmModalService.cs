@@ -15,65 +15,65 @@ public class AlarmModalService(
     IDispatcher dispatcher)
     : IAlarmModalService
 {
-    private readonly ILogger _logger = logger;
-    private readonly INavigationService _navigationService = navigationService;
-    private readonly IState<PlaybackState> _playbackState = playbackState;
-    private readonly IScheduleItemStateService _scheduleItemStateService = scheduleItemStateService;
-    private readonly IDispatcher _dispatcher = dispatcher;
-    private bool _isModalOpen;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly INavigationService navigationService = navigationService;
+    private readonly IState<PlaybackState> playbackState = playbackState;
+    private readonly IScheduleItemStateService scheduleItemStateService = scheduleItemStateService;
+    private readonly IDispatcher dispatcher = dispatcher;
+    private bool isModalOpen;
+    private bool isDisposed;
 
     public void SubscribeToPlaybackStateChanges()
     {
-        _isModalOpen = false;
-        _playbackState.StateChanged += OnPlaybackStateChanged;
+        isModalOpen = false;
+        playbackState.StateChanged += OnPlaybackStateChanged;
     }
 
     public void UnsubscribeToPlaybackStateChanges()
     {
-        _isModalOpen = false;
-        _playbackState.StateChanged -= OnPlaybackStateChanged;
+        isModalOpen = false;
+        playbackState.StateChanged -= OnPlaybackStateChanged;
     }
 
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
-        var shouldShowModal = _playbackState.Value.IsPreparingOrPlaying;
+        var shouldShowModal = playbackState.Value.IsPreparingOrPlaying;
 
-        if (shouldShowModal && !_isModalOpen)
+        if (shouldShowModal && !isModalOpen)
         {
             _ = MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 try
                 {
-                    _logger.Information("PlaybackState changed - showing AlarmModal (IsPreparingOrPlaying: true)");
-                    await _navigationService.OpenAlarmModalAsync();
-                    _isModalOpen = true;
-                    _logger.Information("AlarmModal opened");
+                    logger.Information("PlaybackState changed - showing AlarmModal (IsPreparingOrPlaying: true)");
+                    await navigationService.OpenAlarmModalAsync();
+                    isModalOpen = true;
+                    logger.Information("AlarmModal opened");
 
                     // Set IsBusy to false for the schedule item after modal is shown
-                    _scheduleItemStateService.SetScheduleItemBusyToFalse(_playbackState.Value.CurrentScheduleId);
+                    scheduleItemStateService.SetScheduleItemBusyToFalse(playbackState.Value.CurrentScheduleId);
                     // Note: Home page overlay will be hidden when Alarm Modal Appearing event fires
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Error showing AlarmModal");
+                    logger.Error(ex, "Error showing AlarmModal");
                 }
             });
         }
-        else if (!shouldShowModal && _isModalOpen)
+        else if (!shouldShowModal && isModalOpen)
         {
             _ = MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 try
                 {
-                    _logger.Information("PlaybackState changed - hiding AlarmModal (IsPreparingOrPlaying: false)");
-                    await _navigationService.PopModalAsync();
-                    _isModalOpen = false;
+                    logger.Information("PlaybackState changed - hiding AlarmModal (IsPreparingOrPlaying: false)");
+                    await navigationService.PopModalAsync();
+                    isModalOpen = false;
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Error hiding AlarmModal");
+                    logger.Error(ex, "Error hiding AlarmModal");
                 }
             });
         }
@@ -81,15 +81,15 @@ public class AlarmModalService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Unsubscribe from playback state changes
-        _playbackState.StateChanged -= OnPlaybackStateChanged;
+        playbackState.StateChanged -= OnPlaybackStateChanged;
     }
 }
 

@@ -24,7 +24,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     public AppDelegate()
     {
         // Initialize logging and exception handling
-        LogSetup.Initialize(iOSVersionFinder.Default, [], "iOS");
+        LogSetup.Initialize(IOsVersionFinder.Default, [], "iOS");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }

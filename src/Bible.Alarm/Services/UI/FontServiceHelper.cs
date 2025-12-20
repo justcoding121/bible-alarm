@@ -9,8 +9,8 @@ namespace Bible.Alarm.Services.UI;
 /// </summary>
 public static class FontServiceHelper
 {
-    private static IFontService? _fontService;
-    private static readonly object _lock = new();
+    private static IFontService? fontService;
+    private static readonly object @lock = new();
 
     /// <summary>
     /// Initializes the FontServiceHelper with the service instance.
@@ -18,9 +18,9 @@ public static class FontServiceHelper
     /// </summary>
     public static void Initialize(IFontService fontService)
     {
-        lock (_lock)
+        lock (@lock)
         {
-            _fontService = fontService;
+            FontServiceHelper.fontService = fontService;
         }
     }
 
@@ -29,20 +29,20 @@ public static class FontServiceHelper
     /// </summary>
     internal static IFontService GetFontService()
     {
-        if (_fontService != null)
+        if (fontService != null)
         {
-            return _fontService;
+            return fontService;
         }
 
         // For hot reload compatibility: create a temporary service if not initialized
         // This ensures x:Static bindings always work even during hot reload
-        lock (_lock)
+        lock (@lock)
         {
-            if (_fontService == null)
+            if (fontService == null)
             {
-                _fontService = new FontService();
+                fontService = new FontService();
             }
-            return _fontService;
+            return fontService;
         }
     }
 

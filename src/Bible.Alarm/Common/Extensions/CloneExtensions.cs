@@ -7,7 +7,7 @@ namespace Bible.Alarm.Common.Extensions;
 
 public static class CloneExtensions
 {
-    private static readonly JsonSerializerOptions Options = new()
+    private static readonly JsonSerializerOptions options = new()
     {
         ReferenceHandler = ReferenceHandler.IgnoreCycles,
         TypeInfoResolver = new IgnoreNonSerializableTypeInfoResolver()
@@ -20,8 +20,8 @@ public static class CloneExtensions
             throw new ArgumentNullException(nameof(obj));
         }
 
-        var json = JsonSerializer.Serialize(obj, Options);
-        var result = JsonSerializer.Deserialize<T>(json, Options);
+        var json = JsonSerializer.Serialize(obj, options);
+        var result = JsonSerializer.Deserialize<T>(json, options);
         if (result == null)
         {
             throw new InvalidOperationException("Deserialization returned null");
@@ -32,11 +32,11 @@ public static class CloneExtensions
 
     private class IgnoreNonSerializableTypeInfoResolver : IJsonTypeInfoResolver
     {
-        private readonly DefaultJsonTypeInfoResolver _defaultResolver = new();
+        private readonly DefaultJsonTypeInfoResolver defaultResolver = new();
 
         public JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
         {
-            var typeInfo = _defaultResolver.GetTypeInfo(type, options);
+            var typeInfo = defaultResolver.GetTypeInfo(type, options);
 
             if (typeInfo.Kind == JsonTypeInfoKind.Object)
             {

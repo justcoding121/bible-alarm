@@ -20,10 +20,10 @@ namespace Bible.Alarm.Shared.Services.Schedule;
 /// </summary>
 public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger) : IAlarmMusicService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<List<AlarmMusic>> GetAllMusicAsync(CancellationToken cancellationToken = default)
     {
@@ -32,7 +32,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public async Task<List<AlarmMusic>> GetMusicAsync(Expression<Func<AlarmMusic, bool>>? predicate = null, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var query = dbContext.AlarmMusic.AsQueryable();
@@ -47,7 +47,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public async Task<AlarmMusic?> GetMusicByIdAsync(int musicId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.AlarmMusic
@@ -56,7 +56,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public async Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.AlarmMusic
@@ -66,7 +66,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public async Task<AlarmMusic> AddMusicAsync(AlarmMusic music, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         await dbContext.AlarmMusic.AddAsync(music, cancellationToken);
@@ -78,7 +78,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public async Task<AlarmMusic> UpdateMusicAsync(AlarmMusic music, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         dbContext.AlarmMusic.Update(music);
@@ -90,7 +90,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public async Task DeleteMusicAsync(int musicId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var music = await dbContext.AlarmMusic.FindAsync(new object[] { musicId }, cancellationToken);
@@ -103,7 +103,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public async Task<bool> MusicExistsAsync(int musicId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.AlarmMusic.AnyAsync(x => x.Id == musicId, cancellationToken);
@@ -111,22 +111,22 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal in AlarmMusicService");
+            logger.Warning(ex, "Error during cancellation token source disposal in AlarmMusicService");
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

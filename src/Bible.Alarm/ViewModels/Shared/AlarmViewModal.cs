@@ -63,11 +63,11 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         this.generalSettingsService = generalSettingsService;
 
         // Initialize string fields to avoid nullable warnings
-        _title = "";
-        _subTitle = "";
+        title = "";
+        subTitle = "";
         description = "";
         currentTime = "00:00";
-        _endTime = "00:00";
+        endTime = "00:00";
 
         // Controls are hidden until first playback state is received
         hasReceivedInitialState = false;
@@ -211,20 +211,20 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
     }
 
 
-    private string _title;
+    private string title;
 
     public string Title
     {
-        get => _title;
-        set => SetProperty(ref _title, value);
+        get => title;
+        set => SetProperty(ref title, value);
     }
 
-    private string _subTitle;
+    private string subTitle;
 
     public string SubTitle
     {
-        get => _subTitle;
-        set => SetProperty(ref _subTitle, value);
+        get => subTitle;
+        set => SetProperty(ref subTitle, value);
     }
 
     private string description;
@@ -294,28 +294,28 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         set => SetProperty(ref currentTime, value);
     }
 
-    private string _endTime;
+    private string endTime;
 
     public string EndTime
     {
-        get => _endTime;
-        set => SetProperty(ref _endTime, value);
+        get => endTime;
+        set => SetProperty(ref endTime, value);
     }
 
-    private double _progress;
+    private double progress;
 
     public double Progress
     {
-        get => _progress;
+        get => progress;
         set
         {
             // Only update if user is not interacting (to prevent feedback loops)
             if (!isUserInteracting)
             {
                 // Only update if value actually changed (reduces unnecessary UI work)
-                if (Math.Abs(_progress - value) > 0.0001) // Small threshold to avoid floating point noise
+                if (Math.Abs(progress - value) > 0.0001) // Small threshold to avoid floating point noise
                 {
-                    SetProperty(ref _progress, value);
+                    SetProperty(ref progress, value);
                 }
             }
         }
@@ -341,7 +341,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
 
         // Update visual position directly (bypass Progress setter to avoid feedback loop)
         isUserInteracting = true;
-        _progress = progress;
+        this.progress = progress;
         OnPropertyChanged(nameof(Progress));
 
         // Perform seek immediately for tap
@@ -375,7 +375,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         targetSeekProgress = progress;
 
         // Update visual position (bypass Progress setter to avoid feedback loop)
-        _progress = progress;
+        this.progress = progress;
         OnPropertyChanged(nameof(Progress));
 
         PerformSeek();
@@ -420,46 +420,46 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         }
     }
 
-    private bool _nextEnabled;
+    private bool nextEnabled;
 
     public bool NextEnabled
     {
-        get => _nextEnabled;
-        set => SetProperty(ref _nextEnabled, value);
+        get => nextEnabled;
+        set => SetProperty(ref nextEnabled, value);
     }
 
-    private bool _previousEnabled;
+    private bool previousEnabled;
 
     public bool PreviousEnabled
     {
-        get => _previousEnabled;
-        set => SetProperty(ref _previousEnabled, value);
+        get => previousEnabled;
+        set => SetProperty(ref previousEnabled, value);
     }
 
-    private bool _isBusy;
+    private bool isBusy;
 
     public bool IsBusy
     {
-        get => _isBusy;
+        get => isBusy;
         set
         {
-            if (SetProperty(ref _isBusy, value))
+            if (SetProperty(ref isBusy, value))
             {
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
         }
     }
 
-    private bool _isPreparing;
-    private int _loadedTracks;
-    private int _totalTracks;
+    private bool isPreparing;
+    private int loadedTracks;
+    private int totalTracks;
 
     public bool IsPreparing
     {
-        get => _isPreparing;
+        get => isPreparing;
         set
         {
-            if (SetProperty(ref _isPreparing, value))
+            if (SetProperty(ref isPreparing, value))
             {
                 OnPropertyChanged(nameof(AreControlsEnabled));
             }
@@ -476,18 +476,18 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         !IsBusy &&
         playbackState.Value.Status != PlayStatus.Loading;
 
-    public string ProgressText => $"Preparing tracks {(_totalTracks > 0 ? $"{_loadedTracks}/{_totalTracks}" : "")}..";
+    public string ProgressText => $"Preparing tracks {(totalTracks > 0 ? $"{loadedTracks}/{totalTracks}" : "")}..";
 
     public double PreparationProgress { get; private set; }
 
-    private string _errorMessage = string.Empty;
+    private string errorMessage = string.Empty;
 
     public string ErrorMessage
     {
-        get => _errorMessage;
+        get => errorMessage;
         private set
         {
-            if (SetProperty(ref _errorMessage, value))
+            if (SetProperty(ref errorMessage, value))
             {
                 OnPropertyChanged(nameof(HasError));
                 OnPropertyChanged(nameof(AreControlsEnabled));
@@ -631,7 +631,7 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
                 {
                     var newProgress = position.TotalSeconds / currentDuration.TotalSeconds;
                     // Only update if change is significant (reduces unnecessary UI updates)
-                    if (Math.Abs(newProgress - _progress) > 0.001) // 0.1% threshold
+                    if (Math.Abs(newProgress - progress) > 0.001) // 0.1% threshold
                     {
                         Progress = newProgress;
                     }
@@ -657,10 +657,10 @@ public class AlarmViewModal : ObservableObject, IDisposable, IRecipient<Playback
         // Handle high-frequency preparation progress updates via messaging
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            _loadedTracks = message.LoadedTracks;
-            _totalTracks = message.TotalTracks;
-            PreparationProgress = _totalTracks > 0 ? _loadedTracks / (double)_totalTracks : 0.0;
-            IsPreparing = _totalTracks > 0 && _loadedTracks < _totalTracks;
+            loadedTracks = message.LoadedTracks;
+            totalTracks = message.TotalTracks;
+            PreparationProgress = totalTracks > 0 ? loadedTracks / (double)totalTracks : 0.0;
+            IsPreparing = totalTracks > 0 && loadedTracks < totalTracks;
 
             // Notify property changes
             OnPropertyChanged(nameof(ProgressText));

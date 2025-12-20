@@ -11,10 +11,10 @@ public class ScheduleMigrationService(
     IAlarmScheduleService alarmScheduleService)
     : IScheduleMigrationService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task MigrateBibleGatewaySchedulesAsync()
     {
@@ -25,11 +25,11 @@ public class ScheduleMigrationService(
 
         try
         {
-            var alarmSchedules = await _alarmScheduleService.GetSchedulesAsync(
+            var alarmSchedules = await alarmScheduleService.GetSchedulesAsync(
                 x => x.BibleReadingSchedule != null,
                 false,
                 true,
-                _cancellationTokenSource.Token);
+                cancellationTokenSource.Token);
 
             //bible gateway is not supported anymore due to copyright issues
             var toRemove = alarmSchedules.Where(x =>
@@ -39,7 +39,7 @@ public class ScheduleMigrationService(
             {
                 foreach (var item in toRemove)
                 {
-                    await _alarmScheduleService.UpdateScheduleByIdAsync(
+                    await alarmScheduleService.UpdateScheduleByIdAsync(
                         item.Id,
                         schedule =>
                         {
@@ -49,37 +49,37 @@ public class ScheduleMigrationService(
                                 schedule.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
                             }
                         },
-                        _cancellationTokenSource.Token);
+                        cancellationTokenSource.Token);
                 }
 
-                _logger.Information("Migrated {Count} Bible Gateway schedules to default publication code", toRemove.Count);
+                logger.Information("Migrated {Count} Bible Gateway schedules to default publication code", toRemove.Count);
             }
         }
         catch (Exception e)
         {
-            _logger.Error(e, "An error happened while migrating Bible Gateway schedules.");
+            logger.Error(e, "An error happened while migrating Bible Gateway schedules.");
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule;
 
-public partial class Add_Number_Of_Chapters_To_Read_Column : Migration
+public partial class AddNumberOfChaptersToReadColumn : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {

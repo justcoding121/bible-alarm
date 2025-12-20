@@ -6,14 +6,14 @@ using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
-public class IOSVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
+public class IosVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
     : IPlatformVersionPatcher
 {
     public string PlatformName => "iOS";
 
     public async Task PatchVersionAsync()
     {
-        var manifestFile = pathService.GetIOSInfoPlistPath();
+        var manifestFile = pathService.GetIosInfoPlistPath();
 
         if (!fileService.FileExists(manifestFile))
         {

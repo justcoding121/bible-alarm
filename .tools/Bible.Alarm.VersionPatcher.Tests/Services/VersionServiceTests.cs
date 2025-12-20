@@ -6,8 +6,8 @@ namespace Bible.Alarm.VersionPatcher.Tests.Services;
 
 public class VersionServiceTests
 {
-    private readonly VersionService _versionService = new();
-    private readonly IFixture _fixture = new Fixture();
+    private readonly VersionService versionService = new();
+    private readonly IFixture fixture = new Fixture();
 
     [Theory]
     [InlineData("1.2", "1.3")]
@@ -17,7 +17,7 @@ public class VersionServiceTests
     public void IncrementVersion_ShouldIncrementCorrectly(string input, string expected)
     {
         // Act
-        var result = _versionService.IncrementVersion(input);
+        var result = versionService.IncrementVersion(input);
 
         // Assert
         result.Should().Be(expected);
@@ -30,7 +30,7 @@ public class VersionServiceTests
     public void IncrementVersionCode_ShouldIncrementCorrectly(string input, string expected)
     {
         // Act
-        var result = _versionService.IncrementVersionCode(input);
+        var result = versionService.IncrementVersionCode(input);
 
         // Assert
         result.Should().Be(expected);
@@ -43,7 +43,7 @@ public class VersionServiceTests
         var invalidVersion = "invalid";
 
         // Act & Assert
-        var action = () => _versionService.IncrementVersion(invalidVersion);
+        var action = () => versionService.IncrementVersion(invalidVersion);
         action.Should().Throw<ArgumentException>();
     }
 
@@ -54,7 +54,7 @@ public class VersionServiceTests
         var invalidVersionCode = "invalid";
 
         // Act & Assert
-        var action = () => _versionService.IncrementVersionCode(invalidVersionCode);
+        var action = () => versionService.IncrementVersionCode(invalidVersionCode);
         action.Should().Throw<ArgumentException>();
     }
 }

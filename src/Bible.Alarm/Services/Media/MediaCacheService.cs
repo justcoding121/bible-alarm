@@ -27,18 +27,18 @@ public class MediaCacheService(
     IAlarmScheduleService alarmScheduleService)
     : IMediaCacheService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly IMediaUrlRefreshService _urlRefreshService = urlRefreshService;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
+    private readonly IMediaUrlRefreshService urlRefreshService = urlRefreshService;
+    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     // Use StorageRoot instead of CacheRoot to ensure media cache is in a permanent location
     // that the OS won't delete. We manage the cache ourselves.
-    private readonly string _cacheRoot = Path.Combine(storageService.StorageRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
+    private readonly string cacheRoot = Path.Combine(storageService.StorageRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
 
-    private static readonly ConcurrentDictionary<long, SemaphoreSlim> LockStore = new();
+    private static readonly ConcurrentDictionary<long, SemaphoreSlim> lockStore = new();
 
     public string GetCacheFileName(string url)
     {
@@ -50,12 +50,12 @@ public class MediaCacheService(
 
     public string GetCacheFilePath(string url)
     {
-        return Path.Combine(_cacheRoot, GetCacheFileName(url));
+        return Path.Combine(cacheRoot, GetCacheFileName(url));
     }
 
     public async Task<bool> ExistsAsync(string url)
     {
-        var cachePath = Path.Combine(_cacheRoot, GetCacheFileName(url));
+        var cachePath = Path.Combine(cacheRoot, GetCacheFileName(url));
         return await storageService.FileExists(cachePath);
     }
 
@@ -63,13 +63,13 @@ public class MediaCacheService(
     {
         if (alarmScheduleId <= 0)
         {
-            _logger.Warning("Skipping cache setup for invalid schedule ID: {ScheduleId}", alarmScheduleId);
+            logger.Warning("Skipping cache setup for invalid schedule ID: {ScheduleId}", alarmScheduleId);
             return false;
         }
 
         var downloaded = false;
 
-        var @lock = LockStore.GetOrAdd(alarmScheduleId, new SemaphoreSlim(1));
+        var @lock = lockStore.GetOrAdd(alarmScheduleId, new SemaphoreSlim(1));
 
         await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
@@ -85,7 +85,7 @@ public class MediaCacheService(
             }
             catch (Exception e)
             {
-                _logger.Error(e, "An exception happened when downloading media files for caching.");
+                logger.Error(e, "An exception happened when downloading media files for caching.");
             }
         }, 500);
 
@@ -121,7 +121,7 @@ public class MediaCacheService(
         if (await ExistsAsync(playItem.Url))
         {
             var cachedFilePath = GetCacheFilePath(playItem.Url);
-            _logger.Debug("Using cached file for track: {Url}, Path: {CachedPath}", playItem.Url, cachedFilePath);
+            logger.Debug("Using cached file for track: {Url}, Path: {CachedPath}", playItem.Url, cachedFilePath);
             // On iOS, MediaElement needs the file path directly instead of file:// URI
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
@@ -133,21 +133,21 @@ public class MediaCacheService(
         // Check internet connectivity before attempting download
         if (!await networkStatusService.IsInternetAvailable())
         {
-            _logger.Warning("No internet connection available. Cannot download track: {Url}", playItem.Url);
+            logger.Warning("No internet connection available. Cannot download track: {Url}", playItem.Url);
             return null;
         }
 
         // Download and cache the file
-        _logger.Information("Downloading track (not in cache): {Url}", playItem.Url);
+        logger.Information("Downloading track (not in cache): {Url}", playItem.Url);
         var cachedUrl = await DownloadAndCacheTrackAsync(playItem);
         if (cachedUrl == null)
         {
-            _logger.Error("Failed to download and cache track: {Url}", playItem.Url);
+            logger.Error("Failed to download and cache track: {Url}", playItem.Url);
             return null;
         }
 
         var downloadedFilePath = GetCacheFilePath(cachedUrl);
-        _logger.Information("Successfully downloaded and cached track: {Url}, Path: {CachedPath}", playItem.Url, downloadedFilePath);
+        logger.Information("Successfully downloaded and cached track: {Url}, Path: {CachedPath}", playItem.Url, downloadedFilePath);
         // On iOS, MediaElement may need the file path directly instead of file:// URI
         if (DeviceInfo.Platform == DevicePlatform.iOS)
         {
@@ -164,17 +164,17 @@ public class MediaCacheService(
 
             if (bytes != null && bytes.Length > 0)
             {
-                await storageService.SaveFile(_cacheRoot, GetCacheFileName(playItem.Url), bytes);
-                _logger.Debug("Successfully downloaded and saved track: {Url}, Size: {Size} bytes", playItem.Url, bytes.Length);
+                await storageService.SaveFile(cacheRoot, GetCacheFileName(playItem.Url), bytes);
+                logger.Debug("Successfully downloaded and saved track: {Url}, Size: {Size} bytes", playItem.Url, bytes.Length);
                 return playItem.Url;
             }
 
-            _logger.Warning("Download returned null or empty bytes for: {Url}, attempting URL refresh", playItem.Url);
+            logger.Warning("Download returned null or empty bytes for: {Url}, attempting URL refresh", playItem.Url);
             return await RefreshUrlAndRetryDownloadAsync(playItem);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Exception while downloading track: {Url}", playItem.Url);
+            logger.Error(ex, "Exception while downloading track: {Url}", playItem.Url);
 
             // Try refreshing URL and retrying
             try
@@ -183,7 +183,7 @@ public class MediaCacheService(
             }
             catch (Exception refreshEx)
             {
-                _logger.Error(refreshEx, "Exception while refreshing URL for track: {Url}", playItem.Url);
+                logger.Error(refreshEx, "Exception while refreshing URL for track: {Url}", playItem.Url);
                 return null;
             }
         }
@@ -192,7 +192,7 @@ public class MediaCacheService(
     private async Task<string?> RefreshUrlAndRetryDownloadAsync(PlayItem playItem)
     {
         var trackMetadata = playItem.Metadata;
-        var refreshedUrl = await _urlRefreshService.RefreshUrlAsync(trackMetadata);
+        var refreshedUrl = await urlRefreshService.RefreshUrlAsync(trackMetadata);
 
         if (refreshedUrl == null || refreshedUrl == playItem.Url)
         {
@@ -200,7 +200,7 @@ public class MediaCacheService(
         }
 
         await mediaService.UpdateTrackUrlAsync(trackMetadata, refreshedUrl);
-        _logger.Warning($"Refreshed URL from {playItem.Url} to {refreshedUrl} for {playItem}");
+        logger.Warning($"Refreshed URL from {playItem.Url} to {refreshedUrl} for {playItem}");
 
         var bytes = await downloadService.DownloadAsync(refreshedUrl);
         if (bytes == null)
@@ -208,16 +208,16 @@ public class MediaCacheService(
             return null;
         }
 
-        await storageService.SaveFile(_cacheRoot, GetCacheFileName(refreshedUrl), bytes);
-        _logger.Warning($"Downloaded using updated URL {refreshedUrl} for {playItem}");
+        await storageService.SaveFile(cacheRoot, GetCacheFileName(refreshedUrl), bytes);
+        logger.Warning($"Downloaded using updated URL {refreshedUrl} for {playItem}");
         return refreshedUrl;
     }
 
 
     public async Task CleanUpAsync()
     {
-        var schedules = await _alarmScheduleService.GetAllSchedulesAsync(
-            false, false, _cancellationTokenSource.Token);
+        var schedules = await alarmScheduleService.GetAllSchedulesAsync(
+            false, false, cancellationTokenSource.Token);
 
         var filePathsToDelete = await GetUnusedCacheFilesAsync(schedules);
         await DeleteFilesAsync(filePathsToDelete);
@@ -225,7 +225,7 @@ public class MediaCacheService(
 
     private async Task<HashSet<string>> GetUnusedCacheFilesAsync(List<AlarmSchedule> schedules)
     {
-        var filePathsToDelete = new HashSet<string>(await storageService.GetAllFiles(_cacheRoot));
+        var filePathsToDelete = new HashSet<string>(await storageService.GetAllFiles(cacheRoot));
 
         foreach (var schedule in schedules)
         {
@@ -251,7 +251,7 @@ public class MediaCacheService(
             }
             catch (Exception e)
             {
-                _logger.Error(e, $"Failed to delete file: {filePath}");
+                logger.Error(e, $"Failed to delete file: {filePath}");
             }
         }
 
@@ -262,7 +262,7 @@ public class MediaCacheService(
     {
         if (scheduleId <= 0)
         {
-            _logger.Warning("Skipping cache deletion for invalid schedule ID: {ScheduleId}", scheduleId);
+            logger.Warning("Skipping cache deletion for invalid schedule ID: {ScheduleId}", scheduleId);
             return;
         }
 
@@ -281,33 +281,33 @@ public class MediaCacheService(
             }
 
             await DeleteFilesAsync(filePathsToDelete);
-            _logger.Information($"Deleted {filePathsToDelete.Count} cache files for schedule {scheduleId}");
+            logger.Information($"Deleted {filePathsToDelete.Count} cache files for schedule {scheduleId}");
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, $"Error deleting cache files for schedule {scheduleId}");
+            logger.Error(ex, $"Error deleting cache files for schedule {scheduleId}");
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope

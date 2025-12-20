@@ -17,16 +17,16 @@ public class NetworkStatusService : INetworkStatusService, IDisposable
         return Task.FromResult(false);
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No resources to dispose, no injected services (this service has no dependencies)
     }

@@ -16,7 +16,7 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
     private readonly IDownloadService downloadService = downloadService;
     private bool isDisposed;
 
-    private static readonly string[] JwOrgUrls =
+    private static readonly string[] jwOrgUrls =
     [
         UrlHelper.JwOrgIndexServiceBaseUrl,
         AppConstants.ApiEndpoints.JwOrgAlternativeIndexServiceUrl
@@ -61,8 +61,8 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
     {
         try
         {
-            var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
-            var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
+            var harvestLink1 = $"{jwOrgUrls[0]}{lookUpPath}";
+            var harvestLink2 = $"{jwOrgUrls[1]}{lookUpPath}";
             var tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(tes);
             using var doc = JsonDocument.Parse(jsonString);
@@ -135,8 +135,8 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
     {
         try
         {
-            var harvestLink1 = $"{JwOrgUrls[0]}{lookUpPath}";
-            var harvestLink2 = $"{JwOrgUrls[1]}{lookUpPath}";
+            var harvestLink1 = $"{jwOrgUrls[0]}{lookUpPath}";
+            var harvestLink2 = $"{jwOrgUrls[1]}{lookUpPath}";
 
             var tes = await downloadService.DownloadAsync(harvestLink1, harvestLink2);
             var jsonString = Encoding.Default.GetString(tes);

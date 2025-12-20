@@ -3,9 +3,9 @@ using Bible.Alarm.Services.Storage;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Storage;
 
-public class iOSStorageService : StorageService, IDisposable
+public class IOsStorageService : StorageService, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     //backed up to cloud
     private static readonly string storageRoot =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "..", "Library");
@@ -19,16 +19,16 @@ public class iOSStorageService : StorageService, IDisposable
 
     public override string CacheRoot => cacheRoot;
 
-    public override Assembly MainAssembly => typeof(iOSStorageService).Assembly;
+    public override Assembly MainAssembly => typeof(IOsStorageService).Assembly;
 
     public override void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No resources to dispose
         base.Dispose();

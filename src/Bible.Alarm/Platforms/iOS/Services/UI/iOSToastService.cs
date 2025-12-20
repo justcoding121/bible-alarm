@@ -5,11 +5,11 @@ using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
 using UIKit;
 
-[assembly: Dependency(typeof(iOSToastService))]
+[assembly: Dependency(typeof(IOsToastService))]
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI;
 
-public class iOSToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
+public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDisposable
 {
     private readonly TaskScheduler taskScheduler = taskScheduler;
     private static readonly SemaphoreSlim @lock = new(1);

@@ -9,9 +9,9 @@ public class BibleNavigationService(
     IServiceScopeFactory scopeFactory)
     : IBibleNavigationService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
+    private bool isDisposed;
 
     public async Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule)
     {
@@ -22,7 +22,7 @@ public class BibleNavigationService(
 
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextBook = await playlistService.GetPreviousBibleBook(
                 schedule.LanguageCode,
@@ -41,7 +41,7 @@ public class BibleNavigationService(
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error moving to previous book");
+            logger.Error(ex, "Error moving to previous book");
             return false;
         }
     }
@@ -55,7 +55,7 @@ public class BibleNavigationService(
 
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextBook = await playlistService.GetNextBibleBook(
                 schedule.LanguageCode,
@@ -74,7 +74,7 @@ public class BibleNavigationService(
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error moving to next book");
+            logger.Error(ex, "Error moving to next book");
             return false;
         }
     }
@@ -88,7 +88,7 @@ public class BibleNavigationService(
 
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var prevChapter = await playlistService.GetPreviousBibleChapter(
                 schedule.LanguageCode,
@@ -108,7 +108,7 @@ public class BibleNavigationService(
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error moving to previous chapter");
+            logger.Error(ex, "Error moving to previous chapter");
             return false;
         }
     }
@@ -122,7 +122,7 @@ public class BibleNavigationService(
 
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             var nextChapter = await playlistService.GetNextBibleChapter(
                 schedule.LanguageCode,
@@ -142,19 +142,19 @@ public class BibleNavigationService(
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error moving to next chapter");
+            logger.Error(ex, "Error moving to next chapter");
             return false;
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe

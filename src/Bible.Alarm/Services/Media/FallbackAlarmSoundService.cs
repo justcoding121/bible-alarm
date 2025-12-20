@@ -7,8 +7,8 @@ namespace Bible.Alarm.Services.Media;
 
 public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private bool isDisposed;
 
     public async Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync()
     {
@@ -17,7 +17,7 @@ public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundServ
             var fallbackUri = await GetFallbackAlarmSoundUriAsync();
             if (fallbackUri == null)
             {
-                _logger.Error("Failed to get fallback alarm sound URI");
+                logger.Error("Failed to get fallback alarm sound URI");
                 return null;
             }
 
@@ -36,7 +36,7 @@ public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundServ
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error creating fallback alarm track");
+            logger.Error(ex, "Error creating fallback alarm track");
             return null;
         }
     }
@@ -45,19 +45,19 @@ public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundServ
     {
         // No longer using custom alarm sound file - return null to use platform default
         // The error handling in PlaybackService will display an appropriate message
-        _logger.Debug("Fallback alarm sound service returning null - using platform default");
+        logger.Debug("Fallback alarm sound service returning null - using platform default");
         await Task.CompletedTask;
         return null;
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }

@@ -11,7 +11,7 @@ public class PathService : IPathService
         return Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.Droid", "Properties", "AndroidManifest.xml");
     }
 
-    public string GetIOSInfoPlistPath()
+    public string GetIosInfoPlistPath()
     {
         return Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.iOS", "Info.plist");
     }

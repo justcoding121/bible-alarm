@@ -169,7 +169,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             SelectedBook.IsSelected = false;
         }
 
-        if (!_bookVMsMapping.TryGetValue(current.BookNumber, out var book))
+        if (!bookVMsMapping.TryGetValue(current.BookNumber, out var book))
         {
             return;
         }
@@ -202,11 +202,11 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
         await PopulateBooks(languageCode, publicationCode);
     }
 
-    private readonly Dictionary<int, BibleBookListViewItemModel> _bookVMsMapping = [];
+    private readonly Dictionary<int, BibleBookListViewItemModel> bookVMsMapping = [];
 
     private async Task PopulateBooks(string languageCode, string publicationCode)
     {
-        _bookVMsMapping.Clear();
+        bookVMsMapping.Clear();
 
         // Run database operations off UI thread
         var books = await Task.Run(async () =>
@@ -218,7 +218,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
             var bookVm = new BibleBookListViewItemModel(book);
 
             bookVMs.Add(bookVm);
-            _bookVMsMapping.Add(bookVm.Number, bookVm);
+            bookVMsMapping.Add(bookVm.Number, bookVm);
 
             if (current == null || tentative == null)
             {

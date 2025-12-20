@@ -5,7 +5,7 @@ namespace Bible.Alarm.Views.Music;
 
 public partial class SongBookSelection : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     private readonly SongBookSelectionViewModel viewModel;
 
     public SongBookSelectionViewModel? ViewModel => BindingContext as SongBookSelectionViewModel;
@@ -28,7 +28,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
@@ -37,7 +37,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

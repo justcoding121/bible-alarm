@@ -15,15 +15,15 @@ public class MediaMigrationService(
     IServiceScopeFactory scopeFactory)
     : IMediaMigrationService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
+    private bool isDisposed;
 
     public async Task MigrateIfNeededAsync()
     {
         try
         {
-            await using var scope = _scopeFactory.CreateAsyncScope();
+            await using var scope = scopeFactory.CreateAsyncScope();
             var mediaDb = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             // Check if database file exists
@@ -39,7 +39,7 @@ public class MediaMigrationService(
             var canConnect = await mediaDb.Database.CanConnectAsync();
             if (!canConnect)
             {
-                _logger.Warning("Cannot connect to Media database - may be corrupted. MediaIndexService will handle re-download.");
+                logger.Warning("Cannot connect to Media database - may be corrupted. MediaIndexService will handle re-download.");
                 return;
             }
 
@@ -48,11 +48,11 @@ public class MediaMigrationService(
             var pendingMigrations = await mediaDb.Database.GetPendingMigrationsAsync();
             if (pendingMigrations.Any())
             {
-                _logger.Information(
+                logger.Information(
                     "Media database from previous app version has {Count} pending migrations, applying...",
                     pendingMigrations.Count());
                 await mediaDb.Database.MigrateAsync();
-                _logger.Information("Media database migration completed successfully");
+                logger.Information("Media database migration completed successfully");
                 return;
             }
 
@@ -64,7 +64,7 @@ public class MediaMigrationService(
         {
             // If migration fails (e.g., database is corrupted),
             // log but don't crash - MediaIndexService will handle re-downloading if needed
-            _logger.Warning(ex,
+            logger.Warning(ex,
                 "Could not migrate Media database. " +
                 "MediaIndexService will handle re-downloading if needed.");
         }
@@ -72,12 +72,12 @@ public class MediaMigrationService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe

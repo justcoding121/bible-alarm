@@ -267,12 +267,12 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
         }
     }
 
-    private string _languageSearchTerm = string.Empty;
+    private string languageSearchTerm = string.Empty;
 
     public string LanguageSearchTerm
     {
-        get => _languageSearchTerm;
-        set => SetProperty(ref _languageSearchTerm, value);
+        get => languageSearchTerm;
+        set => SetProperty(ref languageSearchTerm, value);
     }
 
     public object? SelectedItem => CurrentLanguage;

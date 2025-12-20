@@ -11,26 +11,26 @@ public class BatteryOptimizationService(
     IBatteryOptimizationManager batteryOptimizationManager)
     : IBatteryOptimizationService, IDisposable
 {
-    private bool _isDisposed;
-    private readonly ILogger _logger = logger;
-    private readonly IGeneralSettingsService _generalSettingsService = generalSettingsService;
-    private readonly IBatteryOptimizationManager _batteryOptimizationManager = batteryOptimizationManager;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private bool isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IGeneralSettingsService generalSettingsService = generalSettingsService;
+    private readonly IBatteryOptimizationManager batteryOptimizationManager = batteryOptimizationManager;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public async Task MarkModalAsShownAsync()
     {
         try
         {
-            const string key = "AndroidBatteryOptimizationExclusionPromptShown";
+            const string Key = "AndroidBatteryOptimizationExclusionPromptShown";
 
-            if (!await _generalSettingsService.GeneralSettingExistsAsync(key, _cancellationTokenSource.Token))
+            if (!await generalSettingsService.GeneralSettingExistsAsync(Key, cancellationTokenSource.Token))
             {
-                await _generalSettingsService.SetGeneralSettingAsync(key, "True", _cancellationTokenSource.Token);
+                await generalSettingsService.SetGeneralSettingAsync(Key, "True", cancellationTokenSource.Token);
             }
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error marking battery optimization modal as shown");
+            logger.Error(ex, "Error marking battery optimization modal as shown");
         }
     }
 
@@ -38,45 +38,45 @@ public class BatteryOptimizationService(
     {
         try
         {
-            const string key = "AndroidBatteryOptimizationExclusionPromptShown";
-            return !await _generalSettingsService.GeneralSettingExistsAsync(key, _cancellationTokenSource.Token);
+            const string Key = "AndroidBatteryOptimizationExclusionPromptShown";
+            return !await generalSettingsService.GeneralSettingExistsAsync(Key, cancellationTokenSource.Token);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error checking if battery optimization modal should be shown");
+            logger.Error(ex, "Error checking if battery optimization modal should be shown");
             return false;
         }
     }
 
     public void ShowOptimizationSettingsPage()
     {
-        _batteryOptimizationManager?.ShowBatteryOptimizationExclusionSettingsPage();
+        batteryOptimizationManager?.ShowBatteryOptimizationExclusionSettingsPage();
     }
 
     public bool CanShowOptimizeActivity()
     {
-        return _batteryOptimizationManager?.CanShowOptimizeActivity() ?? false;
+        return batteryOptimizationManager?.CanShowOptimizeActivity() ?? false;
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // All injected services are singletons, so don't dispose them

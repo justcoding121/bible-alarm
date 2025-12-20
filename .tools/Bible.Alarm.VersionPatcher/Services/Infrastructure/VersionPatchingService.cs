@@ -8,13 +8,13 @@ namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
 public class VersionPatchingService(IEnumerable<IPlatformVersionPatcher> platformPatchers) : IVersionPatchingService
 {
-    private readonly IEnumerable<IPlatformVersionPatcher> _platformPatchers = platformPatchers ?? throw new ArgumentNullException(nameof(platformPatchers));
+    private readonly IEnumerable<IPlatformVersionPatcher> platformPatchers = platformPatchers ?? throw new ArgumentNullException(nameof(platformPatchers));
 
     public async Task PatchAllPlatformsAsync()
     {
         Console.WriteLine("Starting version patching for all platforms...");
 
-        var tasks = _platformPatchers.Select(async patcher =>
+        var tasks = platformPatchers.Select(async patcher =>
         {
             try
             {

@@ -17,21 +17,21 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// </summary>
 public class MediaSessionCallback(IPlaybackService playbackService, ILogger logger) : MediaSessionCompat.Callback
 {
-    private readonly IPlaybackService _playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IPlaybackService playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    private IState<ApplicationState>? _applicationState;
-    private IState<PlaybackState>? _playbackState;
+    private IState<ApplicationState>? applicationState;
+    private IState<PlaybackState>? playbackState;
 
     private IState<ApplicationState> ApplicationState
     {
         get
         {
-            if (_applicationState == null)
+            if (applicationState == null)
             {
-                _applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
+                applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
             }
-            return _applicationState ?? throw new InvalidOperationException("ApplicationState not available");
+            return applicationState ?? throw new InvalidOperationException("ApplicationState not available");
         }
     }
 
@@ -39,11 +39,11 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     {
         get
         {
-            if (_playbackState == null)
+            if (playbackState == null)
             {
-                _playbackState = ServiceProviderManager.GetService<IState<PlaybackState>>();
+                playbackState = ServiceProviderManager.GetService<IState<PlaybackState>>();
             }
-            return _playbackState ?? throw new InvalidOperationException("PlaybackState not available");
+            return playbackState ?? throw new InvalidOperationException("PlaybackState not available");
         }
     }
 
@@ -66,7 +66,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
     public override void OnPlay()
     {
-        _logger.Information("MediaSessionCallback.OnPlay() called from Android Auto");
+        logger.Information("MediaSessionCallback.OnPlay() called from Android Auto");
         ExecuteAsyncOperation(async () => await HandlePlayAsync());
         base.OnPlay();
     }
@@ -84,16 +84,16 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             var scheduleId = GetScheduleIdForPlay();
             if (!scheduleId.HasValue)
             {
-                _logger.Warning("OnPlay: No valid scheduleId found");
+                logger.Warning("OnPlay: No valid scheduleId found");
                 return;
             }
 
-            await _playbackService.PrepareAndPlayAsync(scheduleId.Value, isAlarm: false);
+            await playbackService.PrepareAndPlayAsync(scheduleId.Value, isAlarm: false);
         }
         else
         {
             // If already playing/paused, just resume
-            await _playbackService.PlayAsync();
+            await playbackService.PlayAsync();
         }
     }
 
@@ -109,7 +109,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                 return scheduleId;
             }
 
-            _logger.Warning("OnPlay: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
+            logger.Warning("OnPlay: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
         }
 
         // Get first schedule from state
@@ -124,7 +124,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
         if (!string.IsNullOrEmpty(mediaId) && int.TryParse(mediaId, out int parsedScheduleId))
         {
-            _logger.Debug("OnPlay: Got scheduleId {ScheduleId} from MediaSession metadata", parsedScheduleId);
+            logger.Debug("OnPlay: Got scheduleId {ScheduleId} from MediaSession metadata", parsedScheduleId);
             return parsedScheduleId;
         }
 
@@ -133,22 +133,22 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
     public override void OnPause()
     {
-        _logger.Information("MediaSessionCallback.OnPause() called from Android Auto");
-        ExecuteAsyncOperation(async () => await _playbackService.PauseAsync());
+        logger.Information("MediaSessionCallback.OnPause() called from Android Auto");
+        ExecuteAsyncOperation(async () => await playbackService.PauseAsync());
         base.OnPause();
     }
 
     public override void OnSkipToNext()
     {
-        _logger.Information("MediaSessionCallback.OnSkipToNext() called from Android Auto");
-        ExecuteAsyncOperation(async () => await _playbackService.PlayNextAsync());
+        logger.Information("MediaSessionCallback.OnSkipToNext() called from Android Auto");
+        ExecuteAsyncOperation(async () => await playbackService.PlayNextAsync());
         base.OnSkipToNext();
     }
 
     public override void OnSkipToPrevious()
     {
-        _logger.Information("MediaSessionCallback.OnSkipToPrevious() called from Android Auto");
-        ExecuteAsyncOperation(async () => await _playbackService.PlayPreviousAsync());
+        logger.Information("MediaSessionCallback.OnSkipToPrevious() called from Android Auto");
+        ExecuteAsyncOperation(async () => await playbackService.PlayPreviousAsync());
         base.OnSkipToPrevious();
     }
 
@@ -165,19 +165,19 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Error executing async operation in MediaSessionCallback");
+                    logger.Error(ex, "Error executing async operation in MediaSessionCallback");
                 }
             });
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error starting async task in MediaSessionCallback");
+            logger.Error(ex, "Error starting async task in MediaSessionCallback");
         }
     }
 
     public override void OnPlayFromMediaId(string? mediaId, Bundle? extras)
     {
-        _logger.Information("MediaSessionCallback.OnPlayFromMediaId() called with mediaId: {MediaId}", mediaId);
+        logger.Information("MediaSessionCallback.OnPlayFromMediaId() called with mediaId: {MediaId}", mediaId);
 
         var parsedScheduleId = ParseMediaId(mediaId);
         ExecuteAsyncOperation(async () => await HandlePlayFromMediaIdAsync(parsedScheduleId));
@@ -190,7 +190,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         // Parse mediaId directly as scheduleId
         if (!int.TryParse(mediaId, out int scheduleId) || scheduleId <= 0)
         {
-            _logger.Warning("MediaSessionCallback.OnPlayFromMediaId() received invalid mediaId: {MediaId}", mediaId);
+            logger.Warning("MediaSessionCallback.OnPlayFromMediaId() received invalid mediaId: {MediaId}", mediaId);
             return 0; // Will use first schedule
         }
 
@@ -205,12 +205,12 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         var scheduleIdToPlay = GetValidScheduleId(scheduleId);
         if (scheduleIdToPlay <= 0)
         {
-            _logger.Warning("OnPlayFromMediaId: No valid scheduleId found");
+            logger.Warning("OnPlayFromMediaId: No valid scheduleId found");
             return;
         }
 
         // Use isAlarm=false for Android Auto playback
-        await _playbackService.PrepareAndPlayAsync(scheduleIdToPlay, isAlarm: false);
+        await playbackService.PrepareAndPlayAsync(scheduleIdToPlay, isAlarm: false);
     }
 
     private int GetValidScheduleId(int scheduleId)
@@ -223,18 +223,18 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
         if (scheduleId > 0)
         {
-            _logger.Warning("OnPlayFromMediaId: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
+            logger.Warning("OnPlayFromMediaId: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
         }
 
         // If scheduleId is invalid or not found, use first schedule from state
         var firstScheduleId = GetFirstScheduleId();
         if (firstScheduleId.HasValue)
         {
-            _logger.Debug("OnPlayFromMediaId: Using first schedule from state: {ScheduleId}", firstScheduleId);
+            logger.Debug("OnPlayFromMediaId: Using first schedule from state: {ScheduleId}", firstScheduleId);
             return firstScheduleId.Value;
         }
 
-        _logger.Warning("OnPlayFromMediaId: No schedules available in state");
+        logger.Warning("OnPlayFromMediaId: No schedules available in state");
         return 0;
     }
 }

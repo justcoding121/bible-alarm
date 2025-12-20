@@ -135,16 +135,16 @@ public static class CollectionViewHelper
     private static async Task<bool> WaitForCollectionViewReadyAsync(MauiCollectionView collectionView, object item, CancellationToken cancellationToken = default)
     {
         // Maximum number of attempts (5 seconds total)
-        const int maxAttempts = 50;
+        const int MaxAttempts = 50;
         // Delay between attempts
-        const int delayMs = 100;
+        const int DelayMs = 100;
 
-        for (var i = 0; i < maxAttempts; i++)
+        for (var i = 0; i < MaxAttempts; i++)
         {
             // Check cancellation before each delay
             cancellationToken.ThrowIfCancellationRequested();
 
-            await Task.Delay(delayMs, cancellationToken);
+            await Task.Delay(DelayMs, cancellationToken);
 
             try
             {

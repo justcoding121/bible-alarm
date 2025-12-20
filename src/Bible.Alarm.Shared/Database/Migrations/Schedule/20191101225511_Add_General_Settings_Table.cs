@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule;
 
-public partial class Add_General_Settings_Table : Migration
+public partial class AddGeneralSettingsTable : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {

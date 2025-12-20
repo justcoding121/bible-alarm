@@ -16,9 +16,9 @@ namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 ])]
 public class RestartReceiver : BroadcastReceiver, IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly ILogger logger;
 
-    private Context _context;
+    private Context context;
 
     public RestartReceiver() : this(Log.ForContext<RestartReceiver>())
     {
@@ -26,7 +26,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
     public RestartReceiver(ILogger logger)
     {
-        _logger = logger;
+        this.logger = logger;
         LogSetup.Initialize(AndroidVersionFinder.Default,
             [$"AndroidSdk {Build.VERSION.SdkInt}"], DevicePlatform.Android.ToString());
 
@@ -36,18 +36,18 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        _logger.Error(e.Exception, "Unobserved task exception.");
+        logger.Error(e.Exception, "Unobserved task exception.");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        _logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
+        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
     public override async void OnReceive(Context context, Intent intent)
     {
-        _context = context;
+        this.context = context;
 
         var pendingIntent = GoAsync();
 
@@ -69,7 +69,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"Failed to process restart task. Intent action {intent.Action}");
+            logger.Error(e, $"Failed to process restart task. Intent action {intent.Action}");
         }
         finally
         {
@@ -77,19 +77,19 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         }
     }
 
-    private bool _disposed;
+    private bool disposed;
 
     public new void Dispose()
     {
-        if (!_disposed)
+        if (!disposed)
         {
-            _disposed = true;
+            disposed = true;
         }
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
 
-        _disposed = true;
+        disposed = true;
 
         base.Dispose();
 

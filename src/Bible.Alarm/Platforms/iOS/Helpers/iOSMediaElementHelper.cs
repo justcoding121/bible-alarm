@@ -8,7 +8,7 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 /// Helper class for iOS-specific MediaElement operations.
 /// Handles URI processing, playback state management, and volume settings.
 /// </summary>
-public static class iOSMediaElementHelper
+public static class IOsMediaElementHelper
 {
     /// <summary>
     /// Processes a URI for iOS MediaElement by normalizing paths.
@@ -124,7 +124,7 @@ public static class iOSMediaElementHelper
         logger.Debug("Configuring iOS audio session before Play()");
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            iOSAudioSessionHelper.ConfigureAudioSession(logger, "main playback");
+            IOsAudioSessionHelper.ConfigureAudioSession(logger, "main playback");
         });
         logger.Debug("iOS audio session configuration completed");
     }

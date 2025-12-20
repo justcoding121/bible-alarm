@@ -9,9 +9,9 @@ namespace Bible.Alarm.Services.UI;
 
 public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalService alarmModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
 {
-    private static NavigationPage? _mainNavPage;
+    private static NavigationPage? mainNavPage;
     private static readonly ILogger logger = Log.ForContext<WindowSetupService>();
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public Window CreateWindow(IActivationState? activationState)
     {
@@ -63,7 +63,7 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
     /// </summary>
     private static void Initialize(NavigationPage navigationPage)
     {
-        _mainNavPage = navigationPage;
+        mainNavPage = navigationPage;
         Application.Current!.RequestedThemeChanged += OnRequestedThemeChanged;
         UpdateNavigationBarColors();
     }
@@ -83,7 +83,7 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
     /// </summary>
     public static void UpdateNavigationBarColors()
     {
-        if (_mainNavPage == null)
+        if (mainNavPage == null)
         {
             return;
         }
@@ -94,25 +94,25 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
             if (Application.Current?.Resources.TryGetValue("CardBackgroundColor", out var cardBgColor) == true &&
                 cardBgColor is Color cardBg)
             {
-                _mainNavPage.BarBackgroundColor = cardBg;
+                mainNavPage.BarBackgroundColor = cardBg;
             }
             else
             {
                 // Fallback if resource not found
                 var theme = ThemeColors.GetCurrentTheme();
-                _mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
+                mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
             }
 
             if (Application.Current?.Resources.TryGetValue("PrimaryTextColor", out var primaryTextColor) == true &&
                 primaryTextColor is Color primaryText)
             {
-                _mainNavPage.BarTextColor = primaryText;
+                mainNavPage.BarTextColor = primaryText;
             }
             else
             {
                 // Fallback if resource not found
                 var theme = ThemeColors.GetCurrentTheme();
-                _mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
+                mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
             }
         }
         catch (Exception ex)
@@ -120,19 +120,19 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
             // Fallback to theme colors if resource lookup fails
             logger.Warning(ex, "Error updating navigation bar colors, using fallback theme colors");
             var theme = ThemeColors.GetCurrentTheme();
-            _mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
-            _mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
+            mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
+            mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Unsubscribe from theme changes
         if (Application.Current != null)
@@ -148,7 +148,7 @@ public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalSer
 
         // Clear static reference to NavigationPage to prevent memory leaks
         // The old NavigationPage will be garbage collected once all references are cleared
-        _mainNavPage = null;
+        mainNavPage = null;
 
         var playbackService = serviceProvider.GetService<IPlaybackService>();
 

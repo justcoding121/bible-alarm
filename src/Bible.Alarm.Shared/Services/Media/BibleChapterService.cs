@@ -18,16 +18,16 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// </summary>
 public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleChapterService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<SortedDictionary<int, BibleChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var chapters = await dbContext.BibleTranslations
@@ -44,7 +44,7 @@ public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logg
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleChapters by book. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
+            logger.Error(ex, "Error getting BibleChapters by book. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
                 languageCode, publicationCode, bookNumber);
             throw;
         }
@@ -54,7 +54,7 @@ public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logg
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             return await dbContext.BibleTranslations
@@ -69,7 +69,7 @@ public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logg
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error getting BibleChapter. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
+            logger.Error(ex, "Error getting BibleChapter. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
                 languageCode, publicationCode, bookNumber, chapterNumber);
             throw;
         }
@@ -79,7 +79,7 @@ public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logg
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var chapter = await dbContext.BibleTranslations
@@ -99,7 +99,7 @@ public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logg
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error updating BibleChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
+            logger.Error(ex, "Error updating BibleChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
                 languageCode, publicationCode, bookNumber, chapterNumber);
             throw;
         }
@@ -107,21 +107,21 @@ public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logg
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Error during cancellation token source disposal in BibleChapterService");
+            logger.Warning(ex, "Error during cancellation token source disposal in BibleChapterService");
         }
     }
 }

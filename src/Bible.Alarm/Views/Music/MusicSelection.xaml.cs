@@ -5,7 +5,7 @@ namespace Bible.Alarm.Views.Music;
 
 public partial class MusicSelection : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     private readonly MusicSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isClearingSelection;
@@ -33,7 +33,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
                 await Task.Delay(100);
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    if (!_isDisposed && musicTypesCollectionView != null)
+                    if (!isDisposed && musicTypesCollectionView != null)
                     {
                         isClearingSelection = true;
                         musicTypesCollectionView.SelectedItem = null;
@@ -71,7 +71,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // Cancel and dispose cancellation token source
             try
@@ -92,7 +92,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

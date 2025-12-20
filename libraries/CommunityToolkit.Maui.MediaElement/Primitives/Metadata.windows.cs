@@ -10,10 +10,10 @@ sealed class Metadata
 	/// <summary>
 	/// Initializes a new instance of the <see cref="Metadata"/> class.
 	/// </summary>
-	public Metadata(SystemMediaTransportControls systemMediaTransportControls, IMediaElement MediaElement, IDispatcher Dispatcher)
+	public Metadata(SystemMediaTransportControls systemMediaTransportControls, IMediaElement mediaElement, IDispatcher dispatcher)
 	{
-		mediaElement = MediaElement;
-		this.dispatcher = Dispatcher;
+		this.mediaElement = mediaElement;
+		this.dispatcher = dispatcher;
 		systemMediaControls = systemMediaTransportControls;
 		systemMediaControls.ButtonPressed += OnSystemMediaControlsButtonPressed;
 	}

@@ -7,16 +7,16 @@ using UserNotifications;
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI;
 
-public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService, IDisposable
+public class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService, IDisposable
 {
-    private bool _isDisposed;
-    private readonly ILogger _logger = logger;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private bool isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
 
     public async Task ShowNotificationAsync(int scheduleId)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IiOSAlarmHandler>();
+        using var scope = scopeFactory.CreateScope();
+        var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IIOsAlarmHandler>();
         await iosAlarmHandler.HandleAsync(scheduleId, true);
     }
 
@@ -53,7 +53,7 @@ public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFa
                 {
                     if (err != null)
                     {
-                        _logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
+                        logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
                     }
                 });
             }
@@ -121,12 +121,12 @@ public class iOSNotificationService(ILogger logger, IServiceScopeFactory scopeFa
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // IServiceScopeFactory is a singleton, so don't dispose it
         // No event handlers to unsubscribe

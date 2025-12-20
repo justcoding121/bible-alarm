@@ -6,7 +6,7 @@ namespace Bible.Alarm.Views.Bible;
 
 public partial class ChapterSelection : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     private readonly ChapterSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
@@ -54,7 +54,7 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // Cancel and dispose cancellation token source
             try
@@ -75,7 +75,7 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

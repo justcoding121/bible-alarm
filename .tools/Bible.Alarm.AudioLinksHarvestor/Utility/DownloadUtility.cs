@@ -10,13 +10,13 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
 internal class DownloadUtility
 {
-    private readonly ILogger _logger;
-    private readonly AsyncRetryPolicy<string> _retryPolicy;
+    private readonly ILogger logger;
+    private readonly AsyncRetryPolicy<string> retryPolicy;
 
     public DownloadUtility(ILogger logger)
     {
-        _logger = logger;
-        _retryPolicy = Policy<string>
+        this.logger = logger;
+        retryPolicy = Policy<string>
             .Handle<HttpRequestException>(ex =>
                 ex.Message.Contains("Server busy") ||
                 !ex.Message.Contains("Response status code"))
@@ -27,7 +27,7 @@ internal class DownloadUtility
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
                 onRetry: (outcome, timespan, retryCount, context) =>
                 {
-                    _logger.Warning("Retrying request (attempt {RetryCount}/3) after {DelaySeconds}s delay...", retryCount, timespan.TotalSeconds);
+                    this.logger.Warning("Retrying request (attempt {RetryCount}/3) after {DelaySeconds}s delay...", retryCount, timespan.TotalSeconds);
                 });
     }
 
@@ -35,7 +35,7 @@ internal class DownloadUtility
     {
         try
         {
-            return await _retryPolicy.ExecuteAsync(async () =>
+            return await retryPolicy.ExecuteAsync(async () =>
             {
                 using var handler = new HttpClientHandler();
                 handler.AllowAutoRedirect = true;

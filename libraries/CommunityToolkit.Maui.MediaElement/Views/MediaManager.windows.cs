@@ -50,10 +50,10 @@ partial class MediaManager : IDisposable
 	public PlatformMediaElement CreatePlatformView()
 	{
 		Player = new();
-		WindowsMediaElement MediaElement = new();
-		MediaElement.MediaOpened += OnMediaElementMediaOpened;
+		WindowsMediaElement mediaElement = new();
+		mediaElement.MediaOpened += OnMediaElementMediaOpened;
 
-		Player.SetMediaPlayer(MediaElement);
+		Player.SetMediaPlayer(mediaElement);
 		Player.MediaPlayer.PlaybackSession.NaturalVideoSizeChanged += OnNaturalVideoSizeChanged;
 		Player.MediaPlayer.PlaybackSession.PlaybackRateChanged += OnPlaybackSessionPlaybackRateChanged;
 		Player.MediaPlayer.PlaybackSession.PlaybackStateChanged += OnPlaybackSessionPlaybackStateChanged;

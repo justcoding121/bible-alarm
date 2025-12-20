@@ -13,47 +13,47 @@ public class DatabaseSeedService(
     IMelodyMusicService melodyMusicService)
     : IDatabaseSeedService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly IBibleTranslationService _bibleTranslationService = bibleTranslationService;
-    private readonly IMelodyMusicService _melodyMusicService = melodyMusicService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
+    private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService;
+    private readonly IMelodyMusicService melodyMusicService = melodyMusicService;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task SeedDefaultAlarmAsync()
     {
         // Seed if schedules are empty
-        if (!await _alarmScheduleService.AnySchedulesExistAsync(_cancellationTokenSource.Token))
+        if (!await alarmScheduleService.AnySchedulesExistAsync(cancellationTokenSource.Token))
         {
             // Create sample schedule with IsEnabled = false (disabled by default)
-            var schedule = await AlarmSchedule.GetSampleSchedule(false, _bibleTranslationService, _melodyMusicService);
+            var schedule = await AlarmSchedule.GetSampleSchedule(false, bibleTranslationService, melodyMusicService);
 
-            await _alarmScheduleService.AddScheduleAsync(schedule, _cancellationTokenSource.Token);
+            await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
 
-            _logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
+            logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
                 schedule.Id, schedule.Name);
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

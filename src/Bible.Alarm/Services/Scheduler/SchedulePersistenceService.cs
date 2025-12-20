@@ -21,50 +21,50 @@ public class SchedulePersistenceService(
     IMelodyMusicService melodyMusicService)
     : ISchedulePersistenceService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IAlarmService _alarmService = alarmService;
-    private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly IMediaCacheService _mediaCacheService = mediaCacheService;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
-    private readonly IBibleTranslationService _bibleTranslationService = bibleTranslationService;
-    private readonly IMelodyMusicService _melodyMusicService = melodyMusicService;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IAlarmService alarmService = alarmService;
+    private readonly IDispatcher dispatcher = dispatcher;
+    private readonly IMediaCacheService mediaCacheService = mediaCacheService;
+    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
+    private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService;
+    private readonly IMelodyMusicService melodyMusicService = melodyMusicService;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<bool> SaveScheduleAsync(AlarmSchedule schedule, bool isNewSchedule, bool musicUpdated = true, bool bibleReadingUpdated = true)
     {
         try
         {
-            _logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
+            logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
                 isNewSchedule, schedule?.Id, schedule?.Name, schedule?.Music != null, schedule?.BibleReadingSchedule != null);
 
             AlarmSchedule savedSchedule = null;
 
             if (isNewSchedule)
             {
-                _logger.Debug("SaveScheduleAsync: Saving new schedule to database");
-                _logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
+                logger.Debug("SaveScheduleAsync: Saving new schedule to database");
+                logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
                     schedule.Id, schedule.Name);
 
-                savedSchedule = await _alarmScheduleService.AddScheduleAsync(schedule, _cancellationTokenSource.Token);
+                savedSchedule = await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
 
-                _logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", savedSchedule.Id);
+                logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", savedSchedule.Id);
 
                 if (savedSchedule.IsEnabled)
                 {
-                    await _alarmService.Create(savedSchedule);
+                    await alarmService.Create(savedSchedule);
                 }
 
-                _logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
+                logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
                     savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
 
-                _logger.Debug("SaveScheduleAsync: Dispatching AddScheduleAction");
-                _dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
-                _logger.Information("SaveScheduleAsync: AddScheduleAction dispatched successfully");
+                logger.Debug("SaveScheduleAsync: Dispatching AddScheduleAction");
+                dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
+                logger.Information("SaveScheduleAsync: AddScheduleAction dispatched successfully");
             }
             else
             {
-                savedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+                savedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
                     schedule.Id,
                     existing =>
                     {
@@ -104,22 +104,22 @@ public class SchedulePersistenceService(
                         existing.Second = schedule.Second;
                         existing.SnoozeMinutes = schedule.SnoozeMinutes;
                     },
-                    _cancellationTokenSource.Token);
+                    cancellationTokenSource.Token);
 
                 await Task.Run(async () =>
                 {
-                    _alarmService.Update(savedSchedule);
+                    alarmService.Update(savedSchedule);
                 });
 
-                _dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
+                dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
             }
 
-            _logger.Information("SaveScheduleAsync: Save completed successfully. ScheduleId={ScheduleId}", savedSchedule?.Id ?? schedule?.Id);
+            logger.Information("SaveScheduleAsync: Save completed successfully. ScheduleId={ScheduleId}", savedSchedule?.Id ?? schedule?.Id);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "SaveScheduleAsync: Error saving schedule. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}, Name={Name}",
+            logger.Error(ex, "SaveScheduleAsync: Error saving schedule. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}, Name={Name}",
                 schedule?.Id, isNewSchedule, schedule?.Name);
             return false;
         }
@@ -130,66 +130,66 @@ public class SchedulePersistenceService(
         try
         {
             // Check if this is the last schedule - prevent deletion if it is
-            var allSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
+            var allSchedules = await alarmScheduleService.GetAllSchedulesAsync(
                 includeMusic: false,
                 includeBibleReading: false,
-                _cancellationTokenSource.Token);
+                cancellationTokenSource.Token);
 
             if (allSchedules.Count <= 1)
             {
-                _logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule in the database", scheduleId);
+                logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule in the database", scheduleId);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
                 return;
             }
 
             // Load the schedule BEFORE deleting it, so we can dispatch the action
-            var scheduleToRemove = await _alarmScheduleService.GetScheduleByIdAsync(
-                scheduleId, true, true, _cancellationTokenSource.Token);
+            var scheduleToRemove = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId, true, true, cancellationTokenSource.Token);
 
             if (scheduleToRemove == null)
             {
-                _logger.Warning("Schedule {ScheduleId} not found for deletion", scheduleId);
+                logger.Warning("Schedule {ScheduleId} not found for deletion", scheduleId);
                 return;
             }
 
             // Delete cached media files for this schedule
-            await _mediaCacheService.DeleteScheduleCacheAsync(scheduleId);
+            await mediaCacheService.DeleteScheduleCacheAsync(scheduleId);
 
             // Delete from database
             await Task.Run(async () =>
             {
-                _alarmService.Delete(scheduleId);
-                await _alarmScheduleService.DeleteScheduleAsync(scheduleId, _cancellationTokenSource.Token);
+                alarmService.Delete(scheduleId);
+                await alarmScheduleService.DeleteScheduleAsync(scheduleId, cancellationTokenSource.Token);
             });
 
             // Dispatch action to remove from state (this will trigger HomeViewModel to update)
-            _dispatcher.Dispatch(new RemoveScheduleAction(scheduleToRemove));
+            dispatcher.Dispatch(new RemoveScheduleAction(scheduleToRemove));
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error deleting schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, "Error deleting schedule {ScheduleId}", scheduleId);
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, "Error during cancellation token source disposal");
         }
 
         // All injected services are singletons, so don't dispose them

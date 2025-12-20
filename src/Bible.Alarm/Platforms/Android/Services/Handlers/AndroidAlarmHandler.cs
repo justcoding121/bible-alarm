@@ -12,14 +12,14 @@ public class AndroidAlarmHandler(
     IAlarmScheduleService alarmScheduleService)
     : IAndroidAlarmHandler, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IAlarmScheduleService _alarmScheduleService = alarmScheduleService;
+    private readonly ILogger logger = logger;
+    private readonly IAlarmScheduleService alarmScheduleService = alarmScheduleService;
 
     public event EventHandler<bool> Disposed;
 
     public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
-        var schedule = await _alarmScheduleService.GetScheduleByIdAsync(
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
             scheduleId, false, false);
 
         if (schedule == null)
@@ -59,7 +59,7 @@ public class AndroidAlarmHandler(
             }
             catch (Exception e)
             {
-                _logger.Error(e, "An error happened when ringing the alarm.");
+                logger.Error(e, "An error happened when ringing the alarm.");
                 Dispose();
             }
         });
@@ -68,16 +68,16 @@ public class AndroidAlarmHandler(
     // PlayerNotificationManager removed - using MediaElement instead
     // Notification handling is now managed by the MediaElement service
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
         // playbackService (IPlaybackService) and IServiceScopeFactory are singletons

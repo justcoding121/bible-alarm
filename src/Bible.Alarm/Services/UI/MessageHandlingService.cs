@@ -14,11 +14,11 @@ public class MessageHandlingService(
     INavigationService navigationService,
     IState<PlaybackState> playbackState) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>, IMessageHandlingService
 {
-    private readonly ILogger _logger = logger;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-    private readonly INavigationService _navigationService = navigationService;
-    private readonly IState<PlaybackState> _playbackState = playbackState;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IServiceProvider serviceProvider = serviceProvider;
+    private readonly INavigationService navigationService = navigationService;
+    private readonly IState<PlaybackState> playbackState = playbackState;
+    private bool isDisposed;
 
     public void RegisterMessageHandlers()
     {
@@ -31,65 +31,65 @@ public class MessageHandlingService(
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             // IToastService is a singleton, so don't dispose it
-            var toastService = _serviceProvider.GetRequiredService<IToastService>();
+            var toastService = serviceProvider.GetRequiredService<IToastService>();
             await toastService.ShowMessage(message.Value);
         });
     }
 
     public void Receive(InitializedMessage message)
     {
-        _logger.Information("Received InitializedMessage, navigating to Home page.");
+        logger.Information("Received InitializedMessage, navigating to Home page.");
 
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
                 // Navigate to the initialized home page (this creates a new Home instance)
-                await _navigationService.NavigateToHomeAsync();
+                await navigationService.NavigateToHomeAsync();
 
                 // After Home is visible, if playback was already started (prepare+play), open the alarm modal.
                 // AlarmModalService defers opening while Bootstrap is on top, so we "catch up" here.
-                if (_playbackState.Value.IsPreparingOrPlaying)
+                if (playbackState.Value.IsPreparingOrPlaying)
                 {
-                    _logger.Information("Home is visible and playback is already started; opening AlarmModal.");
-                    await _navigationService.OpenAlarmModalAsync();
+                    logger.Information("Home is visible and playback is already started; opening AlarmModal.");
+                    await navigationService.OpenAlarmModalAsync();
                 }
 
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        _logger.Information("Starting service initialization...");
+                        logger.Information("Starting service initialization...");
 
                         // Modal visibility is now handled reactively via PlaybackState subscription
                         // No need to manually send ShowAlarmModalMessage here
 
                         await Task.Delay(100);
 
-                        _logger.Information("Service initialization completed!");
+                        logger.Information("Service initialization completed!");
 
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error(ex, "Error in initialization");
+                        logger.Error(ex, "Error in initialization");
                     }
                 });
             }
             catch (Exception e)
             {
-                _logger.Error(e, "An error happened while showing HomePage after initialization.");
+                logger.Error(e, "An error happened while showing HomePage after initialization.");
             }
         });
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<InitializedMessage>(this);

@@ -11,9 +11,9 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
     IEnumerable,
     ICollection where T : IComparable
 {
-    private readonly SortedSet<T> _sortedSet = [];
+    private readonly SortedSet<T> sortedSet = [];
 
-    public int Count => _sortedSet.Count;
+    public int Count => sortedSet.Count;
 
     public bool IsReadOnly => false;
 
@@ -31,7 +31,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
     private int AddItem(T item)
     {
         var index = IndexOf(item);
-        if (_sortedSet.Add(item))
+        if (sortedSet.Add(item))
         {
             index = IndexOf(item);
             OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
@@ -41,19 +41,19 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
 
     public void Clear()
     {
-        _sortedSet.Clear();
+        sortedSet.Clear();
         OnNotifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
 
     public bool Contains(T item)
     {
-        return _sortedSet.Contains(item);
+        return sortedSet.Contains(item);
     }
 
     public bool Remove(T item)
     {
         var index = IndexOf(item);
-        if (_sortedSet.Remove(item))
+        if (sortedSet.Remove(item))
         {
             OnNotifyCollectionChanged(
                 new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
@@ -65,12 +65,12 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
 
     public T ElementAt(int index)
     {
-        return _sortedSet.ElementAt(index);
+        return sortedSet.ElementAt(index);
     }
 
     public int IndexOf(T item)
     {
-        return _sortedSet.Select((value, index) => new { value, index })
+        return sortedSet.Select((value, index) => new { value, index })
             .FirstOrDefault(x => x.value.CompareTo(item) == 0)?.index ?? -1;
     }
 
@@ -97,7 +97,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
         }
 
         var index = 0;
-        foreach (var item in _sortedSet)
+        foreach (var item in sortedSet)
         {
             array[arrayIndex + index] = item;
             index++;
@@ -122,7 +122,7 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
         }
 
         var i = 0;
-        foreach (var item in _sortedSet)
+        foreach (var item in sortedSet)
         {
             array.SetValue(item, index + i);
             i++;
@@ -136,6 +136,6 @@ public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
 
     public IEnumerator<T> GetEnumerator()
     {
-        return _sortedSet.GetEnumerator();
+        return sortedSet.GetEnumerator();
     }
 }

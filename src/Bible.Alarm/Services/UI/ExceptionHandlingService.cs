@@ -6,8 +6,8 @@ namespace Bible.Alarm.Services.UI;
 
 public class ExceptionHandlingService(ILogger logger) : IExceptionHandlingService
 {
-    private readonly ILogger _logger = logger;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private bool isDisposed;
 
     public void SetupGlobalExceptionHandlers()
     {
@@ -17,23 +17,23 @@ public class ExceptionHandlingService(ILogger logger) : IExceptionHandlingServic
 
     private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
     {
-        _logger.Error(e.Exception, "Unobserved task exception.");
+        logger.Error(e.Exception, "Unobserved task exception.");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        _logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
+        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
     }
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Unsubscribe from global exception handlers
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;

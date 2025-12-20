@@ -33,19 +33,19 @@ public class ScheduleChange
 public class AndroidAutoScheduleChangeTracker
 {
     private static readonly ILogger logger = Log.ForContext<AndroidAutoScheduleChangeTracker>();
-    private int _lastScheduleCount = -1;
-    private Dictionary<int, string> _lastScheduleSignatures = new();
-    private IState<ApplicationState>? _applicationState;
+    private int lastScheduleCount = -1;
+    private Dictionary<int, string> lastScheduleSignatures = new();
+    private IState<ApplicationState>? applicationState;
 
     /// <summary>
     /// Initializes the tracker with the current schedule state.
     /// </summary>
     public void Initialize(IState<ApplicationState> applicationState)
     {
-        _applicationState = applicationState ?? throw new System.ArgumentNullException(nameof(applicationState));
-        _lastScheduleCount = applicationState.Value.Schedules?.Count ?? 0;
-        _lastScheduleSignatures = BuildScheduleSignatures(applicationState.Value.Schedules);
-        logger.Debug("AndroidAutoScheduleChangeTracker initialized with {Count} schedules", _lastScheduleCount);
+        this.applicationState = applicationState ?? throw new System.ArgumentNullException(nameof(applicationState));
+        lastScheduleCount = applicationState.Value.Schedules?.Count ?? 0;
+        lastScheduleSignatures = BuildScheduleSignatures(applicationState.Value.Schedules);
+        logger.Debug("AndroidAutoScheduleChangeTracker initialized with {Count} schedules", lastScheduleCount);
     }
 
     /// <summary>
@@ -54,25 +54,25 @@ public class AndroidAutoScheduleChangeTracker
     /// </summary>
     public bool CheckForChanges()
     {
-        if (_applicationState?.Value?.Schedules == null)
+        if (applicationState?.Value?.Schedules == null)
         {
             return false;
         }
 
-        var currentScheduleCount = _applicationState.Value.Schedules.Count;
-        var currentSignatures = BuildScheduleSignatures(_applicationState.Value.Schedules);
+        var currentScheduleCount = applicationState.Value.Schedules.Count;
+        var currentSignatures = BuildScheduleSignatures(applicationState.Value.Schedules);
 
         // Check if count changed or if any schedule properties changed
-        var countChanged = _lastScheduleCount != currentScheduleCount;
-        var propertiesChanged = !AreSignaturesEqual(_lastScheduleSignatures, currentSignatures);
+        var countChanged = lastScheduleCount != currentScheduleCount;
+        var propertiesChanged = !AreSignaturesEqual(lastScheduleSignatures, currentSignatures);
 
         if (countChanged || propertiesChanged)
         {
             logger.Debug("Schedule list changed (count: {OldCount} -> {NewCount}, properties changed: {PropertiesChanged})",
-                _lastScheduleCount, currentScheduleCount, propertiesChanged);
+                lastScheduleCount, currentScheduleCount, propertiesChanged);
 
-            _lastScheduleCount = currentScheduleCount;
-            _lastScheduleSignatures = currentSignatures;
+            lastScheduleCount = currentScheduleCount;
+            lastScheduleSignatures = currentSignatures;
             return true;
         }
 
@@ -85,17 +85,17 @@ public class AndroidAutoScheduleChangeTracker
     /// </summary>
     public List<ScheduleChange>? GetSpecificChanges()
     {
-        if (_applicationState?.Value?.Schedules == null)
+        if (applicationState?.Value?.Schedules == null)
         {
             return null;
         }
 
-        var currentSchedules = _applicationState.Value.Schedules;
+        var currentSchedules = applicationState.Value.Schedules;
         var currentScheduleCount = currentSchedules.Count;
         var currentSignatures = BuildScheduleSignatures(currentSchedules);
 
         // If count hasn't changed and signatures are equal, no changes
-        if (_lastScheduleCount == currentScheduleCount && AreSignaturesEqual(_lastScheduleSignatures, currentSignatures))
+        if (lastScheduleCount == currentScheduleCount && AreSignaturesEqual(lastScheduleSignatures, currentSignatures))
         {
             return null;
         }
@@ -105,7 +105,7 @@ public class AndroidAutoScheduleChangeTracker
         // Find added schedules (in current but not in last)
         foreach (var schedule in currentSchedules)
         {
-            if (!_lastScheduleSignatures.ContainsKey(schedule.Id))
+            if (!lastScheduleSignatures.ContainsKey(schedule.Id))
             {
                 changes.Add(new ScheduleChange
                 {
@@ -118,7 +118,7 @@ public class AndroidAutoScheduleChangeTracker
         }
 
         // Find removed schedules (in last but not in current)
-        foreach (var kvp in _lastScheduleSignatures)
+        foreach (var kvp in lastScheduleSignatures)
         {
             if (!currentSignatures.ContainsKey(kvp.Key))
             {
@@ -135,7 +135,7 @@ public class AndroidAutoScheduleChangeTracker
         // Find updated schedules (in both but signature changed)
         foreach (var kvp in currentSignatures)
         {
-            if (_lastScheduleSignatures.TryGetValue(kvp.Key, out var oldSignature) && oldSignature != kvp.Value)
+            if (lastScheduleSignatures.TryGetValue(kvp.Key, out var oldSignature) && oldSignature != kvp.Value)
             {
                 var schedule = currentSchedules.FirstOrDefault(s => s.Id == kvp.Key);
                 if (schedule != null)
@@ -152,8 +152,8 @@ public class AndroidAutoScheduleChangeTracker
         }
 
         // Update tracked state
-        _lastScheduleCount = currentScheduleCount;
-        _lastScheduleSignatures = currentSignatures;
+        lastScheduleCount = currentScheduleCount;
+        lastScheduleSignatures = currentSignatures;
 
         return changes;
     }

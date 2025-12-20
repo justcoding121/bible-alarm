@@ -14,9 +14,9 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<AlarmRingerReceiver>();
 
-    private Context _context;
-    private Intent _intent;
-    private IAndroidAlarmHandler _alarmHandler;
+    private Context context;
+    private Intent intent;
+    private IAndroidAlarmHandler alarmHandler;
 
     private static readonly SemaphoreSlim @lock = new(1);
 
@@ -48,8 +48,8 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         {
             await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
-                _context = context;
-                _intent = intent;
+                this.context = context;
+                this.intent = intent;
 
                 // Initialize DI container for background service
                 MauiAppHolder.CreateAndStore();
@@ -67,13 +67,13 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
                 var scheduleId = intent.GetStringExtra("ScheduleId");
                 var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
 
-                _alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
+                alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
                 // Subscribe to Disposed event if the handler implements it
-                if (_alarmHandler is AndroidAlarmHandler concreteHandler)
+                if (alarmHandler is AndroidAlarmHandler concreteHandler)
                 {
                     concreteHandler.Disposed += OnDisposed;
                 }
-                await _alarmHandler.HandleAsync(int.Parse(scheduleId), isAlarm);
+                await alarmHandler.HandleAsync(int.Parse(scheduleId), isAlarm);
             });
         }
         catch (Exception e)
@@ -92,26 +92,26 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         Dispose(true);
     }
 
-    private bool _disposed;
+    private bool disposed;
 
     protected override void Dispose(bool disposing)
     {
-        if (_disposed)
+        if (disposed)
         {
             return;
         }
 
-        if (_alarmHandler is AndroidAlarmHandler concreteHandler)
+        if (alarmHandler is AndroidAlarmHandler concreteHandler)
         {
             concreteHandler.Disposed -= OnDisposed;
         }
 
-        _context?.StopService(_intent);
+        context?.StopService(intent);
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
 
-        _disposed = true;
+        disposed = true;
 
         base.Dispose(disposing);
     }

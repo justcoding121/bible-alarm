@@ -24,12 +24,12 @@ namespace Bible.Alarm.Platforms.Android.Services.UI;
 
 public class AndroidNotificationService(ILogger logger) : INotificationService, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     public static readonly string ChannelIdAndName = "alarm_notification";
     public static readonly string ChannelDescription = "alarm_notification are send to this channel";
     public static readonly string ScheduleId = "schedule_id";
 
-    private readonly ILogger _logger = logger;
+    private readonly ILogger logger = logger;
 
 
     public async Task ShowNotificationAsync(int scheduleId)
@@ -45,7 +45,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
         }
         catch (Exception e)
         {
-            _logger.Error(e, "Error happened when playing alarm manually.");
+            logger.Error(e, "Error happened when playing alarm manually.");
             await Task.Delay(1500);
             throw;
         }
@@ -75,7 +75,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
         }
         catch (SecurityException ex)
         {
-            _logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", schedule.Id);
+            logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", schedule.Id);
 
             // Show user-friendly message
             try
@@ -90,7 +90,7 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
             }
             catch (Exception toastEx)
             {
-                _logger.Warning(toastEx, "Failed to show toast message for exact alarm permission error");
+                logger.Warning(toastEx, "Failed to show toast message for exact alarm permission error");
             }
 
             // Re-throw to be handled by caller
@@ -221,12 +221,12 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
     }

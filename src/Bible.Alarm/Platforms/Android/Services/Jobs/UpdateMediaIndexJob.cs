@@ -13,7 +13,7 @@ public class UpdateMediaIndexJob : JobService
 {
     public const int JobId = 2;
 
-    private readonly ILogger _logger;
+    private readonly ILogger logger;
 
     public UpdateMediaIndexJob() : this(Log.ForContext<UpdateMediaIndexJob>())
     {
@@ -21,7 +21,7 @@ public class UpdateMediaIndexJob : JobService
 
     public UpdateMediaIndexJob(ILogger logger)
     {
-        _logger = logger;
+        this.logger = logger;
         LogSetup.Initialize(AndroidVersionFinder.Default,
             [$"AndroidSdk {AndroidBuild.VERSION.SdkInt}"], "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
@@ -30,12 +30,12 @@ public class UpdateMediaIndexJob : JobService
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        _logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
+        logger.Error(e.Exception, "Unobserved task exception in UpdateMediaIndexJob");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        _logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
+        logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in UpdateMediaIndexJob");
     }
 
     public override bool OnStartJob(JobParameters @params)
@@ -58,7 +58,7 @@ public class UpdateMediaIndexJob : JobService
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error updating media index");
+                logger.Error(e, "Error updating media index");
             }
             finally
             {

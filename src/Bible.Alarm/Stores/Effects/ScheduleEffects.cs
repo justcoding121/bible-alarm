@@ -34,12 +34,12 @@ public class ScheduleEffects(
     IMediaCacheService? mediaCacheService = null,
     IState<ApplicationState>? state = null)
 {
-    private readonly IBibleTranslationService? _bibleTranslationService = bibleTranslationService ?? ServiceProviderManager.GetService<IBibleTranslationService>();
-    private readonly IBibleBookService? _bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
-    private readonly IAlarmScheduleService? _alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
-    private readonly IAlarmService? _alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
-    private readonly IMediaCacheService? _mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
-    private readonly IState<ApplicationState>? _state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+    private readonly IBibleTranslationService? bibleTranslationService = bibleTranslationService ?? ServiceProviderManager.GetService<IBibleTranslationService>();
+    private readonly IBibleBookService? bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
+    private readonly IAlarmScheduleService? alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
+    private readonly IAlarmService? alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
+    private readonly IMediaCacheService? mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
+    private readonly IState<ApplicationState>? state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
 
     /// <summary>
     /// Effect: Transform DB entity to DTO and dispatch success action.
@@ -165,7 +165,7 @@ public class ScheduleEffects(
         {
             Log.Information("ScheduleEffects: HandleCreateSchedule - Name: {Name}", action.Schedule?.Name);
 
-            if (action.Schedule == null || _alarmScheduleService == null)
+            if (action.Schedule == null || alarmScheduleService == null)
             {
                 Log.Warning("ScheduleEffects: HandleCreateSchedule - Schedule is null or service unavailable, skipping");
                 if (action.Schedule != null)
@@ -186,7 +186,7 @@ public class ScheduleEffects(
             dbSchedule.Id = 0;
 
             // Save to database
-            var savedSchedule = await _alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None);
+            var savedSchedule = await alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None);
 
             Log.Debug("ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
                 savedSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
@@ -195,9 +195,9 @@ public class ScheduleEffects(
             Log.Information("ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}", savedSchedule.Id);
 
             // Create alarm if enabled
-            if (savedSchedule.IsEnabled && _alarmService != null)
+            if (savedSchedule.IsEnabled && alarmService != null)
             {
-                await _alarmService.Create(savedSchedule);
+                await alarmService.Create(savedSchedule);
             }
 
             // Map DB entity → domain model (ScheduleStateItem)
@@ -235,7 +235,7 @@ public class ScheduleEffects(
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}",
                 action.Schedule?.Id, action.Schedule?.Name);
 
-            if (action.Schedule == null || _alarmScheduleService == null)
+            if (action.Schedule == null || alarmScheduleService == null)
             {
                 Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Schedule is null or service unavailable, skipping");
                 if (action.Schedule != null)
@@ -249,7 +249,7 @@ public class ScheduleEffects(
             var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule);
 
             // Update in database using UpdateScheduleByIdAsync to handle nested entities properly
-            var savedSchedule = await _alarmScheduleService.UpdateScheduleByIdAsync(
+            var savedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
                 action.Schedule.Id,
                 existing =>
                 {
@@ -311,9 +311,9 @@ public class ScheduleEffects(
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}", savedSchedule.Id);
 
             // Update alarm
-            if (_alarmService != null)
+            if (alarmService != null)
             {
-                await Task.Run(() => _alarmService.Update(savedSchedule));
+                await Task.Run(() => alarmService.Update(savedSchedule));
             }
 
             // Map DB entity → domain model (ScheduleStateItem)
@@ -324,7 +324,7 @@ public class ScheduleEffects(
             // 1. They're missing/null
             // 2. Language code changed (TranslationName needs update)
             // 3. Book number, language code, or publication code changed (BookName needs update)
-            var existingItem = _state?.Value.Schedules?.FirstOrDefault(s => s.Id == action.Schedule.Id);
+            var existingItem = state?.Value.Schedules?.FirstOrDefault(s => s.Id == action.Schedule.Id);
 
             if (existingItem != null)
             {
@@ -392,7 +392,7 @@ public class ScheduleEffects(
         {
             Log.Information("ScheduleEffects: HandleDeleteSchedule - ScheduleId: {ScheduleId}", action.ScheduleId);
 
-            if (_alarmScheduleService == null)
+            if (alarmScheduleService == null)
             {
                 Log.Warning("ScheduleEffects: HandleDeleteSchedule - Service unavailable, skipping");
                 dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Service unavailable"));
@@ -400,7 +400,7 @@ public class ScheduleEffects(
             }
 
             // Check if this is the last schedule - prevent deletion if it is
-            var allSchedules = await _alarmScheduleService.GetAllSchedulesAsync(
+            var allSchedules = await alarmScheduleService.GetAllSchedulesAsync(
                 includeMusic: false,
                 includeBibleReading: false,
                 CancellationToken.None);
@@ -415,19 +415,19 @@ public class ScheduleEffects(
             }
 
             // Delete cached media files for this schedule
-            if (_mediaCacheService != null)
+            if (mediaCacheService != null)
             {
-                await _mediaCacheService.DeleteScheduleCacheAsync(action.ScheduleId);
+                await mediaCacheService.DeleteScheduleCacheAsync(action.ScheduleId);
             }
 
             // Delete alarm notification
-            if (_alarmService != null)
+            if (alarmService != null)
             {
-                await Task.Run(() => _alarmService.Delete(action.ScheduleId));
+                await Task.Run(() => alarmService.Delete(action.ScheduleId));
             }
 
             // Delete from database
-            await _alarmScheduleService.DeleteScheduleAsync(action.ScheduleId, CancellationToken.None);
+            await alarmScheduleService.DeleteScheduleAsync(action.ScheduleId, CancellationToken.None);
 
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Deleted from DB. ScheduleId: {ScheduleId}", action.ScheduleId);
 
@@ -449,7 +449,7 @@ public class ScheduleEffects(
     /// </summary>
     private async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || _bibleTranslationService == null)
+        if (schedule.BibleReadingSchedule == null || bibleTranslationService == null)
         {
             return;
         }
@@ -462,7 +462,7 @@ public class ScheduleEffects(
                 return;
             }
 
-            var languagesDict = await _bibleTranslationService.GetDistinctLanguagesAsync();
+            var languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
             if (languagesDict.TryGetValue(languageCode, out var language))
             {
                 scheduleStateItem.TranslationName = language.Name;
@@ -489,14 +489,14 @@ public class ScheduleEffects(
     /// </summary>
     private async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem)
     {
-        if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode) || _bibleTranslationService == null)
+        if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode) || bibleTranslationService == null)
         {
             return;
         }
 
         try
         {
-            var languagesDict = await _bibleTranslationService.GetDistinctLanguagesAsync();
+            var languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
             if (languagesDict.TryGetValue(scheduleStateItem.BibleReadingLanguageCode, out var language))
             {
                 scheduleStateItem.TranslationName = language.Name;
@@ -523,7 +523,7 @@ public class ScheduleEffects(
     /// </summary>
     private async Task PopulateBookNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || _bibleBookService == null)
+        if (schedule.BibleReadingSchedule == null || bibleBookService == null)
         {
             return;
         }
@@ -538,7 +538,7 @@ public class ScheduleEffects(
                 return;
             }
 
-            var bookName = await _bibleBookService.GetBookNameAsync(
+            var bookName = await bibleBookService.GetBookNameAsync(
                 bibleReading.LanguageCode,
                 bibleReading.PublicationCode,
                 bibleReading.BookNumber);

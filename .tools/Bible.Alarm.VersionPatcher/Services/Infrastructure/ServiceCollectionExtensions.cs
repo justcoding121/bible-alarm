@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
 
         // Platform-specific patchers
         services.AddSingleton<IPlatformVersionPatcher, AndroidVersionPatcher>();
-        services.AddSingleton<IPlatformVersionPatcher, IOSVersionPatcher>();
+        services.AddSingleton<IPlatformVersionPatcher, IosVersionPatcher>();
         services.AddSingleton<IPlatformVersionPatcher, WindowsVersionPatcher>();
 
         // Main patching service

@@ -14,28 +14,28 @@ namespace Bible.Alarm.Services.Media;
 
 public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IDisposable
 {
-    private readonly ILogger _logger;
-    private readonly IAudioPlayer _audioPlayer;
-    private readonly IPreparePlaybackService _preparePlaybackService;
-    private readonly IPlaylistService _playlistService;
-    private readonly IFallbackAlarmSoundService _fallbackAlarmSoundService;
-    private readonly IDispatcher _dispatcher;
-    private readonly INotificationService _notificationService;
-    private readonly IDisplayMetadataService _displayMetadataService;
+    private readonly ILogger logger;
+    private readonly IAudioPlayer audioPlayer;
+    private readonly IPreparePlaybackService preparePlaybackService;
+    private readonly IPlaylistService playlistService;
+    private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
+    private readonly IDispatcher dispatcher;
+    private readonly INotificationService notificationService;
+    private readonly IDisplayMetadataService displayMetadataService;
 
-    private List<AudioPlayerTrack>? _playlist;
-    private int _currentTrackIndex = -1;
-    private int? _currentScheduleId;
-    private bool _isAlarm;
-    private readonly System.Timers.Timer? _progressSaveTimer;
-    private readonly HashSet<int> _manuallyVisitedTrackIndices = [];
+    private List<AudioPlayerTrack>? playlist;
+    private int currentTrackIndex = -1;
+    private int? currentScheduleId;
+    private bool isAlarm;
+    private readonly System.Timers.Timer? progressSaveTimer;
+    private readonly HashSet<int> manuallyVisitedTrackIndices = [];
 
     private bool IsPreparingOrPlayingInternal
     {
         get
         {
-            var isActuallyPlaying = _audioPlayer.IsActuallyPlayingOrPaused;
-            var status = _audioPlayer.Status;
+            var isActuallyPlaying = audioPlayer.IsActuallyPlayingOrPaused;
+            var status = audioPlayer.Status;
             return isActuallyPlaying ||
                    status == PlayStatus.Loading ||
                    status == PlayStatus.Playing ||
@@ -44,13 +44,13 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     }
 
     private bool CanPlayNextInternal =>
-        _playlist is not null &&
-        _currentTrackIndex >= 0 &&
-        _currentTrackIndex < _playlist.Count - 1;
+        playlist is not null &&
+        currentTrackIndex >= 0 &&
+        currentTrackIndex < playlist.Count - 1;
 
     private bool CanPlayPreviousInternal =>
-        _playlist is not null &&
-        _currentTrackIndex > 0;
+        playlist is not null &&
+        currentTrackIndex > 0;
 
     public PlaybackService(
         ILogger logger,
@@ -63,34 +63,34 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         IDisplayMetadataService displayMetadataService
         )
     {
-        _logger = logger;
-        _audioPlayer = audioPlayer;
-        _preparePlaybackService = preparePlaybackService;
-        _playlistService = playlistService;
-        _fallbackAlarmSoundService = fallbackAlarmSoundService;
-        _dispatcher = dispatcher;
-        _notificationService = notificationService;
-        _displayMetadataService = displayMetadataService;
+        this.logger = logger;
+        this.audioPlayer = audioPlayer;
+        this.preparePlaybackService = preparePlaybackService;
+        this.playlistService = playlistService;
+        this.fallbackAlarmSoundService = fallbackAlarmSoundService;
+        this.dispatcher = dispatcher;
+        this.notificationService = notificationService;
+        this.displayMetadataService = displayMetadataService;
 
         // Register for Next/Previous button press messages from Android system controls
         WeakReferenceMessenger.Default.Register<NextButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PreviousButtonPressedMessage>(this);
 
-        _audioPlayer.MediaEnded += OnMediaEnded;
-        _audioPlayer.MediaFailed += OnMediaFailed;
+        this.audioPlayer.MediaEnded += OnMediaEnded;
+        this.audioPlayer.MediaFailed += OnMediaFailed;
 
-        _progressSaveTimer = new(1000);
-        _progressSaveTimer.Elapsed += OnProgressSaveTimerElapsed;
-        _progressSaveTimer.AutoReset = true;
+        progressSaveTimer = new(1000);
+        progressSaveTimer.Elapsed += OnProgressSaveTimerElapsed;
+        progressSaveTimer.AutoReset = true;
     }
 
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
     {
         // If already playing a different schedule, stop it first
-        if (IsPreparingOrPlayingInternal && _currentScheduleId.HasValue && _currentScheduleId.Value != scheduleId)
+        if (IsPreparingOrPlayingInternal && currentScheduleId.HasValue && currentScheduleId.Value != scheduleId)
         {
-            _logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
-                _currentScheduleId.Value, scheduleId);
+            logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
+                currentScheduleId.Value, scheduleId);
             // Mark current track as played to advance TrackNumber, but skip saving "last played" since we're switching
             await MarkCurrentTrackAsPlayedAsync();
             await StopAsyncInternal(skipMarkAsPlayed: true, skipSaveLastPlayed: true);
@@ -98,10 +98,10 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
         if (IsPreparingOrPlayingInternal)
         {
-            _logger.Warning("Cannot prepare and play schedule {ScheduleId} - already preparing or playing schedule {CurrentScheduleId}. Status: {Status}",
+            logger.Warning("Cannot prepare and play schedule {ScheduleId} - already preparing or playing schedule {CurrentScheduleId}. Status: {Status}",
                 scheduleId,
-                _currentScheduleId,
-                _audioPlayer.Status);
+                currentScheduleId,
+                audioPlayer.Status);
             return;
         }
 
@@ -110,38 +110,38 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
         try
         {
-            _currentScheduleId = scheduleId;
-            _isAlarm = isAlarm;
+            currentScheduleId = scheduleId;
+            this.isAlarm = isAlarm;
 
             // Dispatch playback started action BEFORE preparing tracks so modal opens
             // This ensures the modal is visible when we show error messages or play fallback
-            _dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
+            dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
 
             // Immediately set loading/buffering status for any new schedule start (phone tap or Android Auto play).
             // This keeps UI/Android Auto from showing "idle" controls with empty metadata while we prepare tracks.
-            _dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Loading));
+            dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Loading));
 
             // Run track preparation (including downloads) on background thread to avoid blocking main thread
             // This ensures UI remains responsive during download/preparation phase
-            _logger.Debug("Starting track preparation on background thread for schedule {ScheduleId}", scheduleId);
-            _playlist = await Task.Run(async () => await _preparePlaybackService.PrepareTracksAsync(scheduleId));
+            logger.Debug("Starting track preparation on background thread for schedule {ScheduleId}", scheduleId);
+            playlist = await Task.Run(async () => await preparePlaybackService.PrepareTracksAsync(scheduleId));
 
-            if (_playlist is null)
+            if (playlist is null)
             {
-                _logger.Warning("Failed to prepare tracks for schedule {ScheduleId}", scheduleId);
+                logger.Warning("Failed to prepare tracks for schedule {ScheduleId}", scheduleId);
                 await HandlePlaybackFailureAsync();
                 return;
             }
 
-            if (_playlist.Count == 0)
+            if (playlist.Count == 0)
             {
-                _logger.Warning("No tracks prepared for schedule {ScheduleId}", scheduleId);
+                logger.Warning("No tracks prepared for schedule {ScheduleId}", scheduleId);
                 await ResetAsync();
                 return;
             }
 
-            _currentTrackIndex = 0;
-            _manuallyVisitedTrackIndices.Clear();
+            currentTrackIndex = 0;
+            manuallyVisitedTrackIndices.Clear();
 
             // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
             await PlayCurrentTrackAsync();
@@ -149,7 +149,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error preparing and playing schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, "Error preparing and playing schedule {ScheduleId}", scheduleId);
             await ResetAsync();
             throw;
         }
@@ -157,23 +157,23 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     public async Task PlayAsync()
     {
-        if (_currentTrackIndex < 0 || _playlist is null || _currentTrackIndex >= _playlist.Count)
+        if (currentTrackIndex < 0 || playlist is null || currentTrackIndex >= playlist.Count)
         {
             return;
         }
 
-        if (_audioPlayer.Status == PlayStatus.Paused)
+        if (audioPlayer.Status == PlayStatus.Paused)
         {
-            await _audioPlayer.ResumeAsync();
+            await audioPlayer.ResumeAsync();
             StartProgressTimerIfBibleTrack();
         }
-        else if (_audioPlayer.Status is PlayStatus.Stopped or PlayStatus.Ended)
+        else if (audioPlayer.Status is PlayStatus.Stopped or PlayStatus.Ended)
         {
             await PlayCurrentTrackAsync();
         }
         else
         {
-            await _audioPlayer.PlayAsync();
+            await audioPlayer.PlayAsync();
             StartProgressTimerIfBibleTrack();
         }
     }
@@ -182,29 +182,29 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     {
         if (IsPreparingOrPlayingInternal)
         {
-            _progressSaveTimer?.Stop();
-            await _audioPlayer.PauseAsync();
+            progressSaveTimer?.Stop();
+            await audioPlayer.PauseAsync();
         }
     }
 
     public async Task PlayNextAsync()
     {
-        if (_playlist is null || _playlist.Count == 0)
+        if (playlist is null || playlist.Count == 0)
         {
             return;
         }
 
-        if (_currentTrackIndex < _playlist.Count - 1)
+        if (currentTrackIndex < playlist.Count - 1)
         {
-            _progressSaveTimer?.Stop();
-            await _audioPlayer.StopAsync();
+            progressSaveTimer?.Stop();
+            await audioPlayer.StopAsync();
             await MarkCurrentTrackAsPlayedAsync();
-            _currentTrackIndex++;
+            currentTrackIndex++;
 
             // If we've already manually visited this track, start from beginning
             // Otherwise, allow resume from saved position (for Bible tracks)
-            var startFromBeginning = _manuallyVisitedTrackIndices.Contains(_currentTrackIndex);
-            _manuallyVisitedTrackIndices.Add(_currentTrackIndex);
+            var startFromBeginning = manuallyVisitedTrackIndices.Contains(currentTrackIndex);
+            manuallyVisitedTrackIndices.Add(currentTrackIndex);
 
             await PlayCurrentTrackAsync(startFromBeginning: startFromBeginning);
             NotifyNavigationChanged();
@@ -213,20 +213,20 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     public async Task PlayPreviousAsync()
     {
-        if (_playlist is null || _playlist.Count == 0)
+        if (playlist is null || playlist.Count == 0)
         {
             return;
         }
 
-        if (_currentTrackIndex > 0)
+        if (currentTrackIndex > 0)
         {
-            _progressSaveTimer?.Stop();
-            await _audioPlayer.StopAsync();
+            progressSaveTimer?.Stop();
+            await audioPlayer.StopAsync();
             await MarkCurrentTrackAsPlayedAsync();
-            _currentTrackIndex--;
+            currentTrackIndex--;
 
             // Previous button always starts from beginning
-            _manuallyVisitedTrackIndices.Add(_currentTrackIndex);
+            manuallyVisitedTrackIndices.Add(currentTrackIndex);
             await PlayCurrentTrackAsync(startFromBeginning: true);
             NotifyNavigationChanged();
         }
@@ -239,7 +239,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         var canPlayPrevious = CanPlayPreviousInternal;
 
         // Dispatch Fluxor action
-        _dispatcher.Dispatch(new PlaybackNavigationChangedAction(canPlayNext, canPlayPrevious));
+        dispatcher.Dispatch(new PlaybackNavigationChangedAction(canPlayNext, canPlayPrevious));
     }
 
     /// <summary>
@@ -248,7 +248,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     /// </summary>
     public void Receive(NextButtonPressedMessage message)
     {
-        _logger.Debug("Next button pressed from system controls - calling PlayNextAsync");
+        logger.Debug("Next button pressed from system controls - calling PlayNextAsync");
         // Add delay to let MediaSession finish processing the button press
         // This prevents IllegalStateException when ExoPlayer is transitioning
         Task.Run(async () =>
@@ -268,7 +268,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     /// </summary>
     public void Receive(PreviousButtonPressedMessage message)
     {
-        _logger.Debug("Previous button pressed from system controls - calling PlayPreviousAsync");
+        logger.Debug("Previous button pressed from system controls - calling PlayPreviousAsync");
         // Add delay to let MediaSession finish processing the button press
         // This prevents IllegalStateException when ExoPlayer is transitioning
         Task.Run(async () =>
@@ -289,13 +289,13 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             return;
         }
 
-        var currentPosition = _audioPlayer.CurrentPosition;
+        var currentPosition = audioPlayer.CurrentPosition;
         if (!currentPosition.HasValue)
         {
             return;
         }
 
-        var duration = _audioPlayer.Duration;
+        var duration = audioPlayer.Duration;
 
         // Don't seek if duration is not yet loaded or is zero
         if (duration <= TimeSpan.Zero)
@@ -312,7 +312,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             newPosition = duration;
         }
 
-        await _audioPlayer.SeekToAsync(newPosition);
+        await audioPlayer.SeekToAsync(newPosition);
     }
 
     public async Task SeekBackwardAsync()
@@ -322,7 +322,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             return;
         }
 
-        var currentPosition = _audioPlayer.CurrentPosition;
+        var currentPosition = audioPlayer.CurrentPosition;
         if (!currentPosition.HasValue)
         {
             return;
@@ -336,7 +336,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             newPosition = TimeSpan.Zero;
         }
 
-        await _audioPlayer.SeekToAsync(newPosition);
+        await audioPlayer.SeekToAsync(newPosition);
     }
 
     public async Task SeekToAsync(TimeSpan position)
@@ -347,7 +347,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         }
 
         // Clamp position to valid range (0 to duration)
-        var duration = _audioPlayer.Duration;
+        var duration = audioPlayer.Duration;
         if (duration.TotalSeconds > 0 && position > duration)
         {
             position = duration;
@@ -357,7 +357,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             position = TimeSpan.Zero;
         }
 
-        await _audioPlayer.SeekToAsync(position);
+        await audioPlayer.SeekToAsync(position);
     }
 
     public async Task StopAsync()
@@ -367,12 +367,12 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false)
     {
-        _logger.Information("StopAsync called - stopping alarm completely");
+        logger.Information("StopAsync called - stopping alarm completely");
 
         // Stop progress timer first to prevent it from trying to save progress after ServiceProvider is disposed
-        _progressSaveTimer?.Stop();
+        progressSaveTimer?.Stop();
 
-        await _audioPlayer.StopAsync();
+        await audioPlayer.StopAsync();
 
         // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
         // This prevents overwriting the database update that MarkTrackAsFinished() already made
@@ -381,9 +381,9 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             await MarkCurrentTrackAsPlayedAsync();
         }
 
-        if (_currentScheduleId.HasValue && !skipSaveLastPlayed)
+        if (currentScheduleId.HasValue && !skipSaveLastPlayed)
         {
-            await _playlistService.SaveLastPlayed(_currentScheduleId.Value);
+            await playlistService.SaveLastPlayed(currentScheduleId.Value);
         }
 
         await ResetAsync();
@@ -394,60 +394,60 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     private async Task ResetAsync()
     {
-        _progressSaveTimer?.Stop();
-        await _audioPlayer.ResetAsync();
+        progressSaveTimer?.Stop();
+        await audioPlayer.ResetAsync();
 
         ResetState();
 
         // Dispatch playback stopped action
-        _dispatcher.Dispatch(new PlaybackStoppedAction());
+        dispatcher.Dispatch(new PlaybackStoppedAction());
 
         // Log reset completion for debugging
-        _logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}",
-            _audioPlayer.Status,
-            _currentScheduleId);
+        logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}",
+            audioPlayer.Status,
+            currentScheduleId);
     }
 
     private void ResetState()
     {
-        _currentScheduleId = null;
-        _playlist = null;
-        _currentTrackIndex = -1;
-        _isAlarm = false;
-        _manuallyVisitedTrackIndices.Clear();
+        currentScheduleId = null;
+        playlist = null;
+        currentTrackIndex = -1;
+        isAlarm = false;
+        manuallyVisitedTrackIndices.Clear();
     }
 
     private async Task PlayCurrentTrackAsync(bool startFromBeginning = false)
     {
-        if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+        if (playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
         {
-            _logger.Warning("Cannot play track: playlist is null or track index {TrackIndex} is out of range (playlist count: {PlaylistCount})",
-                _currentTrackIndex,
-                _playlist?.Count ?? 0);
+            logger.Warning("Cannot play track: playlist is null or track index {TrackIndex} is out of range (playlist count: {PlaylistCount})",
+                currentTrackIndex,
+                playlist?.Count ?? 0);
             return;
         }
 
-        var track = _playlist[_currentTrackIndex];
+        var track = playlist[currentTrackIndex];
 
         if (string.IsNullOrEmpty(track.Uri))
         {
-            _logger.Error("Cannot play track at index {TrackIndex}: URI is null or empty. URL: {TrackUrl}",
-                _currentTrackIndex,
+            logger.Error("Cannot play track at index {TrackIndex}: URI is null or empty. URL: {TrackUrl}",
+                currentTrackIndex,
                 track.PlayItem?.Url ?? "Unknown");
             await HandlePlaybackFailureAsync();
             return;
         }
 
-        _logger.Debug("Preparing to play track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
-            _currentTrackIndex,
+        logger.Debug("Preparing to play track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
+            currentTrackIndex,
             track.Uri,
             track.PlayItem?.Url ?? "Unknown");
 
         // Determine if this is the first or last track
-        var isFirstTrack = _currentTrackIndex == 0;
-        var isLastTrack = _playlist != null && _currentTrackIndex == _playlist.Count - 1;
+        var isFirstTrack = currentTrackIndex == 0;
+        var isLastTrack = playlist != null && currentTrackIndex == playlist.Count - 1;
 
-        await _audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
+        await audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
 
         // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
         // Wait for the media to be in a ready state (not None or Failed)
@@ -463,12 +463,12 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             var shouldResume = await ShouldResumeFromLastPositionAsync();
             if (shouldResume)
             {
-                await _audioPlayer.SeekToAsync(track.PlayItem.Metadata.FinishedDuration);
+                await audioPlayer.SeekToAsync(track.PlayItem.Metadata.FinishedDuration);
             }
         }
 
-        _logger.Debug("Calling PlayAsync for track at index {TrackIndex}", _currentTrackIndex);
-        await _audioPlayer.PlayAsync();
+        logger.Debug("Calling PlayAsync for track at index {TrackIndex}", currentTrackIndex);
+        await audioPlayer.PlayAsync();
 
         // On iOS, wait a bit longer for playback to actually start
         // MediaElement may need time to transition to Playing state
@@ -476,27 +476,27 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         await Task.Delay(300);
 #endif
 
-        _logger.Debug("PlayAsync completed for track at index {TrackIndex}, Status: {Status}",
-            _currentTrackIndex,
-            _audioPlayer.Status);
+        logger.Debug("PlayAsync completed for track at index {TrackIndex}, Status: {Status}",
+            currentTrackIndex,
+            audioPlayer.Status);
         StartProgressTimerIfBibleTrack();
     }
 
     private void StartProgressTimerIfBibleTrack()
     {
-        if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+        if (playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
         {
             return;
         }
 
-        var track = _playlist[_currentTrackIndex];
+        var track = playlist[currentTrackIndex];
         if (track.PlayItem.Metadata.PlayType == PlayType.Bible)
         {
-            _progressSaveTimer?.Start();
+            progressSaveTimer?.Start();
         }
         else
         {
-            _progressSaveTimer?.Stop();
+            progressSaveTimer?.Stop();
         }
     }
 
@@ -504,14 +504,14 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     {
         try
         {
-            _progressSaveTimer?.Stop();
+            progressSaveTimer?.Stop();
 
             // Mark track as finished - this advances Bible chapter to next chapter with position 0.00
             await MarkCurrentTrackAsFinishedAsync();
 
-            if (_playlist is not null && _currentTrackIndex < _playlist.Count - 1)
+            if (playlist is not null && currentTrackIndex < playlist.Count - 1)
             {
-                _currentTrackIndex++;
+                currentTrackIndex++;
                 await PlayCurrentTrackAsync();
                 NotifyNavigationChanged();
             }
@@ -524,7 +524,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error handling media ended event");
+            logger.Error(ex, "Error handling media ended event");
         }
     }
 
@@ -532,47 +532,47 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     {
         try
         {
-            var trackUri = _playlist?[_currentTrackIndex]?.Uri ?? "Unknown";
-            var trackUrl = _playlist?[_currentTrackIndex]?.PlayItem?.Url ?? "Unknown";
+            var trackUri = playlist?[currentTrackIndex]?.Uri ?? "Unknown";
+            var trackUrl = playlist?[currentTrackIndex]?.PlayItem?.Url ?? "Unknown";
 
-            _logger.Warning("Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
-                _currentTrackIndex,
+            logger.Warning("Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
+                currentTrackIndex,
                 trackUri,
                 trackUrl);
 
-            if (_playlist is not null && _currentTrackIndex < _playlist.Count - 1)
+            if (playlist is not null && currentTrackIndex < playlist.Count - 1)
             {
-                _currentTrackIndex++;
-                _logger.Information("Attempting to play next track at index {NextTrackIndex}", _currentTrackIndex);
+                currentTrackIndex++;
+                logger.Information("Attempting to play next track at index {NextTrackIndex}", currentTrackIndex);
                 await PlayCurrentTrackAsync();
             }
             else
             {
-                _logger.Warning("No more tracks available or all tracks failed. Handling playback failure.");
+                logger.Warning("No more tracks available or all tracks failed. Handling playback failure.");
                 await HandlePlaybackFailureAsync();
             }
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error handling media failed event");
+            logger.Error(ex, "Error handling media failed event");
         }
     }
 
     private async Task MarkCurrentTrackAsPlayedAsync()
     {
-        if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+        if (playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
         {
             return;
         }
 
         try
         {
-            var track = _playlist[_currentTrackIndex];
-            await _playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
+            var track = playlist[currentTrackIndex];
+            await playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error marking track as played");
+            logger.Error(ex, "Error marking track as played");
         }
     }
 
@@ -583,12 +583,12 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     private async Task SaveProgressAsync()
     {
-        if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+        if (playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
         {
             return;
         }
 
-        var track = _playlist[_currentTrackIndex];
+        var track = playlist[currentTrackIndex];
 
         // Only save progress for Bible tracks
         if (track.PlayItem.Metadata.PlayType != PlayType.Bible)
@@ -597,41 +597,41 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         }
 
         // Only save if currently playing
-        if (_audioPlayer.Status != PlayStatus.Playing)
+        if (audioPlayer.Status != PlayStatus.Playing)
         {
             return;
         }
 
         try
         {
-            var currentPosition = _audioPlayer.CurrentPosition;
+            var currentPosition = audioPlayer.CurrentPosition;
             if (currentPosition.HasValue)
             {
                 // Update the track metadata with current position
                 track.PlayItem.Metadata.FinishedDuration = currentPosition.Value;
-                await _playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
+                await playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
             }
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error saving progress");
+            logger.Error(ex, "Error saving progress");
         }
     }
 
     private async Task<bool> ShouldResumeFromLastPositionAsync()
     {
-        if (!_currentScheduleId.HasValue)
+        if (!currentScheduleId.HasValue)
         {
             return false;
         }
 
         try
         {
-            return await _playlistService.ShouldResumeFromLastPositionAsync(_currentScheduleId.Value);
+            return await playlistService.ShouldResumeFromLastPositionAsync(currentScheduleId.Value);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error checking if should resume from last position");
+            logger.Error(ex, "Error checking if should resume from last position");
             return false;
         }
     }
@@ -643,24 +643,24 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         // Give it a small delay to ensure the MediaElement has fully transitioned states
         await Task.Delay(200);
 
-        _logger.Debug("Media ready check completed, proceeding to play");
+        logger.Debug("Media ready check completed, proceeding to play");
     }
 
     private async Task MarkCurrentTrackAsFinishedAsync()
     {
-        if (_playlist == null || _currentTrackIndex < 0 || _currentTrackIndex >= _playlist.Count)
+        if (playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
         {
             return;
         }
 
         try
         {
-            var track = _playlist[_currentTrackIndex];
-            await _playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);
+            var track = playlist[currentTrackIndex];
+            await playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error marking track as finished");
+            logger.Error(ex, "Error marking track as finished");
         }
     }
 
@@ -669,10 +669,10 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         // Reset player and playlist service
         await ResetAsync();
 
-        if (_isAlarm && _currentScheduleId.HasValue)
+        if (isAlarm && currentScheduleId.HasValue)
         {
             // For alarms, dispatch error message so alarm modal shows the error
-            _dispatcher.Dispatch(new PlaybackErrorAction
+            dispatcher.Dispatch(new PlaybackErrorAction
             {
                 ErrorMessage = "Media playback failed. Playing fallback alarm sound."
             });
@@ -680,14 +680,14 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             // Show alarm notification and try to play fallback sound
             try
             {
-                await _notificationService.ShowNotificationAsync(_currentScheduleId.Value);
+                await notificationService.ShowNotificationAsync(currentScheduleId.Value);
                 await PlayFallbackAlarmSoundAsync();
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error showing alarm notification or playing fallback alarm sound");
+                logger.Error(ex, "Error showing alarm notification or playing fallback alarm sound");
                 // Update error message if fallback also fails
-                _dispatcher.Dispatch(new PlaybackErrorAction
+                dispatcher.Dispatch(new PlaybackErrorAction
                 {
                     ErrorMessage = "Media playback failed. Check your internet connection."
                 });
@@ -696,7 +696,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         else
         {
             // For non-alarms, show error message in UI
-            _dispatcher.Dispatch(new PlaybackErrorAction
+            dispatcher.Dispatch(new PlaybackErrorAction
             {
                 ErrorMessage = "Media download failed. Check your internet connection."
             });
@@ -710,12 +710,12 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
     {
         try
         {
-            var fallbackTrack = await _fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
+            var fallbackTrack = await fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
             if (fallbackTrack is null)
             {
-                _logger.Error("Failed to get fallback alarm track");
+                logger.Error("Failed to get fallback alarm track");
                 // Even for alarms, if fallback fails, show error but keep modal open
-                _dispatcher.Dispatch(new PlaybackErrorAction
+                dispatcher.Dispatch(new PlaybackErrorAction
                 {
                     ErrorMessage = "Media download failed. Check your internet connection."
                 });
@@ -725,17 +725,17 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
             }
 
             // Clear any previous error when starting fallback playback
-            _dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
+            dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
 
-            _playlist = [fallbackTrack];
-            _currentTrackIndex = 0;
+            playlist = [fallbackTrack];
+            currentTrackIndex = 0;
             await PlayCurrentTrackAsync();
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error playing fallback alarm sound");
+            logger.Error(ex, "Error playing fallback alarm sound");
             // Even for alarms, if fallback fails, show error but keep modal open
-            _dispatcher.Dispatch(new PlaybackErrorAction
+            dispatcher.Dispatch(new PlaybackErrorAction
             {
                 ErrorMessage = "Media download failed. Check your internet connection."
             });
@@ -746,7 +746,7 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
 
     public void Dispose()
     {
-        if (_progressSaveTimer is { } timer)
+        if (progressSaveTimer is { } timer)
         {
             timer.Elapsed -= OnProgressSaveTimerElapsed;
             timer.Stop();
@@ -754,8 +754,8 @@ public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMes
         }
 
         // Unsubscribe from AudioPlayer events
-        _audioPlayer.MediaEnded -= OnMediaEnded;
-        _audioPlayer.MediaFailed -= OnMediaFailed;
+        audioPlayer.MediaEnded -= OnMediaEnded;
+        audioPlayer.MediaFailed -= OnMediaFailed;
 
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<NextButtonPressedMessage>(this);

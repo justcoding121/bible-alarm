@@ -9,7 +9,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
     [Migration("20210408045321_Add_NotificationEnabled_Column")]
-    partial class Add_NotificationEnabled_Column
+    partial class AddNotificationEnabledColumn
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

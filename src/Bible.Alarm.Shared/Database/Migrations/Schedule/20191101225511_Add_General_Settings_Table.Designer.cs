@@ -8,7 +8,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
     [Migration("20191101225511_Add_General_Settings_Table")]
-    partial class Add_General_Settings_Table
+    partial class AddGeneralSettingsTable
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

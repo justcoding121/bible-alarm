@@ -7,12 +7,12 @@ public class NumberOfChaptersListViewItemModel(int number) : ObservableObject, I
     public string Text => $"{Value} {(Value == 1 ? "chapter" : "chapters")}";
     public int Value { get; set; } = number;
 
-    private bool _isSelected;
+    private bool isSelected;
 
     public bool IsSelected
     {
-        get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        get => isSelected;
+        set => SetProperty(ref isSelected, value);
     }
 
     public int CompareTo(object obj)

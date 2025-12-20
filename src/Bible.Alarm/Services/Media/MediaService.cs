@@ -17,103 +17,103 @@ public class MediaService(
     IVocalMusicService vocalMusicService)
     : IMediaService, IDisposable
 {
-    private readonly IBibleTranslationService _bibleTranslationService = bibleTranslationService ?? throw new ArgumentNullException(nameof(bibleTranslationService));
-    private readonly IBibleBookService _bibleBookService = bibleBookService ?? throw new ArgumentNullException(nameof(bibleBookService));
-    private readonly IBibleChapterService _bibleChapterService = bibleChapterService ?? throw new ArgumentNullException(nameof(bibleChapterService));
-    private readonly IMelodyMusicService _melodyMusicService = melodyMusicService ?? throw new ArgumentNullException(nameof(melodyMusicService));
-    private readonly IVocalMusicService _vocalMusicService = vocalMusicService ?? throw new ArgumentNullException(nameof(vocalMusicService));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService ?? throw new ArgumentNullException(nameof(bibleTranslationService));
+    private readonly IBibleBookService bibleBookService = bibleBookService ?? throw new ArgumentNullException(nameof(bibleBookService));
+    private readonly IBibleChapterService bibleChapterService = bibleChapterService ?? throw new ArgumentNullException(nameof(bibleChapterService));
+    private readonly IMelodyMusicService melodyMusicService = melodyMusicService ?? throw new ArgumentNullException(nameof(melodyMusicService));
+    private readonly IVocalMusicService vocalMusicService = vocalMusicService ?? throw new ArgumentNullException(nameof(vocalMusicService));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<Dictionary<string, Language>> GetBibleLanguages()
     {
         await mediaLookUpService.Verify();
-        return await _bibleTranslationService.GetDistinctLanguagesAsync(_cancellationTokenSource.Token);
+        return await bibleTranslationService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, BibleTranslation>> GetBibleTranslations(string languageCode)
     {
         await mediaLookUpService.Verify();
-        return await _bibleTranslationService.GetByLanguageCodeAsync(languageCode, _cancellationTokenSource.Token);
+        return await bibleTranslationService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, BibleBook>> GetBibleBooks(
         string languageCode, string versionCode)
     {
         await mediaLookUpService.Verify();
-        return await _bibleBookService.GetBooksByTranslationAsync(languageCode, versionCode, _cancellationTokenSource.Token);
+        return await bibleBookService.GetBooksByTranslationAsync(languageCode, versionCode, cancellationTokenSource.Token);
     }
 
     public async Task<BibleBook> GetBibleBook(string languageCode, string versionCode, int bookNumber)
     {
         await mediaLookUpService.Verify();
-        return await _bibleBookService.GetBookAsync(languageCode, versionCode, bookNumber, _cancellationTokenSource.Token);
+        return await bibleBookService.GetBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, BibleChapter>>
         GetBibleChapters(string languageCode, string versionCode, int bookNumber)
     {
         await mediaLookUpService.Verify();
-        return await _bibleChapterService.GetChaptersByBookAsync(languageCode, versionCode, bookNumber, _cancellationTokenSource.Token);
+        return await bibleChapterService.GetChaptersByBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
     }
 
     public async Task<BibleChapter> GetBibleChapter(string languageCode,
         string versionCode, int bookNumber, int chapterNumber)
     {
         await mediaLookUpService.Verify();
-        return await _bibleChapterService.GetChapterAsync(languageCode, versionCode, bookNumber, chapterNumber, _cancellationTokenSource.Token);
+        return await bibleChapterService.GetChapterAsync(languageCode, versionCode, bookNumber, chapterNumber, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases()
     {
         await mediaLookUpService.Verify();
-        return await _melodyMusicService.GetAllAsync(_cancellationTokenSource.Token);
+        return await melodyMusicService.GetAllAsync(cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>>
         GetMelodyMusicTracks(string publicationCode)
     {
         await mediaLookUpService.Verify();
-        return await _melodyMusicService.GetTracksByCodeAsync(publicationCode, _cancellationTokenSource.Token);
+        return await melodyMusicService.GetTracksByCodeAsync(publicationCode, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
     {
         await mediaLookUpService.Verify();
-        return await _vocalMusicService.GetDistinctLanguagesAsync(_cancellationTokenSource.Token);
+        return await vocalMusicService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode)
     {
         await mediaLookUpService.Verify();
-        return await _vocalMusicService.GetByLanguageCodeAsync(languageCode, _cancellationTokenSource.Token);
+        return await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>>
         GetVocalMusicTracks(string languageCode, string publicationCode)
     {
         await mediaLookUpService.Verify();
-        return await _vocalMusicService.GetTracksByLanguageAndCodeAsync(languageCode, publicationCode, _cancellationTokenSource.Token);
+        return await vocalMusicService.GetTracksByLanguageAndCodeAsync(languageCode, publicationCode, cancellationTokenSource.Token);
     }
 
     public async Task UpdateBibleTrackUrl(string languageCode, string versionCode,
         int bookNumber, int chapterNumber, string url)
     {
         await mediaLookUpService.Verify();
-        await _bibleChapterService.UpdateChapterUrlAsync(languageCode, versionCode, bookNumber, chapterNumber, url, _cancellationTokenSource.Token);
+        await bibleChapterService.UpdateChapterUrlAsync(languageCode, versionCode, bookNumber, chapterNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateVocalTrackUrl(string languageCode, string publicationCode,
         int trackNumber, string url)
     {
         await mediaLookUpService.Verify();
-        await _vocalMusicService.UpdateTrackUrlAsync(languageCode, publicationCode, trackNumber, url, _cancellationTokenSource.Token);
+        await vocalMusicService.UpdateTrackUrlAsync(languageCode, publicationCode, trackNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateMelodyTrackUrl(string publicationCode, int trackNumber, string url)
     {
         await mediaLookUpService.Verify();
-        await _melodyMusicService.UpdateTrackUrlAsync(publicationCode, trackNumber, url, _cancellationTokenSource.Token);
+        await melodyMusicService.UpdateTrackUrlAsync(publicationCode, trackNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateTrackUrlAsync(TrackMetadata trackMetadata, string url)
@@ -149,18 +149,18 @@ public class MediaService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Cancel and dispose cancellation token source
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {

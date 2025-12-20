@@ -13,7 +13,7 @@ public class SchedulerJob : JobService
 {
     public const int JobId = 1;
 
-    private readonly ILogger _logger;
+    private readonly ILogger logger;
 
     public SchedulerJob() : this(Log.ForContext<SchedulerJob>())
     {
@@ -21,7 +21,7 @@ public class SchedulerJob : JobService
 
     public SchedulerJob(ILogger logger)
     {
-        _logger = logger;
+        this.logger = logger;
         LogSetup.Initialize(AndroidVersionFinder.Default,
             [$"AndroidSdk {AndroidBuild.VERSION.SdkInt}"], "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
@@ -30,12 +30,12 @@ public class SchedulerJob : JobService
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        _logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
+        logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        _logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
+        logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
     }
 
     public override bool OnStartJob(JobParameters @params)
@@ -58,7 +58,7 @@ public class SchedulerJob : JobService
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error processing scheduled tasks");
+                logger.Error(e, "Error processing scheduled tasks");
             }
             finally
             {

@@ -12,14 +12,14 @@ public class PreparePlaybackService(
     IPlaylistService playlistService,
     IMediaCacheService cacheService) : IPreparePlaybackService, IDisposable
 {
-    private readonly ILogger _logger = logger;
-    private readonly IPlaylistService _playlistService = playlistService;
-    private readonly IMediaCacheService _cacheService = cacheService;
-    private bool _isDisposed;
+    private readonly ILogger logger = logger;
+    private readonly IPlaylistService playlistService = playlistService;
+    private readonly IMediaCacheService cacheService = cacheService;
+    private bool isDisposed;
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
     {
-        var playItems = await _playlistService.NextTracks(scheduleId);
+        var playItems = await playlistService.NextTracks(scheduleId);
         var preparedTracks = new List<AudioPlayerTrack>();
         var totalTracks = playItems.Count;
         var loadedTracks = 0;
@@ -37,7 +37,7 @@ public class PreparePlaybackService(
 
             if (audioPlayerTrack == null)
             {
-                _logger.Warning($"Failed to download {playItem.Url}");
+                logger.Warning($"Failed to download {playItem.Url}");
                 return null;
             }
 
@@ -67,11 +67,11 @@ public class PreparePlaybackService(
     /// </summary>
     public async Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem)
     {
-        var uri = await _cacheService.GetOrDownloadTrackUriAsync(playItem);
+        var uri = await cacheService.GetOrDownloadTrackUriAsync(playItem);
 
         if (uri == null)
         {
-            _logger.Warning("Failed to download track: {Url}", playItem.Url);
+            logger.Warning("Failed to download track: {Url}", playItem.Url);
             return null;
         }
 
@@ -84,12 +84,12 @@ public class PreparePlaybackService(
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // All injected services are singletons, so don't dispose them
         // No event handlers to unsubscribe

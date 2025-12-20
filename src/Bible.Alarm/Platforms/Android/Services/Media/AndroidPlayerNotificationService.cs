@@ -26,8 +26,8 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// </summary>
 public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNotificationService, IDisposable
 {
-    private ExoPlayerListener? _exoPlayerListener;
-    private IExoPlayer? _currentPlayer;
+    private ExoPlayerListener? exoPlayerListener;
+    private IExoPlayer? currentPlayer;
 
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer using SetMediaSources to enable both Next and Previous buttons.
@@ -346,14 +346,14 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     {
         try
         {
-            if (_exoPlayerListener != null && _currentPlayer != null)
+            if (exoPlayerListener != null && currentPlayer != null)
             {
                 try
                 {
-                    var removeMethod = _currentPlayer.GetType().GetMethod("RemoveListener", [typeof(IPlayerListener)]);
+                    var removeMethod = currentPlayer.GetType().GetMethod("RemoveListener", [typeof(IPlayerListener)]);
                     if (removeMethod != null)
                     {
-                        removeMethod.Invoke(_currentPlayer, [_exoPlayerListener]);
+                        removeMethod.Invoke(currentPlayer, [exoPlayerListener]);
                         logger.Debug("Removed ExoPlayer listener from player");
                     }
                 }
@@ -371,7 +371,7 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                 // Dispose the listener
                 try
                 {
-                    _exoPlayerListener.Dispose();
+                    exoPlayerListener.Dispose();
                     logger.Debug("Disposed ExoPlayer listener");
                 }
                 catch (Exception ex)
@@ -379,10 +379,10 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
                     logger.Debug(ex, "Error disposing listener");
                 }
 
-                _exoPlayerListener = null;
+                exoPlayerListener = null;
             }
 
-            _currentPlayer = null;
+            currentPlayer = null;
         }
         catch (Exception ex)
         {
@@ -401,20 +401,20 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         {
             // Always remove the old listener first, regardless of whether it's the same player or different
             // This prevents duplicate listeners when SetSourceWithDummyQueue is called multiple times
-            if (_exoPlayerListener != null && _currentPlayer != null)
+            if (exoPlayerListener != null && currentPlayer != null)
             {
                 RemoveExoPlayerListener();
             }
 
             // Create and add new listener
-            _currentPlayer = player;
-            _exoPlayerListener = new ExoPlayerListener(this, logger);
+            currentPlayer = player;
+            exoPlayerListener = new ExoPlayerListener(this, logger);
 
             // Use reflection to call AddListener with IPlayerListener parameter
             var addMethod = player.GetType().GetMethod("AddListener", [typeof(IPlayerListener)]);
             if (addMethod != null)
             {
-                addMethod.Invoke(player, [_exoPlayerListener]);
+                addMethod.Invoke(player, [exoPlayerListener]);
                 logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
             }
             else
@@ -508,16 +508,16 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
         }
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
@@ -541,8 +541,8 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
     /// </summary>
     private class ExoPlayerListener(AndroidPlayerNotificationService parent, ILogger logger) : Java.Lang.Object, IPlayerListener
     {
-        private DateTime _lastButtonPressTime = DateTime.MinValue;
-        private string? _lastMediaId;
+        private DateTime lastButtonPressTime = DateTime.MinValue;
+        private string? lastMediaId;
         // Ignore duplicate presses within 500ms
         private const int DebounceMilliseconds = 500;
 
@@ -561,15 +561,15 @@ public class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNo
             var now = DateTime.UtcNow;
 
             // Debounce: ignore duplicate transitions within the debounce window
-            if (_lastMediaId == mediaId &&
-                (now - _lastButtonPressTime).TotalMilliseconds < DebounceMilliseconds)
+            if (lastMediaId == mediaId &&
+                (now - lastButtonPressTime).TotalMilliseconds < DebounceMilliseconds)
             {
                 logger.Debug("Ignoring duplicate {TransitionType} for {MediaId} (debounced)", transitionType, mediaId);
                 return false;
             }
 
-            _lastButtonPressTime = now;
-            _lastMediaId = mediaId;
+            lastButtonPressTime = now;
+            lastMediaId = mediaId;
             return true;
         }
 

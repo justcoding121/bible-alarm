@@ -6,7 +6,7 @@ namespace Bible.Alarm.Views.Shared;
 
 public partial class BibleLanguageModal : BaseContentPage, IDisposable
 {
-    private bool _isDisposed;
+    private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public IListViewModel ViewModel => BindingContext as IListViewModel;
@@ -32,7 +32,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
                 await Task.Delay(100);
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    if (!_isDisposed && LanguageCollectionView != null)
+                    if (!isDisposed && LanguageCollectionView != null)
                     {
                         isClearingSelection = true;
                         LanguageCollectionView.SelectedItem = null;
@@ -67,7 +67,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (!isDisposed)
         {
             // Cancel and dispose cancellation token source
             try
@@ -84,7 +84,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
             // This modal uses parent page view model, so do NOT dispose it
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            _isDisposed = true;
+            isDisposed = true;
         }
     }
 }

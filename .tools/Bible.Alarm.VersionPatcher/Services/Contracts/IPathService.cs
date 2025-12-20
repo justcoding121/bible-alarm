@@ -3,6 +3,6 @@ namespace Bible.Alarm.VersionPatcher.Services.Contracts;
 public interface IPathService
 {
     string GetAndroidManifestPath();
-    string GetIOSInfoPlistPath();
+    string GetIosInfoPlistPath();
     string GetWindowsManifestPath();
 }

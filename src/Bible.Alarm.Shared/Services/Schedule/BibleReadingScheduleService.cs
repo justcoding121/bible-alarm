@@ -20,10 +20,10 @@ namespace Bible.Alarm.Shared.Services.Schedule;
 /// </summary>
 public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleReadingScheduleService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<List<BibleReadingSchedule>> GetAllBibleReadingSchedulesAsync(CancellationToken cancellationToken = default)
     {
@@ -32,7 +32,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public async Task<List<BibleReadingSchedule>> GetBibleReadingSchedulesAsync(Expression<Func<BibleReadingSchedule, bool>>? predicate = null, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var query = dbContext.BibleReadingSchedules.AsQueryable();
@@ -47,7 +47,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public async Task<BibleReadingSchedule?> GetBibleReadingScheduleByIdAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.BibleReadingSchedules
@@ -56,7 +56,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public async Task<BibleReadingSchedule?> GetBibleReadingScheduleByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.BibleReadingSchedules
@@ -66,7 +66,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public async Task<BibleReadingSchedule> AddBibleReadingScheduleAsync(BibleReadingSchedule bibleReadingSchedule, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         await dbContext.BibleReadingSchedules.AddAsync(bibleReadingSchedule, cancellationToken);
@@ -78,7 +78,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public async Task<BibleReadingSchedule> UpdateBibleReadingScheduleAsync(BibleReadingSchedule bibleReadingSchedule, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         dbContext.BibleReadingSchedules.Update(bibleReadingSchedule);
@@ -90,7 +90,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public async Task DeleteBibleReadingScheduleAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var bibleReadingSchedule = await dbContext.BibleReadingSchedules.FindAsync(new object[] { bibleReadingScheduleId }, cancellationToken);
@@ -103,7 +103,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public async Task<bool> BibleReadingScheduleExistsAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.BibleReadingSchedules.AnyAsync(x => x.Id == bibleReadingScheduleId, cancellationToken);
@@ -111,22 +111,22 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal in BibleReadingScheduleService");
+            logger.Warning(ex, "Error during cancellation token source disposal in BibleReadingScheduleService");
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

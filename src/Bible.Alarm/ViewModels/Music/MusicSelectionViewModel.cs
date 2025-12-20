@@ -16,25 +16,25 @@ namespace Bible.Alarm.ViewModels.Music;
 
 public class MusicSelectionViewModel : ObservableObject, IDisposable
 {
-    private AlarmMusic _current;
+    private AlarmMusic current;
 
-    private readonly IState<ApplicationState> _state;
-    private readonly IDispatcher _dispatcher;
-    private readonly IMapper _mapper;
+    private readonly IState<ApplicationState> state;
+    private readonly IDispatcher dispatcher;
+    private readonly IMapper mapper;
 
     public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
-        _state = state;
-        _dispatcher = dispatcher;
-        _mapper = mapper;
+        this.state = state;
+        this.dispatcher = dispatcher;
+        this.mapper = mapper;
 
         // Initialize _current from state if available (map DTO to entity)
-        if (_state.Value.CurrentMusic != null)
+        if (this.state.Value.CurrentMusic != null)
         {
-            _current = _mapper.Map<AlarmMusic>(_state.Value.CurrentMusic);
+            current = this.mapper.Map<AlarmMusic>(this.state.Value.CurrentMusic);
         }
 
-        _state.StateChanged += OnStateOnStateChanged;
+        this.state.StateChanged += OnStateOnStateChanged;
 
         SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
@@ -46,12 +46,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             IsBusy = true;
 
             // Ensure _current is set from state if it's null
-            if (_current == null)
+            if (current == null)
             {
-                var currentItem = _state.Value.CurrentMusic;
+                var currentItem = this.state.Value.CurrentMusic;
                 if (currentItem != null)
                 {
-                    _current = _mapper.Map<AlarmMusic>(currentItem);
+                    current = this.mapper.Map<AlarmMusic>(currentItem);
                 }
             }
 
@@ -63,9 +63,9 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                 var songBookItem = new MusicStateItem
                 {
                     MusicType = MusicType.Vocals,
-                    LanguageCode = _current?.LanguageCode
+                    LanguageCode = current?.LanguageCode
                 };
-                _dispatcher.Dispatch(new SongBookSelectionAction(songBookItem));
+                this.dispatcher.Dispatch(new SongBookSelectionAction(songBookItem));
 
             }
             else
@@ -75,11 +75,11 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
                 // Map entity to DTO before dispatching
                 var trackItem = new MusicStateItem
                 {
-                    Repeat = _current?.Repeat ?? false,
+                    Repeat = current?.Repeat ?? false,
                     MusicType = MusicType.Melodies,
                     PublicationCode = "iam"
                 };
-                _dispatcher.Dispatch(new TrackSelectionAction(trackItem));
+                this.dispatcher.Dispatch(new TrackSelectionAction(trackItem));
 
             }
 
@@ -96,13 +96,13 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
 
     private void OnStateOnStateChanged(object o, EventArgs eventArgs)
     {
-        var stateValue = _state.Value;
+        var stateValue = state.Value;
         if (stateValue.CurrentMusic == null)
         {
             return;
         }
         // Map DTO to entity
-        _current = _mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+        current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
@@ -129,12 +129,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             SelectedMusicType.IsSelected = false;
         }
 
-        if (_current == null)
+        if (current == null)
         {
             return;
         }
 
-        var musicType = MusicTypes.FirstOrDefault(y => y.MusicType == _current.MusicType);
+        var musicType = MusicTypes.FirstOrDefault(y => y.MusicType == current.MusicType);
         if (musicType == null)
         {
             return;
@@ -145,12 +145,12 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
     }
 
     // Start as true to show busy indicator immediately
-    private bool _isBusy = true;
+    private bool isBusy = true;
 
     public bool IsBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
     public ICommand BackCommand { get; set; }
@@ -171,17 +171,17 @@ public class MusicSelectionViewModel : ObservableObject, IDisposable
             }
         ]);
 
-    private MusicTypeListItemViewModel _selectedMusicType;
+    private MusicTypeListItemViewModel selectedMusicType;
 
     public MusicTypeListItemViewModel SelectedMusicType
     {
-        get => _selectedMusicType;
-        set => SetProperty(ref _selectedMusicType, value);
+        get => selectedMusicType;
+        set => SetProperty(ref selectedMusicType, value);
     }
 
     public void Dispose()
     {
-        _state.StateChanged -= OnStateOnStateChanged;
+        state.StateChanged -= OnStateOnStateChanged;
     }
 }
 
@@ -190,12 +190,12 @@ public class MusicTypeListItemViewModel : ObservableObject, IComparable
     public MusicType MusicType { get; set; }
     public string Name { get; set; }
 
-    private bool _isSelected;
+    private bool isSelected;
 
     public bool IsSelected
     {
-        get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        get => isSelected;
+        set => SetProperty(ref isSelected, value);
     }
 
     public int CompareTo(object obj)

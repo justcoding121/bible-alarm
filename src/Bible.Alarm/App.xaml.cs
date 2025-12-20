@@ -10,11 +10,11 @@ namespace Bible.Alarm;
 
 public partial class App : Application
 {
-    private readonly IExceptionHandlingService _exceptionHandlingService;
-    private readonly IWindowSetupService _windowSetupService;
-    private readonly IAppLifecycleService _appLifecycleService;
-    private readonly IMessageHandlingService _messageHandlingService;
-    private readonly IFontService _fontService;
+    private readonly IExceptionHandlingService exceptionHandlingService;
+    private readonly IWindowSetupService windowSetupService;
+    private readonly IAppLifecycleService appLifecycleService;
+    private readonly IMessageHandlingService messageHandlingService;
+    private readonly IFontService fontService;
 
     public static bool IsInForeground { get; set; }
 
@@ -25,11 +25,11 @@ public partial class App : Application
         IMessageHandlingService messageHandlingService,
         IFontService fontService)
     {
-        _exceptionHandlingService = exceptionHandlingService;
-        _windowSetupService = windowSetupService;
-        _appLifecycleService = appLifecycleService;
-        _messageHandlingService = messageHandlingService;
-        _fontService = fontService;
+        this.exceptionHandlingService = exceptionHandlingService;
+        this.windowSetupService = windowSetupService;
+        this.appLifecycleService = appLifecycleService;
+        this.messageHandlingService = messageHandlingService;
+        this.fontService = fontService;
 
         InitializeComponent();
 
@@ -52,7 +52,7 @@ public partial class App : Application
         // Subscribe to font size changes for display changes (rotation/resize)
         // PropertyChanged with empty string only fires on actual display changes (via Recalculate())
         // This does NOT fire during Hot Reload, so it's safe to update resources here
-        if (_fontService is System.ComponentModel.INotifyPropertyChanged notifyPropertyChanged)
+        if (this.fontService is System.ComponentModel.INotifyPropertyChanged notifyPropertyChanged)
         {
             notifyPropertyChanged.PropertyChanged += (sender, e) =>
             {
@@ -67,10 +67,10 @@ public partial class App : Application
         }
 
         // Set up global exception handlers
-        _exceptionHandlingService.SetupGlobalExceptionHandlers();
+        this.exceptionHandlingService.SetupGlobalExceptionHandlers();
 
         // Register message handlers
-        _messageHandlingService.RegisterMessageHandlers();
+        this.messageHandlingService.RegisterMessageHandlers();
     }
 
 
@@ -83,29 +83,29 @@ public partial class App : Application
             var stylesDict = Resources.MergedDictionaries.OfType<Views.Styles>().FirstOrDefault();
             if (stylesDict != null)
             {
-                stylesDict["StandardFontSize"] = _fontService.StandardFontSize;
-                stylesDict["HeaderFontSize"] = _fontService.HeaderFontSize;
-                stylesDict["ButtonFontSize"] = _fontService.ButtonFontSize;
-                stylesDict["SmallFontSize"] = _fontService.SmallFontSize;
-                stylesDict["MediumFontSize"] = _fontService.MediumFontSize;
-                stylesDict["LargeFontSize"] = _fontService.LargeFontSize;
-                stylesDict["TitleFontSize"] = _fontService.TitleFontSize;
-                stylesDict["AlarmTimeFontSize"] = _fontService.AlarmTimeFontSize;
-                stylesDict["AlarmMeridianFontSize"] = _fontService.AlarmMeridianFontSize;
-                stylesDict["AlarmBellIconFontSize"] = _fontService.AlarmBellIconFontSize;
+                stylesDict["StandardFontSize"] = fontService.StandardFontSize;
+                stylesDict["HeaderFontSize"] = fontService.HeaderFontSize;
+                stylesDict["ButtonFontSize"] = fontService.ButtonFontSize;
+                stylesDict["SmallFontSize"] = fontService.SmallFontSize;
+                stylesDict["MediumFontSize"] = fontService.MediumFontSize;
+                stylesDict["LargeFontSize"] = fontService.LargeFontSize;
+                stylesDict["TitleFontSize"] = fontService.TitleFontSize;
+                stylesDict["AlarmTimeFontSize"] = fontService.AlarmTimeFontSize;
+                stylesDict["AlarmMeridianFontSize"] = fontService.AlarmMeridianFontSize;
+                stylesDict["AlarmBellIconFontSize"] = fontService.AlarmBellIconFontSize;
             }
 
             // Also update in main Resources dictionary for any direct lookups
-            Resources["StandardFontSize"] = _fontService.StandardFontSize;
-            Resources["HeaderFontSize"] = _fontService.HeaderFontSize;
-            Resources["ButtonFontSize"] = _fontService.ButtonFontSize;
-            Resources["SmallFontSize"] = _fontService.SmallFontSize;
-            Resources["MediumFontSize"] = _fontService.MediumFontSize;
-            Resources["LargeFontSize"] = _fontService.LargeFontSize;
-            Resources["TitleFontSize"] = _fontService.TitleFontSize;
-            Resources["AlarmTimeFontSize"] = _fontService.AlarmTimeFontSize;
-            Resources["AlarmMeridianFontSize"] = _fontService.AlarmMeridianFontSize;
-            Resources["AlarmBellIconFontSize"] = _fontService.AlarmBellIconFontSize;
+            Resources["StandardFontSize"] = fontService.StandardFontSize;
+            Resources["HeaderFontSize"] = fontService.HeaderFontSize;
+            Resources["ButtonFontSize"] = fontService.ButtonFontSize;
+            Resources["SmallFontSize"] = fontService.SmallFontSize;
+            Resources["MediumFontSize"] = fontService.MediumFontSize;
+            Resources["LargeFontSize"] = fontService.LargeFontSize;
+            Resources["TitleFontSize"] = fontService.TitleFontSize;
+            Resources["AlarmTimeFontSize"] = fontService.AlarmTimeFontSize;
+            Resources["AlarmMeridianFontSize"] = fontService.AlarmMeridianFontSize;
+            Resources["AlarmBellIconFontSize"] = fontService.AlarmBellIconFontSize;
         }
         catch (Exception ex)
         {
@@ -117,13 +117,13 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return _windowSetupService.CreateWindow(activationState);
+        return windowSetupService.CreateWindow(activationState);
     }
 
     protected override void OnStart()
     {
         base.OnStart();
-        _appLifecycleService.OnStart();
+        appLifecycleService.OnStart();
     }
 
     protected override void OnSleep()
@@ -135,7 +135,7 @@ public partial class App : Application
     protected override void OnResume()
     {
         base.OnResume();
-        _appLifecycleService.OnResume();
+        appLifecycleService.OnResume();
     }
 
     /// <summary>

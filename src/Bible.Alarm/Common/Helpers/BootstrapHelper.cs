@@ -18,10 +18,10 @@ namespace Bible.Alarm.Common.Helpers;
 /// </summary>
 public static class BootstrapHelper
 {
-    private static readonly object BootstrapLock = new();
-    private static volatile bool BootstrapCompleted = false;
-    private static readonly object BootstrapWaitLock = new();
-    private static TaskCompletionSource<bool>? _bootstrapCompletionSource;
+    private static readonly object bootstrapLock = new();
+    private static volatile bool bootstrapCompleted = false;
+    private static readonly object bootstrapWaitLock = new();
+    private static TaskCompletionSource<bool>? bootstrapCompletionSource;
 
     /// <summary>
     /// Initializes platform-specific bootstrap.
@@ -33,7 +33,7 @@ public static class BootstrapHelper
         // Log caller information to help debug which code path is calling bootstrap
         var caller = new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.Name ?? "Unknown";
         Log.Logger.Information("InitializePlatformBootstrap called from {Caller} with isForeground={IsForeground}, BootstrapCompleted={BootstrapCompleted}",
-            caller, isForeground, BootstrapCompleted);
+            caller, isForeground, bootstrapCompleted);
 
         if (IsBootstrapCompleted())
         {
@@ -58,7 +58,7 @@ public static class BootstrapHelper
     /// </summary>
     public static void WaitForBootstrap(int timeoutMs = 30000)
     {
-        if (BootstrapCompleted)
+        if (bootstrapCompleted)
         {
             Log.Logger.Debug("Bootstrap already completed, returning immediately");
             return;
@@ -91,7 +91,7 @@ public static class BootstrapHelper
     /// </summary>
     public static async Task WaitForBootstrapAsync(int timeoutMs = 30000)
     {
-        if (BootstrapCompleted)
+        if (bootstrapCompleted)
         {
             Log.Logger.Debug("Bootstrap already completed, returning immediately");
             return;
@@ -100,10 +100,10 @@ public static class BootstrapHelper
         Log.Logger.Information("Waiting for bootstrap to complete (timeout: {TimeoutMs}ms)", timeoutMs);
 
         Task<bool> waitTask;
-        lock (BootstrapWaitLock)
+        lock (bootstrapWaitLock)
         {
             // Check again inside lock (bootstrap might have completed while waiting for lock)
-            if (BootstrapCompleted)
+            if (bootstrapCompleted)
             {
                 Log.Logger.Debug("Bootstrap completed while waiting for lock, returning immediately");
                 return;
@@ -112,28 +112,28 @@ public static class BootstrapHelper
             // Create or reuse the completion source
             // If bootstrap already completed, the source should already be set
             // If it's null or completed, create a new one (bootstrap is still running)
-            if (_bootstrapCompletionSource == null || _bootstrapCompletionSource.Task.IsCompleted)
+            if (bootstrapCompletionSource == null || bootstrapCompletionSource.Task.IsCompleted)
             {
                 // Double-check bootstrap didn't complete between the outer check and now
-                if (BootstrapCompleted)
+                if (bootstrapCompleted)
                 {
                     Log.Logger.Debug("Bootstrap completed between checks, returning immediately");
                     return;
                 }
-                _bootstrapCompletionSource = new TaskCompletionSource<bool>();
+                bootstrapCompletionSource = new TaskCompletionSource<bool>();
             }
-            waitTask = _bootstrapCompletionSource.Task;
+            waitTask = bootstrapCompletionSource.Task;
         }
 
         // Wait for bootstrap completion with timeout
         using var cts = new CancellationTokenSource(timeoutMs);
         var timeoutTask = Task.Delay(timeoutMs, cts.Token).ContinueWith(_ =>
         {
-            lock (BootstrapWaitLock)
+            lock (bootstrapWaitLock)
             {
-                if (_bootstrapCompletionSource != null && !_bootstrapCompletionSource.Task.IsCompleted)
+                if (bootstrapCompletionSource != null && !bootstrapCompletionSource.Task.IsCompleted)
                 {
-                    _bootstrapCompletionSource.TrySetException(new TimeoutException($"Bootstrap did not complete within {timeoutMs}ms"));
+                    bootstrapCompletionSource.TrySetException(new TimeoutException($"Bootstrap did not complete within {timeoutMs}ms"));
                 }
             }
         }, TaskContinuationOptions.ExecuteSynchronously);
@@ -157,7 +157,7 @@ public static class BootstrapHelper
     /// </summary>
     public static bool IsBootstrapCompleted()
     {
-        if (BootstrapCompleted)
+        if (bootstrapCompleted)
         {
             Log.Logger.Debug("Bootstrap already completed");
             return true;
@@ -171,7 +171,7 @@ public static class BootstrapHelper
         bool lockAcquired = false;
         try
         {
-            Monitor.TryEnter(BootstrapLock, 0, ref lockAcquired);
+            Monitor.TryEnter(bootstrapLock, 0, ref lockAcquired);
             if (!lockAcquired)
             {
                 return false;
@@ -204,7 +204,7 @@ public static class BootstrapHelper
         {
             if (lockAcquired)
             {
-                Monitor.Exit(BootstrapLock);
+                Monitor.Exit(bootstrapLock);
             }
         }
     }
@@ -251,7 +251,7 @@ public static class BootstrapHelper
     private static void WaitForBootstrapLock(IServiceProvider services, bool isForeground)
     {
         Log.Logger.Information("Background service: waiting for lock");
-        lock (BootstrapLock)
+        lock (bootstrapLock)
         {
             if (IsBootstrapCompleted())
             {
@@ -275,22 +275,22 @@ public static class BootstrapHelper
         {
             Log.Logger.Information("Running bootstrap {Context}", context);
             await RunBootstrap(services, isForeground);
-            BootstrapCompleted = true;
+            bootstrapCompleted = true;
 
             // Signal waiting tasks that bootstrap is complete
             // CRITICAL: Always ensure completion source exists and is set, even if no one was waiting
             // This prevents issues where WaitForBootstrap() is called after bootstrap completes
-            lock (BootstrapWaitLock)
+            lock (bootstrapWaitLock)
             {
-                if (_bootstrapCompletionSource == null)
+                if (bootstrapCompletionSource == null)
                 {
                     // Create a completed source for future callers
-                    _bootstrapCompletionSource = new TaskCompletionSource<bool>();
-                    _bootstrapCompletionSource.TrySetResult(true);
+                    bootstrapCompletionSource = new TaskCompletionSource<bool>();
+                    bootstrapCompletionSource.TrySetResult(true);
                 }
-                else if (!_bootstrapCompletionSource.Task.IsCompleted)
+                else if (!bootstrapCompletionSource.Task.IsCompleted)
                 {
-                    _bootstrapCompletionSource.TrySetResult(true);
+                    bootstrapCompletionSource.TrySetResult(true);
                 }
             }
 
@@ -301,16 +301,16 @@ public static class BootstrapHelper
             Log.Logger.Error(ex, "Error in bootstrap initialization {Context}", context);
 
             // Signal failure to waiting tasks
-            lock (BootstrapWaitLock)
+            lock (bootstrapWaitLock)
             {
-                if (_bootstrapCompletionSource == null)
+                if (bootstrapCompletionSource == null)
                 {
-                    _bootstrapCompletionSource = new TaskCompletionSource<bool>();
-                    _bootstrapCompletionSource.TrySetException(ex);
+                    bootstrapCompletionSource = new TaskCompletionSource<bool>();
+                    bootstrapCompletionSource.TrySetException(ex);
                 }
-                else if (!_bootstrapCompletionSource.Task.IsCompleted)
+                else if (!bootstrapCompletionSource.Task.IsCompleted)
                 {
-                    _bootstrapCompletionSource.TrySetException(ex);
+                    bootstrapCompletionSource.TrySetException(ex);
                 }
             }
         }
@@ -338,7 +338,7 @@ public static class BootstrapHelper
             }
 #elif IOS
             // iOS bootstrap initialization
-            await iOSBootstrapHelper.Initialize(logger, isForeground);
+            await IOsBootstrapHelper.Initialize(logger, isForeground);
 #elif WINDOWS
             // Windows bootstrap initialization
             await WindowsBootstrapHelper.Initialize(logger, isForeground);

@@ -5,13 +5,13 @@ namespace Bible.Alarm.Platforms.Android.Services.Platform;
 
 public class AndroidVersionFinder : IVersionFinder, IDisposable
 {
-    private bool _isDisposed;
-    private static readonly Lazy<string> Version = new(() => GetVersionNameInternal());
+    private bool isDisposed;
+    private static readonly Lazy<string> version = new(() => GetVersionNameInternal());
     public static AndroidVersionFinder Default => new();
 
     public string GetVersionName()
     {
-        return Version.Value;
+        return version.Value;
     }
 
     private static string GetVersionNameInternal()
@@ -22,12 +22,12 @@ public class AndroidVersionFinder : IVersionFinder, IDisposable
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // No resources to dispose
     }

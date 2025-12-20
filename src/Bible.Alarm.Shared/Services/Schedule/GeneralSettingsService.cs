@@ -17,14 +17,14 @@ namespace Bible.Alarm.Shared.Services.Schedule;
 /// </summary>
 public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger logger) : IGeneralSettingsService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private bool _isDisposed;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isDisposed;
 
     public async Task<GeneralSettings?> GetGeneralSettingAsync(string key, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.GeneralSettings
@@ -33,7 +33,7 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
 
     public async Task SetGeneralSettingAsync(string key, string value, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         var setting = await dbContext.GeneralSettings
@@ -51,7 +51,7 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
 
     public async Task<bool> GeneralSettingExistsAsync(string key, CancellationToken cancellationToken = default)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         return await dbContext.GeneralSettings.AnyAsync(x => x.Key == key, cancellationToken);
@@ -59,22 +59,22 @@ public class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger l
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
         }
         catch (Exception ex)
         {
             // Ignore errors during disposal
-            _logger.Warning(ex, "Error during cancellation token source disposal in GeneralSettingsService");
+            logger.Warning(ex, "Error during cancellation token source disposal in GeneralSettingsService");
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

@@ -8,15 +8,15 @@ using UIKit;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Handlers;
 
-public class iOSAlarmHandler(
+public class IOsAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
     IState<PlaybackState> playbackState,
     TaskScheduler taskScheduler)
-    : IiOSAlarmHandler
+    : IIOsAlarmHandler
 {
-    private readonly ILogger _logger = logger;
-    private readonly IState<PlaybackState> _playbackState = playbackState;
+    private readonly ILogger logger = logger;
+    private readonly IState<PlaybackState> playbackState = playbackState;
 
 
     private static readonly SemaphoreSlim @lock = new(1);
@@ -30,7 +30,7 @@ public class iOSAlarmHandler(
         {
             await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
-                if (_playbackState.Value.IsPreparingOrPlaying)
+                if (playbackState.Value.IsPreparingOrPlaying)
                 {
                     Dispose();
                     return;
@@ -57,7 +57,7 @@ public class iOSAlarmHandler(
                     }
                     catch (Exception e)
                     {
-                        _logger.Error(e, "An error happened when ringing the alarm.");
+                        logger.Error(e, "An error happened when ringing the alarm.");
                         throw;
                     }
                 });
@@ -65,21 +65,21 @@ public class iOSAlarmHandler(
         }
         catch (Exception e)
         {
-            _logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            logger.Error(e, "An error happened when creating the task to ring the alarm.");
             Dispose();
         }
     }
 
-    private bool _isDisposed;
+    private bool isDisposed;
 
     public void Dispose()
     {
-        if (_isDisposed)
+        if (isDisposed)
         {
             return;
         }
 
-        _isDisposed = true;
+        isDisposed = true;
 
         // Dispose static semaphore
         try
@@ -89,7 +89,7 @@ public class iOSAlarmHandler(
         catch (Exception ex)
         {
             // Ignore if already disposed
-            _logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+            logger.Warning(ex, "Error disposing semaphore, may already be disposed");
         }
 
         // All injected services (playbackService, IState<PlaybackState>, TaskScheduler) are singletons
