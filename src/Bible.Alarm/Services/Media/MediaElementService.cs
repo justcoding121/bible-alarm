@@ -21,7 +21,7 @@ namespace Bible.Alarm.Services.Media;
 /// MediaElement can exist without being attached to BootstrapPage container (e.g., when app is backgrounded).
 /// When BootstrapPage becomes available, MediaElement will be reattached automatically.
 /// </summary>
-public class MediaElementService : IMediaElementService, IRecipient<DestroyMediaElementMessage>, IDisposable
+public sealed class MediaElementService : IMediaElementService, IRecipient<DestroyMediaElementMessage>, IDisposable
 {
     private readonly INavigationService navigationService;
     private readonly ILogger logger;
@@ -412,10 +412,7 @@ public class MediaElementService : IMediaElementService, IRecipient<DestroyMedia
     /// </summary>
     public void Receive(DestroyMediaElementMessage message)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            DestroyMediaElement();
-        });
+        MainThread.BeginInvokeOnMainThread(DestroyMediaElement);
     }
 
     /// <summary>

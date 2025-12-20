@@ -4,7 +4,7 @@ using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
-public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
+public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
@@ -81,22 +81,13 @@ public class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
 
     private static DaysOfWeek ParseDayParameter(object parameter)
     {
-        if (parameter == null)
+        return parameter switch
         {
-            return 0;
-        }
-
-        if (parameter is DaysOfWeek day)
-        {
-            return day;
-        }
-
-        if (parameter is string dayString && Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay))
-        {
-            return parsedDay;
-        }
-
-        return 0;
+            null => 0,
+            DaysOfWeek day => day,
+            string dayString when Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay) => parsedDay,
+            _ => 0
+        };
     }
 }
 

@@ -41,7 +41,7 @@ public partial class MediaManager : Object, IPlayerListener
 	BoundServiceConnection? connection;
 
 	static bool globalExoPlayerCreated;
-	static readonly object globalExoPlayerLock = new();
+	static readonly Lock globalExoPlayerLock = new();
 	static PlatformMediaElement? globalPlayer;
 	static MediaSession? globalSession;
 
@@ -181,12 +181,7 @@ public partial class MediaManager : Object, IPlayerListener
 			// Xamarin.AndroidX.Media3 bindings expose ExoPlayer.Builder as ExoPlayerBuilder
 			var exoPlayer = new ExoPlayerBuilder(context).Build();
 
-			if (exoPlayer == null)
-			{
-				throw new InvalidOperationException("Failed to create ExoPlayer");
-			}
-
-			Player = exoPlayer;
+			Player = exoPlayer ?? throw new InvalidOperationException("Failed to create ExoPlayer");
 			Player.AddListener(this);
 
 			// Headless audio-only config (critical for no surface/view)
@@ -227,11 +222,7 @@ public partial class MediaManager : Object, IPlayerListener
 
 		Exception? ex = null;
 		using var evt = new ManualResetEventSlim(false);
-		var mainLooper = Looper.MainLooper;
-		if (mainLooper == null)
-		{
-			throw new InvalidOperationException("MainLooper is null");
-		}
+		var mainLooper = Looper.MainLooper ?? throw new InvalidOperationException("MainLooper is null");
 		var handler = new Handler(mainLooper);
 		handler.Post(() =>
 		{

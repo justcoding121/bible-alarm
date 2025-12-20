@@ -18,7 +18,7 @@ namespace Bible.Alarm.Models.Schedule;
 [Table("AlarmSchedules")]
 [Index(nameof(IsEnabled))]
 [Index(nameof(Hour), nameof(Minute))]
-public class AlarmSchedule : IComparable
+public sealed class AlarmSchedule : IComparable
 {
     [Key]
     public int Id { get; set; }
@@ -63,9 +63,9 @@ public class AlarmSchedule : IComparable
     [Required]
     public bool MusicEnabled { get; set; }
 
-    public virtual AlarmMusic? Music { get; set; }
+    public AlarmMusic? Music { get; set; }
 
-    public virtual BibleReadingSchedule? BibleReadingSchedule { get; set; }
+    public BibleReadingSchedule? BibleReadingSchedule { get; set; }
 
     [Required]
     [Range(1, 60)]
@@ -85,7 +85,7 @@ public class AlarmSchedule : IComparable
     [Required]
     public long LatestAlarmNotificationId { get; set; }
 
-    public virtual ICollection<AlarmNotification> AlarmNotifications { get; set; } = new List<AlarmNotification>();
+    public ICollection<AlarmNotification> AlarmNotifications { get; set; } = new List<AlarmNotification>();
 
     public DateTimeOffset NextFireDate()
     {
@@ -134,12 +134,7 @@ public class AlarmSchedule : IComparable
 
     private static void ValidateNextFire(CronExpression expression)
     {
-        var nextFire = expression.GetNextValidTimeAfter(DateTimeOffset.Now);
-
-        if (nextFire == null)
-        {
-            throw new Exception("Invalid alarm time.");
-        }
+        var nextFire = expression.GetNextValidTimeAfter(DateTimeOffset.Now) ?? throw new Exception("Invalid alarm time.");
     }
 
     public int CompareTo(object? obj)

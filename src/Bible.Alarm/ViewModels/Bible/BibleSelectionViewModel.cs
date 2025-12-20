@@ -18,7 +18,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
@@ -221,7 +221,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
     public ObservableCollection<PublicationListViewItemModel> Translations
     {
-        get => translations ??= new ObservableCollection<PublicationListViewItemModel>();
+        get => translations ??= [];
         set => SetProperty(ref translations, value);
     }
 
@@ -229,7 +229,7 @@ public class BibleSelectionViewModel : ObservableObject, IListViewModel, IDispos
 
     public ObservableCollection<LanguageListViewItemModel> Languages
     {
-        get => languages ??= new ObservableCollection<LanguageListViewItemModel>();
+        get => languages ??= [];
         set => SetProperty(ref languages, value);
     }
 

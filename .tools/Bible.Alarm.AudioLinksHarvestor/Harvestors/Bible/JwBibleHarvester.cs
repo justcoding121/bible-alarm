@@ -89,7 +89,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                     logger.Information("Harvesting Bible chapter links for {PublicationName} of {Language} language.", publication.Value, language);
                     await HarvestBibleLinks(languageCode, publicationCode);
 
-                    if (!languageCodeToEditionsMapping.TryAdd(languageCode, new List<string>([publication.Key])))
+                    if (!languageCodeToEditionsMapping.TryAdd(languageCode, [publication.Key]))
                     {
                         languageCodeToEditionsMapping[languageCode].Add(publication.Key);
                     }
@@ -108,7 +108,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
     }
 
-    private bool ShouldSkipLanguage(string languageName)
+    private static bool ShouldSkipLanguage(string languageName)
     {
         if (string.IsNullOrWhiteSpace(languageName))
         {

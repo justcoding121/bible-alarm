@@ -9,9 +9,8 @@ using IPicture = TagLib.IPicture;
 
 namespace Bible.Alarm.Services.Media;
 
-public class DisplayMetadataService(ILogger logger, IMediaService mediaService) : IDisplayMetadataService, IDisposable
+public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaService) : IDisplayMetadataService
 {
-    private bool isDisposed;
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -240,17 +239,5 @@ public class DisplayMetadataService(ILogger logger, IMediaService mediaService) 
         });
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // All injected services are singletons, so don't dispose them
-        // No event handlers to unsubscribe
-    }
 }
 

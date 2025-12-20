@@ -27,18 +27,9 @@ public sealed class AudioFocusService
         this.audioFocusListener = audioFocusListener ?? throw new ArgumentNullException(nameof(audioFocusListener));
 
         // Initialize AudioManager in constructor - Application.Context is available at this point
-        var context = Application.Context;
-        if (context == null)
-        {
-            throw new InvalidOperationException("Android Application.Context is null - cannot initialize AudioFocusService");
-        }
-
+        var context = Application.Context ?? throw new InvalidOperationException("Android Application.Context is null - cannot initialize AudioFocusService");
         var audioManagerService = context.GetSystemService(Context.AudioService) as AudioManager;
-        if (audioManagerService == null)
-        {
-            throw new InvalidOperationException("Failed to get AudioManager from Application.Context");
-        }
-        audioManager = audioManagerService;
+        audioManager = audioManagerService ?? throw new InvalidOperationException("Failed to get AudioManager from Application.Context");
 
         logger.Debug("AudioFocusService initialized with AudioManager");
     }

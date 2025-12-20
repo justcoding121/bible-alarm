@@ -26,7 +26,7 @@ internal class DownloadUtility
             .WaitAndRetryAsync(
                 retryCount: 3,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
-                onRetry: (outcome, timespan, retryCount, context) =>
+                onRetry: (_, timespan, retryCount, _) =>
                 {
                     this.logger.Warning("Retrying request (attempt {RetryCount}/3) after {DelaySeconds}s delay...", retryCount, timespan.TotalSeconds);
                 });

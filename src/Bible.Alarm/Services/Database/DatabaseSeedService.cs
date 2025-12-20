@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Database;
 
-public class DatabaseSeedService(
+public sealed class DatabaseSeedService(
     ILogger logger,
     IAlarmScheduleService alarmScheduleService,
     IBibleTranslationService bibleTranslationService,

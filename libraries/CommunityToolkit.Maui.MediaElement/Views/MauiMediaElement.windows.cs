@@ -104,7 +104,7 @@ public partial class MauiMediaElement : Grid, IDisposable
 			IsPlaybackRateEnabled = true,
 			IsCompact = false,
 		};
-		temp.OnTemplateLoaded += (s, e) =>
+		temp.OnTemplateLoaded += (_, _) =>
 		{
 			if (temp.FullScreenButton is null)
 			{

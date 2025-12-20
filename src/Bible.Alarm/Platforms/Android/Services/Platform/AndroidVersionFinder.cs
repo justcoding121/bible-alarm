@@ -3,10 +3,9 @@ using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Platform;
 
-public class AndroidVersionFinder : IVersionFinder, IDisposable
+public sealed class AndroidVersionFinder : IVersionFinder
 {
-    private bool isDisposed;
-    private static readonly Lazy<string> version = new(() => GetVersionNameInternal());
+    private static readonly Lazy<string> version = new(GetVersionNameInternal);
     public static AndroidVersionFinder Default => new();
 
     public string GetVersionName() => version.Value;
@@ -15,17 +14,5 @@ public class AndroidVersionFinder : IVersionFinder, IDisposable
     {
         return "Android " + AndroidApplication.Context.ApplicationContext.PackageManager
             .GetPackageInfo(AndroidApplication.Context.ApplicationContext.PackageName, 0).VersionName;
-    }
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No resources to dispose
     }
 }

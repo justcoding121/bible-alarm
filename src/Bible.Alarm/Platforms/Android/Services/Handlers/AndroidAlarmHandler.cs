@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Handlers;
 
-public class AndroidAlarmHandler(
+public sealed class AndroidAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
     IAlarmScheduleService alarmScheduleService)

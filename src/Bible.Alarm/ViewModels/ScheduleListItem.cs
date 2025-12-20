@@ -17,7 +17,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public class ScheduleListItem(
+public sealed class ScheduleListItem(
     ILogger logger,
     ISchedulePlaybackService playbackService,
     IScheduleDisplayService displayService,

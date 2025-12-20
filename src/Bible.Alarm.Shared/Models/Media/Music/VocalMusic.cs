@@ -7,7 +7,7 @@ namespace Bible.Alarm.Shared.Models.Media.Music;
 
 [Table("VocalMusic")]
 [Index(nameof(Code), nameof(LanguageId), IsUnique = true)]
-public class VocalMusic : TranslatedPublication
+public sealed class VocalMusic : TranslatedPublication
 {
     [Key]
     public int Id { get; set; }

@@ -8,7 +8,7 @@ namespace Bible.Alarm.Stores.Models;
 /// Contains all schedule properties needed for display and state management.
 /// No database entities - this is a pure DTO.
 /// </summary>
-public class ScheduleStateItem : IComparable
+public sealed class ScheduleStateItem : IComparable
 {
     // Schedule properties
     public int Id { get; set; }

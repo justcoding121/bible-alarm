@@ -4,7 +4,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class ExceptionHandlingService(ILogger logger) : IExceptionHandlingService
+public sealed class ExceptionHandlingService(ILogger logger) : IExceptionHandlingService
 {
     private bool isDisposed;
 

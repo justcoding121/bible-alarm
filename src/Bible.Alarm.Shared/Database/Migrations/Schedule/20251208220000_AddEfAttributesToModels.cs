@@ -17,13 +17,13 @@ public partial class AddEfAttributesToModels : Migration
         migrationBuilder.CreateIndex(
             name: "IX_AlarmSchedules_Hour_Minute",
             table: "AlarmSchedules",
-            columns: new[] { "Hour", "Minute" });
+            columns: ["Hour", "Minute"]);
 
         // Add indexes for AlarmMusic
         migrationBuilder.CreateIndex(
             name: "IX_AlarmMusic_PublicationCode_LanguageCode",
             table: "AlarmMusic",
-            columns: new[] { "PublicationCode", "LanguageCode" });
+            columns: ["PublicationCode", "LanguageCode"]);
 
         // Add indexes for AlarmNotification
         migrationBuilder.CreateIndex(
@@ -34,13 +34,13 @@ public partial class AddEfAttributesToModels : Migration
         migrationBuilder.CreateIndex(
             name: "IX_AlarmNotifications_Sent_Fired",
             table: "AlarmNotifications",
-            columns: new[] { "Sent", "Fired" });
+            columns: ["Sent", "Fired"]);
 
         // Add indexes for BibleReadingSchedule
         migrationBuilder.CreateIndex(
             name: "IX_BibleReadingSchedules_PublicationCode_LanguageCode",
             table: "BibleReadingSchedules",
-            columns: new[] { "PublicationCode", "LanguageCode" });
+            columns: ["PublicationCode", "LanguageCode"]);
 
         // GeneralSettings already has index on Key from previous migration
     }

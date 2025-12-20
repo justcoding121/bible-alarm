@@ -11,7 +11,7 @@ namespace Bible.Alarm.Services.Scheduler;
 /// </summary>
 public sealed class AlarmService(
     INotificationService notificationService)
-    : IAlarmService, IDisposable
+    : IAlarmService
 {
     /// <summary>
     /// Creates an alarm schedule and schedules OS toast notification if enabled.
@@ -67,18 +67,4 @@ public sealed class AlarmService(
 
     private async Task RemoveNotification(int scheduleId) => await notificationService.RemoveAsync(scheduleId);
 
-    private bool isDisposed;
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // All injected services (notificationService) are singletons, so don't dispose them
-        // No event handlers to unsubscribe
-    }
 }

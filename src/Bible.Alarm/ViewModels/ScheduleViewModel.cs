@@ -25,7 +25,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public class ScheduleViewModel : ObservableObject, IDisposable
+public sealed class ScheduleViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
 
@@ -159,11 +159,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             }
         });
 
-        CancelCommand = new AsyncRelayCommand(async () =>
-        {
-            // Cancel just navigates back, no need for progress indicator
-            await navigationService.NavigateToHomeAsync();
-        });
+        CancelCommand = new AsyncRelayCommand(navigationService.NavigateToHomeAsync);
 
         SaveCommand = new AsyncRelayCommand(async () =>
         {
@@ -319,10 +315,7 @@ public class ScheduleViewModel : ObservableObject, IDisposable
             await navigationService.OpenNumberOfChaptersModalAsync(this);
         });
 
-        CloseModalCommand = new AsyncRelayCommand(async () =>
-        {
-            await navigationService.PopModalAsync();
-        });
+        CloseModalCommand = new AsyncRelayCommand(navigationService.PopModalAsync);
 
         SelectNumberOfChaptersCommand = new AsyncRelayCommand<NumberOfChaptersListViewItemModel>(async x =>
         {

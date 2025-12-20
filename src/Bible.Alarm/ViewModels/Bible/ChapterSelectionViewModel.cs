@@ -21,7 +21,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class ChapterSelectionViewModel : ObservableObject, IDisposable
+public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
 
@@ -395,7 +395,7 @@ public class ChapterSelectionViewModel : ObservableObject, IDisposable
     }
 }
 
-public class BibleChapterListViewItemModel : ObservableObject, IComparable
+public sealed class BibleChapterListViewItemModel : ObservableObject, IComparable
 {
     private readonly BibleChapter chapter;
 

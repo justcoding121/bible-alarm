@@ -21,9 +21,8 @@ using TaskStackBuilder = AndroidX.Core.App.TaskStackBuilder;
 
 namespace Bible.Alarm.Platforms.Android.Services.UI;
 
-public class AndroidNotificationService(ILogger logger) : INotificationService, IDisposable
+public sealed class AndroidNotificationService(ILogger logger) : INotificationService
 {
-    private bool isDisposed;
     public static readonly string ChannelIdAndName = "alarm_notification";
     public static readonly string ChannelDescription = "alarm_notification are send to this channel";
     public static readonly string ScheduleId = "schedule_id";
@@ -208,17 +207,5 @@ public class AndroidNotificationService(ILogger logger) : INotificationService, 
 
     public Task<bool> CanScheduleAsync() => Task.FromResult(true);
 
-    private static bool IsAndroidService() => AndroidApplication.Context != null;
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
-    }
+    private static bool IsAndroidService() => true;
 }

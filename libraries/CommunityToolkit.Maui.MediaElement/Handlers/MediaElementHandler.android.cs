@@ -61,13 +61,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 	{
 		// Get dispatcher - try current thread first, then Application.Current dispatcher
 		// After bootstrap completes, Application.Current.Dispatcher should always be available
-		var dispatcher = Dispatcher.GetForCurrentThread();
-		if (dispatcher == null)
-		{
-			// Try to get dispatcher from Application.Current (works in background services after bootstrap)
-			dispatcher = Application.Current?.Dispatcher;
-		}
-
+		var dispatcher = Dispatcher.GetForCurrentThread() ?? (Application.Current?.Dispatcher);
 		if (dispatcher == null)
 		{
 			throw new InvalidOperationException("Dispatcher cannot be null - ensure bootstrap has completed before calling CreatePlatformView");

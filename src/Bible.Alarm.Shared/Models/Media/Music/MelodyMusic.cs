@@ -7,7 +7,7 @@ namespace Bible.Alarm.Shared.Models.Media.Music;
 
 [Table("MelodyMusic")]
 [Index(nameof(Code), IsUnique = true)]
-public class MelodyMusic : Publication
+public sealed class MelodyMusic : Publication
 {
     [Key]
     public int Id { get; set; }

@@ -8,7 +8,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class MediaService(
+public sealed class MediaService(
     IMediaIndexService mediaLookUpService,
     IBibleTranslationService bibleTranslationService,
     IBibleBookService bibleBookService,

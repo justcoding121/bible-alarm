@@ -10,28 +10,16 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class MediaIndexService : IMediaIndexService, IDisposable
+public sealed class MediaIndexService(
+    ILogger logger,
+    IStorageService storageService,
+    IVersionFinder versionFinder,
+    IDownloadService downloadService)
+    : IMediaIndexService
 {
-    private readonly ILogger logger;
-
-    private readonly Lazy<string> indexRoot;
-
-    private readonly IStorageService storageService;
-    private readonly IVersionFinder versionFinder;
-    private readonly IDownloadService downloadService;
+    private readonly Lazy<string> indexRoot = new(() => storageService.StorageRoot);
 
     public string IndexRoot => indexRoot.Value;
-
-    public MediaIndexService(ILogger logger, IStorageService storageService, IVersionFinder versionFinder,
-        IDownloadService downloadService)
-    {
-        this.logger = logger;
-        this.storageService = storageService;
-        this.versionFinder = versionFinder;
-        this.downloadService = downloadService;
-
-        indexRoot = new Lazy<string>(() => storageService.StorageRoot);
-    }
 
     private readonly SemaphoreSlim @lock = new(1);
     private static bool verified;
@@ -44,7 +32,7 @@ public class MediaIndexService : IMediaIndexService, IDisposable
         .WaitAndRetryAsync(
             retryCount: 5,
             sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(100 * Math.Pow(2, retryAttempt - 1)), // 100ms, 200ms, 400ms, 800ms, 1600ms
-            onRetry: (exception, timespan, retryCount, context) =>
+            onRetry: (exception, timespan, retryCount, _) =>
             {
                 Log.Logger.Warning(exception, "File operation failed (likely locked), retrying (attempt {RetryCount}/5) after {DelayMs}ms",
                     retryCount, timespan.TotalMilliseconds);

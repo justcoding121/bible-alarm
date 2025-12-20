@@ -196,37 +196,21 @@ public static class CommonBootstrapHelper
             // Load language dictionary for translation names
             Dictionary<string, Language>? languagesDict = null;
             var bibleTranslationService = ServiceProviderManager.GetService<IBibleTranslationService>();
-            if (bibleTranslationService != null)
+            try
             {
-                try
-                {
-                    languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
-                    Log.Logger.Information("Loaded {Count} languages for translation name lookup", languagesDict.Count);
-                }
-                catch (Exception langEx)
-                {
-                    Log.Logger.Warning(langEx, "Error loading languages - translation names will not be populated");
-                }
+                languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
+                Log.Logger.Information("Loaded {Count} languages for translation name lookup", languagesDict.Count);
             }
-            else
+            catch (Exception langEx)
             {
-                Log.Logger.Warning("IBibleTranslationService is null - translation names will not be populated");
+                Log.Logger.Warning(langEx, "Error loading languages - translation names will not be populated");
             }
 
             // Get BibleBookService for book name lookup
             var bibleBookService = ServiceProviderManager.GetService<IBibleBookService>();
-            if (bibleBookService == null)
-            {
-                Log.Logger.Warning("IBibleBookService is null - book names will not be populated");
-            }
 
             // Get AutoMapper instance
             var mapper = ServiceProviderManager.GetService<IMapper>();
-            if (mapper == null)
-            {
-                Log.Logger.Error("IMapper service not found - cannot map schedules to state items");
-                return;
-            }
 
             // Create ObservableHashSet of ScheduleStateItem for state using AutoMapper
             // Include TranslationName from language dictionary and BookName from BibleBookService
@@ -308,17 +292,13 @@ public static class CommonBootstrapHelper
     /// This ensures the file is available for Android Auto dummy tracks.
     /// Only runs on Android platform. Fast exits if file already exists.
     /// </summary>
-    private static async Task CopySilentMp3ToStorage() =>
+    private static async Task CopySilentMp3ToStorage()
+    {
 #if ANDROID
         try
         {
             const string ResourceFileName = "silent.mp3";
             var storageService = ServiceProviderManager.GetService<IStorageService>();
-            if (storageService == null)
-            {
-                Log.Logger.Warning("IStorageService not available - skipping silent MP3 copy");
-                return;
-            }
 
             // Copy to StorageRoot (same directory as schedule database) instead of CacheRoot
             // because cache can get deleted by the system
@@ -344,5 +324,6 @@ public static class CommonBootstrapHelper
         // Only needed on Android for Android Auto dummy tracks
         await Task.CompletedTask;
 #endif
+    }
 
 }

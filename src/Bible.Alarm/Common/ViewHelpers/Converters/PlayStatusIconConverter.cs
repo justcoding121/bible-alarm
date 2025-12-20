@@ -3,7 +3,7 @@ using Bible.Alarm.Views;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
-public class PlayStatusIconConverter : IValueConverter
+public sealed class PlayStatusIconConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {

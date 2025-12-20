@@ -341,7 +341,7 @@ public static class CollectionViewHelper
             .WaitAndRetryAsync(
                 retryCount: maxRetries,
                 sleepDurationProvider: _ => TimeSpan.FromMilliseconds(delayMs),
-                onRetry: (exception, timeSpan, retryCount, context) =>
+                onRetry: (_, _, retryCount, _) =>
                 {
                     Log.Logger.Debug("Waiting for IsBusy to become false (attempt {RetryCount}/{MaxRetries})",
                         retryCount, maxRetries);

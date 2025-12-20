@@ -6,7 +6,7 @@ namespace Bible.Alarm.Views;
 public partial class FontFileResources : ResourceDictionary
 {
     private static FontFileResources? instance;
-    private static readonly object @lock = new();
+    private static readonly Lock @lock = new();
 
     public FontFileResources()
     {
@@ -81,7 +81,7 @@ public partial class FontFileResources : ResourceDictionary
     }
 }
 
-public class GlyphNames
+public sealed class GlyphNames
 {
     public static string Plus = "\uf067";
     public static string Search = "\uf002";

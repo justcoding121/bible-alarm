@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class PublicationListViewItemModel(Publication publication) : ObservableObject, IComparable
+public sealed class PublicationListViewItemModel(Publication publication) : ObservableObject, IComparable
 {
     private bool isSelected;
 

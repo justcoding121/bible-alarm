@@ -40,7 +40,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 // CRITICAL: MEDIA category removed to prevent phone projection Android Auto from discovering this service
 // Phone projection Android Auto should only discover LegacyMediaBrowserService
 // Modern AAOS will discover this via androidx.car.app.host.description metadata
-[IntentFilter(new[] { "androidx.car.app.CarAppService" })]
+[IntentFilter(["androidx.car.app.CarAppService"])]
 // Links the CarAppService to the description file for modern Android Auto/AAOS discovery
 [MetaData("androidx.car.app.host.description", Resource = "@xml/car_app_desc")]
 // Declare minimum Car App Library API level (using integer resource)
@@ -441,7 +441,7 @@ public class MainCarScreen : Screen, IDisposable
             ?.Build();
     }
 
-    private ListTemplate? BuildListTemplate(Header header, ItemList itemList)
+    private static ListTemplate? BuildListTemplate(Header header, ItemList itemList)
     {
         return new ListTemplate.Builder()
             ?.SetHeader(header)
@@ -536,7 +536,7 @@ public class MainCarScreen : Screen, IDisposable
             const int MusicOffset = 4; // Offset from top-left corner
             const int BookOffset = MusicIconSize - 8; // Offset book closer to music icon (reduced gap)
             const int BitmapSize = BookIconSize + BookOffset; // Total bitmap size (same for both cases)
-            
+
             var bookDrawable = ContextCompat.GetDrawable(CarContext, ResourceConstant.Drawable.ic_book_open);
             if (bookDrawable == null)
             {
@@ -549,7 +549,7 @@ public class MainCarScreen : Screen, IDisposable
             bitmap.EraseColor(Color.Transparent);
 
             var canvas = new Canvas(bitmap);
-            
+
             // Draw music note in top left corner if music is enabled
             if (musicEnabled)
             {
@@ -564,7 +564,7 @@ public class MainCarScreen : Screen, IDisposable
                     logger.Warning("Could not get app drawable for music note icon");
                 }
             }
-            
+
             // Draw book icon at the same position regardless of music (for consistent appearance)
             bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
             bookDrawable.Draw(canvas);
@@ -605,37 +605,23 @@ public class MainCarScreen : Screen, IDisposable
         return bitmap;
     }
 
-    private ITemplate CreateEmptyListTemplate()
+    private static ITemplate CreateEmptyListTemplate()
     {
-        var itemList = new ItemList.Builder()
+        var itemList = (new ItemList.Builder()
             ?.SetNoItemsMessage("No schedules available")
-            ?.Build();
-
-        if (itemList == null)
-        {
-            throw new InvalidOperationException("Failed to build empty item list");
-        }
+            ?.Build()) ?? throw new InvalidOperationException("Failed to build empty item list");
 
         // 2025 Modern Header: Title and HeaderAction are now part of a Header object
-        var header = new Header.Builder()
+        var header = (new Header.Builder()
             ?.SetTitle("Bible Alarm")
             ?.SetStartHeaderAction(Action.AppIcon)
-            ?.Build();
-
-        if (header == null)
-        {
-            throw new InvalidOperationException("Failed to build header for empty list template");
-        }
+            ?.Build()) ?? throw new InvalidOperationException("Failed to build header for empty list template");
 
         // Modern ListTemplate: Replaces direct SetTitle/SetHeaderAction with SetHeader
-        var template = new ListTemplate.Builder()
+        var template = (new ListTemplate.Builder()
             ?.SetHeader(header)
             ?.SetSingleList(itemList)
-            ?.Build();
-        if (template == null)
-        {
-            throw new InvalidOperationException("Failed to build empty list template");
-        }
+            ?.Build()) ?? throw new InvalidOperationException("Failed to build empty list template");
         return template;
     }
 

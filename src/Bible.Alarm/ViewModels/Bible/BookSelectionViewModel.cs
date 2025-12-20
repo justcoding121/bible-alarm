@@ -15,7 +15,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public class BookSelectionViewModel : ObservableObject, IDisposable
+public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 {
     private BibleReadingSchedule current;
     private BibleReadingSchedule tentative;
@@ -241,7 +241,7 @@ public class BookSelectionViewModel : ObservableObject, IDisposable
     }
 }
 
-public class BibleBookListViewItemModel(BibleBook book) : ObservableObject, IComparable
+public sealed class BibleBookListViewItemModel(BibleBook book) : ObservableObject, IComparable
 {
     private bool isSelected;
 

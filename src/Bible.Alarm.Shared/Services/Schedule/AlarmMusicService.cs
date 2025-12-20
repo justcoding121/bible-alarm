@@ -18,7 +18,7 @@ namespace Bible.Alarm.Shared.Services.Schedule;
 /// Service for interacting with AlarmMusic database operations.
 /// Abstracts database access from other services.
 /// </summary>
-public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger) : IAlarmMusicService
+public sealed class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger) : IAlarmMusicService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -90,7 +90,7 @@ public class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger logger
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var music = await dbContext.AlarmMusic.FindAsync(new object[] { musicId }, cancellationToken);
+        var music = await dbContext.AlarmMusic.FindAsync([musicId], cancellationToken);
         if (music != null)
         {
             dbContext.AlarmMusic.Remove(music);

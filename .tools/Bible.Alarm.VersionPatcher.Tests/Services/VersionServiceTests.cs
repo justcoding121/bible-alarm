@@ -40,10 +40,10 @@ public class VersionServiceTests
     public void IncrementVersion_WithInvalidFormat_ShouldThrowArgumentException()
     {
         // Arrange
-        var invalidVersion = "invalid";
+        const string InvalidVersion = "invalid";
 
         // Act & Assert
-        var action = () => versionService.IncrementVersion(invalidVersion);
+        var action = () => versionService.IncrementVersion(InvalidVersion);
         action.Should().Throw<ArgumentException>();
     }
 

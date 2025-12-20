@@ -22,23 +22,19 @@ public static class ResourceLoader
             .Where(x => x.EndsWith(resourceFileName, StringComparison.CurrentCultureIgnoreCase))
             .ToArray();
 
-        if (!resourcePaths.Any())
+        if (resourcePaths.Length == 0)
         {
-            throw new Exception(string.Format("Resource ending with {0} not found.", resourceFileName));
+            throw new Exception($"Resource ending with {resourceFileName} not found.");
         }
 
-        if (resourcePaths.Count() > 1)
+        if (resourcePaths.Length > 1)
         {
-            throw new Exception(string.Format("Multiple resources ending with {0} found: {1}{2}", resourceFileName,
-                Environment.NewLine, string.Join(Environment.NewLine, resourcePaths)));
+            throw new Exception(
+                $"Multiple resources ending with {resourceFileName} found: {Environment.NewLine}{string.Join(Environment.NewLine, resourcePaths)}");
         }
 
-        var stream = assembly.GetManifestResourceStream(resourcePaths.Single());
-        if (stream == null)
-        {
-            throw new Exception(string.Format("Resource stream for {0} is null.", resourceFileName));
-        }
-
+        var stream = assembly.GetManifestResourceStream(resourcePaths.Single()) ?? throw new Exception(
+            $"Resource stream for {resourceFileName} is null.");
         return stream;
     }
 
@@ -48,11 +44,7 @@ public static class ResourceLoader
     {
         // Assembly.Location is not available in AOT/trimmed scenarios
         // This method should only be used when AOT is not enabled
-        if (string.IsNullOrEmpty(assembly.Location))
-        {
-            throw new InvalidOperationException("Assembly.Location is not available. This method cannot be used in AOT/trimmed scenarios.");
-        }
-        return new FileInfo(assembly.Location);
+        return string.IsNullOrEmpty(assembly.Location) ? throw new InvalidOperationException("Assembly.Location is not available. This method cannot be used in AOT/trimmed scenarios.") : new FileInfo(assembly.Location);
     }
 }
 

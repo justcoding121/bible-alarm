@@ -5,10 +5,9 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService
+public sealed class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService
 {
     private readonly IServiceProvider serviceProvider = serviceProvider;
-    private bool isDisposed;
 
     public void OnStart()
     {
@@ -64,17 +63,5 @@ public class AppLifecycleService(ILogger logger, IServiceProvider serviceProvide
         });
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No event handlers to unsubscribe, but dispose any non-singleton injected services if needed
-        // All injected services are singletons, so no disposal needed
-    }
 }
 

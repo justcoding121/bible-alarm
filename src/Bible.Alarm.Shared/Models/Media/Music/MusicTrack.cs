@@ -7,7 +7,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
 [Table("MusicTrack")]
-public class MusicTrack : IComparable
+public sealed class MusicTrack : IComparable
 {
     [Key]
     public int Id { get; set; }

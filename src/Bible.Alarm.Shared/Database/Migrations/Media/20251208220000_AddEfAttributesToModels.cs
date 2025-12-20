@@ -19,21 +19,21 @@ public partial class AddEfAttributesToModels : Migration
         migrationBuilder.CreateIndex(
             name: "IX_BibleTranslations_Code_LanguageId",
             table: "BibleTranslations",
-            columns: new[] { "Code", "LanguageId" },
+            columns: ["Code", "LanguageId"],
             unique: true);
 
         // Add unique composite index for BibleBook (BibleTranslationId + Number)
         migrationBuilder.CreateIndex(
             name: "IX_BibleBook_BibleTranslationId_Number",
             table: "BibleBook",
-            columns: new[] { "BibleTranslationId", "Number" },
+            columns: ["BibleTranslationId", "Number"],
             unique: true);
 
         // Add unique composite index for BibleChapter (BibleBookId + Number)
         migrationBuilder.CreateIndex(
             name: "IX_BibleChapter_BibleBookId_Number",
             table: "BibleChapter",
-            columns: new[] { "BibleBookId", "Number" },
+            columns: ["BibleBookId", "Number"],
             unique: true);
 
         // Add unique index for MelodyMusic Code
@@ -47,7 +47,7 @@ public partial class AddEfAttributesToModels : Migration
         migrationBuilder.CreateIndex(
             name: "IX_VocalMusic_Code_LanguageId",
             table: "VocalMusic",
-            columns: new[] { "Code", "LanguageId" },
+            columns: ["Code", "LanguageId"],
             unique: true);
     }
 

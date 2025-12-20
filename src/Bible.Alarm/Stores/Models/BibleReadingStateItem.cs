@@ -6,7 +6,7 @@ namespace Bible.Alarm.Stores.Models;
 /// Contains all Bible reading schedule properties needed for display and state management.
 /// No database entities - this is a pure DTO.
 /// </summary>
-public class BibleReadingStateItem : IComparable
+public sealed class BibleReadingStateItem : IComparable
 {
     public int Id { get; set; }
     public string LanguageCode { get; set; } = string.Empty;

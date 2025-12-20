@@ -7,7 +7,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalService alarmModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
+public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalService alarmModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
 {
     private static NavigationPage? mainNavPage;
     private static readonly ILogger logger = Log.ForContext<WindowSetupService>();

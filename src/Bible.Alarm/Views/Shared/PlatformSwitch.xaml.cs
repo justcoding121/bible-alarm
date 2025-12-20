@@ -53,15 +53,15 @@ public partial class PlatformSwitch : ContentView
         // Set up event handlers after the view is loaded
         if (WinUISwitch != null)
         {
-            WinUISwitch.Toggled += (s, e) => IsToggled = e.Value;
+            WinUISwitch.Toggled += (_, e) => IsToggled = e.Value;
         }
         if (AndroidSwitch != null)
         {
-            AndroidSwitch.StateChanged += (s, e) => IsToggled = AndroidSwitch.IsOn ?? false;
+            AndroidSwitch.StateChanged += (_, _) => IsToggled = AndroidSwitch.IsOn ?? false;
         }
         if (iOSSwitch != null)
         {
-            iOSSwitch.StateChanged += (s, e) => IsToggled = iOSSwitch.IsOn ?? false;
+            iOSSwitch.StateChanged += (_, _) => IsToggled = iOSSwitch.IsOn ?? false;
         }
     }
 

@@ -19,7 +19,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public class HomeViewModel : ObservableObject, IDisposable
+public sealed class HomeViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IServiceScopeFactory scopeFactory;

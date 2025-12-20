@@ -18,7 +18,7 @@ namespace Bible.Alarm.Shared.Services.Schedule;
 /// Service for interacting with BibleReadingSchedule database operations.
 /// Abstracts database access from other services.
 /// </summary>
-public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleReadingScheduleService
+public sealed class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleReadingScheduleService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -90,7 +90,7 @@ public class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILog
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var bibleReadingSchedule = await dbContext.BibleReadingSchedules.FindAsync(new object[] { bibleReadingScheduleId }, cancellationToken);
+        var bibleReadingSchedule = await dbContext.BibleReadingSchedules.FindAsync([bibleReadingScheduleId], cancellationToken);
         if (bibleReadingSchedule != null)
         {
             dbContext.BibleReadingSchedules.Remove(bibleReadingSchedule);

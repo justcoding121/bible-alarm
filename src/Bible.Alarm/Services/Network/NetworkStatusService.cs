@@ -2,9 +2,8 @@ using Bible.Alarm.Services.Network.Interfaces;
 
 namespace Bible.Alarm.Services.Network;
 
-public class NetworkStatusService : INetworkStatusService, IDisposable
+public sealed class NetworkStatusService : INetworkStatusService
 {
-
     public Task<bool> IsInternetAvailable()
     {
         var current = Connectivity.NetworkAccess;
@@ -17,17 +16,4 @@ public class NetworkStatusService : INetworkStatusService, IDisposable
         return Task.FromResult(false);
     }
 
-    private bool isDisposed;
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No resources to dispose, no injected services (this service has no dependencies)
-    }
 }

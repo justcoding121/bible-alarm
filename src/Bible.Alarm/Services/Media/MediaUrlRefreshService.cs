@@ -10,9 +10,8 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService, IDisposable
+public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService
 {
-    private bool isDisposed;
 
     private static readonly string[] jwOrgUrls =
     [
@@ -209,17 +208,5 @@ public class MediaUrlRefreshService(ILogger logger, IDownloadService downloadSer
         }
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // All injected services are singletons, so don't dispose them
-        // No event handlers to unsubscribe
-    }
 }
 

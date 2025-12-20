@@ -7,7 +7,7 @@ namespace Bible.Alarm.Common.ViewHelpers.Converters;
 /// Enabled: Uses the parameter color (typically TextPrimaryColor for icons)
 /// Disabled: Uses theme-aware disabled color (darker in dark mode, lighter in light mode)
 /// </summary>
-public class IsEnabledColorConverter : IValueConverter
+public sealed class IsEnabledColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {

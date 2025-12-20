@@ -5,7 +5,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-public class ScheduleSelectionService(
+public sealed class ScheduleSelectionService(
     ILogger logger,
     IAlarmMusicService alarmMusicService,
     IBibleReadingScheduleService bibleReadingScheduleService)
@@ -21,12 +21,7 @@ public class ScheduleSelectionService(
             // Get the latest music track if needed
             if (currentMusic == null || (!isNewSchedule && !musicUpdated))
             {
-                var music = await alarmMusicService.GetMusicByScheduleIdAsync(scheduleId, cancellationTokenSource.Token);
-                if (music == null)
-                {
-                    throw new InvalidOperationException($"Music not found for schedule {scheduleId}");
-                }
-
+                var music = await alarmMusicService.GetMusicByScheduleIdAsync(scheduleId, cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Music not found for schedule {scheduleId}");
                 return music;
             }
 
@@ -46,12 +41,7 @@ public class ScheduleSelectionService(
             // Get the latest bible track if needed
             if (currentBibleReading == null || (!isNewSchedule && !bibleReadingUpdated))
             {
-                var bibleReading = await bibleReadingScheduleService.GetBibleReadingScheduleByScheduleIdAsync(scheduleId, cancellationTokenSource.Token);
-                if (bibleReading == null)
-                {
-                    throw new InvalidOperationException($"BibleReadingSchedule not found for schedule {scheduleId}");
-                }
-
+                var bibleReading = await bibleReadingScheduleService.GetBibleReadingScheduleByScheduleIdAsync(scheduleId, cancellationTokenSource.Token) ?? throw new InvalidOperationException($"BibleReadingSchedule not found for schedule {scheduleId}");
                 return bibleReading;
             }
 

@@ -3,12 +3,11 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class MediaCacheSetupService(
+public sealed class MediaCacheSetupService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IMediaCacheSetupService, IDisposable
+    : IMediaCacheSetupService
 {
-    private bool isDisposed;
 
     public async Task SetupAlarmCacheAsync(int scheduleId)
     {
@@ -24,17 +23,5 @@ public class MediaCacheSetupService(
         }
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // IServiceScopeFactory is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
-    }
 }
 

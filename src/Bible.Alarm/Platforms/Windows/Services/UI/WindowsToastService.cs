@@ -155,20 +155,16 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
     private static FrameworkElement? FindTargetElement(Window currentWindow)
     {
-        // First, try to get Frame (like legacy UWP code)
-        if (currentWindow.Content is Frame frame)
+        return currentWindow.Content switch
         {
-            return frame;
-        }
-
-        // If Content is not a Frame, try to get it as FrameworkElement
-        if (currentWindow.Content is FrameworkElement contentElement)
-        {
-            return contentElement;
-        }
+            // First, try to get Frame (like legacy UWP code)
+            Frame frame => frame,
+            // If Content is not a Frame, try to get it as FrameworkElement
+            FrameworkElement contentElement => contentElement,
+            _ => FindFrameworkElementInVisualTree(currentWindow.Content)
+        };
 
         // If we still don't have a target, try to find any FrameworkElement in the visual tree
-        return FindFrameworkElementInVisualTree(currentWindow.Content);
     }
 
     private static FrameworkElement? FindFrameworkElementInVisualTree(object? content)
@@ -285,7 +281,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
             // Subscribe to window size changes to reposition the popup
             if (windowContent != null)
             {
-                sizeChangedHandler = (sender, args) =>
+                sizeChangedHandler = (_, _) =>
                 {
                     try
                     {

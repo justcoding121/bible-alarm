@@ -3,7 +3,7 @@ using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
-public class DayOpacityConverter : IValueConverter
+public sealed class DayOpacityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {

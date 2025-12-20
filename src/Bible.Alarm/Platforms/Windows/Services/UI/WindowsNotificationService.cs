@@ -12,9 +12,8 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
 
-public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : INotificationService, IDisposable
+public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : INotificationService
 {
-    private bool isDisposed;
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task ShowNotificationAsync(int scheduleId)
@@ -320,18 +319,5 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             Log.Debug(ex, "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}", aumid, ex.HResult);
         }
         return null;
-    }
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // IServiceProvider is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
     }
 }

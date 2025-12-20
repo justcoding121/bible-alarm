@@ -9,7 +9,7 @@ namespace Bible.Alarm.Common.ViewHelpers.Converters;
 /// but to update on theme changes, the CollectionView must be refreshed.
 /// For a fully automatic solution, consider using VisualStateManager with CollectionView.SelectedItem.
 /// </summary>
-public class IsSelectedColorConverter : IValueConverter
+public sealed class IsSelectedColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
@@ -34,7 +34,7 @@ public class IsSelectedColorConverter : IValueConverter
         return isSelected ? GetSelectedColor() : GetUnselectedColor();
     }
 
-    private Color GetSelectedColor()
+    private static Color GetSelectedColor()
     {
         // Read from Application resources - these are updated by App.xaml.cs on theme change
         if (Application.Current?.Resources.TryGetValue("ControlBackgroundColor", out var controlBgColor) == true &&

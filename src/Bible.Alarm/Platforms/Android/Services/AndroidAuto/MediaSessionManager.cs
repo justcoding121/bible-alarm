@@ -70,18 +70,9 @@ public sealed class MediaSessionManager
         return session;
     }
 
-    private Context GetApplicationContext()
-    {
-        var context = Application.Context;
-        if (context == null)
-        {
-            logger.Error("Android Application.Context is null - cannot create MediaSessionCompat");
-            throw new InvalidOperationException("Android Application.Context is null");
-        }
-        return context;
-    }
+    private static Context GetApplicationContext() => Application.Context;
 
-    private MediaSessionCompat InitializeMediaSession(Context context)
+    private static MediaSessionCompat InitializeMediaSession(Context context)
     {
         logger.Information("Creating shared MediaSessionCompat instance (2025 Standard)");
 
@@ -89,11 +80,6 @@ public sealed class MediaSessionManager
         // Note: Ensure your AndroidManifest.xml has a MediaButtonReceiver registered
         // The system now automatically finds your MediaButtonReceiver via the <intent-filter> in AndroidManifest.xml
         var session = new MediaSessionCompat(context, "BibleAlarmSession");
-        if (session == null)
-        {
-            logger.Error("Failed to create MediaSessionCompat instance");
-            throw new InvalidOperationException("Failed to create MediaSessionCompat instance");
-        }
 
         // REMOVED SetFlags: FlagHandlesMediaButtons and FlagHandlesTransportControls are now default behavior in 2025
 
@@ -196,7 +182,7 @@ public sealed class MediaSessionManager
             state, position, actions);
     }
 
-    private long BuildPlaybackActions(bool canPlayNext, bool canPlayPrevious)
+    private static long BuildPlaybackActions(bool canPlayNext, bool canPlayPrevious)
     {
         // Base actions that are always available
         long actions = PlaybackStateCompat.ActionPlay |
@@ -342,7 +328,7 @@ public sealed class MediaSessionManager
         }
     }
 
-    private void PreserveMediaId(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, int? scheduleId)
+    private static void PreserveMediaId(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, int? scheduleId)
     {
         // Preserve MediaId (scheduleId) for OnPlayFromMediaId
         var existingMediaId = existingMetadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);

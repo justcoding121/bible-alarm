@@ -74,16 +74,11 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var language in bibleLanguages)
         {
             var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
-                                                                    && x.Name == language.Value.Name);
-            if (newLanguage == null)
-            {
-                newLanguage = new Language
-                {
-                    Code = language.Value.Code,
-                    Name = language.Value.Name
-                };
-            }
-
+                                                                    && x.Name == language.Value.Name) ?? new Language
+                                                                    {
+                                                                        Code = language.Value.Code,
+                                                                        Name = language.Value.Name
+                                                                    };
             Dictionary<string, Publication> translations;
             try
             {
@@ -323,16 +318,11 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var language in melodyLanguages)
         {
             var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
-                                                                    && x.Name == language.Value.Name);
-            if (newLanguage == null)
-            {
-                newLanguage = new Language
-                {
-                    Code = language.Value.Code,
-                    Name = language.Value.Name
-                };
-            }
-
+                                                                    && x.Name == language.Value.Name) ?? new Language
+                                                                    {
+                                                                        Code = language.Value.Code,
+                                                                        Name = language.Value.Name
+                                                                    };
             Dictionary<string, Publication> vocalMusicReleases;
             try
             {

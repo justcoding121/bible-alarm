@@ -5,9 +5,8 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundService, IDisposable
+public sealed class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundService
 {
-    private bool isDisposed;
 
     public async Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync()
     {
@@ -49,16 +48,5 @@ public class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSoundServ
         return null;
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
-    }
 }
 

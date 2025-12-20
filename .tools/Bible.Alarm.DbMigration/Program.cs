@@ -100,7 +100,7 @@ class Program
     static async Task ListMigrationsForContext<TContext>() where TContext : DbContext
     {
         var factory = GetFactory<TContext>();
-        using var context = factory.CreateDbContext(Array.Empty<string>());
+        using var context = factory.CreateDbContext([]);
 
         var migrations = await context.Database.GetPendingMigrationsAsync();
         var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
@@ -121,7 +121,7 @@ class Program
     static async Task ShowMigrationStatusForContext<TContext>() where TContext : DbContext
     {
         var factory = GetFactory<TContext>();
-        using var context = factory.CreateDbContext(Array.Empty<string>());
+        using var context = factory.CreateDbContext([]);
 
         var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
         var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();

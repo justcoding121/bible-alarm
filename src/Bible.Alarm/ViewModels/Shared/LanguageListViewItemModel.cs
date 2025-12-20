@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class LanguageListViewItemModel(Language language) : ObservableObject, IComparable
+public sealed class LanguageListViewItemModel(Language language) : ObservableObject, IComparable
 {
     public string Name { get; set; } = language.Name;
     public string Code { get; set; } = language.Code;

@@ -37,12 +37,12 @@ public static class AndroidAutoScheduleHelper
             }
 
             logger.Warning("No schedules found in state - state may not be initialized yet");
-            return new List<ScheduleStateItem>();
+            return [];
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error loading schedules from state for Android Auto");
-            return new List<ScheduleStateItem>();
+            return [];
         }
     }
 

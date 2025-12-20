@@ -9,7 +9,7 @@ namespace Bible.Alarm.Shared.Models.Media.Bible;
 
 [Table("BibleChapter")]
 [Index(nameof(BibleBookId), nameof(Number), IsUnique = true)]
-public class BibleChapter : IComparable
+public sealed class BibleChapter : IComparable
 {
     [Key]
     public int Id { get; set; }
@@ -27,7 +27,7 @@ public class BibleChapter : IComparable
     public int BibleBookId { get; set; }
 
     [Required]
-    public virtual BibleBook Book { get; set; } = null!;
+    public BibleBook Book { get; set; } = null!;
 
     public int CompareTo(object? obj)
     {

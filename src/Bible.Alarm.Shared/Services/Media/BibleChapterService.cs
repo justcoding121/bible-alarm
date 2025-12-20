@@ -16,7 +16,7 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// <summary>
 /// Service for accessing BibleChapter database operations.
 /// </summary>
-public class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleChapterService
+public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleChapterService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));

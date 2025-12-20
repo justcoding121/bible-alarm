@@ -8,7 +8,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class ScheduleDisplayService(
+public sealed class ScheduleDisplayService(
     ILogger logger,
     IState<PlaybackState> playbackState,
     IAlarmScheduleService alarmScheduleService,

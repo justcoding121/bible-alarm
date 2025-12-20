@@ -31,7 +31,7 @@ sealed class Metadata
 		{
 			if (dispatcher.IsDispatchRequired)
 			{
-				dispatcher.Dispatch(() => mediaElement.Play());
+				dispatcher.Dispatch(mediaElement.Play);
 			}
 			else
 			{
@@ -42,7 +42,7 @@ sealed class Metadata
 		{
 			if (dispatcher.IsDispatchRequired)
 			{
-				dispatcher.Dispatch(() => mediaElement.Pause());
+				dispatcher.Dispatch(mediaElement.Pause);
 			}
 			else
 			{

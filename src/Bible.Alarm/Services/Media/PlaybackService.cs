@@ -14,7 +14,7 @@ using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IDisposable
+public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IAudioPlayer audioPlayer;

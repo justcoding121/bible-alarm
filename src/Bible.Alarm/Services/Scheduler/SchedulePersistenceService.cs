@@ -11,7 +11,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-public class SchedulePersistenceService(
+public sealed class SchedulePersistenceService(
     ILogger logger,
     IAlarmService alarmService,
     IDispatcher dispatcher,

@@ -17,7 +17,7 @@ namespace Bible.Alarm.Shared.Services.Schedule;
 /// Service for interacting with alarm schedule-related database operations.
 /// Abstracts database access from other services.
 /// </summary>
-public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmScheduleService
+public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmScheduleService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -141,7 +141,7 @@ public class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmSch
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var schedule = await dbContext.AlarmSchedules.FindAsync(new object[] { scheduleId }, cancellationToken);
+        var schedule = await dbContext.AlarmSchedules.FindAsync([scheduleId], cancellationToken);
         if (schedule != null)
         {
             dbContext.AlarmSchedules.Remove(schedule);

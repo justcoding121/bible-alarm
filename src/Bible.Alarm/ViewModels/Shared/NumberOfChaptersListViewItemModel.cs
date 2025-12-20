@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public class NumberOfChaptersListViewItemModel(int number) : ObservableObject, IComparable
+public sealed class NumberOfChaptersListViewItemModel(int number) : ObservableObject, IComparable
 {
     public string Text => $"{Value} {(Value == 1 ? "chapter" : "chapters")}";
     public int Value { get; set; } = number;

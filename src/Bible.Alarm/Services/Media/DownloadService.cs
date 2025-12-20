@@ -8,50 +8,43 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class DownloadService : IDownloadService, IDisposable
+public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) : IDownloadService, IDisposable
 {
-    private readonly HttpMessageHandler handler;
     private readonly int timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
-    private readonly ILogger logger;
-    private readonly CancellationTokenSource cancellationTokenSource;
+    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     private bool isDisposed;
 
     // User-Agent string to identify the app and prevent 403 errors from servers that block requests without proper User-Agent
     private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
 
-    private readonly AsyncRetryPolicy<byte[]> downloadRetryPolicy;
-
-    public DownloadService(HttpMessageHandler handler, ILogger logger)
-    {
-        this.handler = handler;
-        this.logger = logger;
-        cancellationTokenSource = new CancellationTokenSource();
-
-        downloadRetryPolicy = Policy<byte[]>
+    private readonly AsyncRetryPolicy<byte[]> downloadRetryPolicy = Policy<byte[]>
             .Handle<Exception>(ex =>
             {
                 // Don't retry on HTTP errors like 403, 404 (permanent failures)
-                if (ex is HttpRequestException httpEx)
+                if (ex is not HttpRequestException httpEx)
                 {
-                    var message = httpEx.Message;
-                    // Check for permanent HTTP errors that shouldn't be retried
-                    if (message.Contains("403") ||
-                        message.Contains("404") ||
-                        message.Contains("Forbidden") ||
-                        message.Contains("Not Found"))
-                    {
-                        logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
-                        // Don't handle/retry this exception
-                        return false;
-                    }
+                    return true;
                 }
+
+                var message = httpEx.Message;
+                // Check for permanent HTTP errors that shouldn't be retried
+                if (!message.Contains("403") &&
+                    !message.Contains("404") &&
+                    !message.Contains("Forbidden") &&
+                    !message.Contains("Not Found"))
+                {
+                    return true;
+                }
+
+                logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
+                // Don't handle/retry this exception
+                return false;
                 // Handle/retry other exceptions
-                return true;
             })
             .WaitAndRetryAsync(
                 retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),
-                onRetry: (outcome, timespan, retryCount, context) =>
+                onRetry: (outcome, timespan, retryCount, _) =>
                 {
                     // Log retry attempts
                     var exception = outcome?.Exception;
@@ -62,7 +55,6 @@ public class DownloadService : IDownloadService, IDisposable
                         timespan.TotalSeconds,
                         exceptionMessage);
                 });
-    }
 
     // Polly retry policy for file existence checks
     private readonly AsyncRetryPolicy fileExistsRetryPolicy = Policy

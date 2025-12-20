@@ -10,7 +10,7 @@ using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
-public class AndroidAudioPreviewer(MediaPlayer player, ILogger logger) : Object,
+public sealed class AndroidAudioPreviewer(MediaPlayer player, ILogger logger) : Object,
     MediaPlayer.IOnCompletionListener, IAudioPreviewer, IDisposable
 {
     private MediaPlayer player = player;

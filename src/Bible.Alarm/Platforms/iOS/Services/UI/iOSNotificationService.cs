@@ -7,14 +7,12 @@ using UserNotifications;
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI;
 
-public class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService, IDisposable
+public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
 {
-    private bool isDisposed;
-
     public async Task ShowNotificationAsync(int scheduleId)
     {
         using var scope = scopeFactory.CreateScope();
-        var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IIOsAlarmHandler>();
+        var iosAlarmHandler = scope.ServiceProvider.GetRequiredService<IIosAlarmHandler>();
         await iosAlarmHandler.HandleAsync(scheduleId, true);
     }
 
@@ -115,18 +113,5 @@ public class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFa
 
             return taskCompletionSource.Task.Result;
         });
-    }
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // IServiceScopeFactory is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
     }
 }

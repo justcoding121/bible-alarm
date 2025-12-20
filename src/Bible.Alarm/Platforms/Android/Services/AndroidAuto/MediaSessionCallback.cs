@@ -67,7 +67,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     public override void OnPlay()
     {
         logger.Information("MediaSessionCallback.OnPlay() called from Android Auto");
-        ExecuteAsyncOperation(async () => await HandlePlayAsync());
+        ExecuteAsyncOperation(HandlePlayAsync);
         base.OnPlay();
     }
 

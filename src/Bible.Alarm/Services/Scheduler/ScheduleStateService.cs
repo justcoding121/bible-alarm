@@ -9,7 +9,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-public class ScheduleStateService(
+public sealed class ScheduleStateService(
     ILogger logger,
     IAlarmScheduleService alarmScheduleService,
     IAlarmService alarmService,

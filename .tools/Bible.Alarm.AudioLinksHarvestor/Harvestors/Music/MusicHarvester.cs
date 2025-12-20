@@ -18,11 +18,11 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 {
     private const int MaxConcurrentLanguageDownloads = 8;
 
-    private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new(new[]{
+    private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>("osg","Original Songs"),
         new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
         new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
-    });
+    ]);
 
     internal async Task HarvestVocalMusicLinks(bool isTestRun = false)
     {
@@ -85,7 +85,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 if (englishEntry.Code == "E")
                 {
                     logger.Information("TEST RUN: Processing only English language for publication {PublicationCode}", publication.Key);
-                    languageEntries = new List<(string Code, string Name)> { englishEntry };
+                    languageEntries = [englishEntry];
                 }
                 else
                 {
@@ -104,7 +104,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
                     try
                     {
-                        await HarvestMusicLinks(publication.Key, new List<string>([publication.Key]), languageCode);
+                        await HarvestMusicLinks(publication.Key, [publication.Key], languageCode);
                         languageCodeToNames[languageCode] = language;
 
                         lock (languageCodeToPublications)
@@ -160,9 +160,9 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     }
 
-    private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new(new[]{
+    private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>("iam","Sing Praises to Jehovah (1984)")
-    });
+    ]);
 
     internal async Task HarvestMusicMelodyLinks(bool isTestRun = false)
     {

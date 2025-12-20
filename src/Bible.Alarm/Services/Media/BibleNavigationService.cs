@@ -4,12 +4,11 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class BibleNavigationService(
+public sealed class BibleNavigationService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IBibleNavigationService, IDisposable
+    : IBibleNavigationService
 {
-    private bool isDisposed;
 
     public async Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule)
     {
@@ -145,17 +144,5 @@ public class BibleNavigationService(
         }
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // IServiceScopeFactory is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
-    }
 }
 

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
-public class RepeatColorConverter : IValueConverter
+public sealed class RepeatColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => bool.Parse(value.ToString()) ? Colors.SlateBlue : Colors.Gray;
 

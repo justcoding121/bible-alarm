@@ -189,7 +189,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAudioPreviewer>(sp => new IOsAudioPreviewer(
             sp.GetRequiredService<IDownloadService>(),
             sp.GetRequiredService<ILogger>()));
-        services.AddSingleton<IIOsAlarmHandler, IOsAlarmHandler>();
+        services.AddSingleton<IIosAlarmHandler, IOsAlarmHandler>();
 #elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();

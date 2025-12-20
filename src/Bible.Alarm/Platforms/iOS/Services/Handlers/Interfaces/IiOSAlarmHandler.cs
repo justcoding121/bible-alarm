@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
 
-public interface IIOsAlarmHandler : IDisposable
+public interface IIosAlarmHandler : IDisposable
 {
     Task HandleAsync(int scheduleId, bool isAlarm);
 }

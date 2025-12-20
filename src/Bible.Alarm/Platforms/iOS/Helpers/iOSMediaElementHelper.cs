@@ -8,7 +8,7 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 /// Helper class for iOS-specific MediaElement operations.
 /// Handles URI processing, playback state management, and volume settings.
 /// </summary>
-public static class IOsMediaElementHelper
+public static class IosMediaElementHelper
 {
     /// <summary>
     /// Processes a URI for iOS MediaElement by normalizing paths.
@@ -237,7 +237,7 @@ public static class IOsMediaElementHelper
             if (!isStillPlayingOrBuffering)
             {
                 logger.Debug("MediaElement still not playing after wait, attempting Play() again. State: {State}", stateAfterWait);
-                await MainThread.InvokeOnMainThreadAsync(() => mediaElement.Play());
+                await MainThread.InvokeOnMainThreadAsync(mediaElement.Play);
                 await Task.Delay(100);
                 stateAfterWait = await GetCurrentStateAsync(mediaElement, logger);
                 logger.Debug("After retry, MediaElement state: {State}", stateAfterWait);

@@ -22,11 +22,10 @@ public static class IOsAudioSessionHelper
         {
             logger.Debug("Attempting to configure iOS audio session for {Context}.", context);
             var audioSession = AVAudioSession.SharedInstance();
-            NSError? error;
 
             // Set category for playback - this allows audio to play even in silent mode
             var categoryName = new NSString("AVAudioSessionCategoryPlayback");
-            var categoryResult = audioSession.SetCategory(categoryName, out error);
+            var categoryResult = audioSession.SetCategory(categoryName, out var error);
 
             if (!categoryResult || error != null)
             {

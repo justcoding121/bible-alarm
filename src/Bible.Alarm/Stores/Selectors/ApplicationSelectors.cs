@@ -97,10 +97,10 @@ public static class ApplicationSelectors
     {
         if (state.Schedules == null || state.Schedules.Count == 0)
         {
-            return new List<AlarmSchedule>();
+            return [];
         }
 
-        return state.Schedules.Select(scheduleStateItem => mapper.Map<AlarmSchedule>(scheduleStateItem)).ToList();
+        return state.Schedules.Select(mapper.Map<AlarmSchedule>).ToList();
     }
 
     /// <summary>

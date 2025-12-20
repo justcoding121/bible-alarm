@@ -15,7 +15,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 
 namespace Bible.Alarm.Services.Media;
 
-public class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>, IDisposable
+public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaElementService mediaElementService;
@@ -141,13 +141,13 @@ public class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>,
             mediaElement.MetadataArtworkUrl = null!;
 
 #if IOS
-            var processedUri = IOsMediaElementHelper.ProcessUriForMediaElement(track.Uri, logger);
-            IOsMediaElementHelper.SetSourceAndVolume(mediaElement, processedUri, logger);
+            var processedUri = IosMediaElementHelper.ProcessUriForMediaElement(track.Uri, logger);
+            IosMediaElementHelper.SetSourceAndVolume(mediaElement, processedUri, logger);
 #elif ANDROID
             // Handler is guaranteed to exist - GetMediaElementAsync() creates it for headless mode
             // CRITICAL: We MUST set a valid Source on MediaElement itself
             // even when using ExoPlayer directly for the queue.
-            // Otherwise MediaElement stays in State.None forever.
+            // Otherwise, MediaElement stays in State.None forever.
             mediaElement.Source = MediaSource.FromUri(track.Uri);
 
             // Now set the real (multi-item) queue via ExoPlayer to enable Next button
@@ -177,22 +177,22 @@ public class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>,
             return;
         }
 
-        await IOsMediaElementHelper.ConfigureAudioSessionBeforePlayAsync(logger);
-        var currentState = await IOsMediaElementHelper.GetCurrentStateAsync(mediaElement, logger);
-        await IOsMediaElementHelper.HandlePausedStateAsync(mediaElement, currentState, logger);
-        await IOsMediaElementHelper.InvokePlayAsync(mediaElement, logger);
+        await IosMediaElementHelper.ConfigureAudioSessionBeforePlayAsync(logger);
+        var currentState = await IosMediaElementHelper.GetCurrentStateAsync(mediaElement, logger);
+        await IosMediaElementHelper.HandlePausedStateAsync(mediaElement, currentState, logger);
+        await IosMediaElementHelper.InvokePlayAsync(mediaElement, logger);
 
         // Wait briefly and check if playback started
         await Task.Delay(100);
 
-        var stateAfterPlay = await IOsMediaElementHelper.GetCurrentStateAsync(mediaElement, logger);
+        var stateAfterPlay = await IosMediaElementHelper.GetCurrentStateAsync(mediaElement, logger);
         // Check state using string comparison since helper returns object
         var stateString = stateAfterPlay.ToString();
         if (stateString is "Playing" or "Buffering")
         {
             logger.Debug("MediaElement is in {State} state after Play()", stateAfterPlay);
         }
-        await IOsMediaElementHelper.RetryPlayIfNeededAsync(mediaElement, stateAfterPlay, logger);
+        await IosMediaElementHelper.RetryPlayIfNeededAsync(mediaElement, stateAfterPlay, logger);
 #else
         await InvokePlayOnMainThreadAsync();
 

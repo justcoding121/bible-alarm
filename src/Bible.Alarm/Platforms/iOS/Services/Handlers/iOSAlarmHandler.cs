@@ -8,12 +8,12 @@ using UIKit;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Handlers;
 
-public class IOsAlarmHandler(
+public sealed class IOsAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
     IState<PlaybackState> playbackState,
     TaskScheduler taskScheduler)
-    : IIOsAlarmHandler
+    : IIosAlarmHandler
 {
     private static readonly SemaphoreSlim @lock = new(1);
 

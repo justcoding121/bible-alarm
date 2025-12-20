@@ -6,9 +6,8 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateService
+public sealed class ScheduleItemStateService(ILogger logger) : IScheduleItemStateService
 {
-    private bool isDisposed;
 
     /// <summary>
     /// Sets IsBusy to false for the schedule item with the given ID and hides the Home page overlay.
@@ -90,16 +89,5 @@ public class ScheduleItemStateService(ILogger logger) : IScheduleItemStateServic
         }
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No event handlers to unsubscribe, no injected services to dispose (logger is singleton)
-    }
 }
 

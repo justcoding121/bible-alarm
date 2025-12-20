@@ -14,7 +14,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public class NavigationService(
+public sealed class NavigationService(
     IServiceProvider serviceProvider,
     ILogger logger)
     : INavigationService, IDisposable
@@ -32,7 +32,7 @@ public class NavigationService(
         .WaitAndRetry(
             retryCount: int.MaxValue,
             sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
-            onRetry: (exception, timeSpan, retryCount, context) =>
+            onRetry: (exception, timeSpan, retryCount, _) =>
             {
                 logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}). Error: {exception.Message}");
             });
@@ -242,21 +242,15 @@ public class NavigationService(
     public async Task OpenLanguageModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        ContentPage modal;
 
-        // Use the appropriate modal based on the ViewModel type for compiled bindings
-        if (bindingContext is BibleSelectionViewModel)
+        ContentPage modal = bindingContext switch
         {
-            modal = serviceProvider.GetRequiredService<BibleLanguageModal>();
-        }
-        else if (bindingContext is SongBookSelectionViewModel)
-        {
-            modal = serviceProvider.GetRequiredService<MusicLanguageModal>();
-        }
-        else
-        {
-            throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}", nameof(bindingContext));
-        }
+            // Use the appropriate modal based on the ViewModel type for compiled bindings
+            BibleSelectionViewModel => serviceProvider.GetRequiredService<BibleLanguageModal>(),
+            SongBookSelectionViewModel => serviceProvider.GetRequiredService<MusicLanguageModal>(),
+            _ => throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}",
+                nameof(bindingContext))
+        };
 
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
@@ -439,7 +433,7 @@ public class NavigationService(
             catch (Exception ex)
             {
                 logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access ModalStack, fragments may be destroyed");
-                modalStack = new List<Page>();
+                modalStack = [];
             }
 
             foreach (var page in modalStack)
@@ -467,7 +461,7 @@ public class NavigationService(
             catch (Exception ex)
             {
                 logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access NavigationStack, fragments may be destroyed");
-                navigationStack = new List<Page>();
+                navigationStack = [];
             }
 
             foreach (var page in navigationStack)

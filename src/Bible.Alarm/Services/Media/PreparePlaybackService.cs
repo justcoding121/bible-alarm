@@ -7,12 +7,11 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PreparePlaybackService(
+public sealed class PreparePlaybackService(
     ILogger logger,
     IPlaylistService playlistService,
     IMediaCacheService cacheService) : IPreparePlaybackService
 {
-    private bool isDisposed;
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
     {
@@ -79,17 +78,5 @@ public class PreparePlaybackService(
         };
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // All injected services are singletons, so don't dispose them
-        // No event handlers to unsubscribe
-    }
 }
 

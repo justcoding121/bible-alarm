@@ -5,68 +5,42 @@ using Fluxor;
 namespace Bible.Alarm.Stores;
 
 [FeatureState]
-public class PlaybackState
+public sealed class PlaybackState(
+    int? currentScheduleId,
+    bool isPreparingOrPlaying,
+    bool canPlayNext,
+    bool canPlayPrevious,
+    PlayStatus status = PlayStatus.Stopped,
+    string? title = null,
+    string? artist = null,
+    string? album = null,
+    string? artworkUrl = null,
+    TimeSpan duration = default,
+    string? errorMessage = null)
 {
-    public int? CurrentScheduleId { get; init; }
-    public bool IsPreparingOrPlaying { get; init; }
-    public bool CanPlayNext { get; init; }
-    public bool CanPlayPrevious { get; init; }
+    public int? CurrentScheduleId { get; init; } = currentScheduleId;
+    public bool IsPreparingOrPlaying { get; init; } = isPreparingOrPlaying;
+    public bool CanPlayNext { get; init; } = canPlayNext;
+    public bool CanPlayPrevious { get; init; } = canPlayPrevious;
 
     // Playback status
-    public PlayStatus Status { get; init; }
+    public PlayStatus Status { get; init; } = status;
 
     // Metadata
-    public string? Title { get; init; }
-    public string? Artist { get; init; }
-    public string? Album { get; init; }
-    public string? ArtworkUrl { get; init; }
+    public string? Title { get; init; } = title;
+    public string? Artist { get; init; } = artist;
+    public string? Album { get; init; } = album;
+    public string? ArtworkUrl { get; init; } = artworkUrl;
 
     // Duration (updated when track changes, infrequent)
     // Note: CurrentPosition and PreparationProgress are handled via MVVM messaging for performance (high-frequency updates)
-    public TimeSpan Duration { get; init; }
+    public TimeSpan Duration { get; init; } = duration;
 
     // Error message (shown when playback fails)
-    public string? ErrorMessage { get; init; }
+    public string? ErrorMessage { get; init; } = errorMessage;
 
-    public PlaybackState()
+    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null)
     {
-        CurrentScheduleId = null;
-        IsPreparingOrPlaying = false;
-        CanPlayNext = false;
-        CanPlayPrevious = false;
-        Status = PlayStatus.Stopped;
-        Title = null;
-        Artist = null;
-        Album = null;
-        ArtworkUrl = null;
-        Duration = TimeSpan.Zero;
-        ErrorMessage = null;
-    }
-
-    public PlaybackState(
-        int? currentScheduleId,
-        bool isPreparingOrPlaying,
-        bool canPlayNext,
-        bool canPlayPrevious,
-        PlayStatus status = PlayStatus.Stopped,
-        string? title = null,
-        string? artist = null,
-        string? album = null,
-        string? artworkUrl = null,
-        TimeSpan duration = default,
-        string? errorMessage = null)
-    {
-        CurrentScheduleId = currentScheduleId;
-        IsPreparingOrPlaying = isPreparingOrPlaying;
-        CanPlayNext = canPlayNext;
-        CanPlayPrevious = canPlayPrevious;
-        Status = status;
-        Title = title;
-        Artist = artist;
-        Album = album;
-        ArtworkUrl = artworkUrl;
-        Duration = duration;
-        ErrorMessage = errorMessage;
     }
 }
 

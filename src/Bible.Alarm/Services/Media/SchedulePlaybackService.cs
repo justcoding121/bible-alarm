@@ -7,13 +7,12 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public class SchedulePlaybackService(
+public sealed class SchedulePlaybackService(
     ILogger logger,
     IServiceScopeFactory scopeFactory,
     IState<PlaybackState> playbackState)
-    : ISchedulePlaybackService, IDisposable
+    : ISchedulePlaybackService
 {
-    private bool isDisposed;
 
     public async Task PlayScheduleAsync(int scheduleId)
     {
@@ -55,17 +54,5 @@ public class SchedulePlaybackService(
         return false;
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // All injected services are singletons, so don't dispose them
-        // No event handlers to unsubscribe
-    }
 }
 

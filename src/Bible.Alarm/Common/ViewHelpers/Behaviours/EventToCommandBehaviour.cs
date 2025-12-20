@@ -15,19 +15,19 @@ namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 public class EventToCommandBehavior : BindableBehavior<View>
 {
     public static readonly BindableProperty EventNameProperty =
-        BindableProperty.Create("EventName", typeof(string), typeof(EventToCommandBehavior));
+        BindableProperty.Create(nameof(EventName), typeof(string), typeof(EventToCommandBehavior));
 
     public static readonly BindableProperty CommandProperty =
-        BindableProperty.Create("Command", typeof(ICommand), typeof(EventToCommandBehavior));
+        BindableProperty.Create(nameof(Command), typeof(ICommand), typeof(EventToCommandBehavior));
 
     public static readonly BindableProperty CommandParameterProperty =
-        BindableProperty.Create("CommandParameter", typeof(object), typeof(EventToCommandBehavior));
+        BindableProperty.Create(nameof(CommandParameter), typeof(object), typeof(EventToCommandBehavior));
 
     public static readonly BindableProperty EventArgsConverterProperty =
-        BindableProperty.Create("EventArgsConverter", typeof(IValueConverter), typeof(EventToCommandBehavior));
+        BindableProperty.Create(nameof(EventArgsConverter), typeof(IValueConverter), typeof(EventToCommandBehavior));
 
     public static readonly BindableProperty EventArgsConverterParameterProperty =
-        BindableProperty.Create("EventArgsConverterParameter", typeof(object), typeof(EventToCommandBehavior));
+        BindableProperty.Create(nameof(EventArgsConverterParameter), typeof(object), typeof(EventToCommandBehavior));
 
     private Delegate handler;
     private EventInfo eventInfo;
@@ -89,7 +89,7 @@ public class EventToCommandBehavior : BindableBehavior<View>
         }
 
         var events = AssociatedObject.GetType().GetRuntimeEvents().ToArray();
-        if (events.Any())
+        if (events.Length != 0)
         {
             eventInfo = events.FirstOrDefault(e => e.Name == EventName);
             if (eventInfo == null)

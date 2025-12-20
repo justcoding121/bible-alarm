@@ -7,7 +7,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.UI;
 
-public class AlarmModalService(
+public sealed class AlarmModalService(
     ILogger logger,
     INavigationService navigationService,
     IState<PlaybackState> playbackState,
@@ -36,9 +36,9 @@ public class AlarmModalService(
     {
         var shouldShowModal = playbackState.Value.IsPreparingOrPlaying;
 
-        if (shouldShowModal && !isModalOpen)
+        _ = shouldShowModal switch
         {
-            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            true when !isModalOpen => MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 try
                 {
@@ -55,11 +55,8 @@ public class AlarmModalService(
                 {
                     logger.Error(ex, "Error showing AlarmModal");
                 }
-            });
-        }
-        else if (!shouldShowModal && isModalOpen)
-        {
-            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            }),
+            false when isModalOpen => MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 try
                 {
@@ -71,8 +68,9 @@ public class AlarmModalService(
                 {
                     logger.Error(ex, "Error hiding AlarmModal");
                 }
-            });
-        }
+            }),
+            _ => Task.CompletedTask
+        };
     }
 
     public void Dispose()

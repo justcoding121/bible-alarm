@@ -65,7 +65,7 @@ public class VersionPatchingServiceTests
         windowsPatcherMock.Setup(x => x.PatchVersionAsync()).Returns(Task.CompletedTask);
 
         // Act & Assert
-        var action = async () => await service.PatchAllPlatformsAsync();
+        var action = service.PatchAllPlatformsAsync;
         await action.Should().ThrowAsync<Exception>().WithMessage("iOS patcher failed");
     }
 

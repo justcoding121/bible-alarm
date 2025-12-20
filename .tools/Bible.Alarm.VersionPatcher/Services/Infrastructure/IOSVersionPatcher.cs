@@ -6,7 +6,7 @@ using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
-public class IosVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
+public partial class IosVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
     : IPlatformVersionPatcher
 {
     public string PlatformName => "iOS";
@@ -42,7 +42,7 @@ public class IosVersionPatcher(IVersionService versionService, IFileService file
                     if (!string.IsNullOrEmpty(oldVersion))
                     {
                         var newVersion = versionService.IncrementVersion(oldVersion);
-                        var matchRegex = new Regex(@"<string>.*<\/string>");
+                        var matchRegex = MatchRegexGenerated();
                         var newLine = matchRegex.Replace(nextLine, $"<string>{newVersion}</string>");
                         output.AppendLine(newLine);
                         i++; // Skip the next line since we processed it
@@ -75,7 +75,12 @@ public class IosVersionPatcher(IVersionService versionService, IFileService file
 
     private static string ExtractVersionFromLine(string line)
     {
-        var match = Regex.Match(line, @"<string>(.*?)</string>");
+        var match = ExtractVersionRegex().Match(line);
         return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
     }
+
+    [GeneratedRegex(@"<string>.*<\/string>")]
+    private static partial Regex MatchRegexGenerated();
+    [GeneratedRegex(@"<string>(.*?)</string>")]
+    private static partial Regex ExtractVersionRegex();
 }

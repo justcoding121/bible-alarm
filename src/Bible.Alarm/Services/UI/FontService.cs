@@ -11,7 +11,7 @@ namespace Bible.Alarm.Services.UI;
 /// then applies density scaling with appropriate caps for optimal readability.
 /// Automatically recalculates when screen size/orientation changes.
 /// </summary>
-public class FontService : IFontService, INotifyPropertyChanged, IDisposable
+public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposable
 {
     private bool isDisposed;
     private double standardFontSize;

@@ -334,7 +334,7 @@ public static class BootstrapHelper
             await AndroidBootstrapHelper.Initialize(logger, context, application, isForeground);
 #elif IOS
             // iOS bootstrap initialization
-            await IOsBootstrapHelper.Initialize(logger, isForeground);
+            await IosBootstrapHelper.Initialize(logger, isForeground);
 #elif WINDOWS
             // Windows bootstrap initialization
             await WindowsBootstrapHelper.Initialize(logger, isForeground);

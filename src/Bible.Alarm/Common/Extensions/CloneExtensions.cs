@@ -21,12 +21,7 @@ public static class CloneExtensions
         }
 
         var json = JsonSerializer.Serialize(obj, options);
-        var result = JsonSerializer.Deserialize<T>(json, options);
-        if (result == null)
-        {
-            throw new InvalidOperationException("Deserialization returned null");
-        }
-
+        var result = JsonSerializer.Deserialize<T>(json, options) ?? throw new InvalidOperationException("Deserialization returned null");
         return result;
     }
 

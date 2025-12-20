@@ -37,7 +37,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// across both services.
 /// </summary>
 [Service(Exported = true)]
-[IntentFilter(new[] { "android.media.browse.MediaBrowserService" })]
+[IntentFilter(["android.media.browse.MediaBrowserService"])]
 [Register("bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService")]
 public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 {
@@ -338,7 +338,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
     }
 
-    private async Task<bool> WaitForBootstrapAsync(string parentId)
+    private static async Task<bool> WaitForBootstrapAsync(string parentId)
     {
         try
         {
@@ -395,7 +395,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             MediaBrowserCompat.MediaItem.FlagPlayable);
     }
 
-    private string BuildScheduleDescription(ScheduleStateItem scheduleItem)
+    private static string BuildScheduleDescription(ScheduleStateItem scheduleItem)
     {
         var description = $"Schedule ID: {scheduleItem.Id}";
         if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingPublicationCode))
@@ -436,7 +436,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         if (bookIconBitmap != null)
         {
             descriptionBuilder.SetIconBitmap(bookIconBitmap);
-            logger.Debug("Set book icon bitmap for schedule {ScheduleId} - Size: {Width}x{Height}", 
+            logger.Debug("Set book icon bitmap for schedule {ScheduleId} - Size: {Width}x{Height}",
                 scheduleItem.Id, bookIconBitmap.Width, bookIconBitmap.Height);
         }
         else
@@ -447,7 +447,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return descriptionBuilder.Build();
     }
 
-    private void SendEmptyResultSafely(Result result, string parentId)
+    private static void SendEmptyResultSafely(Result result, string parentId)
     {
         try
         {
@@ -564,7 +564,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             const int MusicOffset = 4; // Offset from top-left corner
             const int BookOffset = MusicIconSize - 8; // Offset book closer to music icon (reduced gap)
             const int BitmapSize = BookIconSize + BookOffset; // Total bitmap size (same for both cases)
-            
+
             var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
             var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
 
@@ -572,7 +572,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             bitmap.EraseColor(Color.Transparent);
 
             var canvas = new Canvas(bitmap);
-            
+
             // If music is enabled, add music note in top left (outside book icon)
             if (musicEnabled)
             {
@@ -588,7 +588,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                     logger.Warning("Could not get app drawable for music note icon");
                 }
             }
-            
+
             // Draw book icon at the same position regardless of music (for consistent appearance)
             bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
             bookDrawable.Draw(canvas);

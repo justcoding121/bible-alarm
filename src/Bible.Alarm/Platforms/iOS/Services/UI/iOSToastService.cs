@@ -12,7 +12,7 @@ public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDispo
 {
     private static readonly SemaphoreSlim @lock = new(1);
 
-    public override async Task ShowMessage(string message, int seconds)
+    public override async Task ShowMessage(string message, int seconds = 2)
     {
         if (clearRequest != null)
         {

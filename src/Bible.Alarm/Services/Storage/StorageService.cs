@@ -87,7 +87,7 @@ public abstract class StorageService : IStorageService, IDisposable
             long readCount = 0;
             while (readCount < sr.Length)
             {
-                var read = await sr.ReadAsync(buffer, 0, buffer.Length);
+                var read = await sr.ReadAsync(buffer);
                 readCount += read;
                 fileWriter.Write(buffer, 0, read);
             }

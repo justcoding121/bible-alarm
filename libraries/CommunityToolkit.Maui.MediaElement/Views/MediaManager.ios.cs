@@ -271,7 +271,7 @@ public partial class MediaManager : IDisposable
 		Player.ReplaceCurrentItemWithPlayerItem(PlayerItem);
 
 		CurrentItemErrorObserver = PlayerItem?.AddObserver("error",
-			ValueObserverOptions, change =>
+			ValueObserverOptions, _ =>
 			{
 				if (Player.CurrentItem?.Error is null)
 				{
@@ -466,7 +466,7 @@ public partial class MediaManager : IDisposable
 			if (Player is not null)
 			{
 				Player.Pause();
-				Player.InvokeOnMainThread(() => { UIApplication.SharedApplication.EndReceivingRemoteControlEvents(); });
+				Player.InvokeOnMainThread(UIApplication.SharedApplication.EndReceivingRemoteControlEvents);
 				// disable the idle timer so screen turns off when media is not playing
 				UIApplication.SharedApplication.IdleTimerDisabled = false;
 				var audioSession = AVAudioSession.SharedInstance();

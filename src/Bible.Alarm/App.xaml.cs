@@ -56,7 +56,7 @@ public partial class App : Application
         // This does NOT fire during Hot Reload, so it's safe to update resources here
         if (this.fontService is INotifyPropertyChanged notifyPropertyChanged)
         {
-            notifyPropertyChanged.PropertyChanged += (sender, e) =>
+            notifyPropertyChanged.PropertyChanged += (_, e) =>
             {
                 // Empty PropertyName means all properties changed = display change (rotation/resize)
                 // This only happens when FontService.Recalculate() is called, which only happens

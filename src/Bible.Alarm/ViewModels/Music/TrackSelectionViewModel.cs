@@ -20,7 +20,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class TrackSelectionViewModel : ObservableObject, IDisposable
+public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
 
@@ -451,7 +451,7 @@ public class TrackSelectionViewModel : ObservableObject, IDisposable
     }
 }
 
-public class MusicTrackListViewItemModel : ObservableObject, IComparable
+public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
 {
     private readonly MusicTrack track;
     private readonly bool isMelody;

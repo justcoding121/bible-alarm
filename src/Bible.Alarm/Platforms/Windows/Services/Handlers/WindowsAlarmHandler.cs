@@ -7,7 +7,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Handlers;
 
-public class WindowsAlarmHandler(
+public sealed class WindowsAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
     IState<PlaybackState> playbackState) : IWindowsAlarmHandler

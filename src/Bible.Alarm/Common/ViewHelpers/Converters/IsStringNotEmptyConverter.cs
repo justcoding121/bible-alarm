@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
-public class IsStringNotEmptyConverter : IValueConverter
+public sealed class IsStringNotEmptyConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

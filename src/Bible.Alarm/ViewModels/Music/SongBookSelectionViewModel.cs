@@ -19,7 +19,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
@@ -237,7 +237,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     public ObservableCollection<PublicationListViewItemModel> SongBooks
     {
-        get => songBooks ??= new ObservableCollection<PublicationListViewItemModel>();
+        get => songBooks ??= [];
         set => SetProperty(ref songBooks, value);
     }
 
@@ -245,7 +245,7 @@ public class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDis
 
     public ObservableCollection<LanguageListViewItemModel> Languages
     {
-        get => languages ??= new ObservableCollection<LanguageListViewItemModel>();
+        get => languages ??= [];
         set => SetProperty(ref languages, value);
     }
 

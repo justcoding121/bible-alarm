@@ -21,7 +21,7 @@ public sealed class AsyncQueue<T> : IDisposable
     public int Count => queue.Count;
 
     /// <summary>
-    ///     Supports multi-threaded producers.
+    ///     Supports multithreaded producers.
     ///     Time complexity: O(1).
     /// </summary>
     public async Task EnqueueAsync(T value, int millisecondsTimeout = int.MaxValue,
@@ -55,7 +55,7 @@ public sealed class AsyncQueue<T> : IDisposable
     }
 
     /// <summary>
-    ///      Supports multi-threaded consumers.
+    ///      Supports multithreaded consumers.
     ///      Time complexity: O(1).
     /// </summary>
     public async Task<T> DequeueAsync(int millisecondsTimeout = int.MaxValue,
@@ -100,17 +100,12 @@ public sealed class AsyncQueue<T> : IDisposable
 
         try
         {
-            if (disposed)
+            if (!disposed)
             {
-                throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+                return queue.Count == 0 ? default : queue.Peek();
             }
 
-            if (queue.Count == 0)
-            {
-                return default;
-            }
-
-            return queue.Peek();
+            throw new ObjectDisposedException(nameof(AsyncQueue<T>));
         }
         finally
         {
@@ -120,25 +115,29 @@ public sealed class AsyncQueue<T> : IDisposable
 
     private void ThrowIfDisposed()
     {
-        if (disposed)
+        if (!disposed)
         {
-            throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+            return;
         }
+
+        throw new ObjectDisposedException(nameof(AsyncQueue<T>));
     }
 
     public void Dispose()
     {
-        if (!disposed)
+        if (disposed)
         {
-            // Cancel all pending consumers
-            while (consumerQueue.Count > 0)
-            {
-                var consumer = consumerQueue.Dequeue();
-                consumer.TrySetCanceled();
-            }
-
-            consumerQueueLock?.Dispose();
-            disposed = true;
+            return;
         }
+
+        // Cancel all pending consumers
+        while (consumerQueue.Count > 0)
+        {
+            var consumer = consumerQueue.Dequeue();
+            consumer.TrySetCanceled();
+        }
+
+        consumerQueueLock?.Dispose();
+        disposed = true;
     }
 }

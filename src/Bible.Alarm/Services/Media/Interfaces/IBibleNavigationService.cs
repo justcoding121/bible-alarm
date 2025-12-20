@@ -2,7 +2,7 @@ using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.Media.Interfaces;
 
-public interface IBibleNavigationService : IDisposable
+public interface IBibleNavigationService
 {
     Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule);
     Task<bool> MoveToNextBookAsync(BibleReadingSchedule schedule);

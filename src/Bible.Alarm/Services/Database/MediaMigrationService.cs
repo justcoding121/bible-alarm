@@ -10,12 +10,11 @@ namespace Bible.Alarm.Services.Database;
 /// Since the app is packaged with the latest media index database, this service primarily
 /// handles migrating old databases from previous app versions to match the current app schema.
 /// </summary>
-public class MediaMigrationService(
+public sealed class MediaMigrationService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IMediaMigrationService, IDisposable
+    : IMediaMigrationService
 {
-    private bool isDisposed;
 
     public async Task MigrateIfNeededAsync()
     {
@@ -67,17 +66,5 @@ public class MediaMigrationService(
         }
     }
 
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // IServiceScopeFactory is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
-    }
 }
 

@@ -14,7 +14,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media;
 
-public class PlaylistService(
+public sealed class PlaylistService(
     ILogger logger,
     IMediaService mediaService,
     IDispatcher dispatcher,
@@ -113,11 +113,7 @@ public class PlaylistService(
                 }
                 else
                 {
-                    var bibleReadingSchedule = schedule.BibleReadingSchedule;
-                    if (bibleReadingSchedule == null)
-                    {
-                        throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
-                    }
+                    var bibleReadingSchedule = schedule.BibleReadingSchedule ?? throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
                     // Update book, chapter, translation, AND language to match the current track
                     bibleReadingSchedule.BookNumber = trackMetadata.BookNumber;
@@ -174,12 +170,7 @@ public class PlaylistService(
                 }
                 else
                 {
-                    var bibleReadingSchedule = schedule.BibleReadingSchedule;
-                    if (bibleReadingSchedule == null)
-                    {
-                        throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
-                    }
-
+                    var bibleReadingSchedule = schedule.BibleReadingSchedule ?? throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
                     if (nextChapter == null || nextChapter.Value.Key == null || nextChapter.Value.Value == null)
                     {
                         throw new InvalidOperationException("Next chapter Key or Value is null");
@@ -203,24 +194,13 @@ public class PlaylistService(
     public async Task<PlayItem> NextTrack(int scheduleId)
     {
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, true, true, cancellationTokenSource.Token);
-
-        if (schedule == null)
-        {
-            throw new ArgumentException($"Invalid schedule Id {scheduleId}");
-        }
-
+            scheduleId, true, true, cancellationTokenSource.Token) ?? throw new ArgumentException($"Invalid schedule Id {scheduleId}");
         if (schedule.MusicEnabled)
         {
             return await NextMusicUrlToPlay(schedule);
         }
 
-        var bibleReadingSchedule = schedule.BibleReadingSchedule;
-        if (bibleReadingSchedule == null)
-        {
-            throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        }
-
+        var bibleReadingSchedule = schedule.BibleReadingSchedule ?? throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
         var bookNumber = bibleReadingSchedule.BookNumber;
         var chapter = bibleReadingSchedule.ChapterNumber;
 
@@ -263,13 +243,7 @@ public class PlaylistService(
         var result = new List<PlayItem>();
 
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, true, true, cancellationTokenSource.Token);
-
-        if (schedule == null)
-        {
-            throw new ArgumentException($"Invalid schedule Id {scheduleId}");
-        }
-
+            scheduleId, true, true, cancellationTokenSource.Token) ?? throw new ArgumentException($"Invalid schedule Id {scheduleId}");
         var numberOfChaptersToRead = schedule.NumberOfChaptersToRead;
 
         if (schedule.MusicEnabled)
@@ -277,12 +251,7 @@ public class PlaylistService(
             result.Add(await NextMusicUrlToPlay(schedule));
         }
 
-        var bibleReadingSchedule = schedule.BibleReadingSchedule;
-        if (bibleReadingSchedule == null)
-        {
-            throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        }
-
+        var bibleReadingSchedule = schedule.BibleReadingSchedule ?? throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
         var bookNumber = bibleReadingSchedule.BookNumber;
         var chapter = bibleReadingSchedule.ChapterNumber;
         var chapters = await mediaService.GetBibleChapters(bibleReadingSchedule.LanguageCode,
@@ -382,12 +351,7 @@ public class PlaylistService(
             scheduleId,
             s =>
             {
-                var brs = s.BibleReadingSchedule;
-                if (brs == null)
-                {
-                    throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-                }
-
+                var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
                 brs.BookNumber = next.Key.Number;
                 brs.ChapterNumber = next.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
@@ -425,12 +389,7 @@ public class PlaylistService(
             scheduleId,
             s =>
             {
-                var brs = s.BibleReadingSchedule;
-                if (brs == null)
-                {
-                    throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-                }
-
+                var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
                 brs.BookNumber = previous.Key.Number;
                 brs.ChapterNumber = previous.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
@@ -444,12 +403,7 @@ public class PlaylistService(
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetNextBibleChapter(string languageCode,
         string publicationCode, int bookNumber, int chapter)
     {
-        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber);
-        if (currentBook == null)
-        {
-            throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
-        }
-
+        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber) ?? throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
         var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
         var nextChapter = chapters.SkipWhile(kvp => kvp.Key <= chapter).FirstOrDefault();
 
@@ -477,12 +431,7 @@ public class PlaylistService(
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetPreviousBibleChapter(string languageCode,
         string publicationCode, int bookNumber, int chapter)
     {
-        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber);
-        if (currentBook == null)
-        {
-            throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
-        }
-
+        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber) ?? throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
         var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
         var previousChapter = chapters.Reverse().SkipWhile(kvp => kvp.Key >= chapter).FirstOrDefault();
 
