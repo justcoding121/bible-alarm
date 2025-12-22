@@ -7,7 +7,6 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 
 /// <summary>
 /// Helper class for configuring iOS audio session.
-/// Shared between AudioPlayer and preview audio players.
 /// </summary>
 public static class IOsAudioSessionHelper
 {

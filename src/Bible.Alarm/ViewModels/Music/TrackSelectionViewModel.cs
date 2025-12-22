@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -26,7 +25,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private readonly IMediaService mediaService;
     private readonly IToastService toastService;
-    private readonly IAudioPreviewer playService;
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IDownloadService downloadService;
     private readonly IDispatcher dispatcher;
@@ -43,7 +41,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         ILogger logger,
         IMediaService mediaService,
         IToastService toastService,
-        IAudioPreviewer playService,
         INavigationService navigationService,
         IDownloadService downloadService,
         IMediaUrlRefreshService urlRefreshService,
@@ -54,7 +51,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         this.logger = logger;
         this.mediaService = mediaService;
         this.toastService = toastService;
-        this.playService = playService;
         this.downloadService = downloadService;
         this.urlRefreshService = urlRefreshService;
         this.mapper = mapper;
@@ -65,16 +61,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         BackCommand = new AsyncRelayCommand(async () =>
         {
             IsBusy = true;
-
-            // Stop any ongoing preview playback before navigating away
-            playService.Stop();
-            if (currentlyPlaying != null)
-            {
-                currentlyPlaying.Play = false;
-                currentlyPlaying.IsBusy = false;
-                currentlyPlaying = null;
-            }
-
             await navigationService.PopAsync();
             IsBusy = false;
         });
@@ -202,15 +188,13 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     public MusicTrackListViewItemModel SelectedTrack { get; set; }
 
-    private MusicTrackListViewItemModel currentlyPlaying;
-
     private readonly SemaphoreSlim @lock = new(1);
 
     private async Task Initialize(string languageCode, string publicationCode)
     {
         await PopulateTracks(languageCode, publicationCode);
 
-        // Subscribe to PropertyChanged events for Play/Stop/Repeat
+        // Subscribe to PropertyChanged events for Repeat
         foreach (var track in Tracks)
         {
             SubscribeToTrackEvents(track);
@@ -239,9 +223,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 }
             }
         };
-
-        // Subscribe to play service stopped event
-        playService.OnStopped += OnPlayServiceStopped;
     }
 
     private void SubscribeToTrackEvents(MusicTrackListViewItemModel track)
@@ -253,17 +234,9 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            switch (e.PropertyName)
+            if (e.PropertyName == "Repeat")
             {
-                case "Play" when item.Play:
-                    _ = HandlePlayTrack(item);
-                    break;
-                case "Play":
-                    playService.Stop();
-                    break;
-                case "Repeat":
-                    HandleRepeatChanged(item);
-                    break;
+                HandleRepeatChanged(item);
             }
         };
 
@@ -282,49 +255,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         propertyChangedHandlers.Remove(track);
     }
 
-    private async Task HandlePlayTrack(MusicTrackListViewItemModel track)
-    {
-        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
-        {
-            if (currentlyPlaying != null && currentlyPlaying != track)
-            {
-                currentlyPlaying.Play = false;
-                currentlyPlaying.IsBusy = false;
-            }
-
-            currentlyPlaying = track;
-            currentlyPlaying.IsBusy = true;
-            try
-            {
-                var url = track.Url;
-
-                await Task.Run(async () =>
-                {
-                    if (tentative == null)
-                    {
-                        return;
-                    }
-
-                    if (!await downloadService.FileExists(url))
-                    {
-                        url = await urlRefreshService.GetMusicTrackUrl(
-                            tentative.LanguageCode,
-                            track.LookUpPath);
-                    }
-
-                    await playService.Play(url);
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error playing track preview");
-                currentlyPlaying.Play = false;
-                await toastService.ShowMessage("Media download failed. Check your internet connection.");
-            }
-
-            currentlyPlaying.IsBusy = false;
-        }, ex => logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
-    }
 
     private void HandleRepeatChanged(MusicTrackListViewItemModel track)
     {
@@ -353,28 +283,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async void OnPlayServiceStopped()
-    {
-        try
-        {
-            await ConcurrencyHelper.ExecuteAsync(@lock, () =>
-            {
-                if (currentlyPlaying == null)
-                {
-                    return Task.CompletedTask;
-                }
-
-                currentlyPlaying.Play = false;
-                currentlyPlaying.IsBusy = false;
-                currentlyPlaying = null;
-                return Task.CompletedTask;
-            }, ex => logger.Error(ex, "TrackSelectionViewModel: @lock disposed error."));
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "Error in OnPlayServiceStopped.");
-        }
-    }
 
     private async Task PopulateTracks(string languageCode, string publicationCode)
     {
@@ -432,10 +340,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         state.StateChanged -= OnMusicInitialized;
-        playService.OnStopped -= OnPlayServiceStopped;
-
-        // Stop any ongoing preview playback when navigating away
-        playService.Stop();
 
         if (Tracks != null)
         {
@@ -461,7 +365,6 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
         this.track = track;
         this.isMelody = isMelody;
 
-        TogglePlayCommand = new RelayCommand(() => Play = !Play);
         ToggleRepeatCommand = new RelayCommand(() => Repeat = !Repeat);
     }
 
@@ -479,14 +382,6 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
     public string Title => isMelody ? $"Melody Number(s) {track.Title}" : track.Title;
     public string Url => track.Source.Url;
 
-    private bool play;
-
-    public bool Play
-    {
-        get => play;
-        set => SetProperty(ref play, value);
-    }
-
     private bool repeat;
 
     public bool Repeat
@@ -495,15 +390,6 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
         set => SetProperty(ref repeat, value);
     }
 
-    private bool isBusy;
-
-    public bool IsBusy
-    {
-        get => isBusy;
-        set => SetProperty(ref isBusy, value);
-    }
-
-    public ICommand TogglePlayCommand { get; set; }
     public ICommand ToggleRepeatCommand { get; set; }
 
     public int CompareTo(object obj) => Number.CompareTo((obj as MusicTrackListViewItemModel)?.Number);

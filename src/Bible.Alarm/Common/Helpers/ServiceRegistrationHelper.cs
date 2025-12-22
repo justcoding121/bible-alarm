@@ -8,7 +8,6 @@ using Bible.Alarm.Platforms.iOS.Services.Media;
 #endif
 
 #if ANDROID
-using Android.Media;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Platforms.Android.Effects;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -64,7 +63,6 @@ using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.Media;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
-using Windows.Media.Playback;
 #endif
 
 namespace Bible.Alarm.Common.Helpers;
@@ -162,10 +160,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
-        services.AddSingleton(_ => new MediaPlayer());
-        services.AddSingleton<IAudioPreviewer>(sp => new AndroidAudioPreviewer(
-            sp.GetRequiredService<MediaPlayer>(),
-            sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();
         services.AddSingleton<AndroidArtworkService>();
         // Register global audio focus listener and service as singletons
@@ -184,20 +178,11 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<INotificationService, IOsNotificationService>();
         services.AddSingleton<IToastService, IOsToastService>();
         services.AddSingleton<IStorageService, IOsStorageService>();
-        // Note: AVAudioPlayer cannot be injected as it must be created from data (AVAudioPlayer.FromData)
-        // Each track creates a new player instance, unlike Android/Windows MediaPlayer which can be reused
-        services.AddSingleton<IAudioPreviewer>(sp => new IOsAudioPreviewer(
-            sp.GetRequiredService<IDownloadService>(),
-            sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IIosAlarmHandler, IOsAlarmHandler>();
 #elif WINDOWS
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
-        services.AddSingleton(_ => new MediaPlayer());
-        services.AddSingleton<IAudioPreviewer>(sp => new WindowsAudioPreviewer(
-            sp.GetRequiredService<MediaPlayer>(),
-            sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IWindowsAlarmHandler, WindowsAlarmHandler>();
 #endif
 

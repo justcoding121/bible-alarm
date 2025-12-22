@@ -16,7 +16,6 @@
     x:DataType="music:TrackSelectionViewModel"
     Title="Select Track">
     <ContentPage.Resources>
-        <converters:PlayStatusIconConverter x:Key="playStatusIconConverter" />
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:RepeatColorConverter x:Key="repeatColorConverter" />
@@ -100,32 +99,12 @@
                                             VerticalOptions="Center"
                                             VerticalTextAlignment="Center" />
                                         
-                                        <!-- Play Controls -->
+                                        <!-- Repeat Control -->
                                         <HorizontalStackLayout
                                             Grid.Column="1"
                                             Spacing="8"
                                             HorizontalOptions="End"
                                             VerticalOptions="Center">
-                                            <ActivityIndicator
-                                                HorizontalOptions="Center"
-                                                IsEnabled="True"
-                                                IsRunning="{Binding IsBusy}"
-                                                IsVisible="{Binding IsBusy}"
-                                                WidthRequest="32"
-                                                HeightRequest="32"
-                                                Scale="0.5"
-                                                VerticalOptions="Center"
-                                                Color="{StaticResource PrimaryColor}">
-                                                <ActivityIndicator.Scale>
-                                                    <OnPlatform x:TypeArguments="x:Double">
-                                                        <OnPlatform.Platforms>
-                                                            <On Platform="iOS" Value="1.0" />
-                                                            <On Platform="Android" Value="0.5" />
-                                                            <On Platform="Win" Value="1.0" />
-                                                        </OnPlatform.Platforms>
-                                                    </OnPlatform>
-                                                </ActivityIndicator.Scale>
-                                            </ActivityIndicator>
                                             <Border
                                                 IsVisible="{Binding IsSelected}"
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -148,30 +127,6 @@
                                                     Padding="0"
                                                     Text="{x:Static fn:GlyphNames.Repeat}"
                                                     TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"
-                                                    VerticalOptions="Fill"
-                                                    HorizontalOptions="Fill" />
-                                            </Border>
-                                            <Border
-                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                HeightRequest="36"
-                                                HorizontalOptions="End"
-                                                StrokeThickness="0"
-                                                VerticalOptions="Center"
-                                                WidthRequest="36">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="18" />
-                                                </Border.StrokeShape>
-                                                <Button
-                                                    BackgroundColor="Transparent"
-                                                    BorderWidth="0"
-                                                    BorderColor="Transparent"
-                                                    Command="{Binding TogglePlayCommand}"
-                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                    FontSize="16"
-                                                    MinimumWidthRequest="36"
-                                                    Padding="0"
-                                                    Text="{Binding Play, Converter={StaticResource playStatusIconConverter}}"
-                                                    TextColor="{DynamicResource TextSecondaryColor}"
                                                     VerticalOptions="Fill"
                                                     HorizontalOptions="Fill" />
                                             </Border>
