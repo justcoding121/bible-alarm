@@ -27,10 +27,8 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     private readonly IMapper mapper;
 
     private BibleReadingSchedule? current;
-    private BibleReadingSchedule? tentative;
     private bool initComplete;
     private BibleReadingSchedule? lastCurrent;
-    private BibleReadingSchedule? lastTentative;
     private PropertyChangedEventHandler? propertyChangedHandler;
 
     public ICommand BackCommand { get; set; }
@@ -47,43 +45,84 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         this.navigationService = navigationService;
         this.mapper = mapper;
 
-        // Initialize current and tentative from state if available (map DTOs to entities)
+        // Initialize current from state if available (map DTO to entity)
         var currentState = state.Value;
         if (currentState.CurrentBibleReadingSchedule != null)
         {
             current = mapper.Map<BibleReadingSchedule>(currentState.CurrentBibleReadingSchedule);
-        }
-        if (currentState.TentativeBibleReadingSchedule != null)
-        {
-            tentative = mapper.Map<BibleReadingSchedule>(currentState.TentativeBibleReadingSchedule);
         }
 
         state.StateChanged += OnBibleReadingInitialized;
         state.StateChanged += OnBibleReadingChanged;
 
         // Check current state immediately in case state is already set (e.g., when navigating from schedule page)
-        if (currentState.CurrentBibleReadingSchedule != null && currentState.TentativeBibleReadingSchedule != null)
+        if (currentState.CurrentBibleReadingSchedule != null)
         {
             OnBibleReadingInitialized(null, EventArgs.Empty);
         }
 
         BookSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
-            if (x == null)
+            if (x == null || CurrentLanguage == null)
             {
                 return;
             }
 
             IsBusy = true;
-            await this.navigationService.NavigateToBookSelectionAsync();
-            // Map entity to DTO before dispatching
-            var tentativeItem = new BibleReadingStateItem
+
+            try
             {
-                PublicationCode = x.Code,
-                LanguageCode = CurrentLanguage?.Code ?? string.Empty
-            };
-            this.dispatcher.Dispatch(new BookSelectionAction(tentativeItem));
-            IsBusy = false;
+                // Get the first book and first chapter for the selected translation
+                var books = await Task.Run(async () =>
+                    await mediaService.GetBibleBooks(CurrentLanguage.Code, x.Code));
+
+                if (books == null || books.Count == 0)
+                {
+                    IsBusy = false;
+                    return;
+                }
+
+                // Get the first book (lowest book number)
+                var firstBook = books.Values.First();
+                var firstBookNumber = firstBook.Number;
+
+                // Get the first chapter for the first book
+                var chapters = await Task.Run(async () =>
+                    await mediaService.GetBibleChapters(CurrentLanguage.Code, x.Code, firstBookNumber));
+
+                if (chapters == null || chapters.Count == 0)
+                {
+                    IsBusy = false;
+                    return;
+                }
+
+                // Get the first chapter (lowest chapter number)
+                var firstChapter = chapters.Values.First();
+                var firstChapterNumber = firstChapter.Number;
+
+                // Create BibleReadingStateItem with new translation, first book, and first chapter
+                var bibleReadingItem = new BibleReadingStateItem
+                {
+                    PublicationCode = x.Code,
+                    LanguageCode = CurrentLanguage.Code,
+                    BookNumber = firstBookNumber,
+                    ChapterNumber = firstChapterNumber
+                };
+
+                // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule (like chapter selection does)
+                // This will trigger OnBibleReadingChanged in ScheduleViewModel which updates the display
+                this.dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+
+                // Also update current state
+                this.dispatcher.Dispatch(new BibleSelectionAction(bibleReadingItem));
+
+                // Navigate back to schedule page
+                await this.navigationService.PopAsync();
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
@@ -141,18 +180,17 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         }
 
         var stateValue = state.Value;
-        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null)
+        if (stateValue.CurrentBibleReadingSchedule == null)
         {
             return;
         }
-        // Map DTOs to entities
+        // Map DTO to entity
         current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
-        tentative = mapper.Map<BibleReadingSchedule>(stateValue.TentativeBibleReadingSchedule);
         initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(tentative.LanguageCode);
+            await Initialize(current.LanguageCode);
 
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
@@ -167,25 +205,22 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     private void OnBibleReadingChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
-        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null)
+        if (stateValue.CurrentBibleReadingSchedule == null)
         {
             return;
         }
 
-        // Map DTOs to entities
+        // Map DTO to entity
         var newCurrent = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
-        var newTentative = mapper.Map<BibleReadingSchedule>(stateValue.TentativeBibleReadingSchedule);
 
         // Compare by ID to avoid unnecessary updates
-        if (lastCurrent?.Id == newCurrent.Id && lastTentative?.Id == newTentative.Id)
+        if (lastCurrent?.Id == newCurrent.Id)
         {
             return;
         }
 
         current = newCurrent;
-        tentative = newTentative;
         lastCurrent = current;
-        lastTentative = tentative;
 
         // Update selected translation when state changes (e.g., after navigating back)
         MainThread.BeginInvokeOnMainThread(SetSelectedTranslation);
@@ -193,12 +228,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
     private void SetSelectedTranslation()
     {
-        if (current == null || tentative == null)
-        {
-            return;
-        }
-
-        if (current.LanguageCode != tentative.LanguageCode)
+        if (current == null)
         {
             return;
         }
@@ -254,15 +284,15 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
     public string PublicationCode
     {
-        get => tentative?.PublicationCode ?? "";
+        get => current?.PublicationCode ?? "";
         set
         {
-            if (tentative == null)
+            if (current == null)
             {
                 return;
             }
 
-            tentative.PublicationCode = value;
+            current.PublicationCode = value;
             OnPropertyChanged();
         }
     }
@@ -312,7 +342,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
             languageVMs.Add(languageVm);
 
-            if (tentative == null || languageVm.Code != tentative.LanguageCode)
+            if (current == null || languageVm.Code != current.LanguageCode)
             {
                 continue;
             }

@@ -7,11 +7,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:d="http://schemas.microsoft.com/dotnet/2021/maui/design"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
-    x:DataType="vm:ScheduleViewModel"
+    x:DataType="vm:ChaptersSelectionContainerViewModel"
     mc:Ignorable="d">
     <ContentPage.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />

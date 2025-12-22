@@ -48,20 +48,6 @@ public static class ApplicationSelectors
     }
 
     /// <summary>
-    /// Selector: Get tentative music as AlarmMusic entity (for ViewModel use).
-    /// Maps MusicStateItem (domain model) → AlarmMusic (entity for ViewModel).
-    /// </summary>
-    public static AlarmMusic? GetTentativeMusicEntity(ApplicationState state, IMapper mapper)
-    {
-        if (state.TentativeMusic == null)
-        {
-            return null;
-        }
-
-        return mapper.Map<AlarmMusic>(state.TentativeMusic);
-    }
-
-    /// <summary>
     /// Selector: Get current Bible reading schedule as BibleReadingSchedule entity (for ViewModel use).
     /// Maps BibleReadingStateItem (domain model) → BibleReadingSchedule (entity for ViewModel).
     /// </summary>
@@ -73,20 +59,6 @@ public static class ApplicationSelectors
         }
 
         return mapper.Map<BibleReadingSchedule>(state.CurrentBibleReadingSchedule);
-    }
-
-    /// <summary>
-    /// Selector: Get tentative Bible reading schedule as BibleReadingSchedule entity (for ViewModel use).
-    /// Maps BibleReadingStateItem (domain model) → BibleReadingSchedule (entity for ViewModel).
-    /// </summary>
-    public static BibleReadingSchedule? GetTentativeBibleReadingEntity(ApplicationState state, IMapper mapper)
-    {
-        if (state.TentativeBibleReadingSchedule == null)
-        {
-            return null;
-        }
-
-        return mapper.Map<BibleReadingSchedule>(state.TentativeBibleReadingSchedule);
     }
 
     /// <summary>

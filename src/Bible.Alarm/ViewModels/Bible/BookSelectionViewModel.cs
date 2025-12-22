@@ -18,7 +18,6 @@ namespace Bible.Alarm.ViewModels.Bible;
 public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 {
     private BibleReadingSchedule current;
-    private BibleReadingSchedule tentative;
 
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
@@ -37,15 +36,11 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         this.dispatcher = dispatcher;
         this.mapper = mapper;
 
-        // Initialize current and tentative from state if available (map DTOs to entities)
+        // Initialize current from state if available (map DTO to entity)
         var currentState = state.Value;
         if (currentState.CurrentBibleReadingSchedule != null)
         {
             current = mapper.Map<BibleReadingSchedule>(currentState.CurrentBibleReadingSchedule);
-        }
-        if (currentState.TentativeBibleReadingSchedule != null)
-        {
-            tentative = mapper.Map<BibleReadingSchedule>(currentState.TentativeBibleReadingSchedule);
         }
 
         BackCommand = new AsyncRelayCommand(async () =>
@@ -64,17 +59,17 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
             IsBusy = true;
 
-            // Ensure tentative is set from state if it's null
-            if (tentative == null)
+            // Ensure current is set from state if it's null
+            if (current == null)
             {
-                var tentativeItem = state.Value.TentativeBibleReadingSchedule;
-                if (tentativeItem != null)
+                var currentItem = state.Value.CurrentBibleReadingSchedule;
+                if (currentItem != null)
                 {
-                    tentative = mapper.Map<BibleReadingSchedule>(tentativeItem);
+                    current = mapper.Map<BibleReadingSchedule>(currentItem);
                 }
             }
 
-            if (tentative == null)
+            if (current == null)
             {
                 IsBusy = false;
                 return;
@@ -84,8 +79,8 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             // Map entity to DTO before dispatching
             var chapterSelectionItem = new BibleReadingStateItem
             {
-                LanguageCode = tentative.LanguageCode,
-                PublicationCode = tentative.PublicationCode,
+                LanguageCode = current.LanguageCode,
+                PublicationCode = current.PublicationCode,
                 BookNumber = x.Number
             };
             dispatcher.Dispatch(new ChapterSelectionAction(chapterSelectionItem));
@@ -127,18 +122,17 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         }
 
         var stateValue = state.Value;
-        if (stateValue.CurrentBibleReadingSchedule == null || stateValue.TentativeBibleReadingSchedule == null)
+        if (stateValue.CurrentBibleReadingSchedule == null)
         {
             return;
         }
-        // Map DTOs to entities
+        // Map DTO to entity
         current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
-        tentative = mapper.Map<BibleReadingSchedule>(stateValue.TentativeBibleReadingSchedule);
         initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(tentative.LanguageCode, tentative.PublicationCode);
+            await Initialize(current.LanguageCode, current.PublicationCode);
 
             // Set IsBusy to false after collection is assigned - the busy overlay will hide instantly
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
@@ -153,13 +147,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
     private void SetSelectedBook()
     {
-        if (current == null || tentative == null)
-        {
-            return;
-        }
-
-        if (current.LanguageCode != tentative.LanguageCode ||
-            current.PublicationCode != tentative.PublicationCode)
+        if (current == null)
         {
             return;
         }
@@ -217,14 +205,12 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             bookVMs.Add(bookVm);
             bookVMsMapping.Add(bookVm.Number, bookVm);
 
-            if (current == null || tentative == null)
+            if (current == null)
             {
                 continue;
             }
 
-            if (current.LanguageCode != tentative.LanguageCode
-                || current.PublicationCode != tentative.PublicationCode
-                || current.BookNumber != book.Number)
+            if (current.BookNumber != book.Number)
             {
                 continue;
             }

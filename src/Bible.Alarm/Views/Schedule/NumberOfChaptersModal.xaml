@@ -8,13 +8,13 @@
     xmlns:d="http://schemas.microsoft.com/dotnet/2021/maui/design"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
+    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="vm:ScheduleViewModel"
+    x:DataType="vm:ChaptersSelectionContainerViewModel"
     Padding="0"
     mc:Ignorable="d">
     <ContentPage.Resources>

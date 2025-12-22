@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentView x:Class="Bible.Alarm.Views.Schedule.ScheduleDetailsContainer"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+             xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
+             xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+             x:DataType="vm:ScheduleDetailsContainerViewModel">
+    <ContentView.Resources>
+        <converters:DayColorConverter x:Key="dayColorConverter" />
+        <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
+        <x:String x:Key="Sunday">Sunday</x:String>
+        <x:String x:Key="Monday">Monday</x:String>
+        <x:String x:Key="Tuesday">Tuesday</x:String>
+        <x:String x:Key="Wednesday">Wednesday</x:String>
+        <x:String x:Key="Thursday">Thursday</x:String>
+        <x:String x:Key="Friday">Friday</x:String>
+        <x:String x:Key="Saturday">Saturday</x:String>
+    </ContentView.Resources>
+    <StackLayout Orientation="Vertical"
+                 Spacing="10">
+        <OnPlatform x:TypeArguments="View">
+            <OnPlatform.Platforms>
+                <On Platform="iOS">
+                    <TimePicker AutomationId="AlarmTimePicker"
+                                BackgroundColor="Transparent"
+                                TextColor="{DynamicResource TextPrimaryColor}"
+                                FontSize="{StaticResource TitleFontSize}"
+                                HorizontalOptions="Center"
+                                Margin="0"
+                                Time="{Binding Time, Mode=TwoWay}"
+                                ios:TimePicker.UpdateMode="WhenFinished" />
+                </On>
+                <On Platform="Default">
+                    <TimePicker AutomationId="AlarmTimePicker"
+                                BackgroundColor="Transparent"
+                                FontSize="{StaticResource TitleFontSize}"
+                                HorizontalOptions="Center"
+                                Margin="0"
+                                TextColor="{DynamicResource PrimaryTextColor}"
+                                Time="{Binding Time, Mode=TwoWay}">
+                        <TimePicker.Format>hh:mm tt</TimePicker.Format>
+                    </TimePicker>
+                </On>
+            </OnPlatform.Platforms>
+        </OnPlatform>
+        <Grid Margin="8,0"
+              HorizontalOptions="Center"
+              MaximumWidthRequest="{OnPlatform Android='350', iOS='350', WinUI='350', Default='350'}"
+              ColumnSpacing="4"
+              RowSpacing="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0"
+                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6,6,6,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                <Border.BackgroundColor>
+                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Sunday}">
+                        <Binding Path="DaysOfWeek" />
+                        <Binding Path="IsEnabled" />
+                    </MultiBinding>
+                </Border.BackgroundColor>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Sunday}"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    Text="S"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                        <On Platform="Default">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Sunday}"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                    Text="S"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </Border>
+            <Border Grid.Column="1"
+                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6,6,6,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                <Border.BackgroundColor>
+                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Monday}">
+                        <Binding Path="DaysOfWeek" />
+                        <Binding Path="IsEnabled" />
+                    </MultiBinding>
+                </Border.BackgroundColor>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Monday}"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    Text="M"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                        <On Platform="Default">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Monday}"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                    Text="M"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </Border>
+            <Border Grid.Column="2"
+                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6,6,6,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                <Border.BackgroundColor>
+                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Tuesday}">
+                        <Binding Path="DaysOfWeek" />
+                        <Binding Path="IsEnabled" />
+                    </MultiBinding>
+                </Border.BackgroundColor>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Tuesday}"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    Text="T"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                        <On Platform="Default">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Tuesday}"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                    Text="T"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </Border>
+            <Border Grid.Column="3"
+                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6,6,6,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                <Border.BackgroundColor>
+                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Wednesday}">
+                        <Binding Path="DaysOfWeek" />
+                        <Binding Path="IsEnabled" />
+                    </MultiBinding>
+                </Border.BackgroundColor>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Wednesday}"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    Text="W"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                        <On Platform="Default">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Wednesday}"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                    Text="W"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </Border>
+            <Border Grid.Column="4"
+                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6,6,6,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                <Border.BackgroundColor>
+                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Thursday}">
+                        <Binding Path="DaysOfWeek" />
+                        <Binding Path="IsEnabled" />
+                    </MultiBinding>
+                </Border.BackgroundColor>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Thursday}"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    Text="T"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                        <On Platform="Default">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Thursday}"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                    Text="T"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </Border>
+            <Border Grid.Column="5"
+                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6,6,6,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                <Border.BackgroundColor>
+                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Friday}">
+                        <Binding Path="DaysOfWeek" />
+                        <Binding Path="IsEnabled" />
+                    </MultiBinding>
+                </Border.BackgroundColor>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Friday}"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    Text="F"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                        <On Platform="Default">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Friday}"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                    Text="F"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </Border>
+            <Border Grid.Column="6"
+                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='6,4', Default='5,4'}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6,6,6,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                <Border.BackgroundColor>
+                    <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Saturday}">
+                        <Binding Path="DaysOfWeek" />
+                        <Binding Path="IsEnabled" />
+                    </MultiBinding>
+                </Border.BackgroundColor>
+                <OnPlatform x:TypeArguments="View">
+                    <OnPlatform.Platforms>
+                        <On Platform="iOS">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Saturday}"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    Text="S"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                        <On Platform="Default">
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Command="{Binding ToggleDayCommand}"
+                                    CommandParameter="{StaticResource Saturday}"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform Android='12', WinUI='13', Default='12'}"
+                                    Text="S"
+                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
+                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                        </On>
+                    </OnPlatform.Platforms>
+                </OnPlatform>
+            </Border>
+        </Grid>
+        <StackLayout Margin="0"
+                     HorizontalOptions="Center"
+                     Orientation="Horizontal">
+            <Border StrokeThickness="1"
+                    Stroke="{DynamicResource DividerColor}"
+                    BackgroundColor="{DynamicResource CardBackgroundColor}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="#20000000" 
+                            Offset="0,2" 
+                            Radius="4" 
+                            Opacity="0.1" />
+                </Border.Shadow>
+                <Entry Margin="12,8"
+                       MaxLength="30"
+                       MinimumWidthRequest="200"
+                       Placeholder="Schedule Name"
+                       Text="{Binding Name, Mode=TwoWay}"
+                       BackgroundColor="Transparent"
+                       TextColor="{DynamicResource TextPrimaryColor}" />
+            </Border>
+        </StackLayout>
+    </StackLayout>
+</ContentView>
+

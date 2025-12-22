@@ -37,25 +37,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     private void SetupGestureRecognizers(object? sender, EventArgs e)
     {
-        // Only setup once per page instance
-        if (MusicButton?.GestureRecognizers.Count == 0)
-        {
-            MusicButton?.GestureRecognizers.Add(new TapGestureRecognizer
-            {
-                Command = new Command(() => AnimateUtils.FlickUponTouched(MusicButton, 1500,
-                    ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
-            });
-        }
-
-        if (BibleTranslationButton?.GestureRecognizers.Count == 0)
-        {
-            BibleTranslationButton?.GestureRecognizers.Add(new TapGestureRecognizer
-            {
-                Command = new Command(() => AnimateUtils.FlickUponTouched(BibleTranslationButton, 1500,
-                    ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
-            });
-        }
-
+        // Gesture recognizers are now handled in the container views
         // Unsubscribe after setup
         Loaded -= SetupGestureRecognizers;
     }

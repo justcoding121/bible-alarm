@@ -1,5 +1,5 @@
 using Bible.Alarm.Common.ViewHelpers;
-using Bible.Alarm.ViewModels;
+using Bible.Alarm.ViewModels.Schedule;
 using Serilog;
 
 namespace Bible.Alarm.Views.Schedule;
@@ -11,7 +11,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isClearingSelection;
 
-    public ScheduleViewModel ViewModel => BindingContext as ScheduleViewModel;
+    public ChaptersSelectionContainerViewModel? ViewModel => BindingContext as ChaptersSelectionContainerViewModel;
 
     public NumberOfChaptersModal()
     {

@@ -32,7 +32,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly IMapper mapper;
 
     private AlarmMusic current;
-    private AlarmMusic tentative;
     private bool initComplete;
 
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> propertyChangedHandlers = [];
@@ -72,25 +71,17 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            // Ensure tentative is set from state if it's null
-            if (tentative == null)
+            // Ensure current is set from state if it's null
+            if (current == null)
             {
                 var stateValue = state.Value;
-                if (stateValue.TentativeMusic != null)
-                {
-                    tentative = mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
-                }
                 if (stateValue.CurrentMusic != null)
                 {
                     current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
                 }
-                else if (tentative != null)
-                {
-                    current = tentative;
-                }
             }
 
-            if (tentative == null)
+            if (current == null)
             {
                 return;
             }
@@ -105,17 +96,17 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             SelectedTrack = x;
             SelectedTrack.IsSelected = true;
 
-            tentative.TrackNumber = x.Number;
-            tentative.Repeat = x.Repeat;
+            current.TrackNumber = x.Number;
+            current.Repeat = x.Repeat;
 
             // Map entity to DTO before dispatching
             var trackSelectedItem = new MusicStateItem
             {
-                MusicType = tentative.MusicType,
-                LanguageCode = tentative.LanguageCode,
-                PublicationCode = tentative.PublicationCode,
-                TrackNumber = tentative.TrackNumber,
-                Repeat = tentative.Repeat
+                MusicType = current.MusicType,
+                LanguageCode = current.LanguageCode,
+                PublicationCode = current.PublicationCode,
+                TrackNumber = current.TrackNumber,
+                Repeat = current.Repeat
             };
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
@@ -133,28 +124,18 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
 
         var stateValue = state.Value;
-        // For track selection, we only need TentativeMusic to initialize
-        // CurrentMusic might be null when navigating directly to track selection
-        if (stateValue.TentativeMusic == null)
+        // For track selection, we need CurrentMusic to initialize
+        if (stateValue.CurrentMusic == null)
         {
             return;
         }
-        // Map DTOs to entities
-        tentative = mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
-        // Use TentativeMusic as CurrentMusic if CurrentMusic is null
-        if (stateValue.CurrentMusic != null)
-        {
-            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-        }
-        else
-        {
-            current = tentative;
-        }
+        // Map DTO to entity
+        current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
         initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(tentative.LanguageCode, tentative.PublicationCode);
+            await Initialize(current.LanguageCode, current.PublicationCode);
 
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following book selection pattern)
@@ -258,22 +239,22 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private void HandleRepeatChanged(MusicTrackListViewItemModel track)
     {
-        if (tentative == null)
+        if (current == null)
         {
             return;
         }
 
-        tentative.Repeat = track.Repeat;
-        tentative.TrackNumber = track.Number;
+        current.Repeat = track.Repeat;
+        current.TrackNumber = track.Number;
 
         // Map entity to DTO before dispatching
         var trackSelectedItem = new MusicStateItem
         {
-            MusicType = tentative.MusicType,
-            LanguageCode = tentative.LanguageCode,
-            PublicationCode = tentative.PublicationCode,
-            TrackNumber = tentative.TrackNumber,
-            Repeat = tentative.Repeat
+            MusicType = current.MusicType,
+            LanguageCode = current.LanguageCode,
+            PublicationCode = current.PublicationCode,
+            TrackNumber = current.TrackNumber,
+            Repeat = current.Repeat
         };
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
@@ -304,16 +285,12 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
             trackViewModelList.Add(musicTrackListViewItemViewModel);
 
-            if (current == null || tentative == null)
+            if (current == null)
             {
                 continue;
             }
 
-            if (current.MusicType != tentative.MusicType
-                || current.TrackNumber != track.Number
-                || (current.MusicType != MusicType.Melodies &&
-                    (current.LanguageCode != tentative.LanguageCode
-                     || current.PublicationCode != tentative.PublicationCode)))
+            if (current.TrackNumber != track.Number)
             {
                 continue;
             }

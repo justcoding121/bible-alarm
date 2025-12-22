@@ -28,10 +28,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     private readonly IMapper mapper;
 
     private AlarmMusic? current;
-    private AlarmMusic? tentative;
     private bool initComplete;
     private AlarmMusic? lastCurrent;
-    private AlarmMusic? lastTentative;
     private PropertyChangedEventHandler? propertyChangedHandler;
 
     public SongBookSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
@@ -47,7 +45,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
         // Check current state immediately in case state is already set
         var currentState = this.state.Value;
-        if (currentState.CurrentMusic != null && currentState.TentativeMusic != null)
+        if (currentState.CurrentMusic != null)
         {
             OnMusicInitialized(null, EventArgs.Empty);
         }
@@ -143,25 +141,22 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     private void OnMusicChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
-        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null)
+        if (stateValue.CurrentMusic == null)
         {
             return;
         }
 
-        // Map DTOs to entities
+        // Map DTO to entity
         var newCurrent = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-        var newTentative = mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
 
         // Compare by ID to avoid unnecessary updates
-        if (lastCurrent?.Id == newCurrent.Id && lastTentative?.Id == newTentative.Id)
+        if (lastCurrent?.Id == newCurrent.Id)
         {
             return;
         }
 
         current = newCurrent;
-        tentative = newTentative;
         lastCurrent = current;
-        lastTentative = tentative;
 
         // Update selected song book when state changes (e.g., after navigating back)
         MainThread.BeginInvokeOnMainThread(SetSelectedSongBook);
@@ -175,13 +170,12 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         }
 
         var stateValue = state.Value;
-        if (stateValue.CurrentMusic == null || stateValue.TentativeMusic == null)
+        if (stateValue.CurrentMusic == null)
         {
             return;
         }
-        // Map DTOs to entities
+        // Map DTO to entity
         current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-        tentative = mapper.Map<AlarmMusic>(stateValue.TentativeMusic);
         initComplete = true;
         Task.Run(async () =>
         {
@@ -200,7 +194,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
     private void SetSelectedSongBook()
     {
-        if (current == null || tentative == null || current.LanguageCode != tentative.LanguageCode)
+        if (current == null)
         {
             return;
         }
@@ -271,12 +265,12 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
     private async Task Initialize()
     {
-        if (tentative == null)
+        if (current == null)
         {
             return;
         }
 
-        var languageCode = tentative.LanguageCode;
+        var languageCode = current.LanguageCode;
 
         if (languageCode == null)
         {
@@ -284,7 +278,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
             languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key ?? "E";
         }
 
-        tentative.LanguageCode = languageCode;
+        current.LanguageCode = languageCode;
 
         await PopulateLanguages();
         await PopulateSongBooks(languageCode);
@@ -318,7 +312,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
             languageVMs.Add(languageVm);
 
-            if (tentative == null || languageVm.Code != tentative.LanguageCode)
+            if (current == null || languageVm.Code != current.LanguageCode)
             {
                 continue;
             }

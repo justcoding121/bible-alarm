@@ -4,7 +4,6 @@ using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
 using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
-using Bible.Alarm.Platforms.iOS.Services.Media;
 #endif
 
 #if ANDROID
@@ -46,6 +45,7 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.Bible;
@@ -220,6 +220,10 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BookSelectionViewModel>();
         services.AddTransient<ChapterSelectionViewModel>();
         services.AddTransient<AlarmViewModal>();
+        services.AddTransient<BibleSelectionContainerViewModel>();
+        services.AddTransient<MusicSelectionContainerViewModel>();
+        services.AddTransient<ChaptersSelectionContainerViewModel>();
+        services.AddTransient<ScheduleDetailsContainerViewModel>();
 
         // Register ScheduleListItem as transient for list items
         services.AddTransient<ScheduleListItem>();

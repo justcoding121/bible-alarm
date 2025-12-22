@@ -27,7 +27,6 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IMediaService mediaService;
     private readonly IToastService toastService;
     private BibleReadingSchedule? current;
-    private BibleReadingSchedule? tentative;
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IDownloadService downloadService;
     private readonly IState<ApplicationState> state;
@@ -79,9 +78,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             SelectedChapter = x;
             SelectedChapter.IsSelected = true;
 
-            tentative?.ChapterNumber = x.Number;
-
-            if (tentative is null)
+            if (current is null)
             {
                 return;
             }
@@ -89,9 +86,9 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             // Map entity to DTO before dispatching
             var chapterSelectedItem = new BibleReadingStateItem
             {
-                LanguageCode = tentative.LanguageCode,
-                PublicationCode = tentative.PublicationCode,
-                BookNumber = tentative.BookNumber,
+                LanguageCode = current.LanguageCode,
+                PublicationCode = current.PublicationCode,
+                BookNumber = current.BookNumber,
                 ChapterNumber = x.Number
             };
             dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
@@ -109,18 +106,17 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         }
 
         var stateValue = state.Value;
-        if (stateValue.CurrentBibleReadingSchedule is null || stateValue.TentativeBibleReadingSchedule is null)
+        if (stateValue.CurrentBibleReadingSchedule is null)
         {
             return;
         }
-        // Map DTOs to entities
+        // Map DTO to entity
         current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
-        tentative = mapper.Map<BibleReadingSchedule>(stateValue.TentativeBibleReadingSchedule);
         initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(tentative.LanguageCode, tentative.PublicationCode, tentative.BookNumber);
+            await Initialize(current.LanguageCode, current.PublicationCode, current.BookNumber);
 
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following book selection pattern)
@@ -178,15 +174,12 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             chapterViewModelList.Add(chapterVm);
 
-            if (current is null || tentative is null)
+            if (current is null)
             {
                 continue;
             }
 
-            if (current.LanguageCode != tentative.LanguageCode
-                || current.PublicationCode != tentative.PublicationCode
-                || current.BookNumber != tentative.BookNumber
-                || current.ChapterNumber != chapter.Number)
+            if (current.ChapterNumber != chapter.Number)
             {
                 continue;
             }

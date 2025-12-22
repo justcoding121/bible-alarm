@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentView x:Class="Bible.Alarm.Views.Schedule.BibleSelectionContainer"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
+             xmlns:fn="clr-namespace:Bible.Alarm.Views"
+             x:DataType="vm:BibleSelectionContainerViewModel">
+    <Border Margin="0"
+            Padding="0"
+            StrokeThickness="2"
+            Stroke="{StaticResource PrimaryColor}"
+            BackgroundColor="{DynamicResource CardBackgroundColor}"
+            HorizontalOptions="Fill">
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="16" />
+        </Border.StrokeShape>
+        <Border.Shadow>
+            <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}" 
+                    Offset="0,6" 
+                    Radius="16" 
+                    Opacity="0.3" />
+        </Border.Shadow>
+        <StackLayout Orientation="Vertical"
+                     Spacing="0"
+                     Padding="0">
+            <!-- Translation Name & Language with right arrow -->
+            <Grid x:Name="BibleTranslationButton"
+                  Margin="0"
+                  Padding="16,16"
+                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                  MinimumHeightRequest="56"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Fill">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectBibleCommand}"
+                                          NumberOfTapsRequired="1" />
+                </Grid.GestureRecognizers>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Column="0"
+                       FontSize="16"
+                       FontAttributes="None"
+                       HorizontalOptions="Fill"
+                       HorizontalTextAlignment="Start"
+                       Text="{Binding TranslationDisplayText}"
+                       TextColor="{DynamicResource PrimaryTextColor}"
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center" />
+                <!-- Arrow Indicator -->
+                <Border Grid.Column="1"
+                        BackgroundColor="Transparent"
+                        HeightRequest="40"
+                        HorizontalOptions="End"
+                        Margin="8,0,0,0"
+                        StrokeThickness="0"
+                        VerticalOptions="Center"
+                        WidthRequest="40">
+                    <Label
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="14"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        InputTransparent="True"
+                        Text="{x:Static fn:GlyphNames.Right}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
+                        VerticalOptions="Center"
+                        VerticalTextAlignment="Center" />
+                </Border>
+            </Grid>
+            <!-- Divider -->
+            <BoxView HeightRequest="1"
+                     BackgroundColor="{DynamicResource DividerColor}"
+                     Margin="0"
+                     HorizontalOptions="Fill" />
+            <Grid x:Name="BibleBookButton"
+                  Margin="0"
+                  Padding="16,16"
+                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                  MinimumHeightRequest="56"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Fill">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectBookCommand}"
+                                          NumberOfTapsRequired="1" />
+                </Grid.GestureRecognizers>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Column="0"
+                       FontSize="16"
+                       FontAttributes="None"
+                       HorizontalOptions="Fill"
+                       HorizontalTextAlignment="Start"
+                       Text="{Binding BookDisplayText}"
+                       TextColor="{DynamicResource PrimaryTextColor}"
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center" />
+                <StackLayout Grid.Column="1"
+                             HorizontalOptions="End"
+                             Orientation="Horizontal"
+                             Spacing="4"
+                             VerticalOptions="Center">
+                    <Button Padding="8"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            Command="{Binding PreviousBookCommand}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="18"
+                            HeightRequest="40"
+                            WidthRequest="40"
+                            HorizontalOptions="Center"
+                            Text="{x:Static fn:GlyphNames.Left}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center" />
+                    <Button Padding="8"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            Command="{Binding NextBookCommand}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="18"
+                            HeightRequest="40"
+                            WidthRequest="40"
+                            HorizontalOptions="Center"
+                            Text="{x:Static fn:GlyphNames.Right}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center" />
+                </StackLayout>
+            </Grid>
+            <!-- Divider -->
+            <BoxView HeightRequest="1"
+                     BackgroundColor="{DynamicResource DividerColor}"
+                     Margin="0"
+                     HorizontalOptions="Fill" />
+            <Grid x:Name="BibleChapterButton"
+                  Margin="0"
+                  Padding="16,16"
+                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                  MinimumHeightRequest="56"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Fill">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectChapterCommand}"
+                                          NumberOfTapsRequired="1" />
+                </Grid.GestureRecognizers>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Column="0"
+                       FontSize="16"
+                       FontAttributes="None"
+                       HorizontalOptions="Fill"
+                       HorizontalTextAlignment="Start"
+                       Text="{Binding ChapterDisplayText}"
+                       TextColor="{DynamicResource PrimaryTextColor}"
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center" />
+                <StackLayout Grid.Column="1"
+                             HorizontalOptions="End"
+                             Orientation="Horizontal"
+                             Spacing="4"
+                             VerticalOptions="Center">
+                    <Button Padding="8"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            Command="{Binding PreviousChapterCommand}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="18"
+                            HeightRequest="40"
+                            WidthRequest="40"
+                            HorizontalOptions="Center"
+                            Text="{x:Static fn:GlyphNames.Left}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center" />
+                    <Button Padding="8"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            Command="{Binding NextChapterCommand}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="18"
+                            HeightRequest="40"
+                            WidthRequest="40"
+                            HorizontalOptions="Center"
+                            Text="{x:Static fn:GlyphNames.Right}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center" />
+                </StackLayout>
+            </Grid>
+        </StackLayout>
+    </Border>
+</ContentView>
+
