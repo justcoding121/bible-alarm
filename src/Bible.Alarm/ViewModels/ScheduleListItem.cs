@@ -57,8 +57,29 @@ public sealed class ScheduleListItem(
         set => onPlaybackStarted = value;
     }
 
-    public void Initialize(AlarmSchedule schedule)
+    /// <summary>
+    /// Initializes the ScheduleListItem from state using the schedule ID.
+    /// This follows the state-driven architecture pattern where view models initialize from state.
+    /// </summary>
+    public void SetScheduleId(int scheduleId)
     {
+        if (scheduleId <= 0)
+        {
+            logger.Warning("SetScheduleId: Invalid schedule ID {ScheduleId}", scheduleId);
+            return;
+        }
+
+        // Find schedule from state
+        var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        if (scheduleStateItem == null)
+        {
+            logger.Warning("SetScheduleId: Schedule {ScheduleId} not found in state", scheduleId);
+            return;
+        }
+
+        // Map ScheduleStateItem to AlarmSchedule entity
+        var schedule = mapper.Map<AlarmSchedule>(scheduleStateItem);
+
         isInitializing = true;
         try
         {
@@ -86,9 +107,8 @@ public sealed class ScheduleListItem(
         lastKnownSchedule = Schedule;
 
         // Initialize tracked subtitle values from state
-        var initialStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == schedule.Id);
-        lastKnownBibleReadingLanguageName = initialStateItem?.BibleReadingLanguageName;
-        lastKnownBookName = initialStateItem?.BibleReadingBookName;
+        lastKnownBibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageName;
+        lastKnownBookName = scheduleStateItem.BibleReadingBookName;
 
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;

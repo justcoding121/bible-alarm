@@ -228,12 +228,13 @@ public static class ServiceRegistrationHelper
         // Register ScheduleListItem as transient for list items
         services.AddTransient<ScheduleListItem>();
 
-        // Register factory for ScheduleListItem (takes AlarmSchedule and returns ScheduleListItem with DI)
-        services.AddTransient<Func<AlarmSchedule, ScheduleListItem>>(serviceProvider =>
-            schedule =>
+        // Register factory for ScheduleListItem (takes schedule ID and returns ScheduleListItem with DI)
+        // ScheduleListItem initializes from state using the schedule ID
+        services.AddTransient<Func<int, ScheduleListItem>>(serviceProvider =>
+            scheduleId =>
             {
                 var vm = serviceProvider.GetRequiredService<ScheduleListItem>();
-                vm.Initialize(schedule);
+                vm.SetScheduleId(scheduleId);
                 return vm;
             });
     }

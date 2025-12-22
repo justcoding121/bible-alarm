@@ -115,7 +115,6 @@
                                         </Grid.GestureRecognizers>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         
                                         <!-- Song Book Name -->
@@ -129,29 +128,6 @@
                                             TextColor="{DynamicResource TextPrimaryColor}"
                                             VerticalOptions="Center"
                                             VerticalTextAlignment="Center" />
-                                        
-                                        <!-- Arrow Indicator -->
-                                        <Border
-                                            Grid.Column="1"
-                                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                            HeightRequest="32"
-                                            HorizontalOptions="End"
-                                            StrokeThickness="0"
-                                            VerticalOptions="Center"
-                                            WidthRequest="32">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="16" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="14"
-                                                HorizontalOptions="Center"
-                                                HorizontalTextAlignment="Center"
-                                                Text="{x:Static fn:GlyphNames.Right}"
-                                                TextColor="{DynamicResource TextSecondaryColor}"
-                                                VerticalOptions="Center"
-                                                VerticalTextAlignment="Center" />
-                                        </Border>
                                     </Grid>
                                 </Border>
                             </Grid>

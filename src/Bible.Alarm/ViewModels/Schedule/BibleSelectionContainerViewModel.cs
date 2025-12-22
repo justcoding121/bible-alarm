@@ -54,6 +54,21 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
+        InitializeFromState();
+    }
+
+    private void InitializeFromState()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule != null)
+        {
+            scheduleId = currentSchedule.Id;
+            isNewSchedule = currentSchedule.Id <= 0;
+            
+            OnPropertyChanged(nameof(TranslationDisplayText));
+            OnPropertyChanged(nameof(BookDisplayText));
+            OnPropertyChanged(nameof(ChapterDisplayText));
+        }
     }
 
     private void InitializeCommands()
@@ -260,21 +275,40 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         });
     }
 
-    public void Initialize(int scheduleId, bool isNewSchedule, AlarmSchedule model, BibleReadingSchedule? bibleReadingSchedule, bool bibleReadingUpdated)
+    public void SetModel(AlarmSchedule model)
+    {
+        this.model = model;
+    }
+
+    public void SetScheduleId(int scheduleId, bool isNewSchedule)
     {
         this.scheduleId = scheduleId;
         this.isNewSchedule = isNewSchedule;
-        this.model = model;
-        this.bibleReadingSchedule = bibleReadingSchedule;
-        this.bibleReadingUpdated = bibleReadingUpdated;
-
-        OnPropertyChanged(nameof(TranslationDisplayText));
-        OnPropertyChanged(nameof(BookDisplayText));
-        OnPropertyChanged(nameof(ChapterDisplayText));
     }
 
     private void OnStateChanged(object sender, EventArgs e)
     {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule != null)
+        {
+            // Initialize if schedule ID changed
+            if (currentSchedule.Id != scheduleId)
+            {
+                InitializeFromState();
+            }
+            
+            if (model != null)
+            {
+                // Update bibleReadingUpdated flag if bible reading changed
+                var hasBibleReading = currentSchedule.BibleReadingScheduleId.HasValue;
+                if (hasBibleReading && (bibleReadingSchedule == null || 
+                    bibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value))
+                {
+                    bibleReadingUpdated = true;
+                }
+            }
+        }
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
             OnPropertyChanged(nameof(TranslationDisplayText));

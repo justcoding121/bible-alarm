@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -44,6 +45,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private string? lastTrackPublicationCode;
     private string? lastTrackLanguageCode;
     private MusicType? lastTrackMusicType;
+    private bool isUpdatingFromState;
+    private bool? pendingMusicEnabled; // Optimistic update value
 
     public MusicSelectionContainerViewModel(
         ILogger logger,
@@ -64,6 +67,39 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
+        InitializeFromState();
+    }
+
+    private void InitializeFromState()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule != null)
+        {
+            scheduleId = currentSchedule.Id;
+            isNewSchedule = currentSchedule.Id <= 0;
+
+            OnPropertyChanged(nameof(MusicEnabled));
+            OnPropertyChanged(nameof(MusicTypeDisplayText));
+            OnPropertyChanged(nameof(IsSongBookVisible));
+            OnPropertyChanged(nameof(SongBookDisplayText));
+            OnPropertyChanged(nameof(TrackDisplayText));
+
+            // Load song book and track names asynchronously if music is enabled
+            if (MusicEnabled)
+            {
+                Task.Run(async () =>
+                {
+                    var songBookName = await GetSongBookDisplayTextAsync();
+                    var trackName = await GetTrackDisplayTextAsync();
+                    
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        OnPropertyChanged(nameof(SongBookDisplayText));
+                        OnPropertyChanged(nameof(TrackDisplayText));
+                    });
+                });
+            }
+        }
     }
 
     private void InitializeCommands()
@@ -121,41 +157,54 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         });
     }
 
-    public void Initialize(int scheduleId, bool isNewSchedule, AlarmSchedule model, AlarmMusic? music, bool musicUpdated)
+    public void SetModel(AlarmSchedule model)
     {
-        this.scheduleId = scheduleId;
-        this.isNewSchedule = isNewSchedule;
         this.model = model;
-        this.music = music;
+    }
+
+    public void SetMusicUpdated(bool musicUpdated)
+    {
         this.musicUpdated = musicUpdated;
-        this.lastMusic = music;
-
-        OnPropertyChanged(nameof(MusicEnabled));
-        OnPropertyChanged(nameof(MusicTypeDisplayText));
-        OnPropertyChanged(nameof(IsSongBookVisible));
-        OnPropertyChanged(nameof(SongBookDisplayText));
-        OnPropertyChanged(nameof(TrackDisplayText));
-
-        // Load song book and track names asynchronously if music is enabled
-        if (MusicEnabled && music != null)
-        {
-            Task.Run(async () =>
-            {
-                var songBookName = await GetSongBookDisplayTextAsync();
-                var trackName = await GetTrackDisplayTextAsync();
-                
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    OnPropertyChanged(nameof(SongBookDisplayText));
-                    OnPropertyChanged(nameof(TrackDisplayText));
-                });
-            });
-        }
     }
 
     private void OnStateChanged(object sender, EventArgs e)
     {
         var stateValue = state.Value;
+        var currentSchedule = stateValue.CurrentSchedule;
+        
+        // Initialize if schedule ID changed
+        if (currentSchedule != null && currentSchedule.Id != scheduleId)
+        {
+            InitializeFromState();
+        }
+        
+        // Check if MusicEnabled changed in state
+        if (currentSchedule != null && model != null)
+        {
+            var stateMusicEnabled = currentSchedule.MusicEnabled;
+            // Clear pending value since state has been updated
+            if (pendingMusicEnabled.HasValue && pendingMusicEnabled.Value == stateMusicEnabled)
+            {
+                pendingMusicEnabled = null; // State now matches, clear pending
+            }
+            
+            if (model.MusicEnabled != stateMusicEnabled)
+            {
+                // State has a different value, update model without dispatching
+                isUpdatingFromState = true;
+                try
+                {
+                    model.MusicEnabled = stateMusicEnabled;
+                    pendingMusicEnabled = null; // Clear pending when updating from state
+                    OnPropertyChanged(nameof(MusicEnabled));
+                }
+                finally
+                {
+                    isUpdatingFromState = false;
+                }
+            }
+        }
+
         if (stateValue.CurrentMusic == null)
         {
             return;
@@ -226,21 +275,60 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     {
         get
         {
+            // Return pending value if set (optimistic update), otherwise read from state
+            if (pendingMusicEnabled.HasValue)
+            {
+                return pendingMusicEnabled.Value;
+            }
             var currentSchedule = state.Value.CurrentSchedule;
             return currentSchedule?.MusicEnabled ?? false;
         }
         set
         {
-            if (model == null)
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
             {
+                logger.Warning("MusicEnabled setter: CurrentSchedule is null, cannot update");
                 return;
             }
 
-            model.MusicEnabled = value;
-            OnPropertyChanged();
+            // Check if the value is actually different from the current state
+            var currentValue = MusicEnabled;
+            if (currentValue == value)
+            {
+                // Value hasn't changed, don't dispatch
+                logger.Debug("MusicEnabled setter: Value unchanged ({Value}), skipping", value);
+                return;
+            }
 
-            // Update state
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
+            // Prevent dispatching if this update is coming from state (not user interaction)
+            if (isUpdatingFromState)
+            {
+                logger.Debug("MusicEnabled setter: Update from state, skipping dispatch");
+                if (model != null)
+                {
+                    model.MusicEnabled = value;
+                }
+                pendingMusicEnabled = null; // Clear pending when updating from state
+                OnPropertyChanged();
+                return;
+            }
+
+            logger.Debug("MusicEnabled setter: Setting to {Value} (was {CurrentValue})", value, currentValue);
+
+            // Set optimistic update value immediately
+            pendingMusicEnabled = value;
+            if (model != null)
+            {
+                model.MusicEnabled = value;
+            }
+            
+            // Trigger PropertyChanged immediately so animation starts
+            OnPropertyChanged(nameof(MusicEnabled));
+
+            // Update state (will clear pendingMusicEnabled when state updates)
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
+            scheduleStateItem.MusicEnabled = value;
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false));
         }
     }

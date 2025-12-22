@@ -25,6 +25,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private readonly IMediaService mediaService;
     private readonly IToastService toastService;
+    private readonly INavigationService navigationService;
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IDownloadService downloadService;
     private readonly IDispatcher dispatcher;
@@ -50,6 +51,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         this.logger = logger;
         this.mediaService = mediaService;
         this.toastService = toastService;
+        this.navigationService = navigationService;
         this.downloadService = downloadService;
         this.urlRefreshService = urlRefreshService;
         this.mapper = mapper;
@@ -64,53 +66,62 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        SetTrackCommand = new RelayCommand<MusicTrackListViewItemModel>(x =>
+        SetTrackCommand = new AsyncRelayCommand<MusicTrackListViewItemModel>(async x =>
         {
             if (x == null)
             {
                 return;
             }
 
-            // Ensure current is set from state if it's null
-            if (current == null)
-            {
-                var stateValue = state.Value;
-                if (stateValue.CurrentMusic != null)
-                {
-                    current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-                }
-            }
-
-            if (current == null)
-            {
-                return;
-            }
-
             IsBusy = true;
-            if (SelectedTrack != null)
+
+            try
             {
-                SelectedTrack.IsSelected = false;
-                SelectedTrack.Repeat = false;
+                // Ensure current is set from state if it's null
+                if (current == null)
+                {
+                    var stateValue = state.Value;
+                    if (stateValue.CurrentMusic != null)
+                    {
+                        current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+                    }
+                }
+
+                if (current == null)
+                {
+                    return;
+                }
+
+                if (SelectedTrack != null)
+                {
+                    SelectedTrack.IsSelected = false;
+                    SelectedTrack.Repeat = false;
+                }
+
+                SelectedTrack = x;
+                SelectedTrack.IsSelected = true;
+
+                current.TrackNumber = x.Number;
+                current.Repeat = x.Repeat;
+
+                // Map entity to DTO before dispatching
+                var trackSelectedItem = new MusicStateItem
+                {
+                    MusicType = current.MusicType,
+                    LanguageCode = current.LanguageCode,
+                    PublicationCode = current.PublicationCode,
+                    TrackNumber = current.TrackNumber,
+                    Repeat = current.Repeat
+                };
+                dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+
+                // Navigate back to schedule page
+                await navigationService.PopAsync();
             }
-
-            SelectedTrack = x;
-            SelectedTrack.IsSelected = true;
-
-            current.TrackNumber = x.Number;
-            current.Repeat = x.Repeat;
-
-            // Map entity to DTO before dispatching
-            var trackSelectedItem = new MusicStateItem
+            finally
             {
-                MusicType = current.MusicType,
-                LanguageCode = current.LanguageCode,
-                PublicationCode = current.PublicationCode,
-                TrackNumber = current.TrackNumber,
-                Repeat = current.Repeat
-            };
-            dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-
-            IsBusy = false;
+                IsBusy = false;
+            }
         });
 
         state.StateChanged += OnMusicInitialized;

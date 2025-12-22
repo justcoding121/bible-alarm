@@ -6,23 +6,29 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Essentials;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class ChaptersSelectionContainerViewModel : ObservableObject
+public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
     private readonly IServiceProvider serviceProvider;
+    private readonly IState<ApplicationState> state;
+    private readonly IDispatcher dispatcher;
 
     private int scheduleId;
-    private AlarmSchedule? model;
     private bool notificationEnabled;
     private bool alwaysPlayFromStart;
 
@@ -32,12 +38,19 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject
     public ChaptersSelectionContainerViewModel(
         ILogger logger,
         INavigationService navigationService,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IState<ApplicationState> state,
+        IDispatcher dispatcher)
     {
         this.logger = logger;
         this.navigationService = navigationService;
         this.serviceProvider = serviceProvider;
+        this.state = state;
+        this.dispatcher = dispatcher;
+        
+        state.StateChanged += OnStateChanged;
         InitializeCommands();
+        InitializeFromState();
     }
 
     private void InitializeCommands()
@@ -57,10 +70,10 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject
             CurrentNumberOfChapters = x;
             CurrentNumberOfChapters.IsSelected = true;
 
-            // Update the model immediately so the UI reflects the change
-            if (model != null && CurrentNumberOfChapters != null)
+            // Dispatch update to state
+            if (CurrentNumberOfChapters != null)
             {
-                model.NumberOfChaptersToRead = CurrentNumberOfChapters.Value;
+                DispatchScheduleUpdate(s => s.NumberOfChaptersToRead = CurrentNumberOfChapters.Value);
             }
 
             // Explicitly notify property changes to ensure UI binding updates
@@ -100,17 +113,43 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject
         });
     }
 
-    public void Initialize(int scheduleId, AlarmSchedule model, bool notificationEnabled, bool alwaysPlayFromStart)
+    private void InitializeFromState()
     {
-        this.scheduleId = scheduleId;
-        this.model = model;
-        this.notificationEnabled = notificationEnabled;
-        this.alwaysPlayFromStart = alwaysPlayFromStart;
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule != null)
+        {
+            scheduleId = currentSchedule.Id;
+            notificationEnabled = currentSchedule.NotificationEnabled;
+            alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
 
-        PopulateNumberOfChaptersListView(model);
-        
-        OnPropertyChanged(nameof(NotificationEnabled));
-        OnPropertyChanged(nameof(AlwaysPlayFromStart));
+            PopulateNumberOfChaptersListView();
+            
+            OnPropertyChanged(nameof(NotificationEnabled));
+            OnPropertyChanged(nameof(AlwaysPlayFromStart));
+        }
+    }
+
+    private void OnStateChanged(object sender, EventArgs e)
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule != null && currentSchedule.Id != scheduleId)
+        {
+            InitializeFromState();
+        }
+        else if (currentSchedule != null)
+        {
+            // Update properties if schedule changed
+            if (notificationEnabled != currentSchedule.NotificationEnabled)
+            {
+                notificationEnabled = currentSchedule.NotificationEnabled;
+                OnPropertyChanged(nameof(NotificationEnabled));
+            }
+            if (alwaysPlayFromStart != currentSchedule.AlwaysPlayFromStart)
+            {
+                alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+                OnPropertyChanged(nameof(AlwaysPlayFromStart));
+            }
+        }
     }
 
     public ICommand OpenModalCommand { get; private set; } = null!;
@@ -154,9 +193,9 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject
                 _ = ShowBatteryOptimizationExclusionPage();
             }
 
-            if (SetProperty(ref notificationEnabled, value) && model != null)
+            if (SetProperty(ref notificationEnabled, value))
             {
-                model.NotificationEnabled = value;
+                DispatchScheduleUpdate(s => s.NotificationEnabled = value);
             }
         }
     }
@@ -218,28 +257,30 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject
         get => alwaysPlayFromStart;
         set
         {
-            if (SetProperty(ref alwaysPlayFromStart, value) && model != null)
+            if (SetProperty(ref alwaysPlayFromStart, value))
             {
-                model.AlwaysPlayFromStart = value;
+                DispatchScheduleUpdate(s => s.AlwaysPlayFromStart = value);
             }
         }
     }
 
-    private void PopulateNumberOfChaptersListView(AlarmSchedule model)
+    private void PopulateNumberOfChaptersListView()
     {
-        // Preserve the current selection if user has made one (to prevent SetModel from overwriting user's choice)
+        // Preserve the current selection if user has made one
         var preservedSelection = CurrentNumberOfChapters?.Value;
+        var currentSchedule = state.Value.CurrentSchedule;
+        var numberOfChapters = currentSchedule?.NumberOfChaptersToRead ?? 3;
 
-        var chapterVMs = new ObservableCollection<NumberOfChaptersListViewItemModel>();
+            var chapterVMs = new ObservableCollection<NumberOfChaptersListViewItemModel>();
 
-        for (var i = 1; i <= 21; i++)
-        {
-            var chaptersVm = new NumberOfChaptersListViewItemModel(i);
+            for (var i = 1; i <= 21; i++)
+            {
+                var chaptersVm = new NumberOfChaptersListViewItemModel(i);
 
-            // If user has made a selection, use that; otherwise use the model's value
-            var shouldSelect = preservedSelection.HasValue
-                ? preservedSelection.Value == i
-                : model.NumberOfChaptersToRead == i;
+                // If user has made a selection, use that; otherwise use the state's value
+                var shouldSelect = preservedSelection.HasValue
+                    ? preservedSelection.Value == i
+                    : numberOfChapters == i;
 
             if (shouldSelect)
             {
@@ -251,6 +292,60 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject
         }
 
         NumberOfChaptersList = chapterVMs;
+    }
+
+    private void DispatchScheduleUpdate(Action<ScheduleStateItem> updateAction)
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null)
+        {
+            return;
+        }
+
+        // Clone the current schedule and apply the update
+        var updatedSchedule = CloneScheduleStateItem(currentSchedule);
+        updateAction(updatedSchedule);
+        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false));
+    }
+
+    private static ScheduleStateItem CloneScheduleStateItem(ScheduleStateItem source)
+    {
+        return new ScheduleStateItem
+        {
+            Id = source.Id,
+            Name = source.Name,
+            IsEnabled = source.IsEnabled,
+            Hour = source.Hour,
+            Minute = source.Minute,
+            Second = source.Second,
+            DaysOfWeek = source.DaysOfWeek,
+            NotificationEnabled = source.NotificationEnabled,
+            MusicEnabled = source.MusicEnabled,
+            SnoozeMinutes = source.SnoozeMinutes,
+            NumberOfChaptersToRead = source.NumberOfChaptersToRead,
+            AlwaysPlayFromStart = source.AlwaysPlayFromStart,
+            CurrentPlayItem = source.CurrentPlayItem,
+            LatestAlarmNotificationId = source.LatestAlarmNotificationId,
+            BibleReadingScheduleId = source.BibleReadingScheduleId,
+            BibleReadingLanguageCode = source.BibleReadingLanguageCode,
+            BibleReadingPublicationCode = source.BibleReadingPublicationCode,
+            BibleReadingBookNumber = source.BibleReadingBookNumber,
+            BibleReadingChapterNumber = source.BibleReadingChapterNumber,
+            BibleReadingFinishedDuration = source.BibleReadingFinishedDuration,
+            MusicId = source.MusicId,
+            MusicType = source.MusicType,
+            MusicPublicationCode = source.MusicPublicationCode,
+            MusicLanguageCode = source.MusicLanguageCode,
+            MusicTrackNumber = source.MusicTrackNumber,
+            MusicRepeat = source.MusicRepeat,
+            BibleReadingLanguageName = source.BibleReadingLanguageName,
+            BibleReadingBookName = source.BibleReadingBookName
+        };
+    }
+
+    public void Dispose()
+    {
+        state.StateChanged -= OnStateChanged;
     }
 }
 

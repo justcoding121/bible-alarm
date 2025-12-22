@@ -59,29 +59,57 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
             IsBusy = true;
 
-            // Ensure current is set from state if it's null
-            if (current == null)
+            try
             {
-                var currentItem = state.Value.CurrentMusic;
-                if (currentItem != null)
+                // Ensure current is set from state if it's null
+                if (current == null)
                 {
-                    current = mapper.Map<AlarmMusic>(currentItem);
+                    var currentItem = state.Value.CurrentMusic;
+                    if (currentItem != null)
+                    {
+                        current = mapper.Map<AlarmMusic>(currentItem);
+                    }
                 }
+
+                var languageCode = CurrentLanguage?.Code ?? string.Empty;
+                if (string.IsNullOrEmpty(languageCode))
+                {
+                    return;
+                }
+
+                // Get the first track for the selected song book and language
+                var tracks = await Task.Run(async () =>
+                    await mediaService.GetVocalMusicTracks(languageCode, x.Code));
+
+                if (tracks == null || tracks.Count == 0)
+                {
+                    return;
+                }
+
+                // Get the first track (lowest track number)
+                var firstTrack = tracks.Values.First();
+                var firstTrackNumber = firstTrack.Number;
+
+                // Create MusicStateItem with selected song book and first track
+                var trackSelectedItem = new MusicStateItem
+                {
+                    Repeat = current?.Repeat ?? false,
+                    MusicType = MusicType.Vocals,
+                    LanguageCode = languageCode,
+                    PublicationCode = x.Code,
+                    TrackNumber = firstTrackNumber
+                };
+
+                // Dispatch TrackSelectedAction to update CurrentMusic
+                dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+
+                // Navigate back to schedule page
+                await navigationService.PopAsync();
             }
-
-            await navigationService.NavigateToTrackSelectionAsync();
-
-            // Map entity to DTO before dispatching
-            var trackItem = new MusicStateItem
+            finally
             {
-                Repeat = current?.Repeat ?? false,
-                MusicType = MusicType.Vocals,
-                LanguageCode = CurrentLanguage?.Code ?? string.Empty,
-                PublicationCode = x.Code
-            };
-            dispatcher.Dispatch(new TrackSelectionAction(trackItem));
-
-            IsBusy = false;
+                IsBusy = false;
+            }
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>

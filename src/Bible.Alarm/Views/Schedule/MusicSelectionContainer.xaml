@@ -80,162 +80,164 @@
                     </Border>
                 </StackLayout>
             </Grid>
-            <!-- Divider -->
-            <BoxView HeightRequest="1"
-                     BackgroundColor="{DynamicResource DividerColor}"
-                     Margin="0"
-                     HorizontalOptions="Fill"
-                     IsVisible="{Binding MusicEnabled}" />
-            <!-- Music Type Row -->
-            <Grid x:Name="MusicTypeButton"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill"
-                  IsVisible="{Binding MusicEnabled}">
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectMusicTypeCommand}"
-                                          NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Label Grid.Column="0"
-                       FontSize="16"
-                       FontAttributes="None"
-                       HorizontalOptions="Fill"
-                       HorizontalTextAlignment="Start"
-                       Text="{Binding MusicTypeDisplayText}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
-                       VerticalOptions="Center"
-                       VerticalTextAlignment="Center" />
-                <Border Grid.Column="1"
-                        BackgroundColor="Transparent"
-                        HeightRequest="24"
-                        HorizontalOptions="End"
-                        Margin="8,0,0,0"
-                        StrokeThickness="0"
-                        VerticalOptions="Center"
-                        WidthRequest="24">
-                    <Label
-                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="14"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"
-                        InputTransparent="True"
-                        Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
-                        VerticalOptions="Center"
-                        VerticalTextAlignment="Center" />
-                </Border>
-            </Grid>
-            <!-- Divider -->
-            <BoxView HeightRequest="1"
-                     BackgroundColor="{DynamicResource DividerColor}"
-                     Margin="0"
-                     HorizontalOptions="Fill"
-                     IsVisible="{Binding IsSongBookVisible}" />
-            <!-- Song Book Row (only visible when Music Type is Vocals) -->
-            <Grid x:Name="SongBookButton"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill"
-                  IsVisible="{Binding IsSongBookVisible}">
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectSongBookCommand}"
-                                          NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Label Grid.Column="0"
-                       FontSize="16"
-                       FontAttributes="None"
-                       HorizontalOptions="Fill"
-                       HorizontalTextAlignment="Start"
-                       Text="{Binding SongBookDisplayText}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
-                       VerticalOptions="Center"
-                       VerticalTextAlignment="Center" />
-                <Border Grid.Column="1"
-                        BackgroundColor="Transparent"
-                        HeightRequest="24"
-                        HorizontalOptions="End"
-                        Margin="8,0,0,0"
-                        StrokeThickness="0"
-                        VerticalOptions="Center"
-                        WidthRequest="24">
-                    <Label
-                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="14"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"
-                        InputTransparent="True"
-                        Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
-                        VerticalOptions="Center"
-                        VerticalTextAlignment="Center" />
-                </Border>
-            </Grid>
-            <!-- Divider -->
-            <BoxView HeightRequest="1"
-                     BackgroundColor="{DynamicResource DividerColor}"
-                     Margin="0"
-                     HorizontalOptions="Fill"
-                     IsVisible="{Binding MusicEnabled}" />
-            <!-- Track Name Row -->
-            <Grid x:Name="TrackButton"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill"
-                  IsVisible="{Binding MusicEnabled}">
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
-                                          NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Label Grid.Column="0"
-                       FontSize="16"
-                       FontAttributes="None"
-                       HorizontalOptions="Fill"
-                       HorizontalTextAlignment="Start"
-                       Text="{Binding TrackDisplayText}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
-                       VerticalOptions="Center"
-                       VerticalTextAlignment="Center" />
-                <Border Grid.Column="1"
-                        BackgroundColor="Transparent"
-                        HeightRequest="24"
-                        HorizontalOptions="End"
-                        Margin="8,0,0,0"
-                        StrokeThickness="0"
-                        VerticalOptions="Center"
-                        WidthRequest="24">
-                    <Label
-                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="14"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"
-                        InputTransparent="True"
-                        Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
-                        VerticalOptions="Center"
-                        VerticalTextAlignment="Center" />
-                </Border>
-            </Grid>
+            <!-- Collapsible Content Container -->
+            <StackLayout x:Name="CollapsibleContent"
+                         Orientation="Vertical"
+                         Spacing="0"
+                         Padding="0">
+                <!-- Divider -->
+                <BoxView HeightRequest="1"
+                         BackgroundColor="{DynamicResource DividerColor}"
+                         Margin="0"
+                         HorizontalOptions="Fill" />
+                <!-- Music Type Row -->
+                <Grid x:Name="MusicTypeButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectMusicTypeCommand}"
+                                              NumberOfTapsRequired="1" />
+                    </Grid.GestureRecognizers>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           FontSize="16"
+                           FontAttributes="None"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           Text="{Binding MusicTypeDisplayText}"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           VerticalOptions="Center"
+                           VerticalTextAlignment="Center" />
+                    <Border Grid.Column="1"
+                            BackgroundColor="Transparent"
+                            HeightRequest="24"
+                            HorizontalOptions="End"
+                            Margin="8,0,0,0"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            WidthRequest="24">
+                        <Label
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="14"
+                            HorizontalOptions="Center"
+                            HorizontalTextAlignment="Center"
+                            InputTransparent="True"
+                            Text="{x:Static fn:GlyphNames.Right}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center"
+                            VerticalTextAlignment="Center" />
+                    </Border>
+                </Grid>
+                <!-- Divider -->
+                <BoxView HeightRequest="1"
+                         BackgroundColor="{DynamicResource DividerColor}"
+                         Margin="0"
+                         HorizontalOptions="Fill"
+                         IsVisible="{Binding IsSongBookVisible}" />
+                <!-- Song Book Row (only visible when Music Type is Vocals) -->
+                <Grid x:Name="SongBookButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill"
+                      IsVisible="{Binding IsSongBookVisible}">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectSongBookCommand}"
+                                              NumberOfTapsRequired="1" />
+                    </Grid.GestureRecognizers>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           FontSize="16"
+                           FontAttributes="None"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           Text="{Binding SongBookDisplayText}"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           VerticalOptions="Center"
+                           VerticalTextAlignment="Center" />
+                    <Border Grid.Column="1"
+                            BackgroundColor="Transparent"
+                            HeightRequest="24"
+                            HorizontalOptions="End"
+                            Margin="8,0,0,0"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            WidthRequest="24">
+                        <Label
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="14"
+                            HorizontalOptions="Center"
+                            HorizontalTextAlignment="Center"
+                            InputTransparent="True"
+                            Text="{x:Static fn:GlyphNames.Right}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center"
+                            VerticalTextAlignment="Center" />
+                    </Border>
+                </Grid>
+                <!-- Divider -->
+                <BoxView HeightRequest="1"
+                         BackgroundColor="{DynamicResource DividerColor}"
+                         Margin="0"
+                         HorizontalOptions="Fill" />
+                <!-- Track Name Row -->
+                <Grid x:Name="TrackButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
+                                              NumberOfTapsRequired="1" />
+                    </Grid.GestureRecognizers>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           FontSize="16"
+                           FontAttributes="None"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           Text="{Binding TrackDisplayText}"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           VerticalOptions="Center"
+                           VerticalTextAlignment="Center" />
+                    <Border Grid.Column="1"
+                            BackgroundColor="Transparent"
+                            HeightRequest="24"
+                            HorizontalOptions="End"
+                            Margin="8,0,0,0"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            WidthRequest="24">
+                        <Label
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="14"
+                            HorizontalOptions="Center"
+                            HorizontalTextAlignment="Center"
+                            InputTransparent="True"
+                            Text="{x:Static fn:GlyphNames.Right}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center"
+                            VerticalTextAlignment="Center" />
+                    </Border>
+                </Grid>
+            </StackLayout>
         </StackLayout>
     </Border>
 </ContentView>

@@ -59,32 +59,55 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
             IsBusy = true;
 
-            // Ensure current is set from state if it's null
-            if (current == null)
+            try
             {
-                var currentItem = state.Value.CurrentBibleReadingSchedule;
-                if (currentItem != null)
+                // Ensure current is set from state if it's null
+                if (current == null)
                 {
-                    current = mapper.Map<BibleReadingSchedule>(currentItem);
+                    var currentItem = state.Value.CurrentBibleReadingSchedule;
+                    if (currentItem != null)
+                    {
+                        current = mapper.Map<BibleReadingSchedule>(currentItem);
+                    }
                 }
-            }
 
-            if (current == null)
+                if (current == null)
+                {
+                    return;
+                }
+
+                // Get the first chapter for the selected book
+                var chapters = await Task.Run(async () =>
+                    await mediaService.GetBibleChapters(current.LanguageCode, current.PublicationCode, x.Number));
+
+                if (chapters == null || chapters.Count == 0)
+                {
+                    return;
+                }
+
+                // Get the first chapter (lowest chapter number)
+                var firstChapter = chapters.Values.First();
+                var firstChapterNumber = firstChapter.Number;
+
+                // Create BibleReadingStateItem with selected book and first chapter
+                var bibleReadingItem = new BibleReadingStateItem
+                {
+                    LanguageCode = current.LanguageCode,
+                    PublicationCode = current.PublicationCode,
+                    BookNumber = x.Number,
+                    ChapterNumber = firstChapterNumber
+                };
+
+                // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
+                dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+
+                // Navigate back to schedule page
+                await navigationService.PopAsync();
+            }
+            finally
             {
                 IsBusy = false;
-                return;
             }
-
-            await navigationService.NavigateToChapterSelectionAsync();
-            // Map entity to DTO before dispatching
-            var chapterSelectionItem = new BibleReadingStateItem
-            {
-                LanguageCode = current.LanguageCode,
-                PublicationCode = current.PublicationCode,
-                BookNumber = x.Number
-            };
-            dispatcher.Dispatch(new ChapterSelectionAction(chapterSelectionItem));
-            IsBusy = false;
         });
 
         state.StateChanged += OnBibleReadingInitialized;

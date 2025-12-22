@@ -64,7 +64,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
-        SetChapterCommand = new RelayCommand<BibleChapterListViewItemModel>(x =>
+        SetChapterCommand = new AsyncRelayCommand<BibleChapterListViewItemModel>(async x =>
         {
             if (x is null)
             {
@@ -73,26 +73,35 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
 
             IsBusy = true;
 
-            SelectedChapter?.IsSelected = false;
-
-            SelectedChapter = x;
-            SelectedChapter.IsSelected = true;
-
-            if (current is null)
+            try
             {
-                return;
+                SelectedChapter?.IsSelected = false;
+
+                SelectedChapter = x;
+                SelectedChapter.IsSelected = true;
+
+                if (current is null)
+                {
+                    return;
+                }
+
+                // Map entity to DTO before dispatching
+                var chapterSelectedItem = new BibleReadingStateItem
+                {
+                    LanguageCode = current.LanguageCode,
+                    PublicationCode = current.PublicationCode,
+                    BookNumber = current.BookNumber,
+                    ChapterNumber = x.Number
+                };
+                dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
+
+                // Navigate back to schedule page
+                await navigationService.PopAsync();
             }
-
-            // Map entity to DTO before dispatching
-            var chapterSelectedItem = new BibleReadingStateItem
+            finally
             {
-                LanguageCode = current.LanguageCode,
-                PublicationCode = current.PublicationCode,
-                BookNumber = current.BookNumber,
-                ChapterNumber = x.Number
-            };
-            dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
-            IsBusy = false;
+                IsBusy = false;
+            }
         });
 
         state.StateChanged += OnBibleReadingInitialized;

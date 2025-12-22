@@ -31,7 +31,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     private readonly Dictionary<int, ScheduleListItem> scheduleViewModels = [];
 
-    private readonly Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory;
+    private readonly Func<int, ScheduleListItem> scheduleListItemFactory;
     private readonly IMapper mapper;
 
     private readonly IDispatcher dispatcher;
@@ -40,7 +40,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     public HomeViewModel(
         ILogger logger,
         IServiceScopeFactory scopeFactory,
-        Func<AlarmSchedule, ScheduleListItem> scheduleListItemFactory,
+        Func<int, ScheduleListItem> scheduleListItemFactory,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         IDatabaseSeedService databaseSeedService,
@@ -151,16 +151,14 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         // Process each schedule item from the snapshot
         foreach (var scheduleItem in scheduleItemsSnapshot)
         {
-            // Map ScheduleStateItem back to AlarmSchedule for ScheduleListItem
-            // ScheduleListItem needs AlarmSchedule entity (not DTO)
-            var schedule = mapper.Map<AlarmSchedule>(scheduleItem);
-            currentViewModelIds.Add(schedule.Id);
+            var scheduleId = scheduleItem.Id;
+            currentViewModelIds.Add(scheduleId);
 
-            if (scheduleViewModels.TryGetValue(schedule.Id, out var existingViewModel))
+            if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
             {
-                // Existing view model - just update it in place
-                // Initialize() will trigger property change notifications for this specific item
-                existingViewModel.Initialize(schedule);
+                // Existing view model - update it from state
+                // SetScheduleId() will trigger property change notifications for this specific item
+                existingViewModel.SetScheduleId(scheduleId);
                 // Ensure callbacks are set (in case it was created before we added this logic)
                 if (existingViewModel.OnPlayStarted == null)
                 {
@@ -179,8 +177,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             }
             else
             {
-                // New schedule - create new view model
-                var viewModel = scheduleListItemFactory(schedule);
+                // New schedule - create new view model using schedule ID
+                // ScheduleListItem will initialize from state using the ID
+                var viewModel = scheduleListItemFactory(scheduleId);
                 // Set callbacks to show/hide overlay when play is pressed/started
                 viewModel.OnPlayStarted = () =>
                 {
@@ -190,7 +189,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 {
                     dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
                 };
-                scheduleViewModels[schedule.Id] = viewModel;
+                scheduleViewModels[scheduleId] = viewModel;
                 schedulesToAdd.Add(viewModel);
             }
         }
@@ -210,7 +209,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         }
 
         // Only replace the collection if schedules were added or removed
-        // For updates to existing schedules, Initialize() already updated the view model properties
+        // For updates to existing schedules, SetScheduleId() already updated the view model properties
         // and triggered property change notifications on that specific item, so no collection replacement needed
         if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
         {

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
@@ -18,12 +19,14 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 {
     private AlarmMusic current;
 
+    private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
 
-    public MusicSelectionViewModel(IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
+    public MusicSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
+        this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
@@ -45,45 +48,65 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
             IsBusy = true;
 
-            // Ensure _current is set from state if it's null
-            if (current == null)
+            try
             {
-                var currentItem = this.state.Value.CurrentMusic;
-                if (currentItem != null)
+                // Ensure _current is set from state if it's null
+                if (current == null)
                 {
-                    current = this.mapper.Map<AlarmMusic>(currentItem);
+                    var currentItem = this.state.Value.CurrentMusic;
+                    if (currentItem != null)
+                    {
+                        current = this.mapper.Map<AlarmMusic>(currentItem);
+                    }
+                }
+
+                if (x.MusicType == MusicType.Vocals)
+                {
+                    await navigationService.NavigateToSongBookSelectionAsync();
+
+                    // Map entity to DTO before dispatching
+                    var songBookItem = new MusicStateItem
+                    {
+                        MusicType = MusicType.Vocals,
+                        LanguageCode = current?.LanguageCode
+                    };
+                    this.dispatcher.Dispatch(new SongBookSelectionAction(songBookItem));
+                }
+                else
+                {
+                    // For Melodies: Get the first track and update state, then navigate back
+                    var tracks = await Task.Run(async () =>
+                        await mediaService.GetMelodyMusicTracks("iam"));
+
+                    if (tracks == null || tracks.Count == 0)
+                    {
+                        return;
+                    }
+
+                    // Get the first track (lowest track number)
+                    var firstTrack = tracks.Values.First();
+                    var firstTrackNumber = firstTrack.Number;
+
+                    // Create MusicStateItem with selected music type and first track
+                    var trackSelectedItem = new MusicStateItem
+                    {
+                        Repeat = current?.Repeat ?? false,
+                        MusicType = MusicType.Melodies,
+                        PublicationCode = "iam",
+                        TrackNumber = firstTrackNumber
+                    };
+
+                    // Dispatch TrackSelectedAction to update CurrentMusic
+                    this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+
+                    // Navigate back to schedule page
+                    await navigationService.PopAsync();
                 }
             }
-
-            if (x.MusicType == MusicType.Vocals)
+            finally
             {
-                await navigationService.NavigateToSongBookSelectionAsync();
-
-                // Map entity to DTO before dispatching
-                var songBookItem = new MusicStateItem
-                {
-                    MusicType = MusicType.Vocals,
-                    LanguageCode = current?.LanguageCode
-                };
-                this.dispatcher.Dispatch(new SongBookSelectionAction(songBookItem));
-
+                IsBusy = false;
             }
-            else
-            {
-                await navigationService.NavigateToTrackSelectionAsync();
-
-                // Map entity to DTO before dispatching
-                var trackItem = new MusicStateItem
-                {
-                    Repeat = current?.Repeat ?? false,
-                    MusicType = MusicType.Melodies,
-                    PublicationCode = "iam"
-                };
-                this.dispatcher.Dispatch(new TrackSelectionAction(trackItem));
-
-            }
-
-            IsBusy = false;
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
