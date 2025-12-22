@@ -82,7 +82,7 @@ public static class ApplicationReducer
             MusicLanguageCode = action.Schedule.MusicLanguageCode,
             MusicTrackNumber = action.Schedule.MusicTrackNumber,
             MusicRepeat = action.Schedule.MusicRepeat,
-            TranslationName = action.Schedule.TranslationName
+            BibleReadingLanguageName = action.Schedule.BibleReadingLanguageName
         };
         newSchedules.Add(optimisticSchedule);
 
@@ -119,15 +119,15 @@ public static class ApplicationReducer
 
         if (existingScheduleItem != null)
         {
-            // Preserve TranslationName and BookName from existing item (they're not in the action's ScheduleStateItem)
+            // Preserve BibleReadingLanguageName and BibleReadingBookName from existing item (they're not in the action's ScheduleStateItem)
             // because they're populated during bootstrap/effects, not stored in database
-            if (string.IsNullOrWhiteSpace(action.Schedule.TranslationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.TranslationName))
+            if (string.IsNullOrWhiteSpace(action.Schedule.BibleReadingLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingLanguageName))
             {
-                action.Schedule.TranslationName = existingScheduleItem.TranslationName;
+                action.Schedule.BibleReadingLanguageName = existingScheduleItem.BibleReadingLanguageName;
             }
-            if (string.IsNullOrWhiteSpace(action.Schedule.BookName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BookName))
+            if (string.IsNullOrWhiteSpace(action.Schedule.BibleReadingBookName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingBookName))
             {
-                action.Schedule.BookName = existingScheduleItem.BookName;
+                action.Schedule.BibleReadingBookName = existingScheduleItem.BibleReadingBookName;
             }
 
             // Remove old and add updated
@@ -389,16 +389,16 @@ public static class ApplicationReducer
         // This prevents the entire list from reloading when only one item is updated
         var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
 
-        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, TranslationName: '{TranslationName}', BookName: '{BookName}'",
-            action.Schedule.Id, action.Schedule.TranslationName ?? "null", action.Schedule.BookName ?? "null");
+        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}'",
+            action.Schedule.Id, action.Schedule.BibleReadingLanguageName ?? "null", action.Schedule.BibleReadingBookName ?? "null");
 
         if (existingScheduleItem != null)
         {
-            Log.Debug("ApplicationReducer: Existing item TranslationName: '{TranslationName}', BookName: '{BookName}'",
-                existingScheduleItem.TranslationName ?? "null", existingScheduleItem.BookName ?? "null");
+            Log.Debug("ApplicationReducer: Existing item BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}'",
+                existingScheduleItem.BibleReadingLanguageName ?? "null", existingScheduleItem.BibleReadingBookName ?? "null");
 
             // Always replace the existing item with the updated one from the action
-            // This ensures TranslationName and BookName are updated even if other properties haven't changed
+            // This ensures BibleReadingLanguageName and BibleReadingBookName are updated even if other properties haven't changed
             state.Schedules.Remove(existingScheduleItem);
             state.Schedules.Add(action.Schedule);
 

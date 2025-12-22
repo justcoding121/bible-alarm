@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
@@ -101,8 +102,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             x.Schedule.IsEnabled = x.IsEnabled;
             // Start navigation immediately (don't await yet)
             var navigationTask = navigationService.NavigateToScheduleAsync();
-            // Map AlarmSchedule to ScheduleStateItem before dispatching
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(x.Schedule);
+            // Get schedule from state (which has BibleReadingBookName populated) instead of mapping from entity
+            var scheduleStateItem = state.Value.Schedules?.FirstOrDefault(s => s.Id == x.Schedule.Id);
+            if (scheduleStateItem == null)
+            {
+                // Fallback to mapping if not found in state (shouldn't happen normally)
+                scheduleStateItem = mapper.Map<ScheduleStateItem>(x.Schedule);
+            }
             // Dispatch action immediately so data loading can start
             dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
             // Wait for navigation to complete

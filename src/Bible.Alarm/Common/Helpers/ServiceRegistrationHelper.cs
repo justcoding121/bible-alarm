@@ -60,7 +60,6 @@ using Serilog;
 using Bible.Alarm.Platforms.Windows.Services.UI;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
-using Bible.Alarm.Platforms.Windows.Services.Media;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
 #endif

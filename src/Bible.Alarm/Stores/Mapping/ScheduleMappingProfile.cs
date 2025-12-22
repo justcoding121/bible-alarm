@@ -27,8 +27,8 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MusicLanguageCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.LanguageCode : null))
             .ForMember(dest => dest.MusicTrackNumber, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.TrackNumber : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
-            .ForMember(dest => dest.TranslationName, opt => opt.Ignore()) // Set manually during bootstrap
-            .ForMember(dest => dest.BookName, opt => opt.Ignore()); // Set manually during bootstrap
+            .ForMember(dest => dest.BibleReadingLanguageName, opt => opt.Ignore()) // Set manually during bootstrap
+            .ForMember(dest => dest.BibleReadingBookName, opt => opt.Ignore()); // Set manually during bootstrap
 
         // Map ScheduleStateItem back to AlarmSchedule (for when we need the entity)
         // Note: This creates a new AlarmSchedule but won't have EF tracking

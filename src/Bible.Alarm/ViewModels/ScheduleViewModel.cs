@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -102,6 +103,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         state.StateChanged += OnStateChanged;
         state.StateChanged += OnMusicChanged;
         state.StateChanged += OnBibleReadingChanged;
+        state.StateChanged += OnScheduleStateChanged;
 
         // Set IsBusy to true by default so the page shows loading indicator immediately
         IsBusy = true;
@@ -290,6 +292,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (BibleReadingSchedule != null)
             {
                 RefreshChapterName();
+                OnPropertyChanged(nameof(TranslationDisplayText));
+                OnPropertyChanged(nameof(BookDisplayText));
+                OnPropertyChanged(nameof(ChapterDisplayText));
             }
 
             await navigationService.NavigateToBibleSelectionAsync();
@@ -365,7 +370,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         PreviousBookCommand = new AsyncRelayCommand(async () =>
         {
-            if (BibleReadingSchedule == null)
+            if (BibleReadingSchedule == null || Model == null)
             {
                 return;
             }
@@ -377,13 +382,25 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (moved)
             {
                 bibleReadingUpdated = true;
-                RefreshChapterName();
+                // Update the model to reflect changes
+                Model.BibleReadingSchedule = BibleReadingSchedule;
+                
+                // Create state item and dispatch update action to save to DB and update state
+                var scheduleStateItem = mapper.Map<ScheduleStateItem>(Model);
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true));
+                
+                // Notify UI of changes
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    OnPropertyChanged(nameof(BookDisplayText));
+                    OnPropertyChanged(nameof(ChapterDisplayText));
+                });
             }
         });
 
         NextBookCommand = new AsyncRelayCommand(async () =>
         {
-            if (BibleReadingSchedule == null)
+            if (BibleReadingSchedule == null || Model == null)
             {
                 return;
             }
@@ -395,13 +412,25 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (moved)
             {
                 bibleReadingUpdated = true;
-                RefreshChapterName();
+                // Update the model to reflect changes
+                Model.BibleReadingSchedule = BibleReadingSchedule;
+                
+                // Create state item and dispatch update action to save to DB and update state
+                var scheduleStateItem = mapper.Map<ScheduleStateItem>(Model);
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true));
+                
+                // Notify UI of changes
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    OnPropertyChanged(nameof(BookDisplayText));
+                    OnPropertyChanged(nameof(ChapterDisplayText));
+                });
             }
         });
 
         PreviousChapterCommand = new AsyncRelayCommand(async () =>
         {
-            if (BibleReadingSchedule == null)
+            if (BibleReadingSchedule == null || Model == null)
             {
                 return;
             }
@@ -413,13 +442,25 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (moved)
             {
                 bibleReadingUpdated = true;
-                RefreshChapterName();
+                // Update the model to reflect changes
+                Model.BibleReadingSchedule = BibleReadingSchedule;
+                
+                // Create state item and dispatch update action to save to DB and update state
+                var scheduleStateItem = mapper.Map<ScheduleStateItem>(Model);
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true));
+                
+                // Notify UI of changes (book might change if crossing book boundaries)
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    OnPropertyChanged(nameof(BookDisplayText));
+                    OnPropertyChanged(nameof(ChapterDisplayText));
+                });
             }
         });
 
         NextChapterCommand = new AsyncRelayCommand(async () =>
         {
-            if (BibleReadingSchedule == null)
+            if (BibleReadingSchedule == null || Model == null)
             {
                 return;
             }
@@ -431,7 +472,19 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (moved)
             {
                 bibleReadingUpdated = true;
-                RefreshChapterName();
+                // Update the model to reflect changes
+                Model.BibleReadingSchedule = BibleReadingSchedule;
+                
+                // Create state item and dispatch update action to save to DB and update state
+                var scheduleStateItem = mapper.Map<ScheduleStateItem>(Model);
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true));
+                
+                // Notify UI of changes (book might change if crossing book boundaries)
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    OnPropertyChanged(nameof(BookDisplayText));
+                    OnPropertyChanged(nameof(ChapterDisplayText));
+                });
             }
         });
     }
@@ -642,6 +695,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             RefreshChapterName();
             OnPropertyChanged(nameof(BibleReadingSchedule));
             OnPropertyChanged(nameof(BibleReadingTitleText));
+            OnPropertyChanged(nameof(TranslationDisplayText));
+            OnPropertyChanged(nameof(BookDisplayText));
+            OnPropertyChanged(nameof(ChapterDisplayText));
         });
     }
 
@@ -853,6 +909,11 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         Name = model.Name;
         IsEnabled = model.IsEnabled;
         DaysOfWeek = model.DaysOfWeek;
+        
+        // Notify property changes for display text properties
+        OnPropertyChanged(nameof(TranslationDisplayText));
+        OnPropertyChanged(nameof(BookDisplayText));
+        OnPropertyChanged(nameof(ChapterDisplayText));
         Time = new TimeSpan(model.Hour, model.Minute, model.Second);
         MusicEnabled = model.MusicEnabled;
         NotificationEnabled = model.NotificationEnabled;
@@ -973,6 +1034,73 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         get => bibleReadingTitleText;
         set => SetProperty(ref bibleReadingTitleText, value);
+    }
+
+    public string TranslationDisplayText
+    {
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return string.Empty;
+            }
+
+            // Get publication code and language name from state
+            var publicationCode = currentSchedule.BibleReadingPublicationCode?.ToLowerInvariant() ?? string.Empty;
+            var languageName = currentSchedule.BibleReadingLanguageName ?? string.Empty;
+
+            if (string.IsNullOrEmpty(publicationCode) && string.IsNullOrEmpty(languageName))
+            {
+                return string.Empty;
+            }
+
+            // Format publication code using helper
+            var publicationDisplay = PublicationDisplayHelper.GetDisplayName(publicationCode);
+
+            if (string.IsNullOrEmpty(languageName))
+            {
+                return publicationDisplay;
+            }
+
+            if (string.IsNullOrEmpty(publicationCode))
+            {
+                return languageName;
+            }
+
+            // Format: "NWT 2013 - English"
+            return $"{publicationDisplay} - {languageName}";
+        }
+    }
+
+    public string BookDisplayText
+    {
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return string.Empty;
+            }
+
+            // Get book name from state (populated during bootstrap)
+            return currentSchedule.BibleReadingBookName ?? string.Empty;
+        }
+    }
+
+    public string ChapterDisplayText
+    {
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null || !currentSchedule.BibleReadingScheduleId.HasValue)
+            {
+                return string.Empty;
+            }
+
+            // ChapterNumber is always valid (1-150) if BibleReadingSchedule exists
+            return $"Chapter {currentSchedule.BibleReadingChapterNumber!.Value}";
+        }
     }
 
     private bool isNewSchedule;
@@ -1228,10 +1356,20 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     /// </summary>
     public void HideSchedulePageOverlay() => dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
 
+    private void OnScheduleStateChanged(object sender, EventArgs e)
+    {
+        // Notify property changes for display text properties when state changes
+        // This ensures UI updates when BibleReadingLanguageName or BibleReadingBookName changes in state
+        OnPropertyChanged(nameof(TranslationDisplayText));
+        OnPropertyChanged(nameof(BookDisplayText));
+        OnPropertyChanged(nameof(ChapterDisplayText));
+    }
+
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
         state.StateChanged -= OnMusicChanged;
         state.StateChanged -= OnBibleReadingChanged;
+        state.StateChanged -= OnScheduleStateChanged;
     }
 }

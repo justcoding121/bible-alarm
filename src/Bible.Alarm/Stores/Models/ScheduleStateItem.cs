@@ -48,18 +48,18 @@ public sealed class ScheduleStateItem : IComparable
     public bool? MusicRepeat { get; set; }
 
     /// <summary>
-    /// Translation name (language name) for display purposes.
+    /// Bible reading language name for display purposes.
     /// This is populated during bootstrap from language dictionary.
     /// Not persisted to database.
     /// </summary>
-    public string? TranslationName { get; set; }
+    public string? BibleReadingLanguageName { get; set; }
 
     /// <summary>
-    /// Book name for display purposes.
+    /// Bible reading book name for display purposes.
     /// This is populated during bootstrap from Bible book service.
     /// Not persisted to database.
     /// </summary>
-    public string? BookName { get; set; }
+    public string? BibleReadingBookName { get; set; }
 
     /// <summary>
     /// Compare by schedule ID for ObservableHashSet ordering.

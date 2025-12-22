@@ -31,7 +31,7 @@ public sealed class ScheduleListItem(
 {
     private bool isInitializing;
     private AlarmSchedule? lastKnownSchedule;
-    private string? lastKnownTranslationName;
+    private string? lastKnownBibleReadingLanguageName;
     private string? lastKnownBookName;
     private bool isBusy;
     private Action? onPlayStarted;
@@ -87,8 +87,8 @@ public sealed class ScheduleListItem(
 
         // Initialize tracked subtitle values from state
         var initialStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == schedule.Id);
-        lastKnownTranslationName = initialStateItem?.TranslationName;
-        lastKnownBookName = initialStateItem?.BookName;
+        lastKnownBibleReadingLanguageName = initialStateItem?.BibleReadingLanguageName;
+        lastKnownBookName = initialStateItem?.BibleReadingBookName;
 
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -279,9 +279,9 @@ public sealed class ScheduleListItem(
             if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)
             {
                 // Set language separately (for display below switch)
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName))
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
                 {
-                    Language = scheduleStateItem.TranslationName;
+                    Language = scheduleStateItem.BibleReadingLanguageName;
                 }
                 else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
                 {
@@ -298,9 +298,9 @@ public sealed class ScheduleListItem(
                 var subtitleParts = new List<string>();
 
                 // Add book name (pre-populated during bootstrap) or fallback to book number
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BookName))
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingBookName))
                 {
-                    subtitleParts.Add(scheduleStateItem.BookName);
+                    subtitleParts.Add(scheduleStateItem.BibleReadingBookName);
                 }
                 else if (scheduleStateItem.BibleReadingBookNumber.HasValue && scheduleStateItem.BibleReadingBookNumber.Value > 0)
                 {
@@ -366,9 +366,9 @@ public sealed class ScheduleListItem(
             string language = string.Empty;
             if (scheduleStateItem != null)
             {
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.TranslationName))
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
                 {
-                    language = scheduleStateItem.TranslationName;
+                    language = scheduleStateItem.BibleReadingLanguageName;
                 }
                 else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
                 {
@@ -480,21 +480,21 @@ public sealed class ScheduleListItem(
         var musicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled;
 
         // Check if subtitle-related properties changed
-        var newTranslationName = updatedScheduleItem.TranslationName;
-        var newBookName = updatedScheduleItem.BookName;
+        var newBibleReadingLanguageName = updatedScheduleItem.BibleReadingLanguageName;
+        var newBookName = updatedScheduleItem.BibleReadingBookName;
         var bookNumberChanged = oldBookNumber != updatedSchedule.BibleReadingSchedule?.BookNumber;
         var chapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber;
-        var translationNameChanged = lastKnownTranslationName != newTranslationName;
+        var bibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName;
         var bookNameChanged = lastKnownBookName != newBookName;
 
         // Only refresh subtitle if subtitle-related properties actually changed
         var subtitleChanged = trackChanged || bookNumberChanged || chapterNumberChanged ||
-                             translationNameChanged || bookNameChanged;
+                             bibleReadingLanguageNameChanged || bookNameChanged;
 
         if (subtitleChanged)
         {
             // Update tracked values
-            lastKnownTranslationName = newTranslationName;
+            lastKnownBibleReadingLanguageName = newBibleReadingLanguageName;
             lastKnownBookName = newBookName;
             RefreshChapterName();
         }

@@ -674,8 +674,9 @@
                             </Border.Shadow>
                             <StackLayout Orientation="Vertical"
                                          Spacing="0">
-                                <Grid x:Name="BibleButton"
-                                      Margin="16,8"
+                                <!-- Translation Name & Language with right arrow -->
+                                <Grid x:Name="BibleTranslationButton"
+                                      Margin="8,8,8,8"
                                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
@@ -684,65 +685,52 @@
                                                               NumberOfTapsRequired="1" />
                                     </Grid.GestureRecognizers>
 
-                                    <Grid Padding="20,18"
-                                          MinimumHeightRequest="56"
+                                    <Grid Padding="10"
                                           ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         
                                         <Label Grid.Column="0"
                                                FontSize="16"
-                                               FontAttributes="Bold"
                                                HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
-                                               Text="Current schedule"
-                                               TextColor="{DynamicResource TextPrimaryColor}"
-                                               VerticalOptions="Center"
-                                               VerticalTextAlignment="Center" />
-                                        <Label Grid.Column="1"
-                                               FontSize="16"
-                                               HorizontalOptions="End"
-                                               HorizontalTextAlignment="End"
-                                               Margin="0,0,8,0"
-                                               Text="{Binding BibleReadingTitleText}"
+                                               Text="{Binding TranslationDisplayText}"
                                                TextColor="{DynamicResource PrimaryTextColor}"
                                                VerticalOptions="Center"
                                                VerticalTextAlignment="Center" />
-                                        <!-- Arrow Indicator matching list view items -->
+                                        <!-- Arrow Indicator - more prominent to indicate tappable -->
                                         <Border
-                                            Grid.Column="2"
+                                            Grid.Column="1"
                                             BackgroundColor="{DynamicResource DividerColor}"
-                                            HeightRequest="32"
+                                            HeightRequest="36"
                                             HorizontalOptions="End"
                                             StrokeThickness="0"
                                             VerticalOptions="Center"
-                                            WidthRequest="32">
+                                            WidthRequest="36">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="16" />
+                                                <RoundRectangle CornerRadius="18" />
                                             </Border.StrokeShape>
                                             <Label
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="14"
+                                                FontSize="16"
                                                 HorizontalOptions="Center"
                                                 HorizontalTextAlignment="Center"
                                                 InputTransparent="True"
                                                 Text="{x:Static fn:GlyphNames.Right}"
-                                                TextColor="{DynamicResource TextSecondaryColor}"
+                                                TextColor="{DynamicResource PrimaryTextColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
                                         </Border>
                                     </Grid>
                                 </Grid>
                                 <Grid x:Name="BibleBookButton"
-                                      Margin="16,0"
+                                      Margin="8,0,8,8"
                                       BackgroundColor="Transparent"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
-                                    <Grid Padding="20,18"
-                                          MinimumHeightRequest="56"
+                                    <Grid Padding="10"
                                           ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -752,8 +740,8 @@
                                         <Label Grid.Column="0"
                                                FontSize="16"
                                                HorizontalTextAlignment="Start"
-                                               Text="Book"
-                                               TextColor="{DynamicResource TextPrimaryColor}"
+                                               Text="{Binding BookDisplayText}"
+                                               TextColor="{DynamicResource PrimaryTextColor}"
                                                VerticalOptions="Center" />
                                         <StackLayout Grid.Column="1"
                                                      HorizontalOptions="End"
@@ -830,12 +818,11 @@
                                     </Grid>
                                 </Grid>
                                 <Grid x:Name="BibleChapterButton"
-                                      Margin="16,0"
+                                      Margin="8,0,8,8"
                                       BackgroundColor="Transparent"
                                       HorizontalOptions="Fill"
                                       VerticalOptions="Fill">
-                                    <Grid Padding="20,18"
-                                          MinimumHeightRequest="56"
+                                    <Grid Padding="10"
                                           ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -845,8 +832,8 @@
                                         <Label Grid.Column="0"
                                                FontSize="16"
                                                HorizontalTextAlignment="Start"
-                                               Text="Chapter"
-                                               TextColor="{DynamicResource TextPrimaryColor}"
+                                               Text="{Binding ChapterDisplayText}"
+                                               TextColor="{DynamicResource PrimaryTextColor}"
                                                VerticalOptions="Center" />
                                         <StackLayout Grid.Column="1"
                                                      HorizontalOptions="End"

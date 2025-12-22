@@ -47,11 +47,11 @@ public partial class Schedule : BaseContentPage, IDisposable
             });
         }
 
-        if (BibleButton?.GestureRecognizers.Count == 0)
+        if (BibleTranslationButton?.GestureRecognizers.Count == 0)
         {
-            BibleButton?.GestureRecognizers.Add(new TapGestureRecognizer
+            BibleTranslationButton?.GestureRecognizers.Add(new TapGestureRecognizer
             {
-                Command = new Command(() => AnimateUtils.FlickUponTouched(BibleButton, 1500,
+                Command = new Command(() => AnimateUtils.FlickUponTouched(BibleTranslationButton, 1500,
                     ColorUtils.ToHexString(Colors.LightGray), ColorUtils.ToHexString(Colors.WhiteSmoke), 1))
             });
         }

@@ -219,8 +219,6 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             Chapters.CollectionChanged -= collectionChangedHandler;
         }
 
-        propertyChangedHandlers.Clear();
-
         @lock.Dispose();
 
         GC.SuppressFinalize(this);

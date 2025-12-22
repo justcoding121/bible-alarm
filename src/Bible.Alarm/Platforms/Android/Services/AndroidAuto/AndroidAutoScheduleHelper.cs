@@ -30,7 +30,7 @@ public static class AndroidAutoScheduleHelper
 
             if (state?.Value?.Schedules != null && state.Value.Schedules.Count > 0)
             {
-                // Return ScheduleStateItem list which includes TranslationName
+                // Return ScheduleStateItem list which includes BibleReadingLanguageName
                 var scheduleItems = state.Value.Schedules.ToList();
                 logger.Information("Loaded {Count} schedules from state for Android Auto", scheduleItems.Count);
                 return scheduleItems;
@@ -58,9 +58,9 @@ public static class AndroidAutoScheduleHelper
             var titleParts = new List<string>();
 
             // Add book name (populated during bootstrap) or fallback to book number
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BookName))
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingBookName))
             {
-                titleParts.Add(scheduleItem.BookName);
+                titleParts.Add(scheduleItem.BibleReadingBookName);
             }
             else if (scheduleItem.BibleReadingBookNumber.HasValue && scheduleItem.BibleReadingBookNumber.Value > 0)
             {
@@ -103,10 +103,10 @@ public static class AndroidAutoScheduleHelper
         // Add language if Bible reading schedule exists
         if (scheduleItem.BibleReadingScheduleId.HasValue)
         {
-            // Use TranslationName from ScheduleStateItem (populated during bootstrap)
-            // Fallback to LanguageCode if TranslationName is not set
-            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.TranslationName)
-                ? scheduleItem.TranslationName
+            // Use BibleReadingLanguageName from ScheduleStateItem (populated during bootstrap)
+            // Fallback to LanguageCode if BibleReadingLanguageName is not set
+            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BibleReadingLanguageName)
+                ? scheduleItem.BibleReadingLanguageName
                 : scheduleItem.BibleReadingLanguageCode ?? string.Empty;
 
             if (!string.IsNullOrWhiteSpace(languageName))

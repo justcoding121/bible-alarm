@@ -213,39 +213,39 @@ public static class CommonBootstrapHelper
             var mapper = ServiceProviderManager.GetService<IMapper>();
 
             // Create ObservableHashSet of ScheduleStateItem for state using AutoMapper
-            // Include TranslationName from language dictionary and BookName from BibleBookService
+            // Include BibleReadingLanguageName from language dictionary and BibleReadingBookName from BibleBookService
             var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
             foreach (var schedule in alarmSchedules)
             {
                 // Map AlarmSchedule to ScheduleStateItem using AutoMapper
                 var scheduleStateItem = mapper.Map<ScheduleStateItem>(schedule);
 
-                // Set TranslationName and BookName from services
+                // Set BibleReadingLanguageName and BibleReadingBookName from services
                 if (schedule.BibleReadingSchedule != null)
                 {
                     var bibleReading = schedule.BibleReadingSchedule;
 
-                    // Set TranslationName from language dictionary
+                    // Set BibleReadingLanguageName from language dictionary
                     if (languagesDict != null)
                     {
                         var languageCode = bibleReading.LanguageCode;
                         if (!string.IsNullOrWhiteSpace(languageCode) &&
                             languagesDict.TryGetValue(languageCode, out var language))
                         {
-                            scheduleStateItem.TranslationName = language.Name;
-                            Log.Logger.Debug("Set TranslationName '{TranslationName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                            scheduleStateItem.BibleReadingLanguageName = language.Name;
+                            Log.Logger.Debug("Set BibleReadingLanguageName '{BibleReadingLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
                                 language.Name, schedule.Id, languageCode);
                         }
                         else
                         {
                             // Fallback to language code if language not found
-                            scheduleStateItem.TranslationName = languageCode;
-                            Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as TranslationName for schedule {ScheduleId}",
+                            scheduleStateItem.BibleReadingLanguageName = languageCode;
+                            Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as BibleReadingLanguageName for schedule {ScheduleId}",
                                 languageCode, schedule.Id);
                         }
                     }
 
-                    // Set BookName from BibleBookService
+                    // Set BibleReadingBookName from BibleBookService
                     if (bibleBookService != null && bibleReading.BookNumber > 0)
                     {
                         try
@@ -257,8 +257,8 @@ public static class CommonBootstrapHelper
 
                             if (!string.IsNullOrWhiteSpace(bookName))
                             {
-                                scheduleStateItem.BookName = bookName;
-                                Log.Logger.Debug("Set BookName '{BookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
+                                scheduleStateItem.BibleReadingBookName = bookName;
+                                Log.Logger.Debug("Set BibleReadingBookName '{BibleReadingBookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
                                     bookName, schedule.Id, bibleReading.BookNumber);
                             }
                         }

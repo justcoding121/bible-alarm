@@ -173,7 +173,7 @@ public class AndroidAutoScheduleChangeTracker
         foreach (var schedule in schedules)
         {
             // Create a signature from key properties that affect Android Auto display
-            var signature = $"{schedule.Name}|{schedule.BibleReadingLanguageCode}|{schedule.BibleReadingBookNumber}|{schedule.BibleReadingChapterNumber}|{schedule.TranslationName}|{schedule.BookName}";
+            var signature = $"{schedule.Name}|{schedule.BibleReadingLanguageCode}|{schedule.BibleReadingBookNumber}|{schedule.BibleReadingChapterNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingBookName}";
             signatures[schedule.Id] = signature;
         }
 
