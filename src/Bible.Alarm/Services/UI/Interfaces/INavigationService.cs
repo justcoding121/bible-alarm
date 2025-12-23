@@ -7,12 +7,12 @@ public interface INavigationService : IDisposable
 {
     Task NavigateToHomeAsync();
     Task NavigateToScheduleAsync();
-    Task NavigateToMusicSelectionAsync();
-    Task NavigateToSongBookSelectionAsync();
-    Task NavigateToTrackSelectionAsync();
-    Task NavigateToBibleSelectionAsync();
-    Task NavigateToBookSelectionAsync();
-    Task NavigateToChapterSelectionAsync();
+    Task OpenMusicSelectionModalAsync(object bindingContext);
+    Task OpenSongBookSelectionModalAsync(object bindingContext);
+    Task OpenTrackSelectionModalAsync(object bindingContext);
+    Task OpenBibleSelectionModalAsync(object bindingContext);
+    Task OpenBookSelectionModalAsync(object bindingContext);
+    Task OpenChapterSelectionModalAsync(object bindingContext);
     Task OpenNumberOfChaptersModalAsync(object bindingContext);
     Task OpenLanguageModalAsync(object bindingContext);
     Task OpenAlarmModalAsync();

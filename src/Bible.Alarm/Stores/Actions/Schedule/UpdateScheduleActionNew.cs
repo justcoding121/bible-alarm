@@ -10,10 +10,11 @@ namespace Bible.Alarm.Stores.Actions.Schedule;
 /// Note: This is the new pattern. The old UpdateScheduleAction (taking AlarmSchedule) is kept
 /// for backward compatibility with services that already have DB entities.
 /// </summary>
-public class UpdateScheduleFromViewModelAction(ScheduleStateItem schedule, bool musicUpdated = true, bool bibleReadingUpdated = true)
+public class UpdateScheduleFromViewModelAction(ScheduleStateItem schedule, bool musicUpdated = true, bool bibleReadingUpdated = true, bool shouldSave = true)
 {
     public ScheduleStateItem Schedule { get; } = schedule;
     public bool MusicUpdated { get; } = musicUpdated;
     public bool BibleReadingUpdated { get; } = bibleReadingUpdated;
+    public bool ShouldSave { get; } = shouldSave;
 }
 

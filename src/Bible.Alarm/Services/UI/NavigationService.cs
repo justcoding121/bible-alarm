@@ -194,40 +194,52 @@ public sealed class NavigationService(
         logger.Information("[PERF] NavigateToScheduleAsync: PushAsync took {ElapsedMs}ms, Total navigation took {TotalMs}ms", pushElapsed, totalElapsed);
     }
 
-    public async Task NavigateToMusicSelectionAsync()
+    public async Task OpenMusicSelectionModalAsync(object bindingContext)
     {
-        var page = serviceProvider.GetRequiredService<MusicSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: true);
+        var navigation = GetNavigation();
+        var modal = serviceProvider.GetRequiredService<MusicSelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task NavigateToSongBookSelectionAsync()
+    public async Task OpenSongBookSelectionModalAsync(object bindingContext)
     {
-        var page = serviceProvider.GetRequiredService<SongBookSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: true);
+        var navigation = GetNavigation();
+        var modal = serviceProvider.GetRequiredService<SongBookSelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task NavigateToTrackSelectionAsync()
+    public async Task OpenTrackSelectionModalAsync(object bindingContext)
     {
-        var page = serviceProvider.GetRequiredService<TrackSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: true);
+        var navigation = GetNavigation();
+        var modal = serviceProvider.GetRequiredService<TrackSelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task NavigateToBibleSelectionAsync()
+    public async Task OpenBibleSelectionModalAsync(object bindingContext)
     {
-        var page = serviceProvider.GetRequiredService<BibleSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: true);
+        var navigation = GetNavigation();
+        var modal = serviceProvider.GetRequiredService<BibleSelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task NavigateToBookSelectionAsync()
+    public async Task OpenBookSelectionModalAsync(object bindingContext)
     {
-        var page = serviceProvider.GetRequiredService<BookSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: true);
+        var navigation = GetNavigation();
+        var modal = serviceProvider.GetRequiredService<BookSelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task NavigateToChapterSelectionAsync()
+    public async Task OpenChapterSelectionModalAsync(object bindingContext)
     {
-        var page = serviceProvider.GetRequiredService<ChapterSelection>();
-        await PushFreshPageAsync(page, hasNavigationBar: true);
+        var navigation = GetNavigation();
+        var modal = serviceProvider.GetRequiredService<ChapterSelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
     }
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)

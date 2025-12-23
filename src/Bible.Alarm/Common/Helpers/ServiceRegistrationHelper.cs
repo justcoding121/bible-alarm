@@ -252,6 +252,12 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BibleLanguageModal>();
         services.AddTransient<MusicLanguageModal>();
         services.AddTransient<AlarmModal>();
+        services.AddTransient<BibleSelectionModal>();
+        services.AddTransient<BookSelectionModal>();
+        services.AddTransient<ChapterSelectionModal>();
+        services.AddTransient<MusicSelectionModal>();
+        services.AddTransient<SongBookSelectionModal>();
+        services.AddTransient<TrackSelectionModal>();
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();
         services.AddTransient<BootstrapPage>();

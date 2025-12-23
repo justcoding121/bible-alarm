@@ -31,20 +31,6 @@
             </Style.Triggers>
         </Style>
     </ContentPage.Resources>
-    <ContentPage.ToolbarItems>
-        <ToolbarItem
-            Order="Primary"
-            Priority="0"
-            Command="{Binding OpenModalCommand}">
-            <ToolbarItem.IconImageSource>
-                <FontImageSource
-                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    Glyph="{x:Static fn:GlyphNames.Language}"
-                    Color="{StaticResource PrimaryColor}"
-                    Size="24" />
-            </ToolbarItem.IconImageSource>
-        </ToolbarItem>
-    </ContentPage.ToolbarItems>
     <ContentPage.Content>
         <Grid x:Name="MainContentGrid" BackgroundColor="{DynamicResource BackgroundColor}">
             <!-- MAIN LIST -->

@@ -3,6 +3,7 @@
 using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -102,12 +103,19 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             x.Schedule.IsEnabled = x.IsEnabled;
             // Start navigation immediately (don't await yet)
             var navigationTask = navigationService.NavigateToScheduleAsync();
-            // Get schedule from state (which has BibleReadingBookName populated) instead of mapping from entity
+            // Get schedule from state (which has all display names populated during bootstrap) instead of mapping from entity.
+            // For existing schedules, we never access the database - we copy from the Schedules collection in state (immutable copy).
+            // All required fields (including display names) are already populated during bootstrap.
             var scheduleStateItem = state.Value.Schedules?.FirstOrDefault(s => s.Id == x.Schedule.Id);
             if (scheduleStateItem == null)
             {
                 // Fallback to mapping if not found in state (shouldn't happen normally)
                 scheduleStateItem = mapper.Map<ScheduleStateItem>(x.Schedule);
+            }
+            else
+            {
+                // Deep clone to ensure CurrentSchedule is independent from the item in Schedules collection
+                scheduleStateItem = scheduleStateItem.DeepClone();
             }
             // Dispatch action immediately so data loading can start
             dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));

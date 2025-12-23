@@ -11,6 +11,8 @@ public partial class MusicSelectionContainer : ContentView
     private MusicSelectionContainerViewModel? viewModel;
     private bool lastMusicEnabledState;
     private CancellationTokenSource? debounceTokenSource;
+    private bool shouldScrollOnExpand; // Track if we should scroll when expanding
+    private bool isInitialLoad = true; // Track if this is the initial load
 
     public MusicSelectionContainer()
     {
@@ -26,8 +28,14 @@ public partial class MusicSelectionContainer : ContentView
         {
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
             lastMusicEnabledState = viewModel.MusicEnabled;
-            // Set initial state
-            UpdateCollapsibleContentVisibility(viewModel.MusicEnabled, animate: false);
+            shouldScrollOnExpand = false; // Don't scroll on initial load
+            isInitialLoad = true; // Mark as initial load
+            // Don't set initial state here - wait for OnHandlerChanged when CollapsibleContent is ready
+            // Mark initial load as complete after a short delay to allow any property changes to settle
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(500), () =>
+            {
+                isInitialLoad = false;
+            });
         }
     }
 
@@ -47,19 +55,37 @@ public partial class MusicSelectionContainer : ContentView
         {
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
             lastMusicEnabledState = viewModel.MusicEnabled;
-            // Set initial state
-            UpdateCollapsibleContentVisibility(viewModel.MusicEnabled, animate: false);
+            shouldScrollOnExpand = false; // Don't scroll on initial load
+            isInitialLoad = true; // Mark as initial load
+            // Don't set initial state here - wait for OnHandlerChanged when CollapsibleContent is ready
+            // Mark initial load as complete after a short delay to allow any property changes to settle
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(500), () =>
+            {
+                isInitialLoad = false;
+            });
         }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled) && 
-            sender is MusicSelectionContainerViewModel vm)
+        if (sender is not MusicSelectionContainerViewModel vm)
+        {
+            return;
+        }
+        
+        if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled))
         {
             var newState = vm.MusicEnabled;
             
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] PropertyChanged: MusicEnabled = {newState}, LastState = {lastMusicEnabledState}");
+            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] PropertyChanged: MusicEnabled = {newState}, LastState = {lastMusicEnabledState}, isInitialLoad = {isInitialLoad}");
+            
+            // Ignore property changes during initial load
+            if (isInitialLoad)
+            {
+                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Ignoring property change during initial load");
+                lastMusicEnabledState = newState; // Update last state but don't animate
+                return;
+            }
             
             // Debounce rapid changes
             if (newState == lastMusicEnabledState)
@@ -68,22 +94,43 @@ public partial class MusicSelectionContainer : ContentView
                 return; // Ignore if state hasn't actually changed
             }
             
+            // Only scroll if user is toggling from false to true (user-initiated expand)
+            shouldScrollOnExpand = !lastMusicEnabledState && newState;
+            
             lastMusicEnabledState = newState;
             
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Triggering animation for MusicEnabled = {newState}");
+            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Triggering animation for MusicEnabled = {newState}, shouldScrollOnExpand = {shouldScrollOnExpand}");
             
             // Cancel any pending debounce
             debounceTokenSource?.Cancel();
             debounceTokenSource = new CancellationTokenSource();
             var token = debounceTokenSource.Token;
             
-            // Small delay to debounce rapid changes, but trigger animation immediately on UI thread
+            // Small delay to debounce rapid changes, but trigger update immediately on UI thread
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 if (!token.IsCancellationRequested && Handler != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate=true, isEnabled={newState}");
-                    UpdateCollapsibleContentVisibility(newState, animate: true);
+                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate=false, isEnabled={newState}");
+                    UpdateCollapsibleContentVisibility(newState, animate: false);
+                }
+            });
+        }
+        else if (e.PropertyName == nameof(MusicSelectionContainerViewModel.ShouldScrollToBottom) && vm.ShouldScrollToBottom)
+        {
+            // Scroll to bottom when ViewModel signals it
+            System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom");
+            
+            // Small delay to ensure layout is complete
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await Task.Delay(200); // Delay to allow UI to update
+                ScrollToExpandedContent();
+                
+                // Reset the flag after scrolling
+                if (viewModel != null)
+                {
+                    viewModel.ShouldScrollToBottom = false;
                 }
             });
         }
@@ -209,7 +256,7 @@ public partial class MusicSelectionContainer : ContentView
 
                 parentAnimation.Commit(this, "ExpandCollapsibleContent", 16, 300, finished: (d, cancelled) =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Expand animation finished: cancelled={cancelled}");
+                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Expand animation finished: cancelled={cancelled}, shouldScrollOnExpand={shouldScrollOnExpand}");
                     // Reset to auto after animation completes
                     if (CollapsibleContent != null && !cancelled)
                     {
@@ -217,10 +264,11 @@ public partial class MusicSelectionContainer : ContentView
                     }
                     isAnimating = false;
                     
-                    // Scroll to show the expanded content
-                    if (!cancelled)
+                    // Only scroll if this was a user-initiated toggle from false to true
+                    if (!cancelled && shouldScrollOnExpand)
                     {
                         ScrollToExpandedContent();
+                        shouldScrollOnExpand = false; // Reset flag after scrolling
                     }
                 });
             }
@@ -335,17 +383,31 @@ public partial class MusicSelectionContainer : ContentView
         if (Handler != null && CollapsibleContent != null && viewModel != null)
         {
             cachedHeight = null;
-            if (viewModel.MusicEnabled)
+            
+            // On initial load, ensure content visibility matches MusicEnabled state without animation
+            // Use a small delay to ensure the visual tree is fully initialized
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                // Trigger a layout update to measure
-                Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
+                // Wait a bit for the visual tree to be ready
+                await Task.Delay(100);
+                
+                if (CollapsibleContent != null && viewModel != null && Handler != null)
                 {
-                    if (CollapsibleContent != null && CollapsibleContent.IsVisible && !isAnimating)
+                    if (isInitialLoad)
                     {
-                        CollapsibleContent.HeightRequest = -1;
+                        System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {viewModel.MusicEnabled}");
+                        UpdateCollapsibleContentVisibility(viewModel.MusicEnabled, animate: false);
                     }
-                });
-            }
+                    else if (viewModel.MusicEnabled)
+                    {
+                        // Trigger a layout update to measure (for non-initial loads)
+                        if (CollapsibleContent.IsVisible && !isAnimating)
+                        {
+                            CollapsibleContent.HeightRequest = -1;
+                        }
+                    }
+                }
+            });
         }
     }
 

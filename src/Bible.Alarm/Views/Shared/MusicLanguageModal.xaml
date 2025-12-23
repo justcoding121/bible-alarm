@@ -124,7 +124,7 @@
                 ItemsSource="{Binding Languages}"
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
-                SelectionMode="Single">
+                SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
                         <LinearItemsLayout.ItemSpacing>
@@ -135,12 +135,6 @@
                         </LinearItemsLayout.ItemSpacing>
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
-                <CollectionView.Behaviors>
-                    <behaviours:EventToCommandBehavior
-                        Command="{Binding SelectLanguageCommand}"
-                        EventArgsConverter="{StaticResource itemTappedConverter}"
-                        EventName="SelectionChanged" />
-                </CollectionView.Behaviors>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="shared:LanguageListViewItemModel">
                         <Grid Margin="16,0">
@@ -161,10 +155,14 @@
                                     Padding="20,18"
                                     HorizontalOptions="Fill"
                                     MinimumHeightRequest="56">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type music:SongBookSelectionViewModel}}, Path=SelectLanguageCommand}" CommandParameter="{Binding .}" />
+                                    </Grid.GestureRecognizers>
                                     <Label
                                         FontSize="16"
                                         HorizontalOptions="Start"
                                         HorizontalTextAlignment="Start"
+                                        InputTransparent="True"
                                         Text="{Binding Name}"
                                         TextColor="{DynamicResource TextPrimaryColor}"
                                         VerticalOptions="Center"

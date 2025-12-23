@@ -45,7 +45,7 @@
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Books}"
-                    SelectionMode="Single">
+                    SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
                             <LinearItemsLayout.ItemSpacing>
@@ -56,12 +56,6 @@
                             </LinearItemsLayout.ItemSpacing>
                         </LinearItemsLayout>
                     </CollectionView.ItemsLayout>
-                    <CollectionView.Behaviors>
-                        <behaviours:EventToCommandBehavior
-                            Command="{Binding ChapterSelectionCommand}"
-                            EventArgsConverter="{StaticResource itemTappedConverter}"
-                            EventName="SelectionChanged" />
-                    </CollectionView.Behaviors>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="bible:BibleBookListViewItemModel">
                             <Grid Margin="16,0">

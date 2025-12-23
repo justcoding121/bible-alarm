@@ -43,9 +43,9 @@ public class ScheduleMappingProfile : Profile
                 FinishedDuration = src.BibleReadingFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = src.Id
             } : null))
-            .ForMember(dest => dest.Music, opt => opt.MapFrom(src => src.MusicId.HasValue ? new AlarmMusic
+            .ForMember(dest => dest.Music, opt => opt.MapFrom(src => (src.MusicId.HasValue || src.MusicType.HasValue) ? new AlarmMusic
             {
-                Id = src.MusicId.Value,
+                Id = src.MusicId ?? 0,
                 MusicType = src.MusicType ?? MusicType.Melodies,
                 PublicationCode = src.MusicPublicationCode ?? string.Empty,
                 LanguageCode = src.MusicLanguageCode,

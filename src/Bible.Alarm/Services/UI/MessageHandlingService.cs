@@ -26,9 +26,16 @@ public sealed class MessageHandlingService(
     {
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            // IToastService is a singleton, so don't dispose it
-            var toastService = serviceProvider.GetRequiredService<IToastService>();
-            await toastService.ShowMessage(message.Value);
+            try
+            {
+                // IToastService is a singleton, so don't dispose it
+                var toastService = serviceProvider.GetRequiredService<IToastService>();
+                await toastService.ShowMessage(message.Value);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error showing toast message");
+            }
         });
     }
 

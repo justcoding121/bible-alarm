@@ -1,26 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Shared.BibleLanguageModal"
+    x:Class="Bible.Alarm.Views.Music.TrackSelectionModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
-    xmlns:bible="clr-namespace:Bible.Alarm.ViewModels.Bible"
+    xmlns:music="clr-namespace:Bible.Alarm.ViewModels.Music"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
-    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
-    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="bible:BibleSelectionViewModel"
+    x:DataType="music:TrackSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <!-- Theme-aware colors are inherited from BaseContentPage -->
+        <converters:RepeatColorConverter x:Key="repeatColorConverter" />
         
-        <!-- Style for selected/unselected item background using DynamicResource -->
-        <Style x:Key="LanguageItemBorderStyle" TargetType="Border">
+        <Style x:Key="TrackItemBorderStyle" TargetType="Border">
             <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
             <Style.Triggers>
                 <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
@@ -37,12 +35,11 @@
             RowSpacing="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
-                <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             
-            <!-- Enhanced Header -->
+            <!-- Header -->
             <Border
                 Grid.Row="0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -61,69 +58,22 @@
                     FontSize="18"
                     FontAttributes="Bold"
                     HeightRequest="56"
-                    Text="Languages"
+                    Text="Select Track"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
             </Border>
             
-            <!-- Enhanced Search Bar -->
-            <!-- iOS: SearchBar without Border wrapper to avoid double-border effect -->
-            <SearchBar
-                Grid.Row="1"
-                Margin="16,8,16,0"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                HeightRequest="50"
-                HorizontalOptions="Fill"
-                HorizontalTextAlignment="Start"
-                MinimumHeightRequest="50"
-                Placeholder="Search languages"
-                Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                TextColor="{DynamicResource TextPrimaryColor}"
-                CancelButtonColor="Transparent"
-                IsVisible="{OnPlatform iOS='True', Default='False'}" />
-            <!-- Non-iOS: SearchBar with Border wrapper for styling -->
-            <Border
-                Grid.Row="1"
-                Margin="16,8,16,0"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                StrokeThickness="0"
-                Padding="0"
-                IsVisible="{OnPlatform iOS='False', Default='True'}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
-                            Offset="0,2"
-                            Opacity="0.08"
-                            Radius="4" />
-                </Border.Shadow>
-                <SearchBar
-                    Margin="8"
-                    BackgroundColor="Transparent"
-                    HeightRequest="50"
-                    HorizontalOptions="Fill"
-                    HorizontalTextAlignment="Start"
-                    MinimumHeightRequest="50"
-                    Placeholder="Search languages"
-                    Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                    TextColor="{DynamicResource TextPrimaryColor}"
-                    CancelButtonColor="{DynamicResource TextPrimaryColor}" />
-            </Border>
-            
-            <!-- Enhanced Collection View -->
+            <!-- Collection View -->
             <CollectionView
-                x:Name="LanguageCollectionView"
-                Grid.Row="2"
+                x:Name="trackCollectionView"
+                Grid.Row="1"
                 Margin="0,8,0,0"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
-                ItemsSource="{Binding Languages}"
-                MinimumHeightRequest="300"
-                MinimumWidthRequest="250"
+                ItemsSource="{Binding Tracks}"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
@@ -136,10 +86,10 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="shared:LanguageListViewItemModel">
+                    <DataTemplate x:DataType="music:MusicTrackListViewItemModel">
                         <Grid Margin="16,0">
                             <Border
-                                Style="{StaticResource LanguageItemBorderStyle}"
+                                Style="{StaticResource TrackItemBorderStyle}"
                                 StrokeThickness="0"
                                 Padding="0">
                                 <Border.StrokeShape>
@@ -153,20 +103,29 @@
                                 </Border.Shadow>
                                 <Grid
                                     Padding="20,18"
-                                    HorizontalOptions="Fill"
+                                    ColumnSpacing="12"
                                     MinimumHeightRequest="56">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type bible:BibleSelectionViewModel}}, Path=SelectLanguageCommand}" CommandParameter="{Binding .}" />
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type music:TrackSelectionViewModel}}, Path=SetTrackCommand}" CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    
                                     <Label
+                                        Grid.Column="0"
                                         FontSize="16"
-                                        HorizontalOptions="Start"
+                                        HorizontalOptions="Fill"
                                         HorizontalTextAlignment="Start"
                                         InputTransparent="True"
-                                        Text="{Binding Name}"
+                                        LineBreakMode="WordWrap"
+                                        MaxLines="2"
+                                        Text="{Binding Title}"
                                         TextColor="{DynamicResource TextPrimaryColor}"
                                         VerticalOptions="Center"
                                         VerticalTextAlignment="Center" />
+                                    
                                 </Grid>
                             </Border>
                         </Grid>
@@ -174,9 +133,9 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
             
-            <!-- Enhanced Close Button -->
+            <!-- Close Button -->
             <Border
-                Grid.Row="3"
+                Grid.Row="2"
                 Margin="16,8,16,16"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
@@ -207,9 +166,9 @@
                     VerticalOptions="Fill" />
             </Border>
             
-            <!-- BUSY OVERLAY – appears only while IsBusy = true -->
+            <!-- Busy Overlay -->
             <Grid Grid.Row="0"
-                  Grid.RowSpan="4"
+                  Grid.RowSpan="3"
                   IsVisible="{Binding IsBusy}"
                   BackgroundColor="{DynamicResource BackgroundColor}"
                   ZIndex="999">

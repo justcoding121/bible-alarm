@@ -44,7 +44,7 @@
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding MusicTypes}"
-                    SelectionMode="Single">
+                    SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
                             <LinearItemsLayout.ItemSpacing>
@@ -55,12 +55,6 @@
                             </LinearItemsLayout.ItemSpacing>
                         </LinearItemsLayout>
                     </CollectionView.ItemsLayout>
-                    <CollectionView.Behaviors>
-                        <behaviours:EventToCommandBehavior
-                            Command="{Binding SongBookSelectionCommand}"
-                            EventArgsConverter="{StaticResource itemTappedConverter}"
-                            EventName="SelectionChanged" />
-                    </CollectionView.Behaviors>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="music:MusicTypeListItemViewModel">
                             <Grid Margin="16,0">
@@ -81,6 +75,9 @@
                                         Padding="20,18"
                                         ColumnSpacing="12"
                                         MinimumHeightRequest="56">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type music:MusicSelectionViewModel}}, Path=SongBookSelectionCommand}" CommandParameter="{Binding .}" />
+                                        </Grid.GestureRecognizers>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
@@ -91,6 +88,7 @@
                                             FontSize="16"
                                             HorizontalOptions="Fill"
                                             HorizontalTextAlignment="Start"
+                                            InputTransparent="True"
                                             LineBreakMode="TailTruncation"
                                             Text="{Binding Name}"
                                             TextColor="{DynamicResource TextPrimaryColor}"

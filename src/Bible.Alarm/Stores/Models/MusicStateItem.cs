@@ -19,6 +19,27 @@ public sealed class MusicStateItem : IComparable
     public int AlarmScheduleId { get; set; }
 
     /// <summary>
+    /// Language name for display purposes (for vocals only).
+    /// This is populated from the list item when user selects a language.
+    /// Not persisted to database.
+    /// </summary>
+    public string? LanguageName { get; set; }
+
+    /// <summary>
+    /// Publication name (song book name) for display purposes (for vocals only).
+    /// This is populated from the list item when user selects a song book.
+    /// Not persisted to database.
+    /// </summary>
+    public string? PublicationName { get; set; }
+
+    /// <summary>
+    /// Track name for display purposes.
+    /// This is populated from the list item when user selects a track.
+    /// Not persisted to database.
+    /// </summary>
+    public string? TrackName { get; set; }
+
+    /// <summary>
     /// Compare by ID for ObservableHashSet ordering.
     /// </summary>
     public int CompareTo(object? obj)

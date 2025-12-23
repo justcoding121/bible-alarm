@@ -62,19 +62,75 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
                 if (x.MusicType == MusicType.Vocals)
                 {
-                    await navigationService.NavigateToSongBookSelectionAsync();
+                    // For Vocals: Get the first language, first song book, and first track, then navigate back
+                    var languages = await Task.Run(async () =>
+                        await mediaService.GetVocalMusicLanguages());
 
-                    // Map entity to DTO before dispatching
-                    var songBookItem = new MusicStateItem
+                    if (languages == null || languages.Count == 0)
                     {
+                        return;
+                    }
+
+                    // Get the first language (prefer "E" if available, otherwise first in dictionary)
+                    var languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key ?? "E";
+                    var language = languages[languageCode];
+
+                    // Get the first song book for the selected language
+                    var songBooks = await Task.Run(async () =>
+                        await mediaService.GetVocalMusicReleases(languageCode));
+
+                    if (songBooks == null || songBooks.Count == 0)
+                    {
+                        return;
+                    }
+
+                    // Get the first song book (first in dictionary)
+                    var firstSongBook = songBooks.FirstOrDefault();
+                    if (firstSongBook.Value == null)
+                    {
+                        return;
+                    }
+
+                    var publicationCode = firstSongBook.Key;
+
+                    // Get tracks for the selected song book and language
+                    var tracks = await Task.Run(async () =>
+                        await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
+
+                    if (tracks == null || tracks.Count == 0)
+                    {
+                        return;
+                    }
+
+                    // Get a random track (instead of first track for cascade changes)
+                    var tracksList = tracks.Values.ToList();
+                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+                    var randomTrackNumber = randomTrack.Number;
+
+                    // Create MusicStateItem with selected music type, language, song book, and random track
+                    // IMPORTANT: Include display names from list items (no database query needed)
+                    var trackSelectedItem = new MusicStateItem
+                    {
+                        Repeat = current?.Repeat ?? false,
                         MusicType = MusicType.Vocals,
-                        LanguageCode = current?.LanguageCode
+                        LanguageCode = languageCode,
+                        PublicationCode = publicationCode,
+                        TrackNumber = randomTrackNumber,
+                        // Store display names from list items
+                        LanguageName = language.Name,
+                        PublicationName = firstSongBook.Value.Name,
+                        TrackName = randomTrack.Title
                     };
-                    this.dispatcher.Dispatch(new SongBookSelectionAction(songBookItem));
+
+                    // Dispatch TrackSelectedAction to update CurrentMusic
+                    this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+
+                    // Navigate back to schedule page
+                    await navigationService.PopModalAsync();
                 }
                 else
                 {
-                    // For Melodies: Get the first track and update state, then navigate back
+                    // For Melodies: Get a random track and update state, then navigate back
                     var tracks = await Task.Run(async () =>
                         await mediaService.GetMelodyMusicTracks("iam"));
 
@@ -83,24 +139,28 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
                         return;
                     }
 
-                    // Get the first track (lowest track number)
-                    var firstTrack = tracks.Values.First();
-                    var firstTrackNumber = firstTrack.Number;
+                    // Get a random track (instead of first track for cascade changes)
+                    var tracksList = tracks.Values.ToList();
+                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+                    var randomTrackNumber = randomTrack.Number;
 
-                    // Create MusicStateItem with selected music type and first track
+                    // Create MusicStateItem with selected music type and random track
+                    // IMPORTANT: Include display names from list items (no database query needed)
                     var trackSelectedItem = new MusicStateItem
                     {
                         Repeat = current?.Repeat ?? false,
                         MusicType = MusicType.Melodies,
                         PublicationCode = "iam",
-                        TrackNumber = firstTrackNumber
+                        TrackNumber = randomTrackNumber,
+                        // Store display names from list items (format melody track title with prefix)
+                        TrackName = $"Melody Number(s) {randomTrack.Title}"
                     };
 
                     // Dispatch TrackSelectedAction to update CurrentMusic
                     this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
                     // Navigate back to schedule page
-                    await navigationService.PopAsync();
+                    await navigationService.PopModalAsync();
                 }
             }
             finally
@@ -113,6 +173,13 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         {
             IsBusy = true;
             await navigationService.PopAsync();
+            IsBusy = false;
+        });
+
+        CloseModalCommand = new AsyncRelayCommand(async () =>
+        {
+            IsBusy = true;
+            await navigationService.PopModalAsync();
             IsBusy = false;
         });
     }
@@ -177,6 +244,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
     }
 
     public ICommand BackCommand { get; set; }
+    public ICommand CloseModalCommand { get; set; }
     public ICommand SongBookSelectionCommand { get; set; }
 
     public ObservableCollection<MusicTypeListItemViewModel> MusicTypes { get; set; }

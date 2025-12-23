@@ -5,6 +5,7 @@
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
              xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
+             xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
              x:DataType="vm:MusicSelectionContainerViewModel">
     <Border Margin="0"
             Padding="0"
@@ -20,6 +21,9 @@
                     Radius="12" 
                     Opacity="0.2" />
         </Border.Shadow>
+        <Border.Resources>
+            <converters:RepeatColorConverter x:Key="repeatColorConverter" />
+        </Border.Resources>
         <StackLayout Orientation="Vertical"
                      Spacing="0"
                      Padding="0">
@@ -30,10 +34,6 @@
                   MinimumHeightRequest="56"
                   HorizontalOptions="Fill"
                   VerticalOptions="Fill">
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectMusicCommand}"
-                                          NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -58,26 +58,6 @@
                         HorizontalOptions="Start"
                         IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
-                    <!-- Arrow Indicator -->
-                    <Border
-                        BackgroundColor="Transparent"
-                        HeightRequest="24"
-                        HorizontalOptions="End"
-                        Margin="0"
-                        StrokeThickness="0"
-                        VerticalOptions="Center"
-                        WidthRequest="24">
-                        <Label
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="14"
-                            HorizontalOptions="Center"
-                            HorizontalTextAlignment="Center"
-                            InputTransparent="True"
-                            Text="{x:Static fn:GlyphNames.Right}"
-                            TextColor="{DynamicResource TextSecondaryColor}"
-                            VerticalOptions="Center"
-                            VerticalTextAlignment="Center" />
-                    </Border>
                 </StackLayout>
             </Grid>
             <!-- Collapsible Content Container -->
@@ -130,6 +110,58 @@
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
                             Text="{x:Static fn:GlyphNames.Right}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center"
+                            VerticalTextAlignment="Center" />
+                    </Border>
+                </Grid>
+                <!-- Divider -->
+                <BoxView HeightRequest="1"
+                         BackgroundColor="{DynamicResource DividerColor}"
+                         Margin="0"
+                         HorizontalOptions="Fill"
+                         IsVisible="{Binding IsMusicLanguageVisible}" />
+                <!-- Music Language Row (only visible when Music Type is Vocals) -->
+                <Grid x:Name="MusicLanguageButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill"
+                      IsVisible="{Binding IsMusicLanguageVisible}">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectMusicLanguageCommand}"
+                                              NumberOfTapsRequired="1" />
+                    </Grid.GestureRecognizers>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           FontSize="16"
+                           FontAttributes="None"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           Text="{Binding MusicLanguageDisplayText}"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           VerticalOptions="Center"
+                           VerticalTextAlignment="Center" />
+                    <Border Grid.Column="1"
+                            BackgroundColor="Transparent"
+                            HeightRequest="24"
+                            HorizontalOptions="End"
+                            Margin="8,0,0,0"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            WidthRequest="24">
+                        <Label
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="14"
+                            HorizontalOptions="Center"
+                            HorizontalTextAlignment="Center"
+                            InputTransparent="True"
+                            Text="{x:Static fn:GlyphNames.Language}"
                             TextColor="{DynamicResource TextSecondaryColor}"
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
@@ -217,25 +249,57 @@
                            TextColor="{DynamicResource TextPrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
-                    <Border Grid.Column="1"
+                    <HorizontalStackLayout Grid.Column="1"
+                                           Spacing="8"
+                                           HorizontalOptions="End"
+                                           VerticalOptions="Center">
+                        <!-- Repeat Button (only visible when track is selected) -->
+                        <Border
+                            IsVisible="{Binding HasTrackSelected}"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="36"
+                            HorizontalOptions="End"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            WidthRequest="36">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+                            <Button
+                                BackgroundColor="Transparent"
+                                BorderWidth="0"
+                                BorderColor="Transparent"
+                                Command="{Binding ToggleRepeatCommand}"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="16"
+                                MinimumWidthRequest="36"
+                                Padding="0"
+                                Text="{x:Static fn:GlyphNames.Repeat}"
+                                TextColor="{Binding IsRepeatEnabled, Converter={StaticResource repeatColorConverter}}"
+                                VerticalOptions="Fill"
+                                HorizontalOptions="Fill" />
+                        </Border>
+                        <!-- Arrow Indicator -->
+                        <Border
                             BackgroundColor="Transparent"
                             HeightRequest="24"
                             HorizontalOptions="End"
-                            Margin="8,0,0,0"
+                            Margin="0,0,0,0"
                             StrokeThickness="0"
                             VerticalOptions="Center"
                             WidthRequest="24">
-                        <Label
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="14"
-                            HorizontalOptions="Center"
-                            HorizontalTextAlignment="Center"
-                            InputTransparent="True"
-                            Text="{x:Static fn:GlyphNames.Right}"
-                            TextColor="{DynamicResource TextSecondaryColor}"
-                            VerticalOptions="Center"
-                            VerticalTextAlignment="Center" />
-                    </Border>
+                            <Label
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="14"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                InputTransparent="True"
+                                Text="{x:Static fn:GlyphNames.Right}"
+                                TextColor="{DynamicResource TextSecondaryColor}"
+                                VerticalOptions="Center"
+                                VerticalTextAlignment="Center" />
+                        </Border>
+                    </HorizontalStackLayout>
                 </Grid>
             </StackLayout>
         </StackLayout>

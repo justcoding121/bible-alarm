@@ -11,6 +11,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -27,12 +28,18 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IMediaService mediaService;
     private readonly IToastService toastService;
     private BibleReadingSchedule? current;
+    private BibleReadingSchedule? lastCurrent;
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IDownloadService downloadService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private bool initComplete;
+    
+    // Track last language, publication code, and book number to detect changes
+    private string? lastLanguageCode;
+    private string? lastPublicationCode;
+    private int? lastBookNumber;
 
     private NotifyCollectionChangedEventHandler? collectionChangedHandler;
 
@@ -64,6 +71,13 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             IsBusy = false;
         });
 
+        CloseModalCommand = new AsyncRelayCommand(async () =>
+        {
+            IsBusy = true;
+            await navigationService.PopModalAsync();
+            IsBusy = false;
+        });
+
         SetChapterCommand = new AsyncRelayCommand<BibleChapterListViewItemModel>(async x =>
         {
             if (x is null)
@@ -86,17 +100,24 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
                 }
 
                 // Map entity to DTO before dispatching
+                // IMPORTANT: Include display names from current state (no database query needed)
+                // Get display names from CurrentSchedule (they should already be populated)
+                var currentSchedule = state.Value.CurrentSchedule;
                 var chapterSelectedItem = new BibleReadingStateItem
                 {
                     LanguageCode = current.LanguageCode,
                     PublicationCode = current.PublicationCode,
                     BookNumber = current.BookNumber,
-                    ChapterNumber = x.Number
+                    ChapterNumber = x.Number,
+                    // Store display names from current state
+                    LanguageName = currentSchedule?.BibleReadingLanguageName,
+                    PublicationName = currentSchedule?.BibleReadingPublicationName,
+                    BookName = currentSchedule?.BibleReadingBookName
                 };
                 dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
 
                 // Navigate back to schedule page
-                await navigationService.PopAsync();
+                await navigationService.PopModalAsync();
             }
             finally
             {
@@ -105,6 +126,82 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         });
 
         state.StateChanged += OnBibleReadingInitialized;
+        state.StateChanged += OnBibleReadingChanged;
+    }
+
+    private void OnBibleReadingChanged(object? sender, EventArgs e)
+    {
+        var stateValue = state.Value;
+        
+        // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
+        // CurrentSchedule is updated first and is authoritative
+        if (stateValue.CurrentSchedule == null)
+        {
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
+        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
+        var newBookNumber = currentSchedule.BibleReadingBookNumber;
+        
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
+        {
+            return;
+        }
+
+        // Check if language, publication code, or book number changed (need to repopulate chapters)
+        var languageChanged = lastLanguageCode != newLanguageCode;
+        var publicationCodeChanged = lastPublicationCode != newPublicationCode;
+        var bookNumberChanged = lastBookNumber != newBookNumber.Value;
+        var needsRepopulation = languageChanged || publicationCodeChanged || bookNumberChanged;
+        
+        // If no changes detected and we're already initialized, skip
+        if (!needsRepopulation && initComplete)
+        {
+            return;
+        }
+
+        // Update tracking variables
+        lastLanguageCode = newLanguageCode;
+        lastPublicationCode = newPublicationCode;
+        lastBookNumber = newBookNumber.Value;
+        
+        // Update current if we have CurrentBibleReadingSchedule (for other properties like ChapterNumber)
+        if (stateValue.CurrentBibleReadingSchedule != null)
+        {
+            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            lastCurrent = current;
+        }
+        else
+        {
+            // Create a minimal BibleReadingSchedule from CurrentSchedule
+            current = new BibleReadingSchedule
+            {
+                LanguageCode = newLanguageCode,
+                PublicationCode = newPublicationCode,
+                BookNumber = newBookNumber.Value,
+                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+            };
+            lastCurrent = current;
+        }
+
+        // If language, publication code, or book number changed, repopulate chapters
+        if (needsRepopulation && initComplete)
+        {
+            Task.Run(async () =>
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                await Initialize(newLanguageCode, newPublicationCode, newBookNumber.Value);
+                await Task.Delay(100); // Give CollectionView time to render
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+        }
+        else
+        {
+            // Update selected chapter when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(SetSelectedChapter);
+        }
     }
 
     private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
@@ -115,17 +212,53 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         }
 
         var stateValue = state.Value;
-        if (stateValue.CurrentBibleReadingSchedule is null)
+        
+        // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
+        // CurrentSchedule is updated first and is authoritative
+        if (stateValue.CurrentSchedule == null)
         {
             return;
         }
-        // Map DTO to entity
-        current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
+        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
+        var newBookNumber = currentSchedule.BibleReadingBookNumber;
+        
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
+        {
+            return;
+        }
+
+        // Update tracking variables
+        lastLanguageCode = newLanguageCode;
+        lastPublicationCode = newPublicationCode;
+        lastBookNumber = newBookNumber.Value;
+        
+        // Update current if we have CurrentBibleReadingSchedule (for other properties like ChapterNumber)
+        if (stateValue.CurrentBibleReadingSchedule != null)
+        {
+            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            lastCurrent = current;
+        }
+        else
+        {
+            // Create a minimal BibleReadingSchedule from CurrentSchedule
+            current = new BibleReadingSchedule
+            {
+                LanguageCode = newLanguageCode,
+                PublicationCode = newPublicationCode,
+                BookNumber = newBookNumber.Value,
+                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+            };
+            lastCurrent = current;
+        }
+        
         initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(current.LanguageCode, current.PublicationCode, current.BookNumber);
+            await Initialize(newLanguageCode, newPublicationCode, newBookNumber.Value);
 
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following book selection pattern)
@@ -138,6 +271,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     }
 
     public ICommand BackCommand { get; set; }
+    public ICommand CloseModalCommand { get; set; }
     public ICommand SetChapterCommand { get; set; }
 
     public BibleChapterListViewItemModel? SelectedChapter { get; set; }
@@ -166,6 +300,25 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         await PopulateChapters(languageCode, publicationCode, bookNumber);
     }
 
+    private void SetSelectedChapter()
+    {
+        if (current == null || Chapters == null || Chapters.Count == 0)
+        {
+            return;
+        }
+
+        if (SelectedChapter != null)
+        {
+            SelectedChapter.IsSelected = false;
+        }
+
+        var chapter = Chapters.FirstOrDefault(c => c.Number == current.ChapterNumber);
+        if (chapter != null)
+        {
+            SelectedChapter = chapter;
+            SelectedChapter.IsSelected = true;
+        }
+    }
 
     private async Task PopulateChapters(string languageCode, string publicationCode, int bookNumber)
     {
@@ -214,6 +367,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         state.StateChanged -= OnBibleReadingInitialized;
+        state.StateChanged -= OnBibleReadingChanged;
 
         // Unsubscribe from collection changes
         if (Chapters is not null && collectionChangedHandler is not null)

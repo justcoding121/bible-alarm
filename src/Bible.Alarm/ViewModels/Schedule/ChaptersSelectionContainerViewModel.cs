@@ -305,7 +305,7 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
         // Clone the current schedule and apply the update
         var updatedSchedule = CloneScheduleStateItem(currentSchedule);
         updateAction(updatedSchedule);
-        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false));
+        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
     }
 
     private static ScheduleStateItem CloneScheduleStateItem(ScheduleStateItem source)
@@ -339,7 +339,11 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
             MusicTrackNumber = source.MusicTrackNumber,
             MusicRepeat = source.MusicRepeat,
             BibleReadingLanguageName = source.BibleReadingLanguageName,
-            BibleReadingBookName = source.BibleReadingBookName
+            BibleReadingPublicationName = source.BibleReadingPublicationName,
+            BibleReadingBookName = source.BibleReadingBookName,
+            MusicLanguageName = source.MusicLanguageName,
+            MusicPublicationName = source.MusicPublicationName,
+            MusicTrackName = source.MusicTrackName
         };
     }
 

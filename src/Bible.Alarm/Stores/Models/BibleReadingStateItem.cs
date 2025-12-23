@@ -24,6 +24,27 @@ public sealed class BibleReadingStateItem : IComparable
     public string? TranslationName { get; set; }
 
     /// <summary>
+    /// Language name for display purposes.
+    /// This is populated from the list item when user selects a language.
+    /// Not persisted to database.
+    /// </summary>
+    public string? LanguageName { get; set; }
+
+    /// <summary>
+    /// Publication name (translation name) for display purposes.
+    /// This is populated from the list item when user selects a translation.
+    /// Not persisted to database.
+    /// </summary>
+    public string? PublicationName { get; set; }
+
+    /// <summary>
+    /// Book name for display purposes.
+    /// This is populated from the list item when user selects a book.
+    /// Not persisted to database.
+    /// </summary>
+    public string? BookName { get; set; }
+
+    /// <summary>
     /// Compare by ID for ObservableHashSet ordering.
     /// </summary>
     public int CompareTo(object? obj)

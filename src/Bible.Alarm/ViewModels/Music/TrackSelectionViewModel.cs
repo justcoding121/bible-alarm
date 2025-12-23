@@ -33,7 +33,13 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly IMapper mapper;
 
     private AlarmMusic current;
+    private AlarmMusic? lastCurrent;
     private bool initComplete;
+    
+    // Track last music type, language code, and publication code to detect changes
+    private MusicType? lastMusicType;
+    private string? lastLanguageCode;
+    private string? lastPublicationCode;
 
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> propertyChangedHandlers = [];
 
@@ -63,6 +69,13 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         {
             IsBusy = true;
             await navigationService.PopAsync();
+            IsBusy = false;
+        });
+
+        CloseModalCommand = new AsyncRelayCommand(async () =>
+        {
+            IsBusy = true;
+            await navigationService.PopModalAsync();
             IsBusy = false;
         });
 
@@ -105,18 +118,25 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 current.Repeat = x.Repeat;
 
                 // Map entity to DTO before dispatching
+                // IMPORTANT: Include display names from list items (no database query needed)
+                // Get language name and publication name from current state (they should already be populated)
+                var currentSchedule = state.Value.CurrentSchedule;
                 var trackSelectedItem = new MusicStateItem
                 {
                     MusicType = current.MusicType,
                     LanguageCode = current.LanguageCode,
                     PublicationCode = current.PublicationCode,
                     TrackNumber = current.TrackNumber,
-                    Repeat = current.Repeat
+                    Repeat = current.Repeat,
+                    // Store display names from list items and current state
+                    LanguageName = currentSchedule?.MusicLanguageName,
+                    PublicationName = currentSchedule?.MusicPublicationName,
+                    TrackName = x.Title
                 };
                 dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
                 // Navigate back to schedule page
-                await navigationService.PopAsync();
+                await navigationService.PopModalAsync();
             }
             finally
             {
@@ -125,6 +145,91 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         });
 
         state.StateChanged += OnMusicInitialized;
+        state.StateChanged += OnMusicChanged;
+    }
+
+    private void OnMusicChanged(object? sender, EventArgs e)
+    {
+        var stateValue = state.Value;
+        
+        // Use CurrentSchedule as the source of truth, not CurrentMusic
+        // CurrentSchedule is updated first and is authoritative
+        if (stateValue.CurrentSchedule == null)
+        {
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var newMusicType = currentSchedule.MusicType;
+        var newLanguageCode = currentSchedule.MusicLanguageCode;
+        var newPublicationCode = currentSchedule.MusicPublicationCode;
+        
+        // For melodies: only require MusicType and PublicationCode (LanguageCode can be null)
+        // For vocals: require MusicType, LanguageCode, and PublicationCode
+        if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
+        {
+            return;
+        }
+        
+        // For vocals, language code is required
+        if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
+        {
+            return;
+        }
+
+        // Check if music type, language code, or publication code changed (need to repopulate tracks)
+        var musicTypeChanged = lastMusicType != newMusicType.Value;
+        var languageCodeChanged = lastLanguageCode != newLanguageCode;
+        var publicationCodeChanged = lastPublicationCode != newPublicationCode;
+        var needsRepopulation = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
+        
+        // If no changes detected and we're already initialized, skip
+        if (!needsRepopulation && initComplete)
+        {
+            return;
+        }
+
+        // Update tracking variables
+        lastMusicType = newMusicType.Value;
+        lastLanguageCode = newLanguageCode;
+        lastPublicationCode = newPublicationCode;
+        
+        // Update current if we have CurrentMusic (for other properties like TrackNumber)
+        if (stateValue.CurrentMusic != null)
+        {
+            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+            lastCurrent = current;
+        }
+        else
+        {
+            // Create a minimal AlarmMusic from CurrentSchedule
+            current = new AlarmMusic
+            {
+                MusicType = newMusicType.Value,
+                LanguageCode = newLanguageCode,
+                PublicationCode = newPublicationCode,
+                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                Repeat = currentSchedule.MusicRepeat ?? false
+            };
+            lastCurrent = current;
+        }
+
+        // If music type, language, or publication changed, repopulate tracks
+        if (needsRepopulation && initComplete)
+        {
+            Task.Run(async () =>
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                await Initialize(newLanguageCode, newPublicationCode);
+                await Task.Delay(100); // Give CollectionView time to render
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            });
+        }
+        else
+        {
+            // Update selected track when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(SetSelectedTrack);
+        }
     }
 
     private void OnMusicInitialized(object o, EventArgs eventArgs)
@@ -135,18 +240,62 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
 
         var stateValue = state.Value;
-        // For track selection, we need CurrentMusic to initialize
-        if (stateValue.CurrentMusic == null)
+        
+        // Use CurrentSchedule as the source of truth, not CurrentMusic
+        // CurrentSchedule is updated first and is authoritative
+        if (stateValue.CurrentSchedule == null)
         {
             return;
         }
-        // Map DTO to entity
-        current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var newMusicType = currentSchedule.MusicType;
+        var newLanguageCode = currentSchedule.MusicLanguageCode;
+        var newPublicationCode = currentSchedule.MusicPublicationCode;
+        
+        // For melodies: only require MusicType and PublicationCode (LanguageCode can be null)
+        // For vocals: require MusicType, LanguageCode, and PublicationCode
+        if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
+        {
+            return;
+        }
+        
+        // For vocals, language code is required
+        if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
+        {
+            return;
+        }
+
+        // Update tracking variables
+        lastMusicType = newMusicType.Value;
+        lastLanguageCode = newLanguageCode;
+        lastPublicationCode = newPublicationCode;
+        
+        // Update current if we have CurrentMusic (for other properties like TrackNumber)
+        if (stateValue.CurrentMusic != null)
+        {
+            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+            lastCurrent = current;
+        }
+        else
+        {
+            // Create a minimal AlarmMusic from CurrentSchedule
+            current = new AlarmMusic
+            {
+                MusicType = newMusicType.Value,
+                LanguageCode = newLanguageCode,
+                PublicationCode = newPublicationCode,
+                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                Repeat = currentSchedule.MusicRepeat ?? false
+            };
+            lastCurrent = current;
+        }
+        
         initComplete = true;
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(current.LanguageCode, current.PublicationCode);
+            await Initialize(newLanguageCode, newPublicationCode);
 
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following book selection pattern)
@@ -159,6 +308,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     }
 
     public ICommand BackCommand { get; set; }
+    public ICommand CloseModalCommand { get; set; }
     public ICommand SetTrackCommand { get; set; }
 
     // Start as true to show busy indicator immediately
@@ -181,6 +331,28 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     public MusicTrackListViewItemModel SelectedTrack { get; set; }
 
     private readonly SemaphoreSlim @lock = new(1);
+
+    private void SetSelectedTrack()
+    {
+        if (current == null || Tracks == null || Tracks.Count == 0)
+        {
+            return;
+        }
+
+        if (SelectedTrack != null)
+        {
+            SelectedTrack.IsSelected = false;
+            SelectedTrack.Repeat = false;
+        }
+
+        var track = Tracks.FirstOrDefault(t => t.Number == current.TrackNumber);
+        if (track != null)
+        {
+            SelectedTrack = track;
+            SelectedTrack.IsSelected = true;
+            SelectedTrack.Repeat = current.Repeat;
+        }
+    }
 
     private async Task Initialize(string languageCode, string publicationCode)
     {
@@ -259,13 +431,20 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         current.TrackNumber = track.Number;
 
         // Map entity to DTO before dispatching
+        // IMPORTANT: Include display names from list items (no database query needed)
+        // Get language name and publication name from current state (they should already be populated)
+        var currentSchedule = state.Value.CurrentSchedule;
         var trackSelectedItem = new MusicStateItem
         {
             MusicType = current.MusicType,
             LanguageCode = current.LanguageCode,
             PublicationCode = current.PublicationCode,
             TrackNumber = current.TrackNumber,
-            Repeat = current.Repeat
+            Repeat = current.Repeat,
+            // Store display names from list items and current state
+            LanguageName = currentSchedule?.MusicLanguageName,
+            PublicationName = currentSchedule?.MusicPublicationName,
+            TrackName = track.Title
         };
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
@@ -278,13 +457,12 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private async Task PopulateTracks(string languageCode, string publicationCode)
     {
-        var isVocal = languageCode != null;
+        var isVocal = !string.IsNullOrEmpty(languageCode);
 
         // Run database operations off UI thread
         var tracks = await Task.Run(async () => isVocal
             ? await mediaService.GetVocalMusicTracks(languageCode, publicationCode)
-            : await mediaService.GetMelodyMusicTracks(
-                (await mediaService.GetMelodyMusicReleases()).FirstOrDefault().Value?.Code ?? "iam"));
+            : await mediaService.GetMelodyMusicTracks(publicationCode));
 
         // Build the list of track view models
         var trackViewModelList = new List<MusicTrackListViewItemModel>();
@@ -328,6 +506,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         state.StateChanged -= OnMusicInitialized;
+        state.StateChanged -= OnMusicChanged;
 
         if (Tracks != null)
         {
