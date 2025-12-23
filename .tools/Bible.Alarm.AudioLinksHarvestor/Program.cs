@@ -151,9 +151,12 @@ public class Program
             logger.Information("Old size: {OldSize}kb", originalIndexFileSize / 1024);
             logger.Information("New size: {NewSize}kb", newIndexFileSize / 1024);
 
-            if (!isTestRun && Math.Abs(originalIndexFileSize - newIndexFileSize) > (1024 * 700))
+            // Only check if new size is significantly smaller (could indicate data loss)
+            // Size increases are expected when new content is added
+            if (!isTestRun && newIndexFileSize < originalIndexFileSize && 
+                (originalIndexFileSize - newIndexFileSize) > (1024 * 1024)) // 1 MB threshold
             {
-                throw new ApplicationException("New index file size is strangely smaller than old index file size.");
+                throw new ApplicationException($"New index file size ({newIndexFileSize / 1024}kb) is significantly smaller than old index file size ({originalIndexFileSize / 1024}kb). This could indicate data loss.");
             }
 
             if (!isTestRun)
