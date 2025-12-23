@@ -25,6 +25,10 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
 
         if (ViewModel != null)
         {
+            // Refresh from state when modal appears to ensure we have the latest music type
+            // This is important when the modal is opened after music is enabled or changed
+            ViewModel.RefreshFromState();
+            
             await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedMusicType != null && musicTypesCollectionView != null)

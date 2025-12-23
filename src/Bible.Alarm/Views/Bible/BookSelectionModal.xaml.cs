@@ -25,6 +25,10 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
 
         if (ViewModel != null)
         {
+            // Refresh from state when modal appears to ensure we have the latest language/publication
+            // This is important when the modal is opened after language or translation changes
+            ViewModel.RefreshFromState();
+            
             await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedBook != null && bookCollectionView != null)

@@ -54,6 +54,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private int? lastMusicTrackNumber;
     private string? lastMusicPublicationCode;
     private string? lastMusicLanguageCode;
+    private bool? lastMusicRepeat;
 
     public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel { get; set; }
     public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel { get; set; }
@@ -369,7 +370,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                             var tracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
                             if (tracks.TryGetValue(music.TrackNumber, out var track))
                             {
-                                trackName = track.Title;
+                                // Format melody track title with prefix to match track modal display
+                                trackName = $"Melody Number(s) {track.Title}";
                             }
                         }
                     }
@@ -572,14 +574,16 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             var musicTrackChanged = lastMusicTrackNumber != currentSchedule.MusicTrackNumber;
             var musicPublicationChanged = lastMusicPublicationCode != currentSchedule.MusicPublicationCode;
             var musicLanguageChanged = lastMusicLanguageCode != currentSchedule.MusicLanguageCode;
+            var musicRepeatChanged = lastMusicRepeat != currentSchedule.MusicRepeat;
             
-            if (musicTypeChanged || musicTrackChanged || musicPublicationChanged || musicLanguageChanged)
+            if (musicTypeChanged || musicTrackChanged || musicPublicationChanged || musicLanguageChanged || musicRepeatChanged)
             {
-                logger.Debug("HandleScheduleUpdateFromState: Music changed. Type: {OldType} -> {NewType}, Track: {OldTrack} -> {NewTrack}, Publication: {OldPub} -> {NewPub}, Language: {OldLang} -> {NewLang}",
+                logger.Debug("HandleScheduleUpdateFromState: Music changed. Type: {OldType} -> {NewType}, Track: {OldTrack} -> {NewTrack}, Publication: {OldPub} -> {NewPub}, Language: {OldLang} -> {NewLang}, Repeat: {OldRepeat} -> {NewRepeat}",
                     lastMusicType, currentSchedule.MusicType,
                     lastMusicTrackNumber, currentSchedule.MusicTrackNumber,
                     lastMusicPublicationCode, currentSchedule.MusicPublicationCode,
-                    lastMusicLanguageCode, currentSchedule.MusicLanguageCode);
+                    lastMusicLanguageCode, currentSchedule.MusicLanguageCode,
+                    lastMusicRepeat, currentSchedule.MusicRepeat);
                 
                 musicUpdated = true;
                 
@@ -588,6 +592,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                 lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
                 lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
                 lastMusicLanguageCode = currentSchedule.MusicLanguageCode;
+                lastMusicRepeat = currentSchedule.MusicRepeat;
             }
         }
         
@@ -618,6 +623,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         lastMusicTrackNumber = currentScheduleItem.MusicTrackNumber;
         lastMusicPublicationCode = currentScheduleItem.MusicPublicationCode;
         lastMusicLanguageCode = currentScheduleItem.MusicLanguageCode;
+        lastMusicRepeat = currentScheduleItem.MusicRepeat;
         
         // Reset musicUpdated when loading a schedule (only set to true if music changes after load)
         musicUpdated = false;
@@ -685,6 +691,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         lastMusicTrackNumber = null;
         lastMusicPublicationCode = null;
         lastMusicLanguageCode = null;
+        lastMusicRepeat = null;
         musicUpdated = false;
     }
 
@@ -742,6 +749,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                     lastMusicTrackNumber = scheduleStateItem.MusicTrackNumber;
                     lastMusicPublicationCode = scheduleStateItem.MusicPublicationCode;
                     lastMusicLanguageCode = scheduleStateItem.MusicLanguageCode;
+                    lastMusicRepeat = scheduleStateItem.MusicRepeat;
                     musicUpdated = false; // New schedules start with musicUpdated = false
                     
                     // Properties will be updated when state changes, so just notify
@@ -1134,13 +1142,32 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
         
-        // Ensure MusicEnabled is set from CurrentSchedule state (in case it was toggled)
+        // Ensure MusicEnabled and all display names are set from CurrentSchedule state
+        // Display names are populated during initialization and when user selects items, but are not stored in DB
+        // We need to preserve them from state so they appear correctly on the home page after save
         var currentScheduleForSave = state.Value.CurrentSchedule;
         if (currentScheduleForSave != null)
         {
             scheduleStateItem.MusicEnabled = currentScheduleForSave.MusicEnabled;
             logger.Information("DispatchSaveActionAsync: Set scheduleStateItem.MusicEnabled={MusicEnabled} from CurrentSchedule state",
                 scheduleStateItem.MusicEnabled);
+            
+            // Preserve all display names from CurrentSchedule state
+            // These are populated during initialization and when user selects items
+            // Display names are not stored in DB, so we must preserve them from state
+            scheduleStateItem.BibleReadingLanguageName = currentScheduleForSave.BibleReadingLanguageName;
+            scheduleStateItem.BibleReadingPublicationName = currentScheduleForSave.BibleReadingPublicationName;
+            scheduleStateItem.BibleReadingBookName = currentScheduleForSave.BibleReadingBookName;
+            
+            // Preserve music display names as well (will be overridden later if musicUpdated is true)
+            scheduleStateItem.MusicLanguageName = currentScheduleForSave.MusicLanguageName;
+            scheduleStateItem.MusicPublicationName = currentScheduleForSave.MusicPublicationName;
+            scheduleStateItem.MusicTrackName = currentScheduleForSave.MusicTrackName;
+            
+            logger.Information("DispatchSaveActionAsync: Preserved display names from CurrentSchedule state. BibleReadingLanguageName={LanguageName}, BibleReadingPublicationName={PublicationName}, MusicTrackName={MusicTrackName}",
+                scheduleStateItem.BibleReadingLanguageName ?? "null",
+                scheduleStateItem.BibleReadingPublicationName ?? "null",
+                scheduleStateItem.MusicTrackName ?? "null");
         }
         
         logger.Information("DispatchSaveActionAsync: After mapping - scheduleStateItem.MusicEnabled={MusicEnabled}, scheduleStateItem.MusicType={MusicType}, scheduleStateItem.MusicTrackNumber={TrackNumber}, scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}",
@@ -1156,11 +1183,12 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             logger.Information("DispatchSaveActionAsync: musicUpdated=true, overriding with CurrentSchedule state");
             var currentSchedule = state.Value.CurrentSchedule;
-            logger.Information("DispatchSaveActionAsync: CurrentSchedule state - MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicId={MusicId}",
+            logger.Information("DispatchSaveActionAsync: CurrentSchedule state - MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicRepeat={MusicRepeat}, MusicId={MusicId}",
                 currentSchedule?.MusicType?.ToString() ?? "null",
                 currentSchedule?.MusicTrackNumber?.ToString() ?? "null",
                 currentSchedule?.MusicPublicationCode ?? "null",
                 currentSchedule?.MusicLanguageCode ?? "null",
+                currentSchedule?.MusicRepeat?.ToString() ?? "null",
                 currentSchedule?.MusicId?.ToString() ?? "null");
             
             if (currentSchedule != null && 
@@ -1181,9 +1209,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                 scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
                 scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;
                 
-                logger.Information("DispatchSaveActionAsync: Overrode music properties from CurrentSchedule state. Old MusicType={OldMusicType} -> New MusicType={NewMusicType}, TrackNumber={TrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                logger.Information("DispatchSaveActionAsync: Overrode music properties from CurrentSchedule state. Old MusicType={OldMusicType} -> New MusicType={NewMusicType}, TrackNumber={TrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}, Repeat={Repeat}",
                     oldMusicType?.ToString() ?? "null", scheduleStateItem.MusicType?.ToString() ?? "null",
-                    scheduleStateItem.MusicTrackNumber, scheduleStateItem.MusicPublicationCode, scheduleStateItem.MusicLanguageCode);
+                    scheduleStateItem.MusicTrackNumber, scheduleStateItem.MusicPublicationCode, scheduleStateItem.MusicLanguageCode, scheduleStateItem.MusicRepeat);
             }
             else
             {

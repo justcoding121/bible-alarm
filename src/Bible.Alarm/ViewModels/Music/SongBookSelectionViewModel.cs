@@ -81,6 +81,13 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                     return;
                 }
 
+                // Check if the selected song book is the same as the current song book
+                var currentSchedule = state.Value.CurrentSchedule;
+                var isSameSongBook = currentSchedule != null &&
+                                   currentSchedule.MusicType == MusicType.Vocals &&
+                                   currentSchedule.MusicLanguageCode == languageCode &&
+                                   currentSchedule.MusicPublicationCode == x.Code;
+
                 // Get tracks for the selected song book and language
                 var tracks = await Task.Run(async () =>
                     await mediaService.GetVocalMusicTracks(languageCode, x.Code));
@@ -90,24 +97,43 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                     return;
                 }
 
-                // Get a random track (instead of first track for cascade changes)
-                var tracksList = tracks.Values.ToList();
-                var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                var randomTrackNumber = randomTrack.Number;
+                // If it's the same song book, preserve the current track (if valid)
+                // Otherwise, use a random track
+                int trackNumber;
+                string trackName;
+                
+                if (isSameSongBook && 
+                    currentSchedule.MusicTrackNumber.HasValue &&
+                    tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+                {
+                    trackNumber = currentSchedule.MusicTrackNumber.Value;
+                    trackName = currentTrack.Title;
+                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: TrackSelectionCommand - Same song book selected ({x.Name}), preserving current track {trackNumber}");
+                }
+                else
+                {
+                    // Different song book selected, use a random track
+                    var tracksList = tracks.Values.ToList();
+                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+                    trackNumber = randomTrack.Number;
+                    trackName = randomTrack.Title;
+                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: TrackSelectionCommand - Different song book selected ({x.Name}, was {currentSchedule?.MusicPublicationCode ?? "null"}), using random track {trackNumber}");
+                }
 
-                // Create MusicStateItem with selected song book and random track
+                // Create MusicStateItem with selected song book and track
                 // IMPORTANT: Include display names from list items (no database query needed)
+                // Use CurrentSchedule for Repeat to ensure we use the latest state
                 var trackSelectedItem = new MusicStateItem
                 {
-                    Repeat = current?.Repeat ?? false,
+                    Repeat = currentSchedule?.MusicRepeat ?? false,
                     MusicType = MusicType.Vocals,
                     LanguageCode = languageCode,
                     PublicationCode = x.Code,
-                    TrackNumber = randomTrackNumber,
+                    TrackNumber = trackNumber,
                     // Store display names from list items
                     LanguageName = CurrentLanguage?.Name,
                     PublicationName = x.Name,
-                    TrackName = randomTrack.Title
+                    TrackName = trackName
                 };
 
                 // Dispatch TrackSelectedAction to update CurrentMusic
@@ -243,6 +269,12 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
                 var publicationCode = firstSongBook.Key;
 
+                // Check if the selected language is the same as the current language
+                var currentSchedule = state.Value.CurrentSchedule;
+                var isSameLanguage = currentSchedule != null &&
+                                   currentSchedule.MusicType == MusicType.Vocals &&
+                                   currentSchedule.MusicLanguageCode == languageCode;
+
                 // Get tracks for the selected song book and language
                 var tracks = await Task.Run(async () =>
                     await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
@@ -253,24 +285,44 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                     return;
                 }
 
-                // Get a random track (instead of first track for cascade changes)
-                var tracksList = tracks.Values.ToList();
-                var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                var randomTrackNumber = randomTrack.Number;
+                // If it's the same language and song book, preserve the current track (if valid)
+                // Otherwise, use a random track
+                int trackNumber;
+                string trackName;
+                
+                if (isSameLanguage &&
+                    currentSchedule.MusicPublicationCode == publicationCode &&
+                    currentSchedule.MusicTrackNumber.HasValue &&
+                    tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+                {
+                    trackNumber = currentSchedule.MusicTrackNumber.Value;
+                    trackName = currentTrack.Title;
+                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: SelectLanguageCommand - Same language and song book selected ({x.Name}), preserving current track {trackNumber}");
+                }
+                else
+                {
+                    // Different language or song book selected, use a random track
+                    var tracksList = tracks.Values.ToList();
+                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+                    trackNumber = randomTrack.Number;
+                    trackName = randomTrack.Title;
+                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: SelectLanguageCommand - Different language/song book selected ({x.Name}, was {currentSchedule?.MusicLanguageCode ?? "null"}/{currentSchedule?.MusicPublicationCode ?? "null"}), using random track {trackNumber}");
+                }
 
-                // Create MusicStateItem with selected language, first song book, and random track
+                // Create MusicStateItem with selected language, song book, and track
                 // IMPORTANT: Include display names from list items (no database query needed)
+                // Use CurrentSchedule for Repeat to ensure we use the latest state
                 var trackSelectedItem = new MusicStateItem
                 {
-                    Repeat = current?.Repeat ?? false,
+                    Repeat = currentSchedule?.MusicRepeat ?? false,
                     MusicType = MusicType.Vocals,
                     LanguageCode = languageCode,
                     PublicationCode = publicationCode,
-                    TrackNumber = randomTrackNumber,
+                    TrackNumber = trackNumber,
                     // Store display names from list items
                     LanguageName = x.Name,
                     PublicationName = firstSongBook.Value.Name,
-                    TrackName = randomTrack.Title
+                    TrackName = trackName
                 };
 
                 // Dispatch TrackSelectedAction to update CurrentMusic
@@ -558,6 +610,39 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         {
             Languages = languageVMs;
         });
+    }
+
+    /// <summary>
+    /// Refreshes the ViewModel from the latest state when the modal appears.
+    /// This ensures languages are populated and current is initialized from CurrentSchedule.
+    /// </summary>
+    public async Task RefreshFromState()
+    {
+        var stateValue = state.Value;
+        
+        // Use CurrentSchedule as the source of truth
+        if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
+        {
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        
+        // Update current from CurrentSchedule
+        current = new AlarmMusic
+        {
+            MusicType = currentSchedule.MusicType.Value,
+            LanguageCode = currentSchedule.MusicLanguageCode,
+            PublicationCode = currentSchedule.MusicPublicationCode,
+            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+
+        // Ensure languages are populated
+        if (Languages == null || Languages.Count == 0)
+        {
+            await PopulateLanguages();
+        }
     }
 
     private readonly Dictionary<string, PublicationListViewItemModel> songBookVMsMapping = [];

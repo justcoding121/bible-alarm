@@ -290,6 +290,13 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 }
                 var title = titleElement.ValueKind != JsonValueKind.Undefined ? titleElement.GetString()! : "Unknown";
 
+                // Skip tracks with "audio descriptions" in the title (case-insensitive)
+                if (title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.Debug("Skipping track with audio descriptions in title: {Title}", title);
+                    continue;
+                }
+
                 musicTracks.Add(new MusicTrack
                 {
                     Number = trackNumber,

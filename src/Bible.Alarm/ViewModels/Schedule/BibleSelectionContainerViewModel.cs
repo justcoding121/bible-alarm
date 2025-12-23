@@ -274,18 +274,32 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         var chapterDisplayChanged = newChapterDisplayText != lastChapterDisplayText;
         
         // Determine which properties need to be notified (cascading logic)
-        var notifyLanguage = languageCodeChanged || languageDisplayChanged;
-        var notifyTranslation = languageCodeChanged || publicationCodeChanged || translationDisplayChanged;
-        var notifyBook = languageCodeChanged || publicationCodeChanged || bookNumberChanged || bookDisplayChanged;
-        var notifyChapter = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged || chapterDisplayChanged;
+        // Only notify if the underlying selection (codes/numbers) actually changed, not just display text
+        // This prevents cascade changes when the same item is selected (e.g., modal opened and closed without changes)
+        var notifyLanguage = languageCodeChanged;
+        var notifyTranslation = languageCodeChanged || publicationCodeChanged;
+        var notifyBook = languageCodeChanged || publicationCodeChanged || bookNumberChanged;
+        var notifyChapter = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
+        
+        // Also check display text changes for UI updates, but don't trigger cascade effects
+        var displayTextOnlyChanged = (languageDisplayChanged && !languageCodeChanged) ||
+                                    (translationDisplayChanged && !languageCodeChanged && !publicationCodeChanged) ||
+                                    (bookDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged) ||
+                                    (chapterDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged && !chapterNumberChanged);
         
         // Detect if any cascade change occurred (any underlying property changed)
+        // Only trigger cascade effects (like resetting progress) when the actual selection changed, not just display text
         var cascadeChangeOccurred = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
         
-        if (notifyLanguage || notifyTranslation || notifyBook || notifyChapter)
+        // Trigger PropertyChanged if underlying selection changed OR if display text changed (for UI updates)
+        if (notifyLanguage || notifyTranslation || notifyBook || notifyChapter || displayTextOnlyChanged)
         {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Values changed. Language: {LanguageChanged}, Translation: {TranslationChanged}, Book: {BookChanged}, Chapter: {ChapterChanged}. Triggering cascading PropertyChanged", 
-                notifyLanguage, notifyTranslation, notifyBook, notifyChapter);
+            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Values changed. Language: {LanguageChanged} (code: {LangCodeChanged}), Translation: {TranslationChanged} (code: {PubCodeChanged}), Book: {BookChanged} (number: {BookNumberChanged}), Chapter: {ChapterChanged} (number: {ChapterNumberChanged}), DisplayTextOnly: {DisplayTextOnly}. CascadeChangeOccurred: {CascadeChangeOccurred}", 
+                notifyLanguage, languageCodeChanged,
+                notifyTranslation, publicationCodeChanged,
+                notifyBook, bookNumberChanged,
+                notifyChapter, chapterNumberChanged,
+                displayTextOnlyChanged, cascadeChangeOccurred);
             
             // Update last values BEFORE dispatching any actions to prevent feedback loops
             // This ensures that when OnStateChanged is called again (due to the dispatched action),
@@ -331,6 +345,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 // Cascading notifications: parent changes trigger child property notifications
+                // Only trigger cascade if underlying selection changed, not just display text
                 if (notifyLanguage)
                 {
                     OnPropertyChanged(nameof(LanguageDisplayText));
@@ -356,6 +371,26 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
                 {
                     // Chapter change only affects itself
                     OnPropertyChanged(nameof(ChapterDisplayText));
+                }
+                else if (displayTextOnlyChanged)
+                {
+                    // Only display text changed (no selection change) - just update the specific property
+                    if (languageDisplayChanged)
+                    {
+                        OnPropertyChanged(nameof(LanguageDisplayText));
+                    }
+                    if (translationDisplayChanged)
+                    {
+                        OnPropertyChanged(nameof(TranslationDisplayText));
+                    }
+                    if (bookDisplayChanged)
+                    {
+                        OnPropertyChanged(nameof(BookDisplayText));
+                    }
+                    if (chapterDisplayChanged)
+                    {
+                        OnPropertyChanged(nameof(ChapterDisplayText));
+                    }
                 }
             });
         }

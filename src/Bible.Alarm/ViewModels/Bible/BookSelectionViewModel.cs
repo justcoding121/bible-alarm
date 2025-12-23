@@ -81,50 +81,76 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
             try
             {
-                // Ensure current is set from state if it's null
-                if (current == null)
+                // Always use CurrentSchedule as the source of truth for language/publication codes
+                // This ensures we use the latest state, not stale data from 'current' field
+                var currentSchedule = state.Value.CurrentSchedule;
+                if (currentSchedule == null || 
+                    string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) || 
+                    string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode))
                 {
-                    var currentItem = state.Value.CurrentBibleReadingSchedule;
-                    if (currentItem != null)
-                    {
-                        current = mapper.Map<BibleReadingSchedule>(currentItem);
-                    }
-                }
-
-                if (current == null)
-                {
+                    logger.Warning("BookSelectionViewModel: ChapterSelectionCommand - CurrentSchedule is null or missing required properties");
                     return;
                 }
 
-                // Get the first chapter for the selected book
+                // Check if the selected book is the same as the current book
+                var currentBookNumber = currentSchedule.BibleReadingBookNumber;
+                var isSameBook = currentBookNumber.HasValue && currentBookNumber.Value == x.Number;
+                
+                // Get chapters for the selected book using the latest language/publication from CurrentSchedule
                 var chapters = await Task.Run(async () =>
-                    await mediaService.GetBibleChapters(current.LanguageCode, current.PublicationCode, x.Number));
+                    await mediaService.GetBibleChapters(currentSchedule.BibleReadingLanguageCode, currentSchedule.BibleReadingPublicationCode, x.Number));
 
                 if (chapters == null || chapters.Count == 0)
                 {
                     return;
                 }
 
-                // Get the first chapter (lowest chapter number)
-                var firstChapter = chapters.Values.First();
-                var firstChapterNumber = firstChapter.Number;
+                // If it's the same book, preserve the current chapter number (if valid)
+                // Otherwise, use the first chapter
+                int chapterNumber;
+                if (isSameBook && currentSchedule.BibleReadingChapterNumber.HasValue)
+                {
+                    var currentChapterNumber = currentSchedule.BibleReadingChapterNumber.Value;
+                    // Verify the current chapter exists in the chapters list
+                    if (chapters.ContainsKey(currentChapterNumber))
+                    {
+                        chapterNumber = currentChapterNumber;
+                        logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), preserving current chapter {ChapterNumber}",
+                            x.Name, chapterNumber);
+                    }
+                    else
+                    {
+                        // Current chapter doesn't exist in this book, use first chapter
+                        chapterNumber = chapters.Values.First().Number;
+                        logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), but current chapter {CurrentChapter} doesn't exist, using first chapter {FirstChapter}",
+                            x.Name, currentChapterNumber, chapterNumber);
+                    }
+                }
+                else
+                {
+                    // Different book selected, use first chapter
+                    chapterNumber = chapters.Values.First().Number;
+                    logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Different book selected ({BookName}, was {CurrentBook}), using first chapter {FirstChapter}",
+                        x.Name, currentBookNumber?.ToString() ?? "null", chapterNumber);
+                }
 
-                // Create BibleReadingStateItem with selected book and first chapter
+                // Create BibleReadingStateItem with selected book and chapter
                 // IMPORTANT: Include display names from list items (no database query needed)
-                // Get language name and publication name from current state (they should already be populated)
-                var currentState = state.Value.CurrentBibleReadingSchedule;
-                var currentSchedule = state.Value.CurrentSchedule;
+                // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
                 var bibleReadingItem = new BibleReadingStateItem
                 {
-                    LanguageCode = current.LanguageCode,
-                    PublicationCode = current.PublicationCode,
+                    LanguageCode = currentSchedule.BibleReadingLanguageCode,
+                    PublicationCode = currentSchedule.BibleReadingPublicationCode,
                     BookNumber = x.Number,
-                    ChapterNumber = firstChapterNumber,
+                    ChapterNumber = chapterNumber,
                     // Store display names from list items and current state
-                    LanguageName = currentSchedule?.BibleReadingLanguageName ?? currentState?.TranslationName,
-                    PublicationName = currentSchedule?.BibleReadingPublicationName,
+                    LanguageName = currentSchedule.BibleReadingLanguageName,
+                    PublicationName = currentSchedule.BibleReadingPublicationName,
                     BookName = x.Name
                 };
+                
+                logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Dispatching ChapterSelectedAction. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+                    bibleReadingItem.LanguageCode, bibleReadingItem.PublicationCode, bibleReadingItem.BookNumber, bibleReadingItem.ChapterNumber);
 
                 // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
                 // Effect will automatically sync to CurrentSchedule
@@ -259,13 +285,22 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             return;
         }
         
+        // Always read the latest state when initializing
+        RefreshFromState();
+    }
+    
+    /// <summary>
+    /// Refreshes the books list from the current state. Can be called when modal appears to ensure latest state is used.
+    /// </summary>
+    public void RefreshFromState()
+    {
         var stateValue = state.Value;
         
         // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
         {
-            logger.Warning("BookSelectionViewModel: OnBibleReadingInitialized - CurrentSchedule is null, returning");
+            logger.Warning("BookSelectionViewModel: RefreshFromState - CurrentSchedule is null, returning");
             return;
         }
 
@@ -273,17 +308,28 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
         
-        logger.Information("BookSelectionViewModel: OnBibleReadingInitialized - CurrentSchedule: Id={ScheduleId}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+        logger.Information("BookSelectionViewModel: RefreshFromState - CurrentSchedule: Id={ScheduleId}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, InitComplete: {InitComplete}",
             currentSchedule.Id,
             newLanguageCode ?? "null",
-            newPublicationCode ?? "null");
-        
+            newPublicationCode ?? "null",
+            initComplete);
+
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
-            logger.Warning("BookSelectionViewModel: OnBibleReadingInitialized - LanguageCode or PublicationCode is null/empty, returning");
+            logger.Warning("BookSelectionViewModel: RefreshFromState - LanguageCode or PublicationCode is null/empty, returning");
             return;
         }
+
+        // Check if language or publication code changed (need to repopulate books)
+        var languageChanged = lastLanguageCode != newLanguageCode;
+        var publicationCodeChanged = lastPublicationCode != newPublicationCode;
+        var needsRepopulation = languageChanged || publicationCodeChanged || !initComplete;
         
+        logger.Information("BookSelectionViewModel: RefreshFromState - LanguageChanged: {LanguageChanged} ({LastLang} -> {NewLang}), PublicationChanged: {PublicationChanged} ({LastPub} -> {NewPub}), NeedsRepopulation: {NeedsRepopulation}",
+            languageChanged, lastLanguageCode ?? "null", newLanguageCode,
+            publicationCodeChanged, lastPublicationCode ?? "null", newPublicationCode,
+            needsRepopulation);
+
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
@@ -307,33 +353,45 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             lastCurrent = current;
         }
         
-        initComplete = true;
-        
-        // Initialize with the current language/publication
-        logger.Information("BookSelectionViewModel: OnBibleReadingInitialized - Starting repopulation with LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-            newLanguageCode, newPublicationCode);
-        
-        Task.Run(async () =>
+        if (!initComplete)
         {
-            try
+            initComplete = true;
+        }
+        
+        // Initialize or repopulate with the current language/publication
+        if (needsRepopulation)
+        {
+            logger.Information("BookSelectionViewModel: RefreshFromState - Starting repopulation with LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+                newLanguageCode, newPublicationCode);
+            
+            Task.Run(async () =>
             {
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                // Use the latest state values, not cached ones
-                await Initialize(newLanguageCode, newPublicationCode);
+                try
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                    // Use the latest state values, not cached ones
+                    await Initialize(newLanguageCode, newPublicationCode);
 
-                // Set IsBusy to false after collection is assigned - the busy overlay will hide instantly
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                
-                logger.Information("BookSelectionViewModel: OnBibleReadingInitialized - Repopulation completed. Books count: {BooksCount}",
-                    Books?.Count ?? 0);
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't throw - allow modal to continue functioning
-                logger.Error(ex, "BookSelectionViewModel: OnBibleReadingInitialized - Error during repopulation");
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-            }
-        });
+                    // Set IsBusy to false after collection is assigned - the busy overlay will hide instantly
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                    
+                    logger.Information("BookSelectionViewModel: RefreshFromState - Repopulation completed. Books count: {BooksCount}",
+                        Books?.Count ?? 0);
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't throw - allow modal to continue functioning
+                    logger.Error(ex, "BookSelectionViewModel: RefreshFromState - Error during repopulation");
+                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                }
+            });
+        }
+        else
+        {
+            logger.Information("BookSelectionViewModel: RefreshFromState - No repopulation needed, updating selected book");
+            // Update selected book when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(SetSelectedBook);
+        }
     }
 
     public void Dispose()

@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
+using Bible.Alarm.ViewModels.Bible;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
@@ -52,6 +53,12 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
         // Wait for the page to be fully loaded and data to be ready before attempting to scroll
         if (ViewModel != null)
         {
+            // If ViewModel is BibleSelectionViewModel, refresh from state to ensure languages are populated
+            if (ViewModel is BibleSelectionViewModel bibleSelectionViewModel)
+            {
+                await bibleSelectionViewModel.RefreshFromState();
+            }
+
             // Wait for IsBusy to become false (data loaded) using Polly retry policy
             await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
 

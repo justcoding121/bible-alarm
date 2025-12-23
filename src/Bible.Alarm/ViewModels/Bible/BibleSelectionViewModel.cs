@@ -74,7 +74,13 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
             try
             {
-                // Get the first book and first chapter for the selected translation
+                // Check if the selected translation is the same as the current translation
+                var currentSchedule = this.state.Value.CurrentSchedule;
+                var isSameTranslation = currentSchedule != null && 
+                                       currentSchedule.BibleReadingLanguageCode == CurrentLanguage.Code &&
+                                       currentSchedule.BibleReadingPublicationCode == x.Code;
+
+                // Get books for the selected translation
                 var books = await Task.Run(async () =>
                     await mediaService.GetBibleBooks(CurrentLanguage.Code, x.Code));
 
@@ -84,36 +90,87 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                     return;
                 }
 
-                // Get the first book (lowest book number)
-                var firstBook = books.Values.First();
-                var firstBookNumber = firstBook.Number;
-
-                // Get the first chapter for the first book
-                var chapters = await Task.Run(async () =>
-                    await mediaService.GetBibleChapters(CurrentLanguage.Code, x.Code, firstBookNumber));
-
-                if (chapters == null || chapters.Count == 0)
+                // If it's the same translation, preserve the current book and chapter (if valid)
+                // Otherwise, use the first book and first chapter
+                int bookNumber;
+                int chapterNumber;
+                string bookName;
+                
+                if (isSameTranslation && 
+                    currentSchedule.BibleReadingBookNumber.HasValue && 
+                    currentSchedule.BibleReadingChapterNumber.HasValue)
                 {
-                    IsBusy = false;
-                    return;
+                    var currentBookNumber = currentSchedule.BibleReadingBookNumber.Value;
+                    var currentChapterNumber = currentSchedule.BibleReadingChapterNumber.Value;
+                    
+                    // Verify the current book exists in the books list
+                    if (books.TryGetValue(currentBookNumber, out var currentBook))
+                    {
+                        bookNumber = currentBookNumber;
+                        bookName = currentBook.Name;
+                        
+                        // Verify the current chapter exists in this book
+                        var chapters = await Task.Run(async () =>
+                            await mediaService.GetBibleChapters(CurrentLanguage.Code, x.Code, bookNumber));
+                        
+                        if (chapters != null && chapters.ContainsKey(currentChapterNumber))
+                        {
+                            chapterNumber = currentChapterNumber;
+                            System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: BookSelectionCommand - Same translation selected ({x.Name}), preserving current book {bookNumber} and chapter {chapterNumber}");
+                        }
+                        else
+                        {
+                            // Current chapter doesn't exist, use first chapter
+                            chapterNumber = chapters?.Values.First().Number ?? 1;
+                            System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: BookSelectionCommand - Same translation selected ({x.Name}), preserving book {bookNumber}, but current chapter {currentChapterNumber} doesn't exist, using first chapter {chapterNumber}");
+                        }
+                    }
+                    else
+                    {
+                        // Current book doesn't exist, use first book and first chapter
+                        var firstBook = books.Values.First();
+                        bookNumber = firstBook.Number;
+                        bookName = firstBook.Name;
+                        
+                        var chapters = await Task.Run(async () =>
+                            await mediaService.GetBibleChapters(CurrentLanguage.Code, x.Code, bookNumber));
+                        
+                        chapterNumber = chapters?.Values.First().Number ?? 1;
+                        System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: BookSelectionCommand - Same translation selected ({x.Name}), but current book {currentBookNumber} doesn't exist, using first book {bookNumber} and first chapter {chapterNumber}");
+                    }
+                }
+                else
+                {
+                    // Different translation selected, use first book and first chapter
+                    var firstBook = books.Values.First();
+                    bookNumber = firstBook.Number;
+                    bookName = firstBook.Name;
+                    
+                    var chapters = await Task.Run(async () =>
+                        await mediaService.GetBibleChapters(CurrentLanguage.Code, x.Code, bookNumber));
+                    
+                    if (chapters == null || chapters.Count == 0)
+                    {
+                        IsBusy = false;
+                        return;
+                    }
+                    
+                    chapterNumber = chapters.Values.First().Number;
+                    System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: BookSelectionCommand - Different translation selected ({x.Name}, was {currentSchedule?.BibleReadingPublicationCode ?? "null"}), using first book {bookNumber} and first chapter {chapterNumber}");
                 }
 
-                // Get the first chapter (lowest chapter number)
-                var firstChapter = chapters.Values.First();
-                var firstChapterNumber = firstChapter.Number;
-
-                // Create BibleReadingStateItem with new translation, first book, and first chapter
+                // Create BibleReadingStateItem with selected translation, book, and chapter
                 // IMPORTANT: Include display names from list items (no database query needed)
                 var bibleReadingItem = new BibleReadingStateItem
                 {
                     PublicationCode = x.Code,
                     LanguageCode = CurrentLanguage.Code,
-                    BookNumber = firstBookNumber,
-                    ChapterNumber = firstChapterNumber,
+                    BookNumber = bookNumber,
+                    ChapterNumber = chapterNumber,
                     // Store display names from list items
                     LanguageName = CurrentLanguage.Name,
                     PublicationName = x.Name,
-                    BookName = firstBook.Name
+                    BookName = bookName
                 };
 
                 // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
@@ -168,6 +225,11 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 // Close the modal immediately after language selection
                 await this.navigationService.PopModalAsync();
 
+                // Check if the selected language is the same as the current language
+                var currentSchedule = this.state.Value.CurrentSchedule;
+                var isSameLanguage = currentSchedule != null &&
+                                   currentSchedule.BibleReadingLanguageCode == x.Code;
+
                 // Get translations for the selected language
                 var translations = await Task.Run(async () =>
                     await mediaService.GetBibleTranslations(x.Code));
@@ -178,60 +240,125 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                     return;
                 }
 
-                // Get the last translation (reverse order - last in dictionary)
-                var lastTranslation = translations.LastOrDefault();
-                if (lastTranslation.Value == null)
+                // If it's the same language, try to preserve the current translation, book, and chapter (if valid)
+                // Otherwise, use the last translation (reverse order), first book, and first chapter
+                string publicationCode;
+                int bookNumber;
+                int chapterNumber;
+                string bookName;
+                
+                if (isSameLanguage && 
+                    !string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode) &&
+                    translations.ContainsKey(currentSchedule.BibleReadingPublicationCode) &&
+                    currentSchedule.BibleReadingBookNumber.HasValue &&
+                    currentSchedule.BibleReadingChapterNumber.HasValue)
                 {
-                    IsBusy = false;
-                    return;
+                    // Same language - try to preserve current translation, book, and chapter
+                    publicationCode = currentSchedule.BibleReadingPublicationCode;
+                    var currentBookNumber = currentSchedule.BibleReadingBookNumber.Value;
+                    var currentChapterNumber = currentSchedule.BibleReadingChapterNumber.Value;
+                    
+                    // Verify the current book exists in the books list
+                    var books = await Task.Run(async () =>
+                        await mediaService.GetBibleBooks(x.Code, publicationCode));
+                    
+                    if (books != null && books.TryGetValue(currentBookNumber, out var currentBook))
+                    {
+                        bookNumber = currentBookNumber;
+                        bookName = currentBook.Name;
+                        
+                        // Verify the current chapter exists in this book
+                        var chapters = await Task.Run(async () =>
+                            await mediaService.GetBibleChapters(x.Code, publicationCode, bookNumber));
+                        
+                        if (chapters != null && chapters.ContainsKey(currentChapterNumber))
+                        {
+                            chapterNumber = currentChapterNumber;
+                            System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: SelectLanguageCommand - Same language selected ({x.Name}), preserving current translation {publicationCode}, book {bookNumber}, and chapter {chapterNumber}");
+                        }
+                        else
+                        {
+                            // Current chapter doesn't exist, use first chapter
+                            chapterNumber = chapters?.Values.First().Number ?? 1;
+                            System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: SelectLanguageCommand - Same language selected ({x.Name}), preserving translation {publicationCode} and book {bookNumber}, but current chapter {currentChapterNumber} doesn't exist, using first chapter {chapterNumber}");
+                        }
+                    }
+                    else
+                    {
+                        // Current book doesn't exist, use first book and first chapter
+                        var firstBook = books?.Values.First();
+                        if (firstBook == null)
+                        {
+                            IsBusy = false;
+                            return;
+                        }
+                        bookNumber = firstBook.Number;
+                        bookName = firstBook.Name;
+                        
+                        var chapters = await Task.Run(async () =>
+                            await mediaService.GetBibleChapters(x.Code, publicationCode, bookNumber));
+                        
+                        chapterNumber = chapters?.Values.First().Number ?? 1;
+                        System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: SelectLanguageCommand - Same language selected ({x.Name}), preserving translation {publicationCode}, but current book {currentBookNumber} doesn't exist, using first book {bookNumber} and first chapter {chapterNumber}");
+                    }
+                }
+                else
+                {
+                    // Different language selected, use last translation (reverse order), first book, and first chapter
+                    var lastTranslation = translations.LastOrDefault();
+                    if (lastTranslation.Value == null)
+                    {
+                        IsBusy = false;
+                        return;
+                    }
+                    
+                    publicationCode = lastTranslation.Key;
+                    
+                    var books = await Task.Run(async () =>
+                        await mediaService.GetBibleBooks(x.Code, publicationCode));
+                    
+                    if (books == null || books.Count == 0)
+                    {
+                        IsBusy = false;
+                        return;
+                    }
+                    
+                    var firstBook = books.Values.First();
+                    bookNumber = firstBook.Number;
+                    bookName = firstBook.Name;
+                    
+                    var chapters = await Task.Run(async () =>
+                        await mediaService.GetBibleChapters(x.Code, publicationCode, bookNumber));
+                    
+                    if (chapters == null || chapters.Count == 0)
+                    {
+                        IsBusy = false;
+                        return;
+                    }
+                    
+                    chapterNumber = chapters.Values.First().Number;
+                    System.Diagnostics.Debug.WriteLine($"BibleSelectionViewModel: SelectLanguageCommand - Different language selected ({x.Name}, was {currentSchedule?.BibleReadingLanguageCode ?? "null"}), using last translation {publicationCode}, first book {bookNumber}, and first chapter {chapterNumber}");
                 }
 
-                var publicationCode = lastTranslation.Key;
+                // Get publication name from translations
+                var publicationName = translations.TryGetValue(publicationCode, out var pub) ? pub.Name : publicationCode;
 
-                // Get the first book for the selected translation
-                var books = await Task.Run(async () =>
-                    await mediaService.GetBibleBooks(x.Code, publicationCode));
-
-                if (books == null || books.Count == 0)
-                {
-                    IsBusy = false;
-                    return;
-                }
-
-                // Get the first book (lowest book number)
-                var firstBook = books.Values.First();
-                var firstBookNumber = firstBook.Number;
-
-                // Get the first chapter for the first book
-                var chapters = await Task.Run(async () =>
-                    await mediaService.GetBibleChapters(x.Code, publicationCode, firstBookNumber));
-
-                if (chapters == null || chapters.Count == 0)
-                {
-                    IsBusy = false;
-                    return;
-                }
-
-                // Get the first chapter (lowest chapter number)
-                var firstChapter = chapters.Values.First();
-                var firstChapterNumber = firstChapter.Number;
-
-                // Create BibleReadingStateItem with new language, last translation (reverse order), first book, and first chapter
+                // Create BibleReadingStateItem with selected language, translation, book, and chapter
                 // IMPORTANT: Include display names from list items (no database query needed)
                 var bibleReadingItem = new BibleReadingStateItem
                 {
                     LanguageCode = x.Code,
                     PublicationCode = publicationCode,
-                    BookNumber = firstBookNumber,
-                    ChapterNumber = firstChapterNumber,
+                    BookNumber = bookNumber,
+                    ChapterNumber = chapterNumber,
                     // Store display names from list items
                     LanguageName = x.Name,
-                    PublicationName = lastTranslation.Value.Name,
-                    BookName = firstBook.Name
+                    PublicationName = publicationName,
+                    BookName = bookName
                 };
 
                 Log.Information("BibleSelectionViewModel: SelectLanguageCommand - Selected language: {LanguageName} ({LanguageCode}), Translation: {PublicationCode}, Book: {BookNumber}, Chapter: {ChapterNumber}",
-                    x.Name, x.Code, publicationCode, firstBookNumber, firstChapterNumber);
+                    x.Name, x.Code, publicationCode, bookNumber, chapterNumber);
 
                 // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
                 // Effect will automatically sync to CurrentSchedule (with shouldSave: false)
@@ -339,6 +466,61 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 System.Diagnostics.Debug.WriteLine($"Error initializing BibleSelectionViewModel: {ex.Message}");
             }
         });
+    }
+
+    /// <summary>
+    /// Refreshes the ViewModel from the latest state when the modal appears.
+    /// This ensures translations are populated and current is initialized from CurrentSchedule.
+    /// </summary>
+    public async Task RefreshFromState()
+    {
+        var stateValue = state.Value;
+        
+        // Use CurrentSchedule as the source of truth
+        if (stateValue.CurrentSchedule == null)
+        {
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
+        
+        if (string.IsNullOrEmpty(newLanguageCode))
+        {
+            return;
+        }
+
+        // Update tracking variable
+        lastLanguageCode = newLanguageCode;
+        
+        // Update current from CurrentSchedule
+        if (stateValue.CurrentBibleReadingSchedule != null)
+        {
+            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+        }
+        else if (!string.IsNullOrEmpty(newLanguageCode))
+        {
+            current = new BibleReadingSchedule
+            {
+                LanguageCode = newLanguageCode,
+                PublicationCode = currentSchedule.BibleReadingPublicationCode,
+                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
+                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+            };
+        }
+
+        // Ensure translations are populated if not already initialized
+        if (!initComplete || Translations == null || Translations.Count == 0)
+        {
+            initComplete = true;
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+            if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
+            {
+                await PopulateTranslations(current.LanguageCode);
+            }
+            await Task.Delay(100); // Give CollectionView time to render
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        }
     }
 
     private void OnBibleReadingChanged(object? sender, EventArgs e)

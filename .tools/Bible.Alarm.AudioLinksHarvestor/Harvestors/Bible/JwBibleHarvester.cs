@@ -233,7 +233,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                     continue;
                 }
 
-                ProcessBookFiles(bookFiles, doc.RootElement, harvestLink, bookNumberBookMap, bookNumberChapterMap, ref bookNumber);
+                ProcessBookFiles(bookFiles, doc.RootElement, harvestLink, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode);
             }
             catch (KeyNotFoundException)
             {
@@ -266,7 +266,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         string harvestLink,
         Dictionary<int, BibleBook> bookNumberBookMap,
         Dictionary<int, Dictionary<int, BibleChapter>> bookNumberChapterMap,
-        ref int bookNumber)
+        ref int bookNumber,
+        string languageCode)
     {
         foreach (var bookFile in bookFiles.EnumerateArray())
         {
@@ -302,7 +303,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
             if (!bookNumberBookMap.ContainsKey(bookNumber))
             {
-                var bookName = GetBookName(bookFile, rootElement, harvestLink);
+                var bookName = GetBookName(bookFile, rootElement, harvestLink, languageCode, bookNumber);
                 if (string.IsNullOrEmpty(bookName))
                 {
                     continue;
@@ -332,7 +333,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
     }
 
-    private static string GetBookName(JsonElement bookFile, JsonElement rootElement, string harvestLink)
+    private static string GetBookName(JsonElement bookFile, JsonElement rootElement, string harvestLink, string languageCode, int bookNumber)
     {
         string name;
 
@@ -353,6 +354,13 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             name = titleElement.GetString()!.Split('-')[0].Trim();
         }
 
+        // For Malayalam (MY) language, remove "1" suffix from Psalms (book 19)
+        if (languageCode == "MY" && bookNumber == 19 && name.EndsWith(" 1", StringComparison.Ordinal))
+        {
+            return name.Substring(0, name.Length - 2).TrimEnd();
+        }
+
+        // Legacy fix: Convert "Psalm 1" to "Psalms" for other languages
         return name == "Psalm 1" ? "Psalms" : name;
     }
 

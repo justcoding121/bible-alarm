@@ -37,12 +37,18 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     private readonly IDispatcher dispatcher;
     private readonly IState<ApplicationState> state;
+    private readonly IState<PlaybackState> playbackState;
+    
+    // Track recent play button clicks to prevent navigation race condition
+    private readonly Dictionary<int, DateTime> recentPlayClicks = new();
+    private const int PlayClickCooldownMs = 500; // 500ms cooldown after play click
 
     public HomeViewModel(
         ILogger logger,
         IServiceScopeFactory scopeFactory,
         Func<int, ScheduleListItem> scheduleListItemFactory,
         IState<ApplicationState> state,
+        IState<PlaybackState> playbackState,
         IDispatcher dispatcher,
         IDatabaseSeedService databaseSeedService,
         IScheduleMigrationService scheduleMigrationService,
@@ -54,6 +60,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         this.scopeFactory = scopeFactory;
         this.scheduleListItemFactory = scheduleListItemFactory;
         this.state = state;
+        this.playbackState = playbackState;
         this.dispatcher = dispatcher;
         this.databaseSeedService = databaseSeedService;
         this.scheduleMigrationService = scheduleMigrationService;
@@ -86,6 +93,30 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             if (x == null || x.Schedule == null)
             {
                 return;
+            }
+
+            // Don't navigate if playback is starting or active for this schedule
+            // This prevents navigation when play button is clicked
+            var currentPlaybackState = playbackState.Value;
+            if (currentPlaybackState.IsPreparingOrPlaying && 
+                currentPlaybackState.CurrentScheduleId == x.Schedule.Id)
+            {
+                logger.Debug("ViewScheduleCommand: Skipping navigation - playback is active for schedule {ScheduleId}", x.Schedule.Id);
+                return;
+            }
+
+            // Also check if play button was recently clicked (race condition protection)
+            if (recentPlayClicks.TryGetValue(x.Schedule.Id, out var playClickTime))
+            {
+                var timeSincePlayClick = (DateTime.UtcNow - playClickTime).TotalMilliseconds;
+                if (timeSincePlayClick < PlayClickCooldownMs)
+                {
+                    logger.Debug("ViewScheduleCommand: Skipping navigation - play button was clicked {TimeSinceClick}ms ago for schedule {ScheduleId}", 
+                        timeSincePlayClick, x.Schedule.Id);
+                    return;
+                }
+                // Remove old entries
+                recentPlayClicks.Remove(x.Schedule.Id);
             }
 
             // Show overlay immediately via state
@@ -172,6 +203,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 {
                     existingViewModel.OnPlayStarted = () =>
                     {
+                        // Track play button click to prevent navigation
+                        recentPlayClicks[scheduleId] = DateTime.UtcNow;
                         dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                     };
                 }
@@ -191,6 +224,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 // Set callbacks to show/hide overlay when play is pressed/started
                 viewModel.OnPlayStarted = () =>
                 {
+                    // Track play button click to prevent navigation
+                    recentPlayClicks[scheduleId] = DateTime.UtcNow;
                     dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                 };
                 viewModel.OnPlaybackStarted = () =>

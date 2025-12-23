@@ -31,11 +31,29 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         this.dispatcher = dispatcher;
         this.mapper = mapper;
 
-        // Initialize _current from state if available (map DTO to entity)
-        if (this.state.Value.CurrentMusic != null)
+        // Initialize from CurrentSchedule (source of truth) if available
+        // CurrentSchedule is updated first and is authoritative
+        var currentState = this.state.Value;
+        if (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue)
         {
+            // Create a minimal AlarmMusic from CurrentSchedule for initialization
+            current = new AlarmMusic
+            {
+                MusicType = currentState.CurrentSchedule.MusicType.Value,
+                LanguageCode = currentState.CurrentSchedule.MusicLanguageCode,
+                PublicationCode = currentState.CurrentSchedule.MusicPublicationCode,
+                TrackNumber = currentState.CurrentSchedule.MusicTrackNumber ?? 1,
+                Repeat = currentState.CurrentSchedule.MusicRepeat ?? false
+            };
+        }
+        else if (this.state.Value.CurrentMusic != null)
+        {
+            // Fallback to CurrentMusic if CurrentSchedule doesn't have music info
             current = this.mapper.Map<AlarmMusic>(this.state.Value.CurrentMusic);
         }
+
+        // Initialize selected music type immediately
+        SetSelectedMusicType();
 
         this.state.StateChanged += OnStateOnStateChanged;
 
@@ -60,9 +78,14 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
                     }
                 }
 
+                // Check if the selected music type is the same as the current music type
+                var currentSchedule = this.state.Value.CurrentSchedule;
+                var isSameMusicType = currentSchedule != null &&
+                                     currentSchedule.MusicType == x.MusicType;
+
                 if (x.MusicType == MusicType.Vocals)
                 {
-                    // For Vocals: Get the first language, first song book, and first track, then navigate back
+                    // For Vocals: Get the first language, first song book, and track, then navigate back
                     var languages = await Task.Run(async () =>
                         await mediaService.GetVocalMusicLanguages());
 
@@ -102,24 +125,45 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
                         return;
                     }
 
-                    // Get a random track (instead of first track for cascade changes)
-                    var tracksList = tracks.Values.ToList();
-                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                    var randomTrackNumber = randomTrack.Number;
+                    // If it's the same music type, language, and song book, preserve the current track (if valid)
+                    // Otherwise, use a random track
+                    int trackNumber;
+                    string trackName;
+                    
+                    if (isSameMusicType &&
+                        currentSchedule.MusicLanguageCode == languageCode &&
+                        currentSchedule.MusicPublicationCode == publicationCode &&
+                        currentSchedule.MusicTrackNumber.HasValue &&
+                        tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+                    {
+                        trackNumber = currentSchedule.MusicTrackNumber.Value;
+                        trackName = currentTrack.Title;
+                        System.Diagnostics.Debug.WriteLine($"MusicSelectionViewModel: SongBookSelectionCommand - Same music type, language, and song book selected (Vocals), preserving current track {trackNumber}");
+                    }
+                    else
+                    {
+                        // Different music type, language, or song book selected, use a random track
+                        var tracksList = tracks.Values.ToList();
+                        var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+                        trackNumber = randomTrack.Number;
+                        trackName = randomTrack.Title;
+                        System.Diagnostics.Debug.WriteLine($"MusicSelectionViewModel: SongBookSelectionCommand - Different music type/language/song book selected (Vocals), using random track {trackNumber}");
+                    }
 
-                    // Create MusicStateItem with selected music type, language, song book, and random track
+                    // Create MusicStateItem with selected music type, language, song book, and track
                     // IMPORTANT: Include display names from list items (no database query needed)
+                    // Use CurrentSchedule for Repeat to ensure we use the latest state
                     var trackSelectedItem = new MusicStateItem
                     {
-                        Repeat = current?.Repeat ?? false,
+                        Repeat = currentSchedule?.MusicRepeat ?? false,
                         MusicType = MusicType.Vocals,
                         LanguageCode = languageCode,
                         PublicationCode = publicationCode,
-                        TrackNumber = randomTrackNumber,
+                        TrackNumber = trackNumber,
                         // Store display names from list items
                         LanguageName = language.Name,
                         PublicationName = firstSongBook.Value.Name,
-                        TrackName = randomTrack.Title
+                        TrackName = trackName
                     };
 
                     // Dispatch TrackSelectedAction to update CurrentMusic
@@ -130,7 +174,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
                 }
                 else
                 {
-                    // For Melodies: Get a random track and update state, then navigate back
+                    // For Melodies: Get a track and update state, then navigate back
                     var tracks = await Task.Run(async () =>
                         await mediaService.GetMelodyMusicTracks("iam"));
 
@@ -139,21 +183,41 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
                         return;
                     }
 
-                    // Get a random track (instead of first track for cascade changes)
-                    var tracksList = tracks.Values.ToList();
-                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                    var randomTrackNumber = randomTrack.Number;
+                    // If it's the same music type and publication, preserve the current track (if valid)
+                    // Otherwise, use a random track
+                    int trackNumber;
+                    string trackName;
+                    
+                    if (isSameMusicType &&
+                        currentSchedule.MusicPublicationCode == "iam" &&
+                        currentSchedule.MusicTrackNumber.HasValue &&
+                        tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+                    {
+                        trackNumber = currentSchedule.MusicTrackNumber.Value;
+                        trackName = $"Melody Number(s) {currentTrack.Title}";
+                        System.Diagnostics.Debug.WriteLine($"MusicSelectionViewModel: SongBookSelectionCommand - Same music type and publication selected (Melodies), preserving current track {trackNumber}");
+                    }
+                    else
+                    {
+                        // Different music type or publication selected, use a random track
+                        var tracksList = tracks.Values.ToList();
+                        var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+                        trackNumber = randomTrack.Number;
+                        trackName = $"Melody Number(s) {randomTrack.Title}";
+                        System.Diagnostics.Debug.WriteLine($"MusicSelectionViewModel: SongBookSelectionCommand - Different music type/publication selected (Melodies), using random track {trackNumber}");
+                    }
 
-                    // Create MusicStateItem with selected music type and random track
+                    // Create MusicStateItem with selected music type and track
                     // IMPORTANT: Include display names from list items (no database query needed)
+                    // Use CurrentSchedule for Repeat to ensure we use the latest state
                     var trackSelectedItem = new MusicStateItem
                     {
-                        Repeat = current?.Repeat ?? false,
+                        Repeat = currentSchedule?.MusicRepeat ?? false,
                         MusicType = MusicType.Melodies,
                         PublicationCode = "iam",
-                        TrackNumber = randomTrackNumber,
+                        TrackNumber = trackNumber,
                         // Store display names from list items (format melody track title with prefix)
-                        TrackName = $"Melody Number(s) {randomTrack.Title}"
+                        TrackName = trackName
                     };
 
                     // Dispatch TrackSelectedAction to update CurrentMusic
@@ -187,12 +251,26 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
     private void OnStateOnStateChanged(object o, EventArgs eventArgs)
     {
         var stateValue = state.Value;
-        if (stateValue.CurrentMusic == null)
+        
+        // Use CurrentSchedule as the source of truth, not CurrentMusic
+        // CurrentSchedule is updated first and is authoritative
+        if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
             return;
         }
-        // Map DTO to entity
-        current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        
+        // Update current from CurrentSchedule
+        current = new AlarmMusic
+        {
+            MusicType = currentSchedule.MusicType.Value,
+            LanguageCode = currentSchedule.MusicLanguageCode,
+            PublicationCode = currentSchedule.MusicPublicationCode,
+            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
@@ -232,6 +310,36 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
         SelectedMusicType = musicType;
         SelectedMusicType.IsSelected = true;
+    }
+
+    /// <summary>
+    /// Refreshes the ViewModel from the latest state when the modal appears.
+    /// This ensures we always use CurrentSchedule as the source of truth.
+    /// </summary>
+    public void RefreshFromState()
+    {
+        var stateValue = state.Value;
+        
+        // Use CurrentSchedule as the source of truth
+        if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
+        {
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        
+        // Update current from CurrentSchedule
+        current = new AlarmMusic
+        {
+            MusicType = currentSchedule.MusicType.Value,
+            LanguageCode = currentSchedule.MusicLanguageCode,
+            PublicationCode = currentSchedule.MusicPublicationCode,
+            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+
+        // Update selected music type immediately
+        SetSelectedMusicType();
     }
 
     // Start as true to show busy indicator immediately

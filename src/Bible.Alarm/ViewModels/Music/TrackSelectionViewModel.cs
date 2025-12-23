@@ -100,8 +100,14 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                     }
                 }
 
-                if (current == null)
+                // Always use CurrentSchedule as the source of truth for music type/language/publication codes
+                // This ensures we use the latest state, not stale data from 'current' field
+                var currentSchedule = state.Value.CurrentSchedule;
+                if (currentSchedule == null || 
+                    !currentSchedule.MusicType.HasValue || 
+                    string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
                 {
+                    logger.Warning("TrackSelectionViewModel: SetTrackCommand - CurrentSchedule is null or missing required properties");
                     return;
                 }
 
@@ -114,25 +120,33 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 SelectedTrack = x;
                 SelectedTrack.IsSelected = true;
 
+                // Update current for tracking purposes
+                if (current == null)
+                {
+                    current = new AlarmMusic();
+                }
                 current.TrackNumber = x.Number;
                 current.Repeat = x.Repeat;
 
                 // Map entity to DTO before dispatching
                 // IMPORTANT: Include display names from list items (no database query needed)
-                // Get language name and publication name from current state (they should already be populated)
-                var currentSchedule = state.Value.CurrentSchedule;
+                // Get music type/language/publication codes and display names from CurrentSchedule (they should already be populated)
                 var trackSelectedItem = new MusicStateItem
                 {
-                    MusicType = current.MusicType,
-                    LanguageCode = current.LanguageCode,
-                    PublicationCode = current.PublicationCode,
-                    TrackNumber = current.TrackNumber,
-                    Repeat = current.Repeat,
+                    MusicType = currentSchedule.MusicType.Value,
+                    LanguageCode = currentSchedule.MusicLanguageCode,
+                    PublicationCode = currentSchedule.MusicPublicationCode,
+                    TrackNumber = x.Number,
+                    Repeat = x.Repeat,
                     // Store display names from list items and current state
-                    LanguageName = currentSchedule?.MusicLanguageName,
-                    PublicationName = currentSchedule?.MusicPublicationName,
+                    LanguageName = currentSchedule.MusicLanguageName,
+                    PublicationName = currentSchedule.MusicPublicationName,
                     TrackName = x.Title
                 };
+                
+                logger.Information("TrackSelectionViewModel: SetTrackCommand - Dispatching TrackSelectedAction. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
+                    trackSelectedItem.MusicType, trackSelectedItem.LanguageCode ?? "null", trackSelectedItem.PublicationCode, trackSelectedItem.TrackNumber);
+                
                 dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
                 // Navigate back to schedule page
@@ -307,6 +321,65 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         });
     }
 
+    /// <summary>
+    /// Refreshes the ViewModel from the latest state when the modal appears.
+    /// This ensures tracks are populated and current is initialized from CurrentSchedule.
+    /// </summary>
+    public async Task RefreshFromState()
+    {
+        var stateValue = state.Value;
+        
+        // Use CurrentSchedule as the source of truth
+        if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
+        {
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var newMusicType = currentSchedule.MusicType;
+        var newLanguageCode = currentSchedule.MusicLanguageCode;
+        var newPublicationCode = currentSchedule.MusicPublicationCode;
+        
+        // For melodies: only require MusicType and PublicationCode (LanguageCode can be null)
+        // For vocals: require MusicType, LanguageCode, and PublicationCode
+        if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
+        {
+            return;
+        }
+        
+        // For vocals, language code is required
+        if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
+        {
+            return;
+        }
+
+        // Update tracking variables
+        lastMusicType = newMusicType.Value;
+        lastLanguageCode = newLanguageCode;
+        lastPublicationCode = newPublicationCode;
+        
+        // Update current from CurrentSchedule
+        current = new AlarmMusic
+        {
+            MusicType = newMusicType.Value,
+            LanguageCode = newLanguageCode,
+            PublicationCode = newPublicationCode,
+            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+        lastCurrent = current;
+
+        // Ensure tracks are populated if not already initialized
+        if (!initComplete || Tracks == null || Tracks.Count == 0)
+        {
+            initComplete = true;
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+            await Initialize(newLanguageCode, newPublicationCode);
+            await Task.Delay(100); // Give CollectionView time to render
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        }
+    }
+
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SetTrackCommand { get; set; }
@@ -422,30 +495,44 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private void HandleRepeatChanged(MusicTrackListViewItemModel track)
     {
-        if (current == null)
+        // Always use CurrentSchedule as the source of truth for music type/language/publication codes
+        // This ensures we use the latest state, not stale data from 'current' field
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || 
+            !currentSchedule.MusicType.HasValue || 
+            string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
+            logger.Warning("TrackSelectionViewModel: HandleRepeatChanged - CurrentSchedule is null or missing required properties");
             return;
         }
 
+        // Update current for tracking purposes
+        if (current == null)
+        {
+            current = new AlarmMusic();
+        }
         current.Repeat = track.Repeat;
         current.TrackNumber = track.Number;
 
         // Map entity to DTO before dispatching
         // IMPORTANT: Include display names from list items (no database query needed)
-        // Get language name and publication name from current state (they should already be populated)
-        var currentSchedule = state.Value.CurrentSchedule;
+        // Get music type/language/publication codes and display names from CurrentSchedule (they should already be populated)
         var trackSelectedItem = new MusicStateItem
         {
-            MusicType = current.MusicType,
-            LanguageCode = current.LanguageCode,
-            PublicationCode = current.PublicationCode,
-            TrackNumber = current.TrackNumber,
-            Repeat = current.Repeat,
+            MusicType = currentSchedule.MusicType.Value,
+            LanguageCode = currentSchedule.MusicLanguageCode,
+            PublicationCode = currentSchedule.MusicPublicationCode,
+            TrackNumber = track.Number,
+            Repeat = track.Repeat,
             // Store display names from list items and current state
-            LanguageName = currentSchedule?.MusicLanguageName,
-            PublicationName = currentSchedule?.MusicPublicationName,
+            LanguageName = currentSchedule.MusicLanguageName,
+            PublicationName = currentSchedule.MusicPublicationName,
             TrackName = track.Title
         };
+        
+        logger.Information("TrackSelectionViewModel: HandleRepeatChanged - Dispatching TrackSelectedAction. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}, Repeat: {Repeat}",
+            trackSelectedItem.MusicType, trackSelectedItem.LanguageCode ?? "null", trackSelectedItem.PublicationCode, trackSelectedItem.TrackNumber, trackSelectedItem.Repeat);
+        
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
         if (track.Repeat)
