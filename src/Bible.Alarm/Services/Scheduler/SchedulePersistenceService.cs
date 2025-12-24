@@ -30,84 +30,11 @@ public sealed class SchedulePersistenceService(
     {
         try
         {
-            logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
-                isNewSchedule, schedule?.Id, schedule?.Name, schedule?.Music != null, schedule?.BibleReadingSchedule != null);
+            LogSaveStart(schedule, isNewSchedule);
 
-            AlarmSchedule savedSchedule = null;
-
-            if (isNewSchedule)
-            {
-                logger.Debug("SaveScheduleAsync: Saving new schedule to database");
-                logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
-                    schedule.Id, schedule.Name);
-
-                savedSchedule = await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
-
-                logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", savedSchedule.Id);
-
-                if (savedSchedule.IsEnabled)
-                {
-                    await alarmService.Create(savedSchedule);
-                }
-
-                logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
-                    savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
-
-                logger.Debug("SaveScheduleAsync: Dispatching AddScheduleAction");
-                dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
-                logger.Information("SaveScheduleAsync: AddScheduleAction dispatched successfully");
-            }
-            else
-            {
-                savedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
-                    schedule.Id,
-                    existing =>
-                    {
-                        existing.Hour = schedule.Hour;
-                        existing.Minute = schedule.Minute;
-                        existing.DaysOfWeek = schedule.DaysOfWeek;
-                        existing.IsEnabled = schedule.IsEnabled;
-
-                        // Only update music if it was changed
-                        if (musicUpdated && schedule.Music != null && existing.Music != null)
-                        {
-                            existing.Music.Repeat = schedule.Music.Repeat;
-                            existing.Music.LanguageCode = schedule.Music.LanguageCode;
-                            existing.Music.MusicType = schedule.Music.MusicType;
-                            existing.Music.PublicationCode = schedule.Music.PublicationCode;
-                            existing.Music.TrackNumber = schedule.Music.TrackNumber;
-                        }
-
-                        if (schedule.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
-                        {
-                            existing.BibleReadingSchedule.BookNumber = schedule.BibleReadingSchedule.BookNumber;
-                            existing.BibleReadingSchedule.ChapterNumber = schedule.BibleReadingSchedule.ChapterNumber;
-                            existing.BibleReadingSchedule.LanguageCode = schedule.BibleReadingSchedule.LanguageCode;
-                            existing.BibleReadingSchedule.PublicationCode = schedule.BibleReadingSchedule.PublicationCode;
-                            // Only reset duration if bible reading was changed
-                            if (bibleReadingUpdated)
-                            {
-                                existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-                            }
-                        }
-
-                        existing.MusicEnabled = schedule.MusicEnabled;
-                        existing.NotificationEnabled = schedule.NotificationEnabled;
-                        existing.AlwaysPlayFromStart = schedule.AlwaysPlayFromStart;
-                        existing.NumberOfChaptersToRead = schedule.NumberOfChaptersToRead;
-                        existing.Name = schedule.Name;
-                        existing.Second = schedule.Second;
-                        existing.SnoozeMinutes = schedule.SnoozeMinutes;
-                    },
-                    cancellationTokenSource.Token);
-
-                await Task.Run(async () =>
-                {
-                    alarmService.Update(savedSchedule);
-                });
-
-                dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
-            }
+            AlarmSchedule savedSchedule = isNewSchedule
+                ? await SaveNewScheduleAsync(schedule)
+                : await UpdateExistingScheduleAsync(schedule, musicUpdated, bibleReadingUpdated);
 
             logger.Information("SaveScheduleAsync: Save completed successfully. ScheduleId={ScheduleId}", savedSchedule?.Id ?? schedule?.Id);
             return true;
@@ -118,6 +45,105 @@ public sealed class SchedulePersistenceService(
                 schedule?.Id, isNewSchedule, schedule?.Name);
             return false;
         }
+    }
+
+    private void LogSaveStart(AlarmSchedule schedule, bool isNewSchedule)
+    {
+        logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
+            isNewSchedule, schedule?.Id, schedule?.Name, schedule?.Music != null, schedule?.BibleReadingSchedule != null);
+    }
+
+    private async Task<AlarmSchedule> SaveNewScheduleAsync(AlarmSchedule schedule)
+    {
+        logger.Debug("SaveScheduleAsync: Saving new schedule to database");
+        logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
+            schedule.Id, schedule.Name);
+
+        var savedSchedule = await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
+        logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", savedSchedule.Id);
+
+        if (savedSchedule.IsEnabled)
+        {
+            await alarmService.Create(savedSchedule);
+        }
+
+        logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
+            savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
+
+        logger.Debug("SaveScheduleAsync: Dispatching AddScheduleAction");
+        dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
+        logger.Information("SaveScheduleAsync: AddScheduleAction dispatched successfully");
+
+        return savedSchedule;
+    }
+
+    private async Task<AlarmSchedule> UpdateExistingScheduleAsync(AlarmSchedule schedule, bool musicUpdated, bool bibleReadingUpdated)
+    {
+        var savedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+            schedule.Id,
+            existing => UpdateScheduleProperties(existing, schedule, musicUpdated, bibleReadingUpdated),
+            cancellationTokenSource.Token);
+
+        await Task.Run(() => alarmService.Update(savedSchedule));
+        dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
+
+        return savedSchedule;
+    }
+
+    private static void UpdateScheduleProperties(AlarmSchedule existing, AlarmSchedule schedule, bool musicUpdated, bool bibleReadingUpdated)
+    {
+        UpdateBasicScheduleProperties(existing, schedule);
+        UpdateMusicIfChanged(existing, schedule, musicUpdated);
+        UpdateBibleReadingIfChanged(existing, schedule, bibleReadingUpdated);
+        UpdateAdditionalScheduleProperties(existing, schedule);
+    }
+
+    private static void UpdateBasicScheduleProperties(AlarmSchedule existing, AlarmSchedule schedule)
+    {
+        existing.Hour = schedule.Hour;
+        existing.Minute = schedule.Minute;
+        existing.DaysOfWeek = schedule.DaysOfWeek;
+        existing.IsEnabled = schedule.IsEnabled;
+    }
+
+    private static void UpdateMusicIfChanged(AlarmSchedule existing, AlarmSchedule schedule, bool musicUpdated)
+    {
+        // Only update music if it was changed
+        if (musicUpdated && schedule.Music != null && existing.Music != null)
+        {
+            existing.Music.Repeat = schedule.Music.Repeat;
+            existing.Music.LanguageCode = schedule.Music.LanguageCode;
+            existing.Music.MusicType = schedule.Music.MusicType;
+            existing.Music.PublicationCode = schedule.Music.PublicationCode;
+            existing.Music.TrackNumber = schedule.Music.TrackNumber;
+        }
+    }
+
+    private static void UpdateBibleReadingIfChanged(AlarmSchedule existing, AlarmSchedule schedule, bool bibleReadingUpdated)
+    {
+        if (schedule.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
+        {
+            existing.BibleReadingSchedule.BookNumber = schedule.BibleReadingSchedule.BookNumber;
+            existing.BibleReadingSchedule.ChapterNumber = schedule.BibleReadingSchedule.ChapterNumber;
+            existing.BibleReadingSchedule.LanguageCode = schedule.BibleReadingSchedule.LanguageCode;
+            existing.BibleReadingSchedule.PublicationCode = schedule.BibleReadingSchedule.PublicationCode;
+            // Only reset duration if bible reading was changed
+            if (bibleReadingUpdated)
+            {
+                existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+            }
+        }
+    }
+
+    private static void UpdateAdditionalScheduleProperties(AlarmSchedule existing, AlarmSchedule schedule)
+    {
+        existing.MusicEnabled = schedule.MusicEnabled;
+        existing.NotificationEnabled = schedule.NotificationEnabled;
+        existing.AlwaysPlayFromStart = schedule.AlwaysPlayFromStart;
+        existing.NumberOfChaptersToRead = schedule.NumberOfChaptersToRead;
+        existing.Name = schedule.Name;
+        existing.Second = schedule.Second;
+        existing.SnoozeMinutes = schedule.SnoozeMinutes;
     }
 
     public async Task DeleteScheduleAsync(int scheduleId)

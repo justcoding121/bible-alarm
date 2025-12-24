@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Shared.Models.Enums;
@@ -62,7 +64,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         }
     }
 
-    private void OnStateChanged(object sender, EventArgs e)
+    private void OnStateChanged(object? sender, EventArgs e)
     {
         InitializeFromState();
     }

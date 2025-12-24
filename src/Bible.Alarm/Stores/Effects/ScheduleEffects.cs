@@ -272,8 +272,7 @@ public class ScheduleEffects(
     {
         try
         {
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, ShouldSave: {ShouldSave}",
-                action.Schedule?.Id, action.Schedule?.Name, action.ShouldSave);
+            LogUpdateStart(action);
 
             if (action.Schedule == null)
             {
@@ -281,8 +280,6 @@ public class ScheduleEffects(
                 return;
             }
 
-            // If shouldSave is false, only update state (optimistic update already done by reducer)
-            // This is used for UI-only updates like next/previous chapter/book navigation
             if (!action.ShouldSave)
             {
                 Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - ShouldSave=false, skipping DB update. Only state was updated.");
@@ -291,197 +288,14 @@ public class ScheduleEffects(
 
             if (alarmScheduleService == null)
             {
-                Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Service unavailable, skipping");
-                dispatcher.Dispatch(new UpdateScheduleFailureAction(action.Schedule, "Service unavailable"));
+                HandleServiceUnavailable(action, dispatcher);
                 return;
             }
 
-            // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
-            var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule);
+            var savedSchedule = await UpdateScheduleInDatabaseAsync(action);
+            await UpdateAlarmAsync(savedSchedule);
 
-            // Update in database using UpdateScheduleByIdAsync to handle nested entities properly
-            var savedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
-                action.Schedule.Id,
-                existing =>
-                {
-                    // Update schedule properties
-                    existing.Hour = dbSchedule.Hour;
-                    existing.Minute = dbSchedule.Minute;
-                    existing.Second = dbSchedule.Second;
-                    existing.DaysOfWeek = dbSchedule.DaysOfWeek;
-                    existing.IsEnabled = dbSchedule.IsEnabled;
-                    existing.MusicEnabled = dbSchedule.MusicEnabled;
-                    existing.NotificationEnabled = dbSchedule.NotificationEnabled;
-                    existing.AlwaysPlayFromStart = dbSchedule.AlwaysPlayFromStart;
-                    existing.NumberOfChaptersToRead = dbSchedule.NumberOfChaptersToRead;
-                    existing.Name = dbSchedule.Name;
-                    existing.SnoozeMinutes = dbSchedule.SnoozeMinutes;
-
-                    // Only update music if it was changed
-                    if (action.MusicUpdated)
-                    {
-                        if (dbSchedule.Music != null)
-                        {
-                            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating music. dbSchedule.Music.MusicType={MusicType}, dbSchedule.Music.TrackNumber={TrackNumber}, dbSchedule.Music.PublicationCode={PublicationCode}, dbSchedule.Music.LanguageCode={LanguageCode}",
-                                dbSchedule.Music.MusicType, dbSchedule.Music.TrackNumber, dbSchedule.Music.PublicationCode, dbSchedule.Music.LanguageCode);
-                            
-                            if (existing.Music == null)
-                            {
-                                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Creating new Music entity");
-                                existing.Music = dbSchedule.Music;
-                                existing.Music.AlarmScheduleId = existing.Id;
-                            }
-                            else
-                            {
-                                var oldMusicType = existing.Music.MusicType;
-                                var oldTrackNumber = existing.Music.TrackNumber;
-                                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old MusicType={OldMusicType}, Old TrackNumber={OldTrackNumber}",
-                                    oldMusicType, oldTrackNumber);
-                                
-                                existing.Music.Repeat = dbSchedule.Music.Repeat;
-                                existing.Music.LanguageCode = dbSchedule.Music.LanguageCode;
-                                existing.Music.MusicType = dbSchedule.Music.MusicType;
-                                existing.Music.PublicationCode = dbSchedule.Music.PublicationCode;
-                                existing.Music.TrackNumber = dbSchedule.Music.TrackNumber;
-                                
-                                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New MusicType={NewMusicType}, New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-                                    existing.Music.MusicType, existing.Music.TrackNumber, existing.Music.PublicationCode, existing.Music.LanguageCode);
-                            }
-                        }
-                        else if (action.Schedule != null && action.Schedule.MusicType.HasValue && action.Schedule.MusicTrackNumber.HasValue && action.Schedule.MusicTrackNumber.Value > 0)
-                        {
-                            // Fallback: dbSchedule.Music is null but we have music properties in action.Schedule
-                            // This can happen when MusicId is null but MusicType is set (e.g., changing from Melodies to Vocals)
-                            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null. Creating Music from action.Schedule. MusicType={MusicType}, TrackNumber={TrackNumber}",
-                                action.Schedule.MusicType, action.Schedule.MusicTrackNumber);
-                            
-                            if (existing.Music == null)
-                            {
-                                existing.Music = new AlarmMusic
-                                {
-                                    Id = action.Schedule.MusicId ?? 0,
-                                    MusicType = action.Schedule.MusicType.Value,
-                                    PublicationCode = action.Schedule.MusicPublicationCode ?? string.Empty,
-                                    LanguageCode = action.Schedule.MusicLanguageCode,
-                                    TrackNumber = action.Schedule.MusicTrackNumber.Value,
-                                    Repeat = action.Schedule.MusicRepeat ?? false,
-                                    AlarmScheduleId = existing.Id
-                                };
-                                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Created new Music entity from action.Schedule");
-                            }
-                            else
-                            {
-                                var oldMusicType = existing.Music.MusicType;
-                                var oldTrackNumber = existing.Music.TrackNumber;
-                                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music from action.Schedule. Old MusicType={OldMusicType}, Old TrackNumber={OldTrackNumber}",
-                                    oldMusicType, oldTrackNumber);
-                                
-                                existing.Music.MusicType = action.Schedule.MusicType.Value;
-                                existing.Music.PublicationCode = action.Schedule.MusicPublicationCode ?? string.Empty;
-                                existing.Music.LanguageCode = action.Schedule.MusicLanguageCode;
-                                existing.Music.TrackNumber = action.Schedule.MusicTrackNumber.Value;
-                                existing.Music.Repeat = action.Schedule.MusicRepeat ?? false;
-                                if (action.Schedule.MusicId.HasValue)
-                                {
-                                    existing.Music.Id = action.Schedule.MusicId.Value;
-                                }
-                                
-                                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music from action.Schedule. New MusicType={NewMusicType}, New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-                                    existing.Music.MusicType, existing.Music.TrackNumber, existing.Music.PublicationCode, existing.Music.LanguageCode);
-                            }
-                        }
-                        else
-                        {
-                            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null and action.Schedule has no valid music properties");
-                        }
-                    }
-                    else
-                    {
-                        Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=false, skipping music update");
-                    }
-
-                    // Update BibleReadingSchedule if it exists
-                    if (dbSchedule.BibleReadingSchedule != null)
-                    {
-                        if (existing.BibleReadingSchedule == null)
-                        {
-                            existing.BibleReadingSchedule = dbSchedule.BibleReadingSchedule;
-                            existing.BibleReadingSchedule.AlarmScheduleId = existing.Id;
-                        }
-                        else
-                        {
-                            existing.BibleReadingSchedule.BookNumber = dbSchedule.BibleReadingSchedule.BookNumber;
-                            existing.BibleReadingSchedule.ChapterNumber = dbSchedule.BibleReadingSchedule.ChapterNumber;
-                            existing.BibleReadingSchedule.LanguageCode = dbSchedule.BibleReadingSchedule.LanguageCode;
-                            existing.BibleReadingSchedule.PublicationCode = dbSchedule.BibleReadingSchedule.PublicationCode;
-                            // Only reset duration if bible reading was changed
-                            if (action.BibleReadingUpdated)
-                            {
-                                existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
-                            }
-                        }
-                    }
-                },
-                CancellationToken.None);
-
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.MusicType={MusicType}, savedSchedule.Music.TrackNumber={TrackNumber}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
-                savedSchedule.Id,
-                savedSchedule.Music != null ? "not null" : "null",
-                savedSchedule.Music?.MusicType.ToString() ?? "null",
-                savedSchedule.Music?.TrackNumber.ToString() ?? "null",
-                savedSchedule.Music?.PublicationCode ?? "null",
-                savedSchedule.Music?.LanguageCode ?? "null");
-
-            // Update alarm
-            if (alarmService != null)
-            {
-                await Task.Run(() => alarmService.Update(savedSchedule));
-            }
-
-            // Map DB entity → domain model (ScheduleStateItem)
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
-            
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicType={MusicType}, scheduleStateItem.MusicTrackNumber={TrackNumber}, scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}",
-                scheduleStateItem.MusicType?.ToString() ?? "null",
-                scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
-                scheduleStateItem.MusicPublicationCode ?? "null",
-                scheduleStateItem.MusicLanguageCode ?? "null");
-
-            // IMPORTANT: Display names are already populated in action.Schedule (from CurrentSchedule state).
-            // Selection pages/containers populate display names when user selects items (via HandleChapterSelected/HandleTrackSelected effects).
-            // We should NOT query the database here - just preserve the display names from the action.
-            // Copy display names from action.Schedule to scheduleStateItem (which was mapped from savedSchedule, so it doesn't have display names)
-            if (action.Schedule != null)
-            {
-                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Copying display names from action.Schedule. action.Schedule.MusicType={MusicType}, action.Schedule.MusicTrackNumber={TrackNumber}",
-                    action.Schedule.MusicType?.ToString() ?? "null",
-                    action.Schedule.MusicTrackNumber?.ToString() ?? "null");
-                
-                scheduleStateItem.BibleReadingLanguageName = action.Schedule.BibleReadingLanguageName;
-                scheduleStateItem.BibleReadingPublicationName = action.Schedule.BibleReadingPublicationName;
-                scheduleStateItem.BibleReadingBookName = action.Schedule.BibleReadingBookName;
-                scheduleStateItem.MusicLanguageName = action.Schedule.MusicLanguageName;
-                scheduleStateItem.MusicPublicationName = action.Schedule.MusicPublicationName;
-                scheduleStateItem.MusicTrackName = action.Schedule.MusicTrackName;
-                
-                // IMPORTANT: Also preserve music properties from action.Schedule if they differ from savedSchedule
-                // This ensures music type changes are preserved even if mapping from savedSchedule loses them
-                if (action.Schedule.MusicType.HasValue && 
-                    (!scheduleStateItem.MusicType.HasValue || scheduleStateItem.MusicType.Value != action.Schedule.MusicType.Value))
-                {
-                    Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - MusicType mismatch! savedSchedule.Music.MusicType={SavedMusicType}, action.Schedule.MusicType={ActionMusicType}. Using action.Schedule.MusicType.",
-                        scheduleStateItem.MusicType?.ToString() ?? "null",
-                        action.Schedule.MusicType?.ToString() ?? "null");
-                    scheduleStateItem.MusicType = action.Schedule.MusicType;
-                    scheduleStateItem.MusicTrackNumber = action.Schedule.MusicTrackNumber;
-                    scheduleStateItem.MusicPublicationCode = action.Schedule.MusicPublicationCode;
-                    scheduleStateItem.MusicLanguageCode = action.Schedule.MusicLanguageCode;
-                    scheduleStateItem.MusicRepeat = action.Schedule.MusicRepeat;
-                    scheduleStateItem.MusicId = action.Schedule.MusicId;
-                }
-            }
-
-            // Dispatch success action with DTO (display names preserved from state)
+            var scheduleStateItem = MapAndPreserveDisplayNames(action, savedSchedule);
             dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleStateItem));
 
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicType={MusicType}",
@@ -494,6 +308,279 @@ public class ScheduleEffects(
             {
                 dispatcher.Dispatch(new UpdateScheduleFailureAction(action.Schedule, ex.Message));
             }
+        }
+    }
+
+    private void LogUpdateStart(UpdateScheduleFromViewModelAction action)
+    {
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, ShouldSave: {ShouldSave}",
+            action.Schedule?.Id, action.Schedule?.Name, action.ShouldSave);
+    }
+
+    private void HandleServiceUnavailable(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
+    {
+        Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Service unavailable, skipping");
+        dispatcher.Dispatch(new UpdateScheduleFailureAction(action.Schedule!, "Service unavailable"));
+    }
+
+    private async Task<AlarmSchedule> UpdateScheduleInDatabaseAsync(UpdateScheduleFromViewModelAction action)
+    {
+        var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule!);
+        var savedSchedule = await alarmScheduleService!.UpdateScheduleByIdAsync(
+            action.Schedule.Id,
+            existing => UpdateScheduleEntity(existing, dbSchedule, action),
+            CancellationToken.None);
+
+        LogScheduleUpdateResult(savedSchedule);
+        return savedSchedule;
+    }
+
+    private void LogScheduleUpdateResult(AlarmSchedule savedSchedule)
+    {
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.MusicType={MusicType}, savedSchedule.Music.TrackNumber={TrackNumber}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
+            savedSchedule.Id,
+            savedSchedule.Music != null ? "not null" : "null",
+            savedSchedule.Music?.MusicType.ToString() ?? "null",
+            savedSchedule.Music?.TrackNumber.ToString() ?? "null",
+            savedSchedule.Music?.PublicationCode ?? "null",
+            savedSchedule.Music?.LanguageCode ?? "null");
+    }
+
+    private async Task UpdateAlarmAsync(AlarmSchedule savedSchedule)
+    {
+        if (alarmService != null)
+        {
+            await Task.Run(() => alarmService.Update(savedSchedule));
+        }
+    }
+
+    private ScheduleStateItem MapAndPreserveDisplayNames(UpdateScheduleFromViewModelAction action, AlarmSchedule savedSchedule)
+    {
+        var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
+        LogMappingResult(scheduleStateItem);
+
+        if (action.Schedule != null)
+        {
+            CopyDisplayNamesFromAction(scheduleStateItem, action.Schedule);
+            PreserveMusicPropertiesIfNeeded(scheduleStateItem, action.Schedule);
+        }
+
+        return scheduleStateItem;
+    }
+
+    private void LogMappingResult(ScheduleStateItem scheduleStateItem)
+    {
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicType={MusicType}, scheduleStateItem.MusicTrackNumber={TrackNumber}, scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}",
+            scheduleStateItem.MusicType?.ToString() ?? "null",
+            scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
+            scheduleStateItem.MusicPublicationCode ?? "null",
+            scheduleStateItem.MusicLanguageCode ?? "null");
+    }
+
+    private void CopyDisplayNamesFromAction(ScheduleStateItem scheduleStateItem, ScheduleStateItem actionSchedule)
+    {
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Copying display names from action.Schedule. action.Schedule.MusicType={MusicType}, action.Schedule.MusicTrackNumber={TrackNumber}",
+            actionSchedule.MusicType?.ToString() ?? "null",
+            actionSchedule.MusicTrackNumber?.ToString() ?? "null");
+
+        scheduleStateItem.BibleReadingLanguageName = actionSchedule.BibleReadingLanguageName;
+        scheduleStateItem.BibleReadingPublicationName = actionSchedule.BibleReadingPublicationName;
+        scheduleStateItem.BibleReadingBookName = actionSchedule.BibleReadingBookName;
+        scheduleStateItem.MusicLanguageName = actionSchedule.MusicLanguageName;
+        scheduleStateItem.MusicPublicationName = actionSchedule.MusicPublicationName;
+        scheduleStateItem.MusicTrackName = actionSchedule.MusicTrackName;
+    }
+
+    private void PreserveMusicPropertiesIfNeeded(ScheduleStateItem scheduleStateItem, ScheduleStateItem actionSchedule)
+    {
+        if (actionSchedule.MusicType.HasValue &&
+            (!scheduleStateItem.MusicType.HasValue || scheduleStateItem.MusicType.Value != actionSchedule.MusicType.Value))
+        {
+            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - MusicType mismatch! savedSchedule.Music.MusicType={SavedMusicType}, action.Schedule.MusicType={ActionMusicType}. Using action.Schedule.MusicType.",
+                scheduleStateItem.MusicType?.ToString() ?? "null",
+                actionSchedule.MusicType?.ToString() ?? "null");
+
+            scheduleStateItem.MusicType = actionSchedule.MusicType;
+            scheduleStateItem.MusicTrackNumber = actionSchedule.MusicTrackNumber;
+            scheduleStateItem.MusicPublicationCode = actionSchedule.MusicPublicationCode;
+            scheduleStateItem.MusicLanguageCode = actionSchedule.MusicLanguageCode;
+            scheduleStateItem.MusicRepeat = actionSchedule.MusicRepeat;
+            scheduleStateItem.MusicId = actionSchedule.MusicId;
+        }
+    }
+
+    private static void UpdateScheduleEntity(AlarmSchedule existing, AlarmSchedule dbSchedule, UpdateScheduleFromViewModelAction action)
+    {
+        UpdateBasicScheduleProperties(existing, dbSchedule);
+        
+        if (action.MusicUpdated)
+        {
+            UpdateMusicEntity(existing, dbSchedule, action);
+        }
+        else
+        {
+            Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=false, skipping music update");
+        }
+
+        UpdateBibleReadingEntity(existing, dbSchedule, action);
+    }
+
+    private static void UpdateBasicScheduleProperties(AlarmSchedule existing, AlarmSchedule dbSchedule)
+    {
+        existing.Hour = dbSchedule.Hour;
+        existing.Minute = dbSchedule.Minute;
+        existing.Second = dbSchedule.Second;
+        existing.DaysOfWeek = dbSchedule.DaysOfWeek;
+        existing.IsEnabled = dbSchedule.IsEnabled;
+        existing.MusicEnabled = dbSchedule.MusicEnabled;
+        existing.NotificationEnabled = dbSchedule.NotificationEnabled;
+        existing.AlwaysPlayFromStart = dbSchedule.AlwaysPlayFromStart;
+        existing.NumberOfChaptersToRead = dbSchedule.NumberOfChaptersToRead;
+        existing.Name = dbSchedule.Name;
+        existing.SnoozeMinutes = dbSchedule.SnoozeMinutes;
+    }
+
+    private static void UpdateMusicEntity(AlarmSchedule existing, AlarmSchedule dbSchedule, UpdateScheduleFromViewModelAction action)
+    {
+        if (dbSchedule.Music != null)
+        {
+            UpdateMusicFromDbSchedule(existing, dbSchedule);
+        }
+        else if (HasValidMusicProperties(action.Schedule))
+        {
+            UpdateMusicFromActionSchedule(existing, action);
+        }
+        else
+        {
+            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null and action.Schedule has no valid music properties");
+        }
+    }
+
+    private static bool HasValidMusicProperties(ScheduleStateItem? schedule)
+    {
+        return schedule != null &&
+               schedule.MusicType.HasValue &&
+               schedule.MusicTrackNumber.HasValue &&
+               schedule.MusicTrackNumber.Value > 0;
+    }
+
+    private static void UpdateMusicFromDbSchedule(AlarmSchedule existing, AlarmSchedule dbSchedule)
+    {
+        if (dbSchedule.Music == null)
+        {
+            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - dbSchedule.Music is null, skipping music update");
+            return;
+        }
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating music. dbSchedule.Music.MusicType={MusicType}, dbSchedule.Music.TrackNumber={TrackNumber}, dbSchedule.Music.PublicationCode={PublicationCode}, dbSchedule.Music.LanguageCode={LanguageCode}",
+            dbSchedule.Music.MusicType, dbSchedule.Music.TrackNumber, dbSchedule.Music.PublicationCode, dbSchedule.Music.LanguageCode);
+
+        if (existing.Music == null)
+        {
+            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Creating new Music entity");
+            existing.Music = dbSchedule.Music;
+            existing.Music.AlarmScheduleId = existing.Id;
+        }
+        else
+        {
+            var oldMusicType = existing.Music.MusicType;
+            var oldTrackNumber = existing.Music.TrackNumber;
+            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old MusicType={OldMusicType}, Old TrackNumber={OldTrackNumber}",
+                oldMusicType, oldTrackNumber);
+
+            existing.Music.Repeat = dbSchedule.Music.Repeat;
+            existing.Music.LanguageCode = dbSchedule.Music.LanguageCode;
+            existing.Music.MusicType = dbSchedule.Music.MusicType;
+            existing.Music.PublicationCode = dbSchedule.Music.PublicationCode;
+            existing.Music.TrackNumber = dbSchedule.Music.TrackNumber;
+
+            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New MusicType={NewMusicType}, New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                existing.Music.MusicType, existing.Music.TrackNumber, existing.Music.PublicationCode, existing.Music.LanguageCode);
+        }
+    }
+
+    private static void UpdateMusicFromActionSchedule(AlarmSchedule existing, UpdateScheduleFromViewModelAction action)
+    {
+        Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null. Creating Music from action.Schedule. MusicType={MusicType}, TrackNumber={TrackNumber}",
+            action.Schedule!.MusicType, action.Schedule.MusicTrackNumber);
+
+        if (existing.Music == null)
+        {
+            existing.Music = CreateMusicFromActionSchedule(action.Schedule, existing.Id);
+            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Created new Music entity from action.Schedule");
+        }
+        else
+        {
+            UpdateExistingMusicFromActionSchedule(existing, action.Schedule);
+        }
+    }
+
+    private static AlarmMusic CreateMusicFromActionSchedule(ScheduleStateItem schedule, int alarmScheduleId)
+    {
+        return new AlarmMusic
+        {
+            Id = schedule.MusicId ?? 0,
+            MusicType = schedule.MusicType!.Value,
+            PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
+            LanguageCode = schedule.MusicLanguageCode,
+            TrackNumber = schedule.MusicTrackNumber!.Value,
+            Repeat = schedule.MusicRepeat ?? false,
+            AlarmScheduleId = alarmScheduleId
+        };
+    }
+
+    private static void UpdateExistingMusicFromActionSchedule(AlarmSchedule existing, ScheduleStateItem schedule)
+    {
+        var oldMusicType = existing.Music!.MusicType;
+        var oldTrackNumber = existing.Music.TrackNumber;
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music from action.Schedule. Old MusicType={OldMusicType}, Old TrackNumber={OldTrackNumber}",
+            oldMusicType, oldTrackNumber);
+
+        existing.Music.MusicType = schedule.MusicType!.Value;
+        existing.Music.PublicationCode = schedule.MusicPublicationCode ?? string.Empty;
+        existing.Music.LanguageCode = schedule.MusicLanguageCode;
+        existing.Music.TrackNumber = schedule.MusicTrackNumber!.Value;
+        existing.Music.Repeat = schedule.MusicRepeat ?? false;
+        
+        if (schedule.MusicId.HasValue)
+        {
+            existing.Music.Id = schedule.MusicId.Value;
+        }
+
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music from action.Schedule. New MusicType={NewMusicType}, New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            existing.Music.MusicType, existing.Music.TrackNumber, existing.Music.PublicationCode, existing.Music.LanguageCode);
+    }
+
+    private static void UpdateBibleReadingEntity(AlarmSchedule existing, AlarmSchedule dbSchedule, UpdateScheduleFromViewModelAction action)
+    {
+        if (dbSchedule.BibleReadingSchedule == null)
+        {
+            return;
+        }
+
+        if (existing.BibleReadingSchedule == null)
+        {
+            existing.BibleReadingSchedule = dbSchedule.BibleReadingSchedule;
+            existing.BibleReadingSchedule.AlarmScheduleId = existing.Id;
+        }
+        else
+        {
+            UpdateExistingBibleReadingSchedule(existing.BibleReadingSchedule, dbSchedule.BibleReadingSchedule, action);
+        }
+    }
+
+    private static void UpdateExistingBibleReadingSchedule(
+        BibleReadingSchedule existing,
+        BibleReadingSchedule dbSchedule,
+        UpdateScheduleFromViewModelAction action)
+    {
+        existing.BookNumber = dbSchedule.BookNumber;
+        existing.ChapterNumber = dbSchedule.ChapterNumber;
+        existing.LanguageCode = dbSchedule.LanguageCode;
+        existing.PublicationCode = dbSchedule.PublicationCode;
+        
+        if (action.BibleReadingUpdated)
+        {
+            existing.FinishedDuration = TimeSpan.Zero;
         }
     }
 
@@ -526,7 +613,30 @@ public class ScheduleEffects(
                 Log.Warning("ScheduleEffects: HandleDeleteSchedule - Cannot delete schedule {ScheduleId} - it is the last schedule", action.ScheduleId);
                 // Show toast message to user
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
-                dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Cannot delete last schedule"));
+                
+                // Load the schedule from DB to restore it in the reducer
+                ScheduleStateItem? scheduleToRestore = null;
+                try
+                {
+                    var scheduleFromDb = await alarmScheduleService.GetScheduleByIdAsync(
+                        action.ScheduleId, 
+                        includeMusic: true, 
+                        includeBibleReading: true, 
+                        CancellationToken.None);
+                    
+                    if (scheduleFromDb != null)
+                    {
+                        scheduleToRestore = mapper.Map<ScheduleStateItem>(scheduleFromDb);
+                        await PopulateTranslationNameAsync(scheduleToRestore, scheduleFromDb);
+                        await PopulateBookNameAsync(scheduleToRestore, scheduleFromDb);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "ScheduleEffects: HandleDeleteSchedule - Failed to load schedule for rollback, ScheduleId: {ScheduleId}", action.ScheduleId);
+                }
+                
+                dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Cannot delete last schedule", scheduleToRestore));
                 return;
             }
 
@@ -857,110 +967,156 @@ public class ScheduleEffects(
     {
         try
         {
-            Log.Information("ScheduleEffects: HandleChapterSelected - Received action. CurrentBibleReadingSchedule: {BibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-                action.CurrentBibleReadingSchedule != null ? "not null" : "null",
-                action.CurrentBibleReadingSchedule?.LanguageCode ?? "null",
-                action.CurrentBibleReadingSchedule?.PublicationCode ?? "null",
-                action.CurrentBibleReadingSchedule?.BookNumber ?? 0,
-                action.CurrentBibleReadingSchedule?.ChapterNumber ?? 0);
+            LogChapterSelectedStart(action);
 
             var currentState = state?.Value;
-            if (currentState?.CurrentSchedule == null || action.CurrentBibleReadingSchedule == null)
+            if (!CanSyncChapterSelection(currentState, action))
             {
-                Log.Warning("ScheduleEffects: HandleChapterSelected - CurrentSchedule or CurrentBibleReadingSchedule is null. CurrentSchedule: {CurrentSchedule}, CurrentBibleReadingSchedule: {BibleReadingSchedule}",
-                    currentState?.CurrentSchedule != null ? "not null" : "null",
-                    action.CurrentBibleReadingSchedule != null ? "not null" : "null");
                 return;
             }
 
-            // Only sync if the BibleReadingSchedule belongs to the current schedule
-            var currentSchedule = currentState.CurrentSchedule;
-            Log.Debug("ScheduleEffects: HandleChapterSelected - CurrentSchedule Id: {ScheduleId}, BibleReadingScheduleId: {BibleReadingScheduleId}, Action BibleReadingSchedule Id: {ActionBibleReadingScheduleId}",
-                currentSchedule.Id, currentSchedule.BibleReadingScheduleId, action.CurrentBibleReadingSchedule.Id);
-
-            // Allow syncing if:
-            // 1. Action has Id=0 (new selection, not yet saved) - always sync to update current schedule
-            // 2. Action Id matches current schedule's BibleReadingScheduleId - same schedule, sync
-            // Reject only if action has a non-zero ID that doesn't match (different schedule)
-            if (action.CurrentBibleReadingSchedule.Id > 0 && 
-                currentSchedule.BibleReadingScheduleId.HasValue && 
-                action.CurrentBibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value)
+            var currentSchedule = currentState!.CurrentSchedule!;
+            if (!ShouldSyncBibleReadingSchedule(currentSchedule, action.CurrentBibleReadingSchedule!))
             {
-                // Different BibleReadingSchedule, don't sync
-                Log.Warning("ScheduleEffects: HandleChapterSelected - Different BibleReadingSchedule ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
-                    currentSchedule.BibleReadingScheduleId.Value, action.CurrentBibleReadingSchedule.Id);
                 return;
             }
-            
-            Log.Debug("ScheduleEffects: HandleChapterSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current BibleReadingScheduleId: {CurrentId}",
-                action.CurrentBibleReadingSchedule.Id, currentSchedule.BibleReadingScheduleId);
 
-            // Clone CurrentSchedule and update Bible reading properties from CurrentBibleReadingSchedule
-            var updatedSchedule = new ScheduleStateItem
-            {
-                Id = currentSchedule.Id,
-                Name = currentSchedule.Name,
-                IsEnabled = currentSchedule.IsEnabled,
-                Hour = currentSchedule.Hour,
-                Minute = currentSchedule.Minute,
-                Second = currentSchedule.Second,
-                DaysOfWeek = currentSchedule.DaysOfWeek,
-                NotificationEnabled = currentSchedule.NotificationEnabled,
-                MusicEnabled = currentSchedule.MusicEnabled,
-                SnoozeMinutes = currentSchedule.SnoozeMinutes,
-                NumberOfChaptersToRead = currentSchedule.NumberOfChaptersToRead,
-                AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart,
-                CurrentPlayItem = currentSchedule.CurrentPlayItem,
-                LatestAlarmNotificationId = currentSchedule.LatestAlarmNotificationId,
-                BibleReadingScheduleId = action.CurrentBibleReadingSchedule.Id > 0 ? action.CurrentBibleReadingSchedule.Id : currentSchedule.BibleReadingScheduleId,
-                BibleReadingLanguageCode = action.CurrentBibleReadingSchedule.LanguageCode,
-                BibleReadingPublicationCode = action.CurrentBibleReadingSchedule.PublicationCode,
-                BibleReadingBookNumber = action.CurrentBibleReadingSchedule.BookNumber,
-                BibleReadingChapterNumber = action.CurrentBibleReadingSchedule.ChapterNumber,
-                BibleReadingFinishedDuration = action.CurrentBibleReadingSchedule.FinishedDuration,
-                MusicId = currentSchedule.MusicId,
-                MusicType = currentSchedule.MusicType,
-                MusicPublicationCode = currentSchedule.MusicPublicationCode,
-                MusicLanguageCode = currentSchedule.MusicLanguageCode,
-                MusicTrackNumber = currentSchedule.MusicTrackNumber,
-                MusicRepeat = currentSchedule.MusicRepeat,
-                // Preserve music display names from current schedule
-                MusicLanguageName = currentSchedule.MusicLanguageName,
-                MusicPublicationName = currentSchedule.MusicPublicationName,
-                MusicTrackName = currentSchedule.MusicTrackName
-            };
-
-            // IMPORTANT: Use display names from the action (populated from list items when user tapped).
-            // Do NOT query the database - display names are already available from the selection.
-            updatedSchedule.BibleReadingLanguageName = action.CurrentBibleReadingSchedule.LanguageName;
-            updatedSchedule.BibleReadingPublicationName = action.CurrentBibleReadingSchedule.PublicationName;
-            updatedSchedule.BibleReadingBookName = action.CurrentBibleReadingSchedule.BookName;
-
-            Log.Debug("ScheduleEffects: HandleChapterSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, BookName: {BookName}",
-                updatedSchedule.BibleReadingLanguageName ?? "null",
-                updatedSchedule.BibleReadingPublicationName ?? "null",
-                updatedSchedule.BibleReadingBookName ?? "null");
-
-            // Dispatch UpdateScheduleFromViewModelAction to sync to CurrentSchedule (optimistic update only, no DB save)
-            // shouldSave=false because this is just syncing state, not a user-initiated save
-            Log.Information("ScheduleEffects: HandleChapterSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, BookNumber: {BookNumber}, BookName: {BookName}, ChapterNumber: {ChapterNumber}",
-                updatedSchedule.Id,
-                updatedSchedule.BibleReadingLanguageCode,
-                updatedSchedule.BibleReadingLanguageName ?? "null",
-                updatedSchedule.BibleReadingPublicationCode,
-                updatedSchedule.BibleReadingPublicationName ?? "null",
-                updatedSchedule.BibleReadingBookNumber,
-                updatedSchedule.BibleReadingBookName ?? "null",
-                updatedSchedule.BibleReadingChapterNumber);
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
-
-            Log.Debug("ScheduleEffects: HandleChapterSelected - Synced CurrentBibleReadingSchedule to CurrentSchedule for ScheduleId: {ScheduleId}",
-                currentSchedule.Id);
+            var updatedSchedule = CreateUpdatedScheduleFromChapterSelection(currentSchedule, action);
+            DispatchUpdateAction(dispatcher, updatedSchedule, currentSchedule.Id);
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "ScheduleEffects: Error syncing CurrentBibleReadingSchedule to CurrentSchedule");
         }
+    }
+
+    private void LogChapterSelectedStart(ChapterSelectedAction action)
+    {
+        Log.Information("ScheduleEffects: HandleChapterSelected - Received action. CurrentBibleReadingSchedule: {BibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+            action.CurrentBibleReadingSchedule != null ? "not null" : "null",
+            action.CurrentBibleReadingSchedule?.LanguageCode ?? "null",
+            action.CurrentBibleReadingSchedule?.PublicationCode ?? "null",
+            action.CurrentBibleReadingSchedule?.BookNumber ?? 0,
+            action.CurrentBibleReadingSchedule?.ChapterNumber ?? 0);
+    }
+
+    private bool CanSyncChapterSelection(ApplicationState? currentState, ChapterSelectedAction action)
+    {
+        if (currentState?.CurrentSchedule == null || action.CurrentBibleReadingSchedule == null)
+        {
+            Log.Warning("ScheduleEffects: HandleChapterSelected - CurrentSchedule or CurrentBibleReadingSchedule is null. CurrentSchedule: {CurrentSchedule}, CurrentBibleReadingSchedule: {BibleReadingSchedule}",
+                currentState?.CurrentSchedule != null ? "not null" : "null",
+                action.CurrentBibleReadingSchedule != null ? "not null" : "null");
+            return false;
+        }
+        return true;
+    }
+
+    private bool ShouldSyncBibleReadingSchedule(ScheduleStateItem currentSchedule, BibleReadingStateItem actionBibleReadingSchedule)
+    {
+        Log.Debug("ScheduleEffects: HandleChapterSelected - CurrentSchedule Id: {ScheduleId}, BibleReadingScheduleId: {BibleReadingScheduleId}, Action BibleReadingSchedule Id: {ActionBibleReadingScheduleId}",
+            currentSchedule.Id, currentSchedule.BibleReadingScheduleId, actionBibleReadingSchedule.Id);
+
+        // Allow syncing if:
+        // 1. Action has Id=0 (new selection, not yet saved) - always sync to update current schedule
+        // 2. Action Id matches current schedule's BibleReadingScheduleId - same schedule, sync
+        // Reject only if action has a non-zero ID that doesn't match (different schedule)
+        if (actionBibleReadingSchedule.Id > 0 &&
+            currentSchedule.BibleReadingScheduleId.HasValue &&
+            actionBibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value)
+        {
+            Log.Warning("ScheduleEffects: HandleChapterSelected - Different BibleReadingSchedule ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
+                currentSchedule.BibleReadingScheduleId.Value, actionBibleReadingSchedule.Id);
+            return false;
+        }
+
+        Log.Debug("ScheduleEffects: HandleChapterSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current BibleReadingScheduleId: {CurrentId}",
+            actionBibleReadingSchedule.Id, currentSchedule.BibleReadingScheduleId);
+        return true;
+    }
+
+    private ScheduleStateItem CreateUpdatedScheduleFromChapterSelection(ScheduleStateItem currentSchedule, ChapterSelectedAction action)
+    {
+        var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
+        UpdateBibleReadingProperties(updatedSchedule, currentSchedule, action.CurrentBibleReadingSchedule!);
+        PreserveMusicProperties(updatedSchedule, currentSchedule);
+        SetBibleReadingDisplayNames(updatedSchedule, action.CurrentBibleReadingSchedule!);
+        return updatedSchedule;
+    }
+
+    private static ScheduleStateItem CloneBasicScheduleProperties(ScheduleStateItem currentSchedule)
+    {
+        return new ScheduleStateItem
+        {
+            Id = currentSchedule.Id,
+            Name = currentSchedule.Name,
+            IsEnabled = currentSchedule.IsEnabled,
+            Hour = currentSchedule.Hour,
+            Minute = currentSchedule.Minute,
+            Second = currentSchedule.Second,
+            DaysOfWeek = currentSchedule.DaysOfWeek,
+            NotificationEnabled = currentSchedule.NotificationEnabled,
+            MusicEnabled = currentSchedule.MusicEnabled,
+            SnoozeMinutes = currentSchedule.SnoozeMinutes,
+            NumberOfChaptersToRead = currentSchedule.NumberOfChaptersToRead,
+            AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart,
+            CurrentPlayItem = currentSchedule.CurrentPlayItem,
+            LatestAlarmNotificationId = currentSchedule.LatestAlarmNotificationId
+        };
+    }
+
+    private static void UpdateBibleReadingProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, BibleReadingStateItem actionBibleReadingSchedule)
+    {
+        updatedSchedule.BibleReadingScheduleId = actionBibleReadingSchedule.Id > 0 ? actionBibleReadingSchedule.Id : currentSchedule.BibleReadingScheduleId;
+        updatedSchedule.BibleReadingLanguageCode = actionBibleReadingSchedule.LanguageCode;
+        updatedSchedule.BibleReadingPublicationCode = actionBibleReadingSchedule.PublicationCode;
+        updatedSchedule.BibleReadingBookNumber = actionBibleReadingSchedule.BookNumber;
+        updatedSchedule.BibleReadingChapterNumber = actionBibleReadingSchedule.ChapterNumber;
+        updatedSchedule.BibleReadingFinishedDuration = actionBibleReadingSchedule.FinishedDuration;
+    }
+
+    private static void PreserveMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule)
+    {
+        updatedSchedule.MusicId = currentSchedule.MusicId;
+        updatedSchedule.MusicType = currentSchedule.MusicType;
+        updatedSchedule.MusicPublicationCode = currentSchedule.MusicPublicationCode;
+        updatedSchedule.MusicLanguageCode = currentSchedule.MusicLanguageCode;
+        updatedSchedule.MusicTrackNumber = currentSchedule.MusicTrackNumber;
+        updatedSchedule.MusicRepeat = currentSchedule.MusicRepeat;
+        updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
+        updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
+        updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
+    }
+
+    private void SetBibleReadingDisplayNames(ScheduleStateItem updatedSchedule, BibleReadingStateItem actionBibleReadingSchedule)
+    {
+        // IMPORTANT: Use display names from the action (populated from list items when user tapped).
+        // Do NOT query the database - display names are already available from the selection.
+        updatedSchedule.BibleReadingLanguageName = actionBibleReadingSchedule.LanguageName;
+        updatedSchedule.BibleReadingPublicationName = actionBibleReadingSchedule.PublicationName;
+        updatedSchedule.BibleReadingBookName = actionBibleReadingSchedule.BookName;
+
+        Log.Debug("ScheduleEffects: HandleChapterSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, BookName: {BookName}",
+            updatedSchedule.BibleReadingLanguageName ?? "null",
+            updatedSchedule.BibleReadingPublicationName ?? "null",
+            updatedSchedule.BibleReadingBookName ?? "null");
+    }
+
+    private void DispatchUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
+    {
+        Log.Information("ScheduleEffects: HandleChapterSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, BookNumber: {BookNumber}, BookName: {BookName}, ChapterNumber: {ChapterNumber}",
+            updatedSchedule.Id,
+            updatedSchedule.BibleReadingLanguageCode,
+            updatedSchedule.BibleReadingLanguageName ?? "null",
+            updatedSchedule.BibleReadingPublicationCode,
+            updatedSchedule.BibleReadingPublicationName ?? "null",
+            updatedSchedule.BibleReadingBookNumber,
+            updatedSchedule.BibleReadingBookName ?? "null",
+            updatedSchedule.BibleReadingChapterNumber);
+        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
+
+        Log.Debug("ScheduleEffects: HandleChapterSelected - Synced CurrentBibleReadingSchedule to CurrentSchedule for ScheduleId: {ScheduleId}",
+            scheduleId);
     }
 
     /// <summary>
@@ -973,128 +1129,158 @@ public class ScheduleEffects(
     {
         try
         {
-            Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, MusicType: {MusicType}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
-                action.CurrentMusic != null ? "not null" : "null",
-                action.CurrentMusic?.MusicType ?? MusicType.Melodies,
-                action.CurrentMusic?.PublicationCode ?? "null",
-                action.CurrentMusic?.TrackNumber ?? 0);
+            LogTrackSelectedStart(action);
 
             var currentState = state?.Value;
-            if (currentState?.CurrentSchedule == null || action.CurrentMusic == null)
+            if (!CanSyncTrackSelection(currentState, action))
             {
-                Log.Warning("ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentMusic is null. CurrentSchedule: {CurrentSchedule}, CurrentMusic: {CurrentMusic}",
-                    currentState?.CurrentSchedule != null ? "not null" : "null",
-                    action.CurrentMusic != null ? "not null" : "null");
                 return;
             }
 
-            // Only sync if the Music belongs to the current schedule
-            var currentSchedule = currentState.CurrentSchedule;
-            Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, MusicId: {MusicId}, Action Music Id: {ActionMusicId}",
-                currentSchedule.Id, currentSchedule.MusicId, action.CurrentMusic.Id);
+            var currentSchedule = currentState!.CurrentSchedule!;
+            var musicTypeChanged = HasMusicTypeChanged(currentSchedule, action.CurrentMusic!);
 
-            // Allow syncing if:
-            // 1. Action has Id=0 (new selection, not yet saved) - always sync to update current schedule
-            // 2. Action Id matches current schedule's MusicId - same schedule, sync
-            // 3. Music type changed (e.g., Melodies -> Vocals) - always sync to update current schedule
-            // Reject only if action has a non-zero ID that doesn't match (different schedule) AND music type hasn't changed
-            var musicTypeChanged = currentSchedule.MusicType.HasValue && 
-                                   currentSchedule.MusicType.Value != action.CurrentMusic.MusicType;
-            
-            if (action.CurrentMusic.Id > 0 && 
-                currentSchedule.MusicId.HasValue && 
-                action.CurrentMusic.Id != currentSchedule.MusicId.Value &&
-                !musicTypeChanged)
+            if (!ShouldSyncMusic(currentSchedule, action.CurrentMusic!, musicTypeChanged))
             {
-                // Different Music and music type hasn't changed, don't sync
-                Log.Warning("ScheduleEffects: HandleTrackSelected - Different Music ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
-                    currentSchedule.MusicId.Value, action.CurrentMusic.Id);
                 return;
             }
-            
+
             if (musicTypeChanged)
             {
                 Log.Information("ScheduleEffects: HandleTrackSelected - Music type changed from {OldType} to {NewType}. Syncing.",
                     currentSchedule.MusicType, action.CurrentMusic.MusicType);
             }
-            
-            Log.Debug("ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current MusicId: {CurrentId}",
-                action.CurrentMusic.Id, currentSchedule.MusicId);
 
-            // Clone CurrentSchedule and update music properties from CurrentMusic
-            var updatedSchedule = new ScheduleStateItem
-            {
-                Id = currentSchedule.Id,
-                Name = currentSchedule.Name,
-                IsEnabled = currentSchedule.IsEnabled,
-                Hour = currentSchedule.Hour,
-                Minute = currentSchedule.Minute,
-                Second = currentSchedule.Second,
-                DaysOfWeek = currentSchedule.DaysOfWeek,
-                NotificationEnabled = currentSchedule.NotificationEnabled,
-                MusicEnabled = currentSchedule.MusicEnabled,
-                SnoozeMinutes = currentSchedule.SnoozeMinutes,
-                NumberOfChaptersToRead = currentSchedule.NumberOfChaptersToRead,
-                AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart,
-                CurrentPlayItem = currentSchedule.CurrentPlayItem,
-                LatestAlarmNotificationId = currentSchedule.LatestAlarmNotificationId,
-                BibleReadingScheduleId = currentSchedule.BibleReadingScheduleId,
-                BibleReadingLanguageCode = currentSchedule.BibleReadingLanguageCode,
-                BibleReadingPublicationCode = currentSchedule.BibleReadingPublicationCode,
-                BibleReadingBookNumber = currentSchedule.BibleReadingBookNumber,
-                BibleReadingChapterNumber = currentSchedule.BibleReadingChapterNumber,
-                BibleReadingFinishedDuration = currentSchedule.BibleReadingFinishedDuration,
-                // Preserve Bible reading display names from current schedule
-                BibleReadingLanguageName = currentSchedule.BibleReadingLanguageName,
-                BibleReadingPublicationName = currentSchedule.BibleReadingPublicationName,
-                BibleReadingBookName = currentSchedule.BibleReadingBookName,
-                // If music type changed or Id is 0 (new selection), set MusicId to null or action's Id
-                // Otherwise preserve the existing MusicId
-                MusicId = (musicTypeChanged || action.CurrentMusic.Id == 0) 
-                    ? (action.CurrentMusic.Id > 0 ? action.CurrentMusic.Id : null)
-                    : currentSchedule.MusicId,
-                MusicType = action.CurrentMusic.MusicType,
-                MusicPublicationCode = action.CurrentMusic.PublicationCode,
-                MusicLanguageCode = action.CurrentMusic.LanguageCode,
-                MusicTrackNumber = action.CurrentMusic.TrackNumber,
-                MusicRepeat = action.CurrentMusic.Repeat,
-                // Preserve music display names from current schedule (will be repopulated if needed)
-                MusicLanguageName = currentSchedule.MusicLanguageName,
-                MusicPublicationName = currentSchedule.MusicPublicationName,
-                MusicTrackName = currentSchedule.MusicTrackName
-            };
-
-            // IMPORTANT: Use display names from the action (populated from list items when user tapped).
-            // Do NOT query the database - display names are already available from the selection.
-            updatedSchedule.MusicLanguageName = action.CurrentMusic.LanguageName;
-            updatedSchedule.MusicPublicationName = action.CurrentMusic.PublicationName;
-            updatedSchedule.MusicTrackName = action.CurrentMusic.TrackName;
-
-            Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, TrackName: {TrackName}",
-                updatedSchedule.MusicLanguageName ?? "null",
-                updatedSchedule.MusicPublicationName ?? "null",
-                updatedSchedule.MusicTrackName ?? "null");
-
-            // Dispatch UpdateScheduleFromViewModelAction to sync to CurrentSchedule (optimistic update only, no DB save)
-            // shouldSave=false because this is just syncing state, not a user-initiated save
-            Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, MusicType: {MusicType}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackNumber: {TrackNumber}, TrackName: {TrackName}",
-                updatedSchedule.Id,
-                updatedSchedule.MusicType,
-                updatedSchedule.MusicLanguageCode ?? "null",
-                updatedSchedule.MusicLanguageName ?? "null",
-                updatedSchedule.MusicPublicationCode ?? "null",
-                updatedSchedule.MusicPublicationName ?? "null",
-                updatedSchedule.MusicTrackNumber,
-                updatedSchedule.MusicTrackName ?? "null");
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
-
-            Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}",
-                currentSchedule.Id);
+            var updatedSchedule = CreateUpdatedScheduleFromTrackSelection(currentSchedule, action, musicTypeChanged);
+            DispatchTrackUpdateAction(dispatcher, updatedSchedule, currentSchedule.Id);
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "ScheduleEffects: Error syncing CurrentMusic to CurrentSchedule");
         }
+    }
+
+    private void LogTrackSelectedStart(TrackSelectedAction action)
+    {
+        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, MusicType: {MusicType}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
+            action.CurrentMusic != null ? "not null" : "null",
+            action.CurrentMusic?.MusicType ?? MusicType.Melodies,
+            action.CurrentMusic?.PublicationCode ?? "null",
+            action.CurrentMusic?.TrackNumber ?? 0);
+    }
+
+    private bool CanSyncTrackSelection(ApplicationState? currentState, TrackSelectedAction action)
+    {
+        if (currentState?.CurrentSchedule == null || action.CurrentMusic == null)
+        {
+            Log.Warning("ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentMusic is null. CurrentSchedule: {CurrentSchedule}, CurrentMusic: {CurrentMusic}",
+                currentState?.CurrentSchedule != null ? "not null" : "null",
+                action.CurrentMusic != null ? "not null" : "null");
+            return false;
+        }
+        return true;
+    }
+
+    private static bool HasMusicTypeChanged(ScheduleStateItem currentSchedule, MusicStateItem actionMusic)
+    {
+        return currentSchedule.MusicType.HasValue &&
+               currentSchedule.MusicType.Value != actionMusic.MusicType;
+    }
+
+    private bool ShouldSyncMusic(ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool musicTypeChanged)
+    {
+        Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, MusicId: {MusicId}, Action Music Id: {ActionMusicId}",
+            currentSchedule.Id, currentSchedule.MusicId, actionMusic.Id);
+
+        // Allow syncing if:
+        // 1. Action has Id=0 (new selection, not yet saved) - always sync to update current schedule
+        // 2. Action Id matches current schedule's MusicId - same schedule, sync
+        // 3. Music type changed (e.g., Melodies -> Vocals) - always sync to update current schedule
+        // Reject only if action has a non-zero ID that doesn't match (different schedule) AND music type hasn't changed
+        if (actionMusic.Id > 0 &&
+            currentSchedule.MusicId.HasValue &&
+            actionMusic.Id != currentSchedule.MusicId.Value &&
+            !musicTypeChanged)
+        {
+            Log.Warning("ScheduleEffects: HandleTrackSelected - Different Music ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
+                currentSchedule.MusicId.Value, actionMusic.Id);
+            return false;
+        }
+
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current MusicId: {CurrentId}",
+            actionMusic.Id, currentSchedule.MusicId);
+        return true;
+    }
+
+    private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, TrackSelectedAction action, bool musicTypeChanged)
+    {
+        var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
+        PreserveBibleReadingProperties(updatedSchedule, currentSchedule);
+        UpdateMusicProperties(updatedSchedule, currentSchedule, action.CurrentMusic!, musicTypeChanged);
+        SetMusicDisplayNames(updatedSchedule, action.CurrentMusic!);
+        return updatedSchedule;
+    }
+
+    private static void PreserveBibleReadingProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule)
+    {
+        updatedSchedule.BibleReadingScheduleId = currentSchedule.BibleReadingScheduleId;
+        updatedSchedule.BibleReadingLanguageCode = currentSchedule.BibleReadingLanguageCode;
+        updatedSchedule.BibleReadingPublicationCode = currentSchedule.BibleReadingPublicationCode;
+        updatedSchedule.BibleReadingBookNumber = currentSchedule.BibleReadingBookNumber;
+        updatedSchedule.BibleReadingChapterNumber = currentSchedule.BibleReadingChapterNumber;
+        updatedSchedule.BibleReadingFinishedDuration = currentSchedule.BibleReadingFinishedDuration;
+        updatedSchedule.BibleReadingLanguageName = currentSchedule.BibleReadingLanguageName;
+        updatedSchedule.BibleReadingPublicationName = currentSchedule.BibleReadingPublicationName;
+        updatedSchedule.BibleReadingBookName = currentSchedule.BibleReadingBookName;
+    }
+
+    private static void UpdateMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool musicTypeChanged)
+    {
+        // If music type changed or Id is 0 (new selection), set MusicId to null or action's Id
+        // Otherwise preserve the existing MusicId
+        updatedSchedule.MusicId = (musicTypeChanged || actionMusic.Id == 0)
+            ? (actionMusic.Id > 0 ? actionMusic.Id : null)
+            : currentSchedule.MusicId;
+        updatedSchedule.MusicType = actionMusic.MusicType;
+        updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
+        updatedSchedule.MusicLanguageCode = actionMusic.LanguageCode;
+        updatedSchedule.MusicTrackNumber = actionMusic.TrackNumber;
+        updatedSchedule.MusicRepeat = actionMusic.Repeat;
+        // Preserve music display names from current schedule (will be repopulated if needed)
+        updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
+        updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
+        updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
+    }
+
+    private void SetMusicDisplayNames(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
+    {
+        // IMPORTANT: Use display names from the action (populated from list items when user tapped).
+        // Do NOT query the database - display names are already available from the selection.
+        updatedSchedule.MusicLanguageName = actionMusic.LanguageName;
+        updatedSchedule.MusicPublicationName = actionMusic.PublicationName;
+        updatedSchedule.MusicTrackName = actionMusic.TrackName;
+
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, TrackName: {TrackName}",
+            updatedSchedule.MusicLanguageName ?? "null",
+            updatedSchedule.MusicPublicationName ?? "null",
+            updatedSchedule.MusicTrackName ?? "null");
+    }
+
+    private void DispatchTrackUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
+    {
+        Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, MusicType: {MusicType}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackNumber: {TrackNumber}, TrackName: {TrackName}",
+            updatedSchedule.Id,
+            updatedSchedule.MusicType,
+            updatedSchedule.MusicLanguageCode ?? "null",
+            updatedSchedule.MusicLanguageName ?? "null",
+            updatedSchedule.MusicPublicationCode ?? "null",
+            updatedSchedule.MusicPublicationName ?? "null",
+            updatedSchedule.MusicTrackNumber,
+            updatedSchedule.MusicTrackName ?? "null");
+        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
+
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}",
+            scheduleId);
     }
 }
 

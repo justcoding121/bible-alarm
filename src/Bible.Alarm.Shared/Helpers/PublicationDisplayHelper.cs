@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace Bible.Alarm.Shared.Helpers;
 
 /// <summary>

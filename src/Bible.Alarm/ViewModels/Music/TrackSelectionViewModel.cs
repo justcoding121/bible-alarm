@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
@@ -32,7 +34,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
 
-    private AlarmMusic current;
+    private AlarmMusic? current;
     private AlarmMusic? lastCurrent;
     private bool initComplete;
     
@@ -231,6 +233,10 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // If music type, language, or publication changed, repopulate tracks
         if (needsRepopulation && initComplete)
         {
+            if (newLanguageCode == null || newPublicationCode == null)
+            {
+                return;
+            }
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
@@ -246,7 +252,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnMusicInitialized(object o, EventArgs eventArgs)
+    private void OnMusicInitialized(object? o, EventArgs eventArgs)
     {
         if (initComplete)
         {
@@ -306,6 +312,10 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
         
         initComplete = true;
+        if (newLanguageCode == null || newPublicationCode == null)
+        {
+            return;
+        }
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
@@ -372,6 +382,10 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // Ensure tracks are populated if not already initialized
         if (!initComplete || Tracks == null || Tracks.Count == 0)
         {
+            if (newLanguageCode == null || newPublicationCode == null)
+            {
+                return;
+            }
             initComplete = true;
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
             await Initialize(newLanguageCode, newPublicationCode);
@@ -401,7 +415,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref tracks, value);
     }
 
-    public MusicTrackListViewItemModel SelectedTrack { get; set; }
+    public MusicTrackListViewItemModel? SelectedTrack { get; set; }
 
     private readonly SemaphoreSlim @lock = new(1);
 
@@ -553,7 +567,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
         // Build the list of track view models
         var trackViewModelList = new List<MusicTrackListViewItemModel>();
-        MusicTrackListViewItemModel selectedTrack = null;
+        MusicTrackListViewItemModel? selectedTrack = null;
 
         foreach (var track in tracks.Select(x => x.Value))
         {
@@ -630,11 +644,11 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
         set => SetProperty(ref isSelected, value);
     }
 
-    public string LookUpPath => track.Source.LookUpPath;
+    public string LookUpPath => track.Source?.LookUpPath ?? string.Empty;
     public int Number => track.Number;
 
     public string Title => isMelody ? $"Melody Number(s) {track.Title}" : track.Title;
-    public string Url => track.Source.Url;
+    public string Url => track.Source?.Url ?? string.Empty;
 
     private bool repeat;
 
@@ -646,5 +660,5 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
 
     public ICommand ToggleRepeatCommand { get; set; }
 
-    public int CompareTo(object obj) => Number.CompareTo((obj as MusicTrackListViewItemModel)?.Number);
+    public int CompareTo(object? obj) => Number.CompareTo((obj as MusicTrackListViewItemModel)?.Number ?? 0);
 }

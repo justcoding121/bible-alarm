@@ -24,101 +24,24 @@ public static class CollectionViewHelper
 
         try
         {
-            // Check cancellation token before starting
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Wait for the CollectionView to be ready on all platforms
             var isReady = await WaitForCollectionViewReadyAsync(collectionView, item, cancellationToken);
-
             if (!isReady)
             {
                 Log.Logger.Debug("CollectionView not ready for scrolling or item not found in ItemsSource");
                 return;
             }
 
-            // Check cancellation token again after waiting
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Additional verification on Windows before attempting scroll
-            var canScroll = true;
-#if WINDOWS
-            if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            var canScroll = await CanSafelyScrollAsync(collectionView, cancellationToken);
+            if (!canScroll)
             {
-                canScroll = await CanSafelyScrollWindows(collectionView, cancellationToken);
+                return;
             }
-#endif
 
-            if (canScroll)
-            {
-                // Wrap in Task.Run to catch async exceptions that might escape
-                await Task.Run(async () =>
-                {
-                    try
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(() =>
-                        {
-                            try
-                            {
-                                // Multiple checks to ensure CollectionView is still valid
-                                if (collectionView == null)
-                                {
-                                    Log.Logger.Debug("CollectionView is null, skipping scroll");
-                                    return;
-                                }
-
-                                // Check if CollectionView is still attached to a parent (not disposed)
-                                if (collectionView.Parent == null)
-                                {
-                                    Log.Logger.Debug("CollectionView is not attached to parent, skipping scroll");
-                                    return;
-                                }
-
-                                // Double-check handler is still valid before scrolling
-                                // MAUI's ScrollTo internally accesses handler.ItemCount which can throw NullReferenceException
-                                if (collectionView.Handler == null || collectionView.Handler.PlatformView == null)
-                                {
-                                    Log.Logger.Debug("CollectionView handler is null or disposed, skipping scroll");
-                                    return;
-                                }
-
-                                // Check cancellation token one more time
-                                cancellationToken.ThrowIfCancellationRequested();
-
-                                collectionView.ScrollTo(item, position: position, animate: animated);
-                                Log.Logger.Debug("Successfully scrolled to item in CollectionView");
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                // Cancellation requested - this is expected, don't log
-                            }
-                            catch (NullReferenceException ex)
-                            {
-                                // Handler was disposed or ItemCount property is null - ignore the error
-                                Log.Logger.Debug(ex, "NullReferenceException while scrolling CollectionView - handler may be disposed");
-                            }
-                            catch (COMException ex)
-                            {
-                                // Visual tree/ScrollViewer not ready yet, ignore the error
-                                Log.Logger.Debug(ex, "COMException while scrolling CollectionView - visual tree not ready yet");
-                            }
-                            catch (Exception ex)
-                            {
-                                // Other errors, log but don't throw
-                                Log.Logger.Debug(ex, "Exception while scrolling CollectionView: {Message}", ex.Message);
-                            }
-                        });
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Cancellation requested - this is expected, don't log
-                    }
-                    catch (Exception ex)
-                    {
-                        // Catch any async exceptions that escape
-                        Log.Logger.Debug(ex, "Exception in async scroll operation: {Message}", ex.Message);
-                    }
-                }, cancellationToken);
-            }
+            await PerformScrollAsync(collectionView, item, position, animated, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -131,80 +54,178 @@ public static class CollectionViewHelper
         }
     }
 
+    private static async Task<bool> CanSafelyScrollAsync(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    {
+#if WINDOWS
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            return await CanSafelyScrollWindows(collectionView, cancellationToken);
+        }
+#endif
+        return true;
+    }
+
+    private static async Task PerformScrollAsync(
+        MauiCollectionView collectionView,
+        object item,
+        ScrollToPosition position,
+        bool animated,
+        CancellationToken cancellationToken)
+    {
+        await Task.Run(async () =>
+        {
+            try
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
+                    {
+                        return;
+                    }
+
+                    collectionView.ScrollTo(item, position: position, animate: animated);
+                    Log.Logger.Debug("Successfully scrolled to item in CollectionView");
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation requested - this is expected, don't log
+            }
+            catch (Exception ex)
+            {
+                HandleScrollException(ex);
+            }
+        }, cancellationToken);
+    }
+
+    private static bool ValidateCollectionViewBeforeScroll(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    {
+        if (collectionView == null)
+        {
+            Log.Logger.Debug("CollectionView is null, skipping scroll");
+            return false;
+        }
+
+        if (collectionView.Parent == null)
+        {
+            Log.Logger.Debug("CollectionView is not attached to parent, skipping scroll");
+            return false;
+        }
+
+        if (collectionView.Handler == null || collectionView.Handler.PlatformView == null)
+        {
+            Log.Logger.Debug("CollectionView handler is null or disposed, skipping scroll");
+            return false;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
+    }
+
+    private static void HandleScrollException(Exception ex)
+    {
+        switch (ex)
+        {
+            case OperationCanceledException:
+                // Cancellation requested - this is expected, don't log
+                break;
+            case NullReferenceException:
+                // Handler was disposed or ItemCount property is null - ignore the error
+                Log.Logger.Debug(ex, "NullReferenceException while scrolling CollectionView - handler may be disposed");
+                break;
+            case COMException:
+                // Visual tree/ScrollViewer not ready yet, ignore the error
+                Log.Logger.Debug(ex, "COMException while scrolling CollectionView - visual tree not ready yet");
+                break;
+            default:
+                // Other errors, log but don't throw
+                Log.Logger.Debug(ex, "Exception while scrolling CollectionView: {Message}", ex.Message);
+                break;
+        }
+    }
+
     private static async Task<bool> WaitForCollectionViewReadyAsync(MauiCollectionView collectionView, object item, CancellationToken cancellationToken = default)
     {
-        // Maximum number of attempts (5 seconds total)
         const int MaxAttempts = 50;
-        // Delay between attempts
         const int DelayMs = 100;
 
         for (var i = 0; i < MaxAttempts; i++)
         {
-            // Check cancellation before each delay
             cancellationToken.ThrowIfCancellationRequested();
-
             await Task.Delay(DelayMs, cancellationToken);
 
-            try
+            if (await IsCollectionViewReady(collectionView, item, cancellationToken))
             {
-                // Check if CollectionView has items
-                if (collectionView.ItemsSource == null)
-                {
-                    continue;
-                }
-
-                // Check if ItemsSource has any items
-                if (!HasItems(collectionView.ItemsSource))
-                {
-                    continue;
-                }
-
-                // Check if handler is available
-                if (collectionView.Handler == null)
-                {
-                    continue;
-                }
-
-                // Verify item exists in ItemsSource
-                if (!ItemExistsInSource(collectionView.ItemsSource, item))
-                {
-                    continue;
-                }
-
-#if WINDOWS
-                if (DeviceInfo.Platform == DevicePlatform.WinUI)
-                {
-                    // Check if the native control is loaded
-                    if (collectionView.Handler.PlatformView is FrameworkElement frameworkElement)
-                    {
-                        // Check if IsLoaded property is true (safer than accessing visual tree)
-                        if (frameworkElement.IsLoaded)
-                        {
-                            // Wait longer for the ScrollViewer to be ready
-                            await Task.Delay(300, cancellationToken);
-                            return true;
-                        }
-                    }
-                }
-                else
-#endif
-                {
-                    // On other platforms, if handler exists and item is found, we're ready
-                    if (collectionView.Handler.PlatformView != null)
-                    {
-                        // Additional small delay to ensure rendering is complete
-                        await Task.Delay(200, cancellationToken);
-                        return true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Visual tree not ready yet, continue waiting
-                Log.Logger.Debug(ex, "Exception while waiting for CollectionView ready - visual tree not ready yet");
+                return true;
             }
         }
 
+        return false;
+    }
+
+    private static async Task<bool> IsCollectionViewReady(MauiCollectionView collectionView, object item, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!IsCollectionViewValid(collectionView, item))
+            {
+                return false;
+            }
+
+            return await CheckPlatformSpecificReady(collectionView, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "Exception while waiting for CollectionView ready - visual tree not ready yet");
+            return false;
+        }
+    }
+
+    private static bool IsCollectionViewValid(MauiCollectionView collectionView, object item)
+    {
+        if (collectionView.ItemsSource == null || !HasItems(collectionView.ItemsSource))
+        {
+            return false;
+        }
+
+        if (collectionView.Handler == null)
+        {
+            return false;
+        }
+
+        return ItemExistsInSource(collectionView.ItemsSource, item);
+    }
+
+    private static async Task<bool> CheckPlatformSpecificReady(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    {
+#if WINDOWS
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            return await CheckWindowsReady(collectionView, cancellationToken);
+        }
+#endif
+        return await CheckOtherPlatformsReady(collectionView, cancellationToken);
+    }
+
+#if WINDOWS
+    private static async Task<bool> CheckWindowsReady(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    {
+        if (collectionView.Handler.PlatformView is FrameworkElement frameworkElement && frameworkElement.IsLoaded)
+        {
+            await Task.Delay(300, cancellationToken);
+            return true;
+        }
+        return false;
+    }
+#endif
+
+    private static async Task<bool> CheckOtherPlatformsReady(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    {
+        if (collectionView.Handler.PlatformView != null)
+        {
+            await Task.Delay(200, cancellationToken);
+            return true;
+        }
         return false;
     }
 

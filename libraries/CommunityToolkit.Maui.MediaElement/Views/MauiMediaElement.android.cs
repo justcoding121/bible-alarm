@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Android;
 using Android.App;
 using Android.Content;
@@ -142,92 +143,150 @@ public class MauiMediaElement : CoordinatorLayout
 		{
 			throw new InvalidOperationException("PlayerView and RelativeLayout cannot be null when the FullScreen button is tapped");
 		}
-		var layout = CurrentPlatformContext.CurrentWindow.DecorView as ViewGroup;
+
 		// `p0` is the boolean value of isFullScreen being passed into the method. 
 		// This is a binding issue that will not be fixed as it is now part of shipped API.
-		if (e.P0)
+		isFullScreen = e.P0;
+		UpdateLayoutForFullscreen(relativeLayout, isFullScreen);
+		SetSystemBarsVisibility();
+	}
+
+	void UpdateLayoutForFullscreen(RelativeLayout layout, bool enterFullscreen)
+	{
+		var windowLayout = CurrentPlatformContext.CurrentWindow.DecorView as ViewGroup;
+
+		if (enterFullscreen)
 		{
-			isFullScreen = true;
-			RemoveView(relativeLayout);
-			layout?.AddView(relativeLayout);
+			RemoveView(layout);
+			windowLayout?.AddView(layout);
 		}
 		else
 		{
-			isFullScreen = false;
-			layout?.RemoveView(relativeLayout);
-			AddView(relativeLayout);
+			windowLayout?.RemoveView(layout);
+			AddView(layout);
 		}
-		// Hide/Show the SystemBars and Status bar
-		SetSystemBarsVisibility();
 	}
 
 	void SetSystemBarsVisibility()
 	{
 		var currentWindow = CurrentPlatformContext.CurrentWindow;
 		var windowInsetsControllerCompat = WindowCompat.GetInsetsController(currentWindow, currentWindow.DecorView);
-
-		var barTypes = WindowInsetsCompat.Type.StatusBars()
-			| WindowInsetsCompat.Type.SystemBars()
-			| WindowInsetsCompat.Type.NavigationBars();
+		var barTypes = GetBarTypes();
 
 		if (isFullScreen)
 		{
-			WindowCompat.SetDecorFitsSystemWindows(currentWindow, false);
-			if (OperatingSystem.IsAndroidVersionAtLeast(30))
-			{
-				var windowInsets = currentWindow.DecorView.RootWindowInsets;
-				if (windowInsets is not null)
-				{
-					isSystemBarVisible = windowInsets.IsVisible(WindowInsetsCompat.Type.NavigationBars()) || windowInsets.IsVisible(WindowInsetsCompat.Type.StatusBars());
-
-					if (isSystemBarVisible)
-					{
-						currentWindow.InsetsController?.Hide(WindowInsets.Type.SystemBars());
-					}
-				}
-			}
-			else
-			{
-				defaultSystemUiVisibility = (int)currentWindow.DecorView.SystemUiFlags;
-
-				currentWindow.DecorView.SystemUiFlags = currentWindow.DecorView.SystemUiFlags
-					| SystemUiFlags.LayoutStable
-					| SystemUiFlags.LayoutHideNavigation
-					| SystemUiFlags.LayoutFullscreen
-					| SystemUiFlags.HideNavigation
-					| SystemUiFlags.Fullscreen
-					| SystemUiFlags.Immersive;
-			}
-
-			if (windowInsetsControllerCompat is not null)
-			{
-				windowInsetsControllerCompat.Hide(barTypes);
-				windowInsetsControllerCompat.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
-			}
-
+			HideSystemBarsForFullscreen(currentWindow, windowInsetsControllerCompat, barTypes);
 		}
 		else
 		{
-			if (OperatingSystem.IsAndroidVersionAtLeast(30))
-			{
-				if (isSystemBarVisible)
-				{
-					currentWindow.InsetsController?.Show(WindowInsets.Type.SystemBars());
-				}
-			}
-			else
-			{
-				currentWindow.DecorView.SystemUiFlags = (SystemUiFlags)defaultSystemUiVisibility;
-			}
-
-			if (windowInsetsControllerCompat is not null)
-			{
-				windowInsetsControllerCompat.Show(barTypes);
-				windowInsetsControllerCompat.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorDefault;
-			}
-
-			WindowCompat.SetDecorFitsSystemWindows(currentWindow, true);
+			ShowSystemBarsForNormalMode(currentWindow, windowInsetsControllerCompat, barTypes);
 		}
+	}
+
+	static int GetBarTypes()
+	{
+		return WindowInsetsCompat.Type.StatusBars()
+			| WindowInsetsCompat.Type.SystemBars()
+			| WindowInsetsCompat.Type.NavigationBars();
+	}
+
+	void HideSystemBarsForFullscreen(Window currentWindow, WindowInsetsControllerCompat? windowInsetsControllerCompat, int barTypes)
+	{
+		WindowCompat.SetDecorFitsSystemWindows(currentWindow, false);
+
+		if (OperatingSystem.IsAndroidVersionAtLeast(30))
+		{
+			HideSystemBarsAndroid30Plus(currentWindow);
+		}
+		else
+		{
+			HideSystemBarsAndroidPre30(currentWindow);
+		}
+
+		if (windowInsetsControllerCompat is not null)
+		{
+			windowInsetsControllerCompat.Hide(barTypes);
+			windowInsetsControllerCompat.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorShowTransientBarsBySwipe;
+		}
+	}
+
+	void ShowSystemBarsForNormalMode(Window currentWindow, WindowInsetsControllerCompat? windowInsetsControllerCompat, int barTypes)
+	{
+		if (OperatingSystem.IsAndroidVersionAtLeast(30))
+		{
+			ShowSystemBarsAndroid30Plus(currentWindow);
+		}
+		else
+		{
+			ShowSystemBarsAndroidPre30(currentWindow);
+		}
+
+		if (windowInsetsControllerCompat is not null)
+		{
+			windowInsetsControllerCompat.Show(barTypes);
+			windowInsetsControllerCompat.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorDefault;
+		}
+
+		WindowCompat.SetDecorFitsSystemWindows(currentWindow, true);
+	}
+
+	[SupportedOSPlatform("android30.0")]
+	void HideSystemBarsAndroid30Plus(Window currentWindow)
+	{
+		if (!OperatingSystem.IsAndroidVersionAtLeast(30))
+		{
+			return;
+		}
+
+		// Use ViewCompat for API 26+ compatibility
+		var windowInsetsCompat = ViewCompat.GetRootWindowInsets(currentWindow.DecorView);
+		if (windowInsetsCompat is not null)
+		{
+			isSystemBarVisible = windowInsetsCompat.IsVisible(WindowInsetsCompat.Type.NavigationBars())
+				|| windowInsetsCompat.IsVisible(WindowInsetsCompat.Type.StatusBars());
+
+			if (isSystemBarVisible && currentWindow.InsetsController is not null)
+			{
+				currentWindow.InsetsController.Hide(WindowInsets.Type.SystemBars());
+			}
+		}
+	}
+
+	void HideSystemBarsAndroidPre30(Window currentWindow)
+	{
+		defaultSystemUiVisibility = (int)currentWindow.DecorView.SystemUiFlags;
+
+		currentWindow.DecorView.SystemUiFlags = currentWindow.DecorView.SystemUiFlags
+			| SystemUiFlags.LayoutStable
+			| SystemUiFlags.LayoutHideNavigation
+			| SystemUiFlags.LayoutFullscreen
+			| SystemUiFlags.HideNavigation
+			| SystemUiFlags.Fullscreen
+			| SystemUiFlags.Immersive;
+	}
+
+	[SupportedOSPlatform("android30.0")]
+	void ShowSystemBarsAndroid30Plus(Window currentWindow)
+	{
+		if (!OperatingSystem.IsAndroidVersionAtLeast(30))
+		{
+			return;
+		}
+
+		if (isSystemBarVisible)
+		{
+			// InsetsController is only available on Android 30+
+			// Runtime check ensures this code only runs on Android 30+
+			if (OperatingSystem.IsAndroidVersionAtLeast(30) && currentWindow.InsetsController is not null)
+			{
+				currentWindow.InsetsController.Show(WindowInsets.Type.SystemBars());
+			}
+		}
+	}
+
+	void ShowSystemBarsAndroidPre30(Window currentWindow)
+	{
+		currentWindow.DecorView.SystemUiFlags = (SystemUiFlags)defaultSystemUiVisibility;
 	}
 
 	readonly record struct CurrentPlatformContext

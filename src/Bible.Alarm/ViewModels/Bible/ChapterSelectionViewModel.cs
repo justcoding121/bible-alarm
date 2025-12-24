@@ -41,7 +41,10 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     private string? lastPublicationCode;
     private int? lastBookNumber;
 
+    // Field may be used via reflection or in ways the compiler can't detect
+    #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value null
     private NotifyCollectionChangedEventHandler? collectionChangedHandler;
+    #pragma warning restore CS0649
 
     public ChapterSelectionViewModel(
         ILogger logger,

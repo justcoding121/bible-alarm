@@ -112,138 +112,211 @@ public static class ApplicationReducer
             return state;
         }
 
+        LogUpdateStart(action);
+
+        var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+        if (existingScheduleItem != null)
+        {
+            PreserveDisplayNamesFromExisting(action.Schedule, existingScheduleItem);
+            UpdateScheduleInCollection(state.Schedules, existingScheduleItem, action.Schedule);
+        }
+        else
+        {
+            state.Schedules.Add(action.Schedule.DeepClone());
+        }
+
+        var updatedCurrentSchedule = UpdateCurrentScheduleIfMatches(state, action.Schedule);
+        var updatedCurrentBibleReadingSchedule = SyncBibleReadingScheduleIfNeeded(action, updatedCurrentSchedule);
+        var updatedCurrentMusic = SyncMusicIfNeeded(action, updatedCurrentSchedule);
+
+        return CreateUpdatedState(state, updatedCurrentSchedule, updatedCurrentMusic, updatedCurrentBibleReadingSchedule);
+    }
+
+    private static void LogUpdateStart(UpdateScheduleFromViewModelAction action)
+    {
         Log.Information("ApplicationReducer: OnUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}",
-            action.Schedule.Id, action.Schedule.Name,
+            action.Schedule!.Id, action.Schedule.Name,
             action.Schedule.BibleReadingLanguageCode ?? "null",
             action.Schedule.BibleReadingLanguageName ?? "null",
             action.Schedule.BibleReadingPublicationCode ?? "null",
             action.Schedule.BibleReadingPublicationName ?? "null");
+    }
 
-        // Find and update the existing schedule optimistically
-        var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+    private static void PreserveDisplayNamesFromExisting(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
+        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Found existing schedule. Existing LanguageName: {ExistingLanguageName}, Action LanguageName: {ActionLanguageName}",
+            existingScheduleItem.BibleReadingLanguageName ?? "null",
+            actionSchedule.BibleReadingLanguageName ?? "null");
 
-        if (existingScheduleItem != null)
+        PreserveBibleReadingDisplayNames(actionSchedule, existingScheduleItem);
+        PreserveMusicDisplayNames(actionSchedule, existingScheduleItem);
+    }
+
+    private static void PreserveBibleReadingDisplayNames(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
+        if (string.IsNullOrWhiteSpace(actionSchedule.BibleReadingLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingLanguageName))
         {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Found existing schedule. Existing LanguageName: {ExistingLanguageName}, Action LanguageName: {ActionLanguageName}",
-                existingScheduleItem.BibleReadingLanguageName ?? "null",
-                action.Schedule.BibleReadingLanguageName ?? "null");
-
-            // Preserve BibleReadingLanguageName, BibleReadingPublicationName, and BibleReadingBookName from existing item (they're not in the action's ScheduleStateItem)
-            // because they're populated during bootstrap/effects, not stored in database
-            if (string.IsNullOrWhiteSpace(action.Schedule.BibleReadingLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingLanguageName))
-            {
-                Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BibleReadingLanguageName: {LanguageName}",
-                    existingScheduleItem.BibleReadingLanguageName);
-                action.Schedule.BibleReadingLanguageName = existingScheduleItem.BibleReadingLanguageName;
-            }
-            else
-            {
-                Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BibleReadingLanguageName: {LanguageName}",
-                    action.Schedule.BibleReadingLanguageName ?? "null");
-            }
-            if (string.IsNullOrWhiteSpace(action.Schedule.BibleReadingPublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingPublicationName))
-            {
-                action.Schedule.BibleReadingPublicationName = existingScheduleItem.BibleReadingPublicationName;
-            }
-            if (string.IsNullOrWhiteSpace(action.Schedule.BibleReadingBookName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingBookName))
-            {
-                action.Schedule.BibleReadingBookName = existingScheduleItem.BibleReadingBookName;
-            }
-
-            // Preserve music display properties from existing item
-            if (string.IsNullOrWhiteSpace(action.Schedule.MusicLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicLanguageName))
-            {
-                action.Schedule.MusicLanguageName = existingScheduleItem.MusicLanguageName;
-            }
-            if (string.IsNullOrWhiteSpace(action.Schedule.MusicPublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicPublicationName))
-            {
-                action.Schedule.MusicPublicationName = existingScheduleItem.MusicPublicationName;
-            }
-            if (string.IsNullOrWhiteSpace(action.Schedule.MusicTrackName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicTrackName))
-            {
-                action.Schedule.MusicTrackName = existingScheduleItem.MusicTrackName;
-            }
-
-            // Remove old and add updated - deep clone to ensure independence from CurrentSchedule
-            state.Schedules.Remove(existingScheduleItem);
-            state.Schedules.Add(action.Schedule.DeepClone());
+            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BibleReadingLanguageName: {LanguageName}",
+                existingScheduleItem.BibleReadingLanguageName);
+            actionSchedule.BibleReadingLanguageName = existingScheduleItem.BibleReadingLanguageName;
         }
         else
         {
-            // Schedule not found, add it (shouldn't happen, but handle gracefully) - deep clone for independence
-            state.Schedules.Add(action.Schedule.DeepClone());
+            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BibleReadingLanguageName: {LanguageName}",
+                actionSchedule.BibleReadingLanguageName ?? "null");
         }
 
-        // Update CurrentSchedule if it matches - deep clone to ensure independence
-        ScheduleStateItem? updatedCurrentSchedule = state.CurrentSchedule;
-        if (state.CurrentSchedule?.Id == action.Schedule.Id)
+        if (string.IsNullOrWhiteSpace(actionSchedule.BibleReadingPublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingPublicationName))
+        {
+            actionSchedule.BibleReadingPublicationName = existingScheduleItem.BibleReadingPublicationName;
+        }
+
+        if (string.IsNullOrWhiteSpace(actionSchedule.BibleReadingBookName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingBookName))
+        {
+            actionSchedule.BibleReadingBookName = existingScheduleItem.BibleReadingBookName;
+        }
+    }
+
+    private static void PreserveMusicDisplayNames(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
+        if (string.IsNullOrWhiteSpace(actionSchedule.MusicLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicLanguageName))
+        {
+            actionSchedule.MusicLanguageName = existingScheduleItem.MusicLanguageName;
+        }
+
+        if (string.IsNullOrWhiteSpace(actionSchedule.MusicPublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicPublicationName))
+        {
+            actionSchedule.MusicPublicationName = existingScheduleItem.MusicPublicationName;
+        }
+
+        if (string.IsNullOrWhiteSpace(actionSchedule.MusicTrackName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicTrackName))
+        {
+            actionSchedule.MusicTrackName = existingScheduleItem.MusicTrackName;
+        }
+    }
+
+    private static void UpdateScheduleInCollection(ObservableHashSet<ScheduleStateItem> schedules, ScheduleStateItem existingScheduleItem, ScheduleStateItem actionSchedule)
+    {
+        // Remove old and add updated - deep clone to ensure independence from CurrentSchedule
+        schedules.Remove(existingScheduleItem);
+        schedules.Add(actionSchedule.DeepClone());
+    }
+
+    private static ScheduleStateItem? UpdateCurrentScheduleIfMatches(ApplicationState state, ScheduleStateItem actionSchedule)
+    {
+        if (state.CurrentSchedule?.Id == actionSchedule.Id)
         {
             Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}",
-                action.Schedule.BibleReadingLanguageName ?? "null",
-                action.Schedule.BibleReadingPublicationName ?? "null");
-            // Deep clone to ensure CurrentSchedule is independent from the item in Schedules collection
-            updatedCurrentSchedule = action.Schedule.DeepClone();
-        }
-        else
-        {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule ID ({CurrentScheduleId}) doesn't match action Schedule ID ({ActionScheduleId}), not updating CurrentSchedule",
-                state.CurrentSchedule?.Id ?? 0, action.Schedule.Id);
+                actionSchedule.BibleReadingLanguageName ?? "null",
+                actionSchedule.BibleReadingPublicationName ?? "null");
+            return actionSchedule.DeepClone();
         }
 
-        // Sync CurrentBibleReadingSchedule from CurrentSchedule when Bible reading properties are updated
-        // This ensures CurrentBibleReadingSchedule stays in sync with CurrentSchedule
-        BibleReadingStateItem? updatedCurrentBibleReadingSchedule = state.CurrentBibleReadingSchedule;
-        if (action.BibleReadingUpdated && updatedCurrentSchedule != null &&
-            !string.IsNullOrWhiteSpace(updatedCurrentSchedule.BibleReadingLanguageCode) &&
-            !string.IsNullOrWhiteSpace(updatedCurrentSchedule.BibleReadingPublicationCode) &&
-            updatedCurrentSchedule.BibleReadingBookNumber.HasValue &&
-            updatedCurrentSchedule.BibleReadingBookNumber.Value > 0 &&
-            updatedCurrentSchedule.BibleReadingChapterNumber.HasValue &&
-            updatedCurrentSchedule.BibleReadingChapterNumber.Value > 0)
+        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule ID ({CurrentScheduleId}) doesn't match action Schedule ID ({ActionScheduleId}), not updating CurrentSchedule",
+            state.CurrentSchedule?.Id ?? 0, actionSchedule.Id);
+        return state.CurrentSchedule;
+    }
+
+    private static BibleReadingStateItem? SyncBibleReadingScheduleIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)
+    {
+        if (!action.BibleReadingUpdated || updatedCurrentSchedule == null)
         {
-            // Create or update CurrentBibleReadingSchedule from CurrentSchedule to keep them in sync
-            updatedCurrentBibleReadingSchedule = new BibleReadingStateItem
-            {
-                Id = updatedCurrentSchedule.BibleReadingScheduleId ?? 0,
-                LanguageCode = updatedCurrentSchedule.BibleReadingLanguageCode,
-                PublicationCode = updatedCurrentSchedule.BibleReadingPublicationCode,
-                BookNumber = updatedCurrentSchedule.BibleReadingBookNumber.Value,
-                ChapterNumber = updatedCurrentSchedule.BibleReadingChapterNumber.Value,
-                FinishedDuration = updatedCurrentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
-                AlarmScheduleId = updatedCurrentSchedule.Id,
-                TranslationName = updatedCurrentSchedule.BibleReadingPublicationName
-            };
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentBibleReadingSchedule from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-                updatedCurrentBibleReadingSchedule.LanguageCode, updatedCurrentBibleReadingSchedule.PublicationCode);
+            return null;
         }
 
-        // Sync CurrentMusic from CurrentSchedule when music properties are updated
-        // This ensures CurrentMusic stays in sync with CurrentSchedule
-        MusicStateItem? updatedCurrentMusic = state.CurrentMusic;
-        if (action.MusicUpdated && updatedCurrentSchedule != null &&
-            updatedCurrentSchedule.MusicType.HasValue &&
-            !string.IsNullOrWhiteSpace(updatedCurrentSchedule.MusicPublicationCode) &&
-            updatedCurrentSchedule.MusicTrackNumber.HasValue &&
-            updatedCurrentSchedule.MusicTrackNumber.Value > 0)
+        if (!HasValidBibleReadingProperties(updatedCurrentSchedule))
         {
-            // Create or update CurrentMusic from CurrentSchedule to keep them in sync
-            updatedCurrentMusic = new MusicStateItem
-            {
-                Id = updatedCurrentSchedule.MusicId ?? 0,
-                MusicType = updatedCurrentSchedule.MusicType.Value,
-                PublicationCode = updatedCurrentSchedule.MusicPublicationCode,
-                LanguageCode = updatedCurrentSchedule.MusicLanguageCode,
-                TrackNumber = updatedCurrentSchedule.MusicTrackNumber.Value,
-                Repeat = updatedCurrentSchedule.MusicRepeat ?? false,
-                AlarmScheduleId = updatedCurrentSchedule.Id,
-                LanguageName = updatedCurrentSchedule.MusicLanguageName,
-                PublicationName = updatedCurrentSchedule.MusicPublicationName,
-                TrackName = updatedCurrentSchedule.MusicTrackName
-            };
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentMusic from CurrentSchedule. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-                updatedCurrentMusic.MusicType, updatedCurrentMusic.LanguageCode ?? "null", updatedCurrentMusic.PublicationCode);
+            return null;
         }
 
+        var bibleReadingSchedule = CreateBibleReadingScheduleFromCurrent(updatedCurrentSchedule);
+        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentBibleReadingSchedule from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+            bibleReadingSchedule.LanguageCode, bibleReadingSchedule.PublicationCode);
+        return bibleReadingSchedule;
+    }
+
+    private static bool HasValidBibleReadingProperties(ScheduleStateItem schedule)
+    {
+        return !string.IsNullOrWhiteSpace(schedule.BibleReadingLanguageCode) &&
+               !string.IsNullOrWhiteSpace(schedule.BibleReadingPublicationCode) &&
+               schedule.BibleReadingBookNumber.HasValue &&
+               schedule.BibleReadingBookNumber.Value > 0 &&
+               schedule.BibleReadingChapterNumber.HasValue &&
+               schedule.BibleReadingChapterNumber.Value > 0;
+    }
+
+    private static BibleReadingStateItem CreateBibleReadingScheduleFromCurrent(ScheduleStateItem updatedCurrentSchedule)
+    {
+        if (!updatedCurrentSchedule.BibleReadingBookNumber.HasValue || !updatedCurrentSchedule.BibleReadingChapterNumber.HasValue)
+        {
+            throw new InvalidOperationException("BibleReadingBookNumber and BibleReadingChapterNumber must have values");
+        }
+        return new BibleReadingStateItem
+        {
+            Id = updatedCurrentSchedule.BibleReadingScheduleId ?? 0,
+            LanguageCode = updatedCurrentSchedule.BibleReadingLanguageCode ?? string.Empty,
+            PublicationCode = updatedCurrentSchedule.BibleReadingPublicationCode ?? string.Empty,
+            BookNumber = updatedCurrentSchedule.BibleReadingBookNumber.Value,
+            ChapterNumber = updatedCurrentSchedule.BibleReadingChapterNumber.Value,
+            FinishedDuration = updatedCurrentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
+            AlarmScheduleId = updatedCurrentSchedule.Id,
+            TranslationName = updatedCurrentSchedule.BibleReadingPublicationName ?? string.Empty
+        };
+    }
+
+    private static MusicStateItem? SyncMusicIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)
+    {
+        if (!action.MusicUpdated || updatedCurrentSchedule == null)
+        {
+            return null;
+        }
+
+        if (!HasValidMusicProperties(updatedCurrentSchedule))
+        {
+            return null;
+        }
+
+        var music = CreateMusicFromCurrent(updatedCurrentSchedule);
+        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentMusic from CurrentSchedule. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+            music.MusicType, music.LanguageCode ?? "null", music.PublicationCode);
+        return music;
+    }
+
+    private static bool HasValidMusicProperties(ScheduleStateItem schedule)
+    {
+        return schedule.MusicType.HasValue &&
+               !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode) &&
+               schedule.MusicTrackNumber.HasValue &&
+               schedule.MusicTrackNumber.Value > 0;
+    }
+
+    private static MusicStateItem CreateMusicFromCurrent(ScheduleStateItem updatedCurrentSchedule)
+    {
+        if (!updatedCurrentSchedule.MusicType.HasValue || !updatedCurrentSchedule.MusicTrackNumber.HasValue)
+        {
+            throw new InvalidOperationException("MusicType and MusicTrackNumber must have values");
+        }
+        return new MusicStateItem
+        {
+            Id = updatedCurrentSchedule.MusicId ?? 0,
+            MusicType = updatedCurrentSchedule.MusicType.Value,
+            PublicationCode = updatedCurrentSchedule.MusicPublicationCode ?? string.Empty,
+            LanguageCode = updatedCurrentSchedule.MusicLanguageCode ?? string.Empty,
+            TrackNumber = updatedCurrentSchedule.MusicTrackNumber.Value,
+            Repeat = updatedCurrentSchedule.MusicRepeat ?? false,
+            AlarmScheduleId = updatedCurrentSchedule.Id,
+            LanguageName = updatedCurrentSchedule.MusicLanguageName,
+            PublicationName = updatedCurrentSchedule.MusicPublicationName,
+            TrackName = updatedCurrentSchedule.MusicTrackName
+        };
+    }
+
+    private static ApplicationState CreateUpdatedState(
+        ApplicationState state,
+        ScheduleStateItem? updatedCurrentSchedule,
+        MusicStateItem? updatedCurrentMusic,
+        BibleReadingStateItem? updatedCurrentBibleReadingSchedule)
+    {
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: updatedCurrentSchedule,
@@ -340,7 +413,6 @@ public static class ApplicationReducer
     /// <summary>
     /// Failure reducer: Handle DeleteScheduleFailureAction - rollback optimistic update by re-adding the schedule.
     /// Following Fluxor best practices: Rollback optimistic changes on failure.
-    /// Note: This requires fetching the schedule from DB or storing it before deletion.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnDeleteScheduleFailure(ApplicationState state, DeleteScheduleFailureAction action)
@@ -348,9 +420,42 @@ public static class ApplicationReducer
         Log.Warning("ApplicationReducer: OnDeleteScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
             action.ScheduleId, action.Error);
 
-        // For delete failures, we can't easily rollback without the original schedule data
-        // In a production app, you might want to dispatch a reload action to refresh from server
-        // For now, we'll just log the error - the schedule was already removed optimistically
+        // If we have the schedule data, restore it to rollback the optimistic update
+        if (action.Schedule != null && state.Schedules != null)
+        {
+            Log.Information("ApplicationReducer: OnDeleteScheduleFailure - Restoring schedule {ScheduleId} to rollback optimistic deletion", action.ScheduleId);
+            
+            // Check if schedule is already in the collection (shouldn't be, but check to avoid duplicates)
+            var existingSchedule = state.Schedules.FirstOrDefault(s => s.Id == action.ScheduleId);
+            if (existingSchedule == null)
+            {
+                // Create new collection with the restored schedule
+                var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+                foreach (var scheduleItem in state.Schedules)
+                {
+                    newSchedules.Add(scheduleItem);
+                }
+                // Deep clone to ensure independence
+                newSchedules.Add(action.Schedule.DeepClone());
+
+                return new ApplicationState(
+                    schedules: newSchedules,
+                    currentSchedule: state.CurrentSchedule,
+                    currentMusic: state.CurrentMusic,
+                    currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+                    isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+                    isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+            }
+            else
+            {
+                Log.Debug("ApplicationReducer: OnDeleteScheduleFailure - Schedule {ScheduleId} already exists in state, skipping restoration", action.ScheduleId);
+            }
+        }
+        else
+        {
+            Log.Warning("ApplicationReducer: OnDeleteScheduleFailure - No schedule data provided for rollback, ScheduleId: {ScheduleId}", action.ScheduleId);
+        }
+
         return state;
     }
 

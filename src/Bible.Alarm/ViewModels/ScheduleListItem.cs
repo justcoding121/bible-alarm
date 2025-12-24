@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -205,38 +206,44 @@ public sealed class ScheduleListItem(
     {
         try
         {
-            // Immediately notify UI that This property changed so day button colors update instantly
-            OnPropertyChanged(nameof(This));
-
+            NotifyThisPropertyChanged();
             var success = await scheduleStateService.UpdateScheduleEnabledStateAsync(ScheduleId, newValue);
 
             if (!success)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    isEnabled = !newValue;
-                    OnPropertyChanged(nameof(IsEnabled));
-                    OnPropertyChanged(nameof(This));
-                });
+                await RevertIsEnabledChange(newValue);
             }
             else
             {
-                RaisePropertiesChangedEvent();
-                // Ensure This is also notified for immediate UI update
-                OnPropertyChanged(nameof(This));
+                NotifyPropertiesChanged();
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "An error occurred while handling IsEnabled change for schedule {ScheduleId}", ScheduleId);
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                isEnabled = !newValue;
-                OnPropertyChanged(nameof(IsEnabled));
-                OnPropertyChanged(nameof(This));
-            });
+            await RevertIsEnabledChange(newValue);
         }
+    }
+
+    private void NotifyThisPropertyChanged()
+    {
+        OnPropertyChanged(nameof(This));
+    }
+
+    private async Task RevertIsEnabledChange(bool attemptedValue)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            isEnabled = !attemptedValue;
+            OnPropertyChanged(nameof(IsEnabled));
+            OnPropertyChanged(nameof(This));
+        });
+    }
+
+    private void NotifyPropertiesChanged()
+    {
+        RaisePropertiesChangedEvent();
+        OnPropertyChanged(nameof(This));
     }
 
     public DaysOfWeek DaysOfWeek => Schedule?.DaysOfWeek ?? 0;
@@ -292,70 +299,76 @@ public sealed class ScheduleListItem(
 
         try
         {
-            // Get ScheduleStateItem from state (BookName is pre-populated during bootstrap)
             var scheduleStateItem = applicationState.Value.Schedules?
                 .FirstOrDefault(s => s.Id == scheduleId);
 
             if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)
             {
-                // Set language separately (for display below switch)
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
+                UpdateLanguageFromState(scheduleStateItem);
+                var subtitle = BuildSubtitleFromState(scheduleStateItem);
+                if (!string.IsNullOrEmpty(subtitle))
                 {
-                    Language = scheduleStateItem.BibleReadingLanguageName;
-                }
-                else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
-                {
-                    Language = scheduleStateItem.BibleReadingLanguageCode;
-                }
-                else
-                {
-                    Language = string.Empty;
-                }
-                OnPropertyChanged(nameof(Language));
-
-                // Build subtitle from state (synchronous, no database call)
-                // Format: "BookName ChapterNumber" (e.g., "Mark 1" instead of "Mark • Chapter 1")
-                var subtitleParts = new List<string>();
-
-                // Add book name (pre-populated during bootstrap) or fallback to book number
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingBookName))
-                {
-                    subtitleParts.Add(scheduleStateItem.BibleReadingBookName);
-                }
-                else if (scheduleStateItem.BibleReadingBookNumber.HasValue && scheduleStateItem.BibleReadingBookNumber.Value > 0)
-                {
-                    subtitleParts.Add($"Book {scheduleStateItem.BibleReadingBookNumber.Value}");
-                }
-
-                // Add chapter number (without "Chapter" prefix)
-                if (scheduleStateItem.BibleReadingChapterNumber.HasValue && scheduleStateItem.BibleReadingChapterNumber.Value > 0)
-                {
-                    subtitleParts.Add(scheduleStateItem.BibleReadingChapterNumber.Value.ToString());
-                }
-
-                if (subtitleParts.Count > 0)
-                {
-                    SubTitle = string.Join(" ", subtitleParts); // Use space instead of bullet
+                    SubTitle = subtitle;
                     OnPropertyChanged(nameof(SubTitle));
                     return;
                 }
             }
             else
             {
-                // No Bible reading schedule - clear language
-                Language = string.Empty;
-                OnPropertyChanged(nameof(Language));
+                ClearLanguage();
             }
 
-            // Fallback: If BookName not available in state, do async lookup (for backward compatibility)
             _ = RefreshChapterNameAsync(force: false);
         }
         catch (Exception e)
         {
             logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
-            // Fallback to async lookup on error
             _ = RefreshChapterNameAsync(force: false);
         }
+    }
+
+    private void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem)
+    {
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
+        {
+            Language = scheduleStateItem.BibleReadingLanguageName;
+        }
+        else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
+        {
+            Language = scheduleStateItem.BibleReadingLanguageCode;
+        }
+        else
+        {
+            Language = string.Empty;
+        }
+        OnPropertyChanged(nameof(Language));
+    }
+
+    private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
+    {
+        var subtitleParts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingBookName))
+        {
+            subtitleParts.Add(scheduleStateItem.BibleReadingBookName);
+        }
+        else if (scheduleStateItem.BibleReadingBookNumber.HasValue && scheduleStateItem.BibleReadingBookNumber.Value > 0)
+        {
+            subtitleParts.Add($"Book {scheduleStateItem.BibleReadingBookNumber.Value}");
+        }
+
+        if (scheduleStateItem.BibleReadingChapterNumber.HasValue && scheduleStateItem.BibleReadingChapterNumber.Value > 0)
+        {
+            subtitleParts.Add(scheduleStateItem.BibleReadingChapterNumber.Value.ToString());
+        }
+
+        return subtitleParts.Count > 0 ? string.Join(" ", subtitleParts) : string.Empty;
+    }
+
+    private void ClearLanguage()
+    {
+        Language = string.Empty;
+        OnPropertyChanged(nameof(Language));
     }
 
     /// <summary>
@@ -432,7 +445,7 @@ public sealed class ScheduleListItem(
         {
             return;
         }
-        // Capture to avoid null reference
+
         var schedule = Schedule;
         if (schedule == null)
         {
@@ -440,8 +453,6 @@ public sealed class ScheduleListItem(
         }
 
         var scheduleId = schedule.Id;
-
-        // Find the updated schedule in the state (ScheduleStateItem DTO)
         var updatedScheduleItem = applicationState.Value.Schedules
             .FirstOrDefault(s => s.Id == scheduleId);
 
@@ -450,37 +461,15 @@ public sealed class ScheduleListItem(
             return;
         }
 
-        // Store old subtitle-related values BEFORE updating
-        // Get current values from SubTitle property (which reflects what's currently displayed)
-        // and from the current Schedule entity
+        var changeInfo = DetectScheduleChanges(updatedScheduleItem);
+        UpdateScheduleFromState(updatedScheduleItem, changeInfo);
+        NotifyPropertyChanges(changeInfo);
+    }
+
+    private ScheduleChangeInfo DetectScheduleChanges(ScheduleStateItem updatedScheduleItem)
+    {
         var oldBookNumber = Schedule?.BibleReadingSchedule?.BookNumber;
         var oldChapterNumber = Schedule?.BibleReadingSchedule?.ChapterNumber;
-
-        // Map DTO to entity for comparison and storage
-        var updatedSchedule = mapper.Map<AlarmSchedule>(updatedScheduleItem);
-
-        // Check if the track/chapter changed by comparing BibleReadingSchedule or Music properties
-        var trackChanged = false;
-
-        if (lastKnownSchedule?.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
-        {
-            // Check if book or chapter changed
-            if (lastKnownSchedule.BibleReadingSchedule.BookNumber != updatedSchedule.BibleReadingSchedule.BookNumber ||
-                lastKnownSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber)
-            {
-                trackChanged = true;
-            }
-        }
-        else if (lastKnownSchedule?.Music != null && updatedSchedule.Music != null)
-        {
-            // Check if track number changed
-            if (lastKnownSchedule.Music.TrackNumber != updatedSchedule.Music.TrackNumber)
-            {
-                trackChanged = true;
-            }
-        }
-
-        // Store old values before updating
         var oldDaysOfWeek = Schedule?.DaysOfWeek ?? 0;
         var oldIsEnabled = isEnabled;
         var oldName = Schedule?.Name ?? string.Empty;
@@ -488,58 +477,78 @@ public sealed class ScheduleListItem(
         var oldMinute = Schedule?.Minute ?? 0;
         var oldMusicEnabled = Schedule?.MusicEnabled ?? false;
 
-        // Update the schedule reference
-        Schedule = updatedSchedule;
-        lastKnownSchedule = updatedSchedule;
-
-        // Check if properties changed by comparing old values with new values
-        var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
-        var isEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled;
-        var nameChanged = oldName != updatedSchedule.Name;
-        var timeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute;
-        var musicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled;
-
-        // Check if subtitle-related properties changed
+        var updatedSchedule = mapper.Map<AlarmSchedule>(updatedScheduleItem);
+        var trackChanged = DetectTrackChange(updatedSchedule);
         var newBibleReadingLanguageName = updatedScheduleItem.BibleReadingLanguageName;
         var newBookName = updatedScheduleItem.BibleReadingBookName;
-        var bookNumberChanged = oldBookNumber != updatedSchedule.BibleReadingSchedule?.BookNumber;
-        var chapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber;
-        var bibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName;
-        var bookNameChanged = lastKnownBookName != newBookName;
 
-        // Only refresh subtitle if subtitle-related properties actually changed
-        var subtitleChanged = trackChanged || bookNumberChanged || chapterNumberChanged ||
-                             bibleReadingLanguageNameChanged || bookNameChanged;
+        return new ScheduleChangeInfo
+        {
+            UpdatedSchedule = updatedSchedule,
+            TrackChanged = trackChanged,
+            BookNumberChanged = oldBookNumber != updatedSchedule.BibleReadingSchedule?.BookNumber,
+            ChapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber,
+            BibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName,
+            BookNameChanged = lastKnownBookName != newBookName,
+            DaysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek,
+            IsEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled,
+            NameChanged = oldName != updatedSchedule.Name,
+            TimeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute,
+            MusicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled,
+            NewBibleReadingLanguageName = newBibleReadingLanguageName,
+            NewBookName = newBookName
+        };
+    }
+
+    private bool DetectTrackChange(AlarmSchedule updatedSchedule)
+    {
+        if (lastKnownSchedule?.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
+        {
+            return lastKnownSchedule.BibleReadingSchedule.BookNumber != updatedSchedule.BibleReadingSchedule.BookNumber ||
+                   lastKnownSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber;
+        }
+
+        if (lastKnownSchedule?.Music != null && updatedSchedule.Music != null)
+        {
+            return lastKnownSchedule.Music.TrackNumber != updatedSchedule.Music.TrackNumber;
+        }
+
+        return false;
+    }
+
+    private void UpdateScheduleFromState(ScheduleStateItem updatedScheduleItem, ScheduleChangeInfo changeInfo)
+    {
+        Schedule = changeInfo.UpdatedSchedule;
+        lastKnownSchedule = changeInfo.UpdatedSchedule;
+        isEnabled = changeInfo.UpdatedSchedule.IsEnabled;
+
+        var subtitleChanged = changeInfo.TrackChanged || changeInfo.BookNumberChanged || changeInfo.ChapterNumberChanged ||
+                             changeInfo.BibleReadingLanguageNameChanged || changeInfo.BookNameChanged;
 
         if (subtitleChanged)
         {
-            // Update tracked values
-            lastKnownBibleReadingLanguageName = newBibleReadingLanguageName;
-            lastKnownBookName = newBookName;
+            lastKnownBibleReadingLanguageName = changeInfo.NewBibleReadingLanguageName;
+            lastKnownBookName = changeInfo.NewBookName;
             RefreshChapterName();
         }
+    }
 
-        // Always update isEnabled to match the schedule
-        isEnabled = updatedSchedule.IsEnabled;
-
-        // Notify property changes for updated properties on main thread
+    private void NotifyPropertyChanges(ScheduleChangeInfo changeInfo)
+    {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Always notify DaysOfWeek and This when schedule is updated to ensure UI refreshes
-            // This is critical for day indicator updates on the home page
             OnPropertyChanged(nameof(DaysOfWeek));
-            // Also notify This for day indicator bindings
             OnPropertyChanged(nameof(This));
 
-            if (isEnabledChanged)
+            if (changeInfo.IsEnabledChanged)
             {
                 OnPropertyChanged(nameof(IsEnabled));
             }
-            if (nameChanged)
+            if (changeInfo.NameChanged)
             {
                 OnPropertyChanged(nameof(Name));
             }
-            if (timeChanged)
+            if (changeInfo.TimeChanged)
             {
                 OnPropertyChanged(nameof(TimeText));
                 OnPropertyChanged(nameof(Hour));
@@ -547,11 +556,28 @@ public sealed class ScheduleListItem(
                 OnPropertyChanged(nameof(Meridian));
                 OnPropertyChanged(nameof(MeridianText));
             }
-            if (musicEnabledChanged)
+            if (changeInfo.MusicEnabledChanged)
             {
                 OnPropertyChanged(nameof(MusicEnabled));
             }
         });
+    }
+
+    private record ScheduleChangeInfo
+    {
+        public AlarmSchedule UpdatedSchedule { get; init; } = null!;
+        public bool TrackChanged { get; init; }
+        public bool BookNumberChanged { get; init; }
+        public bool ChapterNumberChanged { get; init; }
+        public bool BibleReadingLanguageNameChanged { get; init; }
+        public bool BookNameChanged { get; init; }
+        public bool DaysOfWeekChanged { get; init; }
+        public bool IsEnabledChanged { get; init; }
+        public bool NameChanged { get; init; }
+        public bool TimeChanged { get; init; }
+        public bool MusicEnabledChanged { get; init; }
+        public string? NewBibleReadingLanguageName { get; init; }
+        public string? NewBookName { get; init; }
     }
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)

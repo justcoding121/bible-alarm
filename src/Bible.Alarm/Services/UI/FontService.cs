@@ -39,17 +39,69 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     private void Recalculate()
     {
         var mainDisplayInfo = DeviceDisplay.MainDisplayInfo;
+        bool hasValidDisplayInfo = HasValidDisplayInfo(mainDisplayInfo);
 
-        // Handle case where display info is invalid (common on Windows during startup)
-        // Check if we have valid display information
-        bool hasValidDisplayInfo = mainDisplayInfo.Width > 0 &&
-                                   mainDisplayInfo.Height > 0 &&
-                                   mainDisplayInfo.Density > 0;
+        var platform = DeviceInfo.Platform;
+        bool isAndroid = platform == DevicePlatform.Android;
+        var alarmReduction = GetAndroidAlarmReduction(isAndroid);
 
-        double density;
-        double widthDp;
+        if (!hasValidDisplayInfo)
+        {
+            SetFallbackFontSizes(platform, isAndroid, alarmReduction);
+        }
+        else
+        {
+            SetScaledFontSizes(mainDisplayInfo, isAndroid, alarmReduction);
+        }
 
-        // Base sizes in points (standard practice: 12pt base)
+        buttonFontSize = headerFontSize - 1.0;
+        RaiseAllPropertiesChanged();
+    }
+
+    private static bool HasValidDisplayInfo(DisplayInfo displayInfo)
+    {
+        return displayInfo.Width > 0 &&
+               displayInfo.Height > 0 &&
+               displayInfo.Density > 0;
+    }
+
+    private static double GetAndroidAlarmReduction(bool isAndroid)
+    {
+        return isAndroid ? 0.75 : 1.0;
+    }
+
+    private void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid, double androidAlarmReduction)
+    {
+        var deviceIdiom = DeviceInfo.Idiom;
+
+        if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
+        {
+            SetWindowsDesktopFallbackFontSizes(androidAlarmReduction);
+        }
+        else
+        {
+            SetOtherPlatformFallbackFontSizes(isAndroid, androidAlarmReduction);
+        }
+    }
+
+    private void SetWindowsDesktopFallbackFontSizes(double androidAlarmReduction)
+    {
+        standardFontSize = 14.0;
+        headerFontSize = 20.0;
+        smallFontSize = 12.0;
+        mediumFontSize = 16.0;
+        largeFontSize = 18.0;
+        titleFontSize = 22.0;
+
+        alarmTimeFontSize = 30.0;
+        alarmMeridianFontSize = 16.0;
+        alarmBellIconFontSize = 80.0;
+
+        Log.Logger.Debug("Using Windows desktop fallback fixed font sizes (display info not available)");
+    }
+
+    private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double androidAlarmReduction)
+    {
         const double BaseStandardSize = 12.0;
         const double BaseHeaderSize = 18.0;
         const double BaseSmallSize = 10.0;
@@ -57,127 +109,88 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         const double BaseLargeSize = 16.0;
         const double BaseTitleSize = 20.0;
 
-        // Alarm clock style sizes - balanced for visibility without being too large
-        // Platform-specific adjustments
-        var platform = DeviceInfo.Platform;
-        bool isAndroid = platform == DevicePlatform.Android;
+        standardFontSize = BaseStandardSize;
+        headerFontSize = BaseHeaderSize;
+        smallFontSize = BaseSmallSize;
+        mediumFontSize = BaseMediumSize;
+        largeFontSize = BaseLargeSize;
+        titleFontSize = BaseTitleSize;
 
-        // Android-specific reduction factor for alarm fonts (reduce by ~25%)
-        double androidAlarmReduction = isAndroid ? 0.75 : 1.0;
-
-        // Prominent time display (alarm clock style)
         double baseAlarmTimeSize = 32.0 * androidAlarmReduction;
-        // Smaller but still prominent AM/PM
         double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
-        // Large bell icon (4x TitleFontSize of 20pt)
         const double BaseAlarmBellIconSize = 80.0;
 
-        if (!hasValidDisplayInfo)
-        {
-            // Fallback to Windows-specific fixed sizes or platform detection
-            var deviceIdiom = DeviceInfo.Idiom;
+        double fallbackMaxTime = isAndroid ? 30.0 : 40.0;
+        double fallbackMaxMeridian = isAndroid ? 16.0 : 22.0;
+        alarmTimeFontSize = Math.Min(baseAlarmTimeSize, fallbackMaxTime);
+        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, fallbackMaxMeridian);
+        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize, 100.0);
 
-            if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
-            {
-                // Windows desktop: Use fixed sizes for desktop readability (same as before width-in-dp change)
-                // These are larger than mobile for better desktop readability
-                standardFontSize = 14.0;
-                headerFontSize = 20.0;
-                smallFontSize = 12.0;
-                mediumFontSize = 16.0;
-                largeFontSize = 18.0;
-                titleFontSize = 22.0;
+        Log.Logger.Warning("Invalid display info detected on non-Windows platform, using base font sizes as fallback");
+    }
 
-                // Alarm fonts - fixed sizes for desktop
-                alarmTimeFontSize = 30.0;
-                alarmMeridianFontSize = 16.0;
-                // Fixed size for desktop (4x TitleFontSize)
-                alarmBellIconFontSize = 80.0;
+    private void SetScaledFontSizes(DisplayInfo mainDisplayInfo, bool isAndroid, double androidAlarmReduction)
+    {
+        double density = mainDisplayInfo.Density;
+        double widthDp = mainDisplayInfo.Width / density;
 
-                Log.Logger.Debug("Using Windows desktop fallback fixed font sizes (display info not available)");
-            }
-            else
-            {
-                // Other platforms: Use base sizes directly (no scaling when display info is invalid)
-                // This is a fallback - when display info becomes available, it will recalculate
-                standardFontSize = BaseStandardSize;
-                headerFontSize = BaseHeaderSize;
-                smallFontSize = BaseSmallSize;
-                mediumFontSize = BaseMediumSize;
-                largeFontSize = BaseLargeSize;
-                titleFontSize = BaseTitleSize;
+        double scale = CalculateScaleFactor(widthDp, density);
+        SetStandardFontSizes(scale);
+        SetAlarmFontSizes(scale, widthDp, isAndroid, androidAlarmReduction);
+    }
 
-                // Alarm fonts - use base sizes with reasonable caps (Android gets smaller)
-                double fallbackMaxTime = isAndroid ? 30.0 : 40.0;
-                double fallbackMaxMeridian = isAndroid ? 16.0 : 22.0;
-                alarmTimeFontSize = Math.Min(baseAlarmTimeSize, fallbackMaxTime);
-                alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, fallbackMaxMeridian);
-                alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize, 100.0);
+    private static double CalculateScaleFactor(double widthDp, double density)
+    {
+        bool isPhone = widthDp < 600;
+        bool isTablet = widthDp is >= 600 and < 960;
 
-                Log.Logger.Warning("Invalid display info detected on non-Windows platform, using base font sizes as fallback");
-            }
-        }
-        else
-        {
-            // Valid display info - use width-in-dp based scaling
-            density = mainDisplayInfo.Density;
-            // Logical dp - key to proper scaling
-            widthDp = mainDisplayInfo.Width / density;
+        return isPhone ? Math.Min(density, 1.5) :
+               isTablet ? Math.Min(density, 1.8) :
+               Math.Min(density, 2.2);
+    }
 
-            // Determine scaling factor based on screen width in dp (density-independent pixels)
-            // This approach works perfectly for phones, tablets, foldables, and resizable desktop windows
-            double scale;
-            // Phone (portrait or landscape)
-            bool isPhone = widthDp < 600;
-            // Tablet or small desktop window
-            bool isTablet = widthDp is >= 600 and < 960;
+    private void SetStandardFontSizes(double scale)
+    {
+        const double BaseStandardSize = 12.0;
+        const double BaseHeaderSize = 18.0;
+        const double BaseSmallSize = 10.0;
+        const double BaseMediumSize = 14.0;
+        const double BaseLargeSize = 16.0;
+        const double BaseTitleSize = 20.0;
 
-            if (isPhone)
-            {
-                // Phone: Conservative scaling for smaller screens
-                scale = Math.Min(density, 1.5);
-            }
-            else if (isTablet)
-            {
-                // Tablet: Moderate scaling - more screen real estate
-                scale = Math.Min(density, 1.8);
-            }
-            else
-            {
-                // Desktop: Allow more scaling for large screens, but still cap it
-                // On real desktop, use slightly larger base or allow more density scaling
-                scale = Math.Min(density, 2.2);
-            }
+        standardFontSize = Math.Min(BaseStandardSize * scale, 17.0);
+        headerFontSize = Math.Min(BaseHeaderSize * scale, 26.0);
+        smallFontSize = Math.Min(BaseSmallSize * scale, 14.0);
+        mediumFontSize = Math.Min(BaseMediumSize * scale, 19.0);
+        largeFontSize = Math.Min(BaseLargeSize * scale, 22.0);
+        titleFontSize = Math.Min(BaseTitleSize * scale, 30.0);
+    }
 
-            // Calculate font sizes with appropriate caps
-            // Standard fonts
-            standardFontSize = Math.Min(BaseStandardSize * scale, 17.0);
-            headerFontSize = Math.Min(BaseHeaderSize * scale, 26.0);
-            smallFontSize = Math.Min(BaseSmallSize * scale, 14.0);
-            mediumFontSize = Math.Min(BaseMediumSize * scale, 19.0);
-            largeFontSize = Math.Min(BaseLargeSize * scale, 22.0);
-            titleFontSize = Math.Min(BaseTitleSize * scale, 30.0);
+    private void SetAlarmFontSizes(double scale, double widthDp, bool isAndroid, double androidAlarmReduction)
+    {
+        double baseAlarmTimeSize = 32.0 * androidAlarmReduction;
+        double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
+        const double BaseAlarmBellIconSize = 80.0;
 
-            // Alarm fonts - different caps based on screen size and platform
-            // Android gets smaller max caps
-            double maxAlarmTimeSize = isPhone
-                ? (isAndroid ? 30.0 : 40.0)
-                : (isAndroid ? 38.0 : 50.0);
-            double maxAlarmMeridianSize = isPhone
-                ? (isAndroid ? 16.0 : 22.0)
-                : (isAndroid ? 21.0 : 28.0);
-            double maxAlarmBellIconSize = isPhone ? 100.0 : 130.0;
+        bool isPhone = widthDp < 600;
+        var maxSizes = GetAlarmMaxSizes(isPhone, isAndroid);
 
-            alarmTimeFontSize = Math.Min(baseAlarmTimeSize * scale, maxAlarmTimeSize);
-            alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * scale, maxAlarmMeridianSize);
-            alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * scale, maxAlarmBellIconSize);
-        }
+        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * scale, maxSizes.MaxTime);
+        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * scale, maxSizes.MaxMeridian);
+        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * scale, maxSizes.MaxBellIcon);
+    }
 
-        // Button font size is 1 point smaller than HeaderFontSize
-        buttonFontSize = headerFontSize - 1.0;
+    private static (double MaxTime, double MaxMeridian, double MaxBellIcon) GetAlarmMaxSizes(bool isPhone, bool isAndroid)
+    {
+        double maxAlarmTimeSize = isPhone
+            ? (isAndroid ? 30.0 : 40.0)
+            : (isAndroid ? 38.0 : 50.0);
+        double maxAlarmMeridianSize = isPhone
+            ? (isAndroid ? 16.0 : 22.0)
+            : (isAndroid ? 21.0 : 28.0);
+        double maxAlarmBellIconSize = isPhone ? 100.0 : 130.0;
 
-        // Notify all bindings that font sizes have changed
-        RaiseAllPropertiesChanged();
+        return (maxAlarmTimeSize, maxAlarmMeridianSize, maxAlarmBellIconSize);
     }
 
     private void RaiseAllPropertiesChanged() =>

@@ -1,3 +1,5 @@
+#nullable enable
+
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Schedule;
 using Serilog;
@@ -45,7 +47,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 

@@ -38,6 +38,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly IDispatcher dispatcher;
     private readonly IState<ApplicationState> state;
     private readonly IState<PlaybackState> playbackState;
+    private readonly INavigationService navigationService;
     
     // Track recent play button clicks to prevent navigation race condition
     private readonly Dictionary<int, DateTime> recentPlayClicks = new();
@@ -65,6 +66,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         this.databaseSeedService = databaseSeedService;
         this.scheduleMigrationService = scheduleMigrationService;
         this.alarmScheduleService = alarmScheduleService;
+        this.navigationService = navigationService;
         this.mapper = mapper;
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
@@ -95,64 +97,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            // Don't navigate if playback is starting or active for this schedule
-            // This prevents navigation when play button is clicked
-            var currentPlaybackState = playbackState.Value;
-            if (currentPlaybackState.IsPreparingOrPlaying && 
-                currentPlaybackState.CurrentScheduleId == x.Schedule.Id)
+            if (ShouldSkipNavigation(x.Schedule.Id))
             {
-                logger.Debug("ViewScheduleCommand: Skipping navigation - playback is active for schedule {ScheduleId}", x.Schedule.Id);
                 return;
             }
 
-            // Also check if play button was recently clicked (race condition protection)
-            if (recentPlayClicks.TryGetValue(x.Schedule.Id, out var playClickTime))
-            {
-                var timeSincePlayClick = (DateTime.UtcNow - playClickTime).TotalMilliseconds;
-                if (timeSincePlayClick < PlayClickCooldownMs)
-                {
-                    logger.Debug("ViewScheduleCommand: Skipping navigation - play button was clicked {TimeSinceClick}ms ago for schedule {ScheduleId}", 
-                        timeSincePlayClick, x.Schedule.Id);
-                    return;
-                }
-                // Remove old entries
-                recentPlayClicks.Remove(x.Schedule.Id);
-            }
-
-            // Show overlay immediately via state
-            dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
-
-            // Wait for state to update and UI to reflect the change
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                // Force property change notification
-                OnPropertyChanged(nameof(IsHomePageOverlayVisible));
-                // Wait longer to ensure UI has fully rendered the overlay before navigation
-                await Task.Delay(150);
-            });
-
-            x.Schedule.IsEnabled = x.IsEnabled;
-            // Start navigation immediately (don't await yet)
-            var navigationTask = navigationService.NavigateToScheduleAsync();
-            // Get schedule from state (which has all display names populated during bootstrap) instead of mapping from entity.
-            // For existing schedules, we never access the database - we copy from the Schedules collection in state (immutable copy).
-            // All required fields (including display names) are already populated during bootstrap.
-            var scheduleStateItem = state.Value.Schedules?.FirstOrDefault(s => s.Id == x.Schedule.Id);
-            if (scheduleStateItem == null)
-            {
-                // Fallback to mapping if not found in state (shouldn't happen normally)
-                scheduleStateItem = mapper.Map<ScheduleStateItem>(x.Schedule);
-            }
-            else
-            {
-                // Deep clone to ensure CurrentSchedule is independent from the item in Schedules collection
-                scheduleStateItem = scheduleStateItem.DeepClone();
-            }
-            // Dispatch action immediately so data loading can start
-            dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
-            // Wait for navigation to complete
-            await navigationTask;
-            // Don't hide overlay here - it will be hidden by ScheduleViewModel after navigation completes
+            await ShowOverlayAndNavigateAsync(x);
         });
 
         state.StateChanged += OnStateChanged;
@@ -188,9 +138,17 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         var scheduleItemsSnapshot = scheduleItems.ToList();
 
         // Process each schedule item from the snapshot
+        // Filter out unsaved schedules (ID <= 0) - these should not appear in the home list
         foreach (var scheduleItem in scheduleItemsSnapshot)
         {
             var scheduleId = scheduleItem.Id;
+            
+            // Skip unsaved schedules (ID <= 0) - they should not appear in the home list
+            if (scheduleId <= 0)
+            {
+                continue;
+            }
+            
             currentViewModelIds.Add(scheduleId);
 
             if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
@@ -348,6 +306,63 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 IsBusy = false;
             }
         });
+    }
+
+    private bool ShouldSkipNavigation(int scheduleId)
+    {
+        var currentPlaybackState = playbackState.Value;
+        if (currentPlaybackState.IsPreparingOrPlaying && 
+            currentPlaybackState.CurrentScheduleId == scheduleId)
+        {
+            logger.Debug("ViewScheduleCommand: Skipping navigation - playback is active for schedule {ScheduleId}", scheduleId);
+            return true;
+        }
+
+        if (recentPlayClicks.TryGetValue(scheduleId, out var playClickTime))
+        {
+            var timeSincePlayClick = (DateTime.UtcNow - playClickTime).TotalMilliseconds;
+            if (timeSincePlayClick < PlayClickCooldownMs)
+            {
+                logger.Debug("ViewScheduleCommand: Skipping navigation - play button was clicked {TimeSinceClick}ms ago for schedule {ScheduleId}", 
+                    timeSincePlayClick, scheduleId);
+                return true;
+            }
+            recentPlayClicks.Remove(scheduleId);
+        }
+
+        return false;
+    }
+
+    private async Task ShowOverlayAndNavigateAsync(ScheduleListItem scheduleListItem)
+    {
+        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            OnPropertyChanged(nameof(IsHomePageOverlayVisible));
+            await Task.Delay(150);
+        });
+
+        if (scheduleListItem.Schedule == null)
+        {
+            return;
+        }
+
+        scheduleListItem.Schedule.IsEnabled = scheduleListItem.IsEnabled;
+        var navigationTask = navigationService.NavigateToScheduleAsync();
+        var scheduleStateItem = GetScheduleStateItem(scheduleListItem.Schedule.Id);
+        dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
+        await navigationTask;
+    }
+
+    private ScheduleStateItem GetScheduleStateItem(int scheduleId)
+    {
+        var scheduleStateItem = state.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        if (scheduleStateItem == null)
+        {
+            return mapper.Map<ScheduleStateItem>(scheduleViewModels[scheduleId].Schedule);
+        }
+        return scheduleStateItem.DeepClone();
     }
 
     public void Dispose()

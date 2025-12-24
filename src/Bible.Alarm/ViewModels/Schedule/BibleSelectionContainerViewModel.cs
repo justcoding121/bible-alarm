@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
@@ -192,22 +194,43 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         this.isNewSchedule = isNewSchedule;
     }
 
-    private void OnStateChanged(object sender, EventArgs e)
+    private void OnStateChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
         var currentBibleReading = stateValue.CurrentBibleReadingSchedule;
         
-        // Only process if this is for the current schedule we're managing
-        // For new schedules (scheduleId <= 0), always process if CurrentSchedule is not null
-        // For existing schedules, only process if the IDs match
+        if (!ShouldProcessStateChange(currentSchedule))
+        {
+            return;
+        }
+
+        LogStateChange(currentSchedule, currentBibleReading);
+        HandleScheduleIdChange(currentSchedule);
+        UpdateBibleReadingUpdatedFlag(currentSchedule);
+
+        var changeInfo = DetectPropertyChanges(currentSchedule, currentBibleReading);
+        if (changeInfo.HasChanges)
+        {
+            UpdateLastValues(changeInfo);
+            ResetProgressIfNeeded(currentSchedule, changeInfo);
+            NotifyPropertyChanges(changeInfo);
+        }
+    }
+
+    private bool ShouldProcessStateChange(ScheduleStateItem? currentSchedule)
+    {
         if (currentSchedule == null || (scheduleId > 0 && currentSchedule.Id > 0 && currentSchedule.Id != scheduleId))
         {
             logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Skipping state change. CurrentSchedule: {CurrentSchedule}, OurScheduleId: {ScheduleId}",
                 currentSchedule != null ? $"Id={currentSchedule.Id}" : "null", scheduleId);
-            return;
+            return false;
         }
-        
+        return true;
+    }
+
+    private void LogStateChange(ScheduleStateItem? currentSchedule, BibleReadingStateItem? currentBibleReading)
+    {
         logger.Information("BibleSelectionContainerViewModel: OnStateChanged - CurrentSchedule: {CurrentSchedule}, CurrentBibleReadingSchedule: {CurrentBibleReadingSchedule}",
             currentSchedule != null ? $"Id={currentSchedule.Id}" : "null",
             currentBibleReading != null ? $"LanguageCode={currentBibleReading.LanguageCode}, PublicationCode={currentBibleReading.PublicationCode}" : "null");
@@ -223,187 +246,211 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
                 currentSchedule.BibleReadingBookNumber ?? 0,
                 currentSchedule.BibleReadingBookName ?? "null",
                 currentSchedule.BibleReadingChapterNumber ?? 0);
+        }
+    }
 
-            // Initialize if schedule ID changed
-            if (currentSchedule.Id != scheduleId)
+    private void HandleScheduleIdChange(ScheduleStateItem? currentSchedule)
+    {
+        if (currentSchedule != null && currentSchedule.Id != scheduleId)
+        {
+            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Schedule ID changed from {OldScheduleId} to {NewScheduleId}, initializing from state",
+                scheduleId, currentSchedule.Id);
+            InitializeFromState();
+        }
+    }
+
+    private void UpdateBibleReadingUpdatedFlag(ScheduleStateItem? currentSchedule)
+    {
+        if (currentSchedule != null && model != null)
+        {
+            var hasBibleReading = currentSchedule.BibleReadingScheduleId.HasValue;
+            if (hasBibleReading && currentSchedule.BibleReadingScheduleId.HasValue && 
+                (bibleReadingSchedule == null || 
+                bibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value))
             {
-                logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Schedule ID changed from {OldScheduleId} to {NewScheduleId}, initializing from state",
-                    scheduleId, currentSchedule.Id);
-                InitializeFromState();
-            }
-            
-            if (model != null)
-            {
-                // Update bibleReadingUpdated flag if bible reading changed
-                var hasBibleReading = currentSchedule.BibleReadingScheduleId.HasValue;
-                if (hasBibleReading && (bibleReadingSchedule == null || 
-                    bibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value))
-                {
-                    bibleReadingUpdated = true;
-                }
+                bibleReadingUpdated = true;
             }
         }
+    }
 
-        // React to both CurrentSchedule and CurrentBibleReadingSchedule changes
-        // CurrentBibleReadingSchedule changes (from sub-pages) should update UI immediately
-        // CurrentSchedule changes (from effect sync or other updates) should also update UI
-        // Only trigger PropertyChanged if values actually changed to prevent infinite loops
-        
-        // Get current property values from state
+    private PropertyChangeInfo DetectPropertyChanges(ScheduleStateItem? currentSchedule, BibleReadingStateItem? currentBibleReading)
+    {
         var currentLanguageCode = currentSchedule?.BibleReadingLanguageCode;
         var currentPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule?.BibleReadingPublicationCode;
         var currentBookNumber = currentBibleReading?.BookNumber ?? currentSchedule?.BibleReadingBookNumber;
         var currentChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule?.BibleReadingChapterNumber;
         
-        // Detect changes in underlying properties
         var languageCodeChanged = currentLanguageCode != lastLanguageCode;
         var publicationCodeChanged = currentPublicationCode != lastPublicationCode;
         var bookNumberChanged = currentBookNumber != lastBookNumber;
         var chapterNumberChanged = currentChapterNumber != lastChapterNumber;
         
-        // Get display text values
         var newLanguageDisplayText = LanguageDisplayText;
         var newTranslationDisplayText = TranslationDisplayText;
         var newBookDisplayText = BookDisplayText;
         var newChapterDisplayText = ChapterDisplayText;
         
-        // Detect changes in display text
         var languageDisplayChanged = newLanguageDisplayText != lastLanguageDisplayText;
         var translationDisplayChanged = newTranslationDisplayText != lastTranslationDisplayText;
         var bookDisplayChanged = newBookDisplayText != lastBookDisplayText;
         var chapterDisplayChanged = newChapterDisplayText != lastChapterDisplayText;
         
-        // Determine which properties need to be notified (cascading logic)
-        // Only notify if the underlying selection (codes/numbers) actually changed, not just display text
-        // This prevents cascade changes when the same item is selected (e.g., modal opened and closed without changes)
         var notifyLanguage = languageCodeChanged;
         var notifyTranslation = languageCodeChanged || publicationCodeChanged;
         var notifyBook = languageCodeChanged || publicationCodeChanged || bookNumberChanged;
         var notifyChapter = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
         
-        // Also check display text changes for UI updates, but don't trigger cascade effects
         var displayTextOnlyChanged = (languageDisplayChanged && !languageCodeChanged) ||
                                     (translationDisplayChanged && !languageCodeChanged && !publicationCodeChanged) ||
                                     (bookDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged) ||
                                     (chapterDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged && !chapterNumberChanged);
         
-        // Detect if any cascade change occurred (any underlying property changed)
-        // Only trigger cascade effects (like resetting progress) when the actual selection changed, not just display text
         var cascadeChangeOccurred = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
-        
-        // Trigger PropertyChanged if underlying selection changed OR if display text changed (for UI updates)
-        if (notifyLanguage || notifyTranslation || notifyBook || notifyChapter || displayTextOnlyChanged)
+
+        return new PropertyChangeInfo
         {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Values changed. Language: {LanguageChanged} (code: {LangCodeChanged}), Translation: {TranslationChanged} (code: {PubCodeChanged}), Book: {BookChanged} (number: {BookNumberChanged}), Chapter: {ChapterChanged} (number: {ChapterNumberChanged}), DisplayTextOnly: {DisplayTextOnly}. CascadeChangeOccurred: {CascadeChangeOccurred}", 
-                notifyLanguage, languageCodeChanged,
-                notifyTranslation, publicationCodeChanged,
-                notifyBook, bookNumberChanged,
-                notifyChapter, chapterNumberChanged,
-                displayTextOnlyChanged, cascadeChangeOccurred);
-            
-            // Update last values BEFORE dispatching any actions to prevent feedback loops
-            // This ensures that when OnStateChanged is called again (due to the dispatched action),
-            // it won't detect the same change again
-            lastLanguageCode = currentLanguageCode;
-            lastPublicationCode = currentPublicationCode;
-            lastBookNumber = currentBookNumber;
-            lastChapterNumber = currentChapterNumber;
-            lastLanguageDisplayText = newLanguageDisplayText;
-            lastTranslationDisplayText = newTranslationDisplayText;
-            lastBookDisplayText = newBookDisplayText;
-            lastChapterDisplayText = newChapterDisplayText;
-            
-            // Reset played progress to zero when cascade effect changes anything in bible container
-            // Only dispatch if progress is not already zero to avoid unnecessary state updates
-            if (cascadeChangeOccurred && currentSchedule != null)
+            CurrentLanguageCode = currentLanguageCode,
+            CurrentPublicationCode = currentPublicationCode,
+            CurrentBookNumber = currentBookNumber,
+            CurrentChapterNumber = currentChapterNumber,
+            NewLanguageDisplayText = newLanguageDisplayText,
+            NewTranslationDisplayText = newTranslationDisplayText,
+            NewBookDisplayText = newBookDisplayText,
+            NewChapterDisplayText = newChapterDisplayText,
+            NotifyLanguage = notifyLanguage,
+            NotifyTranslation = notifyTranslation,
+            NotifyBook = notifyBook,
+            NotifyChapter = notifyChapter,
+            DisplayTextOnlyChanged = displayTextOnlyChanged,
+            CascadeChangeOccurred = cascadeChangeOccurred,
+            LanguageDisplayChanged = languageDisplayChanged,
+            TranslationDisplayChanged = translationDisplayChanged,
+            BookDisplayChanged = bookDisplayChanged,
+            ChapterDisplayChanged = chapterDisplayChanged,
+            HasChanges = notifyLanguage || notifyTranslation || notifyBook || notifyChapter || displayTextOnlyChanged
+        };
+    }
+
+    private void UpdateLastValues(PropertyChangeInfo changeInfo)
+    {
+        lastLanguageCode = changeInfo.CurrentLanguageCode;
+        lastPublicationCode = changeInfo.CurrentPublicationCode;
+        lastBookNumber = changeInfo.CurrentBookNumber;
+        lastChapterNumber = changeInfo.CurrentChapterNumber;
+        lastLanguageDisplayText = changeInfo.NewLanguageDisplayText;
+        lastTranslationDisplayText = changeInfo.NewTranslationDisplayText;
+        lastBookDisplayText = changeInfo.NewBookDisplayText;
+        lastChapterDisplayText = changeInfo.NewChapterDisplayText;
+    }
+
+    private void ResetProgressIfNeeded(ScheduleStateItem? currentSchedule, PropertyChangeInfo changeInfo)
+    {
+        if (changeInfo.CascadeChangeOccurred && currentSchedule != null)
+        {
+            var currentProgress = currentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero;
+            if (currentProgress != TimeSpan.Zero)
             {
-                var currentProgress = currentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero;
-                if (currentProgress != TimeSpan.Zero)
-                {
-                    logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Cascade change detected, resetting BibleReadingFinishedDuration from {CurrentProgress} to zero",
-                        currentProgress);
-                    
-                    // Create a copy of CurrentSchedule with FinishedDuration reset to zero
-                    var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
-                    scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
-                    
-                    // Dispatch action to update state (optimistic update, no DB save)
-                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
-                    
-                    logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Dispatched UpdateScheduleFromViewModelAction to reset progress. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-                        currentLanguageCode ?? "null",
-                        currentPublicationCode ?? "null",
-                        currentBookNumber?.ToString() ?? "null",
-                        currentChapterNumber?.ToString() ?? "null");
-                }
-                else
-                {
-                    logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Cascade change detected, but BibleReadingFinishedDuration is already zero, skipping dispatch");
-                }
+                logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Cascade change detected, resetting BibleReadingFinishedDuration from {CurrentProgress} to zero",
+                    currentProgress);
+                
+                var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
+                scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
+                
+                logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Dispatched UpdateScheduleFromViewModelAction to reset progress. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+                    changeInfo.CurrentLanguageCode ?? "null",
+                    changeInfo.CurrentPublicationCode ?? "null",
+                    changeInfo.CurrentBookNumber?.ToString() ?? "null",
+                    changeInfo.CurrentChapterNumber?.ToString() ?? "null");
             }
-            
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                // Cascading notifications: parent changes trigger child property notifications
-                // Only trigger cascade if underlying selection changed, not just display text
-                if (notifyLanguage)
-                {
-                    OnPropertyChanged(nameof(LanguageDisplayText));
-                    // Language change cascades to all below
-                    OnPropertyChanged(nameof(TranslationDisplayText));
-                    OnPropertyChanged(nameof(BookDisplayText));
-                    OnPropertyChanged(nameof(ChapterDisplayText));
-                }
-                else if (notifyTranslation)
-                {
-                    OnPropertyChanged(nameof(TranslationDisplayText));
-                    // Translation change cascades to book and chapter
-                    OnPropertyChanged(nameof(BookDisplayText));
-                    OnPropertyChanged(nameof(ChapterDisplayText));
-                }
-                else if (notifyBook)
-                {
-                    OnPropertyChanged(nameof(BookDisplayText));
-                    // Book change cascades to chapter
-                    OnPropertyChanged(nameof(ChapterDisplayText));
-                }
-                else if (notifyChapter)
-                {
-                    // Chapter change only affects itself
-                    OnPropertyChanged(nameof(ChapterDisplayText));
-                }
-                else if (displayTextOnlyChanged)
-                {
-                    // Only display text changed (no selection change) - just update the specific property
-                    if (languageDisplayChanged)
-                    {
-                        OnPropertyChanged(nameof(LanguageDisplayText));
-                    }
-                    if (translationDisplayChanged)
-                    {
-                        OnPropertyChanged(nameof(TranslationDisplayText));
-                    }
-                    if (bookDisplayChanged)
-                    {
-                        OnPropertyChanged(nameof(BookDisplayText));
-                    }
-                    if (chapterDisplayChanged)
-                    {
-                        OnPropertyChanged(nameof(ChapterDisplayText));
-                    }
-                }
-            });
-        }
-        else
-        {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Values unchanged, skipping PropertyChanged");
         }
     }
 
-    public ICommand SelectLanguageCommand { get; private set; }
-    public ICommand SelectBibleCommand { get; private set; }
-    public ICommand SelectBookCommand { get; private set; }
-    public ICommand SelectChapterCommand { get; private set; }
+    private void NotifyPropertyChanges(PropertyChangeInfo changeInfo)
+    {
+        logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Values changed. Language: {LanguageChanged}, Translation: {TranslationChanged}, Book: {BookChanged}, Chapter: {ChapterChanged}, DisplayTextOnly: {DisplayTextOnly}. CascadeChangeOccurred: {CascadeChangeOccurred}", 
+            changeInfo.NotifyLanguage, changeInfo.NotifyTranslation,
+            changeInfo.NotifyBook, changeInfo.NotifyChapter,
+            changeInfo.DisplayTextOnlyChanged, changeInfo.CascadeChangeOccurred);
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (changeInfo.NotifyLanguage)
+            {
+                OnPropertyChanged(nameof(LanguageDisplayText));
+                OnPropertyChanged(nameof(TranslationDisplayText));
+                OnPropertyChanged(nameof(BookDisplayText));
+                OnPropertyChanged(nameof(ChapterDisplayText));
+            }
+            else if (changeInfo.NotifyTranslation)
+            {
+                OnPropertyChanged(nameof(TranslationDisplayText));
+                OnPropertyChanged(nameof(BookDisplayText));
+                OnPropertyChanged(nameof(ChapterDisplayText));
+            }
+            else if (changeInfo.NotifyBook)
+            {
+                OnPropertyChanged(nameof(BookDisplayText));
+                OnPropertyChanged(nameof(ChapterDisplayText));
+            }
+            else if (changeInfo.NotifyChapter)
+            {
+                OnPropertyChanged(nameof(ChapterDisplayText));
+            }
+            else if (changeInfo.DisplayTextOnlyChanged)
+            {
+                NotifyDisplayTextOnlyChanges(changeInfo);
+            }
+        });
+    }
+
+    private void NotifyDisplayTextOnlyChanges(PropertyChangeInfo changeInfo)
+    {
+        if (changeInfo.LanguageDisplayChanged)
+        {
+            OnPropertyChanged(nameof(LanguageDisplayText));
+        }
+        if (changeInfo.TranslationDisplayChanged)
+        {
+            OnPropertyChanged(nameof(TranslationDisplayText));
+        }
+        if (changeInfo.BookDisplayChanged)
+        {
+            OnPropertyChanged(nameof(BookDisplayText));
+        }
+        if (changeInfo.ChapterDisplayChanged)
+        {
+            OnPropertyChanged(nameof(ChapterDisplayText));
+        }
+    }
+
+    private record PropertyChangeInfo
+    {
+        public string? CurrentLanguageCode { get; init; }
+        public string? CurrentPublicationCode { get; init; }
+        public int? CurrentBookNumber { get; init; }
+        public int? CurrentChapterNumber { get; init; }
+        public string NewLanguageDisplayText { get; init; } = string.Empty;
+        public string NewTranslationDisplayText { get; init; } = string.Empty;
+        public string NewBookDisplayText { get; init; } = string.Empty;
+        public string NewChapterDisplayText { get; init; } = string.Empty;
+        public bool NotifyLanguage { get; init; }
+        public bool NotifyTranslation { get; init; }
+        public bool NotifyBook { get; init; }
+        public bool NotifyChapter { get; init; }
+        public bool DisplayTextOnlyChanged { get; init; }
+        public bool CascadeChangeOccurred { get; init; }
+        public bool LanguageDisplayChanged { get; init; }
+        public bool TranslationDisplayChanged { get; init; }
+        public bool BookDisplayChanged { get; init; }
+        public bool ChapterDisplayChanged { get; init; }
+        public bool HasChanges { get; init; }
+    }
+
+    public ICommand SelectLanguageCommand { get; private set; } = null!;
+    public ICommand SelectBibleCommand { get; private set; } = null!;
+    public ICommand SelectBookCommand { get; private set; } = null!;
+    public ICommand SelectChapterCommand { get; private set; } = null!;
 
     public string LanguageDisplayText
     {

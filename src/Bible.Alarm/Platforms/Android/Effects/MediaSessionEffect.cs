@@ -33,19 +33,14 @@ public class MediaSessionEffect(
     {
         try
         {
-            // Ensure MediaSession is created before accessing
-            var session = mediaSessionManager.GetOrCreate();
+            var session = GetValidatedSession("cannot update playback state");
             if (session == null)
             {
-                logger.Warning("MediaSessionCompat is null, cannot update playback state");
                 return Task.CompletedTask;
             }
 
-            // Get navigation availability from current playback state
             var canPlayNext = playbackState.Value.CanPlayNext;
             var canPlayPrevious = playbackState.Value.CanPlayPrevious;
-
-            // SetPlaybackStatus handles active state and audio focus automatically
             mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
         }
         catch (Exception ex)
@@ -61,51 +56,18 @@ public class MediaSessionEffect(
     {
         try
         {
-            // Ensure MediaSession is created before accessing
-            var session = mediaSessionManager.GetOrCreate();
+            var session = GetValidatedSession("cannot update metadata");
             if (session == null)
             {
-                logger.Warning("MediaSessionCompat is null, cannot update metadata");
                 return Task.CompletedTask;
             }
 
-            if (!string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist))
+            if (HasValidMetadata(action))
             {
-                // Update metadata with scheduleId from state for OnPlayFromMediaId
-                var metadataBuilder = new MediaMetadataCompat.Builder();
-                if (metadataBuilder != null)
+                var metadata = BuildMetadata(action);
+                if (metadata != null)
                 {
-                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyTitle, action.Title ?? "");
-                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyArtist, action.Artist ?? "");
-                    metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyAlbum, action.Album ?? "");
-
-                    // Include scheduleId from state as mediaId for OnPlayFromMediaId callback
-                    var scheduleId = playbackState.Value?.CurrentScheduleId;
-                    if (scheduleId.HasValue)
-                    {
-                        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId,
-                            scheduleId.Value.ToString());
-                    }
-
-                    // Load and set artwork bitmap if available
-                    if (!string.IsNullOrEmpty(action.ArtworkUrl))
-                    {
-                        try
-                        {
-                            var artworkBitmap = artworkService?.LoadArtworkBitmap(action.ArtworkUrl);
-                            if (artworkBitmap != null)
-                            {
-                                metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
-                        }
-                    }
-
-                    var metadata = metadataBuilder.Build();
-                    session?.SetMetadata(metadata);
+                    session.SetMetadata(metadata);
                 }
             }
         }
@@ -117,31 +79,79 @@ public class MediaSessionEffect(
         return Task.CompletedTask;
     }
 
+    private MediaSessionCompat? GetValidatedSession(string warningMessage)
+    {
+        var session = mediaSessionManager.GetOrCreate();
+        if (session == null)
+        {
+            logger.Warning($"MediaSessionCompat is null, {warningMessage}");
+        }
+        return session;
+    }
+
+    private bool HasValidMetadata(PlaybackMetadataChangedAction action)
+    {
+        return !string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist);
+    }
+
+    private MediaMetadataCompat? BuildMetadata(PlaybackMetadataChangedAction action)
+    {
+        var metadataBuilder = new MediaMetadataCompat.Builder();
+
+        SetBasicMetadata(metadataBuilder, action);
+        SetScheduleId(metadataBuilder);
+        SetArtwork(metadataBuilder, action);
+
+        return metadataBuilder.Build();
+    }
+
+    private void SetBasicMetadata(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action)
+    {
+        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyTitle, action.Title ?? "");
+        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyArtist, action.Artist ?? "");
+        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyAlbum, action.Album ?? "");
+    }
+
+    private void SetScheduleId(MediaMetadataCompat.Builder metadataBuilder)
+    {
+        var scheduleId = playbackState.Value?.CurrentScheduleId;
+        if (scheduleId.HasValue)
+        {
+            metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+        }
+    }
+
+    private void SetArtwork(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action)
+    {
+        if (!string.IsNullOrEmpty(action.ArtworkUrl))
+        {
+            try
+            {
+                var artworkBitmap = artworkService?.LoadArtworkBitmap(action.ArtworkUrl);
+                if (artworkBitmap != null)
+                {
+                    metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
+            }
+        }
+    }
+
     [EffectMethod]
     public Task HandlePlaybackDurationChanged(PlaybackDurationChangedAction action, FluxorDispatcher dispatcher)
     {
         try
         {
-            // Ensure MediaSession is created before accessing
-            var session = mediaSessionManager.GetOrCreate();
+            var session = GetValidatedSession("cannot update duration");
             if (session == null)
             {
-                logger.Warning("MediaSessionCompat is null, cannot update duration");
                 return Task.CompletedTask;
             }
 
-            // Update duration in metadata
-            var durationMs = (long)action.Duration.TotalMilliseconds;
-            if (durationMs > 0)
-            {
-                var currentMetadata = session.Controller?.Metadata;
-                if (currentMetadata != null)
-                {
-                    var metadataBuilder = new MediaMetadataCompat.Builder(currentMetadata);
-                    metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
-                    session.SetMetadata(metadataBuilder.Build());
-                }
-            }
+            UpdateDurationInMetadata(session, action.Duration);
         }
         catch (Exception ex)
         {
@@ -151,35 +161,34 @@ public class MediaSessionEffect(
         return Task.CompletedTask;
     }
 
+    private void UpdateDurationInMetadata(MediaSessionCompat session, TimeSpan duration)
+    {
+        var durationMs = (long)duration.TotalMilliseconds;
+        if (durationMs > 0)
+        {
+            var currentMetadata = session.Controller?.Metadata;
+            if (currentMetadata != null)
+            {
+                var metadataBuilder = new MediaMetadataCompat.Builder(currentMetadata);
+                metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
+                session.SetMetadata(metadataBuilder.Build());
+            }
+        }
+    }
+
     [EffectMethod]
     public Task HandlePlaybackNavigationChanged(PlaybackNavigationChangedAction action, FluxorDispatcher dispatcher)
     {
         try
         {
-            // Ensure MediaSession is created before accessing
-            var session = mediaSessionManager.GetOrCreate();
+            var session = GetValidatedSession("cannot update navigation state");
             if (session == null)
             {
-                logger.Warning("MediaSessionCompat is null, cannot update navigation state");
                 return Task.CompletedTask;
             }
 
-            // Get current playback state to update with new navigation availability
-            var currentState = playbackState.Value;
-            var state = currentState.Status switch
-            {
-                PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
-                PlayStatus.Paused => PlaybackStateCompat.StatePaused,
-                PlayStatus.Loading => PlaybackStateCompat.StateBuffering,
-                PlayStatus.Stopped => PlaybackStateCompat.StateStopped,
-                PlayStatus.Ended => PlaybackStateCompat.StateStopped,
-                PlayStatus.Failed => PlaybackStateCompat.StateError,
-                _ => PlaybackStateCompat.StateNone
-            };
-
-            // Update playback state with new navigation availability
-            var playbackStateCompat = session.Controller?.PlaybackState;
-            var position = playbackStateCompat?.Position ?? 0;
+            var state = MapPlayStatusToPlaybackState(playbackState.Value.Status);
+            var position = GetCurrentPlaybackPosition(session);
             mediaSessionManager.UpdatePlaybackState(state, position, action.CanPlayNext, action.CanPlayPrevious);
         }
         catch (Exception ex)
@@ -188,6 +197,26 @@ public class MediaSessionEffect(
         }
 
         return Task.CompletedTask;
+    }
+
+    private int MapPlayStatusToPlaybackState(PlayStatus status)
+    {
+        return status switch
+        {
+            PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
+            PlayStatus.Paused => PlaybackStateCompat.StatePaused,
+            PlayStatus.Loading => PlaybackStateCompat.StateBuffering,
+            PlayStatus.Stopped => PlaybackStateCompat.StateStopped,
+            PlayStatus.Ended => PlaybackStateCompat.StateStopped,
+            PlayStatus.Failed => PlaybackStateCompat.StateError,
+            _ => PlaybackStateCompat.StateNone
+        };
+    }
+
+    private long GetCurrentPlaybackPosition(MediaSessionCompat session)
+    {
+        var playbackStateCompat = session.Controller?.PlaybackState;
+        return playbackStateCompat?.Position ?? 0;
     }
 
     /// <summary>
@@ -202,24 +231,25 @@ public class MediaSessionEffect(
                 return;
             }
 
-            // Ensure MediaSession is created before accessing
             var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
                 return;
             }
 
-            // Get duration and navigation availability from playback state
-            var duration = playbackState.Value.Duration;
-            var canPlayNext = playbackState.Value.CanPlayNext;
-            var canPlayPrevious = playbackState.Value.CanPlayPrevious;
-
-            // Update position in MediaSessionCompat
-            mediaSessionManager.UpdatePlaybackPosition(message.CurrentPosition.Value, duration, canPlayNext, canPlayPrevious);
+            UpdatePlaybackPosition(session, message.CurrentPosition.Value);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error updating MediaSessionCompat playback position");
         }
+    }
+
+    private void UpdatePlaybackPosition(MediaSessionCompat session, TimeSpan currentPosition)
+    {
+        var duration = playbackState.Value.Duration;
+        var canPlayNext = playbackState.Value.CanPlayNext;
+        var canPlayPrevious = playbackState.Value.CanPlayPrevious;
+        mediaSessionManager.UpdatePlaybackPosition(currentPosition, duration, canPlayNext, canPlayPrevious);
     }
 }

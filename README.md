@@ -1,4 +1,4 @@
-## Bible-Alarm
+# Bible-Alarm
 
 @justcoding121. All rights reserved.
 
@@ -17,6 +17,12 @@
 [![Duplicated Lines](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
 
+## Download
+
+- **Apple Store**: [Download on App Store](https://apps.apple.com/us/app/bible-alarm/id1513519477?platform=iphone)
+- **Android Store**: [Get it on Google Play](https://play.google.com/store/apps/details?id=com.jthomas.info.Bible.Alarm)
+- **Windows Store**: [Get it from Microsoft Store](https://apps.microsoft.com/detail/9nhzhb85v6r4)
+
 ## License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
@@ -31,17 +37,3 @@ This is a copyleft license that requires anyone who distributes this software or
 For the full license text, see the [LICENSE](LICENSE) file in this repository.
 
 **If you need a different license for commercial use, please contact the copyright holder.**
-
-Apple store
-https://apps.apple.com/us/app/bible-alarm/id1513519477?platform=iphone
-
-Android store
-https://play.google.com/store/apps/details?id=com.jthomas.info.Bible.Alarm
-
-Windows store
-https://apps.microsoft.com/detail/9nhzhb85v6r4
-
-###  Development environment
-
-* Visual Studio for Xamarin project
-* Visual Studio for link harvestor project in C#

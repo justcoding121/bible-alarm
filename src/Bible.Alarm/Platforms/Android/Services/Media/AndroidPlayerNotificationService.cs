@@ -41,127 +41,175 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     {
         try
         {
-            // Get ExoPlayer instance and cast to IExoPlayer interface
-            if (GetExoPlayer(mediaElement) is not IExoPlayer player)
+            var player = GetValidatedExoPlayer(mediaElement);
+            if (player == null)
             {
-                logger.Error("Failed to get ExoPlayer instance");
                 return;
             }
 
-            // Get Android context for DataSourceFactory
-            var context = Application.Context;
-            var dataSourceFactory = new DefaultDataSource.Factory(context);
-
-            // Parse the URI
-            var androidUri = Uri.Parse(uri);
+            var dataSourceFactory = CreateDataSourceFactory();
+            var androidUri = ParseUri(uri);
             if (androidUri == null)
             {
-                logger.Error("Failed to parse URI: {Uri}", uri);
                 return;
             }
 
-            // Build list of sources based on track position
-            var sources = new List<IMediaSource>();
-
-            // Create current item (always needed)
-            var currentItemBuilder = new MediaItem.Builder()
-                .SetUri(androidUri!)?
-                .SetMediaId("bible_alarm_current");
-
-            var currentItem = currentItemBuilder?.Build();
-            if (currentItem == null)
+            var sources = BuildMediaSources(dataSourceFactory, androidUri, isFirstTrack, isLastTrack);
+            if (sources == null)
             {
-                logger.Error("Failed to build MediaItem for current item");
-                return;
-            }
-            var currentSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
-                .CreateMediaSource(currentItem);
-            if (currentSource == null)
-            {
-                logger.Error("Failed to create MediaSource for current item");
                 return;
             }
 
-            // Add previous dummy only if not first track
-            if (!isFirstTrack)
-            {
-                var previousSource = CreateDummyMediaSource("bible_alarm_previous_dummy", dataSourceFactory);
-                if (previousSource == null)
-                {
-                    return;
-                }
-                sources.Add(previousSource);
-            }
-
-            // Add current item
-            sources.Add(currentSource);
-
-            // Add next dummy only if not last track
-            if (!isLastTrack)
-            {
-                var nextSource = CreateDummyMediaSource("bible_alarm_next_dummy", dataSourceFactory);
-                if (nextSource == null)
-                {
-                    return;
-                }
-                sources.Add(nextSource);
-            }
-
-            // Set media sources directly on the player
-            // SetMediaSources internally creates a ConcatenatingMediaSource, so behavior is the same
-            // but this is the newer, simpler API for static playlists
-            player.SetMediaSources([.. sources]);
-
-            // CRITICAL: Call Prepare() AFTER setting the source to trigger TimelineChanged event
-            // This is what makes MediaSessionConnector see HasNextMediaItem and HasPreviousMediaItem = true
-            player.Prepare();
-
-            // Seek to the current item index
-            // If previous dummy exists, current is at index 1, otherwise at index 0
-            var currentItemIndex = isFirstTrack ? 0 : 1;
-            player.SeekTo(currentItemIndex, 0);
-
-            // Do NOT call player.Play() here - let the normal Play() flow handle it
-
-            var itemCount = sources.Count;
-            var itemsDescription = isFirstTrack && isLastTrack ? "current only" :
-                                   isFirstTrack ? "current + next dummy" :
-                                   isLastTrack ? "previous dummy + current" :
-                                   "previous dummy + current + next dummy";
-            logger.Information("Set media queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.",
-                itemCount, itemsDescription);
-
-            // Verify HasNextMediaItem and HasPreviousMediaItem are true
-            if (player.HasNextMediaItem)
-            {
-                logger.Debug("Player HasNextMediaItem: {HasNext}", player.HasNextMediaItem);
-            }
-            else
-            {
-                logger.Debug("Player HasNextMediaItem is still false after setting media sources");
-            }
-
-            // Check for HasPreviousMediaItem property via reflection
-            var playerType = player.GetType();
-            var hasPreviousProperty = playerType.GetProperty("HasPreviousMediaItem", BindingFlags.Public | BindingFlags.Instance);
-            if (hasPreviousProperty != null)
-            {
-                var hasPrevious = hasPreviousProperty.GetValue(player);
-                logger.Debug("Player HasPreviousMediaItem: {HasPrevious}", hasPrevious);
-            }
-
-            // Set up listener to intercept Next/Previous button presses
+            ConfigurePlayerWithSources(player, sources, isFirstTrack);
+            LogQueueConfiguration(sources.Count, isFirstTrack, isLastTrack);
+            VerifyPlayerCapabilities(player);
             SetupExoPlayerListener(player);
-
-            // Log confirmation that Next/Previous buttons are enabled
-            // This confirms the implementation is ready for Pixel 7a and all Android devices
-            // MediaSession.SetSessionActivity() is configured in MediaManager to handle notification body taps on Android 14+
-            logger.Information("NEXT/PREV BUTTONS ENABLED — Pixel 7a ready. Queue configured with {ItemCount} items. MediaSession.SetSessionActivity() configured for notification body taps.", itemCount);
+            LogFinalConfirmation(sources.Count);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Failed to set queue in SetSourceWithDummyQueue");
         }
+    }
+
+    private IExoPlayer? GetValidatedExoPlayer(MediaElement mediaElement)
+    {
+        var player = GetExoPlayer(mediaElement) as IExoPlayer;
+        if (player == null)
+        {
+            logger.Error("Failed to get ExoPlayer instance");
+        }
+        return player;
+    }
+
+    private DefaultDataSource.Factory CreateDataSourceFactory()
+    {
+        var context = Application.Context;
+        return new DefaultDataSource.Factory(context);
+    }
+
+    private Uri? ParseUri(string uri)
+    {
+        var androidUri = Uri.Parse(uri);
+        if (androidUri == null)
+        {
+            logger.Error("Failed to parse URI: {Uri}", uri);
+        }
+        return androidUri;
+    }
+
+    private List<IMediaSource>? BuildMediaSources(DefaultDataSource.Factory dataSourceFactory, Uri androidUri, bool isFirstTrack, bool isLastTrack)
+    {
+        var sources = new List<IMediaSource>();
+        var currentSource = CreateCurrentMediaSource(dataSourceFactory, androidUri);
+        if (currentSource == null)
+        {
+            return null;
+        }
+
+        // Add previous dummy only if not first track
+        if (!isFirstTrack)
+        {
+            var previousSource = CreateDummyMediaSource("bible_alarm_previous_dummy", dataSourceFactory);
+            if (previousSource == null)
+            {
+                return null;
+            }
+            sources.Add(previousSource);
+        }
+
+        // Add current item
+        sources.Add(currentSource);
+
+        // Add next dummy only if not last track
+        if (!isLastTrack)
+        {
+            var nextSource = CreateDummyMediaSource("bible_alarm_next_dummy", dataSourceFactory);
+            if (nextSource == null)
+            {
+                return null;
+            }
+            sources.Add(nextSource);
+        }
+
+        return sources;
+    }
+
+    private IMediaSource? CreateCurrentMediaSource(DefaultDataSource.Factory dataSourceFactory, Uri androidUri)
+    {
+        var currentItemBuilder = new MediaItem.Builder()
+            .SetUri(androidUri)?
+            .SetMediaId("bible_alarm_current");
+
+        var currentItem = currentItemBuilder?.Build();
+        if (currentItem == null)
+        {
+            logger.Error("Failed to build MediaItem for current item");
+            return null;
+        }
+
+        var currentSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+            .CreateMediaSource(currentItem);
+        if (currentSource == null)
+        {
+            logger.Error("Failed to create MediaSource for current item");
+        }
+
+        return currentSource;
+    }
+
+    private void ConfigurePlayerWithSources(IExoPlayer player, List<IMediaSource> sources, bool isFirstTrack)
+    {
+        // Set media sources directly on the player
+        player.SetMediaSources([.. sources]);
+
+        // CRITICAL: Call Prepare() AFTER setting the source to trigger TimelineChanged event
+        // This is what makes MediaSessionConnector see HasNextMediaItem and HasPreviousMediaItem = true
+        player.Prepare();
+
+        // Seek to the current item index
+        // If previous dummy exists, current is at index 1, otherwise at index 0
+        var currentItemIndex = isFirstTrack ? 0 : 1;
+        player.SeekTo(currentItemIndex, 0);
+    }
+
+    private void LogQueueConfiguration(int itemCount, bool isFirstTrack, bool isLastTrack)
+    {
+        var itemsDescription = isFirstTrack && isLastTrack ? "current only" :
+                               isFirstTrack ? "current + next dummy" :
+                               isLastTrack ? "previous dummy + current" :
+                               "previous dummy + current + next dummy";
+        logger.Information("Set media queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.",
+            itemCount, itemsDescription);
+    }
+
+    private void VerifyPlayerCapabilities(IExoPlayer player)
+    {
+        if (player.HasNextMediaItem)
+        {
+            logger.Debug("Player HasNextMediaItem: {HasNext}", player.HasNextMediaItem);
+        }
+        else
+        {
+            logger.Debug("Player HasNextMediaItem is still false after setting media sources");
+        }
+
+        // Check for HasPreviousMediaItem property via reflection
+        var playerType = player.GetType();
+        var hasPreviousProperty = playerType.GetProperty("HasPreviousMediaItem", BindingFlags.Public | BindingFlags.Instance);
+        if (hasPreviousProperty != null)
+        {
+            var hasPrevious = hasPreviousProperty.GetValue(player);
+            logger.Debug("Player HasPreviousMediaItem: {HasPrevious}", hasPrevious);
+        }
+    }
+
+    private void LogFinalConfirmation(int itemCount)
+    {
+        // Log confirmation that Next/Previous buttons are enabled
+        // This confirms the implementation is ready for Pixel 7a and all Android devices
+        // MediaSession.SetSessionActivity() is configured in MediaManager to handle notification body taps on Android 14+
+        logger.Information("NEXT/PREV BUTTONS ENABLED — Pixel 7a ready. Queue configured with {ItemCount} items. MediaSession.SetSessionActivity() configured for notification body taps.", itemCount);
     }
 
     /// <summary>
@@ -178,32 +226,46 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
             return null;
         }
 
-        var dummyUri = Uri.Parse(silentMp3Uri);
+        var dummyUri = ParseUri(silentMp3Uri);
         if (dummyUri == null)
         {
-            logger.Error("Failed to parse silent MP3 URI: {Uri}", silentMp3Uri);
             return null;
         }
 
-        var dummyItemBuilder = new MediaItem.Builder()
-                .SetUri(dummyUri)?
-                .SetMediaId(mediaId);
-        var dummyItem = dummyItemBuilder?.Build();
-        if (dummyItem == null)
+        return CreateMediaSourceFromUri(dummyUri, mediaId, dataSourceFactory);
+    }
+
+    private IMediaSource? CreateMediaSourceFromUri(Uri uri, string mediaId, DefaultDataSource.Factory dataSourceFactory)
+    {
+        var mediaItem = CreateMediaItem(uri, mediaId);
+        if (mediaItem == null)
         {
-            logger.Error("Failed to build MediaItem for dummy item with MediaId: {MediaId}", mediaId);
             return null;
         }
 
         var source = new ProgressiveMediaSource.Factory(dataSourceFactory)
-            .CreateMediaSource(dummyItem);
+            .CreateMediaSource(mediaItem);
         if (source == null)
         {
-            logger.Error("Failed to create MediaSource for dummy item with MediaId: {MediaId}", mediaId);
-            return null;
+            logger.Error("Failed to create MediaSource for item with MediaId: {MediaId}", mediaId);
         }
 
         return source;
+    }
+
+    private MediaItem? CreateMediaItem(Uri uri, string mediaId)
+    {
+        var itemBuilder = new MediaItem.Builder()
+            .SetUri(uri)?
+            .SetMediaId(mediaId);
+
+        var item = itemBuilder?.Build();
+        if (item == null)
+        {
+            logger.Error("Failed to build MediaItem with MediaId: {MediaId}", mediaId);
+        }
+
+        return item;
     }
 
     /// <summary>
@@ -214,35 +276,52 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     {
         try
         {
-            const string ResourceFileName = "silent.mp3";
-            var storageService = ServiceProviderManager.GetService<IStorageService>();
+            var storageService = GetValidatedStorageService();
             if (storageService == null)
             {
-                logger.Error("IStorageService not available - cannot get silent MP3 URI");
                 return null;
             }
 
-            // Use StorageRoot (same directory as schedule database) instead of CacheRoot
-            // because cache can get deleted by the system
-            var storageDir = storageService.StorageRoot;
-            var filePath = Path.Combine(storageDir, ResourceFileName);
-
-            // Check if file exists (should be copied during bootstrap)
+            var filePath = GetSilentMp3FilePath(storageService);
             if (!File.Exists(filePath))
             {
                 logger.Warning("Silent MP3 not found in storage: {FilePath}. It should have been copied during bootstrap.", filePath);
                 return null;
             }
 
-            var uri = new System.Uri(filePath).AbsoluteUri;
-            logger.Debug("Using silent MP3 from storage: {FilePath}", filePath);
-            return uri;
+            return CreateFileUri(filePath);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error getting silent MP3 URI");
             return null;
         }
+    }
+
+    private IStorageService? GetValidatedStorageService()
+    {
+        var storageService = ServiceProviderManager.GetService<IStorageService>();
+        if (storageService == null)
+        {
+            logger.Error("IStorageService not available - cannot get silent MP3 URI");
+        }
+        return storageService;
+    }
+
+    private string GetSilentMp3FilePath(IStorageService storageService)
+    {
+        const string ResourceFileName = "silent.mp3";
+        // Use StorageRoot (same directory as schedule database) instead of CacheRoot
+        // because cache can get deleted by the system
+        var storageDir = storageService.StorageRoot;
+        return Path.Combine(storageDir, ResourceFileName);
+    }
+
+    private string CreateFileUri(string filePath)
+    {
+        var uri = new System.Uri(filePath).AbsoluteUri;
+        logger.Debug("Using silent MP3 from storage: {FilePath}", filePath);
+        return uri;
     }
 
     /// <summary>
@@ -400,32 +479,41 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     {
         try
         {
-            // Always remove the old listener first, regardless of whether it's the same player or different
-            // This prevents duplicate listeners when SetSourceWithDummyQueue is called multiple times
-            if (exoPlayerListener != null && currentPlayer != null)
-            {
-                RemoveExoPlayerListener();
-            }
-
-            // Create and add new listener
-            currentPlayer = player;
-            exoPlayerListener = new ExoPlayerListener(logger);
-
-            // Use reflection to call AddListener with IPlayerListener parameter
-            var addMethod = player.GetType().GetMethod("AddListener", [typeof(IPlayerListener)]);
-            if (addMethod != null)
-            {
-                _ = addMethod.Invoke(player, [exoPlayerListener]);
-                logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
-            }
-            else
-            {
-                logger.Warning("AddListener method not found on IExoPlayer");
-            }
+            CleanupExistingListener();
+            CreateAndAttachNewListener(player);
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Failed to set up ExoPlayer listener");
+        }
+    }
+
+    private void CleanupExistingListener()
+    {
+        // Always remove the old listener first, regardless of whether it's the same player or different
+        // This prevents duplicate listeners when SetSourceWithDummyQueue is called multiple times
+        if (exoPlayerListener != null && currentPlayer != null)
+        {
+            RemoveExoPlayerListener();
+        }
+    }
+
+    private void CreateAndAttachNewListener(IExoPlayer player)
+    {
+        // Create and add new listener
+        currentPlayer = player;
+        exoPlayerListener = new ExoPlayerListener(logger);
+
+        // Use reflection to call AddListener with IPlayerListener parameter
+        var addMethod = player.GetType().GetMethod("AddListener", [typeof(IPlayerListener)]);
+        if (addMethod != null)
+        {
+            _ = addMethod.Invoke(player, [exoPlayerListener]);
+            logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
+        }
+        else
+        {
+            logger.Warning("AddListener method not found on IExoPlayer");
         }
     }
 

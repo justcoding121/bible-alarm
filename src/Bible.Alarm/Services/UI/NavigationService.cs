@@ -107,65 +107,83 @@ public sealed class NavigationService(
 
     public async Task NavigateToHomeAsync()
     {
-        // Wait for navigation to be available (window might still be initializing)
         var navigation = GetNavigation();
 
-        // Check if we're already on Home page
-        if (navigation.NavigationStack.Count > 0 && navigation.NavigationStack.LastOrDefault() is Home)
+        if (IsAlreadyOnHomePage(navigation))
         {
-            // Already on Home, no need to navigate
             return;
         }
 
-        // Find Home in the stack (BootstrapPage is at index 0, Home should be at index 1)
-        Home? existingHome = null;
+        var existingHome = FindExistingHomeInStack(navigation);
+        if (existingHome != null)
+        {
+            await PopToExistingHomeAsync(navigation, existingHome);
+        }
+        else
+        {
+            await PopToBootstrapAndPushNewHomeAsync(navigation);
+        }
+    }
+
+    private static bool IsAlreadyOnHomePage(INavigation navigation)
+    {
+        return navigation.NavigationStack.Count > 0 &&
+               navigation.NavigationStack.LastOrDefault() is Home;
+    }
+
+    private static Home? FindExistingHomeInStack(INavigation navigation)
+    {
         for (int i = navigation.NavigationStack.Count - 1; i >= 0; i--)
         {
             if (navigation.NavigationStack[i] is Home home)
             {
-                existingHome = home;
-                break;
+                return home;
             }
         }
+        return null;
+    }
 
-        if (existingHome != null)
+    private async Task PopToExistingHomeAsync(INavigation navigation, Home existingHome)
+    {
+        // Home exists in stack - pop all pages until we reach Home (but keep BootstrapPage)
+        while (navigation.NavigationStack.Count > 1 && navigation.NavigationStack.LastOrDefault() != existingHome)
         {
-            // Home exists in stack - pop all pages until we reach Home (but keep BootstrapPage)
-            while (navigation.NavigationStack.Count > 1 && navigation.NavigationStack.LastOrDefault() != existingHome)
+            var page = navigation.NavigationStack.LastOrDefault();
+            await navigation.PopAsync(animated: true);
+            if (page != existingHome && page is IDisposable disposable)
             {
-                var page = navigation.NavigationStack.LastOrDefault();
-                // Keep animation enabled for navigation back
-                await navigation.PopAsync(animated: true);
-                if (page != existingHome && page is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
+                disposable.Dispose();
             }
         }
-        else
+    }
+
+    private async Task PopToBootstrapAndPushNewHomeAsync(INavigation navigation)
+    {
+        // Home doesn't exist - pop all pages except BootstrapPage (index 0), then push new Home
+        await PopAllPagesExceptBootstrapAsync(navigation);
+
+        var homePage = serviceProvider.GetRequiredService<Home>();
+        ConfigureHomePageNavigation(homePage);
+        await navigation.PushAsync(homePage, animated: false);
+    }
+
+    private async Task PopAllPagesExceptBootstrapAsync(INavigation navigation)
+    {
+        while (navigation.NavigationStack.Count > 1)
         {
-            // Home doesn't exist - pop all pages except BootstrapPage (index 0), then push new Home
-            while (navigation.NavigationStack.Count > 1)
+            var page = navigation.NavigationStack.LastOrDefault();
+            await navigation.PopAsync(animated: true);
+            if (page is IDisposable disposable)
             {
-                var page = navigation.NavigationStack.LastOrDefault();
-                // Keep animation enabled for navigation back
-                await navigation.PopAsync(animated: true);
-                if (page is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
+                disposable.Dispose();
             }
-
-            // Create a new Home page via DI
-            var homePage = serviceProvider.GetRequiredService<Home>();
-
-            // Set navigation bar setting
-            NavigationPage.SetHasBackButton(homePage, false);
-            NavigationPage.SetHasNavigationBar(homePage, false);
-
-            // Push the new Home page without animation
-            await navigation.PushAsync(homePage, animated: false);
         }
+    }
+
+    private static void ConfigureHomePageNavigation(Home homePage)
+    {
+        NavigationPage.SetHasBackButton(homePage, false);
+        NavigationPage.SetHasNavigationBar(homePage, false);
     }
 
     public async Task NavigateToScheduleAsync()
@@ -275,23 +293,13 @@ public sealed class NavigationService(
             try
             {
                 var navigation = GetNavigation();
-
-                // Check if modal is already shown
-                var existingModal = navigation.ModalStack.LastOrDefault();
-                if (existingModal?.GetType() == typeof(AlarmModal) ||
-                    (existingModal is NavigationPage navPage && navPage.CurrentPage is AlarmModal))
+                if (IsAlarmModalAlreadyShown(navigation))
                 {
                     return;
                 }
 
-
                 var modal = serviceProvider.GetRequiredService<AlarmModal>();
-
-                // Ensure modal is properly configured
-                NavigationPage.SetHasNavigationBar(modal, false);
-
-                // Push modal directly - wrapping in NavigationPage on Windows causes display issues
-                // Disable animation for instant appearance
+                ConfigureAlarmModal(modal);
                 await navigation.PushModalAsync(modal, animated: false);
             }
             catch (Exception ex)
@@ -299,6 +307,18 @@ public sealed class NavigationService(
                 logger.Error(ex, "Error opening AlarmModal");
             }
         });
+    }
+
+    private static bool IsAlarmModalAlreadyShown(INavigation navigation)
+    {
+        var existingModal = navigation.ModalStack.LastOrDefault();
+        return existingModal?.GetType() == typeof(AlarmModal) ||
+               (existingModal is NavigationPage navPage && navPage.CurrentPage is AlarmModal);
+    }
+
+    private static void ConfigureAlarmModal(AlarmModal modal)
+    {
+        NavigationPage.SetHasNavigationBar(modal, false);
     }
 
 
@@ -418,79 +438,17 @@ public sealed class NavigationService(
     {
         try
         {
-            INavigation? navigation = null;
-            try
-            {
-                navigation = GetNavigation();
-            }
-            catch (Exception ex)
-            {
-                // Navigation might not be available if fragments are already destroyed
-                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not get navigation, fragments may be destroyed");
-                return;
-            }
-
+            var navigation = GetNavigationSafely();
             if (navigation == null)
             {
-                logger?.Warning("NavigationService.PopAllModalsAndPages - Navigation is null");
                 return;
             }
 
-            // Dispose all modals directly without popping (fragments are already destroyed)
-            List<Page> modalStack;
-            try
-            {
-                modalStack = navigation.ModalStack.ToList(); // Create a copy to avoid modification during iteration
-            }
-            catch (Exception ex)
-            {
-                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access ModalStack, fragments may be destroyed");
-                modalStack = [];
-            }
+            var modalStack = GetModalStackSafely(navigation);
+            var navigationStack = GetNavigationStackSafely(navigation);
 
-            foreach (var page in modalStack)
-            {
-                try
-                {
-                    if (page is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                        logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed modal: {PageType}", page.GetType().Name);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing modal: {PageType}", page.GetType().Name);
-                }
-            }
-
-            // Dispose all pages in navigation stack directly without popping (fragments are already destroyed)
-            List<Page> navigationStack;
-            try
-            {
-                navigationStack = navigation.NavigationStack.ToList(); // Create a copy to avoid modification during iteration
-            }
-            catch (Exception ex)
-            {
-                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access NavigationStack, fragments may be destroyed");
-                navigationStack = [];
-            }
-
-            foreach (var page in navigationStack)
-            {
-                try
-                {
-                    if (page is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                        logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed page: {PageType}", page.GetType().Name);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing page: {PageType}", page.GetType().Name);
-                }
-            }
+            DisposePages(modalStack, "modal");
+            DisposePages(navigationStack, "page");
 
             logger?.Information("NavigationService.PopAllModalsAndPages - Finished disposing modals and pages. Modal count: {ModalCount}, Page count: {PageCount}",
                 modalStack.Count, navigationStack.Count);
@@ -498,6 +456,64 @@ public sealed class NavigationService(
         catch (Exception ex)
         {
             logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error during modal/page cleanup");
+        }
+    }
+
+    private INavigation? GetNavigationSafely()
+    {
+        try
+        {
+            return GetNavigation();
+        }
+        catch (Exception ex)
+        {
+            logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not get navigation, fragments may be destroyed");
+            return null;
+        }
+    }
+
+    private List<Page> GetModalStackSafely(INavigation navigation)
+    {
+        try
+        {
+            return navigation.ModalStack.ToList();
+        }
+        catch (Exception ex)
+        {
+            logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access ModalStack, fragments may be destroyed");
+            return [];
+        }
+    }
+
+    private List<Page> GetNavigationStackSafely(INavigation navigation)
+    {
+        try
+        {
+            return navigation.NavigationStack.ToList();
+        }
+        catch (Exception ex)
+        {
+            logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access NavigationStack, fragments may be destroyed");
+            return [];
+        }
+    }
+
+    private void DisposePages(List<Page> pages, string pageType)
+    {
+        foreach (var page in pages)
+        {
+            try
+            {
+                if (page is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                    logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed {PageType}: {PageTypeName}", pageType, page.GetType().Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing {PageType}: {PageTypeName}", pageType, page.GetType().Name);
+            }
         }
     }
 }

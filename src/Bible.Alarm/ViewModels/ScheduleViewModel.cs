@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
@@ -182,10 +183,25 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         logger.Information("CancelCommand: Cancel button clicked. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}", ScheduleId, IsNewSchedule);
 
-        // If it's a new schedule, just navigate home (no need to reload)
+        // If it's a new schedule, remove it from state and navigate home
         if (IsNewSchedule)
         {
-            logger.Debug("CancelCommand: New schedule, navigating to home without reload");
+            logger.Debug("CancelCommand: New schedule, removing from state and navigating to home");
+            
+            // Remove any unsaved schedule (ID <= 0) from the Schedules collection
+            var currentState = state.Value;
+            if (currentState.Schedules != null)
+            {
+                var unsavedSchedules = currentState.Schedules.Where(s => s.Id <= 0).ToList();
+                foreach (var unsavedSchedule in unsavedSchedules)
+                {
+                    logger.Debug("CancelCommand: Removing unsaved schedule with ID {ScheduleId} from state", unsavedSchedule.Id);
+                    dispatcher.Dispatch(new RemoveScheduleSuccessAction(unsavedSchedule.Id));
+                }
+            }
+            
+            // Reset schedule state
+            dispatcher.Dispatch(new ResetScheduleStateAction());
             await navigationService.NavigateToHomeAsync();
             return;
         }
@@ -506,7 +522,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         });
     }
 
-    private void OnStateChanged(object sender, EventArgs e)
+    private void OnStateChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
 
@@ -526,7 +542,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         OnCurrentScheduleChanged(sender, e);
     }
 
-    private void OnCurrentScheduleChanged(object sender, EventArgs e)
+    private void OnCurrentScheduleChanged(object? sender, EventArgs e)
     {
         var handlerStartTime = DateTime.UtcNow;
         logger.Information("[PERF] OnCurrentScheduleChanged: Handler started at {StartTime}", handlerStartTime);
@@ -627,6 +643,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         
         // Reset musicUpdated when loading a schedule (only set to true if music changes after load)
         musicUpdated = false;
+        bibleReadingUpdated = false;
 
         var isNew = currentScheduleItem.Id <= 0;
         logger.Information("[PERF] OnCurrentScheduleChanged: IsNew={IsNew}, invoking on main thread", isNew);
@@ -693,6 +710,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         lastMusicLanguageCode = null;
         lastMusicRepeat = null;
         musicUpdated = false;
+        bibleReadingUpdated = false;
     }
 
     /// <summary>
@@ -751,6 +769,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                     lastMusicLanguageCode = scheduleStateItem.MusicLanguageCode;
                     lastMusicRepeat = scheduleStateItem.MusicRepeat;
                     musicUpdated = false; // New schedules start with musicUpdated = false
+                    bibleReadingUpdated = false; // New schedules start with bibleReadingUpdated = false
                     
                     // Properties will be updated when state changes, so just notify
                     OnPropertyChanged(nameof(Name));
@@ -769,10 +788,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         });
     }
 
-    public ICommand CancelCommand { get; set; }
+    public ICommand CancelCommand { get; set; } = null!;
 
-    public ICommand SaveCommand { get; set; }
-    public ICommand DeleteCommand { get; set; }
+    public ICommand SaveCommand { get; set; } = null!;
+    public ICommand DeleteCommand { get; set; } = null!;
 
     private AlarmSchedule GetModel()
     {

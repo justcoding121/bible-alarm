@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
@@ -8,7 +10,6 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Music;
@@ -265,7 +266,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         this.musicUpdated = musicUpdated;
     }
 
-    private void OnStateChanged(object sender, EventArgs e)
+    private void OnStateChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
@@ -579,12 +580,12 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         });
     }
 
-    public ICommand SelectMusicCommand { get; private set; }
-    public ICommand SelectMusicTypeCommand { get; private set; }
-    public ICommand SelectMusicLanguageCommand { get; private set; }
-    public ICommand SelectSongBookCommand { get; private set; }
-    public ICommand SelectTrackCommand { get; private set; }
-    public ICommand ToggleRepeatCommand { get; private set; }
+    public ICommand SelectMusicCommand { get; private set; } = null!;
+    public ICommand SelectMusicTypeCommand { get; private set; } = null!;
+    public ICommand SelectMusicLanguageCommand { get; private set; } = null!;
+    public ICommand SelectSongBookCommand { get; private set; } = null!;
+    public ICommand SelectTrackCommand { get; private set; } = null!;
+    public ICommand ToggleRepeatCommand { get; private set; } = null!;
 
     public bool MusicEnabled
     {

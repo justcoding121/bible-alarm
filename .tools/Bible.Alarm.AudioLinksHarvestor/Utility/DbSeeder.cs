@@ -1,3 +1,6 @@
+#nullable enable
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -38,34 +41,10 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-        if (displayLanguage == null)
-        {
-            displayLanguage = new Language
-            {
-                Code = "E",
-                Name = "English"
-            };
-            db.Languages.Add(displayLanguage);
-            await db.SaveChangesAsync();
-        }
-
+        var displayLanguage = await GetOrCreateDisplayLanguage(db);
         var mediaReader = new MediaReader(indexDir);
 
-        Dictionary<string, Models.Language> bibleLanguages;
-        try
-        {
-            bibleLanguages = await mediaReader.GetBibleLanguages();
-        }
-        catch (FileNotFoundException)
-        {
-            return;
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return;
-        }
-
+        var bibleLanguages = await GetBibleLanguagesSafely(mediaReader);
         if (bibleLanguages == null || bibleLanguages.Count == 0)
         {
             return;
@@ -73,125 +52,13 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         foreach (var language in bibleLanguages)
         {
-            var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
-                                                                    && x.Name == language.Value.Name) ?? new Language
-                                                                    {
-                                                                        Code = language.Value.Code,
-                                                                        Name = language.Value.Name
-                                                                    };
-            Dictionary<string, Publication> translations;
-            try
-            {
-                translations = await mediaReader.GetBibleTranslations(language.Key);
-            }
-            catch (FileNotFoundException)
-            {
-                continue;
-            }
-            catch (DirectoryNotFoundException)
-            {
-                continue;
-            }
-
-            if (translations == null || translations.Count == 0)
-            {
-                continue;
-            }
-
-            foreach (var translation in translations)
-            {
-                logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", translation.Value.Name, translation.Value.Code, language.Key);
-
-                SortedDictionary<int, BibleBook> books;
-                try
-                {
-                    books = await mediaReader.GetBibleBooks(language.Key, translation.Key);
-                }
-                catch (FileNotFoundException)
-                {
-                    continue;
-                }
-                catch (DirectoryNotFoundException)
-                {
-                    continue;
-                }
-
-                if (books == null || books.Count == 0)
-                {
-                    continue;
-                }
-
-                var bibleTranslation = new BibleTranslation
-                {
-                    Name = translation.Value.Name,
-                    Code = translation.Value.Code,
-                    Language = newLanguage,
-                    DisplayLanguage = displayLanguage
-                };
-
-                foreach (var book in books)
-                {
-                    var newBook = new Shared.Models.Media.Bible.BibleBook
-                    {
-                        Name = book.Value.Name,
-                        Number = book.Value.Number
-                    };
-
-                    bibleTranslation.Books.Add(newBook);
-
-                    SortedDictionary<int, BibleChapter> chapters;
-                    try
-                    {
-                        chapters = await mediaReader.GetBibleChapters(language.Key, translation.Key, book.Key);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        continue;
-                    }
-                    catch (DirectoryNotFoundException)
-                    {
-                        continue;
-                    }
-
-                    if (chapters == null || chapters.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    foreach (var chapter in chapters)
-                    {
-                        string lookUpPath;
-
-                        lookUpPath = $"?output=json&pub={bibleTranslation.Code}" +
-                                         $"&fileformat=MP3&langwritten={bibleTranslation.Language.Code}" +
-                                         $"&txtCMSLang=E&booknum={newBook.Number}&track={chapter.Value.Number}";
-
-
-                        var newChapter = new Shared.Models.Media.Bible.BibleChapter
-                        {
-                            Number = chapter.Value.Number,
-                            Source = new AudioSource
-                            {
-                                Url = chapter.Value.Url,
-                                LookUpPath = lookUpPath
-                            }
-                        };
-
-                        newBook.Chapters.Add(newChapter);
-                    }
-                }
-
-                await db.BibleTranslations.AddAsync(bibleTranslation);
-                await db.SaveChangesAsync();
-            }
+            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name);
+            await SeedTranslationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
         }
     }
 
-    private async Task SeedMelodies(string indexDir)
+    private async Task<Language> GetOrCreateDisplayLanguage(MediaDbContext db)
     {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
         var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
         if (displayLanguage == null)
         {
@@ -203,23 +70,153 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             db.Languages.Add(displayLanguage);
             await db.SaveChangesAsync();
         }
+        return displayLanguage;
+    }
 
-        var mediaReader = new MediaReader(indexDir);
+    private async Task<Language> GetOrCreateLanguage(MediaDbContext db, string code, string name)
+    {
+        var language = await db.Languages.FirstOrDefaultAsync(x => x.Code == code && x.Name == name);
+        if (language == null)
+        {
+            language = new Language
+            {
+                Code = code,
+                Name = name
+            };
+        }
+        return language;
+    }
 
-        Dictionary<string, Publication> melodyMusicReleases;
+    private static async Task<T?> GetSafely<T>(Func<Task<T>> getter) where T : class
+    {
         try
         {
-            melodyMusicReleases = await mediaReader.GetMelodyMusicReleases();
+            return await getter();
         }
         catch (FileNotFoundException)
         {
-            return;
+            return null;
         }
         catch (DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    private async Task<Dictionary<string, Models.Language>?> GetBibleLanguagesSafely(MediaReader mediaReader)
+    {
+        return await GetSafely(() => mediaReader.GetBibleLanguages());
+    }
+
+    private async Task SeedTranslationsForLanguage(
+        MediaDbContext db,
+        MediaReader mediaReader,
+        string languageKey,
+        Language newLanguage,
+        Language displayLanguage)
+    {
+        var translations = await GetSafely(() => mediaReader.GetBibleTranslations(languageKey));
+        if (translations == null || translations.Count == 0)
         {
             return;
         }
 
+        foreach (var translation in translations)
+        {
+            logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", 
+                translation.Value.Name, translation.Value.Code, languageKey);
+
+            var books = await GetSafely(() => mediaReader.GetBibleBooks(languageKey, translation.Key));
+            if (books == null || books.Count == 0)
+            {
+                continue;
+            }
+
+            var bibleTranslation = CreateBibleTranslation(translation.Value, newLanguage, displayLanguage);
+            await SeedBooksForTranslation(db, mediaReader, languageKey, translation.Key, books, bibleTranslation);
+            
+            await db.BibleTranslations.AddAsync(bibleTranslation);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private static BibleTranslation CreateBibleTranslation(Publication translation, Language newLanguage, Language displayLanguage)
+    {
+        return new BibleTranslation
+        {
+            Name = translation.Name,
+            Code = translation.Code,
+            Language = newLanguage,
+            DisplayLanguage = displayLanguage
+        };
+    }
+
+    private async Task SeedBooksForTranslation(
+        MediaDbContext db,
+        MediaReader mediaReader,
+        string languageKey,
+        string translationKey,
+        SortedDictionary<int, BibleBook> books,
+        BibleTranslation bibleTranslation)
+    {
+        foreach (var book in books)
+        {
+            var newBook = new Shared.Models.Media.Bible.BibleBook
+            {
+                Name = book.Value.Name,
+                Number = book.Value.Number
+            };
+
+            bibleTranslation.Books.Add(newBook);
+
+            var chapters = await GetSafely(() => mediaReader.GetBibleChapters(languageKey, translationKey, book.Key));
+            if (chapters == null || chapters.Count == 0)
+            {
+                continue;
+            }
+
+            AddChaptersToBook(chapters, newBook, bibleTranslation);
+        }
+    }
+
+    private static void AddChaptersToBook(
+        SortedDictionary<int, BibleChapter> chapters,
+        Shared.Models.Media.Bible.BibleBook newBook,
+        BibleTranslation bibleTranslation)
+    {
+        foreach (var chapter in chapters)
+        {
+            var lookUpPath = BuildChapterLookUpPath(bibleTranslation, newBook, chapter.Value.Number);
+            var newChapter = new Shared.Models.Media.Bible.BibleChapter
+            {
+                Number = chapter.Value.Number,
+                Source = new AudioSource
+                {
+                    Url = chapter.Value.Url,
+                    LookUpPath = lookUpPath
+                }
+            };
+
+            newBook.Chapters.Add(newChapter);
+        }
+    }
+
+    private static string BuildChapterLookUpPath(BibleTranslation bibleTranslation, Shared.Models.Media.Bible.BibleBook newBook, int chapterNumber)
+    {
+        return $"?output=json&pub={bibleTranslation.Code}" +
+               $"&fileformat=MP3&langwritten={bibleTranslation.Language.Code}" +
+               $"&txtCMSLang=E&booknum={newBook.Number}&track={chapterNumber}";
+    }
+
+    private async Task SeedMelodies(string indexDir)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var displayLanguage = await GetOrCreateDisplayLanguage(db);
+        var mediaReader = new MediaReader(indexDir);
+
+        var melodyMusicReleases = await GetSafely(() => mediaReader.GetMelodyMusicReleases());
         if (melodyMusicReleases == null || melodyMusicReleases.Count == 0)
         {
             return;
@@ -229,52 +226,47 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         {
             logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
 
-            var newMelodyMusic = new MelodyMusic
-            {
-                Code = melodyMusicRelease.Value.Code,
-                Name = melodyMusicRelease.Value.Name,
-                DisplayLanguage = displayLanguage
-            };
-
-            SortedDictionary<int, MusicTrack> tracks;
-            try
-            {
-                tracks = await mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key);
-            }
-            catch (FileNotFoundException)
-            {
-                continue;
-            }
-            catch (DirectoryNotFoundException)
-            {
-                continue;
-            }
-
+            var tracks = await GetSafely(() => mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key));
             if (tracks == null || tracks.Count == 0)
             {
                 continue;
             }
 
-            foreach (var track in tracks)
-            {
-                var newTrack = new Shared.Models.Media.Music.MusicTrack
-                {
-                    Number = track.Value.Number,
-                    Title = track.Value.Title,
-                    Source = new AudioSource
-                    {
-                        Url = track.Value.Url,
-                        LookUpPath = track.Value.LookUpPath
-                    }
-                };
-
-                newMelodyMusic.Tracks.Add(newTrack);
-            }
+            var newMelodyMusic = CreateMelodyMusic(melodyMusicRelease.Value, displayLanguage);
+            AddTracksToMelodyMusic(tracks, newMelodyMusic);
 
             await db.MelodyMusic.AddAsync(newMelodyMusic);
             await db.SaveChangesAsync();
         }
+    }
 
+    private static MelodyMusic CreateMelodyMusic(Publication melodyMusicRelease, Language displayLanguage)
+    {
+        return new MelodyMusic
+        {
+            Code = melodyMusicRelease.Code,
+            Name = melodyMusicRelease.Name,
+            DisplayLanguage = displayLanguage
+        };
+    }
+
+    private static void AddTracksToMelodyMusic(SortedDictionary<int, MusicTrack> tracks, MelodyMusic newMelodyMusic)
+    {
+        foreach (var track in tracks)
+        {
+            var newTrack = new Shared.Models.Media.Music.MusicTrack
+            {
+                Number = track.Value.Number,
+                Title = track.Value.Title,
+                Source = new AudioSource
+                {
+                    Url = track.Value.Url,
+                    LookUpPath = track.Value.LookUpPath
+                }
+            };
+
+            newMelodyMusic.Tracks.Add(newTrack);
+        }
     }
 
     private async Task SeedVocals(string indexDir)
@@ -282,34 +274,10 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-        if (displayLanguage == null)
-        {
-            displayLanguage = new Language
-            {
-                Code = "E",
-                Name = "English"
-            };
-            db.Languages.Add(displayLanguage);
-            await db.SaveChangesAsync();
-        }
-
+        var displayLanguage = await GetOrCreateDisplayLanguage(db);
         var mediaReader = new MediaReader(indexDir);
 
-        Dictionary<string, Models.Language> melodyLanguages;
-        try
-        {
-            melodyLanguages = await mediaReader.GetVocalMusicLanguages();
-        }
-        catch (FileNotFoundException)
-        {
-            return;
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return;
-        }
-
+        var melodyLanguages = await GetSafely(() => mediaReader.GetVocalMusicLanguages());
         if (melodyLanguages == null || melodyLanguages.Count == 0)
         {
             return;
@@ -317,81 +285,70 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         foreach (var language in melodyLanguages)
         {
-            var newLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Code == language.Value.Code
-                                                                    && x.Name == language.Value.Name) ?? new Language
-                                                                    {
-                                                                        Code = language.Value.Code,
-                                                                        Name = language.Value.Name
-                                                                    };
-            Dictionary<string, Publication> vocalMusicReleases;
-            try
-            {
-                vocalMusicReleases = await mediaReader.GetVocalMusicReleases(language.Value.Code);
-            }
-            catch (FileNotFoundException)
+            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name);
+            await SeedVocalMusicReleasesForLanguage(db, mediaReader, language.Value.Code, newLanguage, displayLanguage);
+        }
+    }
+
+    private async Task SeedVocalMusicReleasesForLanguage(
+        MediaDbContext db,
+        MediaReader mediaReader,
+        string languageCode,
+        Language newLanguage,
+        Language displayLanguage)
+    {
+        var vocalMusicReleases = await GetSafely(() => mediaReader.GetVocalMusicReleases(languageCode));
+        if (vocalMusicReleases == null || vocalMusicReleases.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var vocalMusicRelease in vocalMusicReleases)
+        {
+            logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", 
+                vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
+
+            var tracks = await GetSafely(() => mediaReader.GetVocalMusicTracks(languageCode, vocalMusicRelease.Key));
+            if (tracks == null || tracks.Count == 0)
             {
                 continue;
             }
-            catch (DirectoryNotFoundException)
+
+            var newVocalMusic = CreateVocalMusic(vocalMusicRelease.Value, newLanguage, displayLanguage);
+            AddTracksToVocalMusic(tracks, newVocalMusic);
+
+            await db.VocalMusic.AddAsync(newVocalMusic);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private static VocalMusic CreateVocalMusic(Publication vocalMusicRelease, Language newLanguage, Language displayLanguage)
+    {
+        return new VocalMusic
+        {
+            Code = vocalMusicRelease.Code,
+            Name = vocalMusicRelease.Name,
+            DisplayLanguage = displayLanguage,
+            Language = newLanguage
+        };
+    }
+
+    private static void AddTracksToVocalMusic(SortedDictionary<int, MusicTrack> tracks, VocalMusic newVocalMusic)
+    {
+        foreach (var track in tracks)
+        {
+            var newTrack = new Shared.Models.Media.Music.MusicTrack
             {
-                continue;
-            }
-
-            if (vocalMusicReleases == null || vocalMusicReleases.Count == 0)
-            {
-                continue;
-            }
-
-            foreach (var vocalMusicRelease in vocalMusicReleases)
-            {
-                logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, language.Key);
-
-                var newVocalMusic = new VocalMusic
+                Number = track.Value.Number,
+                Title = track.Value.Title,
+                Source = new AudioSource
                 {
-                    Code = vocalMusicRelease.Value.Code,
-                    Name = vocalMusicRelease.Value.Name,
-                    DisplayLanguage = displayLanguage,
-                    Language = newLanguage
-                };
-
-                SortedDictionary<int, MusicTrack> tracks;
-                try
-                {
-                    tracks = await mediaReader.GetVocalMusicTracks(language.Value.Code, vocalMusicRelease.Key);
+                    Url = track.Value.Url,
+                    LookUpPath = track.Value.LookUpPath
                 }
-                catch (FileNotFoundException)
-                {
-                    continue;
-                }
-                catch (DirectoryNotFoundException)
-                {
-                    continue;
-                }
+            };
 
-                if (tracks == null || tracks.Count == 0)
-                {
-                    continue;
-                }
-
-                foreach (var track in tracks)
-                {
-                    var newTrack = new Shared.Models.Media.Music.MusicTrack
-                    {
-                        Number = track.Value.Number,
-                        Title = track.Value.Title,
-                        Source = new AudioSource
-                        {
-                            Url = track.Value.Url,
-                            LookUpPath = track.Value.LookUpPath
-                        }
-                    };
-
-                    newVocalMusic.Tracks.Add(newTrack);
-                }
-
-                await db.VocalMusic.AddAsync(newVocalMusic);
-                await db.SaveChangesAsync();
-            }
+            newVocalMusic.Tracks.Add(newTrack);
         }
     }
 }

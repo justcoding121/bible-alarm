@@ -145,7 +145,7 @@ public static class BootstrapHelper
         {
             await waitTask;
             // Cancel timeout if bootstrap completed
-            cts.Cancel();
+            await cts.CancelAsync();
             Log.Logger.Information("Bootstrap wait completed successfully");
         }
         catch (Exception ex)

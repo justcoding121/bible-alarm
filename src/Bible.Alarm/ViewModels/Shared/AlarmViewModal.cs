@@ -1,6 +1,7 @@
 #nullable enable
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Models;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Constants;
@@ -83,61 +84,9 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
-            // Set IsBusy immediately to show progress indicator right away
-            IsBusy = true;
-            // Force property change notification to ensure UI updates immediately
-            OnPropertyChanged(nameof(IsBusy));
-            // Give UI time to render the progress indicator before starting dismiss operation
-            await Task.Delay(100);
-
+            await ShowDismissProgress();
             await playbackService.StopAsync();
-
-            try
-            {
-                // Run database operations off UI thread
-                await Task.Run(async () =>
-                {
-                    if (!await generalSettingsService.GeneralSettingExistsAsync(
-                            AppConstants.GeneralSettingsKeys.ReviewRequested))
-                    {
-                        var dismissCount = await generalSettingsService.GetGeneralSettingAsync(
-                            AppConstants.GeneralSettingsKeys.DismissCount);
-
-                        if (dismissCount != null && dismissCount.Value != null && int.Parse(dismissCount.Value) >= 6)
-                        {
-                            await generalSettingsService.SetGeneralSettingAsync(
-                                AppConstants.GeneralSettingsKeys.ReviewRequested,
-                                "True");
-
-                            // CrossStoreReview must be called on main thread
-                            await MainThread.InvokeOnMainThreadAsync(async () =>
-                                await CrossStoreReview.Current.RequestReview(false));
-                        }
-                        else
-                        {
-                            if (dismissCount != null)
-                            {
-                                if (dismissCount.Value != null)
-                                {
-                                    await generalSettingsService.SetGeneralSettingAsync(
-                                        AppConstants.GeneralSettingsKeys.DismissCount,
-                                        (int.Parse(dismissCount.Value) + 1).ToString());
-                                }
-                            }
-                            else
-                            {
-                                await generalSettingsService.SetGeneralSettingAsync(
-                                    AppConstants.GeneralSettingsKeys.DismissCount,
-                                    "1");
-                            }
-                        }
-                    }
-                });
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "An error happened when review was requested.");
-            }
+            await HandleReviewRequest();
         });
 
         CancelCommand = new RelayCommand(() =>
@@ -209,6 +158,72 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         });
     }
 
+    private async Task ShowDismissProgress()
+    {
+        IsBusy = true;
+        OnPropertyChanged(nameof(IsBusy));
+        await Task.Delay(100);
+    }
+
+    private async Task HandleReviewRequest()
+    {
+        try
+        {
+            await Task.Run(async () =>
+            {
+                if (!await generalSettingsService.GeneralSettingExistsAsync(
+                        AppConstants.GeneralSettingsKeys.ReviewRequested))
+                {
+                    await ProcessDismissCount();
+                }
+            });
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "An error happened when review was requested.");
+        }
+    }
+
+    private async Task ProcessDismissCount()
+    {
+        var dismissCount = await generalSettingsService.GetGeneralSettingAsync(
+            AppConstants.GeneralSettingsKeys.DismissCount);
+
+        if (dismissCount != null && dismissCount.Value != null && int.Parse(dismissCount.Value) >= 6)
+        {
+            await RequestReview();
+        }
+        else
+        {
+            await IncrementDismissCount(dismissCount);
+        }
+    }
+
+    private async Task RequestReview()
+    {
+        await generalSettingsService.SetGeneralSettingAsync(
+            AppConstants.GeneralSettingsKeys.ReviewRequested,
+            "True");
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+            await CrossStoreReview.Current.RequestReview(false));
+    }
+
+    private async Task IncrementDismissCount(GeneralSettings? dismissCount)
+    {
+        if (dismissCount?.Value != null)
+        {
+            await generalSettingsService.SetGeneralSettingAsync(
+                AppConstants.GeneralSettingsKeys.DismissCount,
+                (int.Parse(dismissCount.Value) + 1).ToString());
+        }
+        else
+        {
+            await generalSettingsService.SetGeneralSettingAsync(
+                AppConstants.GeneralSettingsKeys.DismissCount,
+                "1");
+        }
+    }
 
     private string title;
 
@@ -503,149 +518,154 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var state = playbackState.Value;
+            var trackChanged = DetectTrackChange(state);
+            HandleTrackChange(trackChanged, state);
+            UpdateControlsFromState(state);
+            UpdateMetadataFromState(state, trackChanged);
+            UpdatePlaybackStateFromState(state);
+        });
+    }
 
-            // Detect track change by comparing current metadata with previous
-            var currentTitle = state.Title ?? "";
-            var currentArtist = state.Artist ?? "";
-            var currentAlbum = state.Album ?? "";
+    private bool DetectTrackChange(PlaybackState state)
+    {
+        var currentTitle = state.Title ?? "";
+        var currentArtist = state.Artist ?? "";
+        var currentAlbum = state.Album ?? "";
 
-            var trackChanged = hasReceivedInitialState &&
-                               (previousTrackTitle != currentTitle ||
-                                previousTrackArtist != currentArtist ||
-                                previousTrackAlbum != currentAlbum);
+        return hasReceivedInitialState &&
+               (previousTrackTitle != currentTitle ||
+                previousTrackArtist != currentArtist ||
+                previousTrackAlbum != currentAlbum);
+    }
 
+    private void HandleTrackChange(bool trackChanged, PlaybackState state)
+    {
+        if (trackChanged)
+        {
+            hasReceivedInitialState = false;
+            OnPropertyChanged(nameof(AreControlsEnabled));
+        }
+
+        if (!hasReceivedInitialState &&
+            (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
+        {
+            hasReceivedInitialState = true;
+            OnPropertyChanged(nameof(AreControlsEnabled));
+        }
+
+        if (hasReceivedInitialState)
+        {
+            previousTrackTitle = state.Title ?? "";
+            previousTrackArtist = state.Artist ?? "";
+            previousTrackAlbum = state.Album ?? "";
+        }
+    }
+
+    private void UpdateControlsFromState(PlaybackState state)
+    {
+        NextEnabled = state.CanPlayNext;
+        PreviousEnabled = state.CanPlayPrevious;
+    }
+
+    private void UpdateMetadataFromState(PlaybackState state, bool trackChanged)
+    {
+        Title = state.Title ?? "";
+        SubTitle = state.Artist ?? "";
+        Description = state.Album ?? "";
+
+        var artworkUrl = state.ArtworkUrl;
+        var shouldForceUpdate = trackChanged || (previousArtworkUrl != artworkUrl);
+        if (shouldForceUpdate)
+        {
+            previousArtworkUrl = artworkUrl;
             if (trackChanged)
             {
-                // Track has changed - disable controls until we receive play-related event for new track
-                hasReceivedInitialState = false;
-                OnPropertyChanged(nameof(AreControlsEnabled));
+                lastArtworkUrl = null;
             }
+            UpdateArtwork(artworkUrl);
+        }
+    }
 
-            // Mark that we've received initial state when playback is meaningfully active (Playing or Paused).
-            // We intentionally do NOT treat Loading as "ready" for interactive controls.
-            if (!hasReceivedInitialState &&
-                (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
-            {
-                hasReceivedInitialState = true;
-                OnPropertyChanged(nameof(AreControlsEnabled));
-            }
+    private void UpdatePlaybackStateFromState(PlaybackState state)
+    {
+        var duration = state.Duration;
+        currentDuration = duration;
+        EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
 
-            // Update previous track metadata only after we've received initial state for the new track
-            // This ensures we can detect the next track change correctly
-            if (hasReceivedInitialState)
-            {
-                previousTrackTitle = currentTitle;
-                previousTrackArtist = currentArtist;
-                previousTrackAlbum = currentAlbum;
-            }
+        ErrorMessage = state.ErrorMessage ?? "";
 
-            // Update navigation controls
-            NextEnabled = state.CanPlayNext;
-            PreviousEnabled = state.CanPlayPrevious;
+        var isPlaying = state.Status == PlayStatus.Playing;
+        PlayVisible = !isPlaying;
+        PauseVisible = isPlaying;
 
-            // Update metadata
-            Title = currentTitle;
-            SubTitle = currentArtist;
-            Description = currentAlbum;
-
-            // Update artwork - force update if track changed, even if URL appears the same
-            // (artwork may be saved to same cache file path but content is different)
-            var artworkUrl = state.ArtworkUrl;
-            var shouldForceUpdate = trackChanged || (previousArtworkUrl != artworkUrl);
-            if (shouldForceUpdate)
-            {
-                previousArtworkUrl = artworkUrl;
-                // Reset last artwork URL to force reload even if URL is the same
-                if (trackChanged)
-                {
-                    lastArtworkUrl = null;
-                }
-                UpdateArtwork(artworkUrl);
-            }
-
-            // Update duration (from Fluxor state, only changes when track changes)
-            var duration = state.Duration;
-            currentDuration = duration;
-            EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
-
-            // Note: Position and PreparationProgress are updated via messages (high-frequency updates)
-
-            // Update error message
-            ErrorMessage = state.ErrorMessage ?? "";
-
-            // Update play/pause visibility based on status
-            var isPlaying = state.Status == PlayStatus.Playing;
-            PlayVisible = !isPlaying;
-            PauseVisible = isPlaying;
-
-            // Notify property changes
-            OnPropertyChanged(nameof(ProgressText));
-            OnPropertyChanged(nameof(PreparationProgress));
-            OnPropertyChanged(nameof(HasError));
-            OnPropertyChanged(nameof(AreControlsEnabled));
-        });
+        OnPropertyChanged(nameof(ProgressText));
+        OnPropertyChanged(nameof(PreparationProgress));
+        OnPropertyChanged(nameof(HasError));
+        OnPropertyChanged(nameof(AreControlsEnabled));
     }
 
     public void Receive(PlaybackPositionChangedMessage message)
     {
-        // Ignore position updates while user is interacting with slider
-        if (isUserInteracting)
+        if (ShouldIgnorePositionUpdate(message))
         {
-            // Check if position matches target (seek completed)
-            if (message.CurrentPosition.HasValue && targetSeekProgress.HasValue && currentDuration.TotalSeconds > 0)
-            {
-                var actualProgress = message.CurrentPosition.Value.TotalSeconds / currentDuration.TotalSeconds;
-                var progressDiff = Math.Abs(actualProgress - targetSeekProgress.Value);
-
-                // If position matches target (within 2%), allow updates to resume
-                if (progressDiff < 0.02)
-                {
-                    isUserInteracting = false;
-                    targetSeekProgress = null;
-                    // Continue to process update below
-                }
-                else
-                {
-                    return;
-                }
-            }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (message.CurrentPosition.HasValue)
-            {
-                var position = message.CurrentPosition.Value;
-                CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
+            UpdatePositionFromMessage(message);
+            OnPropertyChanged(nameof(ProgressText));
+        });
+    }
 
-                // Update progress based on current position and duration
-                if (currentDuration.TotalSeconds > 0)
+    private bool ShouldIgnorePositionUpdate(PlaybackPositionChangedMessage message)
+    {
+        if (!isUserInteracting)
+        {
+            return false;
+        }
+
+        if (message.CurrentPosition.HasValue && targetSeekProgress.HasValue && currentDuration.TotalSeconds > 0)
+        {
+            var actualProgress = message.CurrentPosition.Value.TotalSeconds / currentDuration.TotalSeconds;
+            var progressDiff = Math.Abs(actualProgress - targetSeekProgress.Value);
+
+            if (progressDiff < 0.02)
+            {
+                isUserInteracting = false;
+                targetSeekProgress = null;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void UpdatePositionFromMessage(PlaybackPositionChangedMessage message)
+    {
+        if (message.CurrentPosition.HasValue)
+        {
+            var position = message.CurrentPosition.Value;
+            CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
+
+            if (currentDuration.TotalSeconds > 0)
+            {
+                var newProgress = position.TotalSeconds / currentDuration.TotalSeconds;
+                if (Math.Abs(newProgress - progress) > 0.001)
                 {
-                    var newProgress = position.TotalSeconds / currentDuration.TotalSeconds;
-                    // Only update if change is significant (reduces unnecessary UI updates)
-                    if (Math.Abs(newProgress - progress) > 0.001) // 0.1% threshold
-                    {
-                        Progress = newProgress;
-                    }
-                }
-                else
-                {
-                    Progress = 0.0;
+                    Progress = newProgress;
                 }
             }
             else
             {
-                CurrentTime = "00:00";
                 Progress = 0.0;
             }
-
-            // Notify property changes
-            OnPropertyChanged(nameof(ProgressText));
-        });
+        }
+        else
+        {
+            CurrentTime = "00:00";
+            Progress = 0.0;
+        }
     }
 
     public void Receive(PlaybackPreparationProgressMessage message)
@@ -860,3 +880,4 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         }
     }
 }
+

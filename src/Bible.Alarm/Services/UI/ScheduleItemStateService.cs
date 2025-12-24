@@ -22,32 +22,50 @@ public sealed class ScheduleItemStateService(ILogger logger) : IScheduleItemStat
 
         try
         {
-            // Try to get the current page and find HomeViewModel
-            var app = Application.Current;
-            if (app?.Windows.Count > 0)
+            var homeViewModel = GetHomeViewModelFromCurrentPage();
+            if (homeViewModel != null)
             {
-                var mainPage = app.Windows[0].Page;
-                if (mainPage is NavigationPage navPage)
-                {
-                    var currentPage = navPage.CurrentPage;
-                    if (currentPage is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
-                    {
-                        // Find the schedule item and set IsBusy to false
-                        var scheduleItem = homeViewModel.Schedules?.FirstOrDefault(s => s.ScheduleId == scheduleId);
-                        if (scheduleItem != null)
-                        {
-                            scheduleItem.IsBusy = false;
-                        }
-
-                        // Note: Home page overlay is now managed via Fluxor state (SetHomePageOverlayAction)
-                        // and is hidden by AlarmModalService after the modal is shown
-                    }
-                }
+                SetScheduleItemBusy(homeViewModel, scheduleId.Value);
             }
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Could not set IsBusy to false for schedule {ScheduleId}", scheduleId);
+        }
+    }
+
+    private static HomeViewModel? GetHomeViewModelFromCurrentPage()
+    {
+        var app = Application.Current;
+        if (app == null || app.Windows.Count == 0)
+        {
+            return null;
+        }
+
+        if (app.Windows[0] == null)
+        {
+            return null;
+        }
+
+        var mainPage = app.Windows[0].Page;
+        if (mainPage is NavigationPage navPage)
+        {
+            var currentPage = navPage.CurrentPage;
+            if (currentPage is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
+            {
+                return homeViewModel;
+            }
+        }
+
+        return null;
+    }
+
+    private static void SetScheduleItemBusy(HomeViewModel homeViewModel, int scheduleId)
+    {
+        var scheduleItem = homeViewModel.Schedules?.FirstOrDefault(s => s.ScheduleId == scheduleId);
+        if (scheduleItem != null)
+        {
+            scheduleItem.IsBusy = false;
         }
     }
 
@@ -58,35 +76,54 @@ public sealed class ScheduleItemStateService(ILogger logger) : IScheduleItemStat
     {
         try
         {
-            // Try to get the current page and find HomeViewModel
-            var app = Application.Current;
-            if (app?.Windows.Count > 0)
+            var homeViewModel = GetHomeViewModelFromNavigationStack();
+            if (homeViewModel != null)
             {
-                var mainPage = app.Windows[0].Page;
-                if (mainPage is NavigationPage navPage)
-                {
-                    // Access NavigationStack through INavigation interface
-                    var navigation = navPage.Navigation;
-                    if (navigation != null)
-                    {
-                        // Search through the navigation stack to find Home page
-                        foreach (var page in navigation.NavigationStack)
-                        {
-                            if (page is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
-                            {
-                                // Hide the Home page overlay
-                                homeViewModel.IsBusy = false;
-                                break;
-                            }
-                        }
-                    }
-                }
+                homeViewModel.IsBusy = false;
             }
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Could not hide Home page overlay");
         }
+    }
+
+    private static HomeViewModel? GetHomeViewModelFromNavigationStack()
+    {
+        var app = Application.Current;
+        if (app == null || app.Windows.Count == 0)
+        {
+            return null;
+        }
+
+        if (app.Windows[0] == null)
+        {
+            return null;
+        }
+
+        var mainPage = app.Windows[0].Page;
+        if (mainPage is NavigationPage navPage)
+        {
+            var navigation = navPage.Navigation;
+            if (navigation != null)
+            {
+                return FindHomeViewModelInStack(navigation);
+            }
+        }
+
+        return null;
+    }
+
+    private static HomeViewModel? FindHomeViewModelInStack(INavigation navigation)
+    {
+        foreach (var page in navigation.NavigationStack)
+        {
+            if (page is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
+            {
+                return homeViewModel;
+            }
+        }
+        return null;
     }
 
 }

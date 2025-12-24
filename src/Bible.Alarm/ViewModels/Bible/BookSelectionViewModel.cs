@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AutoMapper;
@@ -19,7 +21,7 @@ namespace Bible.Alarm.ViewModels.Bible;
 
 public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 {
-    private BibleReadingSchedule current;
+    private BibleReadingSchedule? current;
 
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -27,7 +29,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private bool initComplete;
-    private BibleReadingSchedule lastCurrent;
+    private BibleReadingSchedule? lastCurrent;
     
     // Track last language and publication code to detect changes
     private string? lastLanguageCode;
@@ -175,7 +177,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         OnBibleReadingInitialized(null, EventArgs.Empty);
     }
 
-    private void OnBibleReadingChanged(object sender, EventArgs e)
+    private void OnBibleReadingChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
         
@@ -275,7 +277,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnBibleReadingInitialized(object o, EventArgs eventArgs)
+    private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
     {
         // This method should only be called once during construction
         // Subsequent state changes should be handled by OnBibleReadingChanged
@@ -420,7 +422,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         SelectedBook.IsSelected = true;
     }
 
-    public BibleBookListViewItemModel SelectedBook { get; set; }
+    public BibleBookListViewItemModel? SelectedBook { get; set; }
 
     // Start as true to show busy indicator immediately
     private bool isBusy = true;
@@ -431,7 +433,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref isBusy, value);
     }
 
-    private ObservableCollection<BibleBookListViewItemModel> books;
+    private ObservableCollection<BibleBookListViewItemModel> books = [];
 
     public ObservableCollection<BibleBookListViewItemModel> Books
     {
@@ -456,6 +458,11 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         
         logger.Information("BookSelectionViewModel: PopulateBooks - Retrieved {BooksCount} books from database for LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
             books?.Count ?? 0, languageCode, publicationCode);
+        
+        if (books == null)
+        {
+            return;
+        }
         
         var bookVMs = new ObservableCollection<BibleBookListViewItemModel>();
 
@@ -503,5 +510,5 @@ public sealed class BibleBookListViewItemModel(BibleBook book) : ObservableObjec
     public string Name => book.Name;
     public int Number => book.Number;
 
-    public int CompareTo(object obj) => obj is not BibleBookListViewItemModel other ? 1 : Number.CompareTo(other.Number);
+    public int CompareTo(object? obj) => obj is not BibleBookListViewItemModel other ? 1 : Number.CompareTo(other.Number);
 }

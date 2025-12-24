@@ -82,26 +82,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         {
             try
             {
-                // Close any existing popup first
-                if (currentPopup != null)
-                {
-                    try
-                    {
-                        currentPopup.IsOpen = false;
-                        // Give it time to close
-                        await Task.Delay(100);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "Exception occurred while closing existing popup before showing new one");
-                    }
-                    finally
-                    {
-                        CleanupPopup(currentPopup);
-                        currentPopup = null;
-                    }
-                }
-
+                await CloseExistingPopupIfNeededAsync();
                 var currentWindow = GetNativeWindow();
                 if (currentWindow is null)
                 {
@@ -119,15 +100,43 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
             }
             finally
             {
-                if (currentPopup != null)
-                {
-                    CleanupPopup(currentPopup);
-                    currentPopup = null;
-                }
+                CleanupCurrentPopup();
             }
         });
 
         clearRequest = null;
+    }
+
+    private static async Task CloseExistingPopupIfNeededAsync()
+    {
+        // Close any existing popup first
+        if (currentPopup != null)
+        {
+            try
+            {
+                currentPopup.IsOpen = false;
+                // Give it time to close
+                await Task.Delay(100);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Exception occurred while closing existing popup before showing new one");
+            }
+            finally
+            {
+                CleanupPopup(currentPopup);
+                currentPopup = null;
+            }
+        }
+    }
+
+    private static void CleanupCurrentPopup()
+    {
+        if (currentPopup != null)
+        {
+            CleanupPopup(currentPopup);
+            currentPopup = null;
+        }
     }
 
     private static Window? GetNativeWindow()
@@ -138,19 +147,26 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         // If Window.Current is null, try to get it from MAUI Application
         if (currentWindow is null)
         {
-            var windows = Application.Current?.Windows;
-            if (windows is not null && windows.Count > 0)
-            {
-                var mauiWindow = windows[0];
-                var handler = mauiWindow.Handler;
-                if (handler?.PlatformView is Window nativeWindow)
-                {
-                    currentWindow = nativeWindow;
-                }
-            }
+            currentWindow = GetWindowFromMauiApplication();
         }
 
         return currentWindow;
+    }
+
+    private static Window? GetWindowFromMauiApplication()
+    {
+        var windows = Application.Current?.Windows;
+        if (windows is not null && windows.Count > 0)
+        {
+            var mauiWindow = windows[0];
+            var handler = mauiWindow.Handler;
+            if (handler?.PlatformView is Window nativeWindow)
+            {
+                return nativeWindow;
+            }
+        }
+
+        return null;
     }
 
     private static FrameworkElement? FindTargetElement(Window currentWindow)
@@ -231,78 +247,17 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
         try
         {
-            // Attach popup to the window and get window content for positioning
-            // Safely access window content - it may not be accessible during navigation
-            try
-            {
-                if (currentWindow?.Content is FrameworkElement content)
-                {
-                    windowContent = content;
-                    // Set the popup's XamlRoot
-                    if (content.XamlRoot != null)
-                    {
-                        popup.XamlRoot = content.XamlRoot;
-                    }
-                }
-            }
-            catch (COMException ex)
-            {
-                // Window content may not be accessible if window is being disposed or during navigation
-                Log.Debug(ex, "Window content not accessible when setting up popup (window may be disposed)");
-                // Continue without setting XamlRoot - popup may not work but won't crash
-            }
-
-            // Store the current window for size change handling
+            windowContent = SetupPopupAndGetWindowContent(popup, currentWindow);
             WindowsToastService.currentWindow = currentWindow;
 
-            // Set initial position before showing to prevent it appearing at top first
-            // Use estimated position based on window size
-            if (windowContent != null)
-            {
-                var windowWidth = windowContent.ActualWidth > 0 ? windowContent.ActualWidth : 400;
-                var windowHeight = windowContent.ActualHeight > 0 ? windowContent.ActualHeight : 600;
-                // Estimate popup size (will be adjusted after render)
-                var estimatedPopupWidth = 300;
-                var estimatedPopupHeight = 50;
-
-                popup.HorizontalOffset = (windowWidth - estimatedPopupWidth) / 2;
-                popup.VerticalOffset = windowHeight - estimatedPopupHeight - 50;
-            }
-
-            // Show the popup
+            SetInitialPopupPosition(popup, windowContent);
             popup.IsOpen = true;
 
-            // Wait for the popup to render so we can get its actual size
-            await Task.Delay(100);
-
-            // Update position with actual measurements
+            await Task.Delay(100); // Wait for render
             UpdatePopupPosition(popup, currentWindow);
 
-            // Subscribe to window size changes to reposition the popup
-            if (windowContent != null)
-            {
-                sizeChangedHandler = (_, _) =>
-                {
-                    try
-                    {
-                        UpdatePopupPosition(popup, currentWindow);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "Exception occurred while updating popup position on window resize");
-                    }
-                };
-                windowContent.SizeChanged += sizeChangedHandler;
-            }
-
-            if (clearRequest is { } request)
-            {
-                await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000)));
-            }
-            else
-            {
-                await Task.Delay((int)(seconds * 1000));
-            }
+            SubscribeToWindowSizeChanges(windowContent, popup, currentWindow);
+            await WaitForDisplayDuration(seconds);
         }
         catch (COMException ex)
         {
@@ -311,55 +266,131 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         }
         finally
         {
-            // Unsubscribe from size changes - safely access window content
-            if (sizeChangedHandler != null)
+            await CleanupFlyoutResources(currentWindow, popup);
+        }
+    }
+
+    private static FrameworkElement? SetupPopupAndGetWindowContent(Popup popup, Window currentWindow)
+    {
+        // Attach popup to the window and get window content for positioning
+        // Safely access window content - it may not be accessible during navigation
+        try
+        {
+            if (currentWindow?.Content is FrameworkElement content)
+            {
+                // Set the popup's XamlRoot
+                if (content.XamlRoot != null)
+                {
+                    popup.XamlRoot = content.XamlRoot;
+                }
+                return content;
+            }
+        }
+        catch (COMException ex)
+        {
+            // Window content may not be accessible if window is being disposed or during navigation
+            Log.Debug(ex, "Window content not accessible when setting up popup (window may be disposed)");
+            // Continue without setting XamlRoot - popup may not work but won't crash
+        }
+
+        return null;
+    }
+
+    private static void SetInitialPopupPosition(Popup popup, FrameworkElement? windowContent)
+    {
+        if (windowContent != null)
+        {
+            var windowWidth = windowContent.ActualWidth > 0 ? windowContent.ActualWidth : 400;
+            var windowHeight = windowContent.ActualHeight > 0 ? windowContent.ActualHeight : 600;
+            // Estimate popup size (will be adjusted after render)
+            var estimatedPopupWidth = 300;
+            var estimatedPopupHeight = 50;
+
+            popup.HorizontalOffset = (windowWidth - estimatedPopupWidth) / 2;
+            popup.VerticalOffset = windowHeight - estimatedPopupHeight - 50;
+        }
+    }
+
+    private static void SubscribeToWindowSizeChanges(FrameworkElement? windowContent, Popup popup, Window currentWindow)
+    {
+        if (windowContent != null)
+        {
+            sizeChangedHandler = (_, _) =>
             {
                 try
                 {
-                    // Safely access window content - it may be disposed during navigation
-                    if (currentWindow?.Content is FrameworkElement content)
-                    {
-                        content.SizeChanged -= sizeChangedHandler;
-                    }
-                }
-                catch (COMException ex)
-                {
-                    // Window may be disposed or in invalid state during navigation
-                    Log.Debug(ex, "Window content not accessible during cleanup (window may be disposed)");
+                    UpdatePopupPosition(popup, currentWindow);
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Exception occurred while unsubscribing from window size changed event");
+                    Log.Warning(ex, "Exception occurred while updating popup position on window resize");
                 }
-                finally
-                {
-                    sizeChangedHandler = null;
-                }
-            }
-            WindowsToastService.currentWindow = null;
+            };
+            windowContent.SizeChanged += sizeChangedHandler;
+        }
+    }
 
+    private static async Task WaitForDisplayDuration(double seconds)
+    {
+        if (clearRequest is { } request)
+        {
+            await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000)));
+        }
+        else
+        {
+            await Task.Delay((int)(seconds * 1000));
+        }
+    }
+
+    private static async Task CleanupFlyoutResources(Window currentWindow, Popup popup)
+    {
+        // Unsubscribe from size changes - safely access window content
+        if (sizeChangedHandler != null)
+        {
             try
             {
-                if (popup.IsOpen)
+                // Safely access window content - it may be disposed during navigation
+                if (currentWindow?.Content is FrameworkElement content)
                 {
-                    popup.IsOpen = false;
+                    content.SizeChanged -= sizeChangedHandler;
                 }
             }
             catch (COMException ex)
             {
-                // Popup may be disposed or in invalid state - this is expected during cleanup
-                Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
+                // Window may be disposed or in invalid state during navigation
+                Log.Debug(ex, "Window content not accessible during cleanup (window may be disposed)");
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Exception occurred while closing popup in ShowFlyoutAsync finally block");
+                Log.Warning(ex, "Exception occurred while unsubscribing from window size changed event");
             }
-
-            // Clean up after a brief delay to allow animation to complete
-            await Task.Delay(200);
-
-            CleanupPopup(popup);
+            finally
+            {
+                sizeChangedHandler = null;
+            }
         }
+        WindowsToastService.currentWindow = null;
+
+        try
+        {
+            if (popup.IsOpen)
+            {
+                popup.IsOpen = false;
+            }
+        }
+        catch (COMException ex)
+        {
+            // Popup may be disposed or in invalid state - this is expected during cleanup
+            Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Exception occurred while closing popup in ShowFlyoutAsync finally block");
+        }
+
+        // Clean up after a brief delay to allow animation to complete
+        await Task.Delay(200);
+        CleanupPopup(popup);
     }
 
     private static void UpdatePopupPosition(Popup popup, Window? currentWindow)

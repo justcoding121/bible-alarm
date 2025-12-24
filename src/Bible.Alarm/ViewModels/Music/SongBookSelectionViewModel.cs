@@ -65,81 +65,21 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
             try
             {
-                // Ensure current is set from state if it's null
-                if (current == null)
-                {
-                    var currentItem = state.Value.CurrentMusic;
-                    if (currentItem != null)
-                    {
-                        current = mapper.Map<AlarmMusic>(currentItem);
-                    }
-                }
-
+                EnsureCurrentIsSet();
                 var languageCode = CurrentLanguage?.Code ?? string.Empty;
                 if (string.IsNullOrEmpty(languageCode))
                 {
                     return;
                 }
 
-                // Check if the selected song book is the same as the current song book
-                var currentSchedule = state.Value.CurrentSchedule;
-                var isSameSongBook = currentSchedule != null &&
-                                   currentSchedule.MusicType == MusicType.Vocals &&
-                                   currentSchedule.MusicLanguageCode == languageCode &&
-                                   currentSchedule.MusicPublicationCode == x.Code;
-
-                // Get tracks for the selected song book and language
-                var tracks = await Task.Run(async () =>
-                    await mediaService.GetVocalMusicTracks(languageCode, x.Code));
-
-                if (tracks == null || tracks.Count == 0)
+                var (trackNumber, trackName) = await GetTrackForSongBookAsync(x, languageCode);
+                if (trackNumber == 0)
                 {
                     return;
                 }
 
-                // If it's the same song book, preserve the current track (if valid)
-                // Otherwise, use a random track
-                int trackNumber;
-                string trackName;
-                
-                if (isSameSongBook && 
-                    currentSchedule.MusicTrackNumber.HasValue &&
-                    tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
-                {
-                    trackNumber = currentSchedule.MusicTrackNumber.Value;
-                    trackName = currentTrack.Title;
-                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: TrackSelectionCommand - Same song book selected ({x.Name}), preserving current track {trackNumber}");
-                }
-                else
-                {
-                    // Different song book selected, use a random track
-                    var tracksList = tracks.Values.ToList();
-                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                    trackNumber = randomTrack.Number;
-                    trackName = randomTrack.Title;
-                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: TrackSelectionCommand - Different song book selected ({x.Name}, was {currentSchedule?.MusicPublicationCode ?? "null"}), using random track {trackNumber}");
-                }
-
-                // Create MusicStateItem with selected song book and track
-                // IMPORTANT: Include display names from list items (no database query needed)
-                // Use CurrentSchedule for Repeat to ensure we use the latest state
-                var trackSelectedItem = new MusicStateItem
-                {
-                    Repeat = currentSchedule?.MusicRepeat ?? false,
-                    MusicType = MusicType.Vocals,
-                    LanguageCode = languageCode,
-                    PublicationCode = x.Code,
-                    TrackNumber = trackNumber,
-                    // Store display names from list items
-                    LanguageName = CurrentLanguage?.Name,
-                    PublicationName = x.Name,
-                    TrackName = trackName
-                };
-
-                // Dispatch TrackSelectedAction to update CurrentMusic
+                var trackSelectedItem = CreateMusicStateItemForSongBook(x, languageCode, trackNumber, trackName);
                 dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-
-                // Navigate back to schedule page
                 await navigationService.PopModalAsync();
             }
             finally
@@ -171,8 +111,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                             current = new AlarmMusic
                             {
                                 MusicType = currentSchedule.MusicType.Value,
-                                LanguageCode = currentSchedule.MusicLanguageCode,
-                                PublicationCode = currentSchedule.MusicPublicationCode,
+                                LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
+                                PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                                 Repeat = currentSchedule.MusicRepeat ?? false
                             };
@@ -229,106 +169,17 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
             try
             {
-                // Ensure current is set from state if it's null
-                if (current == null)
+                EnsureCurrentIsSet();
+                UpdateSelectedLanguage(x);
+
+                var (publicationCode, trackNumber, trackName, publicationName) = await GetFirstSongBookAndTrackForLanguageAsync(x);
+                if (publicationCode == null)
                 {
-                    var currentItem = state.Value.CurrentMusic;
-                    if (currentItem != null)
-                    {
-                        current = mapper.Map<AlarmMusic>(currentItem);
-                    }
-                }
-
-                if (CurrentLanguage != null)
-                {
-                    CurrentLanguage.IsSelected = false;
-                }
-
-                CurrentLanguage = x;
-                CurrentLanguage!.IsSelected = true;
-
-                var languageCode = x.Code;
-
-                // Get the first song book for the selected language
-                var songBooks = await Task.Run(async () =>
-                    await mediaService.GetVocalMusicReleases(languageCode));
-
-                if (songBooks == null || songBooks.Count == 0)
-                {
-                    IsBusy = false;
                     return;
                 }
 
-                // Get the first song book (first in dictionary)
-                var firstSongBook = songBooks.FirstOrDefault();
-                if (firstSongBook.Value == null)
-                {
-                    IsBusy = false;
-                    return;
-                }
-
-                var publicationCode = firstSongBook.Key;
-
-                // Check if the selected language is the same as the current language
-                var currentSchedule = state.Value.CurrentSchedule;
-                var isSameLanguage = currentSchedule != null &&
-                                   currentSchedule.MusicType == MusicType.Vocals &&
-                                   currentSchedule.MusicLanguageCode == languageCode;
-
-                // Get tracks for the selected song book and language
-                var tracks = await Task.Run(async () =>
-                    await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
-
-                if (tracks == null || tracks.Count == 0)
-                {
-                    IsBusy = false;
-                    return;
-                }
-
-                // If it's the same language and song book, preserve the current track (if valid)
-                // Otherwise, use a random track
-                int trackNumber;
-                string trackName;
-                
-                if (isSameLanguage &&
-                    currentSchedule.MusicPublicationCode == publicationCode &&
-                    currentSchedule.MusicTrackNumber.HasValue &&
-                    tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
-                {
-                    trackNumber = currentSchedule.MusicTrackNumber.Value;
-                    trackName = currentTrack.Title;
-                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: SelectLanguageCommand - Same language and song book selected ({x.Name}), preserving current track {trackNumber}");
-                }
-                else
-                {
-                    // Different language or song book selected, use a random track
-                    var tracksList = tracks.Values.ToList();
-                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                    trackNumber = randomTrack.Number;
-                    trackName = randomTrack.Title;
-                    System.Diagnostics.Debug.WriteLine($"SongBookSelectionViewModel: SelectLanguageCommand - Different language/song book selected ({x.Name}, was {currentSchedule?.MusicLanguageCode ?? "null"}/{currentSchedule?.MusicPublicationCode ?? "null"}), using random track {trackNumber}");
-                }
-
-                // Create MusicStateItem with selected language, song book, and track
-                // IMPORTANT: Include display names from list items (no database query needed)
-                // Use CurrentSchedule for Repeat to ensure we use the latest state
-                var trackSelectedItem = new MusicStateItem
-                {
-                    Repeat = currentSchedule?.MusicRepeat ?? false,
-                    MusicType = MusicType.Vocals,
-                    LanguageCode = languageCode,
-                    PublicationCode = publicationCode,
-                    TrackNumber = trackNumber,
-                    // Store display names from list items
-                    LanguageName = x.Name,
-                    PublicationName = firstSongBook.Value.Name,
-                    TrackName = trackName
-                };
-
-                // Dispatch TrackSelectedAction to update CurrentMusic
+                var trackSelectedItem = CreateMusicStateItemForLanguage(x, publicationCode, trackNumber, trackName, publicationName);
                 dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-
-                // Close the modal and navigate back to schedule page
                 await navigationService.PopModalAsync();
             }
             finally
@@ -386,7 +237,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
             {
                 MusicType = newMusicType.Value,
                 LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.MusicPublicationCode,
+                PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
@@ -453,7 +304,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
             {
                 MusicType = newMusicType.Value,
                 LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.MusicPublicationCode,
+                PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
@@ -632,8 +483,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         current = new AlarmMusic
         {
             MusicType = currentSchedule.MusicType.Value,
-            LanguageCode = currentSchedule.MusicLanguageCode,
-            PublicationCode = currentSchedule.MusicPublicationCode,
+            LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
+            PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
             TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
@@ -680,6 +531,151 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         {
             SongBooks = songBookVMs;
         });
+    }
+
+    private void EnsureCurrentIsSet()
+    {
+        if (current == null)
+        {
+            var currentItem = state.Value.CurrentMusic;
+            if (currentItem != null)
+            {
+                current = mapper.Map<AlarmMusic>(currentItem);
+            }
+        }
+    }
+
+    private async Task<(int TrackNumber, string TrackName)> GetTrackForSongBookAsync(PublicationListViewItemModel songBook, string languageCode)
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        var isSameSongBook = IsSameSongBook(currentSchedule, languageCode, songBook.Code);
+
+        var tracks = await Task.Run(async () =>
+            await mediaService.GetVocalMusicTracks(languageCode, songBook.Code));
+
+        if (tracks == null || tracks.Count == 0)
+        {
+            return (0, string.Empty);
+        }
+
+        if (isSameSongBook &&
+            currentSchedule?.MusicTrackNumber.HasValue == true &&
+            tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+        {
+            return (currentSchedule.MusicTrackNumber.Value, currentTrack.Title);
+        }
+
+        var tracksList = tracks.Values.ToList();
+        var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+        return (randomTrack.Number, randomTrack.Title);
+    }
+
+    private static bool IsSameSongBook(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
+    {
+        return currentSchedule != null &&
+               currentSchedule.MusicType == MusicType.Vocals &&
+               currentSchedule.MusicLanguageCode == languageCode &&
+               currentSchedule.MusicPublicationCode == publicationCode;
+    }
+
+    private MusicStateItem CreateMusicStateItemForSongBook(PublicationListViewItemModel songBook, string languageCode, int trackNumber, string trackName)
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        return new MusicStateItem
+        {
+            Repeat = currentSchedule?.MusicRepeat ?? false,
+            MusicType = MusicType.Vocals,
+            LanguageCode = languageCode,
+            PublicationCode = songBook.Code,
+            TrackNumber = trackNumber,
+            LanguageName = CurrentLanguage?.Name,
+            PublicationName = songBook.Name,
+            TrackName = trackName
+        };
+    }
+
+    private void UpdateSelectedLanguage(LanguageListViewItemModel language)
+    {
+        if (CurrentLanguage != null)
+        {
+            CurrentLanguage.IsSelected = false;
+        }
+
+        CurrentLanguage = language;
+        CurrentLanguage!.IsSelected = true;
+    }
+
+    private async Task<(string? PublicationCode, int TrackNumber, string TrackName, string PublicationName)> GetFirstSongBookAndTrackForLanguageAsync(LanguageListViewItemModel language)
+    {
+        var songBooks = await Task.Run(async () =>
+            await mediaService.GetVocalMusicReleases(language.Code));
+
+        if (songBooks == null || songBooks.Count == 0)
+        {
+            return (null, 0, string.Empty, string.Empty);
+        }
+
+        var firstSongBook = songBooks.FirstOrDefault();
+        if (firstSongBook.Value == null)
+        {
+            return (null, 0, string.Empty, string.Empty);
+        }
+
+        var publicationCode = firstSongBook.Key;
+        var currentSchedule = state.Value.CurrentSchedule;
+        var isSameLanguage = IsSameLanguageAndSongBook(currentSchedule, language.Code, publicationCode);
+
+        var tracks = await Task.Run(async () =>
+            await mediaService.GetVocalMusicTracks(language.Code, publicationCode));
+
+        if (tracks == null || tracks.Count == 0)
+        {
+            return (null, 0, string.Empty, string.Empty);
+        }
+
+        int trackNumber;
+        string trackName;
+
+        if (isSameLanguage &&
+            currentSchedule?.MusicTrackNumber.HasValue == true &&
+            tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+        {
+            trackNumber = currentSchedule.MusicTrackNumber.Value;
+            trackName = currentTrack.Title;
+        }
+        else
+        {
+            var tracksList = tracks.Values.ToList();
+            var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+            trackNumber = randomTrack.Number;
+            trackName = randomTrack.Title;
+        }
+
+        return (publicationCode, trackNumber, trackName, firstSongBook.Value.Name);
+    }
+
+    private static bool IsSameLanguageAndSongBook(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
+    {
+        return currentSchedule != null &&
+               currentSchedule.MusicType == MusicType.Vocals &&
+               currentSchedule.MusicLanguageCode == languageCode &&
+               currentSchedule.MusicPublicationCode == publicationCode;
+    }
+
+    private MusicStateItem CreateMusicStateItemForLanguage(LanguageListViewItemModel language, string publicationCode, int trackNumber, string trackName, string publicationName)
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        return new MusicStateItem
+        {
+            Repeat = currentSchedule?.MusicRepeat ?? false,
+            MusicType = MusicType.Vocals,
+            LanguageCode = language.Code,
+            PublicationCode = publicationCode,
+            TrackNumber = trackNumber,
+            LanguageName = language.Name,
+            PublicationName = publicationName,
+            TrackName = trackName
+        };
     }
 
     public void Dispose()

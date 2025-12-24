@@ -3,6 +3,7 @@ using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
 using Android.Graphics;
+using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Runtime;
 using Android.Support.V4.Media;
@@ -77,50 +78,54 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     public override void OnCreate()
     {
         base.OnCreate();
-
         logger.Information("LegacyMediaBrowserService.OnCreate() called - Ensuring MauiApp is created");
 
-        // Create the DI container immediately (fast) so ServiceProviderManager is available synchronously.
-        // Then publish a blank, non-interactive loading UI to Android Auto ASAP.
+        InitializeMediaSession();
+        InitializeBootstrapInBackground();
+    }
+
+    private void InitializeMediaSession()
+    {
         try
         {
             MauiAppHolder.CreateAndStore();
-
-            // Get MediaSessionManager from service provider (now available after CreateAndStore)
-            mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
-            if (mediaSessionManager == null)
-            {
-                logger.Warning("MediaSessionManager is null - cannot create MediaSession");
-                return;
-            }
-
-            session = mediaSessionManager.GetOrCreate(true);
-            if (session == null)
-            {
-                logger.Error("MediaSessionCompat is null after GetOrCreate() - cannot set SessionToken");
-                return;
-            }
-
-            // Verify SessionToken is available before setting it
-            if (session.SessionToken == null)
-            {
-                logger.Error("MediaSessionCompat.SessionToken is null - MediaSessionCompat may not be properly initialized");
-                return;
-            }
-
-            // THIS IS THE KEY LINE — both systems now see the same session
-            SessionToken = session.SessionToken;
-
-            logger.Information("SessionToken successfully set: {Token}", SessionToken?.ToString() ?? "null");
-            logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Legacy Android Auto is connecting! SessionToken set correctly.");
+            SetupMediaSessionManagerAndToken();
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error initializing MediaSession in LegacyMediaBrowserService - will retry when service is bound");
         }
+    }
 
-        // Ensure bootstrap is initialized in the background (long-running).
-        // This will load schedules and eventually overwrite the loading UI with real metadata.
+    private void SetupMediaSessionManagerAndToken()
+    {
+        mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
+        if (mediaSessionManager == null)
+        {
+            logger.Warning("MediaSessionManager is null - cannot create MediaSession");
+            return;
+        }
+
+        session = mediaSessionManager.GetOrCreate(true);
+        if (session == null)
+        {
+            logger.Error("MediaSessionCompat is null after GetOrCreate() - cannot set SessionToken");
+            return;
+        }
+
+        if (session.SessionToken == null)
+        {
+            logger.Error("MediaSessionCompat.SessionToken is null - MediaSessionCompat may not be properly initialized");
+            return;
+        }
+
+        SessionToken = session.SessionToken;
+        logger.Information("SessionToken successfully set: {Token}", SessionToken?.ToString() ?? "null");
+        logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Legacy Android Auto is connecting! SessionToken set correctly.");
+    }
+
+    private void InitializeBootstrapInBackground()
+    {
         _ = Task.Run(() =>
         {
             try
@@ -128,40 +133,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Bootstrap initialization started");
 
-                // Subscribe to state changes after bootstrap is initialized
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        // Wait for bootstrap to complete before accessing state
-                        // Use a longer timeout for OnCreate since it's not blocking the UI
-                        try
-                        {
-                            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
-                        }
-                        catch (Exception bootstrapEx)
-                        {
-                            logger.Warning(bootstrapEx, "Bootstrap timed out in LegacyMediaBrowserService.OnCreate - will retry when schedules are loaded");
-                            // Don't throw - allow service to continue, schedules will be loaded when bootstrap completes
-                            return;
-                        }
-
-                        applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
-                        if (applicationState != null)
-                        {
-                            // Initialize schedule change tracker
-                            scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
-                            scheduleChangeTracker.Initialize(applicationState);
-
-                            applicationState.StateChanged += OnApplicationStateChanged;
-                            logger.Information("✅ LegacyMediaBrowserService subscribed to schedule list changes");
-                        }
-                        else
-                        {
-                            logger.Warning("IState<ApplicationState> not available - schedule updates will not refresh Android Auto UI");
-                        }
-
-                        // Set metadata to first schedule after bootstrap completes
+                        await InitializeStateSubscriptionAsync();
                         await SetInitialScheduleMetadataAsync();
                     }
                     catch (Exception ex)
@@ -175,6 +151,32 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 logger.Error(ex, "Error initializing bootstrap in LegacyMediaBrowserService");
             }
         });
+    }
+
+    private async Task InitializeStateSubscriptionAsync()
+    {
+        try
+        {
+            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
+        }
+        catch (Exception bootstrapEx)
+        {
+            logger.Warning(bootstrapEx, "Bootstrap timed out in LegacyMediaBrowserService.OnCreate - will retry when schedules are loaded");
+            return;
+        }
+
+        applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
+        if (applicationState != null)
+        {
+            scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
+            scheduleChangeTracker.Initialize(applicationState);
+            applicationState.StateChanged += OnApplicationStateChanged;
+            logger.Information("✅ LegacyMediaBrowserService subscribed to schedule list changes");
+        }
+        else
+        {
+            logger.Warning("IState<ApplicationState> not available - schedule updates will not refresh Android Auto UI");
+        }
     }
 
     public override BrowserRoot? OnGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
@@ -209,72 +211,80 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 return;
             }
 
-            // Get specific changes to update only affected items
             var changes = scheduleChangeTracker.GetSpecificChanges();
             if (changes == null || changes.Count == 0)
             {
                 return;
             }
 
-            // MediaBrowserServiceCompat doesn't support true item-level updates,
-            // but we can optimize by only notifying when specific items change
-            // and include metadata about which items changed in the Bundle
-            var options = new Bundle();
-            var changedIds = new List<int>();
-            var addedIds = new List<int>();
-            var removedIds = new List<int>();
-
-            foreach (var change in changes)
-            {
-                changedIds.Add(change.ScheduleId);
-                switch (change.ChangeType)
-                {
-                    case ScheduleChangeType.Added:
-                        addedIds.Add(change.ScheduleId);
-                        logger.Debug("Detected schedule added: {ScheduleId}", change.ScheduleId);
-                        break;
-                    case ScheduleChangeType.Removed:
-                        removedIds.Add(change.ScheduleId);
-                        logger.Debug("Detected schedule removed: {ScheduleId}", change.ScheduleId);
-                        break;
-                    case ScheduleChangeType.Updated:
-                        logger.Debug("Detected schedule updated: {ScheduleId}", change.ScheduleId);
-                        break;
-                }
-            }
-
-            // Store change metadata in Bundle for potential future use
-            // Android Auto will reload the list, but we've optimized by only notifying when specific items change
-            options.PutIntArray("changed_schedule_ids", changedIds.ToArray());
-            options.PutIntArray("added_schedule_ids", addedIds.ToArray());
-            options.PutIntArray("removed_schedule_ids", removedIds.ToArray());
-
-            // Notify Android Auto that children have changed
-            // CRITICAL FIX: Calling NotifyChildrenChanged(RootId) when GetSpecificChanges() detects a removal
-            // forces the Android Auto recommendation engine to flush its cache for the root.
-            // This fixes the "phantom" deleted playlist issue in "For You" cards.
-            // The system re-queries the root and sees the item is gone.
-            // 
-            // We call this for all change types (added/removed/updated) to keep the list fresh,
-            // but the key benefit is that removals trigger the cache flush, eliminating phantom items.
-            // Note: MediaBrowserServiceCompat will reload the entire list, but this is more efficient
-            // than calling NotifyChildrenChanged on every state change
+            var options = CreateChangeNotificationOptions(changes);
             NotifyChildrenChanged(RootId, options);
-            logger.Debug("Notified Android Auto of schedule changes: {ChangeCount} changes ({AddedCount} added, {UpdatedCount} updated, {RemovedCount} removed)",
-                changes.Count, addedIds.Count, changes.Count(c => c.ChangeType == ScheduleChangeType.Updated), removedIds.Count);
+            LogScheduleChanges(changes);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error checking schedule list changes - falling back to full refresh");
-            // Fallback to full refresh if item-level updates fail
-            try
-            {
-                NotifyChildrenChanged(RootId);
-            }
-            catch (Exception fallbackEx)
-            {
-                logger.Error(fallbackEx, "Error performing fallback full refresh");
-            }
+            PerformFallbackRefresh();
+        }
+    }
+
+    private Bundle CreateChangeNotificationOptions(List<ScheduleChange> changes)
+    {
+        var options = new Bundle();
+        var changedIds = new List<int>();
+        var addedIds = new List<int>();
+        var removedIds = new List<int>();
+
+        foreach (var change in changes)
+        {
+            changedIds.Add(change.ScheduleId);
+            CategorizeChange(change, addedIds, removedIds);
+        }
+
+        options.PutIntArray("changed_schedule_ids", changedIds.ToArray());
+        options.PutIntArray("added_schedule_ids", addedIds.ToArray());
+        options.PutIntArray("removed_schedule_ids", removedIds.ToArray());
+
+        return options;
+    }
+
+    private void CategorizeChange(ScheduleChange change, List<int> addedIds, List<int> removedIds)
+    {
+        switch (change.ChangeType)
+        {
+            case ScheduleChangeType.Added:
+                addedIds.Add(change.ScheduleId);
+                logger.Debug("Detected schedule added: {ScheduleId}", change.ScheduleId);
+                break;
+            case ScheduleChangeType.Removed:
+                removedIds.Add(change.ScheduleId);
+                logger.Debug("Detected schedule removed: {ScheduleId}", change.ScheduleId);
+                break;
+            case ScheduleChangeType.Updated:
+                logger.Debug("Detected schedule updated: {ScheduleId}", change.ScheduleId);
+                break;
+        }
+    }
+
+    private void LogScheduleChanges(List<ScheduleChange> changes)
+    {
+        var addedCount = changes.Count(c => c.ChangeType == ScheduleChangeType.Added);
+        var updatedCount = changes.Count(c => c.ChangeType == ScheduleChangeType.Updated);
+        var removedCount = changes.Count(c => c.ChangeType == ScheduleChangeType.Removed);
+
+        logger.Debug("Notified Android Auto of schedule changes: {ChangeCount} changes ({AddedCount} added, {UpdatedCount} updated, {RemovedCount} removed)",
+            changes.Count, addedCount, updatedCount, removedCount);
+    }
+
+    private void PerformFallbackRefresh()
+    {
+        try
+        {
+            NotifyChildrenChanged(RootId);
+        }
+        catch (Exception fallbackEx)
+        {
+            logger.Error(fallbackEx, "Error performing fallback full refresh");
         }
     }
 
@@ -474,20 +484,27 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     public override IBinder? OnBind(Intent? intent)
     {
+        LogBindIntent(intent);
+        EnsureServicePersistence();
+        EnsureSessionTokenIsSet();
+
+        return base.OnBind(intent);
+    }
+
+    private void LogBindIntent(Intent? intent)
+    {
         logger.Information("✅ LegacyMediaBrowserService.OnBind() called with intent: {Action}",
             intent?.Action);
 
-        // Log the intent details to help debug binder conflicts
         if (intent != null)
         {
             logger.Information("Intent component: {Component}, Package: {Package}, Categories: {Categories}",
                 intent.Component?.ClassName, intent.Package, string.Join(", ", intent.Categories ?? Array.Empty<string>()));
         }
+    }
 
-        // CRITICAL: Start the service to keep it alive even if Android Auto temporarily unbinds
-        // MediaBrowserServiceCompat is a bound service, so Android can destroy it when all clients unbind.
-        // By starting it as a sticky service, we ensure it persists across temporary unbind events.
-        // This prevents the service from being destroyed while Android Auto is still in proximity.
+    private void EnsureServicePersistence()
+    {
         try
         {
             var startIntent = new Intent(this, typeof(LegacyMediaBrowserService));
@@ -498,8 +515,10 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         {
             logger.Warning(ex, "Failed to start service in OnBind() - service may be destroyed if Android Auto unbinds");
         }
+    }
 
-        // If SessionToken wasn't set in OnCreate() (bootstrap may not have completed), try to set it now
+    private void EnsureSessionTokenIsSet()
+    {
         if (SessionToken == null)
         {
             try
@@ -520,8 +539,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 logger.Warning(ex, "Could not set SessionToken in OnBind() - bootstrap may still be running");
             }
         }
-
-        return base.OnBind(intent);
     }
 
     public override bool OnUnbind(Intent? intent)
@@ -547,53 +564,24 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         try
         {
-            // Use custom open book icon from app resources
-            // This provides a recognizable icon for Bible reading content in Android Auto
-            var bookDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_book_open);
+            var bookDrawable = GetBookDrawable();
             if (bookDrawable == null)
             {
-                logger.Warning("Could not get app drawable for book icon");
                 return null;
             }
 
-            // Android Auto requires icons to be at least 64x64 pixels for proper display
-            // Use a larger size to ensure good quality on high-DPI displays
-            // Calculate consistent bitmap size and book position for both music enabled/disabled
-            const int BookIconSize = 128;
-            const int MusicIconSize = BookIconSize / 2; // Music icon (twice the previous size)
-            const int MusicOffset = 4; // Offset from top-left corner
-            const int BookOffset = MusicIconSize - 8; // Offset book closer to music icon (reduced gap)
-            const int BitmapSize = BookIconSize + BookOffset; // Total bitmap size (same for both cases)
-
-            var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
-            var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
-
-            // Clear the bitmap with transparent background
-            bitmap.EraseColor(Color.Transparent);
-
+            var bitmap = CreateIconBitmap();
             var canvas = new Canvas(bitmap);
 
-            // If music is enabled, add music note in top left (outside book icon)
             if (musicEnabled)
             {
-                var musicDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_music_note);
-                if (musicDrawable != null)
-                {
-                    // Draw music note in top left corner (outside and separate from book icon)
-                    musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
-                    musicDrawable.Draw(canvas);
-                }
-                else
-                {
-                    logger.Warning("Could not get app drawable for music note icon");
-                }
+                DrawMusicIcon(canvas);
             }
 
-            // Draw book icon at the same position regardless of music (for consistent appearance)
-            bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
-            bookDrawable.Draw(canvas);
+            DrawBookIcon(canvas, bookDrawable);
 
-            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}, MusicEnabled: {MusicEnabled}", BitmapSize, BitmapSize, musicEnabled);
+            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}, MusicEnabled: {MusicEnabled}",
+                GetBitmapSize(), GetBitmapSize(), musicEnabled);
             return bitmap;
         }
         catch (Exception ex)
@@ -601,6 +589,61 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             logger.Warning(ex, "Failed to create book icon bitmap - MediaItems will display without icon");
             return null;
         }
+    }
+
+    private Drawable? GetBookDrawable()
+    {
+        var bookDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_book_open);
+        if (bookDrawable == null)
+        {
+            logger.Warning("Could not get app drawable for book icon");
+        }
+        return bookDrawable;
+    }
+
+    private Bitmap CreateIconBitmap()
+    {
+        int BitmapSize = GetBitmapSize();
+        var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
+        var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
+        bitmap.EraseColor(Color.Transparent);
+        return bitmap;
+    }
+
+    private void DrawMusicIcon(Canvas canvas)
+    {
+        var musicDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_music_note);
+        if (musicDrawable != null)
+        {
+            int MusicIconSize = GetBookIconSize() / 2;
+            const int MusicOffset = 4;
+            musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
+            musicDrawable.Draw(canvas);
+        }
+        else
+        {
+            logger.Warning("Could not get app drawable for music note icon");
+        }
+    }
+
+    private void DrawBookIcon(Canvas canvas, Drawable bookDrawable)
+    {
+        int BookIconSize = GetBookIconSize();
+        int BookOffset = BookIconSize / 2 - 8;
+        bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
+        bookDrawable.Draw(canvas);
+    }
+
+    private static int GetBitmapSize()
+    {
+        const int BookIconSize = 128;
+        const int BookOffset = BookIconSize / 2 - 8;
+        return BookIconSize + BookOffset;
+    }
+
+    private static int GetBookIconSize()
+    {
+        return 128;
     }
 
     public override void OnDestroy()

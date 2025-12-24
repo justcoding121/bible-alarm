@@ -81,44 +81,54 @@ public partial class Home : BaseContentPage, IDisposable
 
     private bool IsTapOnInteractiveControl(View view, Point tapPosition)
     {
-        // Check if this view itself is a Button, SfButton, or Switch and contains the tap
-        // Bounds are relative to the parent, and tapPosition is in the same coordinate space
-        if ((view is Button or SfButton or Switch))
+        if (IsViewInteractiveControl(view, tapPosition))
         {
-            var bounds = view.Bounds;
-            if (bounds.Contains(tapPosition))
+            return true;
+        }
+
+        return IsTapOnChildControl(view, tapPosition);
+    }
+
+    private static bool IsViewInteractiveControl(View view, Point tapPosition)
+    {
+        if (view is Button or SfButton or Switch)
+        {
+            return view.Bounds.Contains(tapPosition);
+        }
+        return false;
+    }
+
+    private bool IsTapOnChildControl(View view, Point tapPosition)
+    {
+        if (view is not Layout layout)
+        {
+            return false;
+        }
+
+        foreach (var child in layout.Children)
+        {
+            if (child is View childView && IsTapOnChild(childView, tapPosition))
             {
                 return true;
             }
         }
 
-        // Recursively check children
-        if (view is Layout layout)
-        {
-            foreach (var child in layout.Children)
-            {
-                if (child is View childView)
-                {
-                    var childBounds = childView.Bounds;
-                    // Check if tap is within this child's bounds (bounds are relative to current parent)
-                    if (childBounds.Contains(tapPosition))
-                    {
-                        // Convert tap position to child's coordinate space for recursive check
-                        var relativePoint = new Point(
-                            tapPosition.X - childBounds.X,
-                            tapPosition.Y - childBounds.Y);
+        return false;
+    }
 
-                        // Recursively check this child
-                        if (IsTapOnInteractiveControl(childView, relativePoint))
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
+    private bool IsTapOnChild(View childView, Point tapPosition)
+    {
+        var childBounds = childView.Bounds;
+        if (!childBounds.Contains(tapPosition))
+        {
+            return false;
         }
 
-        return false;
+        var relativePoint = new Point(
+            tapPosition.X - childBounds.X,
+            tapPosition.Y - childBounds.Y);
+
+        return IsTapOnInteractiveControl(childView, relativePoint);
     }
 
     protected override void OnAppearing()

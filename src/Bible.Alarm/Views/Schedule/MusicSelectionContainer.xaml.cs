@@ -1,10 +1,12 @@
+#nullable enable
+
 using Bible.Alarm.ViewModels.Schedule;
 using System.ComponentModel;
 using System.Threading;
 
 namespace Bible.Alarm.Views.Schedule;
 
-public partial class MusicSelectionContainer : ContentView
+public partial class MusicSelectionContainer : ContentView, IDisposable
 {
     private bool isAnimating;
     private double? cachedHeight;
@@ -13,6 +15,7 @@ public partial class MusicSelectionContainer : ContentView
     private CancellationTokenSource? debounceTokenSource;
     private bool shouldScrollOnExpand; // Track if we should scroll when expanding
     private bool isInitialLoad = true; // Track if this is the initial load
+    private bool isDisposed;
 
     public MusicSelectionContainer()
     {
@@ -101,8 +104,9 @@ public partial class MusicSelectionContainer : ContentView
             
             System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Triggering animation for MusicEnabled = {newState}, shouldScrollOnExpand = {shouldScrollOnExpand}");
             
-            // Cancel any pending debounce
+            // Cancel and dispose any pending debounce
             debounceTokenSource?.Cancel();
+            debounceTokenSource?.Dispose();
             debounceTokenSource = new CancellationTokenSource();
             var token = debounceTokenSource.Token;
             
@@ -155,7 +159,7 @@ public partial class MusicSelectionContainer : ContentView
         if (animate)
         {
             System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Starting animation");
-            AnimateCollapsibleContent(isEnabled);
+            _ = AnimateCollapsibleContent(isEnabled);
         }
         else
         {
@@ -174,13 +178,10 @@ public partial class MusicSelectionContainer : ContentView
         }
     }
 
-    private async void AnimateCollapsibleContent(bool isEnabled)
+    private async Task AnimateCollapsibleContent(bool isEnabled)
     {
-        System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] AnimateCollapsibleContent: isEnabled={isEnabled}, CollapsibleContent={CollapsibleContent != null}, isAnimating={isAnimating}, Handler={Handler != null}");
-        
         if (CollapsibleContent == null || isAnimating || Handler == null)
         {
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] AnimateCollapsibleContent: Early return - CollapsibleContent={CollapsibleContent != null}, isAnimating={isAnimating}, Handler={Handler != null}");
             return;
         }
 
@@ -188,190 +189,179 @@ public partial class MusicSelectionContainer : ContentView
 
         try
         {
-            // Cancel any existing animations
-            this.AbortAnimation("ExpandCollapsibleContent");
-            this.AbortAnimation("CollapseCollapsibleContent");
+            AbortExistingAnimations();
 
             if (isEnabled)
             {
-                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Starting EXPAND animation");
-                
-                // Expand animation
-                if (CollapsibleContent == null) return;
-                
-                CollapsibleContent.IsVisible = true;
-                CollapsibleContent.Opacity = 0;
-                
-                // Measure the content to get its natural height
-                if (!cachedHeight.HasValue || cachedHeight.Value <= 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Measuring content height...");
-                    CollapsibleContent.HeightRequest = -1; // Auto size to measure
-                    CollapsibleContent.Opacity = 1;
-                    await Task.Delay(100); // Allow layout to measure - increased delay
-                    
-                    if (CollapsibleContent == null) return;
-                    
-                    cachedHeight = CollapsibleContent.Height > 0 ? CollapsibleContent.Height : 200;
-                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Measured height: {cachedHeight}");
-                    CollapsibleContent.Opacity = 0;
-                }
-
-                if (CollapsibleContent == null) return;
-
-                var targetHeight = cachedHeight.Value;
-                if (targetHeight <= 0) targetHeight = 200; // Fallback
-                
-                System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Expanding to height: {targetHeight}");
-                CollapsibleContent.HeightRequest = 0;
-
-                // Animate height and opacity
-                var heightAnimation = new Animation(
-                    value =>
-                    {
-                        if (CollapsibleContent != null)
-                        {
-                            CollapsibleContent.HeightRequest = value;
-                        }
-                    },
-                    0,
-                    targetHeight,
-                    easing: Easing.CubicOut);
-
-                var opacityAnimation = new Animation(
-                    value =>
-                    {
-                        if (CollapsibleContent != null)
-                        {
-                            CollapsibleContent.Opacity = value;
-                        }
-                    },
-                    0,
-                    1,
-                    easing: Easing.CubicOut);
-
-                var parentAnimation = new Animation();
-                parentAnimation.Add(0, 1, heightAnimation);
-                parentAnimation.Add(0, 1, opacityAnimation);
-
-                parentAnimation.Commit(this, "ExpandCollapsibleContent", 16, 300, finished: (d, cancelled) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Expand animation finished: cancelled={cancelled}, shouldScrollOnExpand={shouldScrollOnExpand}");
-                    // Reset to auto after animation completes
-                    if (CollapsibleContent != null && !cancelled)
-                    {
-                        CollapsibleContent.HeightRequest = -1;
-                    }
-                    isAnimating = false;
-                    
-                    // Only scroll if this was a user-initiated toggle from false to true
-                    if (!cancelled && shouldScrollOnExpand)
-                    {
-                        ScrollToExpandedContent();
-                        shouldScrollOnExpand = false; // Reset flag after scrolling
-                    }
-                });
+                await AnimateExpand();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Starting COLLAPSE animation");
-                
-                // Collapse animation
-                if (CollapsibleContent == null) return;
-                
-                // Get current height before collapsing - ensure we have a valid height
-                var currentHeight = CollapsibleContent.Height;
-                System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Current height before collapse: {currentHeight}");
-                
-                if (currentHeight <= 0)
-                {
-                    // Try to measure if not already measured
-                    if (!cachedHeight.HasValue || cachedHeight.Value <= 0)
-                    {
-                        CollapsibleContent.HeightRequest = -1;
-                        await Task.Delay(50);
-                        if (CollapsibleContent == null) return;
-                        currentHeight = CollapsibleContent.Height;
-                        System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Measured height during collapse: {currentHeight}");
-                    }
-                    
-                    if (currentHeight <= 0)
-                    {
-                        currentHeight = cachedHeight ?? 200;
-                        System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Using cached/fallback height: {currentHeight}");
-                    }
-                    
-                    cachedHeight = currentHeight;
-                }
-                else
-                {
-                    // Cache the height for future use
-                    cachedHeight = currentHeight;
-                }
-
-                var startHeight = currentHeight;
-                if (startHeight <= 0) startHeight = 200; // Fallback
-                
-                System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Collapsing from height: {startHeight}");
-                CollapsibleContent.HeightRequest = startHeight;
-                CollapsibleContent.Opacity = 1;
-
-                // Animate height and opacity
-                var heightAnimation = new Animation(
-                    value =>
-                    {
-                        if (CollapsibleContent != null)
-                        {
-                            CollapsibleContent.HeightRequest = value;
-                        }
-                    },
-                    startHeight,
-                    0,
-                    easing: Easing.CubicIn);
-
-                var opacityAnimation = new Animation(
-                    value =>
-                    {
-                        if (CollapsibleContent != null)
-                        {
-                            CollapsibleContent.Opacity = value;
-                        }
-                    },
-                    1,
-                    0,
-                    easing: Easing.CubicIn);
-
-                var parentAnimation = new Animation();
-                parentAnimation.Add(0, 1, heightAnimation);
-                parentAnimation.Add(0, 1, opacityAnimation);
-
-                parentAnimation.Commit(this, "CollapseCollapsibleContent", 16, 300, finished: (d, cancelled) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Collapse animation finished: cancelled={cancelled}");
-                    // Hide after animation completes
-                    if (CollapsibleContent != null && !cancelled)
-                    {
-                        CollapsibleContent.IsVisible = false;
-                        CollapsibleContent.HeightRequest = 0;
-                        CollapsibleContent.Opacity = 0;
-                    }
-                    isAnimating = false;
-                });
+                await AnimateCollapse();
             }
         }
         catch (Exception ex)
         {
-            // Log error but don't crash - just set the state directly
             System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Animation error: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Stack trace: {ex.StackTrace}");
-            
-            if (CollapsibleContent != null)
+            SetContentStateDirectly(isEnabled);
+            isAnimating = false;
+        }
+    }
+
+    private void AbortExistingAnimations()
+    {
+        this.AbortAnimation("ExpandCollapsibleContent");
+        this.AbortAnimation("CollapseCollapsibleContent");
+    }
+
+    private async Task AnimateExpand()
+    {
+        if (CollapsibleContent == null) return;
+
+        CollapsibleContent.IsVisible = true;
+        CollapsibleContent.Opacity = 0;
+
+        await EnsureHeightCached();
+        if (CollapsibleContent == null) return;
+
+        var targetHeight = GetTargetHeight();
+        CollapsibleContent.HeightRequest = 0;
+
+        var animation = CreateExpandAnimation(targetHeight);
+        animation.Commit(this, "ExpandCollapsibleContent", 16, 300, finished: (d, cancelled) =>
+        {
+            if (CollapsibleContent != null && !cancelled)
             {
-                CollapsibleContent.IsVisible = isEnabled;
-                CollapsibleContent.Opacity = isEnabled ? 1 : 0;
-                CollapsibleContent.HeightRequest = isEnabled ? -1 : 0;
+                CollapsibleContent.HeightRequest = -1;
             }
             isAnimating = false;
+
+            if (!cancelled && shouldScrollOnExpand)
+            {
+                ScrollToExpandedContent();
+                shouldScrollOnExpand = false;
+            }
+        });
+    }
+
+    private async Task EnsureHeightCached()
+    {
+        if (CollapsibleContent == null) return;
+
+        if (!cachedHeight.HasValue || cachedHeight.Value <= 0)
+        {
+            CollapsibleContent.HeightRequest = -1;
+            CollapsibleContent.Opacity = 1;
+            await Task.Delay(100);
+
+            if (CollapsibleContent != null)
+            {
+                cachedHeight = CollapsibleContent.Height > 0 ? CollapsibleContent.Height : 200;
+                CollapsibleContent.Opacity = 0;
+            }
+        }
+    }
+
+    private double GetTargetHeight()
+    {
+        return cachedHeight.HasValue && cachedHeight.Value > 0 ? cachedHeight.Value : 200;
+    }
+
+    private Animation CreateExpandAnimation(double targetHeight)
+    {
+        var heightAnimation = new Animation(
+            value => { if (CollapsibleContent != null) CollapsibleContent.HeightRequest = value; },
+            0, targetHeight, easing: Easing.CubicOut);
+
+        var opacityAnimation = new Animation(
+            value => { if (CollapsibleContent != null) CollapsibleContent.Opacity = value; },
+            0, 1, easing: Easing.CubicOut);
+
+        var parentAnimation = new Animation();
+        parentAnimation.Add(0, 1, heightAnimation);
+        parentAnimation.Add(0, 1, opacityAnimation);
+        return parentAnimation;
+    }
+
+    private async Task AnimateCollapse()
+    {
+        if (CollapsibleContent == null) return;
+
+        var startHeight = await GetStartHeightForCollapse();
+        if (CollapsibleContent == null) return;
+
+        CollapsibleContent.HeightRequest = startHeight;
+        CollapsibleContent.Opacity = 1;
+
+        var animation = CreateCollapseAnimation(startHeight);
+        animation.Commit(this, "CollapseCollapsibleContent", 16, 300, finished: (d, cancelled) =>
+        {
+            if (CollapsibleContent != null && !cancelled)
+            {
+                CollapsibleContent.IsVisible = false;
+                CollapsibleContent.HeightRequest = 0;
+                CollapsibleContent.Opacity = 0;
+            }
+            isAnimating = false;
+        });
+    }
+
+    private async Task<double> GetStartHeightForCollapse()
+    {
+        if (CollapsibleContent == null) return 200;
+
+        var currentHeight = CollapsibleContent.Height;
+
+        if (currentHeight <= 0)
+        {
+            if (!cachedHeight.HasValue || cachedHeight.Value <= 0)
+            {
+                CollapsibleContent.HeightRequest = -1;
+                await Task.Delay(50);
+                if (CollapsibleContent != null)
+                {
+                    currentHeight = CollapsibleContent.Height;
+                }
+            }
+
+            if (currentHeight <= 0)
+            {
+                currentHeight = cachedHeight ?? 200;
+            }
+
+            cachedHeight = currentHeight;
+        }
+        else
+        {
+            cachedHeight = currentHeight;
+        }
+
+        return currentHeight > 0 ? currentHeight : 200;
+    }
+
+    private Animation CreateCollapseAnimation(double startHeight)
+    {
+        var heightAnimation = new Animation(
+            value => { if (CollapsibleContent != null) CollapsibleContent.HeightRequest = value; },
+            startHeight, 0, easing: Easing.CubicIn);
+
+        var opacityAnimation = new Animation(
+            value => { if (CollapsibleContent != null) CollapsibleContent.Opacity = value; },
+            1, 0, easing: Easing.CubicIn);
+
+        var parentAnimation = new Animation();
+        parentAnimation.Add(0, 1, heightAnimation);
+        parentAnimation.Add(0, 1, opacityAnimation);
+        return parentAnimation;
+    }
+
+    private void SetContentStateDirectly(bool isEnabled)
+    {
+        if (CollapsibleContent != null)
+        {
+            CollapsibleContent.IsVisible = isEnabled;
+            CollapsibleContent.Opacity = isEnabled ? 1 : 0;
+            CollapsibleContent.HeightRequest = isEnabled ? -1 : 0;
         }
     }
 
@@ -480,6 +470,34 @@ public partial class MusicSelectionContainer : ContentView
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Error scrolling: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        if (!isDisposed)
+        {
+            // Cancel and dispose cancellation token source
+            try
+            {
+                debounceTokenSource?.Cancel();
+                debounceTokenSource?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Ignore errors during cancellation/disposal
+                System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Error during debounceTokenSource disposal: {ex.Message}");
+            }
+
+            // Unsubscribe from view model
+            if (viewModel != null)
+            {
+                viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            }
+
+            // Clear BindingContext to break reference and allow garbage collection
+            BindingContext = null;
+            isDisposed = true;
         }
     }
 }

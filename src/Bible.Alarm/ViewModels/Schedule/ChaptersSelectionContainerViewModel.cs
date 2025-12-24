@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Common.Interfaces.Battery;
@@ -68,7 +70,10 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
             }
 
             CurrentNumberOfChapters = x;
-            CurrentNumberOfChapters.IsSelected = true;
+            if (CurrentNumberOfChapters != null)
+            {
+                CurrentNumberOfChapters.IsSelected = true;
+            }
 
             // Dispatch update to state
             if (CurrentNumberOfChapters != null)
@@ -129,7 +134,7 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
         }
     }
 
-    private void OnStateChanged(object sender, EventArgs e)
+    private void OnStateChanged(object? sender, EventArgs e)
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule != null && currentSchedule.Id != scheduleId)

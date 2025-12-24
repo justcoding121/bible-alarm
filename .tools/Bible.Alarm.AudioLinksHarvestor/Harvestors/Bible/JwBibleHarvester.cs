@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -29,78 +31,115 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             var publicationCode = publication.Key;
             logger.Information("Starting harvest for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
 
-            Dictionary<string, string> discoveredLanguages;
-            try
-            {
-                discoveredLanguages = await DiscoverLanguagesFromApi(publicationCode);
-            }
-            catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+            var filteredLanguages = await GetFilteredLanguages(publicationCode, publication.Value, isTestRun);
+            if (filteredLanguages == null || filteredLanguages.Count == 0)
             {
                 continue;
+            }
+
+            await ProcessLanguagesForPublication(
+                filteredLanguages,
+                publicationCode,
+                publication.Value,
+                languageCodeToNameMappings,
+                languageCodeToEditionsMapping);
+        }
+    }
+
+    private async Task<Dictionary<string, string>?> GetFilteredLanguages(string publicationCode, string publicationName, bool isTestRun)
+    {
+        Dictionary<string, string> discoveredLanguages;
+        try
+        {
+            discoveredLanguages = await DiscoverLanguagesFromApi(publicationCode);
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to discover languages for publication {PublicationCode} ({PublicationName}). Skipping.", publicationCode, publicationName);
+            return null;
+        }
+
+        if (discoveredLanguages.Count == 0)
+        {
+            return null;
+        }
+
+        var filteredLanguages = discoveredLanguages
+            .Where(lang => !ShouldSkipLanguage(lang.Value))
+            .ToDictionary(x => x.Key, x => x.Value);
+
+        if (filteredLanguages.Count == 0)
+        {
+            return null;
+        }
+
+        if (isTestRun)
+        {
+            if (filteredLanguages.TryGetValue("E", out var englishName))
+            {
+                logger.Information("TEST RUN: Processing only English language for publication {PublicationCode}", publicationCode);
+                return new Dictionary<string, string> { ["E"] = englishName };
+            }
+            return null;
+        }
+
+        return filteredLanguages;
+    }
+
+    private async Task ProcessLanguagesForPublication(
+        Dictionary<string, string> filteredLanguages,
+        string publicationCode,
+        string publicationName,
+        ConcurrentDictionary<string, string> languageCodeToNameMappings,
+        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
+    {
+        using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
+        var languageTasks = filteredLanguages.Select(async langEntry =>
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                await ProcessLanguage(
+                    langEntry.Key,
+                    langEntry.Value,
+                    publicationCode,
+                    publicationName,
+                    languageCodeToNameMappings,
+                    languageCodeToEditionsMapping);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Failed to discover languages for publication {PublicationCode} ({PublicationName}). Skipping.", publicationCode, publication.Value);
-                continue;
+                logger.Error(ex, "Failed to harvest Bible links for {PublicationName} ({PublicationCode}) in {Language} ({LanguageCode}).", publicationName, publicationCode, langEntry.Value, langEntry.Key);
             }
-
-            if (discoveredLanguages.Count == 0)
+            finally
             {
-                continue;
+                semaphore.Release();
             }
+        });
 
-            var filteredLanguages = discoveredLanguages
-                .Where(lang => !ShouldSkipLanguage(lang.Value))
-                .ToDictionary(x => x.Key, x => x.Value);
+        await Task.WhenAll(languageTasks);
+    }
 
-            if (filteredLanguages.Count == 0)
-            {
-                continue;
-            }
+    private async Task ProcessLanguage(
+        string languageCode,
+        string language,
+        string publicationCode,
+        string publicationName,
+        ConcurrentDictionary<string, string> languageCodeToNameMappings,
+        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
+    {
+        languageCodeToNameMappings.TryAdd(languageCode, language);
 
-            if (isTestRun)
-            {
-                if (filteredLanguages.TryGetValue("E", out var englishName))
-                {
-                    logger.Information("TEST RUN: Processing only English language for publication {PublicationCode}", publicationCode);
-                    filteredLanguages = new Dictionary<string, string> { ["E"] = englishName };
-                }
-                else
-                {
-                    continue;
-                }
-            }
+        logger.Information("Harvesting Bible chapter links for {PublicationName} of {Language} language.", publicationName, language);
+        await HarvestBibleLinks(languageCode, publicationCode);
 
-            using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
-            var languageTasks = filteredLanguages.Select(async langEntry =>
-            {
-                await semaphore.WaitAsync();
-                try
-                {
-                    var languageCode = langEntry.Key;
-                    var language = langEntry.Value;
-
-                    languageCodeToNameMappings.TryAdd(languageCode, language);
-
-                    logger.Information("Harvesting Bible chapter links for {PublicationName} of {Language} language.", publication.Value, language);
-                    await HarvestBibleLinks(languageCode, publicationCode);
-
-                    if (!languageCodeToEditionsMapping.TryAdd(languageCode, [publication.Key]))
-                    {
-                        languageCodeToEditionsMapping[languageCode].Add(publication.Key);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Failed to harvest Bible links for {PublicationName} ({PublicationCode}) in {Language} ({LanguageCode}).", publication.Value, publicationCode, langEntry.Value, langEntry.Key);
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            });
-
-            await Task.WhenAll(languageTasks);
+        if (!languageCodeToEditionsMapping.TryAdd(languageCode, [publicationCode]))
+        {
+            languageCodeToEditionsMapping[languageCode].Add(publicationCode);
         }
     }
 
@@ -233,7 +272,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                     continue;
                 }
 
-                ProcessBookFiles(bookFiles, doc.RootElement, harvestLink, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode);
+                ProcessBookFiles(bookFiles, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode);
             }
             catch (KeyNotFoundException)
             {
@@ -251,6 +290,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
         }
 
+        // Check if any books were successfully harvested
         if (bookNumberBookMap.Count > 0)
         {
             SaveBooksAndChapters(booksDirectory, booksIndex, bookNumberBookMap, bookNumberChapterMap);
@@ -262,8 +302,6 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private static void ProcessBookFiles(
         JsonElement bookFiles,
-        JsonElement rootElement,
-        string harvestLink,
         Dictionary<int, BibleBook> bookNumberBookMap,
         Dictionary<int, Dictionary<int, BibleChapter>> bookNumberChapterMap,
         ref int bookNumber,
@@ -271,89 +309,114 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     {
         foreach (var bookFile in bookFiles.EnumerateArray())
         {
-            if (!bookFile.TryGetProperty("file", out var fileElement) ||
-                !fileElement.TryGetProperty("url", out var urlElement))
+            if (!TryExtractBookFileData(bookFile, out var url, out var track, out var fileBookNumber))
             {
                 continue;
             }
 
-            string url = urlElement.GetString();
-            if (string.IsNullOrEmpty(url))
-            {
-                continue;
-            }
-
-            if (!bookFile.TryGetProperty("track", out var trackElement))
-            {
-                continue;
-            }
-
-            var track = trackElement.GetInt32();
             if (track == 0 || url.EndsWith(".zip"))
             {
                 continue;
             }
 
-            if (!bookFile.TryGetProperty("booknum", out var bookNumElement))
-            {
-                continue;
-            }
-
-            bookNumber = bookNumElement.GetInt32();
-
-            if (!bookNumberBookMap.ContainsKey(bookNumber))
-            {
-                var bookName = GetBookName(bookFile, rootElement, harvestLink, languageCode, bookNumber);
-                if (string.IsNullOrEmpty(bookName))
-                {
-                    continue;
-                }
-
-                bookNumberBookMap[bookNumber] = new BibleBook
-                {
-                    Number = bookNumber,
-                    Name = bookName
-                };
-            }
-
-            var trackNumber = track;
-            if (!bookNumberChapterMap.ContainsKey(bookNumber))
-            {
-                bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
-            }
-
-            if (!bookNumberChapterMap[bookNumber].ContainsKey(trackNumber))
-            {
-                bookNumberChapterMap[bookNumber].Add(trackNumber, new BibleChapter
-                {
-                    Number = trackNumber,
-                    Url = url,
-                });
-            }
+            bookNumber = fileBookNumber;
+            EnsureBookExists(bookFile, bookNumber, bookNumberBookMap, languageCode);
+            AddChapterIfNotExists(bookNumber, track, url, bookNumberChapterMap);
         }
     }
 
-    private static string GetBookName(JsonElement bookFile, JsonElement rootElement, string harvestLink, string languageCode, int bookNumber)
+    private static bool TryExtractBookFileData(JsonElement bookFile, out string url, out int track, out int bookNumber)
     {
-        string name;
+        url = string.Empty;
+        track = 0;
+        bookNumber = 0;
 
-        if (harvestLink.Contains("booknum="))
+        if (!bookFile.TryGetProperty("file", out var fileElement) ||
+            !fileElement.TryGetProperty("url", out var urlElement))
         {
-            if (!rootElement.TryGetProperty("pubName", out var pubNameElement))
-            {
-                return null;
-            }
-            name = pubNameElement.GetString()!;
-        }
-        else
-        {
-            if (!bookFile.TryGetProperty("title", out var titleElement))
-            {
-                return null;
-            }
-            name = titleElement.GetString()!.Split('-')[0].Trim();
+            return false;
         }
 
+        url = urlElement.GetString() ?? string.Empty;
+        if (string.IsNullOrEmpty(url))
+        {
+            return false;
+        }
+
+        if (!bookFile.TryGetProperty("track", out var trackElement))
+        {
+            return false;
+        }
+
+        track = trackElement.GetInt32();
+
+        if (!bookFile.TryGetProperty("booknum", out var bookNumElement))
+        {
+            return false;
+        }
+
+        bookNumber = bookNumElement.GetInt32();
+        return true;
+    }
+
+    private static void EnsureBookExists(
+        JsonElement bookFile,
+        int bookNumber,
+        Dictionary<int, BibleBook> bookNumberBookMap,
+        string languageCode)
+    {
+        if (bookNumberBookMap.ContainsKey(bookNumber))
+        {
+            return;
+        }
+
+        var bookName = GetBookName(bookFile, languageCode, bookNumber);
+        if (string.IsNullOrEmpty(bookName))
+        {
+            return;
+        }
+
+        bookNumberBookMap[bookNumber] = new BibleBook
+        {
+            Number = bookNumber,
+            Name = bookName
+        };
+    }
+
+    private static void AddChapterIfNotExists(
+        int bookNumber,
+        int trackNumber,
+        string url,
+        Dictionary<int, Dictionary<int, BibleChapter>> bookNumberChapterMap)
+    {
+        if (!bookNumberChapterMap.ContainsKey(bookNumber))
+        {
+            bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
+        }
+
+        if (!bookNumberChapterMap[bookNumber].ContainsKey(trackNumber))
+        {
+            bookNumberChapterMap[bookNumber].Add(trackNumber, new BibleChapter
+            {
+                Number = trackNumber,
+                Url = url,
+            });
+        }
+    }
+
+    private static string? GetBookName(JsonElement bookFile, string languageCode, int bookNumber)
+    {
+        if (!bookFile.TryGetProperty("title", out var titleElement))
+        {
+            return null;
+        }
+
+        var name = titleElement.GetString()!.Split('-')[0].Trim();
+        return FormatBookName(name, languageCode, bookNumber);
+    }
+
+    private static string FormatBookName(string name, string languageCode, int bookNumber)
+    {
         // For Malayalam (MY) language, remove "1" suffix from Psalms (book 19)
         if (languageCode == "MY" && bookNumber == 19 && name.EndsWith(" 1", StringComparison.Ordinal))
         {
