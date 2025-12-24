@@ -123,7 +123,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         foreach (var translation in translations)
         {
-            logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}", 
+            logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}",
                 translation.Value.Name, translation.Value.Code, languageKey);
 
             var books = await GetSafely(() => mediaReader.GetBibleBooks(languageKey, translation.Key));
@@ -134,7 +134,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
             var bibleTranslation = CreateBibleTranslation(translation.Value, newLanguage, displayLanguage);
             await SeedBooksForTranslation(db, mediaReader, languageKey, translation.Key, books, bibleTranslation);
-            
+
             await db.BibleTranslations.AddAsync(bibleTranslation);
             await db.SaveChangesAsync();
         }
@@ -305,7 +305,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         foreach (var vocalMusicRelease in vocalMusicReleases)
         {
-            logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}", 
+            logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}",
                 vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
 
             var tracks = await GetSafely(() => mediaReader.GetVocalMusicTracks(languageCode, vocalMusicRelease.Key));

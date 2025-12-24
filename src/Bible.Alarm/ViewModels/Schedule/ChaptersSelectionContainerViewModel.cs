@@ -49,7 +49,7 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
         this.serviceProvider = serviceProvider;
         this.state = state;
         this.dispatcher = dispatcher;
-        
+
         state.StateChanged += OnStateChanged;
         InitializeCommands();
         InitializeFromState();
@@ -128,7 +128,7 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
             alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
 
             PopulateNumberOfChaptersListView();
-            
+
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
         }
@@ -276,16 +276,16 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
         var currentSchedule = state.Value.CurrentSchedule;
         var numberOfChapters = currentSchedule?.NumberOfChaptersToRead ?? 3;
 
-            var chapterVMs = new ObservableCollection<NumberOfChaptersListViewItemModel>();
+        var chapterVMs = new ObservableCollection<NumberOfChaptersListViewItemModel>();
 
-            for (var i = 1; i <= 21; i++)
-            {
-                var chaptersVm = new NumberOfChaptersListViewItemModel(i);
+        for (var i = 1; i <= 21; i++)
+        {
+            var chaptersVm = new NumberOfChaptersListViewItemModel(i);
 
-                // If user has made a selection, use that; otherwise use the state's value
-                var shouldSelect = preservedSelection.HasValue
-                    ? preservedSelection.Value == i
-                    : numberOfChapters == i;
+            // If user has made a selection, use that; otherwise use the state's value
+            var shouldSelect = preservedSelection.HasValue
+                ? preservedSelection.Value == i
+                : numberOfChapters == i;
 
             if (shouldSelect)
             {

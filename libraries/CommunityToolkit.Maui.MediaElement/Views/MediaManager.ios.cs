@@ -30,7 +30,7 @@ public partial class MediaManager : IDisposable
 		SetupRemoteControlAndAudio();
 		SetupObservers();
 
-		return (Player, PlayerViewController);
+		return (Player!, PlayerViewController!);
 	}
 
 	void CreatePlayerAndViewController()
@@ -45,6 +45,11 @@ public partial class MediaManager : IDisposable
 	void InitializePlayerProperties()
 	{
 		// Pre-initialize Volume and Muted properties to the player object
+		if (Player is null)
+		{
+			return;
+		}
+
 		Player.Muted = MediaElement.ShouldMute;
 		var volumeDiff = Math.Abs(Player.Volume - MediaElement.Volume);
 		if (volumeDiff > 0.01)
@@ -56,6 +61,11 @@ public partial class MediaManager : IDisposable
 	void SetupRemoteControlAndAudio()
 	{
 		UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
+
+		if (PlayerViewController is null)
+		{
+			return;
+		}
 
 #if IOS
 		PlayerViewController.UpdatesNowPlayingInfoCenter = false;
@@ -260,7 +270,10 @@ public partial class MediaManager : IDisposable
 
 	void InitializeMetadataAndClearOverlay()
 	{
-		metaData ??= new(Player);
+		if (Player is not null)
+		{
+			metaData ??= new(Player);
+		}
 		Metadata.ClearNowPlaying();
 		PlayerViewController?.ContentOverlayView?.Subviews.FirstOrDefault()?.RemoveFromSuperview();
 	}
@@ -323,6 +336,11 @@ public partial class MediaManager : IDisposable
 
 	void SetupMetadataAndObservers()
 	{
+		if (metaData is null || Player is null)
+		{
+			return;
+		}
+
 		metaData.SetMetadata(PlayerItem, MediaElement);
 		CurrentItemErrorObserver?.Dispose();
 
@@ -349,9 +367,12 @@ public partial class MediaManager : IDisposable
 	void HandleMediaOpened()
 	{
 		MediaElement.MediaOpened();
-		(MediaElement.MediaWidth, MediaElement.MediaHeight) = GetVideoDimensions(PlayerItem);
+		if (PlayerItem is not null)
+		{
+			(MediaElement.MediaWidth, MediaElement.MediaHeight) = GetVideoDimensions(PlayerItem);
+		}
 
-		if (MediaElement.ShouldAutoPlay)
+		if (Player is not null && MediaElement.ShouldAutoPlay)
 		{
 			Player.Play();
 		}
@@ -385,6 +406,11 @@ public partial class MediaManager : IDisposable
 
 	bool ShouldSkipPosterSetting()
 	{
+		if (PlayerItem is null)
+		{
+			return true;
+		}
+
 		var videoTrack = PlayerItem.Asset.TracksWithMediaType(AVMediaTypes.Video.GetConstant() ?? "0").FirstOrDefault();
 		if (videoTrack is not null)
 		{
@@ -409,6 +435,11 @@ public partial class MediaManager : IDisposable
 
 	void CreateAndAddPosterImage()
 	{
+		if (PlayerViewController?.ContentOverlayView is null)
+		{
+			return;
+		}
+
 		var image = UIImage.LoadFromData(NSData.FromUrl(new NSUrl(MediaElement.MetadataArtworkUrl))) ?? new UIImage();
 		var imageView = CreatePosterImageView(image);
 
@@ -429,6 +460,11 @@ public partial class MediaManager : IDisposable
 
 	void SetupPosterConstraints(UIImageView imageView, UIImage image)
 	{
+		if (PlayerViewController?.ContentOverlayView is null)
+		{
+			return;
+		}
+
 		NSLayoutConstraint.ActivateConstraints(
 		[
 			imageView.CenterXAnchor.ConstraintEqualTo(PlayerViewController.ContentOverlayView.CenterXAnchor),
@@ -563,6 +599,11 @@ public partial class MediaManager : IDisposable
 
 	void PauseAndCleanupPlayer()
 	{
+		if (Player is null)
+		{
+			return;
+		}
+
 		Player.Pause();
 		Player.InvokeOnMainThread(UIApplication.SharedApplication.EndReceivingRemoteControlEvents);
 		// disable the idle timer so screen turns off when media is not playing
@@ -597,6 +638,11 @@ public partial class MediaManager : IDisposable
 
 	void DisposePlayer()
 	{
+		if (Player is null)
+		{
+			return;
+		}
+
 		Player.ReplaceCurrentItemWithPlayerItem(null);
 		Player.Dispose();
 		Player = null;

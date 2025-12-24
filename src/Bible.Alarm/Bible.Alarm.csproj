@@ -7,6 +7,8 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>latest</LangVersion>
+		<!-- Enable compiled bindings optimization for bindings with Source property -->
+		<MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
 		
 		<!-- Syncfusion License Key: Read from environment variable SYNCFUSION_LICENSE_KEY during build -->
 		<!-- MSBuild automatically reads environment variables, so SYNCFUSION_LICENSE_KEY from Windows env will be available -->

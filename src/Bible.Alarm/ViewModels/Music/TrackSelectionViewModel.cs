@@ -37,7 +37,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     private AlarmMusic? current;
     private AlarmMusic? lastCurrent;
     private bool initComplete;
-    
+
     // Track last music type, language code, and publication code to detect changes
     private MusicType? lastMusicType;
     private string? lastLanguageCode;
@@ -105,8 +105,8 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 // Always use CurrentSchedule as the source of truth for music type/language/publication codes
                 // This ensures we use the latest state, not stale data from 'current' field
                 var currentSchedule = state.Value.CurrentSchedule;
-                if (currentSchedule == null || 
-                    !currentSchedule.MusicType.HasValue || 
+                if (currentSchedule == null ||
+                    !currentSchedule.MusicType.HasValue ||
                     string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
                 {
                     logger.Warning("TrackSelectionViewModel: SetTrackCommand - CurrentSchedule is null or missing required properties");
@@ -145,10 +145,10 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                     PublicationName = currentSchedule.MusicPublicationName,
                     TrackName = x.Title
                 };
-                
+
                 logger.Information("TrackSelectionViewModel: SetTrackCommand - Dispatching TrackSelectedAction. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
                     trackSelectedItem.MusicType, trackSelectedItem.LanguageCode ?? "null", trackSelectedItem.PublicationCode, trackSelectedItem.TrackNumber);
-                
+
                 dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
                 // Navigate back to schedule page
@@ -167,7 +167,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     private void OnMusicChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentMusic
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
@@ -179,14 +179,14 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
         var newPublicationCode = currentSchedule.MusicPublicationCode;
-        
+
         // For melodies: only require MusicType and PublicationCode (LanguageCode can be null)
         // For vocals: require MusicType, LanguageCode, and PublicationCode
         if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
-        
+
         // For vocals, language code is required
         if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
         {
@@ -198,7 +198,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         var languageCodeChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
-        
+
         // If no changes detected and we're already initialized, skip
         if (!needsRepopulation && initComplete)
         {
@@ -209,7 +209,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        
+
         // Update current if we have CurrentMusic (for other properties like TrackNumber)
         if (stateValue.CurrentMusic != null)
         {
@@ -260,7 +260,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
 
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentMusic
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
@@ -272,14 +272,14 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
         var newPublicationCode = currentSchedule.MusicPublicationCode;
-        
+
         // For melodies: only require MusicType and PublicationCode (LanguageCode can be null)
         // For vocals: require MusicType, LanguageCode, and PublicationCode
         if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
-        
+
         // For vocals, language code is required
         if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
         {
@@ -290,7 +290,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        
+
         // Update current if we have CurrentMusic (for other properties like TrackNumber)
         if (stateValue.CurrentMusic != null)
         {
@@ -310,7 +310,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             };
             lastCurrent = current;
         }
-        
+
         initComplete = true;
         if (newLanguageCode == null || newPublicationCode == null)
         {
@@ -338,7 +338,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     public async Task RefreshFromState()
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
@@ -349,14 +349,14 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
         var newPublicationCode = currentSchedule.MusicPublicationCode;
-        
+
         // For melodies: only require MusicType and PublicationCode (LanguageCode can be null)
         // For vocals: require MusicType, LanguageCode, and PublicationCode
         if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
-        
+
         // For vocals, language code is required
         if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
         {
@@ -367,7 +367,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        
+
         // Update current from CurrentSchedule
         current = new AlarmMusic
         {
@@ -512,8 +512,8 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // Always use CurrentSchedule as the source of truth for music type/language/publication codes
         // This ensures we use the latest state, not stale data from 'current' field
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || 
-            !currentSchedule.MusicType.HasValue || 
+        if (currentSchedule == null ||
+            !currentSchedule.MusicType.HasValue ||
             string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
             logger.Warning("TrackSelectionViewModel: HandleRepeatChanged - CurrentSchedule is null or missing required properties");
@@ -543,10 +543,10 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             PublicationName = currentSchedule.MusicPublicationName,
             TrackName = track.Title
         };
-        
+
         logger.Information("TrackSelectionViewModel: HandleRepeatChanged - Dispatching TrackSelectedAction. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}, Repeat: {Repeat}",
             trackSelectedItem.MusicType, trackSelectedItem.LanguageCode ?? "null", trackSelectedItem.PublicationCode, trackSelectedItem.TrackNumber, trackSelectedItem.Repeat);
-        
+
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
         if (track.Repeat)

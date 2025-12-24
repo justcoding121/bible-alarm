@@ -269,7 +269,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         }).OrderBy(x => x.Code)));
     }
 
-    private async Task<bool> HarvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string languageCode = null)
+    private async Task<bool> HarvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string? languageCode = null)
     {
         var dir = GetMusicDirectory(publicationCode, languageCode);
         var file = $"{dir}/tracks.json";

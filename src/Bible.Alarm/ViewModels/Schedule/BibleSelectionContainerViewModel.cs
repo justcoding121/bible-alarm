@@ -39,13 +39,13 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private bool bibleReadingUpdated;
     private BibleReadingSchedule? bibleReadingSchedule;
     private AlarmSchedule? model;
-    
+
     // Track last values to prevent unnecessary PropertyChanged notifications
     private string? lastLanguageDisplayText;
     private string? lastTranslationDisplayText;
     private string? lastBookDisplayText;
     private string? lastChapterDisplayText;
-    
+
     // Track underlying property values to detect cascading changes
     private string? lastLanguageCode;
     private string? lastPublicationCode;
@@ -81,7 +81,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         {
             scheduleId = currentSchedule.Id;
             isNewSchedule = currentSchedule.Id <= 0;
-            
+
             // Initialize last values
             var currentBibleReading = state.Value.CurrentBibleReadingSchedule;
             lastLanguageCode = currentSchedule.BibleReadingLanguageCode;
@@ -92,7 +92,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             lastTranslationDisplayText = TranslationDisplayText;
             lastBookDisplayText = BookDisplayText;
             lastChapterDisplayText = ChapterDisplayText;
-            
+
             OnPropertyChanged(nameof(LanguageDisplayText));
             OnPropertyChanged(nameof(TranslationDisplayText));
             OnPropertyChanged(nameof(BookDisplayText));
@@ -199,7 +199,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
         var currentBibleReading = stateValue.CurrentBibleReadingSchedule;
-        
+
         if (!ShouldProcessStateChange(currentSchedule))
         {
             return;
@@ -264,8 +264,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         if (currentSchedule != null && model != null)
         {
             var hasBibleReading = currentSchedule.BibleReadingScheduleId.HasValue;
-            if (hasBibleReading && currentSchedule.BibleReadingScheduleId.HasValue && 
-                (bibleReadingSchedule == null || 
+            if (hasBibleReading && currentSchedule.BibleReadingScheduleId.HasValue &&
+                (bibleReadingSchedule == null ||
                 bibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value))
             {
                 bibleReadingUpdated = true;
@@ -279,32 +279,32 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         var currentPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule?.BibleReadingPublicationCode;
         var currentBookNumber = currentBibleReading?.BookNumber ?? currentSchedule?.BibleReadingBookNumber;
         var currentChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule?.BibleReadingChapterNumber;
-        
+
         var languageCodeChanged = currentLanguageCode != lastLanguageCode;
         var publicationCodeChanged = currentPublicationCode != lastPublicationCode;
         var bookNumberChanged = currentBookNumber != lastBookNumber;
         var chapterNumberChanged = currentChapterNumber != lastChapterNumber;
-        
+
         var newLanguageDisplayText = LanguageDisplayText;
         var newTranslationDisplayText = TranslationDisplayText;
         var newBookDisplayText = BookDisplayText;
         var newChapterDisplayText = ChapterDisplayText;
-        
+
         var languageDisplayChanged = newLanguageDisplayText != lastLanguageDisplayText;
         var translationDisplayChanged = newTranslationDisplayText != lastTranslationDisplayText;
         var bookDisplayChanged = newBookDisplayText != lastBookDisplayText;
         var chapterDisplayChanged = newChapterDisplayText != lastChapterDisplayText;
-        
+
         var notifyLanguage = languageCodeChanged;
         var notifyTranslation = languageCodeChanged || publicationCodeChanged;
         var notifyBook = languageCodeChanged || publicationCodeChanged || bookNumberChanged;
         var notifyChapter = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
-        
+
         var displayTextOnlyChanged = (languageDisplayChanged && !languageCodeChanged) ||
                                     (translationDisplayChanged && !languageCodeChanged && !publicationCodeChanged) ||
                                     (bookDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged) ||
                                     (chapterDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged && !chapterNumberChanged);
-        
+
         var cascadeChangeOccurred = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
 
         return new PropertyChangeInfo
@@ -352,11 +352,11 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             {
                 logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Cascade change detected, resetting BibleReadingFinishedDuration from {CurrentProgress} to zero",
                     currentProgress);
-                
+
                 var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
                 scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
-                
+
                 logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Dispatched UpdateScheduleFromViewModelAction to reset progress. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
                     changeInfo.CurrentLanguageCode ?? "null",
                     changeInfo.CurrentPublicationCode ?? "null",
@@ -368,7 +368,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
     private void NotifyPropertyChanges(PropertyChangeInfo changeInfo)
     {
-        logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Values changed. Language: {LanguageChanged}, Translation: {TranslationChanged}, Book: {BookChanged}, Chapter: {ChapterChanged}, DisplayTextOnly: {DisplayTextOnly}. CascadeChangeOccurred: {CascadeChangeOccurred}", 
+        logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Values changed. Language: {LanguageChanged}, Translation: {TranslationChanged}, Book: {BookChanged}, Chapter: {ChapterChanged}, DisplayTextOnly: {DisplayTextOnly}. CascadeChangeOccurred: {CascadeChangeOccurred}",
             changeInfo.NotifyLanguage, changeInfo.NotifyTranslation,
             changeInfo.NotifyBook, changeInfo.NotifyChapter,
             changeInfo.DisplayTextOnlyChanged, changeInfo.CascadeChangeOccurred);
@@ -457,7 +457,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         get
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            
+
             // Read from CurrentSchedule for language name (populated during bootstrap/effects)
             if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingLanguageName))
             {
@@ -465,7 +465,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
                     currentSchedule.BibleReadingLanguageName, currentSchedule.BibleReadingLanguageCode ?? "null");
                 return currentSchedule.BibleReadingLanguageName;
             }
-            
+
             logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BibleReadingLanguageName is empty. Returning empty string.");
             return string.Empty;
         }
@@ -476,19 +476,19 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         get
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            
+
             // Read from CurrentSchedule for publication name (populated during bootstrap/effects)
             if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingPublicationName))
             {
                 return currentSchedule.BibleReadingPublicationName;
             }
-            
+
             // Fallback: use publication code from CurrentBibleReadingSchedule or CurrentSchedule
             var bibleReading = state.Value.CurrentBibleReadingSchedule;
-            string publicationCode = bibleReading?.PublicationCode?.ToLowerInvariant() 
-                ?? currentSchedule?.BibleReadingPublicationCode?.ToLowerInvariant() 
+            string publicationCode = bibleReading?.PublicationCode?.ToLowerInvariant()
+                ?? currentSchedule?.BibleReadingPublicationCode?.ToLowerInvariant()
                 ?? string.Empty;
-            
+
             if (string.IsNullOrEmpty(publicationCode))
             {
                 return string.Empty;
@@ -504,13 +504,13 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         get
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            
+
             // Read from CurrentSchedule for book name (populated during bootstrap/effects)
             if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingBookName))
             {
                 return currentSchedule.BibleReadingBookName;
             }
-            
+
             return string.Empty;
         }
     }
@@ -529,8 +529,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
             // Fallback to CurrentSchedule if CurrentBibleReadingSchedule is not set (e.g., new schedule)
             var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule != null && 
-                currentSchedule.BibleReadingChapterNumber.HasValue && 
+            if (currentSchedule != null &&
+                currentSchedule.BibleReadingChapterNumber.HasValue &&
                 currentSchedule.BibleReadingChapterNumber.Value > 0)
             {
                 return $"Chapter {currentSchedule.BibleReadingChapterNumber.Value}";

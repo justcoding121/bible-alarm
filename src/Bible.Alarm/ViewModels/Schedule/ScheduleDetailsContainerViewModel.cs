@@ -27,7 +27,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private bool isEnabled;
 
     public ScheduleDetailsContainerViewModel(
-        ILogger logger, 
+        ILogger logger,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         IMapper mapper)
@@ -36,7 +36,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
-        
+
         state.StateChanged += OnStateChanged;
         InitializeCommands();
         InitializeFromState();
@@ -78,7 +78,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         {
             if (SetProperty(ref time, value))
             {
-                DispatchScheduleUpdate(s => 
+                DispatchScheduleUpdate(s =>
                 {
                     s.Hour = value.Hours;
                     s.Minute = value.Minutes;

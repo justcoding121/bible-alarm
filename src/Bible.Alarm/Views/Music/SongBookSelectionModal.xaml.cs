@@ -27,7 +27,7 @@ public partial class SongBookSelectionModal : BaseContentPage, IDisposable
         {
             // Refresh from state when modal appears to ensure song books are populated
             await ViewModel.RefreshFromState();
-            
+
             await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedSongBook != null && songBooksCollectionView != null)

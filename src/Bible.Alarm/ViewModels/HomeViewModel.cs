@@ -39,7 +39,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly IState<ApplicationState> state;
     private readonly IState<PlaybackState> playbackState;
     private readonly INavigationService navigationService;
-    
+
     // Track recent play button clicks to prevent navigation race condition
     private readonly Dictionary<int, DateTime> recentPlayClicks = new();
     private const int PlayClickCooldownMs = 500; // 500ms cooldown after play click
@@ -142,13 +142,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         foreach (var scheduleItem in scheduleItemsSnapshot)
         {
             var scheduleId = scheduleItem.Id;
-            
+
             // Skip unsaved schedules (ID <= 0) - they should not appear in the home list
             if (scheduleId <= 0)
             {
                 continue;
             }
-            
+
             currentViewModelIds.Add(scheduleId);
 
             if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
@@ -311,7 +311,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private bool ShouldSkipNavigation(int scheduleId)
     {
         var currentPlaybackState = playbackState.Value;
-        if (currentPlaybackState.IsPreparingOrPlaying && 
+        if (currentPlaybackState.IsPreparingOrPlaying &&
             currentPlaybackState.CurrentScheduleId == scheduleId)
         {
             logger.Debug("ViewScheduleCommand: Skipping navigation - playback is active for schedule {ScheduleId}", scheduleId);
@@ -323,7 +323,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             var timeSincePlayClick = (DateTime.UtcNow - playClickTime).TotalMilliseconds;
             if (timeSincePlayClick < PlayClickCooldownMs)
             {
-                logger.Debug("ViewScheduleCommand: Skipping navigation - play button was clicked {TimeSinceClick}ms ago for schedule {ScheduleId}", 
+                logger.Debug("ViewScheduleCommand: Skipping navigation - play button was clicked {TimeSinceClick}ms ago for schedule {ScheduleId}",
                     timeSincePlayClick, scheduleId);
                 return true;
             }

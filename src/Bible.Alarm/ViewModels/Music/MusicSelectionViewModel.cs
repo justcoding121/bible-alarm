@@ -111,7 +111,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
     private void OnStateOnStateChanged(object? o, EventArgs eventArgs)
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentMusic
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
@@ -120,7 +120,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        
+
         // Update current from CurrentSchedule
         current = new AlarmMusic
         {
@@ -179,7 +179,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
     public void RefreshFromState()
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
@@ -187,7 +187,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        
+
         // Update current from CurrentSchedule
         current = new AlarmMusic
         {
@@ -273,7 +273,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
         var (trackNumber, trackName) = GetTrackForVocals(currentSchedule, isSameMusicType, result.LanguageCode, result.PublicationCode, tracks);
         var trackSelectedItem = CreateVocalsMusicStateItem(currentSchedule, result.LanguageCode, result.PublicationCode, trackNumber, trackName, result.Language, result.FirstSongBook);
-        
+
         this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
     }
@@ -363,7 +363,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
         var (trackNumber, trackName) = GetTrackForMelodies(currentSchedule, isSameMusicType, tracks);
         var trackSelectedItem = CreateMelodiesMusicStateItem(currentSchedule, trackNumber, trackName);
-        
+
         this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
     }

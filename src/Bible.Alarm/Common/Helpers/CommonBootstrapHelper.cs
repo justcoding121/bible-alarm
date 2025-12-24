@@ -211,7 +211,7 @@ public static class CommonBootstrapHelper
                 alarmSchedules,
                 services,
                 languagesDict);
-            
+
             await DispatchInitializeAction(services.Dispatcher, initialSchedules);
         }
         catch (Exception ex)
@@ -304,30 +304,30 @@ public static class CommonBootstrapHelper
         Dictionary<string, Language>? languagesDict)
     {
         var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
-        
+
         foreach (var schedule in alarmSchedules)
         {
             var scheduleStateItem = services.Mapper.Map<ScheduleStateItem>(schedule);
-            
+
             await PopulateBibleReadingDisplayNames(
                 schedule,
                 scheduleStateItem,
                 services,
                 languagesDict);
-            
+
             await PopulateMusicDisplayNames(
                 schedule,
                 scheduleStateItem,
                 services);
-            
+
             await PopulateDefaultMusicIfNeeded(
                 schedule,
                 scheduleStateItem,
                 services);
-            
+
             initialSchedules.Add(scheduleStateItem);
         }
-        
+
         return initialSchedules;
     }
 
@@ -595,14 +595,14 @@ public static class CommonBootstrapHelper
         try
         {
             const string defaultPublicationCode = "iam";
-            
+
             if (services.MelodyMusicService == null)
             {
                 return;
             }
 
             var melodyMusic = await services.MelodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
-            
+
             if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
             {
                 Log.Logger.Warning("Melody music '{PublicationCode}' not found or has no tracks - cannot populate default music for schedule {ScheduleId}",
@@ -611,14 +611,14 @@ public static class CommonBootstrapHelper
             }
 
             var randomTrack = melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
-            
+
             scheduleStateItem.MusicType = Shared.Models.Enums.MusicType.Melodies;
             scheduleStateItem.MusicPublicationCode = defaultPublicationCode;
             scheduleStateItem.MusicLanguageCode = null;
             scheduleStateItem.MusicTrackNumber = randomTrack.Number;
             scheduleStateItem.MusicRepeat = false;
             scheduleStateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
-            
+
             Log.Logger.Information("Populated default music properties for schedule {ScheduleId}. MusicType=Melodies, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
                 schedule.Id, defaultPublicationCode, randomTrack.Number);
         }

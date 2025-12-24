@@ -153,7 +153,7 @@ public sealed class PlaylistService(
 
     private static void UpdateBibleReadingTrack(AlarmSchedule schedule, TrackMetadata trackMetadata)
     {
-        var bibleReadingSchedule = schedule.BibleReadingSchedule ?? 
+        var bibleReadingSchedule = schedule.BibleReadingSchedule ??
             throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
         bibleReadingSchedule.BookNumber = trackMetadata.BookNumber;
@@ -237,9 +237,9 @@ public sealed class PlaylistService(
         TrackMetadata trackMetadata,
         KeyValuePair<BibleBook, BibleChapter>? nextChapter)
     {
-        var bibleReadingSchedule = schedule.BibleReadingSchedule ?? 
+        var bibleReadingSchedule = schedule.BibleReadingSchedule ??
             throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
-        
+
         if (nextChapter == null || nextChapter.Value.Key == null || nextChapter.Value.Value == null)
         {
             throw new InvalidOperationException("Next chapter Key or Value is null");
@@ -326,13 +326,13 @@ public sealed class PlaylistService(
     private async Task<AlarmSchedule> LoadScheduleForTracks(int scheduleId)
     {
         return await alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, true, true, cancellationTokenSource.Token) ?? 
+            scheduleId, true, true, cancellationTokenSource.Token) ??
             throw new ArgumentException($"Invalid schedule Id {scheduleId}");
     }
 
     private async Task<List<PlayItem>> BuildBibleTracks(int scheduleId, AlarmSchedule schedule)
     {
-        var bibleReadingSchedule = schedule.BibleReadingSchedule ?? 
+        var bibleReadingSchedule = schedule.BibleReadingSchedule ??
             throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
 
         var initialChapterInfo = await GetInitialChapterInfo(bibleReadingSchedule);

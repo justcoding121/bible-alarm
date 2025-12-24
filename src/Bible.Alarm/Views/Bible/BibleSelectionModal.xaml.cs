@@ -27,7 +27,7 @@ public partial class BibleSelectionModal : BaseContentPage, IDisposable
         {
             // Refresh from state when modal appears to ensure translations are populated
             await ViewModel.RefreshFromState();
-            
+
             await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)

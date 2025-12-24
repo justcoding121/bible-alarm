@@ -27,7 +27,7 @@ public partial class ChapterSelectionModal : BaseContentPage, IDisposable
         {
             // Refresh from state when modal appears to ensure chapters are populated
             await ViewModel.RefreshFromState();
-            
+
             await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedChapter != null && chapterCollectionView != null)

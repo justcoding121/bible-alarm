@@ -32,7 +32,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     private bool initComplete;
     private BibleReadingSchedule? lastCurrent;
     private PropertyChangedEventHandler? propertyChangedHandler;
-    
+
     // Track last language code to detect changes
     private string? lastLanguageCode;
 
@@ -119,9 +119,9 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 UpdateSelectedLanguage(x);
                 await this.navigationService.PopModalAsync();
 
-                var (publicationCode, bookNumber, chapterNumber, bookName, publicationName) = 
+                var (publicationCode, bookNumber, chapterNumber, bookName, publicationName) =
                     await GetTranslationBookAndChapterForLanguageAsync(x);
-                
+
                 if (publicationCode == null)
                 {
                     return;
@@ -146,7 +146,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         }
 
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
         // CurrentSchedule is updated first and is authoritative
         string? newLanguageCode = null;
@@ -154,13 +154,13 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         {
             newLanguageCode = stateValue.CurrentSchedule.BibleReadingLanguageCode;
         }
-        
+
         // Update tracking variable
         if (!string.IsNullOrEmpty(newLanguageCode))
         {
             lastLanguageCode = newLanguageCode;
         }
-        
+
         // Update current if we have CurrentBibleReadingSchedule (for other properties like PublicationCode)
         if (stateValue.CurrentBibleReadingSchedule != null)
         {
@@ -181,15 +181,15 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 ChapterNumber = stateValue.CurrentSchedule.BibleReadingChapterNumber ?? 1
             };
         }
-        
+
         initComplete = true;
-        
+
         Task.Run(async () =>
         {
             try
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                
+
                 if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
                 {
                     // Initialize with current language code if we have a current schedule
@@ -199,7 +199,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 {
                     // For language modal use case, just populate languages without translations
                     await PopulateLanguages();
-                    
+
                     // Subscribe to LanguageSearchTerm property changes
                     propertyChangedHandler = (sender, e) =>
                     {
@@ -236,7 +236,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     public async Task RefreshFromState()
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null)
         {
@@ -245,7 +245,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        
+
         if (string.IsNullOrEmpty(newLanguageCode))
         {
             return;
@@ -253,7 +253,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
         // Update tracking variable
         lastLanguageCode = newLanguageCode;
-        
+
         // Update current from CurrentSchedule
         if (stateValue.CurrentBibleReadingSchedule != null)
         {
@@ -287,7 +287,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     private void OnBibleReadingChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
@@ -297,7 +297,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        
+
         if (string.IsNullOrEmpty(newLanguageCode))
         {
             return;
@@ -305,7 +305,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
         // Check if language code changed (need to repopulate translations)
         var languageChanged = lastLanguageCode != newLanguageCode;
-        
+
         // If no changes detected and we're already initialized, skip
         if (!languageChanged && initComplete)
         {
@@ -314,7 +314,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
         // Update tracking variable
         lastLanguageCode = newLanguageCode;
-        
+
         // Update current if we have CurrentBibleReadingSchedule (for other properties like PublicationCode)
         if (stateValue.CurrentBibleReadingSchedule != null)
         {
@@ -491,7 +491,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
             // Use CurrentSchedule as the source of truth for language code
             var stateValue = state.Value;
             var currentLanguageCode = stateValue.CurrentSchedule?.BibleReadingLanguageCode;
-            
+
             if (string.IsNullOrEmpty(currentLanguageCode) || languageVm.Code != currentLanguageCode)
             {
                 continue;
@@ -536,7 +536,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
             defaultTranslation = translationVm;
 
             // Check if this translation matches the current publication code from CurrentSchedule
-            if (!string.IsNullOrEmpty(currentPublicationCode) 
+            if (!string.IsNullOrEmpty(currentPublicationCode)
                 && currentPublicationCode == translation.Code)
             {
                 translationVm.IsSelected = true;
@@ -549,7 +549,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         {
             defaultTranslation.IsSelected = true;
             SelectedTranslation = defaultTranslation;
-            
+
             // Dispatch action to update state with the default translation
             // Get the first book and chapter for the default translation
             _ = Task.Run(async () =>
@@ -701,7 +701,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         CurrentLanguage!.IsSelected = true;
     }
 
-    private async Task<(string? PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)> 
+    private async Task<(string? PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)>
         GetTranslationBookAndChapterForLanguageAsync(LanguageListViewItemModel language)
     {
         var currentSchedule = this.state.Value.CurrentSchedule;
@@ -732,7 +732,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                schedule.BibleReadingChapterNumber.HasValue;
     }
 
-    private async Task<(string PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)> 
+    private async Task<(string PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)>
         GetPreservedTranslationBookAndChapterAsync(
             ScheduleStateItem currentSchedule,
             LanguageListViewItemModel language,
@@ -761,7 +761,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         return await GetFirstBookForTranslationAsync(language, publicationCode, translations);
     }
 
-    private async Task<(string PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)> 
+    private async Task<(string PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)>
         GetDefaultTranslationBookAndChapterAsync(
             LanguageListViewItemModel language,
             Dictionary<string, BibleTranslation> translations)
@@ -776,7 +776,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         return await GetFirstBookForTranslationAsync(language, publicationCode, translations);
     }
 
-    private async Task<(string PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)> 
+    private async Task<(string PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)>
         GetFirstBookForTranslationAsync(
             LanguageListViewItemModel language,
             string publicationCode,

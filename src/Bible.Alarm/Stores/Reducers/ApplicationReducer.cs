@@ -424,7 +424,7 @@ public static class ApplicationReducer
         if (action.Schedule != null && state.Schedules != null)
         {
             Log.Information("ApplicationReducer: OnDeleteScheduleFailure - Restoring schedule {ScheduleId} to rollback optimistic deletion", action.ScheduleId);
-            
+
             // Check if schedule is already in the collection (shouldn't be, but check to avoid duplicates)
             var existingSchedule = state.Schedules.FirstOrDefault(s => s.Id == action.ScheduleId);
             if (existingSchedule == null)
@@ -490,8 +490,8 @@ public static class ApplicationReducer
         // Only set CurrentSchedule if it was already set to this schedule (don't set it if it was cleared)
         // This prevents CurrentSchedule from being set after save/cancel when it was intentionally cleared
         // Deep clone to ensure CurrentSchedule is independent from the item in Schedules collection
-        var updatedCurrentSchedule = state.CurrentSchedule?.Id == action.Schedule.Id 
-            ? action.Schedule.DeepClone() 
+        var updatedCurrentSchedule = state.CurrentSchedule?.Id == action.Schedule.Id
+            ? action.Schedule.DeepClone()
             : state.CurrentSchedule;
 
         return new ApplicationState(

@@ -26,7 +26,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     {
         BindingContext = viewModel;
         this.viewModel = viewModel;
-        
+
         if (viewModel != null)
         {
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -45,13 +45,13 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     protected override void OnBindingContextChanged()
     {
         base.OnBindingContextChanged();
-        
+
         // Unsubscribe from old view model
         if (viewModel != null)
         {
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
-        
+
         // Subscribe to new view model
         viewModel = BindingContext as MusicSelectionContainerViewModel;
         if (viewModel != null)
@@ -75,13 +75,13 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         {
             return;
         }
-        
+
         if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled))
         {
             var newState = vm.MusicEnabled;
-            
+
             System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] PropertyChanged: MusicEnabled = {newState}, LastState = {lastMusicEnabledState}, isInitialLoad = {isInitialLoad}");
-            
+
             // Ignore property changes during initial load
             if (isInitialLoad)
             {
@@ -89,27 +89,27 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                 lastMusicEnabledState = newState; // Update last state but don't animate
                 return;
             }
-            
+
             // Debounce rapid changes
             if (newState == lastMusicEnabledState)
             {
                 System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] State unchanged, ignoring");
                 return; // Ignore if state hasn't actually changed
             }
-            
+
             // Only scroll if user is toggling from false to true (user-initiated expand)
             shouldScrollOnExpand = !lastMusicEnabledState && newState;
-            
+
             lastMusicEnabledState = newState;
-            
+
             System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Triggering animation for MusicEnabled = {newState}, shouldScrollOnExpand = {shouldScrollOnExpand}");
-            
+
             // Cancel and dispose any pending debounce
             debounceTokenSource?.Cancel();
             debounceTokenSource?.Dispose();
             debounceTokenSource = new CancellationTokenSource();
             var token = debounceTokenSource.Token;
-            
+
             // Small delay to debounce rapid changes, but trigger update immediately on UI thread
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -124,13 +124,13 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         {
             // Scroll to bottom when ViewModel signals it
             System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom");
-            
+
             // Small delay to ensure layout is complete
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 await Task.Delay(200); // Delay to allow UI to update
                 ScrollToExpandedContent();
-                
+
                 // Reset the flag after scrolling
                 if (viewModel != null)
                 {
@@ -143,13 +143,13 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     private void UpdateCollapsibleContentVisibility(bool isEnabled, bool animate)
     {
         System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] UpdateCollapsibleContentVisibility: isEnabled={isEnabled}, animate={animate}, CollapsibleContent={CollapsibleContent != null}, isAnimating={isAnimating}");
-        
+
         if (CollapsibleContent == null)
         {
             System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] CollapsibleContent is null, returning");
             return;
         }
-        
+
         if (isAnimating)
         {
             System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Already animating, returning");
@@ -368,19 +368,19 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
-        
+
         // Re-measure when handler is ready
         if (Handler != null && CollapsibleContent != null && viewModel != null)
         {
             cachedHeight = null;
-            
+
             // On initial load, ensure content visibility matches MusicEnabled state without animation
             // Use a small delay to ensure the visual tree is fully initialized
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 // Wait a bit for the visual tree to be ready
                 await Task.Delay(100);
-                
+
                 if (CollapsibleContent != null && viewModel != null && Handler != null)
                 {
                     if (isInitialLoad)
@@ -408,7 +408,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             // Find the parent ScrollView by traversing up the visual tree
             var parent = this.Parent;
             ScrollView? scrollView = null;
-            
+
             while (parent != null)
             {
                 if (parent is ScrollView sv)
@@ -422,16 +422,16 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             if (scrollView != null)
             {
                 System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Found ScrollView, scrolling to bottom");
-                
+
                 // Scroll to bottom with animation
                 MainThread.BeginInvokeOnMainThread(async () =>
                 {
                     await Task.Delay(150); // Small delay to ensure layout is complete after animation
-                    
+
                     // Scroll to the bottom using coordinates
                     // Wait a bit more for content height to be measured
                     await Task.Delay(50);
-                    
+
                     // Try to get the content height
                     var contentHeight = scrollView.Content.Height;
                     if (contentHeight > 0)

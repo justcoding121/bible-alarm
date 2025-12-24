@@ -2,6 +2,7 @@
 
 <views:BaseContentPage
     x:Class="Bible.Alarm.Views.Schedule.NumberOfChaptersModal"
+    x:Name="PageRoot"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -20,7 +21,7 @@
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <!-- Theme-aware colors are inherited from BaseContentPage -->
-        
+
         <!-- Style for selected/unselected item background using DynamicResource -->
         <Style x:Key="ChaptersItemBorderStyle" TargetType="Border">
             <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
@@ -37,7 +38,7 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
-            
+
             <!-- Enhanced Header -->
             <Border
                 Grid.Row="0"
@@ -62,7 +63,7 @@
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
             </Border>
-            
+
             <!-- Enhanced Collection View -->
             <CollectionView
                 x:Name="ChaptersCollectionView"
@@ -74,7 +75,7 @@
                 ItemsSource="{Binding NumberOfChaptersList}"
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
-                SelectionMode="None">
+                SelectionMode="Single">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
                         <LinearItemsLayout.ItemSpacing>
@@ -86,9 +87,9 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="shared:NumberOfChaptersListViewItemModel">
-                            <Grid Margin="16,0">
-                                <Border
+                    <DataTemplate x:DataType="shared:NumberOfChaptersListViewItemModel">
+                        <Grid Margin="16,0">
+                            <Border
                                     Style="{StaticResource ChaptersItemBorderStyle}"
                                     StrokeThickness="0"
                                     Padding="0">
@@ -110,9 +111,6 @@
                                     Padding="20,18"
                                     HorizontalOptions="Fill"
                                     MinimumHeightRequest="56">
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChaptersSelectionContainerViewModel}}, Path=SelectNumberOfChaptersCommand}" CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
                                     <Label
                                         FontSize="16"
                                         HorizontalOptions="Start"
@@ -128,7 +126,7 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-            
+
             <!-- Enhanced Close Button -->
             <Border
                 Grid.Row="2"

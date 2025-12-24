@@ -54,14 +54,14 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private bool isUpdatingFromState;
     private bool? pendingMusicEnabled; // Optimistic update value
     private bool? initialMusicEnabledOnPageLoad; // Track MusicEnabled state when schedule page was first opened
-    
+
     // Track last values from CurrentSchedule to detect changes
     private MusicType? lastScheduleMusicType;
     private int? lastScheduleMusicTrackNumber;
     private string? lastScheduleMusicPublicationCode;
     private string? lastScheduleMusicLanguageCode;
     private bool lastScheduleMusicRepeat;
-    
+
     // Signal to View that it should scroll to bottom
     private bool shouldScrollToBottom;
     public bool ShouldScrollToBottom
@@ -103,7 +103,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         {
             scheduleId = currentSchedule.Id;
             isNewSchedule = currentSchedule.Id <= 0;
-            
+
             // Track initial MusicEnabled state when schedule page is first opened
             // This is used to determine if we should reset to default music on first enable
             if (!initialMusicEnabledOnPageLoad.HasValue)
@@ -112,7 +112,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 logger.Information("MusicSelectionContainerViewModel: InitializeFromState - Tracked initial MusicEnabled={MusicEnabled} for schedule {ScheduleId}",
                     initialMusicEnabledOnPageLoad.Value, scheduleId);
             }
-            
+
             // Initialize last values from CurrentSchedule
             lastScheduleMusicType = currentSchedule.MusicType;
             lastScheduleMusicTrackNumber = currentSchedule.MusicTrackNumber;
@@ -132,8 +132,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
             // Initialize track name cache from state if available (populated during bootstrap)
             // NOTE: Do NOT query database here - track names should be in state from bootstrap
-            if (currentSchedule.MusicType.HasValue && 
-                currentSchedule.MusicTrackNumber.HasValue && 
+            if (currentSchedule.MusicType.HasValue &&
+                currentSchedule.MusicTrackNumber.HasValue &&
                 currentSchedule.MusicTrackNumber.Value > 0)
             {
                 // If MusicTrackName is already in state (from bootstrap), use it immediately
@@ -219,7 +219,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
             // Create SongBookSelectionViewModel instance to open the language modal
             var songBookSelectionViewModel = serviceProvider.GetRequiredService<SongBookSelectionViewModel>();
-            
+
             // Open the language modal using the SongBookSelectionViewModel
             await navigationService.OpenLanguageModalAsync(songBookSelectionViewModel);
         });
@@ -235,7 +235,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
             // Toggle the repeat value
             var newRepeatValue = !(currentSchedule.MusicRepeat ?? false);
-            
+
             logger.Debug("ToggleRepeatCommand: Toggling repeat from {OldValue} to {NewValue}",
                 currentSchedule.MusicRepeat ?? false, newRepeatValue);
 
@@ -270,7 +270,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     {
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
-        
+
         // Initialize if schedule ID changed (new schedule opened)
         if (currentSchedule != null && currentSchedule.Id != scheduleId)
         {
@@ -278,19 +278,19 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             initialMusicEnabledOnPageLoad = null;
             InitializeFromState();
         }
-        
+
         // Check if MusicEnabled changed in state
         if (currentSchedule != null && model != null)
         {
             var stateMusicEnabled = currentSchedule.MusicEnabled;
             var previousMusicEnabled = model.MusicEnabled;
-            
+
             // Clear pending value since state has been updated
             if (pendingMusicEnabled.HasValue && pendingMusicEnabled.Value == stateMusicEnabled)
             {
                 pendingMusicEnabled = null; // State now matches, clear pending
             }
-            
+
             if (model.MusicEnabled != stateMusicEnabled)
             {
                 // State has a different value, update model without dispatching
@@ -300,7 +300,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     model.MusicEnabled = stateMusicEnabled;
                     pendingMusicEnabled = null; // Clear pending when updating from state
                     OnPropertyChanged(nameof(MusicEnabled));
-                    
+
                     // If music was just enabled, update cache from state
                     // NOTE: Loading default music from DB is handled in MusicEnabled setter
                     if (stateMusicEnabled && !previousMusicEnabled)
@@ -345,35 +345,35 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             var scheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
             var scheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
             var scheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
-            
+
             // Check if music type changed in CurrentSchedule (this happens when effect syncs CurrentMusic to CurrentSchedule)
             var musicTypeChanged = lastScheduleMusicType != scheduleMusicType;
             var languageCodeChanged = lastScheduleMusicLanguageCode != scheduleMusicLanguageCode;
             var publicationCodeChanged = lastScheduleMusicPublicationCode != scheduleMusicPublicationCode;
             var trackNumberChanged = lastScheduleMusicTrackNumber != scheduleMusicTrackNumber;
             var repeatChanged = lastScheduleMusicRepeat != scheduleMusicRepeat;
-            
+
             // Determine which properties need to be notified (cascading logic)
             var notifyMusicType = musicTypeChanged;
             var notifyLanguage = musicTypeChanged || languageCodeChanged;
             var notifySongBook = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
             var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged;
-            
+
             if (notifyMusicType || notifyLanguage || notifySongBook || notifyTrack || repeatChanged)
             {
                 logger.Debug("MusicSelectionContainerViewModel: CurrentSchedule music changed. MusicType: {OldType} -> {NewType}, LanguageCode: {OldLang} -> {NewLang}, PublicationCode: {OldPub} -> {NewPub}, TrackNumber: {OldTrack} -> {NewTrack}",
-                    lastScheduleMusicType, scheduleMusicType, 
+                    lastScheduleMusicType, scheduleMusicType,
                     lastScheduleMusicLanguageCode, scheduleMusicLanguageCode,
                     lastScheduleMusicPublicationCode, scheduleMusicPublicationCode,
                     lastScheduleMusicTrackNumber, scheduleMusicTrackNumber);
-                
+
                 // Update last values
                 lastScheduleMusicType = scheduleMusicType;
                 lastScheduleMusicTrackNumber = scheduleMusicTrackNumber;
                 lastScheduleMusicPublicationCode = scheduleMusicPublicationCode;
                 lastScheduleMusicLanguageCode = scheduleMusicLanguageCode;
                 lastScheduleMusicRepeat = scheduleMusicRepeat;
-                
+
                 // Trigger property change notifications with cascading logic
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
@@ -383,7 +383,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                         OnPropertyChanged(nameof(MusicTypeDisplayText));
                         OnPropertyChanged(nameof(IsMusicLanguageVisible));
                         OnPropertyChanged(nameof(IsSongBookVisible));
-                        
+
                         // Clear cached values when music type changes
                         cachedSongBookName = null;
                         cachedTrackName = null;
@@ -392,14 +392,14 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                         lastTrackPublicationCode = null;
                         lastTrackLanguageCode = null;
                         lastTrackMusicType = null;
-                        
+
                         // For vocals: notify language, song book, and track
                         // For melodies: only notify track
                         if (scheduleMusicType == MusicType.Vocals)
                         {
                             OnPropertyChanged(nameof(MusicLanguageDisplayText));
                             OnPropertyChanged(nameof(SongBookDisplayText));
-                            
+
                             // Signal to scroll to bottom when user selects vocals (only if music is enabled)
                             var currentSchedule = state.Value.CurrentSchedule;
                             if (currentSchedule?.MusicEnabled == true)
@@ -415,7 +415,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                         OnPropertyChanged(nameof(MusicLanguageDisplayText));
                         OnPropertyChanged(nameof(SongBookDisplayText));
                         OnPropertyChanged(nameof(TrackDisplayText));
-                        
+
                         // Clear song book and track caches when language changes
                         cachedSongBookName = null;
                         cachedTrackName = null;
@@ -430,7 +430,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     {
                         OnPropertyChanged(nameof(SongBookDisplayText));
                         OnPropertyChanged(nameof(TrackDisplayText));
-                        
+
                         // Clear track cache when song book changes
                         cachedTrackName = null;
                         lastMusicTrackNumber = null;
@@ -442,7 +442,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     else if (notifyTrack)
                     {
                         OnPropertyChanged(nameof(TrackDisplayText));
-                        
+
                         // Clear track cache when track changes
                         cachedTrackName = null;
                         lastMusicTrackNumber = null;
@@ -450,7 +450,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                         lastTrackLanguageCode = null;
                         lastTrackMusicType = null;
                     }
-                    
+
                     // Always notify repeat and has track selected if any music property changed
                     if (notifyMusicType || notifyLanguage || notifySongBook || notifyTrack || repeatChanged)
                     {
@@ -493,13 +493,13 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             music = newMusic;
             lastMusic = newMusic;
             musicUpdated = true;
-            
+
             // Determine what changed to trigger cascading notifications
             var musicTypeChanged = music?.MusicType != newMusic.MusicType;
             var languageCodeChanged = music?.LanguageCode != newMusic.LanguageCode;
             var publicationCodeChanged = music?.PublicationCode != newMusic.PublicationCode;
             var trackNumberChanged = music?.TrackNumber != newMusic.TrackNumber;
-            
+
             // Trigger cascading property change notifications
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -509,7 +509,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     OnPropertyChanged(nameof(MusicTypeDisplayText));
                     OnPropertyChanged(nameof(IsMusicLanguageVisible));
                     OnPropertyChanged(nameof(IsSongBookVisible));
-                    
+
                     // Clear cached values when music type changes
                     cachedSongBookName = null;
                     cachedTrackName = null;
@@ -518,7 +518,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     lastTrackPublicationCode = null;
                     lastTrackLanguageCode = null;
                     lastTrackMusicType = null;
-                    
+
                     // For vocals: notify language, song book, and track
                     // For melodies: only notify track
                     if (newMusic.MusicType == MusicType.Vocals)
@@ -534,7 +534,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     OnPropertyChanged(nameof(MusicLanguageDisplayText));
                     OnPropertyChanged(nameof(SongBookDisplayText));
                     OnPropertyChanged(nameof(TrackDisplayText));
-                    
+
                     // Clear song book and track caches when language changes
                     cachedSongBookName = null;
                     cachedTrackName = null;
@@ -549,7 +549,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 {
                     OnPropertyChanged(nameof(SongBookDisplayText));
                     OnPropertyChanged(nameof(TrackDisplayText));
-                    
+
                     // Clear track cache when song book changes
                     cachedTrackName = null;
                     lastMusicTrackNumber = null;
@@ -561,7 +561,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 else if (trackNumberChanged)
                 {
                     OnPropertyChanged(nameof(TrackDisplayText));
-                    
+
                     // Clear track cache when track changes
                     cachedTrackName = null;
                     lastMusicTrackNumber = null;
@@ -569,7 +569,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     lastTrackLanguageCode = null;
                     lastTrackMusicType = null;
                 }
-                
+
                 // Always notify repeat and has track selected if any music property changed
                 if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged)
                 {
@@ -638,10 +638,10 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             {
                 model.MusicEnabled = value;
             }
-            
+
             // Trigger PropertyChanged immediately to update UI
             OnPropertyChanged(nameof(MusicEnabled));
-            
+
             // Signal to scroll to bottom when user enables music
             if (value && !currentValue)
             {
@@ -652,16 +652,16 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
             scheduleStateItem.MusicEnabled = value;
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
-            
+
             // If enabling music, only reset to default music if:
             // 1. Music was disabled when schedule page was first opened (initialMusicEnabledOnPageLoad == false)
             // 2. This is the first time enabling it on this page load (value && !currentValue)
             // On subsequent enable/disable cycles, preserve whatever music was selected
             if (value && !currentValue)
             {
-                var shouldResetToDefault = initialMusicEnabledOnPageLoad.HasValue && 
+                var shouldResetToDefault = initialMusicEnabledOnPageLoad.HasValue &&
                                           initialMusicEnabledOnPageLoad.Value == false;
-                
+
                 if (shouldResetToDefault)
                 {
                     // This is the first enable after opening a schedule with music disabled
@@ -673,17 +673,17 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                         {
                             const string DefaultPublicationCode = "iam";
                             var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
-                            
+
                             logger.Information("MusicEnabled: First enable after opening schedule with music disabled, resetting to default music (same as new schedule)");
-                            
+
                             // Get default music from DB (same as sample schedule)
                             var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(DefaultPublicationCode);
-                            
+
                             if (melodyMusic != null && melodyMusic.Tracks != null && melodyMusic.Tracks.Count > 0)
                             {
                                 // Select a random track (same as sample schedule)
                                 var randomTrack = melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
-                                
+
                                 // Get the latest state to ensure MusicEnabled is preserved
                                 var latestSchedule = state.Value.CurrentSchedule;
                                 if (latestSchedule == null)
@@ -691,7 +691,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                                     logger.Warning("MusicEnabled: CurrentSchedule is null when resetting to default music");
                                     return;
                                 }
-                                
+
                                 // Update state with default music properties (reset to default)
                                 // IMPORTANT: Preserve MusicEnabled from the latest state
                                 var scheduleStateItem = mapper.Map<ScheduleStateItem>(latestSchedule.DeepClone());
@@ -702,13 +702,13 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                                 scheduleStateItem.MusicTrackNumber = randomTrack.Number;
                                 scheduleStateItem.MusicRepeat = false;
                                 scheduleStateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
-                                
+
                                 logger.Information("MusicEnabled: Resetting to default music. MusicEnabled={MusicEnabled}, MusicType={MusicType}, TrackNumber={TrackNumber}",
                                     scheduleStateItem.MusicEnabled, scheduleStateItem.MusicType, scheduleStateItem.MusicTrackNumber);
-                                
+
                                 // Update state
                                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
-                                
+
                                 logger.Information("MusicEnabled: Reset to default music. MusicType=Melodies, TrackNumber={TrackNumber}, TrackName={TrackName}",
                                     randomTrack.Number, scheduleStateItem.MusicTrackName);
                             }
@@ -758,8 +758,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         get
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            return currentSchedule != null && 
-                   currentSchedule.MusicType.HasValue && 
+            return currentSchedule != null &&
+                   currentSchedule.MusicType.HasValue &&
                    currentSchedule.MusicType.Value == MusicType.Vocals;
         }
     }
@@ -769,8 +769,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         get
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            return currentSchedule != null && 
-                   currentSchedule.MusicType.HasValue && 
+            return currentSchedule != null &&
+                   currentSchedule.MusicType.HasValue &&
                    currentSchedule.MusicType.Value == MusicType.Vocals;
         }
     }
@@ -804,7 +804,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             }
 
             var currentSchedule = state.Value.CurrentSchedule;
-            
+
             // First, check if MusicPublicationName is already available in state (populated during bootstrap or from effect)
             if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
             {
@@ -831,8 +831,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     public async Task<string> GetSongBookDisplayTextAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || 
-            !currentSchedule.MusicType.HasValue || 
+        if (currentSchedule == null ||
+            !currentSchedule.MusicType.HasValue ||
             currentSchedule.MusicType.Value != MusicType.Vocals ||
             string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode) ||
             string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
@@ -849,7 +849,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         }
 
         // Return cached value if publication code hasn't changed
-        if (!string.IsNullOrEmpty(cachedSongBookName) && 
+        if (!string.IsNullOrEmpty(cachedSongBookName) &&
             lastMusicPublicationCode == currentSchedule.MusicPublicationCode)
         {
             return cachedSongBookName;
@@ -868,7 +868,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         get
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null || 
+            if (currentSchedule == null ||
                 !currentSchedule.MusicType.HasValue ||
                 !currentSchedule.MusicTrackNumber.HasValue ||
                 currentSchedule.MusicTrackNumber.Value <= 0)
@@ -905,7 +905,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     public async Task<string> GetTrackDisplayTextAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || 
+        if (currentSchedule == null ||
             !currentSchedule.MusicType.HasValue ||
             !currentSchedule.MusicTrackNumber.HasValue ||
             currentSchedule.MusicTrackNumber.Value <= 0)

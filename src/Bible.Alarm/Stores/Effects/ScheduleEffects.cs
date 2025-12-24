@@ -412,7 +412,7 @@ public class ScheduleEffects(
     private static void UpdateScheduleEntity(AlarmSchedule existing, AlarmSchedule dbSchedule, UpdateScheduleFromViewModelAction action)
     {
         UpdateBasicScheduleProperties(existing, dbSchedule);
-        
+
         if (action.MusicUpdated)
         {
             UpdateMusicEntity(existing, dbSchedule, action);
@@ -540,7 +540,7 @@ public class ScheduleEffects(
         existing.Music.LanguageCode = schedule.MusicLanguageCode;
         existing.Music.TrackNumber = schedule.MusicTrackNumber!.Value;
         existing.Music.Repeat = schedule.MusicRepeat ?? false;
-        
+
         if (schedule.MusicId.HasValue)
         {
             existing.Music.Id = schedule.MusicId.Value;
@@ -577,7 +577,7 @@ public class ScheduleEffects(
         existing.ChapterNumber = dbSchedule.ChapterNumber;
         existing.LanguageCode = dbSchedule.LanguageCode;
         existing.PublicationCode = dbSchedule.PublicationCode;
-        
+
         if (action.BibleReadingUpdated)
         {
             existing.FinishedDuration = TimeSpan.Zero;
@@ -613,17 +613,17 @@ public class ScheduleEffects(
                 Log.Warning("ScheduleEffects: HandleDeleteSchedule - Cannot delete schedule {ScheduleId} - it is the last schedule", action.ScheduleId);
                 // Show toast message to user
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
-                
+
                 // Load the schedule from DB to restore it in the reducer
                 ScheduleStateItem? scheduleToRestore = null;
                 try
                 {
                     var scheduleFromDb = await alarmScheduleService.GetScheduleByIdAsync(
-                        action.ScheduleId, 
-                        includeMusic: true, 
-                        includeBibleReading: true, 
+                        action.ScheduleId,
+                        includeMusic: true,
+                        includeBibleReading: true,
                         CancellationToken.None);
-                    
+
                     if (scheduleFromDb != null)
                     {
                         scheduleToRestore = mapper.Map<ScheduleStateItem>(scheduleFromDb);
@@ -635,7 +635,7 @@ public class ScheduleEffects(
                 {
                     Log.Warning(ex, "ScheduleEffects: HandleDeleteSchedule - Failed to load schedule for rollback, ScheduleId: {ScheduleId}", action.ScheduleId);
                 }
-                
+
                 dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Cannot delete last schedule", scheduleToRestore));
                 return;
             }

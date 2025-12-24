@@ -31,7 +31,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     private bool initComplete;
     private AlarmMusic? lastCurrent;
     private PropertyChangedEventHandler? propertyChangedHandler;
-    
+
     // Track last music type and language code to detect changes
     private MusicType? lastMusicType;
     private string? lastLanguageCode;
@@ -123,10 +123,10 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                 // Ensure languages are populated before opening the modal
                 // Always repopulate to ensure data is fresh, especially on first load
                 await PopulateLanguages();
-                
+
                 // Wait a moment to ensure the collection is assigned and UI is ready
                 await Task.Delay(50);
-                
+
                 // Double-check that languages are populated before opening modal
                 if (Languages == null || Languages.Count == 0)
                 {
@@ -192,7 +192,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     private void OnMusicChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentMusic
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
@@ -203,7 +203,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         var currentSchedule = stateValue.CurrentSchedule;
         var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
-        
+
         if (!newMusicType.HasValue || string.IsNullOrEmpty(newLanguageCode))
         {
             return;
@@ -213,7 +213,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         var musicTypeChanged = lastMusicType != newMusicType.Value;
         var languageCodeChanged = lastLanguageCode != newLanguageCode;
         var needsRepopulation = musicTypeChanged || languageCodeChanged;
-        
+
         // If no changes detected and we're already initialized, skip
         if (!needsRepopulation && initComplete)
         {
@@ -223,7 +223,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         // Update tracking variables
         lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
-        
+
         // Update current if we have CurrentMusic (for other properties like PublicationCode)
         if (stateValue.CurrentMusic != null)
         {
@@ -270,7 +270,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         }
 
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentMusic
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
@@ -281,7 +281,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         var currentSchedule = stateValue.CurrentSchedule;
         var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
-        
+
         if (!newMusicType.HasValue || string.IsNullOrEmpty(newLanguageCode))
         {
             return;
@@ -290,7 +290,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         // Update tracking variables
         lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
-        
+
         // Update current if we have CurrentMusic (for other properties like PublicationCode)
         if (stateValue.CurrentMusic != null)
         {
@@ -310,7 +310,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
             };
             lastCurrent = current;
         }
-        
+
         initComplete = true;
         Task.Run(async () =>
         {
@@ -470,7 +470,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     public async Task RefreshFromState()
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
@@ -478,7 +478,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        
+
         // Update current from CurrentSchedule
         current = new AlarmMusic
         {

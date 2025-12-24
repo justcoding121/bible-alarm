@@ -132,7 +132,7 @@ public class MainActivity : MauiAppCompatActivity
     {
         AndroidLog.Error("MainActivity", $"FATAL ERROR in OnCreate: {ex.GetType().Name}: {ex.Message}");
         AndroidLog.Error("MainActivity", $"Stack trace: {ex.StackTrace}");
-        
+
         if (ex.InnerException != null)
         {
             AndroidLog.Error("MainActivity", $"Inner exception: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
@@ -254,14 +254,14 @@ public class MainActivity : MauiAppCompatActivity
 
     private static bool IsFragmentRestorationError(IllegalArgumentException ex)
     {
-        return ex.Message?.Contains("No view found for id") == true && 
+        return ex.Message?.Contains("No view found for id") == true &&
                ex.Message?.Contains("legacy") == true;
     }
 
     private void HandleFragmentRestorationError(IllegalArgumentException ex)
     {
         Logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");
-        
+
         try
         {
             ClearAllFragments();
@@ -361,7 +361,7 @@ public class MainActivity : MauiAppCompatActivity
     {
         var keysToRemove = new List<string>();
         var keySet = outState.KeySet();
-        
+
         if (keySet == null)
         {
             return keysToRemove;

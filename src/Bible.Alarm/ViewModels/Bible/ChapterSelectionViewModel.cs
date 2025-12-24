@@ -35,16 +35,16 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private bool initComplete;
-    
+
     // Track last language, publication code, and book number to detect changes
     private string? lastLanguageCode;
     private string? lastPublicationCode;
     private int? lastBookNumber;
 
     // Field may be used via reflection or in ways the compiler can't detect
-    #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value null
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value null
     private NotifyCollectionChangedEventHandler? collectionChangedHandler;
-    #pragma warning restore CS0649
+#pragma warning restore CS0649
 
     public ChapterSelectionViewModel(
         ILogger logger,
@@ -100,8 +100,8 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
                 // Always use CurrentSchedule as the source of truth for language/publication codes
                 // This ensures we use the latest state, not stale data from 'current' field
                 var currentSchedule = state.Value.CurrentSchedule;
-                if (currentSchedule == null || 
-                    string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) || 
+                if (currentSchedule == null ||
+                    string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) ||
                     string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode) ||
                     !currentSchedule.BibleReadingBookNumber.HasValue)
                 {
@@ -123,10 +123,10 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
                     PublicationName = currentSchedule.BibleReadingPublicationName,
                     BookName = currentSchedule.BibleReadingBookName
                 };
-                
+
                 logger.Information("ChapterSelectionViewModel: SetChapterCommand - Dispatching ChapterSelectedAction. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
                     chapterSelectedItem.LanguageCode, chapterSelectedItem.PublicationCode, chapterSelectedItem.BookNumber, chapterSelectedItem.ChapterNumber);
-                
+
                 dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
 
                 // Navigate back to schedule page
@@ -145,7 +145,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     private void OnBibleReadingChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
@@ -157,7 +157,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
         var newBookNumber = currentSchedule.BibleReadingBookNumber;
-        
+
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
         {
             return;
@@ -168,7 +168,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var bookNumberChanged = lastBookNumber != newBookNumber.Value;
         var needsRepopulation = languageChanged || publicationCodeChanged || bookNumberChanged;
-        
+
         // If no changes detected and we're already initialized, skip
         if (!needsRepopulation && initComplete)
         {
@@ -179,7 +179,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
         lastBookNumber = newBookNumber.Value;
-        
+
         // Update current if we have CurrentBibleReadingSchedule (for other properties like ChapterNumber)
         if (stateValue.CurrentBibleReadingSchedule != null)
         {
@@ -225,7 +225,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         }
 
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
@@ -237,7 +237,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
         var newBookNumber = currentSchedule.BibleReadingBookNumber;
-        
+
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
         {
             return;
@@ -247,7 +247,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
         lastBookNumber = newBookNumber.Value;
-        
+
         // Update current if we have CurrentBibleReadingSchedule (for other properties like ChapterNumber)
         if (stateValue.CurrentBibleReadingSchedule != null)
         {
@@ -266,7 +266,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             };
             lastCurrent = current;
         }
-        
+
         initComplete = true;
         Task.Run(async () =>
         {
@@ -290,7 +290,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     public async Task RefreshFromState()
     {
         var stateValue = state.Value;
-        
+
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null)
         {
@@ -301,7 +301,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
         var newBookNumber = currentSchedule.BibleReadingBookNumber;
-        
+
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
         {
             return;
@@ -311,7 +311,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
         lastBookNumber = newBookNumber.Value;
-        
+
         // Update current from CurrentSchedule
         if (stateValue.CurrentBibleReadingSchedule != null)
         {

@@ -225,7 +225,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
-            JsonDocument doc = null;
+            JsonDocument? doc = null;
             JsonElement files = default;
 
             try
@@ -273,24 +273,25 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 }
 
                 ProcessBookFiles(bookFiles, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode);
+                
+                // Advance to next book after successful processing
+                AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
             }
-            catch (KeyNotFoundException)
+            catch (Exception ex)
             {
+                // Log and advance to next book on any exception during processing
+                // This ensures we don't get stuck in an infinite loop
+                logger.Warning(ex, "Error processing book files for book {BookNumber}. Advancing to next book.", bookNumber);
                 AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
             }
             finally
             {
                 doc?.Dispose();
             }
-
-            // Always increment bookNumber at the end of each iteration
-            // harvestLink always contains "booknum=" so the condition was redundant
-            bookNumber++;
-
-            harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
         }
 
         // Check if any books were successfully harvested
+        // Note: bookNumberBookMap will have items if ProcessBookFiles successfully processed any book files
         if (bookNumberBookMap.Count > 0)
         {
             SaveBooksAndChapters(booksDirectory, booksIndex, bookNumberBookMap, bookNumberChapterMap);

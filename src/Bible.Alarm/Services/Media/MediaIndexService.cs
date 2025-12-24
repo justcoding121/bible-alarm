@@ -83,7 +83,7 @@ public sealed class MediaIndexService(
                 var timeSinceLaunch = DateTime.UtcNow - appLaunchTime.Value;
                 if (timeSinceLaunch.TotalMinutes < 5)
                 {
-                    logger.Debug("Skipping media index update - app launched {Seconds} seconds ago. Update will be handled by scheduled job after launch period.", 
+                    logger.Debug("Skipping media index update - app launched {Seconds} seconds ago. Update will be handled by scheduled job after launch period.",
                         timeSinceLaunch.TotalSeconds);
                     return false;
                 }

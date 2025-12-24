@@ -153,7 +153,7 @@ public class Program
 
             // Only check if new size is significantly smaller (could indicate data loss)
             // Size increases are expected when new content is added
-            if (!isTestRun && newIndexFileSize < originalIndexFileSize && 
+            if (!isTestRun && newIndexFileSize < originalIndexFileSize &&
                 (originalIndexFileSize - newIndexFileSize) > (1024 * 1024)) // 1 MB threshold
             {
                 throw new ApplicationException($"New index file size ({newIndexFileSize / 1024}kb) is significantly smaller than old index file size ({originalIndexFileSize / 1024}kb). This could indicate data loss.");
