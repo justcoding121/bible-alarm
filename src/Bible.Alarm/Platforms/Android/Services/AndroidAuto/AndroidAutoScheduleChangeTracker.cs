@@ -173,7 +173,8 @@ public class AndroidAutoScheduleChangeTracker
         foreach (var schedule in schedules)
         {
             // Create a signature from key properties that affect Android Auto display
-            var signature = $"{schedule.Name}|{schedule.BibleReadingLanguageCode}|{schedule.BibleReadingBookNumber}|{schedule.BibleReadingChapterNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingBookName}";
+            // Include MusicEnabled since it affects the icon shown in Android Auto
+            var signature = $"{schedule.Name}|{schedule.BibleReadingLanguageCode}|{schedule.BibleReadingBookNumber}|{schedule.BibleReadingChapterNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingBookName}|{schedule.MusicEnabled}";
             signatures[schedule.Id] = signature;
         }
 
