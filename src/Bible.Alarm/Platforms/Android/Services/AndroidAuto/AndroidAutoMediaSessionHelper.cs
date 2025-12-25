@@ -123,16 +123,11 @@ public static class AndroidAutoMediaSessionHelper
                 metadata.Value.Title, metadata.Value.Artist, metadata.Value.ScheduleId);
 
             // Build metadata directly (no DI dependencies)
-            var metadataBuilder = new MediaMetadataCompat.Builder();
-            metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyTitle, metadata.Value.Title);
-            metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyArtist, metadata.Value.Artist);
-            metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyAlbum, metadata.Value.Album ?? "");
-
-            // Set MediaId (scheduleId) if available
-            if (metadata.Value.ScheduleId.HasValue)
-            {
-                metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId, metadata.Value.ScheduleId.Value.ToString());
-            }
+            var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderWithMediaId(
+                metadata.Value.Title,
+                metadata.Value.Artist,
+                metadata.Value.Album,
+                metadata.Value.ScheduleId);
 
             // Try to load artwork if URL is available (simple file-based loading without DI)
             if (!string.IsNullOrEmpty(metadata.Value.ArtworkUrl))

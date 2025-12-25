@@ -111,7 +111,12 @@ public static class AndroidAutoScheduleHelper
 
             if (!string.IsNullOrWhiteSpace(languageName))
             {
-                subtitleParts.Add(languageName);
+                // Add music note emoji (🎵) to the right of language text if music is enabled
+                // Using emoji instead of single note symbol for larger, more visible appearance
+                var languageText = scheduleItem.MusicEnabled
+                    ? $"{languageName} 🎵"
+                    : languageName;
+                subtitleParts.Add(languageText);
             }
         }
 

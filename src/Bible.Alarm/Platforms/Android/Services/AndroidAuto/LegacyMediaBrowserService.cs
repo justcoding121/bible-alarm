@@ -101,7 +101,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             return;
         }
 
-        session = mediaSessionManager.GetOrCreate(true);
+        session = mediaSessionManager.GetOrCreate();
         if (session == null)
         {
             logger.Error("MediaSessionCompat is null after GetOrCreate() - cannot set SessionToken");
@@ -441,7 +441,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         descriptionBuilder.SetSubtitle(subtitle);
         descriptionBuilder.SetDescription(description);
 
-        var bookIconBitmap = CreateBookIconBitmap(scheduleItem.MusicEnabled);
+        var bookIconBitmap = CreateBookIconBitmap();
         if (bookIconBitmap != null)
         {
             descriptionBuilder.SetIconBitmap(bookIconBitmap);
@@ -456,7 +456,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return descriptionBuilder.Build();
     }
 
-    private Bitmap? CreateBookIconBitmap(bool musicEnabled)
+    private Bitmap? CreateBookIconBitmap()
     {
         try
         {
@@ -469,15 +469,10 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             var bitmap = CreateIconBitmap();
             var canvas = new Canvas(bitmap);
 
-            if (musicEnabled)
-            {
-                DrawMusicIcon(canvas);
-            }
-
             DrawBookIcon(canvas, bookDrawable);
 
-            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}, MusicEnabled: {MusicEnabled}",
-                GetBitmapSize(), GetBitmapSize(), musicEnabled);
+            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}",
+                GetBitmapSize(), GetBitmapSize());
             return bitmap;
         }
         catch (Exception ex)
@@ -504,22 +499,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
         bitmap.EraseColor(Color.Transparent);
         return bitmap;
-    }
-
-    private void DrawMusicIcon(Canvas canvas)
-    {
-        var musicDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_music_note);
-        if (musicDrawable != null)
-        {
-            int MusicIconSize = GetBookIconSize() / 2;
-            const int MusicOffset = 4;
-            musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
-            musicDrawable.Draw(canvas);
-        }
-        else
-        {
-            logger.Warning("Could not get app drawable for music note icon");
-        }
     }
 
     private void DrawBookIcon(Canvas canvas, Drawable bookDrawable)
@@ -611,7 +590,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 mediaSessionManager ??= ServiceProviderManager.GetService<MediaSessionManager>();
                 if (mediaSessionManager != null)
                 {
-                    session ??= mediaSessionManager.GetOrCreate(true);
+                    session ??= mediaSessionManager.GetOrCreate();
                     if (session?.SessionToken != null)
                     {
                         SessionToken = session.SessionToken;

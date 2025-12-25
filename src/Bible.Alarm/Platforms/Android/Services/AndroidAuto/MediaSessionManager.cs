@@ -24,6 +24,7 @@ public sealed class MediaSessionManager
     private MediaSessionCompat? mediaSession;
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
     private readonly IServiceProvider serviceProvider;
+    private long? lastDurationMs; // Track last duration to avoid unnecessary metadata updates
 
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
@@ -180,18 +181,30 @@ public sealed class MediaSessionManager
 
     private void UpdateMetadataDuration(long durationMs)
     {
-        // Set duration in metadata if available
-        if (durationMs > 0 && mediaSession?.Controller?.Metadata != null)
+        // Only update duration if it has changed (duration rarely changes, only on track change)
+        // Position updates are frequent (~200ms), but duration only changes when a new track starts
+        if (durationMs <= 0 || durationMs == lastDurationMs)
         {
-            var metadataBuilder = new MediaMetadataCompat.Builder(mediaSession.Controller.Metadata);
-            if (metadataBuilder != null)
+            return;
+        }
+
+        if (mediaSession?.Controller?.Metadata == null)
+        {
+            return;
+        }
+
+        // Use CreateMetadataBuilderFromExisting to ensure artwork and all metadata is preserved
+        var existingMetadata = mediaSession.Controller.Metadata;
+        if (existingMetadata != null)
+        {
+            var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(existingMetadata);
+            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
+            var metadata = metadataBuilder.Build();
+            if (metadata != null)
             {
-                metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
-                var metadata = metadataBuilder.Build();
-                if (metadata != null)
-                {
-                    mediaSession?.SetMetadata(metadata);
-                }
+                mediaSession?.SetMetadata(metadata);
+                lastDurationMs = durationMs;
+                logger.Debug("Duration updated in metadata - Duration: {Duration}ms (artwork preserved)", durationMs);
             }
         }
     }
@@ -224,10 +237,12 @@ public sealed class MediaSessionManager
 
     private MediaMetadataCompat.Builder? CreateMetadataBuilder(string title, string artist, string? album)
     {
+        // Handle empty strings with fallback values (consistent with AndroidAutoPlayScreenHelper)
+        // This ensures we never show empty text in Android Auto UI
         return new MediaMetadataCompat.Builder()
-            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, title)
-            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, artist)
-            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, album ?? "");
+            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? "Bible Alarm" : title)
+            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? "Tap to play" : artist)
+            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? "..." : album);
     }
 
     private void PreserveExistingMetadata(MediaMetadataCompat.Builder builder, int? scheduleId, string? artworkUrl)
@@ -327,69 +342,8 @@ public sealed class MediaSessionManager
     {
         var metadata = builder?.Build();
         mediaSession?.SetMetadata(metadata);
-    }
-
-    /// <summary>
-    /// Clears the metadata from MediaSessionCompat.
-    /// This is recommended when playback stops to clean up the Android Auto interface.
-    /// </summary>
-    public void ClearMetadata() => mediaSession?.SetMetadata(null);
-
-    /// <summary>
-    /// Sets a buffering/ready state for Android Auto:
-    /// - clears metadata (no title/artist/artwork)
-    /// - sets playback state to Buffering to indicate player is initializing
-    /// - allows Play action to show readiness
-    /// - follows standard Media Resumption patterns (like YouTube Music) to avoid blank screens
-    /// 
-    /// WARNING: This method should ONLY be called before bootstrap completes (during process initialization).
-    /// After bootstrap, DefaultScheduleService will set metadata via SetDefaultScheduleMetadataAction,
-    /// and calling this method would unnecessarily clear that metadata.
-    /// The blank loading state is automatically set by AndroidAutoMediaSessionHelper.Create() during initialization.
-    /// </summary>
-    public void SetBlankLoadingState()
-    {
-        if (mediaSession == null)
-        {
-            logger.Warning("MediaSessionCompat is null, cannot set loading state. Call GetOrCreate() first.");
-            return;
-        }
-
-        try
-        {
-            AndroidAutoPlayScreenHelper.ApplyBlankLoadingState(mediaSession);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error setting buffering state");
-        }
-    }
-
-    /// <summary>
-    /// Sets a non-interactive buffering/loading state.
-    /// This can be used during transitions (user clicked a schedule, skip next/prev) before metadata is ready.
-    /// </summary>
-    public void SetBufferingNoControlsState()
-    {
-        if (mediaSession == null)
-        {
-            logger.Warning("MediaSessionCompat is null, cannot set buffering state. Call GetOrCreate() first.");
-            return;
-        }
-
-        try
-        {
-            // IMPORTANT:
-            // When switching schedules, Android Auto will otherwise keep showing the previous schedule's
-            // title/artwork until the new track's metadata arrives. Force the UI into a neutral state
-            // (no artwork, no text) during buffering - shows "Tap to play" message.
-            AndroidAutoPlayScreenHelper.SetBufferingNoControlsState(mediaSession);
-            SetActive(false);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error setting buffering no-controls state");
-        }
+        // Reset tracked duration when metadata changes (new track may have different duration)
+        lastDurationMs = null;
     }
 
     /// <summary>
@@ -462,6 +416,8 @@ public sealed class MediaSessionManager
             // which is handled by MediaSessionEffect.HandleSetDefaultScheduleMetadata()
             UpdatePlaybackStateForStop();
             SetActive(false);
+            // Reset tracked duration when playback stops
+            lastDurationMs = null;
             // Note: Audio focus is released globally by AudioFocusEffect when playback stops
             logger.Information("MediaSessionCompat set to stopped/inactive - next schedule metadata will be updated via state");
         }

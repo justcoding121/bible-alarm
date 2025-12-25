@@ -222,6 +222,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         if (currentTrackIndex > 0)
         {
+            // Go to previous track
             progressSaveTimer?.Stop();
             await audioPlayer.StopAsync();
             await MarkCurrentTrackAsPlayedAsync();
@@ -231,6 +232,15 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             manuallyVisitedTrackIndices.Add(currentTrackIndex);
             await PlayCurrentTrackAsync(startFromBeginning: true);
             NotifyNavigationChanged();
+        }
+        else if (currentTrackIndex == 0)
+        {
+            // On first track - restart current track from beginning
+            progressSaveTimer?.Stop();
+            await audioPlayer.StopAsync();
+            manuallyVisitedTrackIndices.Add(currentTrackIndex);
+            await PlayCurrentTrackAsync(startFromBeginning: true);
+            // Don't call NotifyNavigationChanged() - we're still on the same track
         }
     }
 

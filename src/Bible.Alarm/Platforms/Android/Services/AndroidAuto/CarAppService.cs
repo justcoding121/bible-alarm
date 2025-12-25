@@ -76,7 +76,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         {
             MauiAppHolder.CreateAndStore();
             var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
-            mediaSessionManager?.GetOrCreate(true);
+            mediaSessionManager?.GetOrCreate();
         }
         catch (Exception ex)
         {
@@ -157,7 +157,7 @@ public class ModernMediaSession : Session
     public ModernMediaSession(MediaSessionManager mediaSessionManager)
     {
         this.mediaSessionManager = mediaSessionManager ?? throw new ArgumentNullException(nameof(mediaSessionManager));
-        phoneSession = mediaSessionManager.GetOrCreate(true);
+        phoneSession = mediaSessionManager.GetOrCreate();
         logger.Information("✅ ModernMediaSession created");
     }
 
@@ -458,8 +458,8 @@ public class MainCarScreen : Screen, IDisposable
             var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
             var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
 
-            // Create book icon for the row (with music note if enabled)
-            var bookIcon = CreateBookIcon(scheduleItem.MusicEnabled);
+            // Create book icon for the row
+            var bookIcon = CreateBookIcon();
 
             // Create Row with title, subtitle, icon, and click callback
             // Store schedule ID in a closure so we can access it when clicked
@@ -494,18 +494,14 @@ public class MainCarScreen : Screen, IDisposable
     /// <summary>
     /// Creates a CarIcon for playlist items to display in Android Auto.
     /// Uses a custom open book icon to represent Bible reading schedules.
-    /// When music is enabled, creates a composite icon with a music note in the top left.
     /// </summary>
-    private CarIcon? CreateBookIcon(bool musicEnabled)
+    private CarIcon? CreateBookIcon()
     {
         try
         {
-            // Calculate consistent bitmap size and book position for both music enabled/disabled
             const int BookIconSize = 128;
-            const int MusicIconSize = BookIconSize / 2; // Music icon (twice the previous size)
-            const int MusicOffset = 4; // Offset from top-left corner
-            const int BookOffset = MusicIconSize - 8; // Offset book closer to music icon (reduced gap)
-            const int BitmapSize = BookIconSize + BookOffset; // Total bitmap size (same for both cases)
+            const int BookOffset = BookIconSize / 2 - 8;
+            const int BitmapSize = BookIconSize + BookOffset;
 
             var bookDrawable = ContextCompat.GetDrawable(CarContext, ResourceConstant.Drawable.ic_book_open);
             if (bookDrawable == null)
@@ -520,22 +516,7 @@ public class MainCarScreen : Screen, IDisposable
 
             var canvas = new Canvas(bitmap);
 
-            // Draw music note in top left corner if music is enabled
-            if (musicEnabled)
-            {
-                var musicDrawable = ContextCompat.GetDrawable(CarContext, ResourceConstant.Drawable.ic_music_note);
-                if (musicDrawable != null)
-                {
-                    musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
-                    musicDrawable.Draw(canvas);
-                }
-                else
-                {
-                    logger.Warning("Could not get app drawable for music note icon");
-                }
-            }
-
-            // Draw book icon at the same position regardless of music (for consistent appearance)
+            // Draw book icon
             bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
             bookDrawable.Draw(canvas);
 

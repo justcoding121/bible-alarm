@@ -682,14 +682,14 @@ public class ScheduleEffects(
         try
         {
             Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Refreshing Android Auto metadata for schedule {ScheduleId}", action.Schedule?.Id);
-            
+
             // Dispatch SetCarPlayScreenAction to refresh Android Auto metadata
             // This will trigger DefaultCarScreenEffect to fetch metadata and update MediaSession
             // MediaSessionEffect will check if playback is active and skip if needed
             dispatcher.Dispatch(new SetCarPlayScreenAction());
-            
+
             Log.Information("ScheduleEffects: HandleUpdateScheduleSuccess - Dispatched SetCarPlayScreenAction for schedule {ScheduleId}", action.Schedule?.Id);
-            
+
             // Note: OnLoadChildren is already being called by Android Auto in response to NotifyChildrenChanged
             // which is triggered when the change tracker detects a change in OnUpdateScheduleFromViewModel.
             // No additional force refresh is needed.
@@ -698,12 +698,13 @@ public class ScheduleEffects(
         {
             Log.Error(ex, "ScheduleEffects: Error in HandleUpdateScheduleSuccess");
         }
-        
+
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Effect: Handle RemoveScheduleSuccessAction - Refresh last played metadata if deleted schedule was the last played item.
+    /// Effect: Handle RemoveScheduleSuccessAction - Refresh Android Auto default schedule metadata when a schedule is deleted.
+    /// Also refreshes last played metadata if deleted schedule was the last played item.
     /// </summary>
     [EffectMethod]
     public async Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, IDispatcher dispatcher)
@@ -734,6 +735,12 @@ public class ScheduleEffects(
                 Log.Debug("ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was not the last played item (LastPlayedScheduleId: {LastPlayedScheduleId}), no refresh needed",
                     action.ScheduleId, lastPlayedMetadata?.ScheduleId?.ToString() ?? "null");
             }
+
+            // Always dispatch SetCarPlayScreenAction to refresh Android Auto metadata after deletion
+            // This ensures Android Auto gets updated default schedule metadata, matching the update flow
+            dispatcher.Dispatch(new SetCarPlayScreenAction());
+
+            Log.Information("ScheduleEffects: HandleRemoveScheduleSuccess - Dispatched SetCarPlayScreenAction for deleted schedule {ScheduleId}", action.ScheduleId);
         }
         catch (Exception ex)
         {

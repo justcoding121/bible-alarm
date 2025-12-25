@@ -273,7 +273,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 }
 
                 ProcessBookFiles(bookFiles, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode);
-                
+
                 // Advance to next book after successful processing
                 AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
             }

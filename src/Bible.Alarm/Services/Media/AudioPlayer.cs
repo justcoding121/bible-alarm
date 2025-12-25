@@ -375,6 +375,15 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
             return;
         }
 
+        // Ignore Stopped state changes when we're in Loading state (preparing a new track)
+        // This prevents the intermediate Stopped state from SafeStopMediaElementAsync during PrepareAsync
+        // from causing Android Auto controls to flicker (play => stop => play => pause)
+        if (e.NewState == MediaElementState.Stopped && Status == PlayStatus.Loading)
+        {
+            logger.Debug("Ignoring Stopped state change during Loading (preparing new track)");
+            return;
+        }
+
         // On iOS, MediaElement can fire state change events even after Source is set to null
         // If Source is null, we should ignore state changes (except Stopped/None) to prevent stale status updates
         // Also, if Source is null, force status to Stopped regardless of the state change

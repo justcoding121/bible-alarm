@@ -67,7 +67,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     public override void OnPlay()
     {
         logger.Information("MediaSessionCallback.OnPlay() called from Android Auto");
-        
+
         ExecuteAsyncOperation(HandlePlayAsync);
         base.OnPlay();
     }
@@ -261,7 +261,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             var mediaSession = AndroidAutoMediaSessionHelper.Create();
             // Only update playback state to buffering, preserving everything else (metadata, controls, etc.)
             AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
-            
+
             logger.Debug("Set MediaSession playback state to buffering (bootstrap not complete, preserving metadata and controls)");
         }
         catch (Exception ex)

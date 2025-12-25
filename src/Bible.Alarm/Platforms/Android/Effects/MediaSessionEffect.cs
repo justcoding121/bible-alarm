@@ -41,33 +41,22 @@ public class MediaSessionEffect(
             }
 
             // When status is Loading (during track preparation and media buffering),
-            // check if we're starting fresh playback or changing tracks during active playback.
-            // - Starting fresh: preserve existing metadata to prevent Android Auto from navigating away
-            // - Changing tracks: clear old metadata to show new track's metadata when ready
+            // always use SetBufferingStateOnly to preserve metadata and keep session active.
+            // This prevents Android Auto from navigating away from the Now Playing screen.
+            // The metadata will be updated when the new track's metadata arrives via PlaybackMetadataChangedAction.
             if (action.Status == PlayStatus.Loading)
             {
-                var currentState = playbackState.Value;
-                
-                // If we're already playing and have metadata, this is a track change - clear old metadata
-                // Otherwise, this is fresh playback start - preserve existing metadata to avoid navigation
-                if (currentState.IsPreparingOrPlaying && !string.IsNullOrEmpty(currentState.Title))
-                {
-                    // Track change during active playback - clear old metadata
-                    mediaSessionManager.SetBufferingNoControlsState();
-                    logger.Debug("Set MediaSession to buffering no-controls state (track change during playback)");
-                }
-                else
-                {
-                    // Fresh playback start - preserve existing metadata to prevent Android Auto navigation
-                    mediaSessionManager.SetBufferingStateOnly();
-                    logger.Debug("Set MediaSession to buffering state only (preserving metadata to prevent navigation)");
-                }
+                // Always preserve metadata during Loading state to prevent Android Auto navigation
+                // Whether it's fresh playback or track transition, keeping metadata prevents screen jumps
+                mediaSessionManager.SetBufferingStateOnly();
+                logger.Debug("Set MediaSession to buffering state only (preserving metadata to prevent navigation)");
             }
             else
             {
                 // For all other statuses (Playing, Paused, Stopped, etc.), use normal state with controls
                 var canPlayNext = playbackState.Value.CanPlayNext;
-                var canPlayPrevious = playbackState.Value.CanPlayPrevious;
+                // Always enable previous button for Android Auto (even on first track - will restart current track)
+                var canPlayPrevious = true;
                 mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
             }
 
@@ -196,29 +185,16 @@ public class MediaSessionEffect(
 
     private MediaMetadataCompat? BuildMetadata(PlaybackMetadataChangedAction action)
     {
-        var metadataBuilder = new MediaMetadataCompat.Builder();
+        var scheduleId = playbackState.Value?.CurrentScheduleId;
+        var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderWithMediaId(
+            action.Title,
+            action.Artist,
+            action.Album,
+            scheduleId);
 
-        SetBasicMetadata(metadataBuilder, action);
-        SetScheduleId(metadataBuilder);
         SetArtwork(metadataBuilder, action);
 
         return metadataBuilder.Build();
-    }
-
-    private void SetBasicMetadata(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action)
-    {
-        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyTitle, action.Title ?? "");
-        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyArtist, action.Artist ?? "");
-        metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyAlbum, action.Album ?? "");
-    }
-
-    private void SetScheduleId(MediaMetadataCompat.Builder metadataBuilder)
-    {
-        var scheduleId = playbackState.Value?.CurrentScheduleId;
-        if (scheduleId.HasValue)
-        {
-            metadataBuilder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
-        }
     }
 
     private void SetArtwork(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action)
@@ -269,7 +245,7 @@ public class MediaSessionEffect(
             var currentMetadata = session.Controller?.Metadata;
             if (currentMetadata != null)
             {
-                var metadataBuilder = new MediaMetadataCompat.Builder(currentMetadata);
+                var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(currentMetadata);
                 metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
                 session.SetMetadata(metadataBuilder.Build());
             }
@@ -289,7 +265,8 @@ public class MediaSessionEffect(
 
             var state = MapPlayStatusToPlaybackState(playbackState.Value.Status);
             var position = GetCurrentPlaybackPosition(session);
-            mediaSessionManager.UpdatePlaybackState(state, position, action.CanPlayNext, action.CanPlayPrevious);
+            // Always enable previous button for Android Auto (even on first track - will restart current track)
+            mediaSessionManager.UpdatePlaybackState(state, position, action.CanPlayNext, canPlayPrevious: true);
         }
         catch (Exception ex)
         {
@@ -349,7 +326,7 @@ public class MediaSessionEffect(
     {
         var duration = playbackState.Value.Duration;
         var canPlayNext = playbackState.Value.CanPlayNext;
-        var canPlayPrevious = playbackState.Value.CanPlayPrevious;
-        mediaSessionManager.UpdatePlaybackPosition(currentPosition, duration, canPlayNext, canPlayPrevious);
+        // Always enable previous button for Android Auto (even on first track - will restart current track)
+        mediaSessionManager.UpdatePlaybackPosition(currentPosition, duration, canPlayNext, canPlayPrevious: true);
     }
 }

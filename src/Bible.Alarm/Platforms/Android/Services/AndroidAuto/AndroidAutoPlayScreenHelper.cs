@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Content;
 using Android.OS;
+using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -8,7 +9,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// <summary>
 /// Helper for managing Android Auto play screen UI states and playback states.
 /// Intentionally does NOT depend on MAUI DI/services.
-/// Centralizes all PlaybackStateCompat.Builder creation logic.
+/// Centralizes all PlaybackStateCompat.Builder and MediaMetadataCompat.Builder creation logic.
 /// </summary>
 public static class AndroidAutoPlayScreenHelper
 {
@@ -18,26 +19,24 @@ public static class AndroidAutoPlayScreenHelper
     /// Follows standard Media Resumption patterns (like YouTube Music).
     /// </summary>
     /// <param name="mediaSession">The MediaSessionCompat instance</param>
-    /// <param name="clearMetaData">If true, clears metadata. If false, preserves existing metadata and only animates progress bar.</param>
-    public static void ApplyBlankLoadingState(MediaSessionCompat mediaSession, bool clearMetaData = true)
+    public static void ApplyBlankLoadingState(MediaSessionCompat mediaSession)
     {
         // Clear metadata (no artwork, no title/subtitle) + set buffering state.
         // Following standard Media Resumption patterns (like YouTube Music):
         // - Use STATE_BUFFERING instead of STATE_NONE to indicate player is initializing
         // - This tells Android Auto that the app is responsive and ready, avoiding blank screens
         // - Keep session active so Android Auto can see the session
-        if (clearMetaData)
+
+        try
         {
-            try
-            {
-                // Clear metadata - no artwork, no text
-                mediaSession?.SetMetadata(null);
-            }
-            catch
-            {
-                mediaSession?.SetMetadata(null);
-            }
+            // Clear metadata - no artwork, no text
+            mediaSession?.SetMetadata(null);
         }
+        catch
+        {
+            mediaSession?.SetMetadata(null);
+        }
+
 
         var playbackState = CreatePlaybackState(
             PlaybackStateCompat.StateBuffering,
@@ -56,34 +55,6 @@ public static class AndroidAutoPlayScreenHelper
         }
     }
 
-    /// <summary>
-    /// Sets buffering state with no controls (disables all actions).
-    /// Used during transitions when switching schedules before metadata is ready.
-    /// </summary>
-    public static void SetBufferingNoControlsState(MediaSessionCompat mediaSession)
-    {
-        // Clear metadata directly (don't call ApplyBlankLoadingState which sets state we'll overwrite)
-        try
-        {
-            mediaSession?.SetMetadata(null);
-        }
-        catch
-        {
-            mediaSession?.SetMetadata(null);
-        }
-
-        // Set buffering state with no controls in one call (avoiding double SetPlaybackState)
-        var playbackState = CreatePlaybackState(
-            PlaybackStateCompat.StateBuffering,
-            position: 0,
-            actions: 0); // No actions - disables all controls
-
-        if (playbackState != null && mediaSession != null)
-        {
-            mediaSession.SetPlaybackState(playbackState);
-            mediaSession.Active = false;
-        }
-    }
 
     /// <summary>
     /// Sets playback state to STOPPED with only Play action available.
@@ -180,6 +151,78 @@ public static class AndroidAutoPlayScreenHelper
             position,
             playbackSpeed: 1.0f,
             actions);
+    }
+
+    /// <summary>
+    /// Creates a new MediaMetadataCompat.Builder with basic metadata (title, artist, album).
+    /// Uses standard fallback values from DefaultScheduleService when values are null or empty.
+    /// </summary>
+    public static MediaMetadataCompat.Builder CreateMetadataBuilder(string? title, string? artist, string? album = null)
+    {
+        var builder = new MediaMetadataCompat.Builder();
+        builder.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? "Bible Alarm" : title);
+        builder.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? "Tap to play" : artist);
+        builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? "..." : album);
+        return builder;
+    }
+
+    /// <summary>
+    /// Creates a MediaMetadataCompat.Builder from existing metadata, preserving all existing values.
+    /// Used for updating specific fields while keeping others intact.
+    /// Handles empty strings in existing metadata by replacing them with fallback values.
+    /// </summary>
+    public static MediaMetadataCompat.Builder CreateMetadataBuilderFromExisting(MediaMetadataCompat? existingMetadata)
+    {
+        if (existingMetadata != null)
+        {
+            var builder = new MediaMetadataCompat.Builder(existingMetadata);
+            // Ensure empty strings are replaced with fallback values
+            var title = existingMetadata.GetString(MediaMetadataCompat.MetadataKeyTitle);
+            var artist = existingMetadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
+            var album = existingMetadata.GetString(MediaMetadataCompat.MetadataKeyAlbum);
+
+            if (string.IsNullOrEmpty(title))
+            {
+                builder.PutString(MediaMetadataCompat.MetadataKeyTitle, "Bible Alarm");
+            }
+            if (string.IsNullOrEmpty(artist))
+            {
+                builder.PutString(MediaMetadataCompat.MetadataKeyArtist, "Tap to play");
+            }
+            if (string.IsNullOrEmpty(album))
+            {
+                builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, "...");
+            }
+
+            // Explicitly preserve artwork bitmap to ensure it's not lost
+            // The constructor should copy it, but explicitly preserving ensures notification displays it
+            var existingArtwork = existingMetadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+            if (existingArtwork != null)
+            {
+                builder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+            }
+
+            return builder;
+        }
+        // If no existing metadata, create a new builder with fallback values
+        return CreateMetadataBuilder(null, null, null);
+    }
+
+    /// <summary>
+    /// Creates a MediaMetadataCompat.Builder with basic metadata and MediaId (scheduleId).
+    /// </summary>
+    public static MediaMetadataCompat.Builder CreateMetadataBuilderWithMediaId(
+        string? title,
+        string? artist,
+        string? album = null,
+        int? scheduleId = null)
+    {
+        var builder = CreateMetadataBuilder(title, artist, album);
+        if (scheduleId.HasValue)
+        {
+            builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+        }
+        return builder;
     }
 }
 

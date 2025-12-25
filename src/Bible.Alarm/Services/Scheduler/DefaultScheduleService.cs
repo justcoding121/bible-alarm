@@ -5,6 +5,7 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
@@ -19,7 +20,7 @@ namespace Bible.Alarm.Services.Scheduler;
 public sealed class DefaultScheduleService(
     ILogger logger,
     IState<ApplicationState> applicationState,
-    IState<PlaybackState> playbackState,
+    IAlarmScheduleService alarmScheduleService,
     IPlaylistService playlistService,
     IPreparePlaybackService preparePlaybackService,
     IDisplayMetadataService displayMetadataService) : IDefaultScheduleService, IDisposable
@@ -33,25 +34,64 @@ public sealed class DefaultScheduleService(
         // This method must NOT call database seeding or create schedules.
         // Bootstrap guarantees schedules are loaded into Fluxor state, and UI enforces at least one schedule.
         //
-        // Pick a scheduleId deterministically from state:
-        // - Prefer the currently/most-recently active playback schedule (if available)
-        // - Else prefer the currently selected schedule in state
+        // Pick a scheduleId deterministically:
+        // - Prefer the last played schedule ID from preferences (if available and exists in state)
         // - Else fall back to the first schedule in the schedule list (guaranteed post-bootstrap)
-        var scheduleId =
-            playbackState.Value.CurrentScheduleId
-            ?? applicationState.Value.CurrentSchedule?.Id
-            ?? applicationState.Value.Schedules.FirstOrDefault()?.Id;
+        // Note: CurrentScheduleId is not used here as it should be cleared after playback ends/resets
+        // Note: CurrentSchedule is intentionally not used here as it should be null after navigating back to home
+
+        int? scheduleId = null;
+
+        // Check preferences for last played schedule ID
+        var lastPlayedMetadata = LastPlayedMetadataHelper.GetLastPlayedMetadata();
+        if (lastPlayedMetadata.HasValue && lastPlayedMetadata.Value.ScheduleId.HasValue)
+        {
+            var lastPlayedScheduleId = lastPlayedMetadata.Value.ScheduleId.Value;
+            // Verify the schedule still exists in state
+            if (applicationState.Value.Schedules?.Any(s => s.Id == lastPlayedScheduleId) == true)
+            {
+                scheduleId = lastPlayedScheduleId;
+                logger.Debug("GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences", scheduleId);
+            }
+            else
+            {
+                logger.Debug("GetNextScheduleTrackMetaDataAsync: Last played schedule {ScheduleId} from preferences not found in state, querying DB for first schedule", lastPlayedScheduleId);
+                // Query database for first schedule when last played schedule doesn't exist in state
+                try
+                {
+                    var firstSchedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
+                        includeMusic: false,
+                        includeBibleReading: false,
+                        cancellationTokenSource.Token);
+                    if (firstSchedule != null)
+                    {
+                        scheduleId = firstSchedule.Id;
+                        logger.Debug("GetNextScheduleTrackMetaDataAsync: Found first schedule {ScheduleId} from database", scheduleId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "GetNextScheduleTrackMetaDataAsync: Failed to query database for first schedule, falling back to state");
+                }
+            }
+        }
+
+        // Final fallback to first schedule in state
+        if (!scheduleId.HasValue)
+        {
+            scheduleId = applicationState.Value.Schedules?.FirstOrDefault()?.Id;
+        }
 
         if (!scheduleId.HasValue || scheduleId.Value <= 0)
         {
             logger.Warning("GetNextScheduleTrackMetaDataAsync: No schedules available in state; returning fallback metadata");
-            // Fallback: create "empty" metadata with an invalid schedule id
+            // Return empty values - builders will handle fallbacks
             return new ScheduleTrackMetadata
             {
                 ScheduleId = scheduleId ?? 0,
-                Title = "",
-                Artist = "",
-                Album = "",
+                Title = string.Empty,
+                Artist = string.Empty,
+                Album = null,
                 ArtworkUrl = null
             };
         }
@@ -111,11 +151,13 @@ public sealed class DefaultScheduleService(
         logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}",
             scheduleId, metadata.Title, metadata.Artist, metadata.Album, !string.IsNullOrEmpty(artworkUrl));
 
+        // Pass raw metadata values (null becomes empty string for non-nullable properties)
+        // Builders will handle empty string fallbacks
         return new ScheduleTrackMetadata
         {
             ScheduleId = scheduleId,
-            Title = metadata.Title ?? "",
-            Artist = metadata.Artist ?? "",
+            Title = metadata.Title ?? string.Empty,
+            Artist = metadata.Artist ?? string.Empty,
             Album = metadata.Album,
             ArtworkUrl = artworkUrl
         };
@@ -123,13 +165,19 @@ public sealed class DefaultScheduleService(
 
     private ScheduleTrackMetadata CreateFallbackMetadata(int scheduleId, PlayItem firstPlayItem)
     {
+        // Generate meaningful values from available metadata, but pass empty if not available
+        // Builders will handle empty string fallbacks
+        var title = firstPlayItem.Metadata?.PlayType == PlayType.Bible
+            ? $"Book {firstPlayItem.Metadata.BookNumber} Chapter {firstPlayItem.Metadata.ChapterNumber}"
+            : firstPlayItem.Metadata?.TrackNumber != null
+                ? $"Track {firstPlayItem.Metadata.TrackNumber}"
+                : string.Empty;
+
         return new ScheduleTrackMetadata
         {
             ScheduleId = scheduleId,
-            Title = firstPlayItem.Metadata?.PlayType == PlayType.Bible
-                ? $"Book {firstPlayItem.Metadata.BookNumber} Chapter {firstPlayItem.Metadata.ChapterNumber}"
-                : $"Track {firstPlayItem.Metadata?.TrackNumber ?? 1}",
-            Artist = firstPlayItem.Metadata?.PublicationCode ?? "",
+            Title = title,
+            Artist = firstPlayItem.Metadata?.PublicationCode ?? string.Empty,
             Album = firstPlayItem.Metadata?.LanguageCode,
             ArtworkUrl = null
         };
