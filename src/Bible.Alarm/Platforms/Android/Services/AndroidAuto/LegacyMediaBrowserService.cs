@@ -51,32 +51,25 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     // Samsung/phone SystemUI may bind to any exported MediaBrowserService and show a phone media card.
     // We only want car hosts (Android Auto / AAOS) to connect to this service.
+    // Reuse shared validation logic from AndroidAutoHostValidator
     static bool IsCarHostPackage(string clientPackageName)
     {
-        if (string.IsNullOrWhiteSpace(clientPackageName))
-        {
-            return false;
-        }
-
-        // Android Auto (phone projection)
-        if (clientPackageName.Equals("com.google.android.projection.gearhead", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        // Emulator DHU / Google automotive projection variants sometimes use these prefixes
-        if (clientPackageName.Contains("car", StringComparison.OrdinalIgnoreCase)
-            || clientPackageName.Contains("auto", StringComparison.OrdinalIgnoreCase)
-            || clientPackageName.StartsWith("com.google.android.", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return false;
+        return AndroidAutoHostValidator.IsCarHostPackage(clientPackageName);
     }
 
     public override void OnCreate()
     {
+        // Create MediaSession as the very first thing - even before MAUI services are registered
+        // This ensures MediaSession is available immediately on process start
+        try
+        {
+            AndroidAutoMediaSessionHelper.Create();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "LegacyMediaBrowserService.OnCreate: failed to create MediaSession");
+        }
+
         base.OnCreate();
         logger.Information("LegacyMediaBrowserService.OnCreate() called - Ensuring MauiApp is created");
 
@@ -99,6 +92,8 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     private void SetupMediaSessionManagerAndToken()
     {
+        // MediaSession is created here if needed (for SessionToken), but buffering state is set
+        // centrally after bootstrap completes in CommonBootstrapHelper.InitializeSchedules().
         mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
         if (mediaSessionManager == null)
         {
@@ -138,7 +133,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                     try
                     {
                         await InitializeStateSubscriptionAsync();
-                        await SetInitialScheduleMetadataAsync();
+                        // SetCarPlayScreenAction will be dispatched after bootstrap completes (handled by CommonBootstrapHelper)
                     }
                     catch (Exception ex)
                     {
@@ -208,15 +203,19 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         {
             if (scheduleChangeTracker == null)
             {
+                logger.Debug("OnApplicationStateChanged: scheduleChangeTracker is null, skipping");
                 return;
             }
 
+            logger.Debug("OnApplicationStateChanged: Checking for schedule changes");
             var changes = scheduleChangeTracker.GetSpecificChanges();
             if (changes == null || changes.Count == 0)
             {
+                logger.Debug("OnApplicationStateChanged: No changes detected (changes is null or empty)");
                 return;
             }
 
+            logger.Information("OnApplicationStateChanged: Detected {Count} schedule changes, notifying Android Auto", changes.Count);
             var options = CreateChangeNotificationOptions(changes);
             NotifyChildrenChanged(RootId, options);
             LogScheduleChanges(changes);
@@ -457,6 +456,92 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return descriptionBuilder.Build();
     }
 
+    private Bitmap? CreateBookIconBitmap(bool musicEnabled)
+    {
+        try
+        {
+            var bookDrawable = GetBookDrawable();
+            if (bookDrawable == null)
+            {
+                return null;
+            }
+
+            var bitmap = CreateIconBitmap();
+            var canvas = new Canvas(bitmap);
+
+            if (musicEnabled)
+            {
+                DrawMusicIcon(canvas);
+            }
+
+            DrawBookIcon(canvas, bookDrawable);
+
+            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}, MusicEnabled: {MusicEnabled}",
+                GetBitmapSize(), GetBitmapSize(), musicEnabled);
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to create book icon bitmap - MediaItems will display without icon");
+            return null;
+        }
+    }
+
+    private Drawable? GetBookDrawable()
+    {
+        var bookDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_book_open);
+        if (bookDrawable == null)
+        {
+            logger.Warning("Could not get app drawable for book icon");
+        }
+        return bookDrawable;
+    }
+
+    private Bitmap CreateIconBitmap()
+    {
+        int BitmapSize = GetBitmapSize();
+        var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
+        var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
+        bitmap.EraseColor(Color.Transparent);
+        return bitmap;
+    }
+
+    private void DrawMusicIcon(Canvas canvas)
+    {
+        var musicDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_music_note);
+        if (musicDrawable != null)
+        {
+            int MusicIconSize = GetBookIconSize() / 2;
+            const int MusicOffset = 4;
+            musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
+            musicDrawable.Draw(canvas);
+        }
+        else
+        {
+            logger.Warning("Could not get app drawable for music note icon");
+        }
+    }
+
+    private void DrawBookIcon(Canvas canvas, Drawable bookDrawable)
+    {
+        int BookIconSize = GetBookIconSize();
+        int BookOffset = BookIconSize / 2 - 8;
+        bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
+        bookDrawable.Draw(canvas);
+    }
+
+    private static int GetBitmapSize()
+    {
+        const int BookIconSize = 128;
+        const int BookOffset = BookIconSize / 2 - 8;
+        return BookIconSize + BookOffset;
+    }
+
+    private static int GetBookIconSize()
+    {
+        return 128;
+    }
+
     private static void SendEmptyResultSafely(Result result, string parentId)
     {
         try
@@ -554,97 +639,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return base.OnUnbind(intent);
     }
 
-    /// <summary>
-    /// Creates a bitmap icon for playlist items to display in Android Auto.
-    /// Uses a custom open book icon to represent Bible reading schedules.
-    /// When music is enabled, creates a composite icon with a music note in the top left.
-    /// Android Auto requires icons to be at least 64x64 pixels for proper display.
-    /// </summary>
-    private Bitmap? CreateBookIconBitmap(bool musicEnabled)
-    {
-        try
-        {
-            var bookDrawable = GetBookDrawable();
-            if (bookDrawable == null)
-            {
-                return null;
-            }
-
-            var bitmap = CreateIconBitmap();
-            var canvas = new Canvas(bitmap);
-
-            if (musicEnabled)
-            {
-                DrawMusicIcon(canvas);
-            }
-
-            DrawBookIcon(canvas, bookDrawable);
-
-            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}, MusicEnabled: {MusicEnabled}",
-                GetBitmapSize(), GetBitmapSize(), musicEnabled);
-            return bitmap;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to create book icon bitmap - MediaItems will display without icon");
-            return null;
-        }
-    }
-
-    private Drawable? GetBookDrawable()
-    {
-        var bookDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_book_open);
-        if (bookDrawable == null)
-        {
-            logger.Warning("Could not get app drawable for book icon");
-        }
-        return bookDrawable;
-    }
-
-    private Bitmap CreateIconBitmap()
-    {
-        int BitmapSize = GetBitmapSize();
-        var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
-        var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
-        bitmap.EraseColor(Color.Transparent);
-        return bitmap;
-    }
-
-    private void DrawMusicIcon(Canvas canvas)
-    {
-        var musicDrawable = ContextCompat.GetDrawable(this, ResourceConstant.Drawable.ic_music_note);
-        if (musicDrawable != null)
-        {
-            int MusicIconSize = GetBookIconSize() / 2;
-            const int MusicOffset = 4;
-            musicDrawable.SetBounds(MusicOffset, MusicOffset, MusicOffset + MusicIconSize, MusicOffset + MusicIconSize);
-            musicDrawable.Draw(canvas);
-        }
-        else
-        {
-            logger.Warning("Could not get app drawable for music note icon");
-        }
-    }
-
-    private void DrawBookIcon(Canvas canvas, Drawable bookDrawable)
-    {
-        int BookIconSize = GetBookIconSize();
-        int BookOffset = BookIconSize / 2 - 8;
-        bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
-        bookDrawable.Draw(canvas);
-    }
-
-    private static int GetBitmapSize()
-    {
-        const int BookIconSize = 128;
-        const int BookOffset = BookIconSize / 2 - 8;
-        return BookIconSize + BookOffset;
-    }
-
-    private static int GetBookIconSize()
-    {
-        return 128;
-    }
 
     public override void OnDestroy()
     {
@@ -674,49 +668,5 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         base.OnDestroy();
     }
 
-    private async Task SetInitialScheduleMetadataAsync()
-    {
-        try
-        {
-            logger.Debug("SetInitialScheduleMetadataAsync: Setting metadata to first schedule after bootstrap");
-
-            var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
-            if (defaultScheduleService == null)
-            {
-                logger.Warning("SetInitialScheduleMetadataAsync: IDefaultScheduleService not available");
-                return;
-            }
-
-            var metadata = await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
-
-            // Update metadata on main thread
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (mediaSessionManager == null)
-                {
-                    logger.Warning("SetInitialScheduleMetadataAsync: MediaSessionManager is null");
-                    return;
-                }
-
-                // Set metadata using MediaSessionManager
-                mediaSessionManager.UpdateMetadata(
-                    metadata.Title,
-                    metadata.Artist,
-                    metadata.Album,
-                    metadata.ScheduleId,
-                    metadata.ArtworkUrl);
-
-                // Return to stopped state (idle) with normal actions once metadata is ready.
-                mediaSessionManager.UpdatePlaybackStateForStop();
-
-                logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}, HasArtwork={HasArtwork}",
-                    metadata.ScheduleId, metadata.Title, metadata.Artist, !string.IsNullOrEmpty(metadata.ArtworkUrl));
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error setting initial schedule metadata in LegacyMediaBrowserService");
-        }
-    }
 }
 

@@ -1,6 +1,9 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Shared;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.Controls;
 using Serilog;
 
 namespace Bible.Alarm.Views.Music;
@@ -53,6 +56,20 @@ public partial class SongBookSelectionModal : BaseContentPage, IDisposable
 
             BindingContext = null;
             isDisposed = true;
+        }
+    }
+
+    private async void OnSongBookItemTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
+        {
+            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
+            {
+                if (asyncCommand.CanExecute(publicationItem))
+                {
+                    await asyncCommand.ExecuteAsync(publicationItem);
+                }
+            }
         }
     }
 }

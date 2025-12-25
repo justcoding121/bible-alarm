@@ -15,5 +15,15 @@ public interface IDefaultScheduleService
     /// first track metadata for that schedule. Does not seed or create schedules.
     /// </summary>
     Task<ScheduleTrackMetadata> GetNextScheduleTrackMetaDataAsync();
+
+    /// <summary>
+    /// Validates if a schedule ID exists in the application state.
+    /// </summary>
+    bool ValidateScheduleIdExists(int scheduleId);
+
+    /// <summary>
+    /// Gets the first schedule ID from the application state.
+    /// </summary>
+    int? GetFirstScheduleId();
 }
 

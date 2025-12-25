@@ -401,6 +401,12 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         // Dispatch playback stopped action
         dispatcher.Dispatch(new PlaybackStoppedAction());
 
+#if ANDROID
+        // Dispatch SetCarPlayScreenAction to refresh Android Auto with default schedule metadata
+        dispatcher.Dispatch(new SetCarPlayScreenAction());
+        logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
+#endif
+
         // Log reset completion for debugging
         logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}",
             audioPlayer.Status,

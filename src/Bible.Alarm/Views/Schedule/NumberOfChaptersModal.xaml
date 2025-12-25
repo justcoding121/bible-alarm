@@ -75,7 +75,7 @@
                 ItemsSource="{Binding NumberOfChaptersList}"
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
-                SelectionMode="Single">
+                SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
                         <LinearItemsLayout.ItemSpacing>
@@ -110,7 +110,11 @@
                                 <Grid
                                     Padding="20,18"
                                     HorizontalOptions="Fill"
-                                    MinimumHeightRequest="56">
+                                    MinimumHeightRequest="56"
+                                    BackgroundColor="Transparent">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnChapterItemTapped" />
+                                    </Grid.GestureRecognizers>
                                     <Label
                                         FontSize="16"
                                         HorizontalOptions="Start"

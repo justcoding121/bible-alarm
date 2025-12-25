@@ -49,37 +49,6 @@ public class AndroidAutoScheduleChangeTracker
     }
 
     /// <summary>
-    /// Checks if schedules have changed (count or properties) and updates the tracked state.
-    /// Returns true if changes were detected.
-    /// </summary>
-    public bool CheckForChanges()
-    {
-        if (applicationState?.Value?.Schedules == null)
-        {
-            return false;
-        }
-
-        var currentScheduleCount = applicationState.Value.Schedules.Count;
-        var currentSignatures = BuildScheduleSignatures(applicationState.Value.Schedules);
-
-        // Check if count changed or if any schedule properties changed
-        var countChanged = lastScheduleCount != currentScheduleCount;
-        var propertiesChanged = !AreSignaturesEqual(lastScheduleSignatures, currentSignatures);
-
-        if (countChanged || propertiesChanged)
-        {
-            logger.Debug("Schedule list changed (count: {OldCount} -> {NewCount}, properties changed: {PropertiesChanged})",
-                lastScheduleCount, currentScheduleCount, propertiesChanged);
-
-            lastScheduleCount = currentScheduleCount;
-            lastScheduleSignatures = currentSignatures;
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
     /// Detects specific schedule changes (added, removed, or updated) and returns a list of changes.
     /// Returns null if no changes detected, or an empty list if changes detected but couldn't determine specifics.
     /// </summary>
@@ -97,8 +66,11 @@ public class AndroidAutoScheduleChangeTracker
         // If count hasn't changed and signatures are equal, no changes
         if (lastScheduleCount == currentScheduleCount && AreSignaturesEqual(lastScheduleSignatures, currentSignatures))
         {
+            logger.Debug("GetSpecificChanges: No changes detected (count: {Count}, signatures equal)", currentScheduleCount);
             return null;
         }
+
+        logger.Debug("GetSpecificChanges: Changes detected (count: {OldCount} -> {NewCount})", lastScheduleCount, currentScheduleCount);
 
         var changes = new List<ScheduleChange>();
 
@@ -146,7 +118,8 @@ public class AndroidAutoScheduleChangeTracker
                         ScheduleId = kvp.Key,
                         Schedule = schedule
                     });
-                    logger.Debug("Detected schedule updated: {ScheduleId}", kvp.Key);
+                    logger.Information("Detected schedule updated: {ScheduleId} - Old signature: '{OldSignature}', New signature: '{NewSignature}'",
+                        kvp.Key, oldSignature, kvp.Value);
                 }
             }
         }
@@ -161,6 +134,10 @@ public class AndroidAutoScheduleChangeTracker
     /// <summary>
     /// Builds a signature dictionary from schedule collection.
     /// Each signature is a string representation of key properties that affect Android Auto display.
+    /// 
+    /// IMPORTANT: IsEnabled is intentionally excluded from the signature.
+    /// This ensures Android Auto does NOT refresh when schedules are enabled/disabled on the home screen.
+    /// Only changes to display-relevant properties (name, language, book, chapter, music) trigger a refresh.
     /// </summary>
     private static Dictionary<int, string> BuildScheduleSignatures(ICollection<ScheduleStateItem>? schedules)
     {
@@ -174,7 +151,8 @@ public class AndroidAutoScheduleChangeTracker
         {
             // Create a signature from key properties that affect Android Auto display
             // Include MusicEnabled since it affects the icon shown in Android Auto
-            var signature = $"{schedule.Name}|{schedule.BibleReadingLanguageCode}|{schedule.BibleReadingBookNumber}|{schedule.BibleReadingChapterNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingBookName}|{schedule.MusicEnabled}";
+            // NOTE: IsEnabled is intentionally excluded - enabling/disabling schedules should NOT refresh Android Auto
+            var signature = $"{schedule.Name}|{schedule.BibleReadingBookNumber}|{schedule.BibleReadingChapterNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingBookName}|{schedule.MusicEnabled}";
             signatures[schedule.Id] = signature;
         }
 

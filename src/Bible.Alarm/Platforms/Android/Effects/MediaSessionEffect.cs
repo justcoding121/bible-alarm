@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media;
@@ -39,9 +40,43 @@ public class MediaSessionEffect(
                 return Task.CompletedTask;
             }
 
-            var canPlayNext = playbackState.Value.CanPlayNext;
-            var canPlayPrevious = playbackState.Value.CanPlayPrevious;
-            mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
+            // When status is Loading (during track preparation and media buffering),
+            // check if we're starting fresh playback or changing tracks during active playback.
+            // - Starting fresh: preserve existing metadata to prevent Android Auto from navigating away
+            // - Changing tracks: clear old metadata to show new track's metadata when ready
+            if (action.Status == PlayStatus.Loading)
+            {
+                var currentState = playbackState.Value;
+                
+                // If we're already playing and have metadata, this is a track change - clear old metadata
+                // Otherwise, this is fresh playback start - preserve existing metadata to avoid navigation
+                if (currentState.IsPreparingOrPlaying && !string.IsNullOrEmpty(currentState.Title))
+                {
+                    // Track change during active playback - clear old metadata
+                    mediaSessionManager.SetBufferingNoControlsState();
+                    logger.Debug("Set MediaSession to buffering no-controls state (track change during playback)");
+                }
+                else
+                {
+                    // Fresh playback start - preserve existing metadata to prevent Android Auto navigation
+                    mediaSessionManager.SetBufferingStateOnly();
+                    logger.Debug("Set MediaSession to buffering state only (preserving metadata to prevent navigation)");
+                }
+            }
+            else
+            {
+                // For all other statuses (Playing, Paused, Stopped, etc.), use normal state with controls
+                var canPlayNext = playbackState.Value.CanPlayNext;
+                var canPlayPrevious = playbackState.Value.CanPlayPrevious;
+                mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
+            }
+
+            // Save metadata to Preferences when playback starts (status changes to Playing)
+            // This ensures we save as soon as user hits play and metadata is available
+            if (action.Status == PlayStatus.Playing)
+            {
+                SaveCurrentMetadataToPreferencesIfAvailable();
+            }
         }
         catch (Exception ex)
         {
@@ -49,6 +84,17 @@ public class MediaSessionEffect(
         }
 
         return Task.CompletedTask;
+    }
+
+    private void SaveCurrentMetadataToPreferencesIfAvailable()
+    {
+        var currentState = playbackState.Value;
+        LastPlayedMetadataHelper.SaveLastPlayedMetadata(
+            currentState.Title,
+            currentState.Artist,
+            currentState.Album,
+            currentState.ArtworkUrl,
+            currentState.CurrentScheduleId);
     }
 
     [EffectMethod]
@@ -69,11 +115,65 @@ public class MediaSessionEffect(
                 {
                     session.SetMetadata(metadata);
                 }
+
+                // Save metadata to Preferences when playback is active (Playing or Paused)
+                // This ensures we save the last played item for Android Auto screen restoration
+                var currentState = playbackState.Value;
+                if (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused)
+                {
+                    LastPlayedMetadataHelper.SaveLastPlayedMetadata(
+                        action.Title,
+                        action.Artist,
+                        action.Album,
+                        action.ArtworkUrl,
+                        currentState.CurrentScheduleId);
+                }
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error updating MediaSessionCompat metadata");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    [EffectMethod]
+    public Task HandleSetDefaultScheduleMetadata(SetDefaultScheduleMetadataAction action, FluxorDispatcher dispatcher)
+    {
+        try
+        {
+            // Only update MediaSession if playback is not active
+            // When playback is active, MediaSessionEffect.HandlePlaybackMetadataChanged handles updates
+            if (playbackState.Value.IsPreparingOrPlaying)
+            {
+                logger.Debug("HandleSetDefaultScheduleMetadata: Playback is active, skipping default schedule metadata update");
+                return Task.CompletedTask;
+            }
+
+            var session = GetValidatedSession("cannot update default schedule metadata");
+            if (session == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            logger.Debug("HandleSetDefaultScheduleMetadata: Updating MediaSession with default schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
+                action.ScheduleId, action.Title, action.Artist);
+
+            // Update metadata using MediaSessionManager
+            mediaSessionManager.UpdateMetadata(
+                action.Title,
+                action.Artist,
+                action.Album,
+                action.ScheduleId,
+                action.ArtworkUrl);
+
+            // Set to stopped state (idle, ready to play)
+            mediaSessionManager.UpdatePlaybackStateForStop();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error updating MediaSessionCompat with default schedule metadata");
         }
 
         return Task.CompletedTask;

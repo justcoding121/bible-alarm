@@ -154,9 +154,10 @@
                                 <Grid
                                     Padding="20,18"
                                     HorizontalOptions="Fill"
-                                    MinimumHeightRequest="56">
+                                    MinimumHeightRequest="56"
+                                    BackgroundColor="Transparent">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type music:SongBookSelectionViewModel}}, Path=SelectLanguageCommand}" CommandParameter="{Binding .}" />
+                                        <TapGestureRecognizer Tapped="OnLanguageItemTapped" />
                                     </Grid.GestureRecognizers>
                                     <Label
                                         FontSize="16"
@@ -211,6 +212,7 @@
             <Grid Grid.Row="0"
                   Grid.RowSpan="4"
                   IsVisible="{Binding IsBusy}"
+                  InputTransparent="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                   BackgroundColor="{DynamicResource BackgroundColor}"
                   ZIndex="999">
                 <Grid VerticalOptions="Center" HorizontalOptions="Center">

@@ -1,6 +1,10 @@
+#nullable enable
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Shared;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.Controls;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
@@ -12,38 +16,29 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
     public IListViewModel ViewModel => BindingContext as IListViewModel;
 
-    private bool isClearingSelection;
-
     public MusicLanguageModal()
     {
         InitializeComponent();
 
-        // Clear selection after SelectionChanged fires to allow command to execute first
-        LanguageCollectionView.SelectionChanged += (sender, e) =>
-        {
-            // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
-            if (isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
-            {
-                return;
-            }
-
-            // Clear selection after a short delay to allow command to execute
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(100);
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    if (!isDisposed && LanguageCollectionView != null)
-                    {
-                        isClearingSelection = true;
-                        LanguageCollectionView.SelectedItem = null;
-                        isClearingSelection = false;
-                    }
-                });
-            });
-        };
-
+        // SelectionChanged handler removed - using SelectionMode="None" with TapGestureRecognizer instead
         Appearing += OnAppearing;
+    }
+
+    private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Grid grid && grid.BindingContext is LanguageListViewItemModel languageItem)
+        {
+            if (ViewModel is SongBookSelectionViewModel songBookViewModel)
+            {
+                if (songBookViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
+                {
+                    if (asyncCommand.CanExecute(languageItem))
+                    {
+                        await asyncCommand.ExecuteAsync(languageItem);
+                    }
+                }
+            }
+        }
     }
 
     private async void OnAppearing(object sender, EventArgs e)

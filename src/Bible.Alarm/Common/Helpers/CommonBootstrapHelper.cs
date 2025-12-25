@@ -13,6 +13,7 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
+using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
@@ -213,6 +214,13 @@ public static class CommonBootstrapHelper
                 languagesDict);
 
             await DispatchInitializeAction(services.Dispatcher, initialSchedules);
+
+#if ANDROID
+            // Dispatch SetCarPlayScreenAction to fetch and set default schedule metadata for Android Auto
+            // This will trigger the effect to fetch metadata and update MediaSession
+            services.Dispatcher.Dispatch(new SetCarPlayScreenAction());
+            Log.Logger.Debug("SetCarPlayScreenAction dispatched after bootstrap completion");
+#endif
         }
         catch (Exception ex)
         {

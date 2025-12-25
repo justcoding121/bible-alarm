@@ -76,9 +76,10 @@
                                     <Grid
                                         Padding="20,18"
                                         ColumnSpacing="12"
-                                        MinimumHeightRequest="56">
+                                        MinimumHeightRequest="56"
+                                        BackgroundColor="Transparent">
                                         <Grid.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type music:TrackSelectionViewModel}}, Path=SetTrackCommand}" CommandParameter="{Binding .}" />
+                                            <TapGestureRecognizer Tapped="OnTrackItemTapped" />
                                         </Grid.GestureRecognizers>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />

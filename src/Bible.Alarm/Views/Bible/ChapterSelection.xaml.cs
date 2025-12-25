@@ -1,5 +1,7 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.Controls;
 using Serilog;
 
 namespace Bible.Alarm.Views.Bible;
@@ -76,6 +78,20 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
             isDisposed = true;
+        }
+    }
+
+    private async void OnChapterItemTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Grid grid && grid.BindingContext is BibleChapterListViewItemModel chapterItem)
+        {
+            if (ViewModel != null && ViewModel.SetChapterCommand is IAsyncRelayCommand<BibleChapterListViewItemModel> asyncCommand)
+            {
+                if (asyncCommand.CanExecute(chapterItem))
+                {
+                    await asyncCommand.ExecuteAsync(chapterItem);
+                }
+            }
         }
     }
 }

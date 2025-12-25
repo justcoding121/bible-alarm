@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
@@ -56,7 +57,20 @@ public sealed class DefaultScheduleService(
         }
 
         // Get track metadata for the schedule
-        return await GetTrackMetadataForScheduleAsync(scheduleId.Value);
+        var metadata = await GetTrackMetadataForScheduleAsync(scheduleId.Value);
+
+        // Save metadata to Preferences before returning (all platforms)
+        // This ensures Preferences always has the latest default schedule metadata
+        LastPlayedMetadataHelper.SaveLastPlayedMetadata(
+            metadata.Title,
+            metadata.Artist,
+            metadata.Album,
+            metadata.ArtworkUrl,
+            metadata.ScheduleId > 0 ? metadata.ScheduleId : null);
+        logger.Debug("Saved default schedule metadata to Preferences - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}",
+            metadata.Title, metadata.Artist, metadata.ScheduleId);
+
+        return metadata;
     }
 
     private async Task<ScheduleTrackMetadata> GetTrackMetadataForScheduleAsync(int scheduleId)
@@ -76,20 +90,21 @@ public sealed class DefaultScheduleService(
         // Use DisplayMetadataService to get full metadata (same as AudioPlayer does)
         var metadata = await displayMetadataService.GetDisplayMetadataAsync(audioPlayerTrack);
 
-        // Save artwork bytes to file and create ArtworkUrl (same as AudioPlayer.SendMetadataMessage does)
+        // Save artwork bytes to file and create ArtworkUrl
+        // Uses different filename than regular track playback to avoid conflicts
         string? artworkUrl = metadata.ArtworkUrl;
         if (metadata.ArtworkBytes != null && metadata.ArtworkBytes.Length > 0 && string.IsNullOrEmpty(artworkUrl))
         {
             try
             {
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
+                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "default_schedule_artwork.jpg");
                 await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes);
                 artworkUrl = artworkPath;
-                logger.Debug("Saved artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);
+                logger.Debug("Saved default schedule artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to save artwork to file");
+                logger.Warning(ex, "Failed to save default schedule artwork to file");
             }
         }
 
@@ -142,6 +157,23 @@ public sealed class DefaultScheduleService(
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it
+    }
+
+    public bool ValidateScheduleIdExists(int scheduleId)
+    {
+        var schedules = applicationState.Value.Schedules;
+        return schedules?.Any(s => s.Id == scheduleId) ?? false;
+    }
+
+    public int? GetFirstScheduleId()
+    {
+        var schedules = applicationState.Value.Schedules;
+        if (schedules != null && schedules.Count > 0)
+        {
+            return schedules.First().Id;
+        }
+
+        return null;
     }
 }
 

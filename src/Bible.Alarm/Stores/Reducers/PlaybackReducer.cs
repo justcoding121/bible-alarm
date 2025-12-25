@@ -21,7 +21,12 @@ public static class PlaybackReducer
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
             // Clear error when starting new playback
-            errorMessage: null);
+            errorMessage: null,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
     }
 
     [ReducerMethod]
@@ -38,7 +43,12 @@ public static class PlaybackReducer
             album: null,
             artworkUrl: null,
             duration: TimeSpan.Zero,
-            errorMessage: null);
+            errorMessage: null,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
     }
 
     [ReducerMethod]
@@ -55,7 +65,12 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
-            errorMessage: state.ErrorMessage);
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
     }
 
     [ReducerMethod]
@@ -89,7 +104,12 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
-            errorMessage: state.ErrorMessage);
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
     }
 
     [ReducerMethod]
@@ -106,7 +126,12 @@ public static class PlaybackReducer
             album: action.Album,
             artworkUrl: action.ArtworkUrl,
             duration: state.Duration,
-            errorMessage: state.ErrorMessage);
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
     }
 
     [ReducerMethod]
@@ -123,7 +148,12 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: action.Duration,
-            errorMessage: state.ErrorMessage);
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
     }
 
     [ReducerMethod]
@@ -141,7 +171,34 @@ public static class PlaybackReducer
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
             duration: state.Duration,
-            errorMessage: action.ErrorMessage);
+            errorMessage: action.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnSetDefaultScheduleMetadata(PlaybackState state, SetDefaultScheduleMetadataAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            duration: state.Duration,
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: action.ScheduleId,
+            defaultScheduleTitle: action.Title,
+            defaultScheduleArtist: action.Artist,
+            defaultScheduleAlbum: action.Album,
+            defaultScheduleArtworkUrl: action.ArtworkUrl);
     }
 }
 

@@ -39,6 +39,17 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     public override async void OnReceive(Context context, Intent intent)
     {
+        // Create MediaSession as the very first thing - even before MAUI services are registered
+        // This ensures MediaSession is available immediately on process start
+        try
+        {
+            Platforms.Android.Services.AndroidAuto.AndroidAutoMediaSessionHelper.Create();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "AlarmRingerReceiver.OnReceive: failed to create MediaSession");
+        }
+
         var pendingIntent = GoAsync();
 
         try

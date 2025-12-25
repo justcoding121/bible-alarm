@@ -3,11 +3,14 @@ using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
+using Application = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -47,35 +50,30 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         }
     }
 
-    private bool ValidateScheduleIdExists(int scheduleId)
-    {
-        var schedules = ApplicationState.Value.Schedules;
-        return schedules?.Any(s => s.Id == scheduleId) ?? false;
-    }
+    private IDefaultScheduleService? defaultScheduleService;
 
-    private int? GetFirstScheduleId()
+    private IDefaultScheduleService DefaultScheduleService
     {
-        var schedules = ApplicationState.Value.Schedules;
-        if (schedules != null && schedules.Count > 0)
+        get
         {
-            return schedules.First().Id;
+            if (defaultScheduleService == null)
+            {
+                defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
+            }
+            return defaultScheduleService ?? throw new InvalidOperationException("DefaultScheduleService not available");
         }
-
-        return null;
     }
 
     public override void OnPlay()
     {
         logger.Information("MediaSessionCallback.OnPlay() called from Android Auto");
+        
         ExecuteAsyncOperation(HandlePlayAsync);
         base.OnPlay();
     }
 
     private async Task HandlePlayAsync()
     {
-        // Wait for bootstrap to complete before accessing schedules/database
-        await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
-
         var playbackStateValue = PlaybackState.Value;
 
         // If playback is stopped, get scheduleId from metadata or use first schedule
@@ -104,7 +102,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         if (scheduleId.HasValue)
         {
             // Validate scheduleId exists in state
-            if (ValidateScheduleIdExists(scheduleId.Value))
+            if (DefaultScheduleService.ValidateScheduleIdExists(scheduleId.Value))
             {
                 return scheduleId;
             }
@@ -113,7 +111,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         }
 
         // Get first schedule from state
-        return GetFirstScheduleId();
+        return DefaultScheduleService.GetFirstScheduleId();
     }
 
     private int? GetScheduleIdFromMetadata()
@@ -161,6 +159,18 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             {
                 try
                 {
+                    // Always wait for bootstrap to complete before executing the operation
+                    // Check if bootstrap is complete first - if not, set buffering state
+                    if (!BootstrapHelper.IsBootstrapCompleted())
+                    {
+                        // Set buffering state to show immediate feedback while waiting for bootstrap
+                        SetBufferingStateImmediately();
+                    }
+
+                    // Wait for bootstrap to complete (returns immediately if already complete)
+                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
+
+                    // Execute the callback-specific operation after bootstrap is complete
                     await asyncOperation();
                 }
                 catch (Exception ex)
@@ -199,9 +209,6 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
     private async Task HandlePlayFromMediaIdAsync(int scheduleId)
     {
-        // Wait for bootstrap to complete before accessing schedules/database
-        await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
-
         var scheduleIdToPlay = GetValidScheduleId(scheduleId);
         if (scheduleIdToPlay <= 0)
         {
@@ -216,7 +223,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     private int GetValidScheduleId(int scheduleId)
     {
         // Validate scheduleId exists in state
-        if (scheduleId > 0 && ValidateScheduleIdExists(scheduleId))
+        if (scheduleId > 0 && DefaultScheduleService.ValidateScheduleIdExists(scheduleId))
         {
             return scheduleId;
         }
@@ -227,7 +234,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         }
 
         // If scheduleId is invalid or not found, use first schedule from state
-        var firstScheduleId = GetFirstScheduleId();
+        var firstScheduleId = DefaultScheduleService.GetFirstScheduleId();
         if (firstScheduleId.HasValue)
         {
             logger.Debug("OnPlayFromMediaId: Using first schedule from state: {ScheduleId}", firstScheduleId);
@@ -236,6 +243,31 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
         logger.Warning("OnPlayFromMediaId: No schedules available in state");
         return 0;
+    }
+
+    /// <summary>
+    /// Immediately sets MediaSession playback state to buffering when bootstrap is not complete.
+    /// Only updates the progress bar to show buffering animation, preserving metadata, controls, and all other state.
+    /// Called before waiting for bootstrap to provide immediate feedback while bootstrap is running.
+    /// The normal playback flow will handle state changes through MediaSessionEffect when
+    /// PlayStatus.Loading is dispatched after bootstrap completes.
+    /// Uses AndroidAutoPlayScreenHelper directly without service provider dependency.
+    /// </summary>
+    private void SetBufferingStateImmediately()
+    {
+        try
+        {
+            // Get MediaSession directly from the static helper (no service provider needed)
+            var mediaSession = AndroidAutoMediaSessionHelper.Create();
+            // Only update playback state to buffering, preserving everything else (metadata, controls, etc.)
+            AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
+            
+            logger.Debug("Set MediaSession playback state to buffering (bootstrap not complete, preserving metadata and controls)");
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to set buffering state immediately");
+        }
     }
 }
 

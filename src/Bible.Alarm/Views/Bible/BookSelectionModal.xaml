@@ -102,9 +102,10 @@
                                 <Grid
                                     Padding="20,18"
                                     ColumnSpacing="12"
-                                    MinimumHeightRequest="56">
+                                    MinimumHeightRequest="56"
+                                    BackgroundColor="Transparent">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type bible:BookSelectionViewModel}}, Path=ChapterSelectionCommand}" CommandParameter="{Binding .}" />
+                                        <TapGestureRecognizer Tapped="OnBookItemTapped" />
                                     </Grid.GestureRecognizers>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />

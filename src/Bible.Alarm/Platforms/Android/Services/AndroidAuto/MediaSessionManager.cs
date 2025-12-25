@@ -22,7 +22,6 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 public sealed class MediaSessionManager
 {
     private MediaSessionCompat? mediaSession;
-    private readonly Lock @lock = new();
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
     private readonly IServiceProvider serviceProvider;
 
@@ -35,58 +34,20 @@ public sealed class MediaSessionManager
     /// <summary>
     /// Gets or creates the shared MediaSessionCompat instance.
     /// This is the single source of truth for media playback state across the entire app.
-    /// Starts in stopped/inactive state. The MediaSessionEffect will update it when playback status changes.
+    /// Uses AndroidAutoMediaSessionHelper to create the session with thread-safe locking.
+    /// Sets the callback after getting the session from the helper.
     /// </summary>
     public MediaSessionCompat GetOrCreate(bool isConnect = false)
     {
-        // Fast path: if already created, return it
+        // Get or create MediaSession from the global helper (thread-safe, prevents duplicates)
         if (mediaSession == null)
         {
-            // Double-checked locking pattern for thread safety
-            lock (@lock)
-            {
-                // Check again inside lock (another thread might have created it)
-                if (mediaSession == null)
-                {
-                    mediaSession = CreateMediaSession();
-                }
-            }
+            mediaSession = AndroidAutoMediaSessionHelper.Create();
+            // Set callback after getting the session (requires IServiceProvider)
+            SetMediaSessionCallback(mediaSession);
         }
 
         return mediaSession;
-    }
-
-    private MediaSessionCompat CreateMediaSession()
-    {
-        var context = GetApplicationContext();
-        var session = InitializeMediaSession(context);
-        SetMediaSessionCallback(session);
-        ApplyInitialLoadingState(session, context);
-        VerifySessionToken(session);
-
-        logger.Information("MediaSessionCompat created successfully. Initial state: Stopped, Active: True, SessionToken available: {HasToken}",
-            session.SessionToken != null);
-
-        return session;
-    }
-
-    private static Context GetApplicationContext() => Application.Context;
-
-    private static MediaSessionCompat InitializeMediaSession(Context context)
-    {
-        logger.Information("Creating shared MediaSessionCompat instance (2025 Standard)");
-
-        // 2025 NON-DEPRECATED CONSTRUCTOR: Only context and tag needed
-        // Note: Ensure your AndroidManifest.xml has a MediaButtonReceiver registered
-        // The system now automatically finds your MediaButtonReceiver via the <intent-filter> in AndroidManifest.xml
-        var session = new MediaSessionCompat(context, "BibleAlarmSession");
-
-        // REMOVED SetFlags: FlagHandlesMediaButtons and FlagHandlesTransportControls are now default behavior in 2025
-
-        // CRITICAL: Set Active = true for Android Auto to "see" the session
-        session.Active = true;
-
-        return session;
     }
 
     private void SetMediaSessionCallback(MediaSessionCompat session)
@@ -127,36 +88,6 @@ public sealed class MediaSessionManager
         }
     }
 
-    private void ApplyInitialLoadingState(MediaSessionCompat session, Context context)
-    {
-        // Start with stopped state — prevents auto-play on bind
-        // The effect will update this when it receives playback status changes.
-        //
-        // IMPORTANT for Android Auto UX:
-        // Do NOT start in Stopped/Paused if we are not ready to show the player UI yet.
-        // Start in a neutral, non-interactive state (STATE_NONE + actions=0).
-        //
-        // Immediately present a blank, non-interactive loading UI for Android Auto.
-        // This does not depend on MAUI bootstrap; it only needs the MediaSession itself.
-        try
-        {
-            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(session, context);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to apply Android Auto blank loading state");
-        }
-    }
-
-    private void VerifySessionToken(MediaSessionCompat session)
-    {
-        // Verify SessionToken is available
-        if (session.SessionToken == null)
-        {
-            logger.Error("MediaSessionCompat.SessionToken is null after creation - this should not happen");
-            throw new InvalidOperationException("MediaSessionCompat.SessionToken is null after creation");
-        }
-    }
 
 
     /// <summary>
@@ -165,17 +96,15 @@ public sealed class MediaSessionManager
     public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
     {
         var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
-        var builder = new PlaybackStateCompat.Builder();
+        var playbackState = AndroidAutoPlayScreenHelper.CreatePlaybackState(
+            state,
+            position,
+            playbackSpeed: 1.0f,
+            actions);
 
-        if (builder != null)
+        if (playbackState != null)
         {
-            builder.SetActions(actions);
-            builder.SetState(state, position, 1.0f, SystemClock.ElapsedRealtime());
-            var playbackState = builder.Build();
-            if (playbackState != null)
-            {
-                mediaSession?.SetPlaybackState(playbackState);
-            }
+            mediaSession?.SetPlaybackState(playbackState);
         }
 
         logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}, actions: {Actions}",
@@ -238,17 +167,14 @@ public sealed class MediaSessionManager
 
     private void UpdatePlaybackStateWithPosition(PlaybackStateCompat playbackState, long positionMs, long actions)
     {
-        var builder = new PlaybackStateCompat.Builder();
-        if (builder != null)
-        {
-            builder.SetActions(actions);
-            builder.SetState(playbackState.State, positionMs, 1.0f, SystemClock.ElapsedRealtime());
+        var playbackStateCompat = AndroidAutoPlayScreenHelper.CreatePlaybackStateFromExisting(
+            playbackState,
+            positionMs,
+            actions);
 
-            var playbackStateCompat = builder.Build();
-            if (playbackStateCompat != null)
-            {
-                mediaSession?.SetPlaybackState(playbackStateCompat);
-            }
+        if (playbackStateCompat != null)
+        {
+            mediaSession?.SetPlaybackState(playbackStateCompat);
         }
     }
 
@@ -345,16 +271,21 @@ public sealed class MediaSessionManager
 
     private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
     {
-        // Preserve existing artwork if present
-        Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-        if (existingArtwork != null)
+        // Always use new artworkUrl if provided (e.g., when switching from playback to default schedule)
+        // This ensures artwork is updated correctly when metadata changes
+        if (!string.IsNullOrEmpty(artworkUrl))
         {
-            builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-        }
-        else if (!string.IsNullOrEmpty(artworkUrl))
-        {
-            // Load artwork from URL if no existing artwork
+            // Load artwork from URL - this will replace any existing artwork
             LoadArtworkFromUrl(builder, artworkUrl);
+        }
+        else
+        {
+            // Only preserve existing artwork if no new artworkUrl is provided
+            Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+            if (existingArtwork != null)
+            {
+                builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+            }
         }
     }
 
@@ -405,10 +336,16 @@ public sealed class MediaSessionManager
     public void ClearMetadata() => mediaSession?.SetMetadata(null);
 
     /// <summary>
-    /// Sets a blank "loading" state for Android Auto:
+    /// Sets a buffering/ready state for Android Auto:
     /// - clears metadata (no title/artist/artwork)
-    /// - disables all transport controls (no tap/play while loading)
-    /// - sets playback state to None (neutral) so hosts don't show "Tap to Open" style affordances
+    /// - sets playback state to Buffering to indicate player is initializing
+    /// - allows Play action to show readiness
+    /// - follows standard Media Resumption patterns (like YouTube Music) to avoid blank screens
+    /// 
+    /// WARNING: This method should ONLY be called before bootstrap completes (during process initialization).
+    /// After bootstrap, DefaultScheduleService will set metadata via SetDefaultScheduleMetadataAction,
+    /// and calling this method would unnecessarily clear that metadata.
+    /// The blank loading state is automatically set by AndroidAutoMediaSessionHelper.Create() during initialization.
     /// </summary>
     public void SetBlankLoadingState()
     {
@@ -420,11 +357,11 @@ public sealed class MediaSessionManager
 
         try
         {
-            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, Application.Context);
+            AndroidAutoPlayScreenHelper.ApplyBlankLoadingState(mediaSession);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error setting blank loading state");
+            logger.Error(ex, "Error setting buffering state");
         }
     }
 
@@ -446,19 +383,36 @@ public sealed class MediaSessionManager
             // When switching schedules, Android Auto will otherwise keep showing the previous schedule's
             // title/artwork until the new track's metadata arrives. Force the UI into a neutral state
             // (no artwork, no text) during buffering - shows "Tap to play" message.
-            AndroidAutoLoadingUiHelper.ApplyBlankLoadingState(mediaSession, Application.Context);
-
-            // Disable all controls while buffering so AA doesn't show tappable UI.
-            var builder = new PlaybackStateCompat.Builder()
-                ?.SetActions(0)
-                ?.SetState(PlaybackStateCompat.StateBuffering, 0, 0.0f, SystemClock.ElapsedRealtime());
-
-            mediaSession?.SetPlaybackState(builder?.Build());
+            AndroidAutoPlayScreenHelper.SetBufferingNoControlsState(mediaSession);
             SetActive(false);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error setting buffering no-controls state");
+        }
+    }
+
+    /// <summary>
+    /// Sets buffering state while preserving existing metadata and controls.
+    /// Used when starting fresh playback from Android Auto to avoid navigation away from Now Playing screen.
+    /// Only updates the playback state to buffering, preserving everything else.
+    /// </summary>
+    public void SetBufferingStateOnly()
+    {
+        if (mediaSession == null)
+        {
+            logger.Warning("MediaSessionCompat is null, cannot set buffering state. Call GetOrCreate() first.");
+            return;
+        }
+
+        try
+        {
+            AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
+            logger.Debug("Set MediaSession to buffering state only (preserving metadata and controls)");
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error setting buffering state only");
         }
     }
 
@@ -474,16 +428,7 @@ public sealed class MediaSessionManager
             return;
         }
 
-        var builder = new PlaybackStateCompat.Builder()
-            ?.SetActions(PlaybackStateCompat.ActionPlay) // Only allow Play action when stopped
-            ?.SetState(
-                PlaybackStateCompat.StateStopped,
-                0, // Playback position (0 when stopped)
-                1.0f, // Playback speed (1.0f is standard)
-                SystemClock.ElapsedRealtime() // Elapsed time since boot - required timestamp
-            );
-
-        mediaSession?.SetPlaybackState(builder?.Build());
+        AndroidAutoPlayScreenHelper.SetStoppedState(mediaSession);
     }
 
     /// <summary>
@@ -510,12 +455,15 @@ public sealed class MediaSessionManager
 
         if (status is PlayStatus.Stopped or PlayStatus.Ended)
         {
-            // When stopped/ended, set metadata for next schedule instead of clearing
+            // When stopped/ended, update playback state to stopped
+            // Metadata for next schedule is handled by state-based approach:
+            // PlaybackService.ResetAsync() dispatches SetCarPlayScreenAction
+            // which triggers DefaultCarScreenEffect -> SetDefaultScheduleMetadataAction
+            // which is handled by MediaSessionEffect.HandleSetDefaultScheduleMetadata()
             UpdatePlaybackStateForStop();
-            SetNextScheduleMetadata();
             SetActive(false);
             // Note: Audio focus is released globally by AudioFocusEffect when playback stops
-            logger.Information("MediaSessionCompat set to stopped/inactive - Android Auto shows next schedule metadata");
+            logger.Information("MediaSessionCompat set to stopped/inactive - next schedule metadata will be updated via state");
         }
         else
         {
@@ -533,111 +481,6 @@ public sealed class MediaSessionManager
         }
     }
 
-    /// <summary>
-    /// Sets metadata for the next schedule track to be played.
-    /// Called when playback stops or ends to show the next available schedule in Android Auto.
-    /// Preserves existing artwork if present.
-    /// </summary>
-    private void SetNextScheduleMetadata()
-    {
-        try
-        {
-            var defaultScheduleService = serviceProvider.GetRequiredService<IDefaultScheduleService>();
-            var metadataTask = defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
-
-            // Fire and forget - don't block the callback thread
-            _ = Task.Run(async () => await SetNextScheduleMetadataAsync(metadataTask));
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error getting default schedule service for next schedule metadata");
-            // Fallback to clearing metadata if there's an error
-            ClearMetadata();
-        }
-    }
-
-    private async Task SetNextScheduleMetadataAsync(Task<ScheduleTrackMetadata> metadataTask)
-    {
-        try
-        {
-            var metadata = await metadataTask;
-
-            // Update metadata on main thread
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (ShouldSkipMetadataUpdate(metadata))
-                {
-                    return;
-                }
-
-                var existingArtwork = GetExistingArtwork();
-                var metadataBuilder = BuildNextScheduleMetadata(metadata, existingArtwork);
-                mediaSession?.SetMetadata(metadataBuilder?.Build());
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error setting next schedule metadata");
-            // Fallback to clearing metadata if there's an error
-            ClearMetadata();
-        }
-    }
-
-    private bool ShouldSkipMetadataUpdate(ScheduleTrackMetadata metadata)
-    {
-        // Check if playback is currently active - if so, don't overwrite current schedule metadata
-        var playbackState = mediaSession?.Controller?.PlaybackState;
-        var isPlaying = playbackState?.State is PlaybackStateCompat.StatePlaying or
-                       PlaybackStateCompat.StateBuffering or
-                       PlaybackStateCompat.StatePaused;
-
-        if (isPlaying)
-        {
-            return true;
-        }
-
-        // Check if the current metadata's scheduleId matches the next schedule's ID
-        // If they match, we're already showing the correct metadata
-        var currentMediaId = mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-        if (!string.IsNullOrEmpty(currentMediaId) && currentMediaId == metadata.ScheduleId.ToString())
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private Bitmap? GetExistingArtwork()
-    {
-        // Preserve existing artwork if present
-        if (mediaSession?.Controller?.Metadata != null)
-        {
-            return mediaSession.Controller.Metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-        }
-        return null;
-    }
-
-    private MediaMetadataCompat.Builder? BuildNextScheduleMetadata(ScheduleTrackMetadata metadata, Bitmap? existingArtwork)
-    {
-        // Set mediaId to scheduleId for OnPlayFromMediaId
-        var metadataBuilder = new MediaMetadataCompat.Builder()
-            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, metadata.Title)
-            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, metadata.Artist)
-            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, metadata.Album ?? "")
-            ?.PutString(MediaMetadataCompat.MetadataKeyMediaId, metadata.ScheduleId.ToString());
-
-        // Preserve existing artwork if present, otherwise load from URL
-        if (existingArtwork != null)
-        {
-            metadataBuilder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-        }
-        else if (!string.IsNullOrEmpty(metadata.ArtworkUrl) && metadataBuilder != null)
-        {
-            LoadArtworkFromUrl(metadataBuilder, metadata.ArtworkUrl);
-        }
-
-        return metadataBuilder;
-    }
 
     internal void SetActive(bool active)
     {

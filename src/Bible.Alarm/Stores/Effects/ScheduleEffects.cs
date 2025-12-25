@@ -1,6 +1,7 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -10,6 +11,7 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Messaging;
@@ -667,6 +669,75 @@ public class ScheduleEffects(
         {
             Log.Error(ex, "ScheduleEffects: Error in HandleDeleteSchedule");
             dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Effect: Handle UpdateScheduleSuccessAction - Refresh Android Auto default schedule metadata when a schedule is updated.
+    /// This ensures the music icon and other metadata are updated in Android Auto when MusicEnabled or other properties change.
+    /// </summary>
+    [EffectMethod]
+    public Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Refreshing Android Auto metadata for schedule {ScheduleId}", action.Schedule?.Id);
+            
+            // Dispatch SetCarPlayScreenAction to refresh Android Auto metadata
+            // This will trigger DefaultCarScreenEffect to fetch metadata and update MediaSession
+            // MediaSessionEffect will check if playback is active and skip if needed
+            dispatcher.Dispatch(new SetCarPlayScreenAction());
+            
+            Log.Information("ScheduleEffects: HandleUpdateScheduleSuccess - Dispatched SetCarPlayScreenAction for schedule {ScheduleId}", action.Schedule?.Id);
+            
+            // Note: OnLoadChildren is already being called by Android Auto in response to NotifyChildrenChanged
+            // which is triggered when the change tracker detects a change in OnUpdateScheduleFromViewModel.
+            // No additional force refresh is needed.
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error in HandleUpdateScheduleSuccess");
+        }
+        
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Effect: Handle RemoveScheduleSuccessAction - Refresh last played metadata if deleted schedule was the last played item.
+    /// </summary>
+    [EffectMethod]
+    public async Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            // Check if the deleted schedule was the last played item saved in Preferences
+            var lastPlayedMetadata = LastPlayedMetadataHelper.GetLastPlayedMetadata();
+            if (lastPlayedMetadata.HasValue && lastPlayedMetadata.Value.ScheduleId == action.ScheduleId)
+            {
+                Log.Information("ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was the last played item, refreshing metadata", action.ScheduleId);
+
+                // Get default schedule service to refresh metadata
+                var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
+                if (defaultScheduleService != null)
+                {
+                    // GetNextScheduleTrackMetaDataAsync will automatically save to Preferences
+                    await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
+                    Log.Information("ScheduleEffects: HandleRemoveScheduleSuccess - Refreshed last played metadata after schedule deletion");
+                }
+                else
+                {
+                    Log.Warning("ScheduleEffects: HandleRemoveScheduleSuccess - IDefaultScheduleService not available, cannot refresh metadata");
+                }
+            }
+            else
+            {
+                Log.Debug("ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was not the last played item (LastPlayedScheduleId: {LastPlayedScheduleId}), no refresh needed",
+                    action.ScheduleId, lastPlayedMetadata?.ScheduleId?.ToString() ?? "null");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error in HandleRemoveScheduleSuccess");
         }
     }
 

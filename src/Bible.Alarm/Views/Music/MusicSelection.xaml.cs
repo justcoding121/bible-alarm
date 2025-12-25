@@ -1,5 +1,7 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.Controls;
 using Serilog;
 
 namespace Bible.Alarm.Views.Music;
@@ -9,7 +11,6 @@ public partial class MusicSelection : BaseContentPage, IDisposable
     private bool isDisposed;
     private readonly MusicSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
-    private bool isClearingSelection;
 
     public MusicSelectionViewModel ViewModel => BindingContext as MusicSelectionViewModel;
 
@@ -19,31 +20,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
         BindingContext = viewModel;
         this.viewModel = viewModel;
 
-        // Clear selection after SelectionChanged fires to allow command to execute first
-        musicTypesCollectionView.SelectionChanged += (sender, e) =>
-        {
-            // Don't clear if we're already clearing or if selection is being cleared (CurrentSelection is empty or null)
-            if (isClearingSelection || e?.CurrentSelection == null || e.CurrentSelection.Count == 0)
-            {
-                return;
-            }
-
-            // Clear selection after a short delay to allow command to execute
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(100);
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    if (!isDisposed && musicTypesCollectionView != null)
-                    {
-                        isClearingSelection = true;
-                        musicTypesCollectionView.SelectedItem = null;
-                        isClearingSelection = false;
-                    }
-                });
-            });
-        };
-
+        // SelectionChanged handler removed - using SelectionMode="None" with TapGestureRecognizer instead
         Appearing += OnAppearing;
     }
 
@@ -94,6 +71,20 @@ public partial class MusicSelection : BaseContentPage, IDisposable
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
             isDisposed = true;
+        }
+    }
+
+    private async void OnMusicTypeItemTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Grid grid && grid.BindingContext is MusicTypeListItemViewModel musicTypeItem)
+        {
+            if (ViewModel != null && ViewModel.SongBookSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
+            {
+                if (asyncCommand.CanExecute(musicTypeItem))
+                {
+                    await asyncCommand.ExecuteAsync(musicTypeItem);
+                }
+            }
         }
     }
 }

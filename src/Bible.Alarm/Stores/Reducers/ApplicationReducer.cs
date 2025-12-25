@@ -103,6 +103,10 @@ public static class ApplicationReducer
     /// <summary>
     /// Optimistic reducer: Handle UpdateScheduleFromViewModelAction - immediately update in store for fast UI feedback.
     /// Following Fluxor best practices: Optimistic updates for responsive UX.
+    /// 
+    /// IMPORTANT: When shouldSave is false, only update CurrentSchedule, not the Schedules collection.
+    /// This prevents Android Auto from detecting unsaved changes (like typing in the name field).
+    /// The Schedules collection should only be updated when changes are saved (shouldSave: true).
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnUpdateScheduleFromViewModel(ApplicationState state, UpdateScheduleFromViewModelAction action)
@@ -114,15 +118,24 @@ public static class ApplicationReducer
 
         LogUpdateStart(action);
 
-        var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
-        if (existingScheduleItem != null)
+        // Only update the Schedules collection if shouldSave is true (changes are being saved)
+        // When shouldSave is false, only update CurrentSchedule to avoid triggering Android Auto updates
+        if (action.ShouldSave)
         {
-            PreserveDisplayNamesFromExisting(action.Schedule, existingScheduleItem);
-            UpdateScheduleInCollection(state.Schedules, existingScheduleItem, action.Schedule);
+            var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
+            if (existingScheduleItem != null)
+            {
+                PreserveDisplayNamesFromExisting(action.Schedule, existingScheduleItem);
+                UpdateScheduleInCollection(state.Schedules, existingScheduleItem, action.Schedule);
+            }
+            else
+            {
+                state.Schedules.Add(action.Schedule.DeepClone());
+            }
         }
         else
         {
-            state.Schedules.Add(action.Schedule.DeepClone());
+            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - ShouldSave=false, only updating CurrentSchedule, not Schedules collection");
         }
 
         var updatedCurrentSchedule = UpdateCurrentScheduleIfMatches(state, action.Schedule);
@@ -197,9 +210,57 @@ public static class ApplicationReducer
 
     private static void UpdateScheduleInCollection(ObservableHashSet<ScheduleStateItem> schedules, ScheduleStateItem existingScheduleItem, ScheduleStateItem actionSchedule)
     {
-        // Remove old and add updated - deep clone to ensure independence from CurrentSchedule
-        schedules.Remove(existingScheduleItem);
-        schedules.Add(actionSchedule.DeepClone());
+        // Update the existing item in place to avoid Remove/Add sequence that causes Android Auto to remove the item
+        // Deep clone the source to ensure independence from CurrentSchedule
+        var sourceSchedule = actionSchedule.DeepClone();
+        CopyScheduleProperties(existingScheduleItem, sourceSchedule);
+    }
+
+    /// <summary>
+    /// Copies all properties from source to target ScheduleStateItem.
+    /// Updates the existing item in place to avoid collection change events that cause Android Auto issues.
+    /// </summary>
+    private static void CopyScheduleProperties(ScheduleStateItem target, ScheduleStateItem source)
+    {
+        // Schedule properties
+        target.Id = source.Id;
+        target.Name = source.Name;
+        target.IsEnabled = source.IsEnabled;
+        target.Hour = source.Hour;
+        target.Minute = source.Minute;
+        target.Second = source.Second;
+        target.DaysOfWeek = source.DaysOfWeek;
+        target.NotificationEnabled = source.NotificationEnabled;
+        target.MusicEnabled = source.MusicEnabled;
+        target.SnoozeMinutes = source.SnoozeMinutes;
+        target.NumberOfChaptersToRead = source.NumberOfChaptersToRead;
+        target.AlwaysPlayFromStart = source.AlwaysPlayFromStart;
+        target.CurrentPlayItem = source.CurrentPlayItem;
+        target.LatestAlarmNotificationId = source.LatestAlarmNotificationId;
+
+        // Bible Reading Schedule properties
+        target.BibleReadingScheduleId = source.BibleReadingScheduleId;
+        target.BibleReadingLanguageCode = source.BibleReadingLanguageCode;
+        target.BibleReadingPublicationCode = source.BibleReadingPublicationCode;
+        target.BibleReadingBookNumber = source.BibleReadingBookNumber;
+        target.BibleReadingChapterNumber = source.BibleReadingChapterNumber;
+        target.BibleReadingFinishedDuration = source.BibleReadingFinishedDuration;
+
+        // Music properties
+        target.MusicId = source.MusicId;
+        target.MusicType = source.MusicType;
+        target.MusicPublicationCode = source.MusicPublicationCode;
+        target.MusicLanguageCode = source.MusicLanguageCode;
+        target.MusicTrackNumber = source.MusicTrackNumber;
+        target.MusicRepeat = source.MusicRepeat;
+
+        // Display name properties
+        target.BibleReadingLanguageName = source.BibleReadingLanguageName;
+        target.BibleReadingPublicationName = source.BibleReadingPublicationName;
+        target.BibleReadingBookName = source.BibleReadingBookName;
+        target.MusicLanguageName = source.MusicLanguageName;
+        target.MusicPublicationName = source.MusicPublicationName;
+        target.MusicTrackName = source.MusicTrackName;
     }
 
     private static ScheduleStateItem? UpdateCurrentScheduleIfMatches(ApplicationState state, ScheduleStateItem actionSchedule)
@@ -589,21 +650,23 @@ public static class ApplicationReducer
         // This prevents the entire list from reloading when only one item is updated
         var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
 
-        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}'",
-            action.Schedule.Id, action.Schedule.BibleReadingLanguageName ?? "null", action.Schedule.BibleReadingBookName ?? "null");
+        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}', MusicEnabled: {MusicEnabled}",
+            action.Schedule.Id, action.Schedule.BibleReadingLanguageName ?? "null", action.Schedule.BibleReadingBookName ?? "null", action.Schedule.MusicEnabled);
 
         if (existingScheduleItem != null)
         {
-            Log.Debug("ApplicationReducer: Existing item BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}'",
-                existingScheduleItem.BibleReadingLanguageName ?? "null", existingScheduleItem.BibleReadingBookName ?? "null");
+            Log.Debug("ApplicationReducer: Existing item BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}', MusicEnabled: {MusicEnabled}",
+                existingScheduleItem.BibleReadingLanguageName ?? "null", existingScheduleItem.BibleReadingBookName ?? "null", existingScheduleItem.MusicEnabled);
 
-            // Always replace the existing item with the updated one from the action
-            // This ensures BibleReadingLanguageName and BibleReadingBookName are updated even if other properties haven't changed
-            // Deep clone to ensure independence from CurrentSchedule
-            state.Schedules.Remove(existingScheduleItem);
-            state.Schedules.Add(action.Schedule.DeepClone());
+            // Update the existing item in place to avoid Remove/Add sequence that causes Android Auto to remove the item
+            // This ensures the item reference stays the same and only property changes are detected
+            // Deep clone the source to ensure independence from CurrentSchedule
+            var sourceSchedule = action.Schedule.DeepClone();
+            var oldMusicEnabled = existingScheduleItem.MusicEnabled;
+            CopyScheduleProperties(existingScheduleItem, sourceSchedule);
 
-            Log.Debug("ApplicationReducer: Replaced schedule item in state");
+            Log.Debug("ApplicationReducer: Updated schedule item in place - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
+                oldMusicEnabled, existingScheduleItem.MusicEnabled, existingScheduleItem.Name, action.Schedule.Name);
         }
         else
         {

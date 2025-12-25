@@ -262,19 +262,20 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
     private void SendMetadataMessage(MetaData meta)
     {
         // If we have artwork bytes, save them to a file and use that path
+        // Uses different filename than default schedule artwork to avoid conflicts
         string? artworkUrl = meta.ArtworkUrl;
         if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0 && string.IsNullOrEmpty(artworkUrl))
         {
             try
             {
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
+                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "playing_track_artwork.jpg");
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 artworkUrl = artworkPath;
-                logger.Debug($"Saved artwork to {artworkPath}, size: {meta.ArtworkBytes.Length} bytes");
+                logger.Debug($"Saved playing track artwork to {artworkPath}, size: {meta.ArtworkBytes.Length} bytes");
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to save artwork to file");
+                logger.Warning(ex, "Failed to save playing track artwork to file");
             }
         }
 
@@ -333,7 +334,8 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
 
             if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
             {
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "current_artwork.jpg");
+                // Use same filename as SendMetadataMessage for consistency
+                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "playing_track_artwork.jpg");
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 mediaElement.MetadataArtworkUrl = artworkPath;
             }

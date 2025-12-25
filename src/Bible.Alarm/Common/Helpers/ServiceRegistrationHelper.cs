@@ -164,6 +164,9 @@ public static class ServiceRegistrationHelper
         // Register global audio focus listener and service as singletons
         services.AddSingleton<AudioFocusListener>();
         services.AddSingleton<AudioFocusService>();
+        // Register MediaSessionCompat using the global helper (thread-safe, prevents duplicates)
+        // This ensures MediaSession is created as early as possible, even in background processes
+        services.AddSingleton(sp => AndroidAutoMediaSessionHelper.Create());
         // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
         services.AddSingleton<MediaSessionManager>();
         services.AddTransient(sp =>

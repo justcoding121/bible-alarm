@@ -16,7 +16,12 @@ public sealed class PlaybackState(
     string? album = null,
     string? artworkUrl = null,
     TimeSpan duration = default,
-    string? errorMessage = null)
+    string? errorMessage = null,
+    int? defaultScheduleId = null,
+    string? defaultScheduleTitle = null,
+    string? defaultScheduleArtist = null,
+    string? defaultScheduleAlbum = null,
+    string? defaultScheduleArtworkUrl = null)
 {
     public int? CurrentScheduleId { get; init; } = currentScheduleId;
     public bool IsPreparingOrPlaying { get; init; } = isPreparingOrPlaying;
@@ -39,7 +44,14 @@ public sealed class PlaybackState(
     // Error message (shown when playback fails)
     public string? ErrorMessage { get; init; } = errorMessage;
 
-    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null)
+    // Default schedule metadata for Android Auto (when not playing)
+    public int? DefaultScheduleId { get; init; } = defaultScheduleId;
+    public string? DefaultScheduleTitle { get; init; } = defaultScheduleTitle;
+    public string? DefaultScheduleArtist { get; init; } = defaultScheduleArtist;
+    public string? DefaultScheduleAlbum { get; init; } = defaultScheduleAlbum;
+    public string? DefaultScheduleArtworkUrl { get; init; } = defaultScheduleArtworkUrl;
+
+    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null, null, null, null, null, null)
     {
     }
 }

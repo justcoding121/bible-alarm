@@ -54,22 +54,33 @@ public class CarAppService : AndroidX.Car.App.CarAppService
 
     public override void OnCreate()
     {
+        // Create MediaSession as the very first thing - even before MAUI services are registered
+        // This ensures MediaSession is available immediately on process start
+        try
+        {
+            AndroidAutoMediaSessionHelper.Create();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "CarAppService.OnCreate: failed to create MediaSession");
+        }
+
         base.OnCreate();
 
         logger.Information("CarAppService.OnCreate() called - Ensuring MauiApp is created");
 
         // Create the DI container immediately (fast) so ServiceProviderManager is available synchronously.
-        // Then publish a blank, non-interactive loading UI to Android Auto ASAP.
+        // MediaSession will be created here if needed (for SessionToken), but buffering state is set
+        // centrally after bootstrap completes in CommonBootstrapHelper.InitializeSchedules().
         try
         {
             MauiAppHolder.CreateAndStore();
             var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
             mediaSessionManager?.GetOrCreate(true);
-            mediaSessionManager?.SetBlankLoadingState();
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "CarAppService.OnCreate: failed to create MauiApp / initialize MediaSession loading state");
+            logger.Warning(ex, "CarAppService.OnCreate: failed to create MauiApp / initialize MediaSession");
         }
 
         // Ensure MauiApp is created and bootstrap is initialized (idempotent - safe to call multiple times)
@@ -81,12 +92,12 @@ public class CarAppService : AndroidX.Car.App.CarAppService
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialization started");
 
-                // Wait for bootstrap to complete and set initial metadata
+                // Wait for bootstrap to complete
                 // Use a longer timeout for OnCreate since it's not blocking the UI
+                // SetCarPlayScreenAction will be dispatched after bootstrap completes (handled by CommonBootstrapHelper)
                 try
                 {
                     await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
-                    await SetInitialScheduleMetadataAsync();
                 }
                 catch (Exception bootstrapEx)
                 {
@@ -101,55 +112,14 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         });
     }
 
-    private async Task SetInitialScheduleMetadataAsync()
-    {
-        try
-        {
-            logger.Debug("SetInitialScheduleMetadataAsync: Setting metadata to first schedule after bootstrap");
-
-            var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
-            if (defaultScheduleService == null)
-            {
-                logger.Warning("SetInitialScheduleMetadataAsync: IDefaultScheduleService not available");
-                return;
-            }
-
-            var metadata = await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
-
-            // Update metadata on main thread
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
-                if (mediaSessionManager == null)
-                {
-                    logger.Warning("SetInitialScheduleMetadataAsync: MediaSessionManager is null");
-                    return;
-                }
-
-                // Set metadata using MediaSessionManager
-                mediaSessionManager.UpdateMetadata(
-                    metadata.Title,
-                    metadata.Artist,
-                    metadata.Album,
-                    metadata.ScheduleId);
-
-                // Return to stopped state (idle) with normal actions once metadata is ready.
-                mediaSessionManager.UpdatePlaybackStateForStop();
-
-                logger.Information("SetInitialScheduleMetadataAsync: Set metadata to first schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
-                    metadata.ScheduleId, metadata.Title, metadata.Artist);
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error setting initial schedule metadata in CarAppService");
-        }
-    }
 
     public override HostValidator? CreateHostValidator()
     {
         logger.Information("✅ CarAppService.CreateHostValidator() called");
-        return HostValidator.AllowAllHostsValidator; // TODO: Replace with proper host validation in production
+        // Note: HostValidator is sealed in AndroidX Car App Library, so we can't create a custom implementation.
+        // Host validation will be handled in OnCreateSession by checking the host package name.
+        // Return null to use default validation (allows all hosts), then filter in OnCreateSession.
+        return null;
     }
 
     public override Session OnCreateSession()
@@ -631,27 +601,13 @@ public class MainCarScreen : Screen, IDisposable
 
         try
         {
-            SetBufferingStateOnClick();
+            // SetBufferingNoControlsState is now handled in MediaSessionEffect.HandlePlaybackStatusChanged
+            // when PlayStatus.Loading is dispatched (which happens in PrepareAndPlayAsync)
             StartPlaybackAsync(scheduleId);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error handling schedule click for schedule {ScheduleId}", scheduleId);
-        }
-    }
-
-    private void SetBufferingStateOnClick()
-    {
-        try
-        {
-            // Immediately update MediaSession to a non-interactive Buffering state.
-            // This prevents Android Auto from showing tappable controls / "Getting your selection" while we start playback.
-            mediaSessionManager.SetBufferingNoControlsState();
-            logger.Debug("Set MediaSession to buffering no-controls state immediately on click");
-        }
-        catch (Exception mediaEx)
-        {
-            logger.Warning(mediaEx, "Failed to update MediaSession state on click - continuing anyway");
         }
     }
 

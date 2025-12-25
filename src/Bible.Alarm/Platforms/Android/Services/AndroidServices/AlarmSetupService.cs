@@ -42,6 +42,17 @@ public class AlarmSetupService : Service, IDisposable
 
     public override void OnCreate()
     {
+        // Create MediaSession as the very first thing - even before MAUI services are registered
+        // This ensures MediaSession is available immediately on process start
+        try
+        {
+            Platforms.Android.Services.AndroidAuto.AndroidAutoMediaSessionHelper.Create();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "AlarmSetupService.OnCreate: failed to create MediaSession");
+        }
+
         base.OnCreate();
         IsRunning = true;
     }
@@ -50,6 +61,17 @@ public class AlarmSetupService : Service, IDisposable
     public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags,
         int startId)
     {
+        // Create MediaSession as the very first thing - even before MAUI services are registered
+        // This ensures MediaSession is available immediately on process start
+        try
+        {
+            Platforms.Android.Services.AndroidAuto.AndroidAutoMediaSessionHelper.Create();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "AlarmSetupService.OnStartCommand: failed to create MediaSession");
+        }
+
         // Ensure MauiApp is created exactly once (thread-safe)
         // This is a background service entry point
         MauiAppHolder.CreateAndStore();
