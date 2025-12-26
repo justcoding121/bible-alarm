@@ -21,7 +21,8 @@ public sealed class PlaybackState(
     string? defaultScheduleTitle = null,
     string? defaultScheduleArtist = null,
     string? defaultScheduleAlbum = null,
-    string? defaultScheduleArtworkUrl = null)
+    string? defaultScheduleArtworkUrl = null,
+    bool isAutoAdvancing = false)
 {
     public int? CurrentScheduleId { get; init; } = currentScheduleId;
     public bool IsPreparingOrPlaying { get; init; } = isPreparingOrPlaying;
@@ -51,7 +52,10 @@ public sealed class PlaybackState(
     public string? DefaultScheduleAlbum { get; init; } = defaultScheduleAlbum;
     public string? DefaultScheduleArtworkUrl { get; init; } = defaultScheduleArtworkUrl;
 
-    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null, null, null, null, null, null)
+    // Auto-advancing flag: true when transitioning between tracks automatically (not user-initiated pause)
+    public bool IsAutoAdvancing { get; init; } = isAutoAdvancing;
+
+    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null, null, null, null, null, null, false)
     {
     }
 }

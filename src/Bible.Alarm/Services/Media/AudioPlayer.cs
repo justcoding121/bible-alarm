@@ -31,6 +31,12 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
     private TimeSpan lastDuration = TimeSpan.Zero;
     private bool isSeeking;
     private PlayStatus statusBeforeSeek = PlayStatus.Stopped;
+    // Track when we're transitioning from Loading to Playing to ignore intermediate Paused states
+    private bool isTransitioningFromLoadingToPlaying;
+    private DateTime? lastLoadingToPlayingTransitionTime;
+    // Throttle position updates to 500ms to reduce update frequency
+    private DateTime? lastPositionUpdateTime;
+    private const int PositionUpdateIntervalMs = 500;
     // MediaElement instance - populated in PrepareAsync
     private MediaElement? mediaElement;
 
@@ -300,7 +306,23 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
 
     private void SendPositionUpdate()
     {
-        // Send position update via MVVM messaging (high-frequency updates)
+        // Throttle position updates to 500ms to reduce update frequency
+        // MediaElement's PositionChanged event fires every ~200ms, but we only need updates every 500ms
+        var now = DateTime.UtcNow;
+        if (lastPositionUpdateTime.HasValue)
+        {
+            var timeSinceLastUpdate = (now - lastPositionUpdateTime.Value).TotalMilliseconds;
+            if (timeSinceLastUpdate < PositionUpdateIntervalMs)
+            {
+                // Skip this update - not enough time has passed
+                return;
+            }
+        }
+
+        // Update the last update time
+        lastPositionUpdateTime = now;
+
+        // Send position update via MVVM messaging (throttled to 500ms)
         WeakReferenceMessenger.Default.Send(new PlaybackPositionChangedMessage
         {
             CurrentPosition = CurrentPosition
@@ -384,6 +406,52 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
             return;
         }
 
+        // Ignore intermediate Paused states when transitioning from Loading/Buffering to Playing
+        // MediaElement briefly goes through Paused state when transitioning from Buffering to Playing,
+        // which causes rapid button flicker in Android Auto. We'll ignore Paused if we were just in Loading
+        // and mark that we're in a transition. If Playing follows within 200ms, we'll clear the flag.
+        // If we get another Paused after the window, it's a real pause.
+        if (e.NewState == MediaElementState.Paused)
+        {
+            if (Status == PlayStatus.Loading)
+            {
+                // First Paused state after Loading - mark transition and ignore it
+                isTransitioningFromLoadingToPlaying = true;
+                lastLoadingToPlayingTransitionTime = DateTime.UtcNow;
+                logger.Debug("Ignoring intermediate Paused state during Loading->Playing transition (preventing button flicker)");
+                return;
+            }
+            else if (isTransitioningFromLoadingToPlaying)
+            {
+                // We're in a transition and got another Paused state
+                var timeSinceTransition = lastLoadingToPlayingTransitionTime.HasValue
+                    ? (DateTime.UtcNow - lastLoadingToPlayingTransitionTime.Value).TotalMilliseconds
+                    : double.MaxValue;
+                
+                // If more than 200ms has passed since the transition started, treat this as a real pause
+                if (timeSinceTransition > 200)
+                {
+                    isTransitioningFromLoadingToPlaying = false;
+                    lastLoadingToPlayingTransitionTime = null;
+                    logger.Debug("Paused state received after transition window ({Time}ms), treating as real pause", timeSinceTransition);
+                    // Continue to process this Paused state normally
+                }
+                else
+                {
+                    logger.Debug("Ignoring Paused state during Loading->Playing transition ({Time}ms since transition start)", timeSinceTransition);
+                    return;
+                }
+            }
+        }
+
+        // If we're transitioning from Loading to Playing and we get a Playing state,
+        // clear the transition flag
+        if (e.NewState == MediaElementState.Playing && isTransitioningFromLoadingToPlaying)
+        {
+            isTransitioningFromLoadingToPlaying = false;
+            lastLoadingToPlayingTransitionTime = null;
+        }
+
         // On iOS, MediaElement can fire state change events even after Source is set to null
         // If Source is null, we should ignore state changes (except Stopped/None) to prevent stale status updates
         // Also, if Source is null, force status to Stopped regardless of the state change
@@ -438,9 +506,16 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
         SendPositionUpdate();
     }
 
-    private void SendStatusMessage() =>
+    private void SendStatusMessage()
+    {
         // Dispatch status change to Fluxor state
+        logger.Debug(
+            "[AudioPlayer] SendStatusMessage: Dispatching PlaybackStatusChangedAction - Status={Status}, CurrentPosition={CurrentPosition}ms, Duration={Duration}ms",
+            Status,
+            (long)(CurrentPosition?.TotalMilliseconds ?? 0),
+            (long)Duration.TotalMilliseconds);
         dispatcher.Dispatch(new PlaybackStatusChangedAction(Status));
+    }
 
     public Task PauseAsync() => MainThread.InvokeOnMainThreadAsync(() => mediaElement?.Pause());
 
@@ -501,6 +576,11 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
             currentTrack = null;
             mediaOpenedCompletionSource?.TrySetCanceled();
             mediaOpenedCompletionSource = null;
+            // Clear transition flag
+            isTransitioningFromLoadingToPlaying = false;
+            lastLoadingToPlayingTransitionTime = null;
+            // Clear position update throttling
+            lastPositionUpdateTime = null;
             SendStatusMessage();
 
 #if ANDROID

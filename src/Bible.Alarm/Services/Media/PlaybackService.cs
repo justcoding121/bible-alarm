@@ -120,8 +120,18 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             // This ensures the modal is visible when we show error messages or play fallback
             dispatcher.Dispatch(new PlaybackStartedAction(scheduleId));
 
+            // Set auto-advancing flag for initial play to prevent button flicker during preparation
+            // This keeps the pause button visible during Loading state transitions
+            logger.Information(
+                "[PlaybackService] PrepareAndPlayAsync: Dispatching SetAutoAdvancingAction(true) for initial play - ScheduleId={ScheduleId}",
+                scheduleId);
+            dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+
             // Immediately set loading/buffering status for any new schedule start (phone tap or Android Auto play).
             // This keeps UI/Android Auto from showing "idle" controls with empty metadata while we prepare tracks.
+            logger.Information(
+                "[PlaybackService] PrepareAndPlayAsync: Dispatching PlaybackStatusChangedAction(Loading) - ScheduleId={ScheduleId}",
+                scheduleId);
             dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Loading));
 
             // Create cancellation token source for preparation (can be cancelled when stop is called)
@@ -160,9 +170,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             currentTrackIndex = 0;
             manuallyVisitedTrackIndices.Clear();
 
+            // Dispatch navigation state immediately after setting currentTrackIndex
+            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
+            // This prevents the "prev button only" flicker on initial play
+            NotifyNavigationChanged();
+
             // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
             await PlayCurrentTrackAsync();
-            NotifyNavigationChanged();
         }
         catch (Exception ex)
         {
@@ -201,6 +215,12 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             progressSaveTimer?.Stop();
             await audioPlayer.PauseAsync();
+            // Clear auto-advancing flag when user manually pauses
+            logger.Information(
+                "[PlaybackService] PauseAsync: Dispatching SetAutoAdvancingAction(false) - ScheduleId={ScheduleId}, TrackIndex={TrackIndex}",
+                currentScheduleId,
+                currentTrackIndex);
+            dispatcher.Dispatch(new SetAutoAdvancingAction(false));
         }
     }
 
@@ -216,7 +236,19 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             progressSaveTimer?.Stop();
             await audioPlayer.StopAsync();
             await MarkCurrentTrackAsPlayedAsync();
+            // Set auto-advancing flag for smooth transition during manual navigation
+            logger.Information(
+                "[PlaybackService] PlayNextAsync: Dispatching SetAutoAdvancingAction(true) for manual next - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
+                currentScheduleId,
+                currentTrackIndex,
+                currentTrackIndex + 1);
+            dispatcher.Dispatch(new SetAutoAdvancingAction(true));
             currentTrackIndex++;
+
+            // Dispatch navigation state immediately after setting currentTrackIndex
+            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
+            // This prevents button flicker during track transitions
+            NotifyNavigationChanged();
 
             // If we've already manually visited this track, start from beginning
             // Otherwise, allow resume from saved position (for Bible tracks)
@@ -224,7 +256,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             manuallyVisitedTrackIndices.Add(currentTrackIndex);
 
             await PlayCurrentTrackAsync(startFromBeginning: startFromBeginning);
-            NotifyNavigationChanged();
         }
     }
 
@@ -241,12 +272,23 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             progressSaveTimer?.Stop();
             await audioPlayer.StopAsync();
             await MarkCurrentTrackAsPlayedAsync();
+            // Set auto-advancing flag for smooth transition during manual navigation
+            logger.Information(
+                "[PlaybackService] PlayPreviousAsync: Dispatching SetAutoAdvancingAction(true) for manual previous - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
+                currentScheduleId,
+                currentTrackIndex,
+                currentTrackIndex - 1);
+            dispatcher.Dispatch(new SetAutoAdvancingAction(true));
             currentTrackIndex--;
+
+            // Dispatch navigation state immediately after setting currentTrackIndex
+            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
+            // This prevents button flicker during track transitions
+            NotifyNavigationChanged();
 
             // Previous button always starts from beginning
             manuallyVisitedTrackIndices.Add(currentTrackIndex);
             await PlayCurrentTrackAsync(startFromBeginning: true);
-            NotifyNavigationChanged();
         }
         else if (currentTrackIndex == 0)
         {
@@ -611,6 +653,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             currentTrackIndex,
             audioPlayer.Status);
         StartProgressTimerIfBibleTrack();
+        
+        // Don't clear auto-advancing flag here - let the reducer handle it when status stabilizes to Playing
+        // This prevents rapid state changes from causing flicker
     }
 
     private void StartProgressTimerIfBibleTrack()
@@ -640,12 +685,26 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             // Mark track as finished - this advances Bible chapter to next chapter with position 0.00
             await MarkCurrentTrackAsFinishedAsync();
 
-            if (playlist is not null && currentTrackIndex < playlist.Count - 1)
-            {
-                currentTrackIndex++;
-                await PlayCurrentTrackAsync();
-                NotifyNavigationChanged();
-            }
+        if (playlist is not null && currentTrackIndex < playlist.Count - 1)
+        {
+            // Set auto-advancing flag before transitioning to next track
+            // This keeps the pause button visible during the transition
+            logger.Information(
+                "[PlaybackService] OnMediaEnded: Dispatching SetAutoAdvancingAction(true) for automatic next track - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
+                currentScheduleId,
+                currentTrackIndex,
+                currentTrackIndex + 1);
+            dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+            
+            currentTrackIndex++;
+            
+            // Dispatch navigation state immediately after setting currentTrackIndex
+            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
+            // This prevents button flicker during track transitions
+            NotifyNavigationChanged();
+            
+            await PlayCurrentTrackAsync();
+        }
             else
             {
                 // Last track ended - skip MarkCurrentTrackAsPlayedAsync in StopAsync
@@ -673,7 +732,21 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
             if (playlist is not null && currentTrackIndex < playlist.Count - 1)
             {
+                // Set auto-advancing flag before transitioning to next track
+                logger.Information(
+                    "[PlaybackService] OnMediaFailed: Dispatching SetAutoAdvancingAction(true) for automatic next track after failure - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
+                    currentScheduleId,
+                    currentTrackIndex,
+                    currentTrackIndex + 1);
+                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+                
                 currentTrackIndex++;
+                
+                // Dispatch navigation state immediately after setting currentTrackIndex
+                // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
+                // This prevents button flicker during track transitions
+                NotifyNavigationChanged();
+                
                 logger.Information("Attempting to play next track at index {NextTrackIndex}", currentTrackIndex);
                 await PlayCurrentTrackAsync();
             }

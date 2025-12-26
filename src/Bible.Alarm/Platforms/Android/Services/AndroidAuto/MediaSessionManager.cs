@@ -97,6 +97,18 @@ public sealed class MediaSessionManager
     public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
     {
         var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var stateName = GetStateName(state);
+        var actionsDescription = GetActionsDescription(actions);
+        
+        logger.Information(
+            "[AndroidAuto] UpdatePlaybackState: State={StateName} ({StateValue}), Position={Position}ms, Actions={Actions}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+            stateName,
+            state,
+            position,
+            actionsDescription,
+            canPlayNext,
+            canPlayPrevious);
+        
         var playbackState = AndroidAutoPlayScreenHelper.CreatePlaybackState(
             state,
             position,
@@ -106,10 +118,15 @@ public sealed class MediaSessionManager
         if (playbackState != null)
         {
             mediaSession?.SetPlaybackState(playbackState);
+            logger.Information(
+                "[AndroidAuto] MediaSessionCompat.SetPlaybackState called successfully - State={StateName}, ButtonState={ButtonState}",
+                stateName,
+                GetButtonStateFromActions(actions));
         }
-
-        logger.Debug("UpdatePlaybackState completed for state: {State}, position: {Position}, actions: {Actions}",
-            state, position, actions);
+        else
+        {
+            logger.Warning("[AndroidAuto] Failed to create PlaybackStateCompat - state update skipped");
+        }
     }
 
     private static long BuildPlaybackActions(bool canPlayNext, bool canPlayPrevious)
@@ -142,18 +159,43 @@ public sealed class MediaSessionManager
     {
         if (mediaSession == null)
         {
+            logger.Debug("[AndroidAuto] UpdatePlaybackPosition: MediaSession is null, skipping");
             return;
         }
 
         var playbackState = mediaSession.Controller?.PlaybackState;
-        if (playbackState == null || !IsPlaybackActive(playbackState))
+        if (playbackState == null)
         {
+            logger.Debug("[AndroidAuto] UpdatePlaybackPosition: PlaybackState is null, skipping");
+            return;
+        }
+
+        var currentStateName = GetStateName(playbackState.State);
+        if (!IsPlaybackActive(playbackState))
+        {
+            logger.Debug(
+                "[AndroidAuto] UpdatePlaybackPosition: Playback not active (State={StateName}), skipping position update - Position={Position}ms, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+                currentStateName,
+                (long)position.TotalMilliseconds,
+                canPlayNext,
+                canPlayPrevious);
             return;
         }
 
         var positionMs = (long)position.TotalMilliseconds;
         var durationMs = (long)duration.TotalMilliseconds;
         var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var actionsDescription = GetActionsDescription(actions);
+
+        logger.Information(
+            "[AndroidAuto] UpdatePlaybackPosition: Updating position - CurrentState={StateName}, Position={Position}ms, Duration={Duration}ms, Actions={Actions}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, ButtonState={ButtonState}",
+            currentStateName,
+            positionMs,
+            durationMs,
+            actionsDescription,
+            canPlayNext,
+            canPlayPrevious,
+            GetButtonStateFromActions(actions));
 
         UpdatePlaybackStateWithPosition(playbackState, positionMs, actions);
         UpdateMetadataDuration(durationMs);
@@ -168,6 +210,16 @@ public sealed class MediaSessionManager
 
     private void UpdatePlaybackStateWithPosition(PlaybackStateCompat playbackState, long positionMs, long actions)
     {
+        var stateName = GetStateName(playbackState.State);
+        var actionsDescription = GetActionsDescription(actions);
+        
+        logger.Information(
+            "[AndroidAuto] UpdatePlaybackStateWithPosition: Updating state with position - CurrentState={StateName}, NewPosition={Position}ms, Actions={Actions}, ButtonState={ButtonState}",
+            stateName,
+            positionMs,
+            actionsDescription,
+            GetButtonStateFromActions(actions));
+
         var playbackStateCompat = AndroidAutoPlayScreenHelper.CreatePlaybackStateFromExisting(
             playbackState,
             positionMs,
@@ -176,6 +228,15 @@ public sealed class MediaSessionManager
         if (playbackStateCompat != null)
         {
             mediaSession?.SetPlaybackState(playbackStateCompat);
+            logger.Information(
+                "[AndroidAuto] UpdatePlaybackStateWithPosition: MediaSessionCompat.SetPlaybackState called successfully - State={StateName}, Position={Position}ms, ButtonState={ButtonState}",
+                stateName,
+                positionMs,
+                GetButtonStateFromActions(actions));
+        }
+        else
+        {
+            logger.Warning("[AndroidAuto] UpdatePlaybackStateWithPosition: Failed to create PlaybackStateCompat - state update skipped");
         }
     }
 
@@ -361,12 +422,13 @@ public sealed class MediaSessionManager
 
         try
         {
+            logger.Information("[AndroidAuto] SetBufferingStateOnly: Setting MediaSession to buffering state (preserving metadata, no button state change)");
             AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
-            logger.Debug("Set MediaSession to buffering state only (preserving metadata and controls)");
+            logger.Information("[AndroidAuto] SetBufferingStateOnly: MediaSession set to buffering state successfully");
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error setting buffering state only");
+            logger.Error(ex, "[AndroidAuto] Error setting buffering state only");
         }
     }
 
@@ -392,7 +454,7 @@ public sealed class MediaSessionManager
     {
         if (mediaSession == null)
         {
-            logger.Warning("MediaSessionCompat is null, cannot set playback status. Call GetOrCreate() first.");
+            logger.Warning("[AndroidAuto] MediaSessionCompat is null, cannot set playback status. Call GetOrCreate() first.");
             return;
         }
 
@@ -406,6 +468,15 @@ public sealed class MediaSessionManager
             PlayStatus.Failed => PlaybackStateCompat.StateError,
             _ => PlaybackStateCompat.StateNone
         };
+
+        var stateName = GetStateName(state);
+        logger.Information(
+            "[AndroidAuto] SetPlaybackStatus: InputStatus={InputStatus}, MappedState={StateName} ({StateValue}), CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+            status,
+            stateName,
+            state,
+            canPlayNext,
+            canPlayPrevious);
 
         if (status is PlayStatus.Stopped or PlayStatus.Ended)
         {
@@ -442,10 +513,15 @@ public sealed class MediaSessionManager
     {
         if (mediaSession == null)
         {
-            logger.Warning("MediaSessionCompat is null, cannot set active state. Call GetOrCreate() first.");
+            logger.Warning("[AndroidAuto] MediaSessionCompat is null, cannot set active state. Call GetOrCreate() first.");
             return;
         }
+        var wasActive = mediaSession.Active;
         mediaSession.Active = active;
+        logger.Information(
+            "[AndroidAuto] SetActive: Changed from {PreviousActive} to {NewActive}",
+            wasActive,
+            active);
     }
 
 
@@ -459,6 +535,48 @@ public sealed class MediaSessionManager
         {
             return mediaSession?.SessionToken;
         }
+    }
+
+    private static string GetStateName(int state)
+    {
+        return state switch
+        {
+            PlaybackStateCompat.StateNone => "StateNone",
+            PlaybackStateCompat.StateStopped => "StateStopped",
+            PlaybackStateCompat.StatePaused => "StatePaused",
+            PlaybackStateCompat.StatePlaying => "StatePlaying",
+            PlaybackStateCompat.StateFastForwarding => "StateFastForwarding",
+            PlaybackStateCompat.StateRewinding => "StateRewinding",
+            PlaybackStateCompat.StateBuffering => "StateBuffering",
+            PlaybackStateCompat.StateError => "StateError",
+            PlaybackStateCompat.StateConnecting => "StateConnecting",
+            PlaybackStateCompat.StateSkippingToPrevious => "StateSkippingToPrevious",
+            PlaybackStateCompat.StateSkippingToNext => "StateSkippingToNext",
+            PlaybackStateCompat.StateSkippingToQueueItem => "StateSkippingToQueueItem",
+            _ => $"Unknown({state})"
+        };
+    }
+
+    private static string GetActionsDescription(long actions)
+    {
+        var actionList = new List<string>();
+        if ((actions & PlaybackStateCompat.ActionPlay) != 0) actionList.Add("Play");
+        if ((actions & PlaybackStateCompat.ActionPause) != 0) actionList.Add("Pause");
+        if ((actions & PlaybackStateCompat.ActionPlayPause) != 0) actionList.Add("PlayPause");
+        if ((actions & PlaybackStateCompat.ActionSkipToNext) != 0) actionList.Add("Next");
+        if ((actions & PlaybackStateCompat.ActionSkipToPrevious) != 0) actionList.Add("Previous");
+        if ((actions & PlaybackStateCompat.ActionPlayFromMediaId) != 0) actionList.Add("PlayFromMediaId");
+        return string.Join(", ", actionList.Count > 0 ? actionList : new[] { "None" });
+    }
+
+    private static string GetButtonStateFromActions(long actions)
+    {
+        var hasPlay = (actions & PlaybackStateCompat.ActionPlay) != 0;
+        var hasPause = (actions & PlaybackStateCompat.ActionPause) != 0;
+        
+        if (hasPause) return "PAUSE_BUTTON_VISIBLE";
+        if (hasPlay) return "PLAY_BUTTON_VISIBLE";
+        return "NO_BUTTON";
     }
 }
 

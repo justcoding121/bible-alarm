@@ -578,8 +578,23 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
     private void UpdateControlsFromState(PlaybackState state)
     {
-        NextEnabled = state.CanPlayNext;
-        PreviousEnabled = state.CanPlayPrevious;
+        // Only enable prev/next buttons when playback actually starts (Playing or Paused status)
+        // Don't show buttons during Loading/buffering or when not playing
+        // When showing default schedule metadata (not playing), buttons should be disabled
+        if (state.IsPreparingOrPlaying && (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
+        {
+            // During actual playback (Playing or Paused):
+            // - Next button: enabled only if not on last track
+            // - Previous button: always enabled (first track restarts current track, matching Android Auto behavior)
+            NextEnabled = state.CanPlayNext;
+            PreviousEnabled = true; // Always enable previous during playback (first track restarts current track)
+        }
+        else
+        {
+            // Not playing or still loading/buffering: disable both buttons (only play button should be available)
+            NextEnabled = false;
+            PreviousEnabled = false;
+        }
     }
 
     private void UpdateMetadataFromState(PlaybackState state, bool trackChanged)
@@ -609,7 +624,11 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
         ErrorMessage = state.ErrorMessage ?? "";
 
-        var isPlaying = state.Status == PlayStatus.Playing;
+        // Show pause button if playing OR if auto-advancing (smooth transition during initial play and track transitions)
+        // This prevents the play button from briefly appearing during Loading/buffering when auto-advancing
+        // Matches Android Auto behavior: pause button visible during Buffering state when auto-advancing
+        var isPlaying = state.Status == PlayStatus.Playing || 
+                        (state.IsAutoAdvancing && state.Status != PlayStatus.Paused);
         PlayVisible = !isPlaying;
         PauseVisible = isPlaying;
 

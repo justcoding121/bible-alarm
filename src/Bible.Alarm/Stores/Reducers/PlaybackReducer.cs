@@ -26,7 +26,8 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing);
     }
 
     [ReducerMethod]
@@ -48,7 +49,8 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: false);
     }
 
     [ReducerMethod]
@@ -70,7 +72,8 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing);
     }
 
     [ReducerMethod]
@@ -93,6 +96,23 @@ public static class PlaybackReducer
             ? state.CurrentScheduleId
             : null;
 
+        // Clear auto-advancing flag when playback actually starts (Playing status)
+        // This ensures smooth transition: auto-advancing keeps pause button visible during Loading/Stopped,
+        // but once Playing, we use the actual status
+        // Keep flag set during Loading/Stopped transitions to prevent flicker
+        var wasAutoAdvancing = state.IsAutoAdvancing;
+        var isAutoAdvancing = action.Status == PlayStatus.Playing 
+            ? false 
+            : state.IsAutoAdvancing;
+        
+        if (wasAutoAdvancing && !isAutoAdvancing && action.Status == PlayStatus.Playing)
+        {
+            Serilog.Log.Information(
+                "[AutoAdvancing] Flag cleared when status changed to Playing - PreviousStatus={PreviousStatus}, ScheduleId={ScheduleId}",
+                state.Status,
+                state.CurrentScheduleId);
+        }
+
         return new PlaybackState(
             currentScheduleId: currentScheduleId,
             isPreparingOrPlaying: isPreparingOrPlaying,
@@ -109,7 +129,8 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: isAutoAdvancing);
     }
 
     [ReducerMethod]
@@ -131,7 +152,8 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing);
     }
 
     [ReducerMethod]
@@ -153,7 +175,8 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing);
     }
 
     [ReducerMethod]
@@ -176,7 +199,8 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl);
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing);
     }
 
     [ReducerMethod]
@@ -198,7 +222,44 @@ public static class PlaybackReducer
             defaultScheduleTitle: action.Title,
             defaultScheduleArtist: action.Artist,
             defaultScheduleAlbum: action.Album,
-            defaultScheduleArtworkUrl: action.ArtworkUrl);
+            defaultScheduleArtworkUrl: action.ArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnSetAutoAdvancing(PlaybackState state, SetAutoAdvancingAction action)
+    {
+        var wasAutoAdvancing = state.IsAutoAdvancing;
+        var isAutoAdvancing = action.IsAutoAdvancing;
+        
+        if (wasAutoAdvancing != isAutoAdvancing)
+        {
+            Serilog.Log.Information(
+                "[AutoAdvancing] Flag changed: {PreviousValue} -> {NewValue}, Status={Status}, ScheduleId={ScheduleId}",
+                wasAutoAdvancing,
+                isAutoAdvancing,
+                state.Status,
+                state.CurrentScheduleId);
+        }
+        
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            duration: state.Duration,
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: isAutoAdvancing);
     }
 }
 

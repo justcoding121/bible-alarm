@@ -40,23 +40,76 @@ public class MediaSessionEffect(
                 return Task.CompletedTask;
             }
 
+            var currentState = playbackState.Value;
+            var isAutoAdvancing = currentState.IsAutoAdvancing;
+            var previousStatus = currentState.Status;
+            
+            logger.Information(
+                "[AndroidAuto] PlaybackStatusChanged: Status={NewStatus}, PreviousStatus={PreviousStatus}, IsAutoAdvancing={IsAutoAdvancing}, ScheduleId={ScheduleId}, CanPlayNext={CanPlayNext}",
+                action.Status,
+                previousStatus,
+                isAutoAdvancing,
+                currentState.CurrentScheduleId,
+                currentState.CanPlayNext);
+
             // When status is Loading (during track preparation and media buffering),
-            // always use SetBufferingStateOnly to preserve metadata and keep session active.
-            // This prevents Android Auto from navigating away from the Now Playing screen.
-            // The metadata will be updated when the new track's metadata arrives via PlaybackMetadataChangedAction.
+            // Progress behavior: Always use Buffering state (shows progress animation)
+            // Button behavior: Show pause button when auto-advancing (matches Alarm Modal behavior)
+            // But don't show prev/next buttons during Loading - only show them when playback actually starts
             if (action.Status == PlayStatus.Loading)
             {
-                // Always preserve metadata during Loading state to prevent Android Auto navigation
-                // Whether it's fresh playback or track transition, keeping metadata prevents screen jumps
-                mediaSessionManager.SetBufferingStateOnly();
-                logger.Debug("Set MediaSession to buffering state only (preserving metadata to prevent navigation)");
+                // Progress: Always Buffering state (shows progress animation)
+                // Button: Show pause when auto-advancing (both initial play and track transitions)
+                if (isAutoAdvancing)
+                {
+                    // Buffering state (for progress animation) + Pause action (for button)
+                    // This matches Alarm Modal: pause button visible during Loading when auto-advancing
+                    var canPlayNext = false;
+                    var canPlayPrevious = false;
+                    
+                    logger.Information(
+                        "[AndroidAuto] Loading status with auto-advancing: Setting to Buffering state with Pause action (pause button visible, buffering progress, no prev/next buttons, matches Alarm Modal)");
+                    
+                    // Use Buffering state (not Playing) so progress bar shows buffering animation
+                    // BuildPlaybackActions includes both Play and Pause, Android Auto shows Pause for Buffering state
+                    mediaSessionManager.UpdatePlaybackState(
+                        PlaybackStateCompat.StateBuffering, 
+                        position: 0, 
+                        canPlayNext: false, 
+                        canPlayPrevious: false);
+                }
+                else
+                {
+                    // Normal buffering - Buffering state + Play action (preserves existing actions)
+                    logger.Information(
+                        "[AndroidAuto] Loading status without auto-advancing: Setting to Buffering state (preserving metadata, no prev/next buttons)");
+                    mediaSessionManager.SetBufferingStateOnly();
+                }
+            }
+            else if (action.Status == PlayStatus.Stopped && isAutoAdvancing)
+            {
+                // During auto-advance, if status is Stopped, preserve playing state to show pause button
+                // But don't show prev/next buttons during transition - only show when playback actually starts
+                var canPlayNext = false;
+                var canPlayPrevious = false;
+                logger.Information(
+                    "[AndroidAuto] Stopped status with auto-advancing: Setting to Playing state (pause button visible, no prev/next buttons during transition)");
+                mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext, canPlayPrevious);
             }
             else
             {
                 // For all other statuses (Playing, Paused, Stopped, etc.), use normal state with controls
-                var canPlayNext = playbackState.Value.CanPlayNext;
-                // Always enable previous button for Android Auto (even on first track - will restart current track)
-                var canPlayPrevious = true;
+                // Only show prev/next buttons when actually playing (or paused after playing has started)
+                // Don't show buttons during Loading/buffering
+                var canPlayNext = action.Status == PlayStatus.Loading ? false : currentState.CanPlayNext;
+                // Always enable previous button for Android Auto when playing (even on first track - will restart current track)
+                // But not during Loading/buffering
+                var canPlayPrevious = action.Status == PlayStatus.Loading ? false : true;
+                logger.Information(
+                    "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+                    action.Status,
+                    canPlayNext,
+                    canPlayPrevious);
                 mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
             }
 
@@ -263,10 +316,27 @@ public class MediaSessionEffect(
                 return Task.CompletedTask;
             }
 
-            var state = MapPlayStatusToPlaybackState(playbackState.Value.Status);
+            var currentState = playbackState.Value;
+            var state = MapPlayStatusToPlaybackState(currentState.Status);
             var position = GetCurrentPlaybackPosition(session);
-            // Always enable previous button for Android Auto (even on first track - will restart current track)
-            mediaSessionManager.UpdatePlaybackState(state, position, action.CanPlayNext, canPlayPrevious: true);
+            var isAutoAdvancing = currentState.IsAutoAdvancing;
+            
+            // Don't show prev/next buttons during Loading/buffering - only show when playback actually starts
+            var canPlayNext = currentState.Status == PlayStatus.Loading ? false : action.CanPlayNext;
+            // Always enable previous button for Android Auto when playing (even on first track - will restart current track)
+            // But not during Loading/buffering
+            var canPlayPrevious = currentState.Status == PlayStatus.Loading ? false : true;
+            
+            logger.Information(
+                "[AndroidAuto] PlaybackNavigationChanged: Status={Status}, IsAutoAdvancing={IsAutoAdvancing}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, ScheduleId={ScheduleId}, Position={Position}ms",
+                currentState.Status,
+                isAutoAdvancing,
+                canPlayNext,
+                canPlayPrevious,
+                currentState.CurrentScheduleId,
+                position);
+            
+            mediaSessionManager.UpdatePlaybackState(state, position, canPlayNext, canPlayPrevious);
         }
         catch (Exception ex)
         {
@@ -305,14 +375,24 @@ public class MediaSessionEffect(
         {
             if (message.CurrentPosition == null)
             {
+                logger.Debug("[AndroidAuto] PlaybackPositionChangedMessage: CurrentPosition is null, skipping");
                 return;
             }
 
             var session = mediaSessionManager.GetOrCreate();
             if (session == null)
             {
+                logger.Debug("[AndroidAuto] PlaybackPositionChangedMessage: MediaSession is null, skipping");
                 return;
             }
+
+            var currentState = playbackState.Value;
+            logger.Debug(
+                "[AndroidAuto] PlaybackPositionChangedMessage: Updating position - Position={Position}ms, Status={Status}, IsAutoAdvancing={IsAutoAdvancing}, CanPlayNext={CanPlayNext}",
+                (long)message.CurrentPosition.Value.TotalMilliseconds,
+                currentState.Status,
+                currentState.IsAutoAdvancing,
+                currentState.CanPlayNext);
 
             UpdatePlaybackPosition(session, message.CurrentPosition.Value);
         }
@@ -324,8 +404,19 @@ public class MediaSessionEffect(
 
     private void UpdatePlaybackPosition(MediaSessionCompat session, TimeSpan currentPosition)
     {
-        var duration = playbackState.Value.Duration;
-        var canPlayNext = playbackState.Value.CanPlayNext;
+        var currentState = playbackState.Value;
+        var duration = currentState.Duration;
+        var canPlayNext = currentState.CanPlayNext;
+        var isAutoAdvancing = currentState.IsAutoAdvancing;
+        
+        logger.Debug(
+            "[AndroidAuto] UpdatePlaybackPosition: Position={Position}ms, Duration={Duration}ms, Status={Status}, IsAutoAdvancing={IsAutoAdvancing}, CanPlayNext={CanPlayNext}",
+            (long)currentPosition.TotalMilliseconds,
+            (long)duration.TotalMilliseconds,
+            currentState.Status,
+            isAutoAdvancing,
+            canPlayNext);
+        
         // Always enable previous button for Android Auto (even on first track - will restart current track)
         mediaSessionManager.UpdatePlaybackPosition(currentPosition, duration, canPlayNext, canPlayPrevious: true);
     }
