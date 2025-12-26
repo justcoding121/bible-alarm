@@ -107,8 +107,11 @@ public sealed class MediaCacheService(
         return downloaded;
     }
 
-    public async Task<string?> GetOrDownloadTrackUriAsync(PlayItem playItem)
+    public async Task<string?> GetOrDownloadTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
+        // Check for cancellation
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Check if file exists in cache
         if (await ExistsAsync(playItem.Url))
         {
@@ -131,7 +134,7 @@ public sealed class MediaCacheService(
 
         // Download and cache the file
         logger.Information("Downloading track (not in cache): {Url}", playItem.Url);
-        var cachedUrl = await DownloadAndCacheTrackAsync(playItem);
+        var cachedUrl = await DownloadAndCacheTrackAsync(playItem, cancellationToken);
         if (cachedUrl == null)
         {
             logger.Error("Failed to download and cache track: {Url}", playItem.Url);
@@ -148,11 +151,14 @@ public sealed class MediaCacheService(
         return new Uri(downloadedFilePath).AbsoluteUri;
     }
 
-    private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem)
+    private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
         try
         {
-            var bytes = await downloadService.DownloadAsync(playItem.Url);
+            // Check for cancellation before downloading
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var bytes = await downloadService.DownloadAsync(playItem.Url, cancellationToken: cancellationToken);
 
             if (bytes != null && bytes.Length > 0)
             {
@@ -162,7 +168,12 @@ public sealed class MediaCacheService(
             }
 
             logger.Warning("Download returned null or empty bytes for: {Url}, attempting URL refresh", playItem.Url);
-            return await RefreshUrlAndRetryDownloadAsync(playItem);
+            return await RefreshUrlAndRetryDownloadAsync(playItem, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            logger.Information("Download cancelled for track: {Url}", playItem.Url);
+            throw;
         }
         catch (Exception ex)
         {
@@ -171,7 +182,12 @@ public sealed class MediaCacheService(
             // Try refreshing URL and retrying
             try
             {
-                return await RefreshUrlAndRetryDownloadAsync(playItem);
+                return await RefreshUrlAndRetryDownloadAsync(playItem, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                logger.Information("URL refresh cancelled for track: {Url}", playItem.Url);
+                throw;
             }
             catch (Exception refreshEx)
             {
@@ -181,8 +197,11 @@ public sealed class MediaCacheService(
         }
     }
 
-    private async Task<string?> RefreshUrlAndRetryDownloadAsync(PlayItem playItem)
+    private async Task<string?> RefreshUrlAndRetryDownloadAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
+        // Check for cancellation
+        cancellationToken.ThrowIfCancellationRequested();
+
         var trackMetadata = playItem.Metadata;
         var refreshedUrl = await urlRefreshService.RefreshUrlAsync(trackMetadata);
 
@@ -194,7 +213,7 @@ public sealed class MediaCacheService(
         await mediaService.UpdateTrackUrlAsync(trackMetadata, refreshedUrl);
         logger.Warning($"Refreshed URL from {playItem.Url} to {refreshedUrl} for {playItem}");
 
-        var bytes = await downloadService.DownloadAsync(refreshedUrl);
+        var bytes = await downloadService.DownloadAsync(refreshedUrl, cancellationToken: cancellationToken);
         if (bytes == null)
         {
             return null;

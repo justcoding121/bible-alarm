@@ -97,7 +97,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
                 // SetCarPlayScreenAction will be dispatched after bootstrap completes (handled by CommonBootstrapHelper)
                 try
                 {
-                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
+                    await MauiProgram.WaitForBootstrapAsync();
                 }
                 catch (Exception bootstrapEx)
                 {

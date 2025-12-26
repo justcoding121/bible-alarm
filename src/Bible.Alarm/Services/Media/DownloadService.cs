@@ -67,8 +67,11 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 // Optional: Add logging here if needed
             });
 
-    public async Task<byte[]> DownloadAsync(string url, string alternativeUrl = null)
+    public async Task<byte[]> DownloadAsync(string url, string? alternativeUrl = null, CancellationToken cancellationToken = default)
     {
+        // Combine the service's cancellation token with the provided one
+        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);
+        
         return await downloadRetryPolicy.ExecuteAsync(async ct =>
         {
             try
@@ -111,7 +114,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                     throw;
                 }
             }
-        }, cancellationTokenSource.Token);
+        }, combinedCts.Token);
     }
 
     public async Task<bool> FileExists(string url)

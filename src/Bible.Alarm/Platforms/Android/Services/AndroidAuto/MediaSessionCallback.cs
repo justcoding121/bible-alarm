@@ -168,7 +168,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                     }
 
                     // Wait for bootstrap to complete (returns immediately if already complete)
-                    await MauiProgram.WaitForBootstrapAsync(timeoutMs: 10000);
+                    await MauiProgram.WaitForBootstrapAsync();
 
                     // Execute the callback-specific operation after bootstrap is complete
                     await asyncOperation();

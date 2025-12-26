@@ -31,6 +31,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private bool isAlarm;
     private readonly Timer? progressSaveTimer;
     private readonly HashSet<int> manuallyVisitedTrackIndices = [];
+    private CancellationTokenSource? preparationCancellationTokenSource;
 
     private bool IsPreparingOrPlayingInternal
     {
@@ -123,10 +124,24 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             // This keeps UI/Android Auto from showing "idle" controls with empty metadata while we prepare tracks.
             dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Loading));
 
+            // Create cancellation token source for preparation (can be cancelled when stop is called)
+            preparationCancellationTokenSource?.Dispose();
+            preparationCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = preparationCancellationTokenSource.Token;
+
             // Run track preparation (including downloads) on background thread to avoid blocking main thread
             // This ensures UI remains responsive during download/preparation phase
             logger.Debug("Starting track preparation on background thread for schedule {ScheduleId}", scheduleId);
-            playlist = await Task.Run(async () => await preparePlaybackService.PrepareTracksAsync(scheduleId));
+            try
+            {
+                playlist = await Task.Run(async () => await preparePlaybackService.PrepareTracksAsync(scheduleId, cancellationToken));
+            }
+            catch (OperationCanceledException)
+            {
+                logger.Information("Track preparation cancelled for schedule {ScheduleId}", scheduleId);
+                await ResetAsync();
+                return;
+            }
 
             if (playlist is null)
             {
@@ -378,24 +393,77 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         logger.Information("StopAsync called - stopping alarm completely");
 
+        // Cancel any ongoing preparation/downloads
+        try
+        {
+            preparationCancellationTokenSource?.Cancel();
+            logger.Debug("Cancelled preparation cancellation token");
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error cancelling preparation token");
+        }
+
         // Stop progress timer first to prevent it from trying to save progress after ServiceProvider is disposed
         progressSaveTimer?.Stop();
 
-        await audioPlayer.StopAsync();
+        // Stop player immediately for responsive user experience
+        try
+        {
+            await audioPlayer.StopAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error stopping player, will continue with reset");
+        }
 
         // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
         // This prevents overwriting the database update that MarkTrackAsFinished() already made
         if (!skipMarkAsPlayed)
         {
-            await MarkCurrentTrackAsPlayedAsync();
+            try
+            {
+                await MarkCurrentTrackAsPlayedAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error marking current track as played");
+            }
         }
 
         if (currentScheduleId.HasValue && !skipSaveLastPlayed)
         {
-            await playlistService.SaveLastPlayed(currentScheduleId.Value);
+            try
+            {
+                await playlistService.SaveLastPlayed(currentScheduleId.Value);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error saving last played");
+            }
         }
 
-        await ResetAsync();
+        // Reset player and cleanup state - ensure this always runs even if previous steps failed
+        // This resets the player, cleans up state, and dispatches actions to close modal
+        try
+        {
+            await ResetAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error in ResetAsync, attempting minimal cleanup");
+            // Ensure state is reset and modal closes even if ResetAsync fails
+            try
+            {
+                await audioPlayer.ResetAsync();
+            }
+            catch (Exception resetEx)
+            {
+                logger.Warning(resetEx, "Error resetting player in fallback");
+            }
+            ResetState();
+            dispatcher.Dispatch(new PlaybackStoppedAction());
+        }
 
         // Modal visibility is now handled reactively via PlaybackState subscription in App.xaml.cs
         // No need to send HideAlarmModalMessage here
@@ -430,6 +498,17 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         currentTrackIndex = -1;
         isAlarm = false;
         manuallyVisitedTrackIndices.Clear();
+        
+        // Dispose cancellation token source
+        try
+        {
+            preparationCancellationTokenSource?.Dispose();
+            preparationCancellationTokenSource = null;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error disposing preparation cancellation token source");
+        }
     }
 
     private async Task PlayCurrentTrackAsync(bool startFromBeginning = false)

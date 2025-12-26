@@ -5,12 +5,12 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IPreparePlaybackService
 {
-    Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId);
+    Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Prepares a single track by downloading it and creating an AudioPlayerTrack.
     /// Used for getting metadata for a single track without preparing the entire playlist.
     /// </summary>
-    Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem);
+    Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem, CancellationToken cancellationToken = default);
 }
 

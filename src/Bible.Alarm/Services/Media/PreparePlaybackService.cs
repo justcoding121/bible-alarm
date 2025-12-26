@@ -13,7 +13,7 @@ public sealed class PreparePlaybackService(
     IMediaCacheService cacheService) : IPreparePlaybackService
 {
 
-    public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId)
+    public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
         var playItems = await playlistService.NextTracks(scheduleId);
         var preparedTracks = new List<AudioPlayerTrack>();
@@ -29,7 +29,10 @@ public sealed class PreparePlaybackService(
 
         foreach (var playItem in playItems)
         {
-            var audioPlayerTrack = await PrepareSingleTrackAsync(playItem);
+            // Check for cancellation before processing each track
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var audioPlayerTrack = await PrepareSingleTrackAsync(playItem, cancellationToken);
 
             if (audioPlayerTrack == null)
             {
@@ -48,9 +51,10 @@ public sealed class PreparePlaybackService(
             });
 
             // Add delay to ensure each progress state (1/3, 2/3, 3/3) is visible on UI
+            // Use cancellation token for delay
             if (loadedTracks < totalTracks)
             {
-                await Task.Delay(50);
+                await Task.Delay(50, cancellationToken);
             }
         }
 
@@ -61,9 +65,9 @@ public sealed class PreparePlaybackService(
     /// Prepares a single track by downloading it and creating an AudioPlayerTrack.
     /// Used for getting metadata for a single track without preparing the entire playlist.
     /// </summary>
-    public async Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem)
+    public async Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
-        var uri = await cacheService.GetOrDownloadTrackUriAsync(playItem);
+        var uri = await cacheService.GetOrDownloadTrackUriAsync(playItem, cancellationToken);
 
         if (uri == null)
         {

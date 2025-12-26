@@ -351,7 +351,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         try
         {
-            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 5000); // Short timeout for responsiveness
+            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000); // Use standard 30 second timeout
             logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
             return true;
         }
