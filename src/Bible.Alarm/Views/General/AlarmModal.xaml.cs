@@ -1,5 +1,8 @@
 #nullable enable
+using Bible.Alarm.Common;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
+using Serilog;
 
 namespace Bible.Alarm.Views.General;
 
@@ -53,6 +56,55 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     {
         ViewModel?.DismissCommand.Execute(null);
         return true;
+    }
+
+    private async void OnStopButtonClicked(object? sender, EventArgs e)
+    {
+        // Fallback handler to ensure stop button always works
+        // This ensures the command executes even if binding fails or command is blocked
+        var logger = Log.Logger;
+        logger.Information("Stop button clicked - OnStopButtonClicked handler fired");
+        
+        try
+        {
+            // Try command first
+            if (ViewModel?.DismissCommand != null && ViewModel.DismissCommand.CanExecute(null))
+            {
+                logger.Debug("Executing DismissCommand via click handler");
+                ViewModel.DismissCommand.Execute(null);
+            }
+            else
+            {
+                logger.Warning("DismissCommand is null or cannot execute, attempting direct stop");
+                // If command fails, try direct stop
+                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                if (playbackService != null)
+                {
+                    await playbackService.StopAsync();
+                }
+                else
+                {
+                    logger.Error("PlaybackService not available");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error in OnStopButtonClicked, attempting direct stop");
+            // If command execution fails, try direct stop
+            try
+            {
+                var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
+                if (playbackService != null)
+                {
+                    await playbackService.StopAsync();
+                }
+            }
+            catch (Exception stopEx)
+            {
+                logger.Error(stopEx, "Direct stop also failed");
+            }
+        }
     }
 
     private bool isDragging;

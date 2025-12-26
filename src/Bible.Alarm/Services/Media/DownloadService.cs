@@ -20,6 +20,12 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
     private readonly AsyncRetryPolicy<byte[]> downloadRetryPolicy = Policy<byte[]>
             .Handle<Exception>(ex =>
             {
+                // Never retry on cancellation - let it propagate immediately
+                if (ex is OperationCanceledException)
+                {
+                    return false;
+                }
+
                 // Don't retry on HTTP errors like 403, 404 (permanent failures)
                 if (ex is not HttpRequestException httpEx)
                 {
@@ -74,6 +80,9 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
         
         return await downloadRetryPolicy.ExecuteAsync(async ct =>
         {
+            // Check for cancellation before starting download
+            combinedCts.Token.ThrowIfCancellationRequested();
+
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -85,8 +94,16 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsByteArrayAsync(ct);
             }
+            catch (OperationCanceledException)
+            {
+                logger.Information("Download cancelled for URL: {Url}", url);
+                throw; // Re-throw cancellation immediately - Polly won't retry due to Handle condition
+            }
             catch (Exception ex)
             {
+                // Check for cancellation before retrying
+                combinedCts.Token.ThrowIfCancellationRequested();
+
                 logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
 
                 if (alternativeUrl == null)
@@ -107,6 +124,11 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                     using var response = await client.SendAsync(request, ct);
                     response.EnsureSuccessStatusCode();
                     return await response.Content.ReadAsByteArrayAsync(ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.Information("Download cancelled for alternative URL: {AlternativeUrl}", alternativeUrl);
+                    throw; // Re-throw cancellation immediately - Polly won't retry due to Handle condition
                 }
                 catch (Exception altEx)
                 {

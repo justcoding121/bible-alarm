@@ -393,6 +393,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         logger.Information("StopAsync called - stopping alarm completely");
 
+        // Save currentScheduleId before resetting state (needed for SaveLastPlayed)
+        var scheduleIdToSave = currentScheduleId;
+
         // Cancel any ongoing preparation/downloads
         try
         {
@@ -403,6 +406,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             logger.Warning(ex, "Error cancelling preparation token");
         }
+
+        // Reset state early to ensure PlayCurrentTrackAsync checks detect stop immediately
+        // This is especially important for the gap between downloads completing and playback starting
+        // Note: We save currentScheduleId above before resetting
+        ResetState();
 
         // Stop progress timer first to prevent it from trying to save progress after ServiceProvider is disposed
         progressSaveTimer?.Stop();
@@ -431,11 +439,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             }
         }
 
-        if (currentScheduleId.HasValue && !skipSaveLastPlayed)
+        if (scheduleIdToSave.HasValue && !skipSaveLastPlayed)
         {
             try
             {
-                await playlistService.SaveLastPlayed(currentScheduleId.Value);
+                await playlistService.SaveLastPlayed(scheduleIdToSave.Value);
             }
             catch (Exception ex)
             {
@@ -443,16 +451,23 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             }
         }
 
-        // Reset player and cleanup state - ensure this always runs even if previous steps failed
-        // This resets the player, cleans up state, and dispatches actions to close modal
+        // Reset player - state was already reset above, but ensure player is fully reset
+        // This resets the player and dispatches actions to close modal
         try
         {
-            await ResetAsync();
+            await audioPlayer.ResetAsync();
+            // Dispatch playback stopped action to close modal (state was already reset above)
+            dispatcher.Dispatch(new PlaybackStoppedAction());
+#if ANDROID
+            // Dispatch SetCarPlayScreenAction to refresh Android Auto with default schedule metadata
+            dispatcher.Dispatch(new SetCarPlayScreenAction());
+            logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
+#endif
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in ResetAsync, attempting minimal cleanup");
-            // Ensure state is reset and modal closes even if ResetAsync fails
+            logger.Error(ex, "Error in audioPlayer.ResetAsync, attempting minimal cleanup");
+            // Ensure modal closes even if ResetAsync fails
             try
             {
                 await audioPlayer.ResetAsync();
@@ -461,7 +476,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             {
                 logger.Warning(resetEx, "Error resetting player in fallback");
             }
-            ResetState();
+            // State was already reset above, just dispatch action to close modal
             dispatcher.Dispatch(new PlaybackStoppedAction());
         }
 
@@ -543,9 +558,24 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         await audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
 
+        // Check if stop was called during PrepareAsync (e.g., after downloads complete but before playback starts)
+        // This ensures stop works correctly in the gap between downloads and playback
+        if (!IsPreparingOrPlayingInternal || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
+        {
+            logger.Information("Playback was stopped during PrepareAsync - aborting PlayCurrentTrackAsync");
+            return;
+        }
+
         // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
         // Wait for the media to be in a ready state (not None or Failed)
         await WaitForMediaReadyAsync();
+
+        // Check again after WaitForMediaReadyAsync in case stop was called during the wait
+        if (!IsPreparingOrPlayingInternal || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
+        {
+            logger.Information("Playback was stopped during WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync");
+            return;
+        }
 
         // Seek to saved position for Bible tracks if resume is enabled
         // But always start from beginning if startFromBeginning is true (e.g., when going to previous track)
@@ -559,6 +589,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             {
                 await audioPlayer.SeekToAsync(track.PlayItem.Metadata.FinishedDuration);
             }
+        }
+
+        // Final check before starting playback - ensure stop wasn't called during seek/resume operations
+        if (!IsPreparingOrPlayingInternal || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
+        {
+            logger.Information("Playback was stopped before PlayAsync - aborting PlayCurrentTrackAsync");
+            return;
         }
 
         logger.Debug("Calling PlayAsync for track at index {TrackIndex}", currentTrackIndex);

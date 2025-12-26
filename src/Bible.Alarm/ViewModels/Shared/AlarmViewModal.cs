@@ -84,10 +84,20 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
         DismissCommand = new AsyncRelayCommand(async () =>
         {
-            await ShowDismissProgress();
-            await playbackService.StopAsync();
-            await HandleReviewRequest();
-        });
+            logger.Information("DismissCommand executed - stopping playback and cancelling downloads");
+            try
+            {
+                // Stop immediately - cancellation will be handled by PlaybackService
+                await playbackService.StopAsync();
+                await HandleReviewRequest();
+                logger.Information("DismissCommand completed successfully");
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in DismissCommand");
+                // Don't throw - ensure cleanup happens even on error
+            }
+        }, () => true); // Always allow execution
 
         CancelCommand = new RelayCommand(() =>
         {
@@ -490,6 +500,11 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         !IsBusy &&
         playbackState.Value.Status != PlayStatus.Loading;
 
+    /// <summary>
+    /// Stop button is always enabled so users can cancel downloads at any time
+    /// </summary>
+    public bool IsStopButtonEnabled => true;
+
     public string ProgressText => $"Preparing tracks {(totalTracks > 0 ? $"{loadedTracks}/{totalTracks}" : "")}..";
 
     public double PreparationProgress { get; private set; }
@@ -668,9 +683,25 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         }
     }
 
+    private DateTime lastProgressUpdate = DateTime.MinValue;
+    private const int ProgressUpdateThrottleMs = 100; // Throttle to max 10 updates per second
+
     public void Receive(PlaybackPreparationProgressMessage message)
     {
+        // Throttle progress updates to avoid flooding UI thread
+        var now = DateTime.UtcNow;
+        var timeSinceLastUpdate = (now - lastProgressUpdate).TotalMilliseconds;
+        
+        if (timeSinceLastUpdate < ProgressUpdateThrottleMs && message.LoadedTracks < message.TotalTracks)
+        {
+            // Skip this update if it's too soon (but always process final update)
+            return;
+        }
+        
+        lastProgressUpdate = now;
+
         // Handle high-frequency preparation progress updates via messaging
+        // Use BeginInvokeOnMainThread to queue on UI thread without blocking
         MainThread.BeginInvokeOnMainThread(() =>
         {
             loadedTracks = message.LoadedTracks;

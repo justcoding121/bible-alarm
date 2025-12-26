@@ -244,15 +244,14 @@
                 </Border.StrokeShape>
                 <Grid
                     Padding="24,20,24,32"
-                    RowSpacing="20"
-                    IsEnabled="{Binding AreControlsEnabled}">
+                    RowSpacing="20">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     
-                    <!-- Stop Button -->
+                    <!-- Stop Button - Always enabled, outside of AreControlsEnabled binding -->
                     <Border
                         Grid.Row="0"
                         AutomationId="AlarmDismissButton"
@@ -278,19 +277,31 @@
                             BorderWidth="0"
                             BorderColor="Transparent"
                             Command="{Binding DismissCommand}"
+                            Clicked="OnStopButtonClicked"
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                             FontSize="20"
                             HorizontalOptions="Fill"
+                            IsEnabled="{Binding IsStopButtonEnabled}"
                             Text="{x:Static fn:GlyphNames.Stop}"
                             TextColor="White"
-                            VerticalOptions="Fill" />
+                            VerticalOptions="Fill">
+                            <Button.Triggers>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                </Trigger>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                    <Setter Property="TextColor" Value="White" />
+                                </Trigger>
+                            </Button.Triggers>
+                        </Button>
                     </Border>
                     
-                    <!-- Progress Bar Row -->
+                    <!-- Progress Bar Row - Respects AreControlsEnabled -->
                     <Grid
                         Grid.Row="1"
                         ColumnSpacing="12"
-                        VerticalOptions="Center">
+                        VerticalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -327,11 +338,12 @@
                             VerticalOptions="Center" />
                     </Grid>
                     
-                    <!-- Main Control Buttons Row -->
+                    <!-- Main Control Buttons Row - Respects AreControlsEnabled -->
                     <Grid
                         Grid.Row="2"
                         ColumnSpacing="16"
-                        HorizontalOptions="Center">
+                        HorizontalOptions="Center"
+                        IsEnabled="{Binding AreControlsEnabled}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />

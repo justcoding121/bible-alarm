@@ -8,6 +8,7 @@
 
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=coverage)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=bugs)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
