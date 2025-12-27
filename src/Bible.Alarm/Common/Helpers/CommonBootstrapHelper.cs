@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Models.Schedule;
@@ -172,6 +173,49 @@ public static class CommonBootstrapHelper
         await service.Verify();
     }
 
+    private static async Task CopyScheduleDatabaseFromResourceIfNeeded(IServiceScope scope)
+    {
+        var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+        var storageService = ServiceProviderManager.GetService<IStorageService>();
+        var scheduleVersionService = ServiceProviderManager.GetService<IScheduleDatabaseVersionService>();
+        
+        var dbPath = scheduleDb.Database.GetDbConnection().DataSource;
+        var dbExists = System.IO.File.Exists(dbPath);
+        
+        // If database doesn't exist, copy from bundled resource
+        if (!dbExists)
+        {
+            // Use the same filename as the database file for consistency
+            var scheduleDbResourceFile = AppConstants.Database.ScheduleDatabaseFileName;
+            var dbDirectory = System.IO.Path.GetDirectoryName(dbPath);
+            
+            if (!string.IsNullOrEmpty(dbDirectory) && !System.IO.Directory.Exists(dbDirectory))
+            {
+                System.IO.Directory.CreateDirectory(dbDirectory);
+            }
+            
+            try
+            {
+                // Copy bundled empty database from resources
+                await storageService.CopyResourceFile(
+                    scheduleDbResourceFile, 
+                    dbDirectory ?? storageService.StorageRoot, 
+                    System.IO.Path.GetFileName(dbPath));
+                
+                Log.Logger.Information("[BOOTSTRAP] Copied Schedule database from bundled resource");
+                
+                // Don't save version here - let migration check verify the database schema is correct
+                // The migration check will be fast if schema exists, and will create it if missing
+            }
+            catch (Exception ex)
+            {
+                // If resource copy fails (e.g., resource not found), fall back to migrations
+                Log.Logger.Debug(ex, 
+                    "Failed to copy Schedule database from resource, will create with migrations instead");
+            }
+        }
+    }
+
     private static async Task InitializeDatabase()
     {
 #if DEBUG
@@ -185,22 +229,95 @@ public static class CommonBootstrapHelper
         await using var scope = scopeFactory.CreateAsyncScope();
 
         // Migrate Schedule database (always safe - app owns this DB)
-        // Optimize: Check for pending migrations first to avoid overhead when database is already up to date
+        // Optimize: Copy from bundled resource on first launch, or check version to skip migration check
 #if DEBUG
         var scheduleDbStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
+        var scheduleVersionService = ServiceProviderManager.GetService<IScheduleDatabaseVersionService>();
         var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        var pendingScheduleMigrations = await scheduleDb.Database.GetPendingMigrationsAsync();
-        if (pendingScheduleMigrations.Any())
+        
+        // Check if database file exists
+        var dbPath = scheduleDb.Database.GetDbConnection().DataSource;
+        var dbExists = System.IO.File.Exists(dbPath);
+        
+        // If database doesn't exist, try copying from bundled resource first
+        // This eliminates the need for migrations on clean install (saves ~1.2 seconds)
+        if (!dbExists)
         {
-            Log.Logger.Information(
-                "[BOOTSTRAP] Schedule database has {Count} pending migrations, applying...",
-                pendingScheduleMigrations.Count());
-        await scheduleDb.Database.MigrateAsync();
+            await CopyScheduleDatabaseFromResourceIfNeeded(scope);
+            dbExists = System.IO.File.Exists(dbPath); // Re-check after copy attempt
+        }
+        
+        // Even if version matches, we still need to verify the schema exists
+        // (database file might be corrupted, empty, or missing schema)
+        // GetPendingMigrationsAsync() is fast if schema exists (just reads migrations history table)
+        var versionMatches = dbExists && await scheduleVersionService.IsVersionCurrentAsync();
+        
+        if (versionMatches)
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Schedule database version matches current app version, verifying schema...");
         }
         else
         {
-            Log.Logger.Debug("[BOOTSTRAP] Schedule database is already up to date, skipping migration");
+            // Version mismatch, first launch, or database doesn't exist
+            if (!dbExists)
+            {
+                Log.Logger.Debug("[BOOTSTRAP] Schedule database file does not exist, will be created from bundled resource or migrations");
+            }
+            else
+            {
+                Log.Logger.Debug("[BOOTSTRAP] Schedule database version mismatch or not set, will verify schema and apply migrations if needed");
+            }
+        }
+        
+        // Always verify schema by checking for pending migrations
+        // This is fast if schema exists (just reads migrations history table)
+        // If bundled database was copied correctly, this should return empty (schema already exists)
+        // If bundled database is missing/empty/corrupted, this will return all migrations (need to create schema)
+        try
+        {
+            var pendingScheduleMigrations = await scheduleDb.Database.GetPendingMigrationsAsync();
+            if (pendingScheduleMigrations.Any())
+            {
+                Log.Logger.Information(
+                    "[BOOTSTRAP] Schedule database has {Count} pending migrations, applying...",
+                    pendingScheduleMigrations.Count());
+                await scheduleDb.Database.MigrateAsync();
+                Log.Logger.Information("[BOOTSTRAP] Schedule database migrations applied successfully");
+            }
+            else
+            {
+                if (versionMatches)
+                {
+                    Log.Logger.Debug("[BOOTSTRAP] Schedule database schema verified - version matches and all migrations applied");
+                }
+                else
+                {
+                    Log.Logger.Debug("[BOOTSTRAP] Schedule database is already up to date (bundled database had schema), skipping migration");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // If GetPendingMigrationsAsync fails (e.g., database is corrupted), try to migrate
+            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to check pending migrations, attempting to migrate database");
+            try
+            {
+                await scheduleDb.Database.MigrateAsync();
+                Log.Logger.Information("[BOOTSTRAP] Schedule database migration completed after error recovery");
+            }
+            catch (Exception migrateEx)
+            {
+                Log.Logger.Error(migrateEx, "[BOOTSTRAP] Failed to migrate Schedule database, database may be corrupted");
+                throw;
+            }
+        }
+        
+        // Save current version after successful schema verification/migration
+        // This marks the database as verified for the current app version
+        if (!versionMatches)
+        {
+            await scheduleVersionService.SaveCurrentVersionAsync();
         }
 #if DEBUG
         var scheduleDbElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - scheduleDbStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
@@ -397,8 +514,29 @@ public static class CommonBootstrapHelper
 
     private static async Task SeedAndMigrateSchedules(BootstrapServices services)
     {
-        await services.DatabaseSeedService.SeedDefaultAlarmAsync();
-        await services.ScheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
+        try
+        {
+            // Seed default schedule if database is empty
+            // Schema is guaranteed to exist at this point (verified in InitializeDatabase)
+            await services.DatabaseSeedService.SeedDefaultAlarmAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail bootstrap - user can still use the app
+            // If seeding fails, the database might be corrupted or schema issue
+            Log.Logger.Error(ex, "[BOOTSTRAP] Failed to seed default schedule, continuing bootstrap");
+        }
+        
+        try
+        {
+            // Migrate Bible Gateway schedules (legacy migration)
+            await services.ScheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail bootstrap
+            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to migrate Bible Gateway schedules, continuing bootstrap");
+        }
     }
 
     private static async Task<List<AlarmSchedule>> LoadSchedulesFromDatabase(IAlarmScheduleService alarmScheduleService)

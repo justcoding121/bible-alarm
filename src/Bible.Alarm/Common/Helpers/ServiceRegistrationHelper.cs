@@ -142,6 +142,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IDatabaseSeedService, DatabaseSeedService>();
         services.AddSingleton<IScheduleMigrationService, ScheduleMigrationService>();
         services.AddSingleton<IMediaMigrationService, MediaMigrationService>();
+        services.AddSingleton<IScheduleDatabaseVersionService, ScheduleDatabaseVersionService>();
 
         // Register platform-specific version finder
 #if ANDROID

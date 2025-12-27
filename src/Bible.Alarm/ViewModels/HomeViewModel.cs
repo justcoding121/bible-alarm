@@ -250,14 +250,17 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         {
             SetProperty(ref isBusy, value);
             Loaded = !isBusy;
+            // Notify overlay visibility change when IsBusy changes
+            OnPropertyChanged(nameof(IsHomePageOverlayVisible));
         }
     }
 
     /// <summary>
     /// Gets the overlay visibility from application state.
+    /// Shows overlay when schedules are loading (IsBusy) or when explicitly set via state.
     /// This property is bound to the Home page overlay.
     /// </summary>
-    public bool IsHomePageOverlayVisible => state.Value.IsHomePageOverlayVisible;
+    public bool IsHomePageOverlayVisible => state.Value.IsHomePageOverlayVisible || IsBusy;
 
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
@@ -304,6 +307,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             {
                 UpdateScheduleViewModels(stateValue.Schedules);
                 IsBusy = false;
+                // Notify overlay visibility change after IsBusy is set to false
+                OnPropertyChanged(nameof(IsHomePageOverlayVisible));
             }
         });
     }

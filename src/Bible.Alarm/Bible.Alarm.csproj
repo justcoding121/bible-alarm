@@ -145,6 +145,9 @@
 		<EmbeddedResource Include="Resources\silent.mp3">
 			<Link>Resources\silent.mp3</Link>
 		</EmbeddedResource>
+		<EmbeddedResource Include="Resources\bibleAlarm.db">
+			<Link>Resources\bibleAlarm.db</Link>
+		</EmbeddedResource>
 	</ItemGroup>
 
 

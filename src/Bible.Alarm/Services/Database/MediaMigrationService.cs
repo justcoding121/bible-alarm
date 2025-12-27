@@ -35,12 +35,16 @@ public sealed class MediaMigrationService(
                 return;
             }
 
-            // Optimize: Check if database was just copied from resources (version.dat matches current version)
-            // If so, skip migration check entirely since bundled database already has latest schema
+            // Optimize: Check if database was just copied from resources (version matches current version)
+            // This happens in two scenarios:
+            // 1. Clean install: MediaIndexService copies bundled DB and saves version
+            // 2. Version mismatch: MediaIndexService copies bundled DB (replacing old one) and saves version
+            // In both cases, the bundled database already has the latest schema with all migrations applied,
+            // so we can skip migration check entirely
             if (await versionService.IsVersionCurrentAsync())
             {
                 // Database was just copied from resources with current version - already has latest schema
-                logger.Debug("Media database version matches current app version, skipping migration check");
+                logger.Debug("Media database version matches current app version (was copied from bundled resource), skipping migration check");
                 return;
             }
 
