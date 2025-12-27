@@ -6,6 +6,7 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -39,7 +40,8 @@ public class ScheduleEffects(
     IAlarmService? alarmService = null,
     IMediaCacheService? mediaCacheService = null,
     IMediaService? mediaService = null,
-    IState<ApplicationState>? state = null)
+    IState<ApplicationState>? state = null,
+    IDiskCacheService? diskCacheService = null)
 {
     private readonly IBibleTranslationService? bibleTranslationService = bibleTranslationService ?? ServiceProviderManager.GetService<IBibleTranslationService>();
     private readonly IBibleBookService? bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
@@ -48,6 +50,7 @@ public class ScheduleEffects(
     private readonly IMediaCacheService? mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
     private readonly IMediaService? mediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
     private readonly IState<ApplicationState>? state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+    private readonly IDiskCacheService? diskCacheService = diskCacheService ?? ServiceProviderManager.GetService<IDiskCacheService>();
 
     /// <summary>
     /// Effect: Transform DB entity to DTO and dispatch success action.
@@ -254,6 +257,9 @@ public class ScheduleEffects(
 
             Log.Information("ScheduleEffects: HandleCreateSchedule - Dispatched CreateScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 scheduleStateItem.Id);
+            
+            // Invalidate and refresh cache in background
+            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
         }
         catch (Exception ex)
         {
@@ -302,6 +308,8 @@ public class ScheduleEffects(
 
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicType={MusicType}",
                 scheduleStateItem.Id, scheduleStateItem.MusicType?.ToString() ?? "null");
+            
+            // Note: Cache invalidation is handled by HandleUpdateScheduleSuccess effect to avoid duplication
         }
         catch (Exception ex)
         {
@@ -664,6 +672,9 @@ public class ScheduleEffects(
 
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 action.ScheduleId);
+            
+            // Invalidate and refresh cache in background
+            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
         }
         catch (Exception ex)
         {
@@ -673,22 +684,25 @@ public class ScheduleEffects(
     }
 
     /// <summary>
-    /// Effect: Handle UpdateScheduleSuccessAction - Refresh Android Auto default schedule metadata when a schedule is updated.
-    /// This ensures the music icon and other metadata are updated in Android Auto when MusicEnabled or other properties change.
+    /// Effect: Handle UpdateScheduleSuccessAction - Invalidate cache when a schedule is updated in the database.
+    /// This covers chapter navigation, enable/disable toggle, track changes, and other schedule updates.
     /// </summary>
     [EffectMethod]
     public Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
     {
         try
         {
-            Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Refreshing Android Auto metadata for schedule {ScheduleId}", action.Schedule?.Id);
+            Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Schedule updated in DB, invalidating cache for schedule {ScheduleId}", action.Schedule?.Id);
+
+            // Invalidate and refresh cache in background after DB update
+            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
 
             // Dispatch SetCarPlayScreenAction to refresh Android Auto metadata
             // This will trigger DefaultCarScreenEffect to fetch metadata and update MediaSession
             // MediaSessionEffect will check if playback is active and skip if needed
             dispatcher.Dispatch(new SetCarPlayScreenAction());
 
-            Log.Information("ScheduleEffects: HandleUpdateScheduleSuccess - Dispatched SetCarPlayScreenAction for schedule {ScheduleId}", action.Schedule?.Id);
+            Log.Information("ScheduleEffects: HandleUpdateScheduleSuccess - Invalidated cache and dispatched SetCarPlayScreenAction for schedule {ScheduleId}", action.Schedule?.Id);
 
             // Note: OnLoadChildren is already being called by Android Auto in response to NotifyChildrenChanged
             // which is triggered when the change tracker detects a change in OnUpdateScheduleFromViewModel.
@@ -703,14 +717,19 @@ public class ScheduleEffects(
     }
 
     /// <summary>
-    /// Effect: Handle RemoveScheduleSuccessAction - Refresh Android Auto default schedule metadata when a schedule is deleted.
-    /// Also refreshes last played metadata if deleted schedule was the last played item.
+    /// Effect: Handle RemoveScheduleSuccessAction - Invalidate cache when a schedule is deleted from the database.
+    /// Also refreshes last played metadata if deleted schedule was the last played item and refreshes Android Auto.
     /// </summary>
     [EffectMethod]
     public async Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, IDispatcher dispatcher)
     {
         try
         {
+            Log.Debug("ScheduleEffects: HandleRemoveScheduleSuccess - Schedule deleted from DB, invalidating cache for schedule {ScheduleId}", action.ScheduleId);
+
+            // Invalidate and refresh cache in background after DB delete
+            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
+
             // Check if the deleted schedule was the last played item saved in Preferences
             var lastPlayedMetadata = LastPlayedMetadataHelper.GetLastPlayedMetadata();
             if (lastPlayedMetadata.HasValue && lastPlayedMetadata.Value.ScheduleId == action.ScheduleId)
@@ -740,7 +759,7 @@ public class ScheduleEffects(
             // This ensures Android Auto gets updated default schedule metadata, matching the update flow
             dispatcher.Dispatch(new SetCarPlayScreenAction());
 
-            Log.Information("ScheduleEffects: HandleRemoveScheduleSuccess - Dispatched SetCarPlayScreenAction for deleted schedule {ScheduleId}", action.ScheduleId);
+            Log.Information("ScheduleEffects: HandleRemoveScheduleSuccess - Invalidated cache and dispatched SetCarPlayScreenAction for deleted schedule {ScheduleId}", action.ScheduleId);
         }
         catch (Exception ex)
         {
@@ -1359,6 +1378,45 @@ public class ScheduleEffects(
 
         Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}",
             scheduleId);
+    }
+    
+    /// <summary>
+    /// Invalidates the schedule list cache and refreshes it in the background.
+    /// Called after successful create, update, or delete operations.
+    /// </summary>
+    private async Task InvalidateAndRefreshScheduleCacheAsync()
+    {
+        if (diskCacheService == null)
+        {
+            return;
+        }
+        
+        const string CacheKey = "ScheduleList";
+        
+        try
+        {
+            Log.Debug("ScheduleEffects: Invalidating schedule cache");
+            diskCacheService.Remove(CacheKey);
+            
+            // Refresh cache by calling the factory
+            // This will reload schedules from database and repopulate the cache
+            var services = CommonBootstrapHelper.GetRequiredServicesForCache();
+            if (services == null)
+            {
+                Log.Warning("ScheduleEffects: Cannot refresh cache - required services not available");
+                return;
+            }
+            
+            var languagesDict = await CommonBootstrapHelper.LoadLanguagesDictionaryForCache(services.BibleTranslationService);
+            var schedulesList = await CommonBootstrapHelper.LoadSchedulesListAsyncForCache(services, languagesDict);
+            
+            await diskCacheService.SetAsync(CacheKey, schedulesList);
+            Log.Information("ScheduleEffects: Refreshed schedule cache with {Count} schedules", schedulesList.Count);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error invalidating and refreshing schedule cache");
+        }
     }
 }
 

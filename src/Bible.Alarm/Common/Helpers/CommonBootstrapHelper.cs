@@ -4,6 +4,7 @@ using AutoMapper;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Storage;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -411,39 +412,75 @@ public static class CommonBootstrapHelper
             var languagesTask = LoadLanguagesDictionary(services.BibleTranslationService);
             
             // Wait for seed to complete before loading schedules (schedules may be created during seed)
-            await seedTask;
+            var scheduleWasSeeded = await seedTask;
 #if DEBUG
             var seedElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - seedStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             Log.Logger.Information("[BOOTSTRAP] Schedule seed/migration completed in {ElapsedMs:F2}ms", seedElapsed);
 #endif
             
-#if DEBUG
-            var loadStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-            var alarmSchedules = await LoadSchedulesFromDatabase(services.AlarmScheduleService);
-#if DEBUG
-            var loadElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - loadStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            Log.Logger.Information("[BOOTSTRAP] Loaded {Count} schedules from database in {ElapsedMs:F2}ms", alarmSchedules.Count, loadElapsed);
-#endif
-            
-            // Languages task is already running in parallel, await it now
-            var languagesDict = await languagesTask;
-#if DEBUG
-            var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
-#endif
+            // Load schedules from cache or factory
+            // Cache stores as List<ScheduleStateItem> for JSON serialization
+            var cacheService = ServiceProviderManager.GetService<IDiskCacheService>();
+            const string CacheKey = "ScheduleList";
             
 #if DEBUG
-            var populateStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+            var cacheStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
-            var initialSchedules = await PopulateScheduleStateItems(
-                alarmSchedules,
-                services,
-                languagesDict);
+            ObservableHashSet<ScheduleStateItem> initialSchedules;
+            
+            if (cacheService != null)
+            {
+                // Languages task is already running in parallel, await it now for the factory
+                var languagesDict = await languagesTask;
 #if DEBUG
-            var populateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - populateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            Log.Logger.Information("[BOOTSTRAP] Populated {Count} schedule state items in {ElapsedMs:F2}ms", initialSchedules.Count, populateElapsed);
+                var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
 #endif
+                
+                // If a schedule was seeded, invalidate cache to ensure the new schedule is included
+                if (scheduleWasSeeded)
+                {
+                    Log.Logger.Debug("[BOOTSTRAP] Schedule was seeded, invalidating cache to include new schedule");
+                    cacheService.Remove(CacheKey);
+                }
+                
+                // Use cache with factory - factory will be called if cache miss or deserialization fails
+                var cachedSchedulesList = await cacheService.GetOrSetAsync(
+                    CacheKey,
+                    async () =>
+                    {
+                        // Factory: Load schedules from database and populate state items
+                        return await LoadSchedulesListAsyncInternal(services, languagesDict);
+                    });
+                
+                // Convert List to ObservableHashSet
+                initialSchedules = new ObservableHashSet<ScheduleStateItem>();
+                foreach (var item in cachedSchedulesList)
+                {
+                    initialSchedules.Add(item);
+                }
+                
+#if DEBUG
+                var cacheElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - cacheStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                Log.Logger.Information("[BOOTSTRAP] Loaded {Count} schedules from cache in {ElapsedMs:F2}ms", initialSchedules.Count, cacheElapsed);
+#endif
+            }
+            else
+            {
+                // Fallback if cache service not available
+                Log.Logger.Warning("[BOOTSTRAP] IDiskCacheService not available, loading schedules without cache");
+                var languagesDict = await languagesTask;
+#if DEBUG
+                var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
+#endif
+                var schedulesList = await LoadSchedulesListAsyncInternal(services, languagesDict);
+                initialSchedules = new ObservableHashSet<ScheduleStateItem>();
+                foreach (var item in schedulesList)
+                {
+                    initialSchedules.Add(item);
+                }
+            }
 
 #if DEBUG
             var dispatchStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -470,7 +507,7 @@ public static class CommonBootstrapHelper
         }
     }
 
-    private record BootstrapServices(
+    public record BootstrapServices(
         IDatabaseSeedService DatabaseSeedService,
         IScheduleMigrationService ScheduleMigrationService,
         IAlarmScheduleService AlarmScheduleService,
@@ -481,7 +518,44 @@ public static class CommonBootstrapHelper
         IMediaService MediaService,
         IMelodyMusicService MelodyMusicService);
 
-    private static BootstrapServices? GetRequiredServices()
+    /// <summary>
+    /// Gets required services for bootstrap operations.
+    /// </summary>
+    public static BootstrapServices? GetRequiredServices()
+    {
+        return GetRequiredServicesInternal();
+    }
+    
+    /// <summary>
+    /// Gets required services for cache refresh operations.
+    /// Exposed for use by ScheduleEffects to refresh cache after mutations.
+    /// </summary>
+    public static BootstrapServices? GetRequiredServicesForCache()
+    {
+        return GetRequiredServicesInternal();
+    }
+    
+    /// <summary>
+    /// Loads languages dictionary for cache refresh operations.
+    /// Exposed for use by ScheduleEffects to refresh cache after mutations.
+    /// </summary>
+    public static async Task<Dictionary<string, Language>?> LoadLanguagesDictionaryForCache(IBibleTranslationService? bibleTranslationService)
+    {
+        return await LoadLanguagesDictionary(bibleTranslationService);
+    }
+    
+    /// <summary>
+    /// Loads schedules list for cache refresh operations.
+    /// Exposed for use by ScheduleEffects to refresh cache after mutations.
+    /// </summary>
+    public static async Task<List<ScheduleStateItem>> LoadSchedulesListAsyncForCache(
+        BootstrapServices services,
+        Dictionary<string, Language>? languagesDict)
+    {
+        return await LoadSchedulesListAsyncInternal(services, languagesDict);
+    }
+    
+    private static BootstrapServices? GetRequiredServicesInternal()
     {
         var databaseSeedService = ServiceProviderManager.GetService<IDatabaseSeedService>();
         var scheduleMigrationService = ServiceProviderManager.GetService<IScheduleMigrationService>();
@@ -512,13 +586,14 @@ public static class CommonBootstrapHelper
             melodyMusicService!);
     }
 
-    private static async Task SeedAndMigrateSchedules(BootstrapServices services)
+    private static async Task<bool> SeedAndMigrateSchedules(BootstrapServices services)
     {
+        bool scheduleWasSeeded = false;
         try
         {
             // Seed default schedule if database is empty
             // Schema is guaranteed to exist at this point (verified in InitializeDatabase)
-            await services.DatabaseSeedService.SeedDefaultAlarmAsync();
+            scheduleWasSeeded = await services.DatabaseSeedService.SeedDefaultAlarmAsync();
         }
         catch (Exception ex)
         {
@@ -537,6 +612,8 @@ public static class CommonBootstrapHelper
             // Log error but don't fail bootstrap
             Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to migrate Bible Gateway schedules, continuing bootstrap");
         }
+        
+        return scheduleWasSeeded;
     }
 
     private static async Task<List<AlarmSchedule>> LoadSchedulesFromDatabase(IAlarmScheduleService alarmScheduleService)
@@ -547,6 +624,40 @@ public static class CommonBootstrapHelper
 
         Log.Logger.Information("Loaded {Count} schedules from database during bootstrap", alarmSchedules.Count);
         return alarmSchedules;
+    }
+    
+    /// <summary>
+    /// Factory method to load schedules from database and populate state items.
+    /// This is used by the cache service to populate the cache on cache miss.
+    /// Returns List for JSON serialization (converted to ObservableHashSet by caller).
+    /// </summary>
+    private static async Task<List<ScheduleStateItem>> LoadSchedulesListAsyncInternal(
+        BootstrapServices services,
+        Dictionary<string, Language>? languagesDict)
+    {
+#if DEBUG
+        var loadStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+        var alarmSchedules = await LoadSchedulesFromDatabase(services.AlarmScheduleService);
+#if DEBUG
+        var loadElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - loadStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] Loaded {Count} schedules from database in {ElapsedMs:F2}ms", alarmSchedules.Count, loadElapsed);
+#endif
+        
+#if DEBUG
+        var populateStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+        var scheduleStateItems = await PopulateScheduleStateItems(
+            alarmSchedules,
+            services,
+            languagesDict);
+#if DEBUG
+        var populateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - populateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] Populated {Count} schedule state items in {ElapsedMs:F2}ms", scheduleStateItems.Count, populateElapsed);
+#endif
+        
+        // Convert ObservableHashSet to List for JSON serialization
+        return scheduleStateItems.ToList();
     }
 
     private static async Task<Dictionary<string, Language>?> LoadLanguagesDictionary(IBibleTranslationService? bibleTranslationService)

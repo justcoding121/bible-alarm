@@ -16,7 +16,7 @@ public sealed class DatabaseSeedService(
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task SeedDefaultAlarmAsync()
+    public async Task<bool> SeedDefaultAlarmAsync()
     {
         // Seed if schedules are empty
         if (!await alarmScheduleService.AnySchedulesExistAsync(cancellationTokenSource.Token))
@@ -28,7 +28,11 @@ public sealed class DatabaseSeedService(
 
             logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
                 schedule.Id, schedule.Name);
+            
+            return true; // Schedule was seeded
         }
+        
+        return false; // No seeding occurred
     }
 
     public void Dispose()
