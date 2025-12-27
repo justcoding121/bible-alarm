@@ -64,9 +64,6 @@ public class MediaSessionEffect(
                 {
                     // Buffering state (for progress animation) + Pause action (for button)
                     // This matches Alarm Modal: pause button visible during Loading when auto-advancing
-                    var canPlayNext = false;
-                    var canPlayPrevious = false;
-                    
                     logger.Information(
                         "[AndroidAuto] Loading status with auto-advancing: Setting to Buffering state with Pause action (pause button visible, buffering progress, no prev/next buttons, matches Alarm Modal)");
                     

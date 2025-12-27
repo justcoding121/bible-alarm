@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net;
 using System.Net.Http.Headers;
 using Bible.Alarm.Services.Media.Interfaces;

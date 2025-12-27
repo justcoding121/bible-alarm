@@ -486,11 +486,14 @@ public sealed class MediaSessionManager
             // which triggers DefaultCarScreenEffect -> SetDefaultScheduleMetadataAction
             // which is handled by MediaSessionEffect.HandleSetDefaultScheduleMetadata()
             UpdatePlaybackStateForStop();
-            SetActive(false);
+            // CRITICAL: Keep MediaSession active even when stopped so Android Auto can discover it
+            // The playback state (StateStopped) already indicates no playback is happening
+            // Setting Active=false causes Android Auto to not discover the app when car connects
+            SetActive(true);
             // Reset tracked duration when playback stops
             lastDurationMs = null;
             // Note: Audio focus is released globally by AudioFocusEffect when playback stops
-            logger.Information("MediaSessionCompat set to stopped/inactive - next schedule metadata will be updated via state");
+            logger.Information("MediaSessionCompat kept active when stopped - Android Auto can discover app even when idle");
         }
         else
         {

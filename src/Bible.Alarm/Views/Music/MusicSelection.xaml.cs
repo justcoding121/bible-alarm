@@ -1,3 +1,4 @@
+#nullable enable
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;

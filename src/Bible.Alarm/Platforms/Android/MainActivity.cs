@@ -27,16 +27,8 @@ public class MainActivity : MauiAppCompatActivity
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
-        // Create MediaSession as the very first thing - even before MAUI services are registered
-        // This ensures MediaSession is available immediately on process start
-        try
-        {
-            Platforms.Android.Services.AndroidAuto.AndroidAutoMediaSessionHelper.Create();
-        }
-        catch (Exception ex)
-        {
-            AndroidLog.Error("MainActivity", $"Failed to create MediaSession: {ex.Message}");
-        }
+        // Note: MediaSession is already created in MainApplication.OnCreate() which runs before this
+        // No need to create it here since MainApplication always runs first on process start
 
         SetupGlobalExceptionHandlers();
         AndroidLog.Info("MainActivity", "OnCreate started");

@@ -1,3 +1,4 @@
+#nullable enable
 namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IDownloadService : IDisposable
