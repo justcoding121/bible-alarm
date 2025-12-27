@@ -33,6 +33,8 @@ using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Bootstrap;
+using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Storage;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Services.UI;
@@ -145,6 +147,13 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IMediaMigrationService, MediaMigrationService>();
         services.AddSingleton<IScheduleDatabaseVersionService, ScheduleDatabaseVersionService>();
         services.AddSingleton<IDiskCacheService, DiskCacheService>();
+
+        // Register bootstrap services
+        services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();
+        services.AddSingleton<IFluxorBootstrapService, FluxorBootstrapService>();
+        services.AddSingleton<IResourceBootstrapService, ResourceBootstrapService>();
+        services.AddSingleton<IScheduleBootstrapService, ScheduleBootstrapService>();
+        services.AddSingleton<IBootstrapOrchestrator, BootstrapOrchestrator>();
 
         // Register platform-specific version finder
 #if ANDROID
