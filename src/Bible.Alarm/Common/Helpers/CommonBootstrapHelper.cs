@@ -9,6 +9,8 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.Bible;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -36,6 +38,9 @@ public static class CommonBootstrapHelper
         Log.Logger.Information("VerifyServices called with initializeUI={InitializeUI}, _servicesVerified={ServicesVerified}",
             initializeUi, servicesVerified);
 
+        // Track if we need to send early navigation after database/Fluxor are ready
+        var shouldSendEarlyNav = false;
+        
         await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
             if (servicesVerified)
@@ -48,6 +53,9 @@ public static class CommonBootstrapHelper
                 var dbOpsStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
                 Log.Logger.Information("[BOOTSTRAP] Starting database and IO operations");
 #endif
+                // Track if we should send early navigation (only for UI initialization)
+                shouldSendEarlyNav = initializeUi;
+                
                 // Run database and IO operations off UI thread
                 await Task.Run(async () =>
                 {
@@ -65,8 +73,41 @@ public static class CommonBootstrapHelper
                     Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);
 #endif
 
+                    // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
+                    // This improves perceived performance - user sees the home page while schedules are being populated
+                    if (shouldSendEarlyNav)
+                    {
+#if DEBUG
+                        var earlyNavStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+                        Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage early (before schedule population)");
+#endif
+                        try
+                        {
+                            MainThread.BeginInvokeOnMainThread(() =>
+                            {
+                                try
+                                {
+                                    WeakReferenceMessenger.Default.Send(new InitializedMessage());
+#if DEBUG
+                                    var earlyNavElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - earlyNavStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                                    Log.Logger.Information("[BOOTSTRAP] Early InitializedMessage sent - Navigation triggered in {ElapsedMs:F2}ms", earlyNavElapsed);
+#endif
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Logger.Error(ex, "Error sending early InitializedMessage");
+                                }
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Logger.Error(ex, "Error invoking MainThread for early InitializedMessage");
+                        }
+                    }
+
                     // After database and Fluxor store are initialized, load schedules into state
                     // This ensures schedules are available for both Android Auto services and main UI
+                    // UI is already showing (via early InitializedMessage), so user sees loading state
                     await InitializeSchedules();
                 });
                 servicesVerified = true;
@@ -77,75 +118,46 @@ public static class CommonBootstrapHelper
             }
         });
 
-        // Send InitializedMessage after lock is released
+        // Send InitializedMessage after lock is released (only if not already sent early)
         // NavigateToHomeAsync handles duplicate navigation attempts internally
         // CRITICAL: Send InitializedMessage even if services were already verified
         // This handles the case where Android Auto completed bootstrap first (isForeground=false)
         // and the UI needs to navigate away from BootstrapPage
-        if (initializeUi)
+        if (initializeUi && shouldSendEarlyNav)
         {
+            // Services just verified, and we already sent early InitializedMessage above
+            // So we don't need to send it again here
+            Log.Logger.Debug("InitializedMessage already sent early, skipping duplicate send");
+        }
+        else if (initializeUi && servicesVerified)
+        {
+            // Services were already verified (bootstrap completed by Android Auto or previous call)
+            // Since bootstrap is complete, handlers should already be registered, so send immediately
 #if DEBUG
             var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage to trigger navigation (services verified: {ServicesVerified})", servicesVerified);
+            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage immediately (services verified: {ServicesVerified}, bootstrap complete)", servicesVerified);
 #endif
-
-            // If services were already verified (bootstrap completed by Android Auto), add a small delay
-            // to ensure MessageHandlingService.RegisterMessageHandlers() has been called in App.xaml.cs
-            if (servicesVerified)
+            try
             {
-                // Small delay to ensure message handlers are registered before sending message
-                _ = Task.Run(async () =>
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
                     try
                     {
-                        await Task.Delay(100); // 100ms delay to ensure handlers are registered
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                        try
-                        {
-                            WeakReferenceMessenger.Default.Send(new InitializedMessage());
+                        WeakReferenceMessenger.Default.Send(new InitializedMessage());
 #if DEBUG
-                            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                            Log.Logger.Information("[BOOTSTRAP] InitializedMessage sent (delayed for handler registration) - Navigation triggered in {ElapsedMs:F2}ms", navElapsed);
+                        var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                        Log.Logger.Information("[BOOTSTRAP] InitializedMessage sent immediately - Navigation triggered in {ElapsedMs:F2}ms", navElapsed);
 #endif
-                        }
-                            catch (Exception ex)
-                            {
-                                Log.Logger.Error(ex, "Error sending InitializedMessage (delayed)");
-                            }
-                        });
                     }
                     catch (Exception ex)
                     {
-                        Log.Logger.Error(ex, "Error in delayed InitializedMessage task");
+                        Log.Logger.Error(ex, "Error sending InitializedMessage (immediate)");
                     }
                 });
             }
-            else
+            catch (Exception ex)
             {
-                // Services just verified, send message immediately
-                try
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        try
-                        {
-                            WeakReferenceMessenger.Default.Send(new InitializedMessage());
-#if DEBUG
-                            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                            Log.Logger.Information("[BOOTSTRAP] InitializedMessage sent - Navigation triggered in {ElapsedMs:F2}ms", navElapsed);
-#endif
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Logger.Error(ex, "Error sending InitializedMessage");
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Log.Logger.Error(ex, "Error invoking MainThread for InitializedMessage");
-                }
+                Log.Logger.Error(ex, "Error invoking MainThread for immediate InitializedMessage");
             }
         }
         else
@@ -184,7 +196,7 @@ public static class CommonBootstrapHelper
             Log.Logger.Information(
                 "[BOOTSTRAP] Schedule database has {Count} pending migrations, applying...",
                 pendingScheduleMigrations.Count());
-            await scheduleDb.Database.MigrateAsync();
+        await scheduleDb.Database.MigrateAsync();
         }
         else
         {
@@ -272,10 +284,17 @@ public static class CommonBootstrapHelper
                 return;
             }
 
+            // Parallelize seed/migration with language loading
+            // Languages can load independently while we seed/migrate schedules
 #if DEBUG
             var seedStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+            var languagesStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
-            await SeedAndMigrateSchedules(services);
+            var seedTask = SeedAndMigrateSchedules(services);
+            var languagesTask = LoadLanguagesDictionary(services.BibleTranslationService);
+            
+            // Wait for seed to complete before loading schedules (schedules may be created during seed)
+            await seedTask;
 #if DEBUG
             var seedElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - seedStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             Log.Logger.Information("[BOOTSTRAP] Schedule seed/migration completed in {ElapsedMs:F2}ms", seedElapsed);
@@ -290,10 +309,8 @@ public static class CommonBootstrapHelper
             Log.Logger.Information("[BOOTSTRAP] Loaded {Count} schedules from database in {ElapsedMs:F2}ms", alarmSchedules.Count, loadElapsed);
 #endif
             
-#if DEBUG
-            var languagesStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-            var languagesDict = await LoadLanguagesDictionary(services.BibleTranslationService);
+            // Languages task is already running in parallel, await it now
+            var languagesDict = await languagesTask;
 #if DEBUG
             var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
@@ -419,38 +436,242 @@ public static class CommonBootstrapHelper
         BootstrapServices services,
         Dictionary<string, Language>? languagesDict)
     {
-        var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
+        // Optimize: Batch load all required data upfront to avoid N+1 queries
+        var lookupData = await LoadAllLookupDataAsync(alarmSchedules, services);
 
-        foreach (var schedule in alarmSchedules)
+        // Process schedules in parallel instead of sequentially
+        var scheduleTasks = alarmSchedules.Select(async schedule =>
         {
             var scheduleStateItem = services.Mapper.Map<ScheduleStateItem>(schedule);
 
-            await PopulateBibleReadingDisplayNames(
+            // Use pre-loaded lookup data instead of making individual queries
+            PopulateBibleReadingDisplayNamesFromCache(
                 schedule,
                 scheduleStateItem,
-                services,
+                lookupData,
                 languagesDict);
 
-            await PopulateMusicDisplayNames(
+            PopulateMusicDisplayNamesFromCache(
                 schedule,
                 scheduleStateItem,
-                services);
+                lookupData);
 
-            await PopulateDefaultMusicIfNeeded(
-                schedule,
-                scheduleStateItem,
-                services);
+            return scheduleStateItem;
+        });
 
-            initialSchedules.Add(scheduleStateItem);
+        var scheduleStateItems = await Task.WhenAll(scheduleTasks);
+        
+        // Batch populate default music for all schedules that need it
+        await PopulateDefaultMusicBatchAsync(
+            alarmSchedules,
+            scheduleStateItems,
+            services);
+
+        var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
+        foreach (var item in scheduleStateItems)
+        {
+            initialSchedules.Add(item);
         }
-
         return initialSchedules;
     }
 
-    private static async Task PopulateBibleReadingDisplayNames(
+    /// <summary>
+    /// Batch loads all required lookup data upfront to avoid N+1 queries.
+    /// </summary>
+    private static async Task<LookupData> LoadAllLookupDataAsync(
+        List<AlarmSchedule> alarmSchedules,
+        BootstrapServices services)
+    {
+        // Collect all unique keys needed
+        var translationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
+        var bookKeys = new HashSet<(string LanguageCode, string PublicationCode, int BookNumber)>();
+        var vocalMusicLanguageCodes = new HashSet<string>();
+        var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
+        var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
+        var melodyPublicationCodes = new HashSet<string>();
+
+        foreach (var schedule in alarmSchedules)
+        {
+            // Collect Bible reading keys
+            if (schedule.BibleReadingSchedule != null)
+            {
+                var br = schedule.BibleReadingSchedule;
+                if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
+                {
+                    translationKeys.Add((br.LanguageCode, br.PublicationCode));
+                    if (br.BookNumber > 0)
+                    {
+                        bookKeys.Add((br.LanguageCode, br.PublicationCode, br.BookNumber));
+                    }
+                }
+            }
+
+            // Collect music keys
+            if (schedule.Music != null)
+            {
+                var music = schedule.Music;
+                if (music.MusicType == Shared.Models.Enums.MusicType.Vocals)
+                {
+                    if (!string.IsNullOrWhiteSpace(music.LanguageCode))
+                    {
+                        vocalMusicLanguageCodes.Add(music.LanguageCode);
+                        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+                        {
+                            vocalMusicKeys.Add((music.LanguageCode, music.PublicationCode));
+                            if (music.TrackNumber > 0)
+                            {
+                                vocalTrackKeys.Add((music.LanguageCode, music.PublicationCode));
+                            }
+                        }
+                    }
+                }
+                else if (music.MusicType == Shared.Models.Enums.MusicType.Melodies)
+                {
+                    if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+                    {
+                        melodyPublicationCodes.Add(music.PublicationCode);
+                    }
+                }
+            }
+        }
+
+        // Load all data in parallel
+        var translationTasks = translationKeys.Select(async key =>
+        {
+            try
+            {
+                var translation = await services.BibleTranslationService?.GetByLanguageAndCodeWithBooksAsync(
+                    key.LanguageCode, key.PublicationCode);
+                return (Key: key, Translation: translation);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading translation {LanguageCode}/{PublicationCode}", 
+                    key.LanguageCode, key.PublicationCode);
+                return (Key: key, Translation: (BibleTranslation?)null);
+            }
+        }).ToList();
+
+        var bookTasks = bookKeys.Select(async key =>
+        {
+            try
+            {
+                var bookName = await services.BibleBookService?.GetBookNameAsync(
+                    key.LanguageCode, key.PublicationCode, key.BookNumber);
+                return (Key: key, BookName: bookName);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading book {LanguageCode}/{PublicationCode}/{BookNumber}", 
+                    key.LanguageCode, key.PublicationCode, key.BookNumber);
+                return (Key: key, BookName: (string?)null);
+            }
+        }).ToList();
+
+        var vocalLanguagesTask = services.MediaService != null && vocalMusicLanguageCodes.Any()
+            ? services.MediaService.GetVocalMusicLanguages()
+            : Task.FromResult<Dictionary<string, Language>>(new Dictionary<string, Language>());
+
+        var vocalReleasesTasks = vocalMusicKeys.GroupBy(k => k.LanguageCode).Select(async group =>
+        {
+            try
+            {
+                var releases = await services.MediaService?.GetVocalMusicReleases(group.Key);
+                return (LanguageCode: group.Key, Releases: releases ?? new Dictionary<string, VocalMusic>());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading vocal music releases for {LanguageCode}", group.Key);
+                return (LanguageCode: group.Key, Releases: new Dictionary<string, VocalMusic>());
+            }
+        }).ToList();
+
+        var vocalTracksTasks = vocalTrackKeys.Select(async key =>
+        {
+            try
+            {
+                var tracks = await services.MediaService?.GetVocalMusicTracks(key.LanguageCode, key.PublicationCode);
+                return (Key: key, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading vocal tracks {LanguageCode}/{PublicationCode}", 
+                    key.LanguageCode, key.PublicationCode);
+                return (Key: key, Tracks: new SortedDictionary<int, MusicTrack>());
+            }
+        }).ToList();
+
+        var melodyTracksTasks = melodyPublicationCodes.Select(async pubCode =>
+        {
+            try
+            {
+                var tracks = await services.MediaService?.GetMelodyMusicTracks(pubCode);
+                return (PublicationCode: pubCode, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading melody tracks {PublicationCode}", pubCode);
+                return (PublicationCode: pubCode, Tracks: new SortedDictionary<int, MusicTrack>());
+            }
+        }).ToList();
+
+        // Wait for all batch loads to complete in parallel
+        await Task.WhenAll(
+            Task.WhenAll(translationTasks),
+            Task.WhenAll(bookTasks),
+            vocalLanguagesTask,
+            Task.WhenAll(vocalReleasesTasks),
+            Task.WhenAll(vocalTracksTasks),
+            Task.WhenAll(melodyTracksTasks));
+
+        // Build lookup dictionaries
+        var translationsDict = translationTasks
+            .Where(t => t.Result.Translation != null)
+            .ToDictionary(t => t.Result.Key, t => t.Result.Translation!);
+
+        var booksDict = bookTasks
+            .Where(t => !string.IsNullOrWhiteSpace(t.Result.BookName))
+            .ToDictionary(t => t.Result.Key, t => t.Result.BookName!);
+
+        var vocalLanguagesDict = await vocalLanguagesTask;
+
+        var vocalReleasesDict = (await Task.WhenAll(vocalReleasesTasks))
+            .SelectMany(r => r.Releases.Select(kvp => new { Key = (r.LanguageCode, PublicationCode: kvp.Key), Release = kvp.Value }))
+            .ToDictionary(x => x.Key, x => x.Release);
+
+        var vocalTracksDict = (await Task.WhenAll(vocalTracksTasks))
+            .ToDictionary(t => t.Key, t => t.Tracks);
+
+        var melodyTracksDict = (await Task.WhenAll(melodyTracksTasks))
+            .ToDictionary(t => t.PublicationCode, t => t.Tracks);
+
+        return new LookupData(
+            Translations: translationsDict,
+            Books: booksDict,
+            VocalLanguages: vocalLanguagesDict,
+            VocalReleases: vocalReleasesDict,
+            VocalTracks: vocalTracksDict,
+            MelodyTracks: melodyTracksDict);
+    }
+
+    /// <summary>
+    /// Lookup data structure for batch-loaded display names.
+    /// </summary>
+    private sealed record LookupData(
+        Dictionary<(string LanguageCode, string PublicationCode), BibleTranslation> Translations,
+        Dictionary<(string LanguageCode, string PublicationCode, int BookNumber), string> Books,
+        Dictionary<string, Language> VocalLanguages,
+        Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,
+        Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>> VocalTracks,
+        Dictionary<string, SortedDictionary<int, MusicTrack>> MelodyTracks);
+
+    /// <summary>
+    /// Populates Bible reading display names using pre-loaded lookup data.
+    /// </summary>
+    private static void PopulateBibleReadingDisplayNamesFromCache(
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
-        BootstrapServices services,
+        LookupData lookupData,
         Dictionary<string, Language>? languagesDict)
     {
         if (schedule.BibleReadingSchedule == null)
@@ -460,8 +681,106 @@ public static class CommonBootstrapHelper
 
         var bibleReading = schedule.BibleReadingSchedule;
         SetBibleReadingLanguageName(schedule, scheduleStateItem, bibleReading, languagesDict);
-        await SetBibleReadingPublicationName(schedule, scheduleStateItem, bibleReading, services.BibleTranslationService);
-        await SetBibleReadingBookName(schedule, scheduleStateItem, bibleReading, services.BibleBookService);
+
+        // Use cached translation
+        if (!string.IsNullOrWhiteSpace(bibleReading.LanguageCode) && 
+            !string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
+        {
+            var translationKey = (bibleReading.LanguageCode, bibleReading.PublicationCode);
+            if (lookupData.Translations.TryGetValue(translationKey, out var translation) &&
+                !string.IsNullOrWhiteSpace(translation.Name))
+            {
+                scheduleStateItem.BibleReadingPublicationName = translation.Name;
+                Log.Logger.Debug("Set BibleReadingPublicationName '{BibleReadingPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    translation.Name, schedule.Id, bibleReading.PublicationCode);
+            }
+        }
+
+        // Use cached book name
+        if (bibleReading.BookNumber > 0 &&
+            !string.IsNullOrWhiteSpace(bibleReading.LanguageCode) &&
+            !string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
+        {
+            var bookKey = (bibleReading.LanguageCode, bibleReading.PublicationCode, bibleReading.BookNumber);
+            if (lookupData.Books.TryGetValue(bookKey, out var bookName))
+            {
+                scheduleStateItem.BibleReadingBookName = bookName;
+                Log.Logger.Debug("Set BibleReadingBookName '{BibleReadingBookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
+                    bookName, schedule.Id, bibleReading.BookNumber);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Populates music display names using pre-loaded lookup data.
+    /// </summary>
+    private static void PopulateMusicDisplayNamesFromCache(
+        AlarmSchedule schedule,
+        ScheduleStateItem scheduleStateItem,
+        LookupData lookupData)
+    {
+        if (schedule.Music == null)
+        {
+            return;
+        }
+
+        var music = schedule.Music;
+
+        // Use cached vocal languages
+        if (music.MusicType == Shared.Models.Enums.MusicType.Vocals &&
+            !string.IsNullOrWhiteSpace(music.LanguageCode))
+        {
+            if (lookupData.VocalLanguages.TryGetValue(music.LanguageCode, out var vocalLanguage))
+            {
+                scheduleStateItem.MusicLanguageName = vocalLanguage.Name;
+                Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    vocalLanguage.Name, schedule.Id, music.LanguageCode);
+            }
+            else
+            {
+                scheduleStateItem.MusicLanguageName = music.LanguageCode;
+            }
+
+            // Use cached vocal releases
+            if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+            {
+                var releaseKey = (music.LanguageCode, music.PublicationCode);
+                if (lookupData.VocalReleases.TryGetValue(releaseKey, out var release))
+                {
+                    scheduleStateItem.MusicPublicationName = release.Name;
+                    Log.Logger.Debug("Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        release.Name, schedule.Id, music.PublicationCode);
+                }
+            }
+
+            // Use cached vocal tracks
+            if (music.TrackNumber > 0 &&
+                !string.IsNullOrWhiteSpace(music.LanguageCode) &&
+                !string.IsNullOrWhiteSpace(music.PublicationCode))
+            {
+                var trackKey = (music.LanguageCode, music.PublicationCode);
+                if (lookupData.VocalTracks.TryGetValue(trackKey, out var tracks) &&
+                    tracks.TryGetValue(music.TrackNumber, out var track))
+                {
+                    scheduleStateItem.MusicTrackName = track.Title;
+                    Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                        track.Title, schedule.Id, music.TrackNumber);
+                }
+            }
+        }
+        else if (music.MusicType == Shared.Models.Enums.MusicType.Melodies &&
+                 !string.IsNullOrWhiteSpace(music.PublicationCode) &&
+                 music.TrackNumber > 0)
+        {
+            // Use cached melody tracks
+            if (lookupData.MelodyTracks.TryGetValue(music.PublicationCode, out var tracks) &&
+                tracks.TryGetValue(music.TrackNumber, out var track))
+            {
+                scheduleStateItem.MusicTrackName = $"Melody Number(s) {track.Title}";
+                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                    track.Title, schedule.Id, music.TrackNumber);
+            }
+        }
     }
 
     private static void SetBibleReadingLanguageName(
@@ -495,215 +814,30 @@ public static class CommonBootstrapHelper
         }
     }
 
-    private static async Task SetBibleReadingPublicationName(
-        AlarmSchedule schedule,
-        ScheduleStateItem scheduleStateItem,
-        BibleReadingSchedule bibleReading,
-        IBibleTranslationService? bibleTranslationService)
-    {
-        if (bibleTranslationService == null ||
-            string.IsNullOrWhiteSpace(bibleReading.LanguageCode) ||
-            string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
-        {
-            return;
-        }
 
-        try
-        {
-            var translation = await bibleTranslationService.GetByLanguageAndCodeWithBooksAsync(
-                bibleReading.LanguageCode,
-                bibleReading.PublicationCode);
-
-            if (translation != null && !string.IsNullOrWhiteSpace(translation.Name))
-            {
-                scheduleStateItem.BibleReadingPublicationName = translation.Name;
-                Log.Logger.Debug("Set BibleReadingPublicationName '{BibleReadingPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    translation.Name, schedule.Id, bibleReading.PublicationCode);
-            }
-        }
-        catch (Exception pubEx)
-        {
-            Log.Logger.Warning(pubEx, "Error loading publication name for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                schedule.Id, bibleReading.PublicationCode);
-        }
-    }
-
-    private static async Task SetBibleReadingBookName(
-        AlarmSchedule schedule,
-        ScheduleStateItem scheduleStateItem,
-        BibleReadingSchedule bibleReading,
-        IBibleBookService? bibleBookService)
-    {
-        if (bibleBookService == null || bibleReading.BookNumber <= 0)
-        {
-            return;
-        }
-
-        try
-        {
-            var bookName = await bibleBookService.GetBookNameAsync(
-                bibleReading.LanguageCode,
-                bibleReading.PublicationCode,
-                bibleReading.BookNumber);
-
-            if (!string.IsNullOrWhiteSpace(bookName))
-            {
-                scheduleStateItem.BibleReadingBookName = bookName;
-                Log.Logger.Debug("Set BibleReadingBookName '{BibleReadingBookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
-                    bookName, schedule.Id, bibleReading.BookNumber);
-            }
-        }
-        catch (Exception bookEx)
-        {
-            Log.Logger.Warning(bookEx, "Error loading book name for schedule {ScheduleId} (BookNumber: {BookNumber})",
-                schedule.Id, bibleReading.BookNumber);
-        }
-    }
-
-    private static async Task PopulateMusicDisplayNames(
-        AlarmSchedule schedule,
-        ScheduleStateItem scheduleStateItem,
+    /// <summary>
+    /// Batch populates default music for all schedules that need it.
+    /// This is more efficient than calling PopulateDefaultMusicIfNeeded for each schedule individually.
+    /// </summary>
+    private static async Task PopulateDefaultMusicBatchAsync(
+        List<AlarmSchedule> alarmSchedules,
+        ScheduleStateItem[] scheduleStateItems,
         BootstrapServices services)
     {
-        if (schedule.Music == null)
+        // Identify schedules that need default music
+        var schedulesNeedingMusic = new List<(AlarmSchedule Schedule, ScheduleStateItem StateItem)>();
+        for (int i = 0; i < alarmSchedules.Count && i < scheduleStateItems.Length; i++)
         {
-            return;
-        }
-
-        var music = schedule.Music;
-        await SetMusicLanguageName(schedule, scheduleStateItem, music, services.MediaService);
-        await SetMusicPublicationName(schedule, scheduleStateItem, music, services.MediaService);
-        await SetMusicTrackName(schedule, scheduleStateItem, music, services.MediaService);
-    }
-
-    private static async Task SetMusicLanguageName(
-        AlarmSchedule schedule,
-        ScheduleStateItem scheduleStateItem,
-        AlarmMusic music,
-        IMediaService? mediaService)
-    {
-        if (music.MusicType != Shared.Models.Enums.MusicType.Vocals ||
-            string.IsNullOrWhiteSpace(music.LanguageCode) ||
-            mediaService == null)
-        {
-            return;
-        }
-
-        try
-        {
-            var vocalLanguagesDict = await mediaService.GetVocalMusicLanguages();
-            if (vocalLanguagesDict.TryGetValue(music.LanguageCode, out var vocalLanguage))
+            var stateItem = scheduleStateItems[i];
+            if (!stateItem.MusicType.HasValue ||
+                !stateItem.MusicTrackNumber.HasValue ||
+                stateItem.MusicTrackNumber.Value <= 0)
             {
-                scheduleStateItem.MusicLanguageName = vocalLanguage.Name;
-                Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                    vocalLanguage.Name, schedule.Id, music.LanguageCode);
-            }
-            else
-            {
-                scheduleStateItem.MusicLanguageName = music.LanguageCode;
-                Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as MusicLanguageName for schedule {ScheduleId}",
-                    music.LanguageCode, schedule.Id);
-            }
-        }
-        catch (Exception langEx)
-        {
-            Log.Logger.Warning(langEx, "Error loading music language name for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                schedule.Id, music.LanguageCode);
-        }
-    }
-
-    private static async Task SetMusicPublicationName(
-        AlarmSchedule schedule,
-        ScheduleStateItem scheduleStateItem,
-        AlarmMusic music,
-        IMediaService? mediaService)
-    {
-        if (music.MusicType != Shared.Models.Enums.MusicType.Vocals ||
-            string.IsNullOrWhiteSpace(music.LanguageCode) ||
-            string.IsNullOrWhiteSpace(music.PublicationCode) ||
-            mediaService == null)
-        {
-            return;
-        }
-
-        try
-        {
-            var releases = await mediaService.GetVocalMusicReleases(music.LanguageCode);
-            if (releases.TryGetValue(music.PublicationCode, out var release))
-            {
-                scheduleStateItem.MusicPublicationName = release.Name;
-                Log.Logger.Debug("Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    release.Name, schedule.Id, music.PublicationCode);
-            }
-        }
-        catch (Exception pubEx)
-        {
-            Log.Logger.Warning(pubEx, "Error loading music publication name for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                schedule.Id, music.PublicationCode);
-        }
-    }
-
-    private static async Task SetMusicTrackName(
-        AlarmSchedule schedule,
-        ScheduleStateItem scheduleStateItem,
-        AlarmMusic music,
-        IMediaService? mediaService)
-    {
-        if (music.TrackNumber <= 0 || mediaService == null)
-        {
-            return;
-        }
-
-        try
-        {
-            string? trackName = await GetTrackName(music, mediaService);
-            if (!string.IsNullOrWhiteSpace(trackName))
-            {
-                scheduleStateItem.MusicTrackName = trackName;
-                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                    trackName, schedule.Id, music.TrackNumber);
-            }
-        }
-        catch (Exception trackEx)
-        {
-            Log.Logger.Warning(trackEx, "Error loading music track name for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                schedule.Id, music.TrackNumber);
-        }
-    }
-
-    private static async Task<string?> GetTrackName(AlarmMusic music, IMediaService mediaService)
-    {
-        if (music.MusicType == Shared.Models.Enums.MusicType.Melodies &&
-            !string.IsNullOrWhiteSpace(music.PublicationCode))
-        {
-            var tracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
-            if (tracks.TryGetValue(music.TrackNumber, out var track))
-            {
-                return $"Melody Number(s) {track.Title}";
-            }
-        }
-        else if (music.MusicType == Shared.Models.Enums.MusicType.Vocals &&
-                 !string.IsNullOrWhiteSpace(music.LanguageCode) &&
-                 !string.IsNullOrWhiteSpace(music.PublicationCode))
-        {
-            var tracks = await mediaService.GetVocalMusicTracks(music.LanguageCode, music.PublicationCode);
-            if (tracks.TryGetValue(music.TrackNumber, out var track))
-            {
-                return track.Title;
+                schedulesNeedingMusic.Add((alarmSchedules[i], stateItem));
             }
         }
 
-        return null;
-    }
-
-    private static async Task PopulateDefaultMusicIfNeeded(
-        AlarmSchedule schedule,
-        ScheduleStateItem scheduleStateItem,
-        BootstrapServices services)
-    {
-        if (scheduleStateItem.MusicType.HasValue &&
-            scheduleStateItem.MusicTrackNumber.HasValue &&
-            scheduleStateItem.MusicTrackNumber.Value > 0)
+        if (schedulesNeedingMusic.Count == 0)
         {
             return;
         }
@@ -717,31 +851,39 @@ public static class CommonBootstrapHelper
                 return;
             }
 
+            // Load default music once for all schedules
             var melodyMusic = await services.MelodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
 
             if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
             {
-                Log.Logger.Warning("Melody music '{PublicationCode}' not found or has no tracks - cannot populate default music for schedule {ScheduleId}",
-                    defaultPublicationCode, schedule.Id);
+                Log.Logger.Warning("Melody music '{PublicationCode}' not found or has no tracks - cannot populate default music for {Count} schedules",
+                    defaultPublicationCode, schedulesNeedingMusic.Count);
                 return;
             }
 
-            var randomTrack = melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
+            // Apply to all schedules needing music
+            var random = new Random();
+            foreach (var (schedule, stateItem) in schedulesNeedingMusic)
+            {
+                var randomTrack = melodyMusic.Tracks[random.Next(melodyMusic.Tracks.Count)];
 
-            scheduleStateItem.MusicType = Shared.Models.Enums.MusicType.Melodies;
-            scheduleStateItem.MusicPublicationCode = defaultPublicationCode;
-            scheduleStateItem.MusicLanguageCode = null;
-            scheduleStateItem.MusicTrackNumber = randomTrack.Number;
-            scheduleStateItem.MusicRepeat = false;
-            scheduleStateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
+                stateItem.MusicType = Shared.Models.Enums.MusicType.Melodies;
+                stateItem.MusicPublicationCode = defaultPublicationCode;
+                stateItem.MusicLanguageCode = null;
+                stateItem.MusicTrackNumber = randomTrack.Number;
+                stateItem.MusicRepeat = false;
+                stateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
 
-            Log.Logger.Information("Populated default music properties for schedule {ScheduleId}. MusicType=Melodies, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
-                schedule.Id, defaultPublicationCode, randomTrack.Number);
+                Log.Logger.Debug("Populated default music properties for schedule {ScheduleId}. MusicType=Melodies, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
+                    schedule.Id, defaultPublicationCode, randomTrack.Number);
+            }
+
+            Log.Logger.Information("Batch populated default music for {Count} schedules", schedulesNeedingMusic.Count);
         }
         catch (Exception defaultMusicEx)
         {
-            Log.Logger.Warning(defaultMusicEx, "Error populating default music properties for schedule {ScheduleId}",
-                schedule.Id);
+            Log.Logger.Warning(defaultMusicEx, "Error batch populating default music properties for {Count} schedules",
+                schedulesNeedingMusic.Count);
         }
     }
 

@@ -30,7 +30,8 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var query = dbContext.AlarmSchedules.AsQueryable();
+        // Use AsNoTracking() for read-only queries to improve performance
+        var query = dbContext.AlarmSchedules.AsNoTracking().AsQueryable();
 
         if (includeMusic)
         {
@@ -56,7 +57,9 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
         // Apply filter first, then include navigation properties
+        // Use AsNoTracking() for read-only queries to improve performance
         var query = dbContext.AlarmSchedules
+            .AsNoTracking()
             .Where(x => x.Id == scheduleId);
 
         if (includeMusic)
@@ -77,7 +80,8 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var query = dbContext.AlarmSchedules.AsQueryable();
+        // Use AsNoTracking() for read-only queries to improve performance
+        var query = dbContext.AlarmSchedules.AsNoTracking().AsQueryable();
 
         if (includeMusic)
         {
