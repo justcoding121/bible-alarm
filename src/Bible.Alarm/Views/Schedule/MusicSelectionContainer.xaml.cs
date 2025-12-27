@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.ViewModels.Schedule;
+using Serilog;
 using System.ComponentModel;
 using System.Threading;
 
@@ -80,12 +81,16 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         {
             var newState = vm.MusicEnabled;
 
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] PropertyChanged: MusicEnabled = {newState}, LastState = {lastMusicEnabledState}, isInitialLoad = {isInitialLoad}");
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] PropertyChanged: MusicEnabled = {NewState}, LastState = {LastState}, isInitialLoad = {IsInitialLoad}", newState, lastMusicEnabledState, isInitialLoad);
+#endif
 
             // Ignore property changes during initial load
             if (isInitialLoad)
             {
-                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Ignoring property change during initial load");
+#if DEBUG
+                Log.Debug("[MusicSelectionContainer] Ignoring property change during initial load");
+#endif
                 lastMusicEnabledState = newState; // Update last state but don't animate
                 return;
             }
@@ -93,7 +98,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             // Debounce rapid changes
             if (newState == lastMusicEnabledState)
             {
-                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] State unchanged, ignoring");
+#if DEBUG
+                Log.Debug("[MusicSelectionContainer] State unchanged, ignoring");
+#endif
                 return; // Ignore if state hasn't actually changed
             }
 
@@ -102,7 +109,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 
             lastMusicEnabledState = newState;
 
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Triggering animation for MusicEnabled = {newState}, shouldScrollOnExpand = {shouldScrollOnExpand}");
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] Triggering animation for MusicEnabled = {NewState}, shouldScrollOnExpand = {ShouldScrollOnExpand}", newState, shouldScrollOnExpand);
+#endif
 
             // Cancel and dispose any pending debounce
             debounceTokenSource?.Cancel();
@@ -115,7 +124,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             {
                 if (!token.IsCancellationRequested && Handler != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate=false, isEnabled={newState}");
+#if DEBUG
+                    Log.Debug("[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate=false, isEnabled={IsEnabled}", newState);
+#endif
                     UpdateCollapsibleContentVisibility(newState, animate: false);
                 }
             });
@@ -123,7 +134,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         else if (e.PropertyName == nameof(MusicSelectionContainerViewModel.ShouldScrollToBottom) && vm.ShouldScrollToBottom)
         {
             // Scroll to bottom when ViewModel signals it
-            System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom");
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom");
+#endif
 
             // Small delay to ensure layout is complete
             MainThread.BeginInvokeOnMainThread(async () =>
@@ -142,29 +155,39 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 
     private void UpdateCollapsibleContentVisibility(bool isEnabled, bool animate)
     {
-        System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] UpdateCollapsibleContentVisibility: isEnabled={isEnabled}, animate={animate}, CollapsibleContent={CollapsibleContent != null}, isAnimating={isAnimating}");
+#if DEBUG
+        Log.Debug("[MusicSelectionContainer] UpdateCollapsibleContentVisibility: isEnabled={IsEnabled}, animate={Animate}, CollapsibleContent={HasContent}, isAnimating={IsAnimating}", isEnabled, animate, CollapsibleContent != null, isAnimating);
+#endif
 
         if (CollapsibleContent == null)
         {
-            System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] CollapsibleContent is null, returning");
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] CollapsibleContent is null, returning");
+#endif
             return;
         }
 
         if (isAnimating)
         {
-            System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Already animating, returning");
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] Already animating, returning");
+#endif
             return;
         }
 
         if (animate)
         {
-            System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Starting animation");
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] Starting animation");
+#endif
             _ = AnimateCollapsibleContent(isEnabled);
         }
         else
         {
             // Set initial state without animation
-            System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Setting initial state without animation");
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] Setting initial state without animation");
+#endif
             CollapsibleContent.IsVisible = isEnabled;
             CollapsibleContent.Opacity = isEnabled ? 1 : 0;
             if (!isEnabled)
@@ -202,7 +225,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Animation error: {ex.Message}");
+#if DEBUG
+            Log.Debug(ex, "[MusicSelectionContainer] Animation error");
+#endif
             SetContentStateDirectly(isEnabled);
             isAnimating = false;
         }
@@ -385,7 +410,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                 {
                     if (isInitialLoad)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {viewModel.MusicEnabled}");
+#if DEBUG
+                        Log.Debug("[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {MusicEnabled}", viewModel.MusicEnabled);
+#endif
                         UpdateCollapsibleContentVisibility(viewModel.MusicEnabled, animate: false);
                     }
                     else if (viewModel.MusicEnabled)
@@ -421,7 +448,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 
             if (scrollView != null)
             {
-                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Found ScrollView, scrolling to bottom");
+#if DEBUG
+                Log.Debug("[MusicSelectionContainer] Found ScrollView, scrolling to bottom");
+#endif
 
                 // Scroll to bottom with animation
                 MainThread.BeginInvokeOnMainThread(async () =>
@@ -437,7 +466,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                     if (contentHeight > 0)
                     {
                         await scrollView.ScrollToAsync(0, contentHeight, true);
-                        System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Scrolled to bottom (height: {contentHeight})");
+#if DEBUG
+                        Log.Debug("[MusicSelectionContainer] Scrolled to bottom (height: {Height})", contentHeight);
+#endif
                     }
                     else
                     {
@@ -448,28 +479,38 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                             if (lastChild is Element element)
                             {
                                 await scrollView.ScrollToAsync(element, ScrollToPosition.End, true);
-                                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Scrolled to bottom (last child element)");
+#if DEBUG
+                                Log.Debug("[MusicSelectionContainer] Scrolled to bottom (last child element)");
+#endif
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Last child is not an Element, cannot scroll");
+#if DEBUG
+                                Log.Debug("[MusicSelectionContainer] Last child is not an Element, cannot scroll");
+#endif
                             }
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] Content height not available and no children found");
+#if DEBUG
+                            Log.Debug("[MusicSelectionContainer] Content height not available and no children found");
+#endif
                         }
                     }
                 });
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[MusicSelectionContainer] ScrollView not found");
+#if DEBUG
+                Log.Debug("[MusicSelectionContainer] ScrollView not found");
+#endif
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Error scrolling: {ex.Message}");
+#if DEBUG
+            Log.Debug(ex, "[MusicSelectionContainer] Error scrolling");
+#endif
         }
     }
 
@@ -486,7 +527,9 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             catch (Exception ex)
             {
                 // Ignore errors during cancellation/disposal
-                System.Diagnostics.Debug.WriteLine($"[MusicSelectionContainer] Error during debounceTokenSource disposal: {ex.Message}");
+#if DEBUG
+                Log.Debug(ex, "[MusicSelectionContainer] Error during debounceTokenSource disposal");
+#endif
             }
 
             // Unsubscribe from view model

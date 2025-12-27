@@ -12,13 +12,13 @@ using CommunityToolkit.Maui.Services;
 using CommunityToolkit.Maui.Views;
 using Java.Lang;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using Application = Android.App.Application;
 using AudioAttributes = AndroidX.Media3.Common.AudioAttributes;
 using DeviceInfo = AndroidX.Media3.Common.DeviceInfo;
 using Exception = System.Exception;
 using MediaMetadata = AndroidX.Media3.Common.MediaMetadata;
 using Object = Java.Lang.Object;
-using Trace = System.Diagnostics.Trace;
 
 namespace CommunityToolkit.Maui.Core.Views;
 
@@ -73,7 +73,9 @@ public partial class MediaManager : Object, IPlayerListener
 	{
 		if (connection?.Binder?.Service is null)
 		{
-			Trace.TraceInformation("Notification Service not running.");
+#if DEBUG
+			Logger.LogDebug("Notification Service not running.");
+#endif
 			return;
 		}
 
@@ -666,7 +668,17 @@ public partial class MediaManager : Object, IPlayerListener
 		}
 		catch (Exception e)
 		{
-			System.Diagnostics.Debug.WriteLine($"Unable to retrieve {nameof(MediaElement.MetadataArtworkUrl)} for {url}.{e}\n");
+#if DEBUG
+			// Use Serilog directly since this is a static method
+			try
+			{
+				Serilog.Log.Debug(e, "Unable to retrieve {MetadataArtworkUrl} for {Url}", nameof(MediaElement.MetadataArtworkUrl), url);
+			}
+			catch
+			{
+				// Serilog may not be initialized in static context, ignore
+			}
+#endif
 			return [];
 		}
 		finally

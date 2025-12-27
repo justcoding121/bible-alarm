@@ -5,13 +5,13 @@ using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Services.UI.Interfaces;
 using Java.Lang;
 using Serilog;
 using Exception = System.Exception;
-using AndroidLog = Android.Util.Log;
 
 namespace Bible.Alarm.Platforms.Android;
 
@@ -30,14 +30,17 @@ public class MainActivity : MauiAppCompatActivity
         // Note: MediaSession is already created in MainApplication.OnCreate() which runs before this
         // No need to create it here since MainApplication always runs first on process start
 
+#if DEBUG
+        Logger.Information("[BOOTSTRAP] App launch started - Stopwatch started at {ElapsedMs}ms", BootstrapTimingHelper.GetElapsedMilliseconds());
+#endif
         SetupGlobalExceptionHandlers();
-        AndroidLog.Info("MainActivity", "OnCreate started");
+        Logger.Debug("MainActivity: OnCreate started");
 
         try
         {
             PerformOnCreateInitialization(savedInstanceState);
             SetupActivityComponents();
-            AndroidLog.Info("MainActivity", "OnCreate completed successfully");
+            Logger.Debug("MainActivity: OnCreate completed successfully");
         }
         catch (Exception ex)
         {
@@ -51,9 +54,9 @@ public class MainActivity : MauiAppCompatActivity
         InitializeMauiApp();
         var safeSavedInstanceState = GetSafeSavedInstanceState(savedInstanceState);
 
-        AndroidLog.Info("MainActivity", "Calling base.OnCreate()");
+        Logger.Debug("MainActivity: Calling base.OnCreate()");
         base.OnCreate(safeSavedInstanceState);
-        AndroidLog.Info("MainActivity", "base.OnCreate() completed");
+        Logger.Debug("MainActivity: base.OnCreate() completed");
     }
 
     private void SetupGlobalExceptionHandlers()
@@ -64,9 +67,19 @@ public class MainActivity : MauiAppCompatActivity
 
     private static void InitializeMauiApp()
     {
-        AndroidLog.Info("MainActivity", "Calling MauiAppHolder.CreateAndStore()");
+#if DEBUG
+        var diStartTime = BootstrapTimingHelper.GetElapsedMilliseconds();
+        Logger.Information("[BOOTSTRAP] DI setup starting at {ElapsedMs}ms", diStartTime);
+#endif
+        
+        Logger.Debug("MainActivity: Calling MauiAppHolder.CreateAndStore()");
         MauiAppHolder.CreateAndStore();
-        AndroidLog.Info("MainActivity", "MauiAppHolder.CreateAndStore() completed");
+        
+#if DEBUG
+        var diElapsed = BootstrapTimingHelper.GetElapsedMilliseconds() - diStartTime;
+        Logger.Information("[BOOTSTRAP] DI setup completed in {ElapsedMs}ms (total: {TotalMs}ms)", diElapsed, BootstrapTimingHelper.GetElapsedMilliseconds());
+#endif
+        Logger.Debug("MainActivity: MauiAppHolder.CreateAndStore() completed");
     }
 
     private Bundle? GetSafeSavedInstanceState(Bundle? savedInstanceState)
@@ -126,19 +139,18 @@ public class MainActivity : MauiAppCompatActivity
 
     private void SetupActivityComponents()
     {
-        AndroidLog.Info("MainActivity", "Setting up intents and background tasks");
+        Logger.Debug("MainActivity: Setting up intents and background tasks");
         HandleIncomingIntent();
         SetupBackgroundTasks();
     }
 
     private void HandleOnCreateException(Exception ex)
     {
-        AndroidLog.Error("MainActivity", $"FATAL ERROR in OnCreate: {ex.GetType().Name}: {ex.Message}");
-        AndroidLog.Error("MainActivity", $"Stack trace: {ex.StackTrace}");
+        Logger.Fatal(ex, "FATAL ERROR in OnCreate: {ExceptionType}: {Message}", ex.GetType().Name, ex.Message);
 
         if (ex.InnerException != null)
         {
-            AndroidLog.Error("MainActivity", $"Inner exception: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            Logger.Fatal(ex.InnerException, "Inner exception in OnCreate: {ExceptionType}: {Message}", ex.InnerException.GetType().Name, ex.InnerException.Message);
         }
 
         try

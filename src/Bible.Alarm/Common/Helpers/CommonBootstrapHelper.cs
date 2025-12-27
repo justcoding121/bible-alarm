@@ -44,7 +44,10 @@ public static class CommonBootstrapHelper
             }
             else
             {
-                Log.Logger.Information("Starting database and IO operations");
+#if DEBUG
+                var dbOpsStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+                Log.Logger.Information("[BOOTSTRAP] Starting database and IO operations");
+#endif
                 // Run database and IO operations off UI thread
                 await Task.Run(async () =>
                 {
@@ -60,7 +63,10 @@ public static class CommonBootstrapHelper
                     await InitializeSchedules();
                 });
                 servicesVerified = true;
-                Log.Logger.Information("Database and IO operations completed");
+#if DEBUG
+                var dbOpsElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbOpsStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                Log.Logger.Information("[BOOTSTRAP] Database and IO operations completed in {ElapsedMs:F2}ms", dbOpsElapsed);
+#endif
             }
         });
 
@@ -71,7 +77,10 @@ public static class CommonBootstrapHelper
         // and the UI needs to navigate away from BootstrapPage
         if (initializeUi)
         {
-            Log.Logger.Information("Sending InitializedMessage to trigger navigation (services verified: {ServicesVerified})", servicesVerified);
+#if DEBUG
+            var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage to trigger navigation (services verified: {ServicesVerified})", servicesVerified);
+#endif
 
             // If services were already verified (bootstrap completed by Android Auto), add a small delay
             // to ensure MessageHandlingService.RegisterMessageHandlers() has been called in App.xaml.cs
@@ -85,11 +94,14 @@ public static class CommonBootstrapHelper
                         await Task.Delay(100); // 100ms delay to ensure handlers are registered
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
-                            try
-                            {
-                                WeakReferenceMessenger.Default.Send(new InitializedMessage());
-                                Log.Logger.Information("InitializedMessage sent (delayed for handler registration)");
-                            }
+                        try
+                        {
+                            WeakReferenceMessenger.Default.Send(new InitializedMessage());
+#if DEBUG
+                            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                            Log.Logger.Information("[BOOTSTRAP] InitializedMessage sent (delayed for handler registration) - Navigation triggered in {ElapsedMs:F2}ms", navElapsed);
+#endif
+                        }
                             catch (Exception ex)
                             {
                                 Log.Logger.Error(ex, "Error sending InitializedMessage (delayed)");
@@ -112,7 +124,10 @@ public static class CommonBootstrapHelper
                         try
                         {
                             WeakReferenceMessenger.Default.Send(new InitializedMessage());
-                            Log.Logger.Information("InitializedMessage sent");
+#if DEBUG
+                            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                            Log.Logger.Information("[BOOTSTRAP] InitializedMessage sent - Navigation triggered in {ElapsedMs:F2}ms", navElapsed);
+#endif
                         }
                         catch (Exception ex)
                         {
@@ -140,25 +155,50 @@ public static class CommonBootstrapHelper
 
     private static async Task InitializeDatabase()
     {
+#if DEBUG
+        var dbInitStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+        Log.Logger.Information("[BOOTSTRAP] Database initialization starting");
+#endif
+        
         // Create a scope for the DbContext since it's registered as scoped
         // This ensures proper lifetime management and prevents disposal issues
         var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
         await using var scope = scopeFactory.CreateAsyncScope();
 
         // Migrate Schedule database (always safe - app owns this DB)
+#if DEBUG
+        var scheduleDbStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
         var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
         await scheduleDb.Database.MigrateAsync();
+#if DEBUG
+        var scheduleDbElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - scheduleDbStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] Schedule database migration completed in {ElapsedMs:F2}ms", scheduleDbElapsed);
+#endif
 
         // Migrate Media database if it exists and is from a previous app version
         // Note: App is packaged with latest media index database, so this primarily
         // handles users upgrading from previous app versions
+#if DEBUG
+        var mediaDbStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
         var mediaMigrationService = ServiceProviderManager.GetService<IMediaMigrationService>();
         await mediaMigrationService.MigrateIfNeededAsync();
+#if DEBUG
+        var mediaDbElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - mediaDbStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] Media database migration completed in {ElapsedMs:F2}ms", mediaDbElapsed);
+        
+        var dbInitElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbInitStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] Database initialization completed in {ElapsedMs:F2}ms", dbInitElapsed);
+#endif
     }
 
     private static async Task InitializeFluxorStore()
     {
-        Log.Logger.Information("Initializing Fluxor store");
+#if DEBUG
+        var fluxorStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+        Log.Logger.Information("[BOOTSTRAP] Fluxor store initialization starting");
+#endif
 
         // Get the store from service provider
         var store = ServiceProviderManager.GetService<IStore>();
@@ -173,6 +213,11 @@ public static class CommonBootstrapHelper
 
         // Set the static store reference
         ReduxContainer.Store = store;
+        
+#if DEBUG
+        var fluxorElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - fluxorStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] Fluxor store initialization completed in {ElapsedMs:F2}ms", fluxorElapsed);
+#endif
 
 #if ANDROID
         // Android Auto can start the process without constructing the MAUI App UI (App.xaml.cs),
@@ -195,7 +240,10 @@ public static class CommonBootstrapHelper
 
     private static async Task InitializeSchedules()
     {
-        Log.Logger.Information("Initializing schedules in state");
+#if DEBUG
+        var schedulesStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+        Log.Logger.Information("[BOOTSTRAP] Schedule initialization starting");
+#endif
 
         try
         {
@@ -205,15 +253,56 @@ public static class CommonBootstrapHelper
                 return;
             }
 
+#if DEBUG
+            var seedStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             await SeedAndMigrateSchedules(services);
+#if DEBUG
+            var seedElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - seedStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Log.Logger.Information("[BOOTSTRAP] Schedule seed/migration completed in {ElapsedMs:F2}ms", seedElapsed);
+#endif
+            
+#if DEBUG
+            var loadStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             var alarmSchedules = await LoadSchedulesFromDatabase(services.AlarmScheduleService);
+#if DEBUG
+            var loadElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - loadStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Log.Logger.Information("[BOOTSTRAP] Loaded {Count} schedules from database in {ElapsedMs:F2}ms", alarmSchedules.Count, loadElapsed);
+#endif
+            
+#if DEBUG
+            var languagesStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             var languagesDict = await LoadLanguagesDictionary(services.BibleTranslationService);
+#if DEBUG
+            var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
+#endif
+            
+#if DEBUG
+            var populateStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             var initialSchedules = await PopulateScheduleStateItems(
                 alarmSchedules,
                 services,
                 languagesDict);
+#if DEBUG
+            var populateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - populateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Log.Logger.Information("[BOOTSTRAP] Populated {Count} schedule state items in {ElapsedMs:F2}ms", initialSchedules.Count, populateElapsed);
+#endif
 
+#if DEBUG
+            var dispatchStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             await DispatchInitializeAction(services.Dispatcher, initialSchedules);
+#if DEBUG
+            var dispatchElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dispatchStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Log.Logger.Information("[BOOTSTRAP] Dispatched InitializeAction in {ElapsedMs:F2}ms", dispatchElapsed);
+            
+            var schedulesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - schedulesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Log.Logger.Information("[BOOTSTRAP] Schedule initialization completed in {ElapsedMs:F2}ms", schedulesElapsed);
+#endif
 
 #if ANDROID
             // Dispatch SetCarPlayScreenAction to fetch and set default schedule metadata for Android Auto

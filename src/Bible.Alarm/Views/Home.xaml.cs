@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.ViewModels;
 using Serilog;
 using Syncfusion.Maui.Buttons;
@@ -13,13 +14,17 @@ public partial class Home : BaseContentPage, IDisposable
 
     public Home(HomeViewModel vm)
     {
+#if DEBUG
         var constructorStartTime = DateTime.UtcNow;
         Log.Information("[PERF] Home page: Constructor started at {StartTime}", constructorStartTime);
 
         var initComponentStartTime = DateTime.UtcNow;
+#endif
         InitializeComponent();
+#if DEBUG
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
         Log.Information("[PERF] Home page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
+#endif
 
         BindingContext = vm;
         viewModel = vm;
@@ -27,8 +32,10 @@ public partial class Home : BaseContentPage, IDisposable
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
 
+#if DEBUG
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
         Log.Information("[PERF] Home page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
+#endif
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)
@@ -49,6 +56,12 @@ public partial class Home : BaseContentPage, IDisposable
 
         // Hide Schedule page overlay after Home page is fully rendered and visible
         viewModel?.HideSchedulePageOverlay();
+        
+#if DEBUG
+        // Log that home page is fully loaded with data
+        var totalBootstrapTime = BootstrapTimingHelper.GetElapsedMilliseconds();
+        Log.Information("[BOOTSTRAP] ✅ Home page fully loaded with data - Total bootstrap time: {TotalMs}ms", totalBootstrapTime);
+#endif
     }
 
     private void OnScheduleItemTapped(object? sender, TappedEventArgs e)

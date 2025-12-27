@@ -1,7 +1,7 @@
 using Android.App;
 using Android.Runtime;
-using Android.Util;
 using Bible.Alarm.Common;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Android;
 
@@ -18,7 +18,15 @@ public class MainApplication(nint handle, JniHandleOwnership ownership) : MauiAp
         }
         catch (Exception ex)
         {
-            Log.Error("MainApplication", $"Failed to create MediaSession: {ex.Message}");
+            // Serilog may not be initialized yet, but try to log anyway
+            try
+            {
+                Serilog.Log.Error(ex, "MainApplication: Failed to create MediaSession");
+            }
+            catch
+            {
+                // If Serilog isn't available, ignore (this happens very early in app lifecycle)
+            }
         }
 
         base.OnCreate();

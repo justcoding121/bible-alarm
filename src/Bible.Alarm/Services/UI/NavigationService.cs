@@ -107,10 +107,19 @@ public sealed class NavigationService(
 
     public async Task NavigateToHomeAsync()
     {
+#if DEBUG
+        var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+        logger.Information("[BOOTSTRAP] NavigateToHomeAsync starting");
+#endif
+        
         var navigation = GetNavigation();
 
         if (IsAlreadyOnHomePage(navigation))
         {
+#if DEBUG
+            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (already on home) in {ElapsedMs:F2}ms", navElapsed);
+#endif
             return;
         }
 
@@ -118,10 +127,18 @@ public sealed class NavigationService(
         if (existingHome != null)
         {
             await PopToExistingHomeAsync(navigation, existingHome);
+#if DEBUG
+            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (existing home) in {ElapsedMs:F2}ms", navElapsed);
+#endif
         }
         else
         {
             await PopToBootstrapAndPushNewHomeAsync(navigation);
+#if DEBUG
+            var navTotalElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (new home) in {ElapsedMs:F2}ms", navTotalElapsed);
+#endif
         }
     }
 
@@ -160,11 +177,34 @@ public sealed class NavigationService(
     private async Task PopToBootstrapAndPushNewHomeAsync(INavigation navigation)
     {
         // Home doesn't exist - pop all pages except BootstrapPage (index 0), then push new Home
+#if DEBUG
+        var popStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
         await PopAllPagesExceptBootstrapAsync(navigation);
+#if DEBUG
+        var popElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - popStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        logger.Information("[BOOTSTRAP] PopAllPagesExceptBootstrapAsync completed in {ElapsedMs:F2}ms", popElapsed);
+#endif
 
+#if DEBUG
+        var homeCreateStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
         var homePage = serviceProvider.GetRequiredService<Home>();
+#if DEBUG
+        var homeCreateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - homeCreateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        logger.Information("[BOOTSTRAP] Home page service resolution completed in {ElapsedMs:F2}ms", homeCreateElapsed);
+#endif
+        
         ConfigureHomePageNavigation(homePage);
+        
+#if DEBUG
+        var pushStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
         await navigation.PushAsync(homePage, animated: false);
+#if DEBUG
+        var pushElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - pushStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        logger.Information("[BOOTSTRAP] Home page PushAsync completed in {ElapsedMs:F2}ms", pushElapsed);
+#endif
     }
 
     private async Task PopAllPagesExceptBootstrapAsync(INavigation navigation)
@@ -188,28 +228,38 @@ public sealed class NavigationService(
 
     public async Task NavigateToScheduleAsync()
     {
+#if DEBUG
         var startTime = DateTime.UtcNow;
         logger.Information("[PERF] NavigateToScheduleAsync: Starting navigation at {StartTime}", startTime);
 
         var pageStartTime = DateTime.UtcNow;
+#endif
         var page = serviceProvider.GetRequiredService<Schedule>();
+#if DEBUG
         var pageElapsed = (DateTime.UtcNow - pageStartTime).TotalMilliseconds;
         logger.Information("[PERF] NavigateToScheduleAsync: Page service resolution took {ElapsedMs}ms", pageElapsed);
 
         var navStartTime = DateTime.UtcNow;
+#endif
         var navigation = GetNavigation();
+#if DEBUG
         var navElapsed = (DateTime.UtcNow - navStartTime).TotalMilliseconds;
         logger.Information("[PERF] NavigateToScheduleAsync: GetNavigationAsync took {ElapsedMs}ms", navElapsed);
+#endif
 
         // Set navigation bar setting
         NavigationPage.SetHasNavigationBar(page, false);
 
         // Push the page without animation for instant navigation
+#if DEBUG
         var pushStartTime = DateTime.UtcNow;
+#endif
         await navigation.PushAsync(page, animated: false);
+#if DEBUG
         var pushElapsed = (DateTime.UtcNow - pushStartTime).TotalMilliseconds;
         var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
         logger.Information("[PERF] NavigateToScheduleAsync: PushAsync took {ElapsedMs}ms, Total navigation took {TotalMs}ms", pushElapsed, totalElapsed);
+#endif
     }
 
     public async Task OpenMusicSelectionModalAsync(object bindingContext)

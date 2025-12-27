@@ -389,7 +389,7 @@ partial class MediaManager : IDisposable
 		}
 		if (!Uri.TryCreate(MediaElement.MetadataArtworkUrl, UriKind.RelativeOrAbsolute, out var metadataArtworkUri))
 		{
-			Trace.TraceError($"{nameof(MediaElement)} unable to update artwork because {nameof(MediaElement.MetadataArtworkUrl)} is not a valid URI");
+			Logger.LogError("{MediaElement} unable to update artwork because {MetadataArtworkUrl} is not a valid URI", nameof(MediaElement), nameof(MediaElement.MetadataArtworkUrl));
 			return;
 		}
 

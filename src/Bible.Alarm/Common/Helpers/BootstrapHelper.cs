@@ -273,13 +273,23 @@ public static class BootstrapHelper
         }
     }
 
+    private static readonly System.Diagnostics.Stopwatch bootstrapStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
     private static async Task ExecuteBootstrapWithErrorHandlingAsync(IServiceProvider services, bool isForeground, string context)
     {
         try
         {
-            Log.Logger.Information("Running bootstrap {Context}", context);
+#if DEBUG
+            var bootstrapStartTime = bootstrapStopwatch.ElapsedMilliseconds;
+            Log.Logger.Information("[BOOTSTRAP] Bootstrap starting {Context} at {ElapsedMs}ms", context, bootstrapStartTime);
+#endif
             await RunBootstrap(services, isForeground);
             bootstrapCompleted = true;
+            
+#if DEBUG
+            var bootstrapElapsed = bootstrapStopwatch.ElapsedMilliseconds - bootstrapStartTime;
+            Log.Logger.Information("[BOOTSTRAP] Bootstrap completed {Context} in {ElapsedMs}ms (total: {TotalMs}ms)", context, bootstrapElapsed, bootstrapStopwatch.ElapsedMilliseconds);
+#endif
 
             // Signal waiting tasks that bootstrap is complete
             // CRITICAL: Always ensure completion source exists and is set, even if no one was waiting

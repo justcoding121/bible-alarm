@@ -86,9 +86,23 @@ public static class MauiProgram
             });
 
         // Register services
+#if DEBUG
+        var serviceRegStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
         ServiceRegistrationHelper.RegisterServices(builder.Services);
+#if DEBUG
+        var serviceRegElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - serviceRegStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] Service registration completed in {ElapsedMs:F2}ms", serviceRegElapsed);
+#endif
 
+#if DEBUG
+        var buildStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
         var app = builder.Build();
+#if DEBUG
+        var buildElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - buildStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        Log.Logger.Information("[BOOTSTRAP] MauiApp.Build() completed in {ElapsedMs:F2}ms", buildElapsed);
+#endif
 
         // Initialize FontServiceHelper for XAML binding (must be done before App.xaml resources are accessed)
         var fontService = app.Services.GetRequiredService<IFontService>();

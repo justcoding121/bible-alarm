@@ -82,8 +82,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         IMapper mapper,
         IAlarmScheduleService alarmScheduleService)
     {
+#if DEBUG
         var constructorStartTime = DateTime.UtcNow;
         logger.Information("[PERF] ScheduleViewModel: Constructor started at {StartTime}", constructorStartTime);
+#endif
 
         // Initialize readonly fields
         this.logger = logger;
@@ -107,8 +109,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         InitializeCommands();
         SetupSafetyFallback();
 
+#if DEBUG
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
         logger.Information("[PERF] ScheduleViewModel: Constructor completed in {ElapsedMs}ms", constructorElapsed);
+#endif
     }
 
     private void InitializeContainerViewModels()
@@ -124,20 +128,28 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         state.StateChanged += OnStateChanged;
         IsBusy = true;
 
+#if DEBUG
         var checkStateStartTime = DateTime.UtcNow;
+#endif
         var currentState = state.Value;
+#if DEBUG
         var checkStateElapsed = (DateTime.UtcNow - checkStateStartTime).TotalMilliseconds;
         logger.Information("[PERF] ScheduleViewModel: State check took {ElapsedMs}ms, CurrentSchedule={HasSchedule}",
             checkStateElapsed, currentState.CurrentSchedule != null);
+#endif
 
         if (currentState.CurrentSchedule != null)
         {
+#if DEBUG
             logger.Information("[PERF] ScheduleViewModel: Schedule already in state, triggering OnCurrentScheduleChanged");
+#endif
             MainThread.BeginInvokeOnMainThread(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
         }
         else
         {
+#if DEBUG
             logger.Information("[PERF] ScheduleViewModel: Schedule not in state, setting up delayed check");
+#endif
             SetupDelayedStateCheck();
         }
     }
@@ -150,7 +162,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             var delayedState = state.Value;
             if (delayedState.CurrentSchedule != null && !modelInitialized)
             {
+#if DEBUG
                 logger.Information("[PERF] ScheduleViewModel: Schedule found after delay, triggering OnCurrentScheduleChanged");
+#endif
                 await MainThread.InvokeOnMainThreadAsync(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
             }
         });
@@ -544,8 +558,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     private void OnCurrentScheduleChanged(object? sender, EventArgs e)
     {
+#if DEBUG
         var handlerStartTime = DateTime.UtcNow;
         logger.Information("[PERF] OnCurrentScheduleChanged: Handler started at {StartTime}", handlerStartTime);
+#endif
 
         var stateValue = state.Value;
 
@@ -562,8 +578,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private void HandleExistingScheduleUpdate(ApplicationState stateValue)
     {
         var currentScheduleId = stateValue.CurrentSchedule!.Id;
+#if DEBUG
         logger.Information("[PERF] OnCurrentScheduleChanged: Processing schedule Id={ScheduleId}, LastScheduleId={LastScheduleId}, ModelInitialized={ModelInitialized}",
             currentScheduleId, lastScheduleId, modelInitialized);
+#endif
 
         if (currentScheduleId == lastScheduleId && modelInitialized)
         {
@@ -646,14 +664,18 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         bibleReadingUpdated = false;
 
         var isNew = currentScheduleItem.Id <= 0;
+#if DEBUG
         logger.Information("[PERF] OnCurrentScheduleChanged: IsNew={IsNew}, invoking on main thread", isNew);
+#endif
 
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
+#if DEBUG
                 var mainThreadStartTime = DateTime.UtcNow;
                 logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler started at {StartTime}", mainThreadStartTime);
+#endif
 
                 IsNewSchedule = isNew;
 
@@ -725,18 +747,24 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private void InitializeNewSchedule()
     {
         isInitializingNewSchedule = true;
+#if DEBUG
         logger.Information("[PERF] OnCurrentScheduleChanged: Starting new schedule initialization");
+#endif
         MainThread.BeginInvokeOnMainThread(() => IsBusy = true);
 
         Task.Run(async () =>
         {
+#if DEBUG
             var getSampleStartTime = DateTime.UtcNow;
             logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule started at {StartTime}", getSampleStartTime);
+#endif
 
             var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, bibleTranslationService, melodyMusicService);
 
+#if DEBUG
             var getSampleElapsed = (DateTime.UtcNow - getSampleStartTime).TotalMilliseconds;
             logger.Information("[PERF] OnCurrentScheduleChanged: GetSampleSchedule completed in {ElapsedMs}ms", getSampleElapsed);
+#endif
 
             // Map sample schedule to state item
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);

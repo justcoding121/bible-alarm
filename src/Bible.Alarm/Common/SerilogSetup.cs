@@ -14,6 +14,7 @@ public class SerilogSetup
     {
         CurrentDevice.RuntimePlatform = device;
 
+#if DEBUG
         if (isLoggingEnabled)
         {
             lock (@lock)
@@ -25,6 +26,19 @@ public class SerilogSetup
                 }
             }
         }
+#else
+        // In release mode, use null logger (no logging)
+        lock (@lock)
+        {
+            if (!initialized)
+            {
+                Log.Logger = new LoggerConfiguration()
+                    .MinimumLevel.Fatal() // Only fatal errors
+                    .CreateLogger();
+                initialized = true;
+            }
+        }
+#endif
     }
 
     private static void SetupSerilog(IVersionFinder versionFinder, string[] tags)

@@ -16,13 +16,17 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     public Schedule(ScheduleViewModel viewModel)
     {
+#if DEBUG
         var constructorStartTime = DateTime.UtcNow;
         Log.Information("[PERF] Schedule page: Constructor started at {StartTime}", constructorStartTime);
 
         var initComponentStartTime = DateTime.UtcNow;
+#endif
         InitializeComponent();
+#if DEBUG
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
         Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
+#endif
 
         BindingContext = viewModel;
         this.viewModel = viewModel;
@@ -31,8 +35,10 @@ public partial class Schedule : BaseContentPage, IDisposable
         Loaded += OnPageLoaded;
         Loaded += SetupGestureRecognizers;
 
+#if DEBUG
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
         Log.Information("[PERF] Schedule page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
+#endif
     }
 
     private void SetupGestureRecognizers(object? sender, EventArgs e)

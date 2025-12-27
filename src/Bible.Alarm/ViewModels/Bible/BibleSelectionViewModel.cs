@@ -224,7 +224,9 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 // Always reset IsBusy even if initialization fails
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 // Log error but don't throw - allow modal to open even if initialization fails
-                System.Diagnostics.Debug.WriteLine($"Error initializing BibleSelectionViewModel: {ex.Message}");
+#if DEBUG
+                Log.Error(ex, "Error initializing BibleSelectionViewModel");
+#endif
             }
         });
     }
@@ -352,7 +354,9 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 catch (Exception ex)
                 {
                     // Log error but don't throw - allow modal to continue functioning
-                    System.Diagnostics.Debug.WriteLine($"Error repopulating translations in OnBibleReadingChanged: {ex.Message}");
+#if DEBUG
+                    Log.Error(ex, "Error repopulating translations in OnBibleReadingChanged");
+#endif
                     await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 }
             });
