@@ -177,7 +177,7 @@ public partial class MediaManager : Object, IPlayerListener
 				throw new InvalidOperationException("Cannot create ExoPlayer - MauiContext.Context is null. Ensure bootstrap has completed before calling PrepareAndPlayAsync.");
 			}
 
-			Log.I("MediaManager", $"MediaManager: Creating ExoPlayer directly via ExoPlayerBuilder. Context: {context.GetType().FullName}");
+			Serilog.Log.Information("MediaManager", $"MediaManager: Creating ExoPlayer directly via ExoPlayerBuilder. Context: {context.GetType().FullName}");
 
 			// Direct creation - no reflection needed
 			// Xamarin.AndroidX.Media3 bindings expose ExoPlayer.Builder as ExoPlayerBuilder
@@ -189,7 +189,7 @@ public partial class MediaManager : Object, IPlayerListener
 			// Headless audio-only config (critical for no surface/view)
 			Player.SetVideoSurfaceView(null);  // No surface ever
 
-			Log.I("MediaManager", $"MediaManager: ExoPlayer created headlessly. Type: {Player.GetType().FullName}");
+			Serilog.Log.Information("MediaManager", $"MediaManager: ExoPlayer created headlessly. Type: {Player.GetType().FullName}");
 
 			var mediaSession = new MediaSession.Builder(Platform.AppContext, Player);
 			mediaSession.SetId(Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..8]);

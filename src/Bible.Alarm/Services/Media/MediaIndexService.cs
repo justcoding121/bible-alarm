@@ -13,8 +13,8 @@ namespace Bible.Alarm.Services.Media;
 public sealed class MediaIndexService(
     ILogger logger,
     IStorageService storageService,
-    IVersionFinder versionFinder,
-    IDownloadService downloadService)
+    IDownloadService downloadService,
+    IMediaIndexVersionService versionService)
     : IMediaIndexService
 {
     private readonly Lazy<string> indexRoot = new(() => storageService.StorageRoot);
@@ -249,31 +249,15 @@ public sealed class MediaIndexService(
                                  //verify that any previous unzipping process was not incomplete
                                  && !await storageService.FileExists(tmpIndexFilePath);
 
-        var isOutdatedVersion = false;
-
         //delete the file if it was outdated by an app auto-update.
         if (!mediaIndexDbExists)
         {
             return true;
         }
 
-        var versionFilePath = Path.Combine(IndexRoot, "version.dat");
-        var versionFileExists = await storageService.FileExists(versionFilePath);
-
-        if (!versionFileExists)
-        {
-            return true;
-        }
-
-        var version = await storageService.ReadFile(versionFilePath);
-        var currentVersion = versionFinder.GetVersionName();
-
-        if (version != currentVersion)
-        {
-            isOutdatedVersion = true;
-        }
-
-        return isOutdatedVersion;
+        // Check if version is current using version service
+        var isVersionCurrent = await versionService.IsVersionCurrentAsync();
+        return !isVersionCurrent;
     }
 
     private async Task ClearCopyIndexFromResource()
@@ -302,7 +286,7 @@ public sealed class MediaIndexService(
         ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
 
         await storageService.DeleteFile(tmpIndexFilePath);
-        await storageService.SaveFile(IndexRoot, "version.dat", versionFinder.GetVersionName());
+        await versionService.SaveCurrentVersionAsync();
     }
 
     private bool isDisposed;
@@ -318,8 +302,7 @@ public sealed class MediaIndexService(
 
         @lock.Dispose();
 
-        // Note: storageService (IStorageService), versionFinder (IVersionFinder), 
-        // and downloadService (IDownloadService) are singletons
+        // Note: storageService (IStorageService) and downloadService (IDownloadService) are singletons
         // and should not be disposed here as they are managed by the DI container
     }
 }

@@ -1,4 +1,6 @@
+using System.IO;
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -12,7 +14,8 @@ namespace Bible.Alarm.Services.Database;
 /// </summary>
 public sealed class MediaMigrationService(
     ILogger logger,
-    IServiceScopeFactory scopeFactory)
+    IServiceScopeFactory scopeFactory,
+    IMediaIndexVersionService versionService)
     : IMediaMigrationService
 {
 
@@ -29,6 +32,15 @@ public sealed class MediaMigrationService(
             {
                 // Database doesn't exist yet - will be created from bundled resource by MediaIndexService
                 // The bundled database already has the latest schema matching this app version
+                return;
+            }
+
+            // Optimize: Check if database was just copied from resources (version.dat matches current version)
+            // If so, skip migration check entirely since bundled database already has latest schema
+            if (await versionService.IsVersionCurrentAsync())
+            {
+                // Database was just copied from resources with current version - already has latest schema
+                logger.Debug("Media database version matches current app version, skipping migration check");
                 return;
             }
 
@@ -50,6 +62,10 @@ public sealed class MediaMigrationService(
                     pendingMigrations.Count());
                 await mediaDb.Database.MigrateAsync();
                 logger.Information("Media database migration completed successfully");
+            }
+            else
+            {
+                logger.Debug("Media database is already up to date, skipping migration");
             }
 
             // Database is up to date - no migration needed

@@ -99,6 +99,7 @@ public static class ServiceRegistrationHelper
 
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
+        services.AddSingleton<IMediaIndexVersionService, MediaIndexVersionService>();
         services.AddSingleton<IMediaIndexService, MediaIndexService>();
         services.AddSingleton<IMediaService, MediaService>();
         services.AddSingleton<IMediaCacheService, MediaCacheService>();

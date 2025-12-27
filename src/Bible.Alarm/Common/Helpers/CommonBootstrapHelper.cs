@@ -51,12 +51,19 @@ public static class CommonBootstrapHelper
                 // Run database and IO operations off UI thread
                 await Task.Run(async () =>
                 {
+#if DEBUG
+                    var verifyMediaStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
                     var task1 = VerifyMediaLookUpService();
                     var task2 = InitializeDatabase();
                     var task3 = InitializeFluxorStore();
                     var task4 = CopySilentMp3ToStorage();
 
                     await Task.WhenAll(task1, task2, task3, task4);
+#if DEBUG
+                    var verifyMediaElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - verifyMediaStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);
+#endif
 
                     // After database and Fluxor store are initialized, load schedules into state
                     // This ensures schedules are available for both Android Auto services and main UI
@@ -166,11 +173,23 @@ public static class CommonBootstrapHelper
         await using var scope = scopeFactory.CreateAsyncScope();
 
         // Migrate Schedule database (always safe - app owns this DB)
+        // Optimize: Check for pending migrations first to avoid overhead when database is already up to date
 #if DEBUG
         var scheduleDbStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
         var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-        await scheduleDb.Database.MigrateAsync();
+        var pendingScheduleMigrations = await scheduleDb.Database.GetPendingMigrationsAsync();
+        if (pendingScheduleMigrations.Any())
+        {
+            Log.Logger.Information(
+                "[BOOTSTRAP] Schedule database has {Count} pending migrations, applying...",
+                pendingScheduleMigrations.Count());
+            await scheduleDb.Database.MigrateAsync();
+        }
+        else
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Schedule database is already up to date, skipping migration");
+        }
 #if DEBUG
         var scheduleDbElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - scheduleDbStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         Log.Logger.Information("[BOOTSTRAP] Schedule database migration completed in {ElapsedMs:F2}ms", scheduleDbElapsed);
