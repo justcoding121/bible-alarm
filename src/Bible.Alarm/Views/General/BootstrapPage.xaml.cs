@@ -1,6 +1,7 @@
 using System.Timers;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 using Timer = System.Timers.Timer;
 
@@ -13,6 +14,7 @@ public partial class BootstrapPage : ContentPage, IDisposable
     private bool isDisposed;
     private readonly Timer animationTimer;
     private int currentDot;
+    private bool hasNavigatedToHome;
 
     /// <summary>
     /// Gets the MediaElementContainer ContentView. Used by NavigationService to add MediaElement when it's recreated.
@@ -79,6 +81,38 @@ public partial class BootstrapPage : ContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
+
+        // Navigate to Home immediately on first appearance to eliminate delay
+        // Home page will show progress bar while bootstrap completes
+        if (!hasNavigatedToHome)
+        {
+            hasNavigatedToHome = true;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // Small delay to ensure BootstrapPage is fully rendered
+                    await Task.Delay(50);
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        try
+                        {
+                            var navigationService = ServiceProviderManager.GetService<INavigationService>();
+                            await navigationService.NavigateToHomeAsync();
+                            logger.Information("BootstrapPage: Navigated to Home immediately");
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Warning(ex, "BootstrapPage: Failed to navigate to Home immediately, will wait for InitializedMessage");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "BootstrapPage: Error in immediate navigation to Home");
+                }
+            });
+        }
 
         // Reattach MediaElement to container when BootstrapPage becomes available
         // This handles the case where MediaElement was created while app was backgrounded

@@ -10,6 +10,7 @@
     xmlns:models="clr-namespace:Bible.Alarm.Models"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
     xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons"
+    xmlns:progressbar="clr-namespace:Syncfusion.Maui.ProgressBar;assembly=Syncfusion.Maui.ProgressBar"
     xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
@@ -39,16 +40,18 @@
             Grid.ZIndex="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <StackLayout Grid.Row="0" Padding="16,12">
                 <Button
-                    Margin="{OnPlatform Default='0,0,0,16',
-                                        iOS='0,0,0,16'}"
+                    Margin="{OnPlatform Default='0,0,0,8',
+                                        iOS='0,0,0,8'}"
                     AutomationId="AddScheduleButton"
                     BackgroundColor="{StaticResource PrimaryColor}"
                     CornerRadius="12"
                     Command="{Binding AddScheduleCommand}"
+                    IsEnabled="{Binding IsBootstrapComplete}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="20"
                     HorizontalOptions="Fill"
@@ -66,9 +69,16 @@
                     </Button.Shadow>
                 </Button>
             </StackLayout>
+            <!-- Progress bar for schedule loading -->
+            <shared:AnimatedProgressBar
+                Grid.Row="1"
+                Opacity="{Binding ProgressBarOpacity}"
+                VerticalOptions="Start"
+                InputTransparent="{Binding IsProgressBarHidden}"
+                BindingContext="{Binding}" />
             <CollectionView
                 x:Name="SchedulesCollectionView"
-                Grid.Row="1"
+                Grid.Row="2"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"

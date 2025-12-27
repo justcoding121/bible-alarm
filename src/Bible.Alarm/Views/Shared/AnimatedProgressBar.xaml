@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentView
+    x:Class="Bible.Alarm.Views.Shared.AnimatedProgressBar"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters">
+    <ContentView.Resources>
+        <converters:ProgressPositionConverter x:Key="progressPositionConverter" />
+    </ContentView.Resources>
+    <Grid
+        Margin="16,0,16,8"
+        HeightRequest="6"
+        BackgroundColor="Transparent">
+        <!-- Track background -->
+        <BoxView
+            BackgroundColor="{DynamicResource ProgressBarBackgroundColor}"
+            HeightRequest="2"
+            CornerRadius="1"
+            HorizontalOptions="Fill"
+            VerticalOptions="Center" />
+        <!-- Animated range segment - moves from left to right -->
+        <BoxView
+            BackgroundColor="{StaticResource PrimaryColor}"
+            HeightRequest="2"
+            CornerRadius="1"
+            VerticalOptions="Center"
+            HorizontalOptions="Start"
+            WidthRequest="120">
+            <BoxView.TranslationX>
+                <Binding Path="AnimatedProgressStart" Converter="{StaticResource progressPositionConverter}" />
+            </BoxView.TranslationX>
+        </BoxView>
+    </Grid>
+</ContentView>
+

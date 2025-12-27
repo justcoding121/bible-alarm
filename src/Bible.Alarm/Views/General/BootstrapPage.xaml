@@ -55,20 +55,16 @@
                     HeightRequest="80">
                     <ActivityIndicator.IsVisible>
                         <OnPlatform x:TypeArguments="x:Boolean">
-                            <OnPlatform.Platforms>
-                                <On Platform="iOS" Value="True" />
-                                <On Platform="Android" Value="True" />
-                                <On Platform="Win" Value="False" />
-                            </OnPlatform.Platforms>
+                            <On Platform="iOS" Value="True" />
+                            <On Platform="Android" Value="True" />
+                            <On Platform="Win" Value="False" />
                         </OnPlatform>
                     </ActivityIndicator.IsVisible>
                     <ActivityIndicator.Scale>
                         <OnPlatform x:TypeArguments="x:Double">
-                            <OnPlatform.Platforms>
-                                <On Platform="iOS" Value="2.0" />
-                                <On Platform="Android" Value="1.5" />
-                                <On Platform="Win" Value="2.0" />
-                            </OnPlatform.Platforms>
+                            <On Platform="iOS" Value="2.0" />
+                            <On Platform="Android" Value="1.5" />
+                            <On Platform="Win" Value="2.0" />
                         </OnPlatform>
                     </ActivityIndicator.Scale>
                 </ActivityIndicator>
