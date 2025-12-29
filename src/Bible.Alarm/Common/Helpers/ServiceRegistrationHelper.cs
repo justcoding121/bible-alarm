@@ -179,12 +179,12 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<AudioFocusService>();
         // Register MediaSessionCompat using the global helper (thread-safe, prevents duplicates)
         // This ensures MediaSession is created as early as possible, even in background processes
-        services.AddSingleton(sp => AndroidAutoMediaSessionHelper.Create());
+        services.AddSingleton(sp => Platforms.Android.Services.Media.MediaSessionHelper.Create());
         // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
-        services.AddSingleton<MediaSessionManager>();
+        services.AddSingleton<Platforms.Android.Services.Media.MediaSessionManager>();
         services.AddTransient(sp =>
             new ModernMediaSession(
-                sp.GetRequiredService<MediaSessionManager>()));
+                sp.GetRequiredService<Platforms.Android.Services.Media.MediaSessionManager>()));
         // Register MediaSession effect for Android Auto
         services.AddSingleton<MediaSessionEffect>();
         // Register global audio focus effect that manages audio focus based on playback state

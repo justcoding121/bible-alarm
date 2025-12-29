@@ -43,7 +43,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         // This ensures MediaSession is available immediately on process start
         try
         {
-            Platforms.Android.Services.AndroidAuto.AndroidAutoMediaSessionHelper.Create();
+            Platforms.Android.Services.Media.MediaSessionHelper.Create();
         }
         catch (Exception ex)
         {

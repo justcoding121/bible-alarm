@@ -12,6 +12,7 @@ using AndroidX.Car.App.Validation;
 using AndroidX.Core.Content;
 using AndroidX.Core.Graphics.Drawable;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
@@ -58,7 +59,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         // This ensures MediaSession is available immediately on process start
         try
         {
-            AndroidAutoMediaSessionHelper.Create();
+            Platforms.Android.Services.Media.MediaSessionHelper.Create();
         }
         catch (Exception ex)
         {
@@ -75,7 +76,7 @@ public class CarAppService : AndroidX.Car.App.CarAppService
         try
         {
             MauiAppHolder.CreateAndStore();
-            var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
+            var mediaSessionManager = ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
             mediaSessionManager?.GetOrCreate();
         }
         catch (Exception ex)

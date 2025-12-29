@@ -4,6 +4,7 @@ using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -12,10 +13,10 @@ using Fluxor;
 using Serilog;
 using Application = Android.App.Application;
 
-namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+namespace Bible.Alarm.Platforms.Android.Services.Media;
 
 /// <summary>
-/// Callback handler for MediaSessionCompat commands from Android Auto.
+/// Callback handler for MediaSessionCompat commands.
 /// This handles play, pause, next, previous, and other media button events.
 /// </summary>
 public class MediaSessionCallback(IPlaybackService playbackService, ILogger logger) : MediaSessionCompat.Callback
@@ -66,7 +67,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
     public override void OnPlay()
     {
-        logger.Information("MediaSessionCallback.OnPlay() called from Android Auto");
+        logger.Information("MediaSessionCallback.OnPlay() called");
 
         ExecuteAsyncOperation(HandlePlayAsync);
         base.OnPlay();
@@ -131,21 +132,21 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
     public override void OnPause()
     {
-        logger.Information("MediaSessionCallback.OnPause() called from Android Auto");
+        logger.Information("MediaSessionCallback.OnPause() called");
         ExecuteAsyncOperation(async () => await playbackService.PauseAsync());
         base.OnPause();
     }
 
     public override void OnSkipToNext()
     {
-        logger.Information("MediaSessionCallback.OnSkipToNext() called from Android Auto");
+        logger.Information("MediaSessionCallback.OnSkipToNext() called");
         ExecuteAsyncOperation(async () => await playbackService.PlayNextAsync());
         base.OnSkipToNext();
     }
 
     public override void OnSkipToPrevious()
     {
-        logger.Information("MediaSessionCallback.OnSkipToPrevious() called from Android Auto");
+        logger.Information("MediaSessionCallback.OnSkipToPrevious() called");
         ExecuteAsyncOperation(async () => await playbackService.PlayPreviousAsync());
         base.OnSkipToPrevious();
     }
@@ -216,7 +217,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             return;
         }
 
-        // Use isAlarm=false for Android Auto playback
+        // Use isAlarm=false for media session playback
         await playbackService.PrepareAndPlayAsync(scheduleIdToPlay, isAlarm: false);
     }
 
@@ -258,7 +259,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         try
         {
             // Get MediaSession directly from the static helper (no service provider needed)
-            var mediaSession = AndroidAutoMediaSessionHelper.Create();
+            var mediaSession = MediaSessionHelper.Create();
             // Only update playback state to buffering, preserving everything else (metadata, controls, etc.)
             AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
 

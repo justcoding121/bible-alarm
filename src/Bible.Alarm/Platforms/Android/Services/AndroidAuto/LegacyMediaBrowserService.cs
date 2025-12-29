@@ -12,6 +12,7 @@ using AndroidX.Core.Content;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
@@ -63,7 +64,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         // This ensures MediaSession is available immediately on process start
         try
         {
-            AndroidAutoMediaSessionHelper.Create();
+            Platforms.Android.Services.Media.MediaSessionHelper.Create();
         }
         catch (Exception ex)
         {
@@ -94,7 +95,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         // MediaSession is created here if needed (for SessionToken), but buffering state is set
         // centrally after bootstrap completes in CommonBootstrapHelper.InitializeSchedules().
-        mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
+        mediaSessionManager = ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
         if (mediaSessionManager == null)
         {
             logger.Warning("MediaSessionManager is null - cannot create MediaSession");
@@ -587,7 +588,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         {
             try
             {
-                mediaSessionManager ??= ServiceProviderManager.GetService<MediaSessionManager>();
+                mediaSessionManager ??= ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
                 if (mediaSessionManager != null)
                 {
                     session ??= mediaSessionManager.GetOrCreate();

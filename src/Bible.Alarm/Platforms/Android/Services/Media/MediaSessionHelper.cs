@@ -5,21 +5,22 @@ using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Serilog;
 using Application = Android.App.Application;
 
-namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+namespace Bible.Alarm.Platforms.Android.Services.Media;
 
 /// <summary>
 /// Global static helper for creating the shared MediaSessionCompat instance.
 /// Uses locking to prevent duplicate creation across multiple entry points.
 /// This ensures MediaSession is created as early as possible, even in background processes.
 /// </summary>
-public static class AndroidAutoMediaSessionHelper
+public static class MediaSessionHelper
 {
     private static MediaSessionCompat? mediaSession;
     private static readonly Lock @lock = new();
-    private static readonly ILogger logger = Log.ForContext(typeof(AndroidAutoMediaSessionHelper));
+    private static readonly ILogger logger = Log.ForContext(typeof(MediaSessionHelper));
 
     /// <summary>
     /// Creates the shared MediaSessionCompat instance with thread-safe locking.
@@ -47,7 +48,7 @@ public static class AndroidAutoMediaSessionHelper
                     // This ensures Android Auto shows the last played item immediately on process start
                     ApplyLastPlayedMetadataIfAvailable(mediaSession, context);
 
-                    logger.Information("MediaSessionCompat created successfully via AndroidAutoMediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}",
+                    logger.Information("MediaSessionCompat created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}",
                         mediaSession.SessionToken != null);
                 }
             }

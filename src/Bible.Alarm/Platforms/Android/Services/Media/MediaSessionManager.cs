@@ -4,7 +4,7 @@ using Android.Graphics;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
-using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -12,7 +12,7 @@ using Bible.Alarm.Services.Scheduler.Models;
 using Serilog;
 using Application = Android.App.Application;
 
-namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+namespace Bible.Alarm.Platforms.Android.Services.Media;
 
 /// <summary>
 /// Singleton manager for the shared MediaSessionCompat instance.
@@ -35,7 +35,7 @@ public sealed class MediaSessionManager
     /// <summary>
     /// Gets or creates the shared MediaSessionCompat instance.
     /// This is the single source of truth for media playback state across the entire app.
-    /// Uses AndroidAutoMediaSessionHelper to create the session with thread-safe locking.
+    /// Uses MediaSessionHelper to create the session with thread-safe locking.
     /// Sets the callback after getting the session from the helper.
     /// </summary>
     public MediaSessionCompat GetOrCreate(bool isConnect = false)
@@ -43,7 +43,7 @@ public sealed class MediaSessionManager
         // Get or create MediaSession from the global helper (thread-safe, prevents duplicates)
         if (mediaSession == null)
         {
-            mediaSession = AndroidAutoMediaSessionHelper.Create();
+            mediaSession = MediaSessionHelper.Create();
             // Set callback after getting the session (requires IServiceProvider)
             SetMediaSessionCallback(mediaSession);
         }
