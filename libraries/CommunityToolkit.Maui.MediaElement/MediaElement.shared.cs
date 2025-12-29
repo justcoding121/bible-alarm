@@ -5,7 +5,8 @@ using CommunityToolkit.Maui.Core;
 namespace CommunityToolkit.Maui.Views;
 
 /// <summary>
-/// Represents an object used to render audio and video to the display.
+/// Represents an object used to play audio and video (headless or with UI).
+/// Can be used headlessly by not adding it to the visual tree.
 /// </summary>
 public class MediaElement : View, IMediaElement, IDisposable
 {

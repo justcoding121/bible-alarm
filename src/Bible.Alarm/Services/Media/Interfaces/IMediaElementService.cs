@@ -22,5 +22,12 @@ public interface IMediaElementService : IDisposable
     /// Called from BootstrapPage.OnAppearing when page is recreated.
     /// </summary>
     void ReattachMediaElementIfNeeded();
+
+    /// <summary>
+    /// Initializes MediaElement during bootstrap.
+    /// Creates a single MediaElement instance that lives for the app process lifetime.
+    /// This is called on a background task during bootstrap and does not block.
+    /// </summary>
+    Task InitializeMediaElementAsync();
 }
 

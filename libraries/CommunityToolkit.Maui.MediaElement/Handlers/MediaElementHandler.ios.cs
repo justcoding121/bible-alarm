@@ -22,9 +22,18 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 			VirtualView,
 			Dispatcher.GetForCurrentThread() ?? throw new InvalidOperationException($"{nameof(IDispatcher)} cannot be null"));
 
+		// Always use headless mode for audio-only playback
+		// AVPlayer works perfectly in headless mode for audio playback
+		var (_, playerViewController) = MediaManager.CreatePlatformView();
 
-		(_, playerViewController) = MediaManager.CreatePlatformView();
+		// Return lightweight view for headless, or wrap PlayerViewController if UI exists
+		if (playerViewController == null)
+		{
+			// Headless mode - create lightweight MauiMediaElement without PlayerViewController
+			return new MauiMediaElement();
+		}
 
+		// UI mode - we have a PlayerViewController
 		return new(playerViewController, VirtualView);
 	}
 

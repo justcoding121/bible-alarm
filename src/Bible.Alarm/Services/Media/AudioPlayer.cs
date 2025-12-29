@@ -15,7 +15,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMessage>, IDisposable
+public sealed class AudioPlayer : IAudioPlayer, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaElementService mediaElementService;
@@ -96,8 +96,8 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
         // MediaElement will be initialized lazily when first accessed
         // Event handlers will be attached in PrepareAsync
 
-        // Register for DestroyMediaElementMessage to unsubscribe when MediaElement is destroyed
-        WeakReferenceMessenger.Default.Register(this);
+        // MediaElement is now a singleton for all platforms - do not register for DestroyMediaElementMessage
+        // MediaElement will live for the entire app process lifetime
     }
 
     public async Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false)
@@ -599,20 +599,10 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
             });
             logger.Information("ReleaseMediaSession called - notification should be removed");
 
-            // Wait for DestroyMediaElementMessage to be processed and MediaElement to be cleared
-            // This ensures MediaElement is set to null before ResetAsync completes
-            await Task.Delay(200);
-
-            // Clear the MediaElement reference after it's been disposed
-            // The DestroyMediaElementMessage handler will set _mediaElement = null, but we ensure it here too
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (mediaElement != null)
-                {
-                    logger.Debug("Clearing MediaElement reference after ResetAsync");
-                    mediaElement = null;
-                }
-            });
+            // Android: MediaElement is now a singleton for app lifetime - do not clear the reference
+            // The MediaElement instance remains alive, just the notification is removed
+            // No need to wait for DestroyMediaElementMessage (it's not sent anymore)
+            logger.Debug("MediaElement instance remains alive for app lifetime");
 #endif
 
 
@@ -714,9 +704,6 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
 
         isDisposed = true;
 
-        // Unregister from messages
-        WeakReferenceMessenger.Default.Unregister<DestroyMediaElementMessage>(this);
-
         // Unsubscribe from current MediaElement if it exists
         if (mediaElement != null)
         {
@@ -727,20 +714,8 @@ public sealed class AudioPlayer : IAudioPlayer, IRecipient<DestroyMediaElementMe
         // _androidPlayerNotificationService) are singletons, so don't dispose them
     }
 
-    /// <summary>
-    /// Handles DestroyMediaElementMessage by unsubscribing from the MediaElement.
-    /// This is called when MediaElement is destroyed after playback stops/ends.
-    /// </summary>
-    public void Receive(DestroyMediaElementMessage message)
-    {
-        if (mediaElement != null)
-        {
-            logger.Information("Received DestroyMediaElementMessage - unsubscribing from MediaElement");
-            UnsubscribeFromMediaElement(mediaElement);
-            // Clear reference since MediaElement is being destroyed
-            mediaElement = null;
-        }
-    }
+    // MediaElement is now a singleton for all platforms - it is never destroyed during app lifetime
+    // No DestroyMediaElementMessage handling needed
 
     /// <summary>
     /// Unsubscribes from all events on the specified MediaElement.

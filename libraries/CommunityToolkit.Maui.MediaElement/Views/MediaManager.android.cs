@@ -40,6 +40,11 @@ public partial class MediaManager : Object, IPlayerListener
 	MediaItem.Builder? mediaItem;
 	BoundServiceConnection? connection;
 
+	/// <summary>
+	/// Gets the AndroidX Media3 MediaSession instance. Returns null if not yet created.
+	/// </summary>
+	public MediaSession? Session => session;
+
 	static bool globalExoPlayerCreated;
 	static readonly Lock globalExoPlayerLock = new();
 	static PlatformMediaElement? globalPlayer;

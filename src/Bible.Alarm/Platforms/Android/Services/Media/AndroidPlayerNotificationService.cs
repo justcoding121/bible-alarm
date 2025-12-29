@@ -9,6 +9,9 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
+using AndroidX.Media3.Session;
+using CommunityToolkit.Maui.Core.Handlers;
+using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
@@ -325,31 +328,34 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     }
 
     /// <summary>
-    /// Gets the underlying ExoPlayer instance from MediaElement via reflection.
-    /// Returns as object to avoid type resolution issues at compile time.
+    /// Gets the underlying ExoPlayer instance from MediaElement.
+    /// MediaManager.Player is now exposed as a public property, so we can access it directly.
     /// </summary>
-    private object? GetExoPlayer(MediaElement mediaElement)
+    private IExoPlayer? GetExoPlayer(MediaElement mediaElement)
     {
         try
         {
-            var session = GetMediaSession(mediaElement);
-            if (session == null)
+            // Access MediaElement's handler
+            var handler = mediaElement.Handler as MediaElementHandler;
+            if (handler == null)
             {
+                logger.Debug("MediaElement handler is null or not MediaElementHandler");
                 return null;
             }
 
-            // Access player from session
-            var playerProperty = session.GetType().GetProperty("Player", BindingFlags.Public | BindingFlags.Instance);
-            if (playerProperty == null)
+            // Access MediaManager property directly (now public)
+            var mediaManager = handler.MediaManager;
+            if (mediaManager == null)
             {
-                logger.Debug("Player property not found in session");
+                logger.Debug("MediaManager is null");
                 return null;
             }
 
-            var player = playerProperty.GetValue(session);
+            // Access Player property directly (now public)
+            var player = mediaManager.Player as IExoPlayer;
             if (player == null)
             {
-                logger.Debug("Player is null");
+                logger.Debug("Player is null or not IExoPlayer");
                 return null;
             }
 
@@ -357,55 +363,40 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to get ExoPlayer via reflection");
+            logger.Warning(ex, "Failed to get ExoPlayer");
             return null;
         }
     }
 
     /// <summary>
-    /// Gets the MediaSession from MediaElement via reflection.
-    /// This is shared logic used by both GetExoPlayer and TryUpdateMediaSessionActions.
+    /// Gets the MediaSession from MediaElement.
+    /// MediaManager and Session are now public properties, so no reflection needed.
     /// </summary>
     private object? GetMediaSession(MediaElement mediaElement)
     {
         try
         {
             // Access MediaElement's handler
-            var handler = mediaElement.Handler;
+            var handler = mediaElement.Handler as MediaElementHandler;
             if (handler == null)
             {
-                logger.Debug("MediaElement handler is null");
+                logger.Debug("MediaElement handler is null or not MediaElementHandler");
                 return null;
             }
 
-            // Access MediaManager property via reflection
-            var handlerType = handler.GetType();
-            var mediaManagerProperty = handlerType.GetProperty("MediaManager", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-            if (mediaManagerProperty == null)
-            {
-                logger.Debug("MediaManager property not found in handler type: {HandlerType}", handlerType.Name);
-                return null;
-            }
-
-            var mediaManager = mediaManagerProperty.GetValue(handler);
+            // Access MediaManager property directly (now public)
+            var mediaManager = handler.MediaManager;
             if (mediaManager == null)
             {
                 logger.Debug("MediaManager is null");
                 return null;
             }
 
-            // Access session field from MediaManager
-            var sessionField = mediaManager.GetType().GetField("session", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (sessionField == null)
-            {
-                logger.Debug("session field not found in MediaManager");
-                return null;
-            }
-
-            var session = sessionField.GetValue(mediaManager);
+            // Access Session property directly (now public)
+            var session = mediaManager.Session;
             if (session == null)
             {
-                logger.Debug("session is null");
+                logger.Debug("Session is null");
                 return null;
             }
 
@@ -413,7 +404,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to get MediaSession via reflection");
+            logger.Debug(ex, "Failed to get MediaSession");
             return null;
         }
     }
@@ -430,12 +421,9 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
             {
                 try
                 {
-                    var removeMethod = currentPlayer.GetType().GetMethod("RemoveListener", [typeof(IPlayerListener)]);
-                    if (removeMethod != null)
-                    {
-                        _ = removeMethod.Invoke(currentPlayer, [exoPlayerListener]);
-                        logger.Debug("Removed ExoPlayer listener from player");
-                    }
+                    // RemoveListener is a direct method on IExoPlayer - no reflection needed
+                    currentPlayer.RemoveListener(exoPlayerListener);
+                    logger.Debug("Removed ExoPlayer listener from player");
                 }
                 catch (ObjectDisposedException ex)
                 {
@@ -472,7 +460,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
 
     /// <summary>
     /// Sets up the ExoPlayer listener to intercept Next/Previous button presses from system controls.
-    /// Uses reflection to call AddListener with IPlayerListener parameter.
+    /// AddListener is a direct method on IExoPlayer - no reflection needed.
     /// Always removes any existing listener before adding a new one to prevent duplicate listeners.
     /// </summary>
     private void SetupExoPlayerListener(IExoPlayer player)
@@ -504,17 +492,9 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
         currentPlayer = player;
         exoPlayerListener = new ExoPlayerListener(logger);
 
-        // Use reflection to call AddListener with IPlayerListener parameter
-        var addMethod = player.GetType().GetMethod("AddListener", [typeof(IPlayerListener)]);
-        if (addMethod != null)
-        {
-            _ = addMethod.Invoke(player, [exoPlayerListener]);
-            logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
-        }
-        else
-        {
-            logger.Warning("AddListener method not found on IExoPlayer");
-        }
+        // AddListener is a direct method on IExoPlayer - no reflection needed
+        player.AddListener(exoPlayerListener);
+        logger.Information("ExoPlayer listener attached — OnMediaItemTransition will fire on Next/Previous press");
     }
 
     /// <summary>
@@ -567,29 +547,27 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     }
 
     /// <summary>
-    /// Removes Android-specific notification resources and sends DestroyMediaElementMessage to trigger MediaElement cleanup.
-    /// MediaElement lifecycle (handler disconnect/dispose) is handled by MediaElementService in response to DestroyMediaElementMessage.
-    /// This method focuses on Android-specific cleanup: removing ExoPlayer listener and canceling notifications.
+    /// Removes Android-specific notification resources.
+    /// MediaElement is now a singleton for app lifetime - it is not destroyed.
+    /// This method focuses on Android-specific cleanup: removing ExoPlayer listener.
     /// MediaElement 7.0.0 on Android uses notification ID = 1 (confirmed from MediaControlsService.android.cs source code).
     /// </summary>
     private async Task ReleaseMediaSessionInternalAsync()
     {
         try
         {
-            logger.Information("Removing Android notification resources and triggering MediaElement cleanup");
+            logger.Information("Removing Android notification resources - MediaElement instance remains alive");
 
-            // 1. Remove our ExoPlayer listener first (best effort) to stop intercepting callbacks.
+            // Remove our ExoPlayer listener first (best effort) to stop intercepting callbacks.
             RemoveExoPlayerListener();
 
-            // 3. Send message to MediaElementService to destroy MediaElement and disconnect handler
-            // MediaElementService.DestroyMediaElement() will handle handler disconnect and disposal
-            // This centralizes MediaElement lifecycle management in one place
-            _ = WeakReferenceMessenger.Default.Send(new DestroyMediaElementMessage());
-            logger.Information("Sent DestroyMediaElementMessage - MediaElementService will handle handler disconnect and disposal");
+            // MediaElement is now a singleton for app lifetime - do not send DestroyMediaElementMessage
+            // The MediaElement instance, ExoPlayer, and MediaSession remain alive for the entire app process
+            logger.Information("MediaSession released - MediaElement instance remains alive for app lifetime");
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error removing notification");
+            logger.Error(ex, "Error releasing MediaSession");
         }
     }
 

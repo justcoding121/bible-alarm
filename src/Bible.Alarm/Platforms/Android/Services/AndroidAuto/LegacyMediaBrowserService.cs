@@ -45,7 +45,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 {
     private static readonly ILogger logger = Log.ForContext<LegacyMediaBrowserService>();
     private MediaSessionCompat? session;
-    private MediaSessionManager? mediaSessionManager;
+    private Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager? mediaSessionManager;
     private IState<ApplicationState>? applicationState;
     private AndroidAutoScheduleChangeTracker? scheduleChangeTracker;
     private const string RootId = "__ID_ROOT__";

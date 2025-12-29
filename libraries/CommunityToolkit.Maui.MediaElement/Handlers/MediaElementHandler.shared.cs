@@ -11,7 +11,7 @@ public partial class MediaElementHandler
 	/// <summary>
 	/// The default property mapper for this handler.
 	/// </summary>
-	public static IPropertyMapper<MediaElement, MediaElementHandler> PropertyMapper = new PropertyMapper<MediaElement, MediaElementHandler>(ViewMapper)
+	public static IPropertyMapper<MediaElement, MediaElementHandler> PropertyMapper = new PropertyMapper<MediaElement, MediaElementHandler>()
 	{
 		[nameof(IMediaElement.Aspect)] = MapAspect,
 		[nameof(IMediaElement.ShouldShowPlaybackControls)] = MapShouldShowPlaybackControls,
@@ -28,7 +28,7 @@ public partial class MediaElementHandler
 	/// <summary>
 	/// The default command mapper for this handler.
 	/// </summary>
-	public static CommandMapper<MediaElement, MediaElementHandler> CommandMapper = new(ViewCommandMapper)
+	public static CommandMapper<MediaElement, MediaElementHandler> CommandMapper = new()
 	{
 		[nameof(MediaElement.StatusUpdated)] = MapStatusUpdated,
 		[nameof(MediaElement.PlayRequested)] = MapPlayRequested,
@@ -60,8 +60,7 @@ public partial class MediaElementHandler
 	/// <summary>
 	/// The <see cref="Views.MediaManager"/> that is managing the <see cref="IMediaElement"/> instance.
 	/// </summary>
-
-	protected MediaManager? MediaManager { get; set; }
+	public MediaManager? MediaManager { get; protected set; }
 
 	/// <summary>
 	/// Maps the <see cref="IMediaElement.Aspect"/> property between the abstract

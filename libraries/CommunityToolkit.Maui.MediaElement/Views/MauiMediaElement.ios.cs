@@ -16,6 +16,15 @@ namespace CommunityToolkit.Maui.Core.Views;
 public class MauiMediaElement : UIView
 {
 	/// <summary>
+	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class for headless mode (no UI).
+	/// </summary>
+	public MauiMediaElement()
+	{
+		// Headless mode - no PlayerViewController needed
+		// AVPlayer can work without a view controller for audio-only playback
+	}
+
+	/// <summary>
 	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class.
 	/// </summary>
 	/// <param name="playerViewController">The <see cref="AVPlayerViewController"/> that acts as the platform media player.</param>

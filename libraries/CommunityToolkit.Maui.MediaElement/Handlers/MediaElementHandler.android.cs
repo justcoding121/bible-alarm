@@ -1,3 +1,4 @@
+using System.Reflection;
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Handlers;
@@ -19,7 +20,42 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 		handler.MediaManager?.UpdateShouldLoopPlayback();
 	}
 
+	/// <summary>
+	/// Sets the virtual view with fallback for headless mode.
+	/// In headless mode, SetVirtualView may fail due to gesture manager setup.
+	/// This method handles that gracefully by using reflection as a fallback.
+	/// </summary>
+	/// <param name="mediaElement">The MediaElement to set as the virtual view.</param>
+	public void SetVirtualViewWithFallback(MediaElement mediaElement)
+	{
+		try
+		{
+			SetVirtualView(mediaElement);
+		}
+		catch (Exception)
+		{
+			// In headless mode, SetVirtualView may fail due to gesture manager setup
+			// Use reflection to set VirtualView directly (this is a MAUI framework field, not MediaElement-specific)
+			var virtualViewField = typeof(ElementHandler).GetField("_virtualView",
+				BindingFlags.NonPublic | BindingFlags.Instance);
+			virtualViewField?.SetValue(this, mediaElement);
+		}
+	}
 
+	/// <summary>
+	/// Creates the platform view for MediaElement. Can be called directly for headless initialization.
+	/// This is a public wrapper around the protected CreatePlatformView() method.
+	/// </summary>
+	/// <returns>The platform view (null in headless mode).</returns>
+	public MauiMediaElement InitializePlatformView()
+	{
+		return CreatePlatformView();
+	}
+
+	/// <summary>
+	/// Creates the platform view for MediaElement.
+	/// </summary>
+	/// <returns>The platform view (null in headless mode).</returns>
 	protected override MauiMediaElement CreatePlatformView()
 	{
 		// Use the handler's MauiContext - guaranteed to be available when PrepareAndPlayAsync is called

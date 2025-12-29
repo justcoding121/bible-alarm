@@ -64,6 +64,25 @@ public partial class Home : BaseContentPage, IDisposable
 #endif
     }
 
+    private void OnAddScheduleButtonClicked(object? sender, EventArgs e)
+    {
+        Log.Information("OnAddScheduleButtonClicked: Button clicked! IsBootstrapComplete={IsBootstrapComplete}, Command CanExecute={CanExecute}", 
+            viewModel?.IsBootstrapComplete ?? false,
+            viewModel?.AddScheduleCommand?.CanExecute(null) ?? false);
+        
+        // Manually execute the command to test
+        if (viewModel?.AddScheduleCommand != null && viewModel.AddScheduleCommand.CanExecute(null))
+        {
+            Log.Information("OnAddScheduleButtonClicked: Manually executing command");
+            viewModel.AddScheduleCommand.Execute(null);
+        }
+        else
+        {
+            Log.Warning("OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}", 
+                viewModel?.IsBootstrapComplete ?? false);
+        }
+    }
+
     private void OnScheduleItemTapped(object? sender, TappedEventArgs e)
     {
         View? container = sender as View;

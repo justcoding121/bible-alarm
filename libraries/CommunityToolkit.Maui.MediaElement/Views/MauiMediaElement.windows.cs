@@ -37,10 +37,24 @@ public partial class MauiMediaElement : Grid, IDisposable
 	}
 	readonly Popup popup = new();
 	readonly Grid fullScreenGrid = new();
-	readonly PlatformMediaElement mediaPlayerElement;
-	readonly CustomTransportControls? customTransportControls;
 	bool doesNavigationBarExistBeforeFullScreen;
 	bool isDisposed;
+
+	readonly PlatformMediaElement? mediaPlayerElement;
+	readonly CustomTransportControls? customTransportControls;
+
+	/// <summary>
+	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class for headless mode (no UI).
+	/// </summary>
+	public MauiMediaElement()
+	{
+		// Headless mode - no MediaPlayerElement needed
+		// Windows MediaPlayer can work without a UI element for audio-only playback
+		mediaPlayerElement = null;
+		customTransportControls = null;
+		doesNavigationBarExistBeforeFullScreen = false;
+		isDisposed = false;
+	}
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MauiMediaElement"/> class.
@@ -146,13 +160,14 @@ public partial class MauiMediaElement : Grid, IDisposable
 		{
 			return;
 		}
-		if (customTransportControls?.FullScreenButton is not null)
-		{
-			customTransportControls.FullScreenButton.Click -= OnFullScreenButtonClick;
-		}
 
-		if (disposing)
+		if (disposing && mediaPlayerElement is not null)
 		{
+			if (customTransportControls?.FullScreenButton is not null)
+			{
+				customTransportControls.FullScreenButton.Click -= OnFullScreenButtonClick;
+			}
+
 			mediaPlayerElement.MediaPlayer.Pause();
 
 			if (mediaPlayerElement.MediaPlayer.Source is MediaSource mediaSource)
@@ -178,6 +193,11 @@ public partial class MauiMediaElement : Grid, IDisposable
 
 	void OnFullScreenButtonClick(object sender, RoutedEventArgs e)
 	{
+		if (mediaPlayerElement is null)
+		{
+			return; // Headless mode - no fullscreen support
+		}
+
 		var currentPage = CurrentPage;
 		var appWindow = GetAppWindowForCurrentWindow();
 

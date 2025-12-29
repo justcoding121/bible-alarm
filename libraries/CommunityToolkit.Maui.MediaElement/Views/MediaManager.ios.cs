@@ -22,24 +22,26 @@ public partial class MediaManager : IDisposable
 	/// <summary>
 	/// Creates the corresponding platform view of <see cref="MediaElement"/> on iOS and macOS.
 	/// </summary>
-	/// <returns>The platform native counterpart of <see cref="MediaElement"/>.</returns>
-	public (PlatformMediaElement Player, AVPlayerViewController PlayerViewController) CreatePlatformView()
+	/// <returns>The platform native counterpart of <see cref="MediaElement"/>. PlayerViewController is null in headless mode.</returns>
+	public (PlatformMediaElement Player, AVPlayerViewController? PlayerViewController) CreatePlatformView()
 	{
-		CreatePlayerAndViewController();
+		CreatePlayer();
 		InitializePlayerProperties();
 		SetupRemoteControlAndAudio();
 		SetupObservers();
 
-		return (Player!, PlayerViewController!);
+		// In headless mode (audio-only), we don't need a PlayerViewController
+		// AVPlayer works perfectly without a view controller for audio playback
+		PlayerViewController = null;
+
+		return (Player!, PlayerViewController);
 	}
 
-	void CreatePlayerAndViewController()
+	void CreatePlayer()
 	{
 		Player = new();
-		PlayerViewController = new()
-		{
-			Player = Player
-		};
+		// PlayerViewController is not created in headless mode
+		// AVPlayer can work without a view controller for audio-only playback
 	}
 
 	void InitializePlayerProperties()
@@ -479,7 +481,7 @@ public partial class MediaManager : IDisposable
 
 	protected virtual partial void PlatformUpdateSpeed()
 	{
-		if (PlayerViewController?.Player is null)
+		if (Player is null)
 		{
 			return;
 		}
@@ -491,7 +493,7 @@ public partial class MediaManager : IDisposable
 			return;
 		}
 
-		PlayerViewController.Player.Rate = (float)MediaElement.Speed;
+		Player.Rate = (float)MediaElement.Speed;
 	}
 
 	protected virtual partial void PlatformUpdateShouldShowPlaybackControls()
@@ -827,14 +829,14 @@ public partial class MediaManager : IDisposable
 
 	void PlayedToEnd(object? sender, NSNotificationEventArgs args)
 	{
-		if (args.Notification.Object != PlayerViewController?.Player?.CurrentItem || Player is null)
+		if (Player is null || args.Notification.Object != Player.CurrentItem)
 		{
 			return;
 		}
 
 		if (MediaElement.ShouldLoopPlayback)
 		{
-			PlayerViewController?.Player?.Seek(CMTime.Zero);
+			Player.Seek(CMTime.Zero);
 			Player.Play();
 		}
 		else

@@ -17,11 +17,11 @@ namespace Bible.Alarm.Services.Media;
 /// Service for managing and accessing the MediaElement instance.
 /// Handles creation and retrieval of MediaElement from BootstrapPage.
 /// Thread-safe: ensures MediaElement creation happens on the main thread to prevent deadlocks and crashes.
-/// Also handles MediaElement disposal when DestroyMediaElementMessage is received.
+/// MediaElement is a singleton for the app process lifetime - it is initialized during bootstrap and never destroyed.
 /// MediaElement can exist without being attached to BootstrapPage container (e.g., when app is backgrounded).
 /// When BootstrapPage becomes available, MediaElement will be reattached automatically.
 /// </summary>
-public sealed class MediaElementService : IMediaElementService, IRecipient<DestroyMediaElementMessage>, IDisposable
+public sealed class MediaElementService : IMediaElementService, IDisposable
 {
     private readonly INavigationService navigationService;
     private readonly ILogger logger;
@@ -30,6 +30,9 @@ public sealed class MediaElementService : IMediaElementService, IRecipient<Destr
     // Store MediaElement instance independently of BootstrapPage container
     // This allows MediaElement to exist when app is backgrounded (no UI)
     private MediaElement? mediaElementInstance;
+    // Track initialization task to allow waiting for initialization to complete
+    private TaskCompletionSource<bool>? initializationTaskSource;
+    private volatile bool isInitializing;
 #if ANDROID
     // Track if handler has been created to prevent duplicate ExoPlayer creation
     // Used in debug logging and conditional checks
@@ -48,12 +51,41 @@ public sealed class MediaElementService : IMediaElementService, IRecipient<Destr
         this.navigationService = navigationService;
         this.logger = logger;
 
-        // Register for DestroyMediaElementMessage to handle MediaElement disposal
-        WeakReferenceMessenger.Default.Register(this);
+        // MediaElement is now a singleton for all platforms - do not register for DestroyMediaElementMessage
+        // MediaElement will live for the entire app process lifetime
     }
 
     public async Task<MediaElement> GetMediaElementAsync()
     {
+        // Wait for initialization if it's in progress
+        // BUT: If we're on the main thread, we might be the one doing the initialization,
+        // so don't wait (to avoid deadlock). Only wait if called from a background thread.
+        TaskCompletionSource<bool>? initTask = null;
+        lock (lockObject)
+        {
+            if (isInitializing && initializationTaskSource != null)
+            {
+                initTask = initializationTaskSource;
+            }
+        }
+
+        if (initTask != null)
+        {
+            // Only wait if we're NOT on the main thread
+            // If we're on main thread, we're likely the one doing initialization, so proceed
+            if (!MainThread.IsMainThread)
+            {
+                logger.Debug("MediaElement initialization in progress, waiting for completion (from background thread)");
+                await initTask.Task.ConfigureAwait(false);
+            }
+            else
+            {
+                logger.Debug("MediaElement initialization in progress, but we're on main thread - likely we're the initializer, proceeding directly");
+                // Don't wait - we're on main thread and likely part of the initialization process
+                // This prevents deadlock when InitializeMediaElementAsync calls GetMediaElementAsync
+            }
+        }
+
         MediaElement? existingInstance;
 
         // Use local lock to synchronize access to MediaElement
@@ -125,6 +157,75 @@ public sealed class MediaElementService : IMediaElementService, IRecipient<Destr
 #endif
 
         return newMediaElement;
+    }
+
+    /// <summary>
+    /// Initializes MediaElement during bootstrap.
+    /// Creates a single MediaElement instance that lives for the app process lifetime.
+    /// This ensures ExoPlayer and MediaSession are created early and persist throughout the app lifecycle.
+    /// This method is called on a background task during bootstrap and does not block.
+    /// </summary>
+    public async Task InitializeMediaElementAsync()
+    {
+        TaskCompletionSource<bool>? taskSource = null;
+        bool shouldInitialize = false;
+
+        // Use local lock to synchronize
+        lock (lockObject)
+        {
+            // Check if already initialized
+            if (mediaElementInstance != null)
+            {
+                logger.Debug("MediaElement already initialized during bootstrap");
+                return;
+            }
+
+            // Check if initialization is already in progress
+            if (isInitializing)
+            {
+                logger.Debug("MediaElement initialization already in progress, waiting for completion");
+                taskSource = initializationTaskSource;
+            }
+            else
+            {
+                // Start initialization
+                isInitializing = true;
+                initializationTaskSource = new TaskCompletionSource<bool>();
+                shouldInitialize = true;
+            }
+        }
+
+        // If initialization is already in progress, wait for it
+        if (taskSource != null)
+        {
+            await taskSource.Task.ConfigureAwait(false);
+            return;
+        }
+
+        // Perform initialization
+        try
+        {
+            logger.Information("[BOOTSTRAP] Initializing MediaElement instance for app lifetime");
+            await GetMediaElementAsync();
+            logger.Information("[BOOTSTRAP] MediaElement instance initialized successfully");
+
+            // Signal completion
+            lock (lockObject)
+            {
+                initializationTaskSource?.TrySetResult(true);
+                isInitializing = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[BOOTSTRAP] Error initializing MediaElement");
+            lock (lockObject)
+            {
+                initializationTaskSource?.TrySetException(ex);
+                isInitializing = false;
+            }
+            throw;
+        }
     }
 
     /// <summary>
@@ -210,27 +311,14 @@ public sealed class MediaElementService : IMediaElementService, IRecipient<Destr
             var handler = new MediaElementHandler();
             handler.SetMauiContext(mauiContext);
 
-            // Set VirtualView - this may fail in headless mode due to gesture manager, but we'll handle it
-            try
-            {
-                handler.SetVirtualView(mediaElement);
-            }
-            catch (Exception ex)
-            {
-                //In headless mode, SetVirtualView may fail due to gesture manager setup
-                // Use reflection to set VirtualView directly
-                logger.Debug(ex, "SetVirtualView failed (expected in headless mode) - using reflection fallback");
-                var virtualViewField = typeof(ElementHandler).GetField("_virtualView",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                virtualViewField?.SetValue(handler, mediaElement);
-            }
+            // Set VirtualView with fallback for headless mode
+            // The fallback logic is now encapsulated in SetVirtualViewWithFallback
+            handler.SetVirtualViewWithFallback(mediaElement);
 
-            // Trigger CreatePlatformView to initialize MediaManager and ExoPlayer
+            // Trigger InitializePlatformView to initialize MediaManager and ExoPlayer
             // This will return null in headless mode (expected)
-            // Use reflection since CreatePlatformView is protected
-            var createPlatformViewMethod = typeof(MediaElementHandler).GetMethod("CreatePlatformView",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            createPlatformViewMethod?.Invoke(handler, null);
+            // InitializePlatformView is a public wrapper around CreatePlatformView
+            handler.InitializePlatformView();
 
             // Attach handler to MediaElement
             try
@@ -405,111 +493,8 @@ public sealed class MediaElementService : IMediaElementService, IRecipient<Destr
 #endif
     }
 
-    /// <summary>
-    /// Handles DestroyMediaElementMessage by disposing the MediaElement and setting container content to null.
-    /// This is called after MediaSession release to ensure a clean ExoPlayer instance.
-    /// MediaElement will be recreated automatically by GetMediaElementAsync() when needed for the next playlist.
-    /// </summary>
-    public void Receive(DestroyMediaElementMessage message)
-    {
-        MainThread.BeginInvokeOnMainThread(DestroyMediaElement);
-    }
-
-    /// <summary>
-    /// Destroys the MediaElement by disconnecting handler, disposing resources, and clearing references.
-    /// The MediaElement will be recreated automatically by GetMediaElementAsync() when needed for the next playlist.
-    /// </summary>
-    private void DestroyMediaElement()
-    {
-        // Use local lock to synchronize with GetMediaElement
-        lock (lockObject)
-        {
-            try
-            {
-                // First, detach MediaElement from UI container (iOS/Windows) before disposing
-                // This ensures proper cleanup order
-                if (mediaElementInstance != null)
-                {
-#if !ANDROID
-                    // Detach from BootstrapPage container if attached (iOS/Windows only)
-                    var bootstrapPage = navigationService.GetBootstrapPage(shouldRetry: false);
-                    if (bootstrapPage != null)
-                    {
-                        var mediaElementContainer = bootstrapPage.MediaElementContainerInstance;
-                        if (mediaElementContainer != null && mediaElementContainer.Content == mediaElementInstance)
-                        {
-                            mediaElementContainer.Content = null;
-                            logger.Information("MediaElement detached from BootstrapPage container");
-                        }
-                    }
-#endif
-                }
-
-                // Now dispose the stored MediaElement instance
-                if (mediaElementInstance != null)
-                {
-                    logger.Information("Disposing MediaElement instance");
-
-                    // Clear handler reference before disposing MediaElement
-                    // This ensures handler is properly cleaned up
-                    // CRITICAL: Call Dispose() directly instead of DisconnectHandler() because
-                    // DisconnectHandler() override may not be called in headless mode when PlatformView is null.
-                    // Direct disposal bypasses the DisconnectHandler issue and ensures cleanup happens.
-                    if (mediaElementInstance.Handler != null)
-                    {
-                        try
-                        {
-                            if (mediaElementInstance.Handler is IDisposable disposableHandler)
-                            {
-                                // Prefer disconnect first to allow MediaElementHandler to detach Media3 listeners cleanly.
-                                // Direct disposal here can lead to Media3 callbacks firing into disposed managed peers.
-                                try
-                                {
-                                    mediaElementInstance.Handler.DisconnectHandler();
-                                    logger.Debug("Handler disconnected via DisconnectHandler()");
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.Debug(ex, "DisconnectHandler threw; continuing with handler disposal (best-effort)");
-                                }
-
-                                disposableHandler.Dispose();
-                                logger.Debug("Handler disposed");
-                            }
-                            else
-                            {
-                                // Fallback to DisconnectHandler if handler doesn't implement IDisposable
-                                mediaElementInstance.Handler.DisconnectHandler();
-                                logger.Debug("Handler disconnected via DisconnectHandler()");
-                            }
-                            mediaElementInstance.Handler = null;
-
-                            // Reset handler created flag so a new one can be created later
-#if ANDROID
-                            handlerCreated = false;
-                            globalHandlerCreated = false; // Reset STATIC flag
-#endif
-                        }
-                        catch (Exception handlerEx)
-                        {
-                            logger.Warning(handlerEx, "Error disposing handler during MediaElement disposal");
-                        }
-                    }
-
-                    if (mediaElementInstance is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                    }
-                    mediaElementInstance = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't crash - MediaElement will be recreated when needed
-                logger.Error(ex, "Error disposing MediaElement");
-            }
-        }
-    }
+    // MediaElement is now a singleton for all platforms - it is never destroyed during app lifetime
+    // No DestroyMediaElementMessage handling needed
 
     private bool isDisposed;
 
@@ -521,9 +506,6 @@ public sealed class MediaElementService : IMediaElementService, IRecipient<Destr
         }
 
         isDisposed = true;
-
-        // Unregister from messages
-        WeakReferenceMessenger.Default.Unregister<DestroyMediaElementMessage>(this);
 
         // All injected services (navigationService) are singletons, so don't dispose them
     }
