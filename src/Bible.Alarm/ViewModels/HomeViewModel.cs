@@ -115,44 +115,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         // This ensures the progress bar shows if schedules aren't loaded yet
         UpdateProgressBarVisibility();
 
-        // Check bootstrap completion status initially and periodically
-        CheckBootstrapCompletion();
-        StartBootstrapCompletionPolling();
-
         // Don't set IsBusy = false here - it will be set after initialization completes
         // IsBusy starts as true and will be set to false in OnStateChanged after schedules are populated
-    }
-
-    private System.Timers.Timer? bootstrapCheckTimer;
-
-    private void StartBootstrapCompletionPolling()
-    {
-        // Poll bootstrap completion every 100ms until it's complete
-        bootstrapCheckTimer = new System.Timers.Timer(100);
-        bootstrapCheckTimer.Elapsed += (sender, e) =>
-        {
-            if (Common.Helpers.BootstrapHelper.IsBootstrapCompleted())
-            {
-                bootstrapCheckTimer?.Stop();
-                bootstrapCheckTimer?.Dispose();
-                bootstrapCheckTimer = null;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    OnPropertyChanged(nameof(IsBootstrapComplete));
-                });
-            }
-        };
-        bootstrapCheckTimer.AutoReset = true;
-        bootstrapCheckTimer.Start();
-    }
-
-    private void CheckBootstrapCompletion()
-    {
-        // Check immediately and notify if already complete
-        if (Common.Helpers.BootstrapHelper.IsBootstrapCompleted())
-        {
-            OnPropertyChanged(nameof(IsBootstrapComplete));
-        }
     }
 
 
@@ -522,7 +486,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Indicates if bootstrap is complete and databases are ready.
-    /// The Add Schedule button should be disabled until this is true.
+    /// Available for debugging/logging purposes.
     /// </summary>
     public bool IsBootstrapComplete => Common.Helpers.BootstrapHelper.IsBootstrapCompleted();
 
@@ -697,10 +661,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     await FadeOutProgressBarAsync();
                 }
                 
-                // Check bootstrap completion when schedules are loaded
-                // Schedules are loaded after bootstrap completes, so this is a good time to check
-                CheckBootstrapCompletion();
-                
                 // Notify overlay visibility change after IsBusy is set to false
                 OnPropertyChanged(nameof(IsHomePageOverlayVisible));
             }
@@ -773,11 +733,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
-
-        // Stop and dispose bootstrap check timer
-        bootstrapCheckTimer?.Stop();
-        bootstrapCheckTimer?.Dispose();
-        bootstrapCheckTimer = null;
 
         // Stop and dispose progress animation timer
         StopProgressAnimation();

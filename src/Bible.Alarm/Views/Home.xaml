@@ -51,7 +51,7 @@
                     BackgroundColor="{StaticResource PrimaryColor}"
                     CornerRadius="12"
                     Command="{Binding AddScheduleCommand}"
-                    IsEnabled="{Binding IsBootstrapComplete}"
+                    IsEnabled="{Binding Loaded}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="20"
                     HorizontalOptions="Fill"
