@@ -429,28 +429,6 @@ public sealed class NavigationService(
         await navigation.PushAsync(page, animated: true);
     }
 
-    public BootstrapPage? GetBootstrapPage(bool shouldRetry = true)
-    {
-        try
-        {
-            var navigation = GetNavigation(shouldRetry);
-            var navStack = navigation.NavigationStack;
-            foreach (var page in navStack)
-            {
-                if (page is BootstrapPage bootstrapPage)
-                {
-                    return bootstrapPage;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error getting BootstrapPage from navigation stack");
-        }
-
-        return null;
-    }
-
     public void Dispose()
     {
         if (isDisposed)

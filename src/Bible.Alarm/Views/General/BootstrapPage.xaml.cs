@@ -1,6 +1,5 @@
 using System.Timers;
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 using Timer = System.Timers.Timer;
@@ -15,11 +14,6 @@ public partial class BootstrapPage : ContentPage, IDisposable
     private readonly Timer animationTimer;
     private int currentDot;
     private bool hasNavigatedToHome;
-
-    /// <summary>
-    /// Gets the MediaElementContainer ContentView. Used by NavigationService to add MediaElement when it's recreated.
-    /// </summary>
-    public ContentView MediaElementContainerInstance => MediaElementContainer;
 
     public BootstrapPage()
     {
@@ -112,19 +106,6 @@ public partial class BootstrapPage : ContentPage, IDisposable
                     logger.Warning(ex, "BootstrapPage: Error in immediate navigation to Home");
                 }
             });
-        }
-
-        // Reattach MediaElement to container when BootstrapPage becomes available
-        // This handles the case where MediaElement was created while app was backgrounded
-        try
-        {
-            var mediaElementService = ServiceProviderManager.GetService<IMediaElementService>();
-            mediaElementService.ReattachMediaElementIfNeeded();
-        }
-        catch (Exception ex)
-        {
-            // Service might not be available yet - that's okay, will retry on next GetMediaElement call
-            logger.Warning(ex, "Failed to reattach MediaElement in BootstrapPage.OnAppearing - will retry on next GetMediaElement call");
         }
     }
 

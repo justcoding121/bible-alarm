@@ -438,6 +438,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         // Save currentScheduleId before resetting state (needed for SaveLastPlayed)
         var scheduleIdToSave = currentScheduleId;
 
+        // Save track metadata before resetting state (needed for marking track as played/finished)
+        TrackMetadata? trackMetadataToMark = null;
+        if (!skipMarkAsPlayed && playlist != null && currentTrackIndex >= 0 && currentTrackIndex < playlist.Count)
+        {
+            trackMetadataToMark = playlist[currentTrackIndex].PlayItem.Metadata;
+        }
+
         // Cancel any ongoing preparation/downloads
         try
         {
@@ -451,7 +458,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         // Reset state early to ensure PlayCurrentTrackAsync checks detect stop immediately
         // This is especially important for the gap between downloads completing and playback starting
-        // Note: We save currentScheduleId above before resetting
+        // Note: We save currentScheduleId and trackMetadataToMark above before resetting
         ResetState();
 
         // Stop progress timer first to prevent it from trying to save progress after ServiceProvider is disposed
@@ -469,15 +476,25 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
         // This prevents overwriting the database update that MarkTrackAsFinished() already made
-        if (!skipMarkAsPlayed)
+        if (!skipMarkAsPlayed && trackMetadataToMark != null)
         {
             try
             {
-                await MarkCurrentTrackAsPlayedAsync();
+                // For music tracks, mark as finished (which advances to next track unless repeat is enabled)
+                // This matches the behavior when a track finishes naturally
+                // For Bible tracks, mark as played (which saves current position)
+                if (trackMetadataToMark.PlayType == PlayType.Music)
+                {
+                    await playlistService.MarkTrackAsFinished(trackMetadataToMark);
+                }
+                else
+                {
+                    await playlistService.MarkTrackAsPlayed(trackMetadataToMark);
+                }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error marking current track as played");
+                logger.Warning(ex, "Error marking current track as played/finished");
             }
         }
 

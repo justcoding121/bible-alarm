@@ -21,9 +21,6 @@
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid>
-            <!-- MediaElement container - MediaElement will be created on demand via MediaElementService -->
-            <!-- This prevents the service from starting and showing notification on app launch -->
-            <ContentView x:Name="MediaElementContainer" />
             <StackLayout
                 HorizontalOptions="Center"
                 Orientation="Vertical"
