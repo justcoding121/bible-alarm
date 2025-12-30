@@ -276,16 +276,15 @@ public static class ServiceRegistrationHelper
         services.AddTransient<TrackSelectionModal>();
         services.AddTransient<BatteryOptimizationExclusionModal>();
         services.AddTransient<NumberOfChaptersModal>();
-        services.AddTransient<BootstrapPage>();
 
-
-        // It will be created with BootstrapPage as the root page
+        // It will be created with Home as the root page
         services.AddTransient(sp =>
         {
-            var bootstrapPage = sp.GetRequiredService<BootstrapPage>();
-            var navigationPage = new NavigationPage(bootstrapPage);
-            // NavigationPage background will adapt to theme via BootstrapPage
-            NavigationPage.SetHasNavigationBar(bootstrapPage, false);
+            var homePage = sp.GetRequiredService<Home>();
+            var navigationPage = new NavigationPage(homePage);
+            // NavigationPage background will adapt to theme via Home
+            NavigationPage.SetHasNavigationBar(homePage, false);
+            NavigationPage.SetHasBackButton(homePage, false);
             return navigationPage;
         });
     }

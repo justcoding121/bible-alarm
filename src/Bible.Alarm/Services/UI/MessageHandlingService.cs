@@ -47,14 +47,24 @@ public sealed class MessageHandlingService(
         {
             try
             {
+                // Check if playback is active before navigating
+                var isPlaybackActive = playbackState.Value.IsPreparingOrPlaying;
+
                 // Navigate to the initialized home page (this creates a new Home instance)
                 await navigationService.NavigateToHomeAsync();
 
-                // After Home is visible, if playback was already started (prepare+play), open the alarm modal.
-                // AlarmModalService defers opening while Bootstrap is on top, so we "catch up" here.
-                if (playbackState.Value.IsPreparingOrPlaying)
+                // If playback is active, hide Home page to prevent visual flash before modal appears
+                if (isPlaybackActive)
                 {
-                    logger.Information("Home is visible and playback is already started; opening AlarmModal.");
+                    logger.Information("Playback is active - hiding Home page before opening AlarmModal");
+                    navigationService.SetHomePageVisibility(isPlaybackActive: true);
+                }
+
+                // After Home is navigated (and hidden if playback active), open the alarm modal.
+                // AlarmModalService defers opening while Bootstrap is on top, so we "catch up" here.
+                if (isPlaybackActive)
+                {
+                    logger.Information("Home is navigated and playback is already started; opening AlarmModal.");
                     await navigationService.OpenAlarmModalAsync();
                 }
 

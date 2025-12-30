@@ -94,10 +94,8 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
         {
             logger.Debug("MediaElement instance found in service");
 
-#if ANDROID
-            // Android: Ensure handler exists for existing MediaElement
+            // Ensure handler exists for existing MediaElement (all platforms)
             await EnsureHandlerCreatedAsync(existingInstance).ConfigureAwait(false);
-#endif
 
             return existingInstance;
         }
@@ -137,11 +135,9 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
 
         logger.Information("New MediaElement created and stored in service");
 
-#if ANDROID
-        // Android: Create handler immediately for headless mode
+        // Create handler immediately for headless mode (all platforms)
         // Handler must exist before Source is set (MapSource requires handler)
         await EnsureHandlerCreatedAsync(newMediaElement).ConfigureAwait(false);
-#endif
 
         return newMediaElement;
     }
@@ -328,6 +324,89 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
             }
 
             logger.Information("MediaElement handler created successfully for headless Android operation");
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to create MediaElement handler - handler will be created when Source is set");
+        }
+    }
+#endif
+
+    /// <summary>
+    /// Ensures MediaElement handler is created for headless operation (Windows/iOS).
+    /// Must be called on main thread after bootstrap completes.
+    /// </summary>
+#if !ANDROID
+    private async Task EnsureHandlerCreatedAsync(MediaElement mediaElement)
+    {
+        if (mediaElement.Handler != null)
+        {
+            logger.Debug("MediaElement handler already exists");
+            return;
+        }
+
+        if (!MainThread.IsMainThread)
+        {
+            logger.Debug("EnsureHandlerCreated called from non-main thread - marshalling to main thread");
+            await MainThread.InvokeOnMainThreadAsync(() => EnsureHandlerCreatedAsync(mediaElement)).ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            // Get MauiContext from Application.Current (available after bootstrap)
+            var appHandler = Application.Current?.Handler;
+            if (appHandler?.MauiContext == null)
+            {
+                logger.Warning("Cannot create handler - Application.Current.Handler.MauiContext is null. Bootstrap may not have completed.");
+                return;
+            }
+
+            var mauiContext = appHandler.MauiContext;
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                logger.Warning("Cannot create handler - Application.Current.Dispatcher is null. Bootstrap may not have completed.");
+                return;
+            }
+
+            // Create handler manually
+            var handler = new MediaElementHandler();
+            handler.SetMauiContext(mauiContext);
+
+            // Set VirtualView with fallback for headless mode
+            try
+            {
+                handler.SetVirtualView(mediaElement);
+            }
+            catch (Exception ex)
+            {
+                // In headless mode, SetVirtualView may fail - use reflection fallback
+                logger.Debug(ex, "Failed to set VirtualView (expected in headless mode) - using reflection fallback");
+                var virtualViewField = typeof(ElementHandler).GetField("_virtualView",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                virtualViewField?.SetValue(handler, mediaElement);
+            }
+
+            // Trigger CreatePlatformView to initialize MediaManager
+            // Accessing PlatformView property will automatically call CreatePlatformView
+            _ = handler.PlatformView;
+
+            // Attach handler to MediaElement
+            try
+            {
+                mediaElement.Handler = handler;
+            }
+            catch (Exception ex)
+            {
+                // Handler setup may fail - use reflection fallback
+                logger.Debug(ex, "Failed to set handler via property (expected in headless mode) - using reflection fallback");
+                var handlerField = typeof(Element).GetField("_handler",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                handlerField?.SetValue(mediaElement, handler);
+            }
+
+            logger.Information("MediaElement handler created successfully for headless operation");
         }
         catch (Exception ex)
         {

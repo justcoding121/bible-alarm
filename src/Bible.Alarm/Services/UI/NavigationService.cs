@@ -134,7 +134,7 @@ public sealed class NavigationService(
         }
         else
         {
-            await PopToBootstrapAndPushNewHomeAsync(navigation);
+            await PopToRootAndPushNewHomeAsync(navigation);
 #if DEBUG
             var navTotalElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (new home) in {ElapsedMs:F2}ms", navTotalElapsed);
@@ -162,7 +162,7 @@ public sealed class NavigationService(
 
     private async Task PopToExistingHomeAsync(INavigation navigation, Home existingHome)
     {
-        // Home exists in stack - pop all pages until we reach Home (but keep BootstrapPage)
+        // Home exists in stack - pop all pages until we reach Home (root)
         while (navigation.NavigationStack.Count > 1 && navigation.NavigationStack.LastOrDefault() != existingHome)
         {
             var page = navigation.NavigationStack.LastOrDefault();
@@ -174,16 +174,16 @@ public sealed class NavigationService(
         }
     }
 
-    private async Task PopToBootstrapAndPushNewHomeAsync(INavigation navigation)
+    private async Task PopToRootAndPushNewHomeAsync(INavigation navigation)
     {
-        // Home doesn't exist - pop all pages except BootstrapPage (index 0), then push new Home
+        // Home doesn't exist - pop all pages to root, then push new Home
 #if DEBUG
         var popStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
-        await PopAllPagesExceptBootstrapAsync(navigation);
+        await PopAllPagesToRootAsync(navigation);
 #if DEBUG
         var popElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - popStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        logger.Information("[BOOTSTRAP] PopAllPagesExceptBootstrapAsync completed in {ElapsedMs:F2}ms", popElapsed);
+        logger.Information("[BOOTSTRAP] PopAllPagesToRootAsync completed in {ElapsedMs:F2}ms", popElapsed);
 #endif
 
 #if DEBUG
@@ -207,7 +207,7 @@ public sealed class NavigationService(
 #endif
     }
 
-    private async Task PopAllPagesExceptBootstrapAsync(INavigation navigation)
+    private async Task PopAllPagesToRootAsync(INavigation navigation)
     {
         while (navigation.NavigationStack.Count > 1)
         {
@@ -224,6 +224,42 @@ public sealed class NavigationService(
     {
         NavigationPage.SetHasBackButton(homePage, false);
         NavigationPage.SetHasNavigationBar(homePage, false);
+    }
+
+    /// <summary>
+    /// Gets the current Home page from the navigation stack, if available.
+    /// </summary>
+    public Home? GetCurrentHomePage()
+    {
+        try
+        {
+            var navigation = GetNavigation(shouldRetry: false);
+            return navigation.NavigationStack.LastOrDefault() as Home;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Sets Home page visibility based on playback state.
+    /// If playback is active, hides Home to prevent visual flash before alarm modal appears.
+    /// </summary>
+    public void SetHomePageVisibility(bool isPlaybackActive)
+    {
+        var homePage = GetCurrentHomePage();
+        if (homePage == null)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // If playback is active, hide Home page to prevent flash before modal appears
+            // Home will be shown when modal appears or playback stops
+            homePage.Opacity = isPlaybackActive ? 0.0 : 1.0;
+        });
     }
 
     public async Task NavigateToScheduleAsync()

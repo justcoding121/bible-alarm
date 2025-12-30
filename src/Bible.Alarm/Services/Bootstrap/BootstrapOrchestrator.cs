@@ -122,7 +122,7 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
         // NavigateToHomeAsync handles duplicate navigation attempts internally
         // CRITICAL: Send InitializedMessage even if services were already verified
         // This handles the case where Android Auto completed bootstrap first (isForeground=false)
-        // and the UI needs to navigate away from BootstrapPage
+        // and the UI needs to navigate to Home
         if (initializeUi && shouldSendEarlyNav)
         {
             // Services just verified, and we already sent early InitializedMessage above

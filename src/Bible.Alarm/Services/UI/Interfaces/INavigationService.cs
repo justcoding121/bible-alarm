@@ -24,5 +24,11 @@ public interface INavigationService : IDisposable
     /// </summary>
     void PopAllModalsAndPages();
     void ClearCache();
+
+    /// <summary>
+    /// Sets Home page visibility based on playback state.
+    /// If playback is active, hides Home to prevent visual flash before alarm modal appears.
+    /// </summary>
+    void SetHomePageVisibility(bool isPlaybackActive);
 }
 
