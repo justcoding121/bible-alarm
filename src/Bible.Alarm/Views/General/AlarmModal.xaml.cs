@@ -40,9 +40,26 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         // Wait a bit to ensure the modal is fully rendered and visible
         await Task.Delay(100);
 
+#if IOS
+        // On iOS, Slider doesn't support tap-to-seek natively, so add TapGestureRecognizer
+        SetupIOSTapToSeek();
+#endif
+
         // Hide Home page overlay after Alarm Modal is fully rendered and visible
         viewModel?.HideHomePageOverlay();
     }
+
+#if IOS
+    private void SetupIOSTapToSeek()
+    {
+        if (ProgressSlider != null)
+        {
+            var tapGesture = new TapGestureRecognizer();
+            tapGesture.Tapped += OnSliderTapped;
+            ProgressSlider.GestureRecognizers.Add(tapGesture);
+        }
+    }
+#endif
 
     protected override void OnAppearing()
     {
@@ -64,7 +81,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         // This ensures the command executes even if binding fails or command is blocked
         var logger = Log.Logger;
         logger.Information("Stop button clicked - OnStopButtonClicked handler fired");
-        
+
         try
         {
             // Try command first
@@ -108,6 +125,12 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     }
 
     private bool isDragging;
+#if IOS
+    private bool isHandlingTap;
+#endif
+    private System.Timers.Timer? seekDebounceTimer;
+    private double? pendingSeekValue;
+    private const int SeekDebounceDelayMs = 200; // Wait 200ms after last value change before seeking
 
     private void OnSliderValueChanged(object? sender, ValueChangedEventArgs e)
     {
@@ -116,41 +139,165 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             return;
         }
 
-        // Ignore programmatic updates (from binding)
+#if IOS
+        // If we're handling a tap gesture, ignore ValueChanged to avoid double-handling
+        // The tap gesture will handle the seek directly
+        if (isHandlingTap)
+        {
+            return;
+        }
+#endif
+
+        // On iOS, DragStarted/DragCompleted events might not fire reliably
+        // So we need to handle both tap and drag through ValueChanged
+        // Use debouncing: wait for user to stop interacting before seeking
+        
+        // Check if this is a programmatic update (from binding)
+        // If IsUserInteracting is false, this is likely a programmatic update
+        // However, on iOS, the first touch might not set IsUserInteracting yet
+        // So we need to detect user interaction by checking if the value changed significantly
+        // or if we're already in a drag state
+        
+        var isLikelyUserInteraction = ViewModel.IsUserInteracting || isDragging;
+        
+        // If not a user interaction, ignore (this is a programmatic update from binding)
+        if (!isLikelyUserInteraction)
+        {
+            return;
+        }
+
+        // Stop any existing timer
+        seekDebounceTimer?.Stop();
+        seekDebounceTimer?.Dispose();
+
+        // Store the value we want to seek to
+        pendingSeekValue = e.NewValue;
+
+        // If user is not yet marked as interacting, mark them now
+        // (iOS might not fire DragStarted, so we detect it from ValueChanged)
         if (!ViewModel.IsUserInteracting)
         {
-            return;
+            // This is the first interaction - mark as dragging started
+            isDragging = true;
+            ViewModel.OnSliderDragStarted();
         }
 
-        // If user is dragging, ignore ValueChanged (drag will be handled by DragCompleted)
-        if (isDragging)
+        // Update visual position immediately (bypass Progress setter to avoid feedback loop)
+        // This gives immediate visual feedback while dragging
+        ViewModel.SetProgressDirectly(e.NewValue);
+
+        // Set up debounce timer - seek when user stops interacting
+        seekDebounceTimer = new System.Timers.Timer(SeekDebounceDelayMs);
+        seekDebounceTimer.Elapsed += (s, args) =>
         {
-            return;
-        }
+            seekDebounceTimer.Stop();
+            seekDebounceTimer.Dispose();
+            seekDebounceTimer = null;
 
-        // This is a tap (ValueChanged without drag) - handle it
-        ViewModel.OnSliderTapped(e.NewValue);
+            // User has stopped interacting - perform seek
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (pendingSeekValue.HasValue && ViewModel != null)
+                {
+                    var value = pendingSeekValue.Value;
+                    pendingSeekValue = null;
+                    isDragging = false;
+                    ViewModel.OnSliderDragCompleted(value);
+                }
+            });
+        };
+        seekDebounceTimer.AutoReset = false;
+        seekDebounceTimer.Start();
     }
 
     private void OnSliderDragStarted(object? sender, EventArgs e)
     {
+        // Stop any timer-based detection
+        seekDebounceTimer?.Stop();
+        seekDebounceTimer?.Dispose();
+        seekDebounceTimer = null;
+
         isDragging = true;
         ViewModel?.OnSliderDragStarted();
     }
 
     private void OnSliderDragCompleted(object? sender, EventArgs e)
     {
+        // Stop any timer-based detection
+        seekDebounceTimer?.Stop();
+        seekDebounceTimer?.Dispose();
+        seekDebounceTimer = null;
+        
         isDragging = false;
         if (sender is Slider slider && ViewModel != null)
         {
+            // Cancel any pending debounced seek and perform immediate seek
+            pendingSeekValue = null;
             ViewModel.OnSliderDragCompleted(slider.Value);
         }
     }
+
+#if IOS
+    private void OnSliderTapped(object? sender, TappedEventArgs e)
+    {
+        if (ViewModel == null || sender is not Slider slider)
+        {
+            return;
+        }
+
+        // Set flag to prevent ValueChanged from also handling this tap
+        isHandlingTap = true;
+        try
+        {
+            // On iOS, tapping the slider track doesn't automatically update the value
+            // We need to calculate the progress based on tap position
+            var tapPosition = e.GetPosition(slider);
+            if (!tapPosition.HasValue)
+            {
+                return;
+            }
+
+            // Get slider width and calculate progress (0.0 to 1.0)
+            var sliderWidth = slider.Width;
+            if (sliderWidth <= 0)
+            {
+                // Slider width not available yet, try to get it from the bounds
+                sliderWidth = slider.Bounds.Width;
+                if (sliderWidth <= 0)
+                {
+                    return;
+                }
+            }
+
+            var x = tapPosition.Value.X;
+            var progress = Math.Max(0.0, Math.Min(1.0, x / sliderWidth));
+
+            // Use the ViewModel's tap handler to perform the seek
+            ViewModel.OnSliderTapped(progress);
+        }
+        finally
+        {
+            // Reset flag after a short delay to allow ValueChanged to process normally for drags
+            Task.Delay(100).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    isHandlingTap = false;
+                });
+            });
+        }
+    }
+#endif
 
     public void Dispose()
     {
         if (!isDisposed)
         {
+            // Clean up timer
+            seekDebounceTimer?.Stop();
+            seekDebounceTimer?.Dispose();
+            seekDebounceTimer = null;
+
             // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
             {

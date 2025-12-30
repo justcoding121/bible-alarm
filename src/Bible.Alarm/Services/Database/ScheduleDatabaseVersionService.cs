@@ -36,14 +36,14 @@ public sealed class ScheduleDatabaseVersionService(
 
             var currentVersion = versionFinder.GetVersionName();
             var isCurrent = storedVersion == currentVersion;
-            
+
             if (!isCurrent)
             {
                 logger.Debug(
                     "Schedule database version mismatch - stored: {StoredVersion}, current: {CurrentVersion}. Migration check needed.",
                     storedVersion, currentVersion);
             }
-            
+
             return Task.FromResult(isCurrent);
         }
         catch (Exception ex)

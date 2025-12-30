@@ -101,10 +101,10 @@ public static class PlaybackReducer
         // but once Playing, we use the actual status
         // Keep flag set during Loading/Stopped transitions to prevent flicker
         var wasAutoAdvancing = state.IsAutoAdvancing;
-        var isAutoAdvancing = action.Status == PlayStatus.Playing 
-            ? false 
+        var isAutoAdvancing = action.Status == PlayStatus.Playing
+            ? false
             : state.IsAutoAdvancing;
-        
+
         if (wasAutoAdvancing && !isAutoAdvancing && action.Status == PlayStatus.Playing)
         {
             Serilog.Log.Information(
@@ -231,7 +231,7 @@ public static class PlaybackReducer
     {
         var wasAutoAdvancing = state.IsAutoAdvancing;
         var isAutoAdvancing = action.IsAutoAdvancing;
-        
+
         if (wasAutoAdvancing != isAutoAdvancing)
         {
             Serilog.Log.Information(
@@ -241,7 +241,7 @@ public static class PlaybackReducer
                 state.Status,
                 state.CurrentScheduleId);
         }
-        
+
         return new PlaybackState(
             currentScheduleId: state.CurrentScheduleId,
             isPreparingOrPlaying: state.IsPreparingOrPlaying,

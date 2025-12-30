@@ -176,7 +176,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 // ScheduleListItem will initialize from state using the ID
                 logger.Debug("PrepareScheduleViewModels: Creating new ScheduleListItem for schedule {ScheduleId}", scheduleId);
                 var viewModel = scheduleListItemFactory(scheduleId);
-                
+
                 // Verify the view model was initialized correctly
                 if (viewModel.Schedule == null)
                 {
@@ -184,10 +184,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 }
                 else
                 {
-                    logger.Debug("PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} initialized successfully with name '{Name}'", 
+                    logger.Debug("PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} initialized successfully with name '{Name}'",
                         scheduleId, viewModel.Schedule.Name);
                 }
-                
+
                 // Set callbacks when play is pressed/started
                 viewModel.OnPlayStarted = () =>
                 {
@@ -375,7 +375,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     {
         var shouldShow = shouldShowProgressBar && (IsBusy || (Schedules == null || Schedules.Count == 0));
         ProgressBarOpacity = shouldShow ? 1.0 : 0.0;
-        
+
         // Start/stop progress animation based on visibility
         if (shouldShow)
         {
@@ -450,18 +450,18 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     {
         // Fade out progress bar smoothly over 200ms to prevent animation reset
         shouldShowProgressBar = false;
-        
+
         const int fadeSteps = 10;
         const int fadeDurationMs = 200;
         const double stepDelay = fadeDurationMs / (double)fadeSteps;
         const double opacityStep = 1.0 / fadeSteps;
-        
+
         for (int i = fadeSteps; i >= 0; i--)
         {
             ProgressBarOpacity = i * opacityStep;
             await Task.Delay((int)stepDelay);
         }
-        
+
         // Ensure it's fully hidden
         ProgressBarOpacity = 0.0;
     }
@@ -512,13 +512,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         {
             if (stateValue.Schedules != null)
             {
-                logger.Debug("OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}", 
+                logger.Debug("OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}",
                     stateValue.Schedules.Count, Schedules?.Count ?? 0);
-                
+
                 var hadSchedules = Schedules != null && Schedules.Count > 0;
                 var previousScheduleCount = Schedules?.Count ?? 0;
                 var currentScheduleCount = stateValue.Schedules?.Count ?? 0;
-                
+
                 // If we had schedules but now don't (cleared), reset progress bar flag
                 if (hadSchedules && (stateValue.Schedules == null || stateValue.Schedules.Count == 0))
                 {
@@ -526,12 +526,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     IsBusy = true;
                     UpdateProgressBarVisibility();
                 }
-                
+
                 // Prepare view models but don't update collection yet
                 // This allows progress bar to continue animating while we prepare data
                 var (schedulesToAdd, schedulesToRemove, newSchedules) = PrepareScheduleViewModels(stateValue.Schedules);
                 var hasSchedulesNow = newSchedules != null && newSchedules.Count > 0;
-                
+
                 // Show progress bar when delete is detected (schedule count decreased)
                 if (schedulesToRemove.Count > 0 && previousScheduleCount > currentScheduleCount)
                 {
@@ -540,10 +540,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     IsBusy = true;
                     UpdateProgressBarVisibility();
                 }
-                
-                logger.Debug("OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedules}", 
+
+                logger.Debug("OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedules}",
                     schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
-                
+
                 // Yield multiple times before updating collection to let progress bar animate
                 // This gives the UI thread time to process animation frames
                 for (int i = 0; i < 3; i++)
@@ -551,37 +551,37 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     await Task.Yield();
                     await Task.Delay(30);
                 }
-                
+
                 // Update collection incrementally instead of replacing entire collection
                 // This reduces rendering overhead and allows progress bar to continue animating
                 // On initial load, clear and add items instead of replacing to avoid Windows binding issues
                 var isInitialLoad = Schedules == null || Schedules.Count == 0;
-                
+
                 if (isInitialLoad && hasSchedulesNow)
                 {
                     // On initial load, we need to ensure the CollectionView properly detects the items
                     // On Windows, CollectionView may not properly handle ObservableHashSet CollectionChanged events
                     // So we'll set the entire collection at once via the property setter
                     logger.Debug("OnStateChanged: Initial load - setting {Count} schedules via property setter", newSchedules.Count);
-                    
+
                     // Wait to ensure CollectionView is fully initialized on Windows
                     await Task.Delay(300);
-                    
+
                     // Set the entire collection via property setter
                     // This ensures the CollectionView binding is properly updated on Windows
                     // We create a new ObservableHashSet with all items and set it
                     var schedulesCollection = new ObservableHashSet<ScheduleListItem>();
                     foreach (var item in newSchedules)
                     {
-                        logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to new collection", 
+                        logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to new collection",
                             item.ScheduleId, item.Name);
                         schedulesCollection.Add(item);
                     }
-                    
+
                     // Set the property - this will trigger SetProperty and notify the UI
                     Schedules = schedulesCollection;
                     logger.Debug("OnStateChanged: Initial load complete. Collection now has {Count} items", Schedules.Count);
-                    
+
                     // Additional delay to let CollectionView finish rendering
                     await Task.Delay(200);
                 }
@@ -589,11 +589,11 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 {
                     // On Windows, CollectionView may not properly detect incremental additions/removals to ObservableHashSet
                     // So we'll create a new collection and replace the entire property to ensure UI updates
-                    logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}", 
+                    logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}",
                         schedulesToAdd.Count, schedulesToRemove.Count);
-                    
+
                     var updatedCollection = new ObservableHashSet<ScheduleListItem>();
-                    
+
                     // Add all existing items that aren't being removed
                     foreach (var existingItem in Schedules)
                     {
@@ -602,19 +602,19 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                             updatedCollection.Add(existingItem);
                         }
                     }
-                    
+
                     // Add new items
                     foreach (var item in schedulesToAdd)
                     {
-                        logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection", 
+                        logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
                             item.ScheduleId, item.Name);
                         updatedCollection.Add(item);
                     }
-                    
+
                     // Replace the entire collection to ensure Windows CollectionView detects the change
                     Schedules = updatedCollection;
                     logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", Schedules.Count);
-                    
+
                     // Hide progress bar after delete operation completes (if it was shown)
                     if (schedulesToRemove.Count > 0)
                     {
@@ -628,7 +628,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 {
                     // No collection change, but still update existing items
                     UpdateScheduleViewModels(stateValue.Schedules);
-                    
+
                     // Hide progress bar if delete was rolled back (schedule count increased back)
                     if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
                     {
@@ -638,26 +638,26 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                         await FadeOutProgressBarAsync();
                     }
                 }
-                
+
                 // Yield a few more times to let CollectionView finish rendering
                 for (int i = 0; i < 3; i++)
                 {
                     await Task.Yield();
                     await Task.Delay(30);
                 }
-                
+
                 // Only set IsBusy to false if we actually have schedules now
                 if (hasSchedulesNow)
                 {
                     // One final delay to ensure CollectionView has finished initial rendering
                     await Task.Delay(100);
                     IsBusy = false;
-                    
+
                     // Keep progress bar at full opacity during collection rendering
                     // This ensures animation continues smoothly without reset
                     // Wait for CollectionView to finish rendering all items
                     await Task.Delay(400);
-                    
+
                     // Now fade out progress bar smoothly
                     // Keep control in visual tree (using opacity) to prevent animation reset
                     await FadeOutProgressBarAsync();

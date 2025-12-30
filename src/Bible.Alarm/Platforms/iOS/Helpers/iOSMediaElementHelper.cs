@@ -156,7 +156,7 @@ public static class IosMediaElementHelper
             // Only try Stop() if we're resuming from a previously paused playback, but that's rare in our alarm flow.
             // For now, skip Stop() and just proceed with Play() - it should work fine for newly loaded media.
             logger.Debug("MediaElement is in Paused state on iOS. Skipping Stop() and proceeding directly to Play() - this is safe for newly loaded media");
-            
+
             // Small delay to ensure media is fully loaded
             await Task.Delay(50);
         }

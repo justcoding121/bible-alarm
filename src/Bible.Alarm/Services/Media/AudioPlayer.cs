@@ -427,7 +427,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
                 var timeSinceTransition = lastLoadingToPlayingTransitionTime.HasValue
                     ? (DateTime.UtcNow - lastLoadingToPlayingTransitionTime.Value).TotalMilliseconds
                     : double.MaxValue;
-                
+
                 // If more than 200ms has passed since the transition started, treat this as a real pause
                 if (timeSinceTransition > 200)
                 {
@@ -616,7 +616,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         }
     }
 
-    public Task SeekToAsync(TimeSpan position)
+    public async Task SeekToAsync(TimeSpan position)
     {
         // Track that we're seeking to prevent state flickering during seek
         isSeeking = true;
@@ -625,13 +625,42 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         logger.Debug("[AudioPlayer] SeekToAsync called - Position: {Position}, StatusBeforeSeek: {Status}, Setting _isSeeking = true",
             position, statusBeforeSeek);
 
-        return MainThread.InvokeOnMainThreadAsync(() =>
+        try
         {
-            logger.Debug("[AudioPlayer] About to call MediaElement.SeekTo({Position})", position);
-            mediaElement?.SeekTo(position);
-            logger.Debug("[AudioPlayer] MediaElement.SeekTo() called. _isSeeking will be reset in OnSeekCompleted");
-            // Note: _isSeeking will be reset in OnSeekCompleted when seek actually finishes
-        });
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (mediaElement == null)
+                {
+                    logger.Warning("[AudioPlayer] MediaElement is null, cannot seek");
+                    isSeeking = false;
+                    return;
+                }
+
+                logger.Debug("[AudioPlayer] About to call MediaElement.SeekTo({Position})", position);
+
+                try
+                {
+                    // Start fallback timer to reset seeking flag if SeekCompleted doesn't fire
+                    _ = ResetSeekingFlagWithTimeoutAsync();
+
+                    // Await the seek operation - it will complete when SeekCompleted event fires
+                    await mediaElement.SeekTo(position);
+                    logger.Debug("[AudioPlayer] MediaElement.SeekTo() completed successfully");
+                    // Note: _isSeeking will be reset in OnSeekCompleted when seek actually finishes
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Seek failed (e.g., position outside seekable ranges, player not ready)
+                    logger.Warning(ex, "[AudioPlayer] SeekTo failed - {Message}", ex.Message);
+                    isSeeking = false;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[AudioPlayer] Error during SeekToAsync");
+            isSeeking = false;
+        }
     }
 
     private void OnSeekCompleted(object? sender, EventArgs e)
@@ -643,6 +672,17 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
             currentPosition?.ToString() ?? "null");
         isSeeking = false;
         logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates. _isSeeking: {IsSeeking}", isSeeking);
+    }
+
+    private async Task ResetSeekingFlagWithTimeoutAsync()
+    {
+        // Fallback: If SeekCompleted doesn't fire within 3 seconds, reset the flag anyway
+        await Task.Delay(3000);
+        if (isSeeking)
+        {
+            logger.Warning("[AudioPlayer] SeekCompleted event did not fire within 3 seconds - resetting _isSeeking flag as fallback");
+            isSeeking = false;
+        }
     }
 
 

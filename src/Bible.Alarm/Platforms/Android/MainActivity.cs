@@ -71,10 +71,10 @@ public class MainActivity : MauiAppCompatActivity
         var diStartTime = BootstrapTimingHelper.GetElapsedMilliseconds();
         Logger.Information("[BOOTSTRAP] DI setup starting at {ElapsedMs}ms", diStartTime);
 #endif
-        
+
         Logger.Debug("MainActivity: Calling MauiAppHolder.CreateAndStore()");
         MauiAppHolder.CreateAndStore();
-        
+
 #if DEBUG
         var diElapsed = BootstrapTimingHelper.GetElapsedMilliseconds() - diStartTime;
         Logger.Information("[BOOTSTRAP] DI setup completed in {ElapsedMs}ms (total: {TotalMs}ms)", diElapsed, BootstrapTimingHelper.GetElapsedMilliseconds());

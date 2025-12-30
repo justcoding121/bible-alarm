@@ -318,6 +318,7 @@
                             VerticalOptions="Center" />
                         <Slider
                             Grid.Column="1"
+                            x:Name="ProgressSlider"
                             HorizontalOptions="Fill"
                             VerticalOptions="Center"
                             Minimum="0"

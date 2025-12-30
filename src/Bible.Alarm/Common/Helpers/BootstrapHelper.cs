@@ -285,7 +285,7 @@ public static class BootstrapHelper
 #endif
             await RunBootstrap(services, isForeground);
             bootstrapCompleted = true;
-            
+
 #if DEBUG
             var bootstrapElapsed = bootstrapStopwatch.ElapsedMilliseconds - bootstrapStartTime;
             Log.Logger.Information("[BOOTSTRAP] Bootstrap completed {Context} in {ElapsedMs}ms (total: {TotalMs}ms)", context, bootstrapElapsed, bootstrapStopwatch.ElapsedMilliseconds);

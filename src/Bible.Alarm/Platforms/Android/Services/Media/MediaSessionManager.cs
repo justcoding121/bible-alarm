@@ -99,7 +99,7 @@ public sealed class MediaSessionManager
         var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
         var stateName = GetStateName(state);
         var actionsDescription = GetActionsDescription(actions);
-        
+
         logger.Information(
             "[AndroidAuto] UpdatePlaybackState: State={StateName} ({StateValue}), Position={Position}ms, Actions={Actions}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
             stateName,
@@ -108,7 +108,7 @@ public sealed class MediaSessionManager
             actionsDescription,
             canPlayNext,
             canPlayPrevious);
-        
+
         var playbackState = AndroidAutoPlayScreenHelper.CreatePlaybackState(
             state,
             position,
@@ -212,7 +212,7 @@ public sealed class MediaSessionManager
     {
         var stateName = GetStateName(playbackState.State);
         var actionsDescription = GetActionsDescription(actions);
-        
+
         logger.Information(
             "[AndroidAuto] UpdatePlaybackStateWithPosition: Updating state with position - CurrentState={StateName}, NewPosition={Position}ms, Actions={Actions}, ButtonState={ButtonState}",
             stateName,
@@ -576,7 +576,7 @@ public sealed class MediaSessionManager
     {
         var hasPlay = (actions & PlaybackStateCompat.ActionPlay) != 0;
         var hasPause = (actions & PlaybackStateCompat.ActionPause) != 0;
-        
+
         if (hasPause) return "PAUSE_BUTTON_VISIBLE";
         if (hasPlay) return "PLAY_BUTTON_VISIBLE";
         return "NO_BUTTON";

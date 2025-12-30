@@ -127,7 +127,7 @@ public sealed class PlaylistService(
         // Clear cache BEFORE save to prevent stale cache if process crashes
         const string CacheKey = "ScheduleList";
         diskCacheService?.Remove(CacheKey);
-        
+
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
             schedule => UpdateScheduleForPlayedTrackInternal(schedule, trackMetadata, nextTrackNumber),

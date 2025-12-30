@@ -264,7 +264,7 @@ public class ScheduleEffects(
 
             Log.Information("ScheduleEffects: HandleCreateSchedule - Dispatched CreateScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 scheduleStateItem.Id);
-            
+
             // Refresh cache in background after successful save
             _ = Task.Run(async () => await RefreshScheduleCacheAsync());
         }
@@ -318,7 +318,7 @@ public class ScheduleEffects(
 
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicType={MusicType}",
                 scheduleStateItem.Id, scheduleStateItem.MusicType?.ToString() ?? "null");
-            
+
             // Note: Cache invalidation is handled by HandleUpdateScheduleSuccess effect to avoid duplication
         }
         catch (Exception ex)
@@ -685,7 +685,7 @@ public class ScheduleEffects(
 
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 action.ScheduleId);
-            
+
             // Refresh cache in background after successful delete
             _ = Task.Run(async () => await RefreshScheduleCacheAsync());
         }
@@ -1393,7 +1393,7 @@ public class ScheduleEffects(
         Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}",
             scheduleId);
     }
-    
+
     /// <summary>
     /// Clears the schedule list cache before operations that will modify schedules.
     /// This prevents stale cache if the process crashes after save but before refresh.
@@ -1404,9 +1404,9 @@ public class ScheduleEffects(
         {
             return;
         }
-        
+
         const string CacheKey = "ScheduleList";
-        
+
         try
         {
             Log.Debug("ScheduleEffects: Invalidating schedule cache");
@@ -1428,9 +1428,9 @@ public class ScheduleEffects(
         {
             return;
         }
-        
+
         const string CacheKey = "ScheduleList";
-        
+
         try
         {
             // Refresh cache by calling the factory
@@ -1441,10 +1441,10 @@ public class ScheduleEffects(
                 Log.Warning("ScheduleEffects: Cannot refresh cache - required services not available");
                 return;
             }
-            
+
             var languagesDict = await CommonBootstrapHelper.LoadLanguagesDictionaryForCache(services.BibleTranslationService);
             var schedulesList = await CommonBootstrapHelper.LoadSchedulesListAsyncForCache(services, languagesDict);
-            
+
             await diskCacheService.SetAsync(CacheKey, schedulesList);
             Log.Information("ScheduleEffects: Refreshed schedule cache with {Count} schedules", schedulesList.Count);
         }

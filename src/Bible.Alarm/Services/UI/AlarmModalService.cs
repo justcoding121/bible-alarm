@@ -43,10 +43,10 @@ public sealed class AlarmModalService(
                 try
                 {
                     logger.Information("PlaybackState changed - showing AlarmModal (IsPreparingOrPlaying: true)");
-                    
+
                     // Hide Home page before opening modal to prevent visual flash
                     navigationService.SetHomePageVisibility(isPlaybackActive: true);
-                    
+
                     await navigationService.OpenAlarmModalAsync();
                     isModalOpen = true;
                     logger.Information("AlarmModal opened");
@@ -65,10 +65,10 @@ public sealed class AlarmModalService(
                 try
                 {
                     logger.Information("PlaybackState changed - hiding AlarmModal (IsPreparingOrPlaying: false)");
-                    
+
                     // Show Home page before closing modal
                     navigationService.SetHomePageVisibility(isPlaybackActive: false);
-                    
+
                     await navigationService.PopModalAsync();
                     isModalOpen = false;
                 }

@@ -348,6 +348,20 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
     public TimeSpan Duration => currentDuration;
 
     /// <summary>
+    /// Sets the progress value directly without checking isUserInteracting
+    /// Used during drag operations to provide immediate visual feedback
+    /// </summary>
+    public void SetProgressDirectly(double value)
+    {
+        var clampedValue = Math.Max(0.0, Math.Min(1.0, value));
+        if (Math.Abs(progress - clampedValue) > 0.0001)
+        {
+            progress = clampedValue;
+            OnPropertyChanged(nameof(Progress));
+        }
+    }
+
+    /// <summary>
     /// Called when user taps on the slider
     /// </summary>
     public void OnSliderTapped(double targetValue)
@@ -627,7 +641,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         // Show pause button if playing OR if auto-advancing (smooth transition during initial play and track transitions)
         // This prevents the play button from briefly appearing during Loading/buffering when auto-advancing
         // Matches Android Auto behavior: pause button visible during Buffering state when auto-advancing
-        var isPlaying = state.Status == PlayStatus.Playing || 
+        var isPlaying = state.Status == PlayStatus.Playing ||
                         (state.IsAutoAdvancing && state.Status != PlayStatus.Paused);
         PlayVisible = !isPlaying;
         PauseVisible = isPlaying;
@@ -710,13 +724,13 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         // Throttle progress updates to avoid flooding UI thread
         var now = DateTime.UtcNow;
         var timeSinceLastUpdate = (now - lastProgressUpdate).TotalMilliseconds;
-        
+
         if (timeSinceLastUpdate < ProgressUpdateThrottleMs && message.LoadedTracks < message.TotalTracks)
         {
             // Skip this update if it's too soon (but always process final update)
             return;
         }
-        
+
         lastProgressUpdate = now;
 
         // Handle high-frequency preparation progress updates via messaging

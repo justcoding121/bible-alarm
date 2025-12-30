@@ -56,7 +56,7 @@ public partial class Home : BaseContentPage, IDisposable
 
         // Hide Schedule page overlay after Home page is fully rendered and visible
         viewModel?.HideSchedulePageOverlay();
-        
+
 #if DEBUG
         // Log that home page is fully loaded with data
         var totalBootstrapTime = BootstrapTimingHelper.GetElapsedMilliseconds();
@@ -66,10 +66,10 @@ public partial class Home : BaseContentPage, IDisposable
 
     private void OnAddScheduleButtonClicked(object? sender, EventArgs e)
     {
-        Log.Information("OnAddScheduleButtonClicked: Button clicked! IsBootstrapComplete={IsBootstrapComplete}, Command CanExecute={CanExecute}", 
+        Log.Information("OnAddScheduleButtonClicked: Button clicked! IsBootstrapComplete={IsBootstrapComplete}, Command CanExecute={CanExecute}",
             viewModel?.IsBootstrapComplete ?? false,
             viewModel?.AddScheduleCommand?.CanExecute(null) ?? false);
-        
+
         // Manually execute the command to test
         if (viewModel?.AddScheduleCommand != null && viewModel.AddScheduleCommand.CanExecute(null))
         {
@@ -78,7 +78,7 @@ public partial class Home : BaseContentPage, IDisposable
         }
         else
         {
-            Log.Warning("OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}", 
+            Log.Warning("OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}",
                 viewModel?.IsBootstrapComplete ?? false);
         }
     }

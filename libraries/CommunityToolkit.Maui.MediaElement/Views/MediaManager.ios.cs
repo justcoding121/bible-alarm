@@ -196,6 +196,8 @@ public partial class MediaManager : IDisposable
 
 		var ranges = Player.CurrentItem.SeekableTimeRanges;
 		var seekToTime = new CMTime(Convert.ToInt64(position.TotalMilliseconds), 1000);
+		bool seekPerformed = false;
+
 		foreach (var range in ranges.Select(r => r.CMTimeRangeValue))
 		{
 			if (seekToTime >= range.Start && seekToTime < (range.Start + range.Duration))
@@ -204,17 +206,98 @@ public partial class MediaManager : IDisposable
 				{
 					if (!complete)
 					{
-						throw new InvalidOperationException("Seek Failed");
+						seekTaskCompletionSource.SetException(new InvalidOperationException("Seek Failed"));
+						return;
 					}
 
 					seekTaskCompletionSource.SetResult();
 				});
+				seekPerformed = true;
 				break;
 			}
 		}
 
+		// If position is outside all seekable ranges, clamp to the nearest valid position
+		if (!seekPerformed && ranges.Length > 0)
+		{
+			var firstRange = ranges[0].CMTimeRangeValue;
+			var lastRange = ranges[ranges.Length - 1].CMTimeRangeValue;
+			var lastRangeEnd = lastRange.Start + lastRange.Duration;
+
+			CMTime clampedTime;
+			if (seekToTime < firstRange.Start)
+			{
+				// Position is before first range - seek to start of first range
+				clampedTime = firstRange.Start;
+			}
+			else if (seekToTime >= lastRangeEnd)
+			{
+				// Position is after last range - seek to end of last range
+				clampedTime = lastRangeEnd;
+			}
+			else
+			{
+				// Position is between ranges - find the nearest range
+				CMTime? nearestStart = null;
+				CMTime? nearestEnd = null;
+				double minDistance = double.MaxValue;
+
+				foreach (var range in ranges.Select(r => r.CMTimeRangeValue))
+				{
+					var rangeStart = range.Start;
+					var rangeEnd = range.Start + range.Duration;
+
+					if (seekToTime < rangeStart)
+					{
+						// Calculate distance in seconds using CMTime.Seconds property
+						var distance = seekToTime.Seconds - rangeStart.Seconds;
+						if (Math.Abs(distance) < Math.Abs(minDistance))
+						{
+							minDistance = distance;
+							nearestStart = rangeStart;
+						}
+					}
+					else if (seekToTime >= rangeEnd)
+					{
+						// Calculate distance in seconds using CMTime.Seconds property
+						var distance = seekToTime.Seconds - rangeEnd.Seconds;
+						if (Math.Abs(distance) < Math.Abs(minDistance))
+						{
+							minDistance = distance;
+							nearestEnd = rangeEnd;
+						}
+					}
+				}
+
+				clampedTime = nearestStart ?? nearestEnd ?? firstRange.Start;
+			}
+
+			Player.Seek(clampedTime, complete =>
+			{
+				if (!complete)
+				{
+					seekTaskCompletionSource.SetException(new InvalidOperationException("Seek Failed"));
+					return;
+				}
+
+				seekTaskCompletionSource.SetResult();
+			});
+			seekPerformed = true;
+		}
+
+		if (!seekPerformed)
+		{
+			// No seekable ranges available - this can happen when media is still loading
+			// Instead of throwing, just complete the seek task (effectively a no-op)
+			// The caller can check the position after if needed
+			// This allows playback to start from the beginning if seek isn't possible yet
+			seekTaskCompletionSource.SetResult();
+		}
+
+		// Wait for seek to complete (or already completed if no ranges available)
 		await seekTaskCompletionSource.Task.WaitAsync(token);
 
+		// Always call SeekCompleted to notify listeners, even if seek was a no-op
 		MediaElement.SeekCompleted();
 	}
 

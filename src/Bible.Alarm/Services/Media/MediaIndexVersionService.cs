@@ -90,7 +90,7 @@ public sealed class MediaIndexVersionService(
         try
         {
             var currentVersion = versionFinder.GetVersionName();
-            
+
             // Save to Preferences (new method)
             Preferences.Set(VersionPreferenceKey, currentVersion);
             logger.Debug("Saved current version {Version} to Preferences", currentVersion);

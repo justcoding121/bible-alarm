@@ -78,7 +78,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
     {
         // Combine the service's cancellation token with the provided one
         using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);
-        
+
         return await downloadRetryPolicy.ExecuteAsync(async ct =>
         {
             // Check for cancellation before starting download

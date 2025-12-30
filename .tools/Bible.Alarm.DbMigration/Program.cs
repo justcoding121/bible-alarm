@@ -161,7 +161,7 @@ class Program
     {
         // Default output path: Resources folder in the main project
         // Resolve to absolute path to avoid issues with relative paths
-        var outputPath = args.Length > 1 
+        var outputPath = args.Length > 1
             ? Path.GetFullPath(args[1])
             : Path.GetFullPath(Path.Combine("..", "..", "src", "Bible.Alarm", "Resources", AppConstants.Database.ScheduleDatabaseFileName));
 
@@ -268,7 +268,7 @@ class Program
             File.Copy(tempDbPath, outputPath, overwrite: true);
             Console.WriteLine($"✓ Successfully generated empty Schedule database at: {outputPath}");
             Console.WriteLine($"  File size: {new FileInfo(outputPath).Length} bytes");
-            
+
             // Verify the copied database has migrations applied
             var verifyConnectionString = string.Format(
                 AppConstants.Database.ScheduleDatabaseConnectionStringFormat,

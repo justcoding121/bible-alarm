@@ -111,7 +111,7 @@ public sealed class NavigationService(
         var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
         logger.Information("[BOOTSTRAP] NavigateToHomeAsync starting");
 #endif
-        
+
         var navigation = GetNavigation();
 
         if (IsAlreadyOnHomePage(navigation))
@@ -194,9 +194,9 @@ public sealed class NavigationService(
         var homeCreateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - homeCreateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         logger.Information("[BOOTSTRAP] Home page service resolution completed in {ElapsedMs:F2}ms", homeCreateElapsed);
 #endif
-        
+
         ConfigureHomePageNavigation(homePage);
-        
+
 #if DEBUG
         var pushStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif

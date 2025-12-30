@@ -28,10 +28,10 @@ public sealed class DatabaseSeedService(
 
             logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
                 schedule.Id, schedule.Name);
-            
+
             return true; // Schedule was seeded
         }
-        
+
         return false; // No seeding occurred
     }
 

@@ -35,7 +35,7 @@ public sealed class DiskCacheService : IDiskCacheService
     {
         var cacheKey = GetCacheKey(key);
         bool cacheHit = false;
-        
+
         try
         {
             // Try to get from cache first
@@ -80,7 +80,7 @@ public sealed class DiskCacheService : IDiskCacheService
         {
             logger.Debug("Cache miss for key: {Key}, executing factory", key);
             var value = await factory();
-            
+
             // Cache the result
             try
             {
@@ -104,7 +104,7 @@ public sealed class DiskCacheService : IDiskCacheService
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
         var cacheKey = GetCacheKey(key);
-        
+
         try
         {
             if (!Preferences.ContainsKey(cacheKey))
@@ -143,7 +143,7 @@ public sealed class DiskCacheService : IDiskCacheService
     public Task SetAsync<T>(string key, T value, CancellationToken cancellationToken = default)
     {
         var cacheKey = GetCacheKey(key);
-        
+
         try
         {
             var json = JsonSerializer.Serialize(value, jsonOptions);
@@ -165,7 +165,7 @@ public sealed class DiskCacheService : IDiskCacheService
     public void Remove(string key)
     {
         var cacheKey = GetCacheKey(key);
-        
+
         try
         {
             if (Preferences.ContainsKey(cacheKey))
