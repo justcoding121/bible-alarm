@@ -118,6 +118,8 @@ public sealed class ScheduleListItem(
         {
             if (Schedule?.Id > 0)
             {
+                // Set IsBusy immediately to show loading indicator
+                IsBusy = true;
                 // Notify HomeViewModel to show overlay immediately
                 onPlayStarted?.Invoke();
                 // Wait 50ms to ensure overlay is visible before starting playback

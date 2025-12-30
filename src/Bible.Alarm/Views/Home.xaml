@@ -170,31 +170,55 @@
                                                      Tablet={OnPlatform Default='0,0,12,0'}}"
                                                  Padding="0"
                                                  Orientation="Vertical">
-                                    <buttons:SfButton
+                                    <Grid
                                             Margin="0,0,0,8"
-                                            Background="{StaticResource PrimaryColor}"
-                                            CornerRadius="{OnPlatform iOS='28', WinUI='24', Default='28'}"
-                                            Command="{Binding PlayCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="24"
                                             HorizontalOptions="Center"
+                                            VerticalOptions="Center"
                                             HeightRequest="{OnPlatform iOS='56',
                                                                       WinUI='48',
                                                                       Default='56'}"
                                             WidthRequest="{OnPlatform iOS='56',
                                                                      WinUI='48',
-                                                                     Default='56'}"
-                                            Padding="0"
-                                            Text="{x:Static fn:GlyphNames.Play}"
-                                            TextColor="White"
-                                            VerticalOptions="Center">
-                                        <buttons:SfButton.Shadow>
-                                            <Shadow Brush="#60000000" 
-                                                        Offset="0,4" 
-                                                        Radius="8" 
-                                                        Opacity="0.4" />
-                                        </buttons:SfButton.Shadow>
-                                    </buttons:SfButton>
+                                                                     Default='56'}">
+                                        <Border
+                                                BackgroundColor="{StaticResource PrimaryColor}"
+                                                StrokeThickness="0"
+                                                HorizontalOptions="Fill"
+                                                VerticalOptions="Fill">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{OnPlatform iOS='28', WinUI='24', Default='28'}" />
+                                            </Border.StrokeShape>
+                                            <Border.Shadow>
+                                                <Shadow Brush="#60000000" 
+                                                            Offset="0,4" 
+                                                            Radius="8" 
+                                                            Opacity="0.4" />
+                                            </Border.Shadow>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding PlayCommand}" />
+                                            </Border.GestureRecognizers>
+                                            <Label
+                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                    FontSize="24"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    Text="{x:Static fn:GlyphNames.Play}"
+                                                    TextColor="White"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}" />
+                                        </Border>
+                                        <!-- Loading indicator overlay - shows when IsBusy is true -->
+                                        <ActivityIndicator
+                                                IsRunning="{Binding IsBusy}"
+                                                IsVisible="{Binding IsBusy}"
+                                                Color="White"
+                                                WidthRequest="28"
+                                                HeightRequest="28"
+                                                VerticalOptions="Center"
+                                                HorizontalOptions="Center"
+                                                Opacity="0.95" />
+                                    </Grid>
                                     <StackLayout
                                             Margin="0"
                                             Padding="0"
