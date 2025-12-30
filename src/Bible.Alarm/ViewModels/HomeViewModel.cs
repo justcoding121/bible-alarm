@@ -71,18 +71,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
-            // Show overlay immediately via state
-            dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
-
-            // Wait for state to update and UI to reflect the change
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                // Force property change notification
-                OnPropertyChanged(nameof(IsHomePageOverlayVisible));
-                // Wait longer to ensure UI has fully rendered the overlay before navigation
-                await Task.Delay(150);
-            });
-
             // Reset schedule state before creating a new schedule
             // This ensures only one schedule is in state at any time
             dispatcher.Dispatch(new ResetScheduleStateAction());
@@ -172,14 +160,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     {
                         // Track play button click to prevent navigation
                         recentPlayClicks[scheduleId] = DateTime.UtcNow;
-                        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                     };
                 }
                 if (existingViewModel.OnPlaybackStarted == null)
                 {
                     existingViewModel.OnPlaybackStarted = () =>
                     {
-                        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+                        // Playback started - no action needed
                     };
                 }
             }
@@ -201,16 +188,15 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                         scheduleId, viewModel.Schedule.Name);
                 }
                 
-                // Set callbacks to show/hide overlay when play is pressed/started
+                // Set callbacks when play is pressed/started
                 viewModel.OnPlayStarted = () =>
                 {
                     // Track play button click to prevent navigation
                     recentPlayClicks[scheduleId] = DateTime.UtcNow;
-                    dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                 };
                 viewModel.OnPlaybackStarted = () =>
                 {
-                    dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+                    // Playback started - no action needed
                 };
                 scheduleViewModels[scheduleId] = viewModel;
                 schedulesToAdd.Add(viewModel);
@@ -287,14 +273,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     existingViewModel.OnPlayStarted = () =>
                     {
                         recentPlayClicks[scheduleId] = DateTime.UtcNow;
-                        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
                     };
                 }
                 if (existingViewModel.OnPlaybackStarted == null)
                 {
                     existingViewModel.OnPlaybackStarted = () =>
                     {
-                        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+                        // Playback started - no action needed
                     };
                 }
             }
@@ -341,8 +326,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         {
             SetProperty(ref isBusy, value);
             Loaded = !isBusy;
-            // Notify overlay visibility change when IsBusy changes
-            OnPropertyChanged(nameof(IsHomePageOverlayVisible));
             // Update progress bar opacity
             UpdateProgressBarVisibility();
         }
@@ -350,10 +333,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Gets the overlay visibility from application state.
-    /// Shows overlay only for navigation/other operations, not for schedule loading.
-    /// Schedule loading uses the progress bar instead (IsLoadingSchedules).
+    /// Always returns false - overlay is not used on home page, only progress bar is used.
     /// </summary>
-    public bool IsHomePageOverlayVisible => state.Value.IsHomePageOverlayVisible && !IsLoadingSchedules;
+    public bool IsHomePageOverlayVisible => false;
 
     /// <summary>
     /// Indicates if schedules are currently being loaded.
@@ -528,15 +510,14 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            // Always notify about overlay visibility changes
-            OnPropertyChanged(nameof(IsHomePageOverlayVisible));
-
             if (stateValue.Schedules != null)
             {
                 logger.Debug("OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}", 
                     stateValue.Schedules.Count, Schedules?.Count ?? 0);
                 
                 var hadSchedules = Schedules != null && Schedules.Count > 0;
+                var previousScheduleCount = Schedules?.Count ?? 0;
+                var currentScheduleCount = stateValue.Schedules?.Count ?? 0;
                 
                 // If we had schedules but now don't (cleared), reset progress bar flag
                 if (hadSchedules && (stateValue.Schedules == null || stateValue.Schedules.Count == 0))
@@ -550,6 +531,15 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 // This allows progress bar to continue animating while we prepare data
                 var (schedulesToAdd, schedulesToRemove, newSchedules) = PrepareScheduleViewModels(stateValue.Schedules);
                 var hasSchedulesNow = newSchedules != null && newSchedules.Count > 0;
+                
+                // Show progress bar when delete is detected (schedule count decreased)
+                if (schedulesToRemove.Count > 0 && previousScheduleCount > currentScheduleCount)
+                {
+                    logger.Debug("OnStateChanged: Delete detected - showing progress bar. Removing {Count} schedules", schedulesToRemove.Count);
+                    shouldShowProgressBar = true;
+                    IsBusy = true;
+                    UpdateProgressBarVisibility();
+                }
                 
                 logger.Debug("OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedules}", 
                     schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
@@ -597,44 +587,56 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 }
                 else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
                 {
-                    // Only remove items if there are items to remove (not on initial load)
-                    if (schedulesToRemove.Count > 0 && Schedules.Count > 0)
+                    // On Windows, CollectionView may not properly detect incremental additions/removals to ObservableHashSet
+                    // So we'll create a new collection and replace the entire property to ensure UI updates
+                    logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}", 
+                        schedulesToAdd.Count, schedulesToRemove.Count);
+                    
+                    var updatedCollection = new ObservableHashSet<ScheduleListItem>();
+                    
+                    // Add all existing items that aren't being removed
+                    foreach (var existingItem in Schedules)
                     {
-                        // Remove items incrementally (less rendering work than full replace)
-                        foreach (var scheduleId in schedulesToRemove)
+                        if (!schedulesToRemove.Contains(existingItem.ScheduleId))
                         {
-                            var itemToRemove = Schedules.FirstOrDefault(s => s.ScheduleId == scheduleId);
-                            if (itemToRemove != null)
-                            {
-                                Schedules.Remove(itemToRemove);
-                            }
-                            // Yield after each removal to let animation continue
-                            await Task.Yield();
+                            updatedCollection.Add(existingItem);
                         }
                     }
                     
-                    // Add new items incrementally
-                    if (schedulesToAdd.Count > 0)
+                    // Add new items
+                    foreach (var item in schedulesToAdd)
                     {
-                        logger.Debug("OnStateChanged: Adding {Count} schedules to collection", schedulesToAdd.Count);
-                        foreach (var item in schedulesToAdd)
-                        {
-                            logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection", 
-                                item.ScheduleId, item.Name);
-                            Schedules.Add(item);
-                            // Yield after each addition to let animation continue and prevent UI blocking
-                            await Task.Yield();
-                            await Task.Delay(10); // Small delay to let rendering progress
-                        }
-                        logger.Debug("OnStateChanged: Added schedules. Collection now has {Count} items", Schedules.Count);
-                        // Force property change notification to ensure UI updates on Windows
-                        OnPropertyChanged(nameof(Schedules));
+                        logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection", 
+                            item.ScheduleId, item.Name);
+                        updatedCollection.Add(item);
+                    }
+                    
+                    // Replace the entire collection to ensure Windows CollectionView detects the change
+                    Schedules = updatedCollection;
+                    logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", Schedules.Count);
+                    
+                    // Hide progress bar after delete operation completes (if it was shown)
+                    if (schedulesToRemove.Count > 0)
+                    {
+                        // Wait a bit to ensure the UI has updated
+                        await Task.Delay(200);
+                        IsBusy = false;
+                        await FadeOutProgressBarAsync();
                     }
                 }
                 else
                 {
                     // No collection change, but still update existing items
                     UpdateScheduleViewModels(stateValue.Schedules);
+                    
+                    // Hide progress bar if delete was rolled back (schedule count increased back)
+                    if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
+                    {
+                        logger.Debug("OnStateChanged: Delete rollback detected - hiding progress bar");
+                        await Task.Delay(200);
+                        IsBusy = false;
+                        await FadeOutProgressBarAsync();
+                    }
                 }
                 
                 // Yield a few more times to let CollectionView finish rendering
@@ -660,9 +662,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     // Keep control in visual tree (using opacity) to prevent animation reset
                     await FadeOutProgressBarAsync();
                 }
-                
-                // Notify overlay visibility change after IsBusy is set to false
-                OnPropertyChanged(nameof(IsHomePageOverlayVisible));
             }
             else
             {
@@ -700,14 +699,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     private async Task ShowOverlayAndNavigateAsync(ScheduleListItem scheduleListItem)
     {
-        dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = true });
-
-        await MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            OnPropertyChanged(nameof(IsHomePageOverlayVisible));
-            await Task.Delay(150);
-        });
-
         if (scheduleListItem.Schedule == null)
         {
             return;

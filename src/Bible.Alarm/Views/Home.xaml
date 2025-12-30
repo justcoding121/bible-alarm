@@ -36,7 +36,6 @@
             Grid.Row="0"
             Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
             RowSpacing="0"
-            IsVisible="{Binding IsHomePageOverlayVisible, Converter={StaticResource negateBooleanConverter}}"
             Grid.ZIndex="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
@@ -435,34 +434,6 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-        </Grid>
-        <!-- Overlay with busy indicator -->
-        <Grid
-            Grid.Row="0"
-            BackgroundColor="{DynamicResource PageBackgroundColor}"
-            IsVisible="{Binding IsHomePageOverlayVisible}"
-            HorizontalOptions="Fill"
-            VerticalOptions="Fill"
-            Grid.ZIndex="2"
-            Opacity="0.95">
-            <ActivityIndicator
-                HorizontalOptions="Center"
-                IsEnabled="True"
-                IsRunning="{Binding IsHomePageOverlayVisible}"
-                IsVisible="{Binding IsHomePageOverlayVisible}"
-                Scale="0.5"
-                VerticalOptions="Center"
-                Color="#6A5ACD">
-                <ActivityIndicator.Scale>
-                    <OnPlatform x:TypeArguments="system:Double">
-                        <OnPlatform.Platforms>
-                            <On Platform="iOS" Value="4.0" />
-                            <On Platform="Android" Value="1.0" />
-                            <On Platform="WinUI" Value="1.0" />
-                        </OnPlatform.Platforms>
-                    </OnPlatform>
-                </ActivityIndicator.Scale>
-            </ActivityIndicator>
         </Grid>
     </Grid>
 </views:BaseContentPage>
