@@ -768,6 +768,12 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
             // Map sample schedule to state item
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);
+            
+            // Log the music type to verify it's Melodies (not Vocals)
+            logger.Information("OnCurrentScheduleChanged: Mapped sample schedule. MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}",
+                scheduleStateItem.MusicType?.ToString() ?? "null",
+                scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
+                scheduleStateItem.MusicPublicationCode ?? "null");
 
             // Populate display names before dispatching action
             logger.Debug("OnCurrentScheduleChanged: Populating display names for new schedule");

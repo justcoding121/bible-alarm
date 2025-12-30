@@ -61,6 +61,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private string? lastScheduleMusicPublicationCode;
     private string? lastScheduleMusicLanguageCode;
     private bool lastScheduleMusicRepeat;
+    private bool? lastMusicEnabled; // Track previous MusicEnabled state
 
     // Signal to View that it should scroll to bottom
     private bool shouldScrollToBottom;
@@ -119,6 +120,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             lastScheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
             lastScheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
             lastScheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
+            lastMusicEnabled = currentSchedule.MusicEnabled;
 
             OnPropertyChanged(nameof(MusicEnabled));
             OnPropertyChanged(nameof(MusicTypeDisplayText));
@@ -280,10 +282,10 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         }
 
         // Check if MusicEnabled changed in state
-        if (currentSchedule != null && model != null)
+        if (currentSchedule != null)
         {
             var stateMusicEnabled = currentSchedule.MusicEnabled;
-            var previousMusicEnabled = model.MusicEnabled;
+            var previousMusicEnabled = lastMusicEnabled ?? false;
 
             // Clear pending value since state has been updated
             if (pendingMusicEnabled.HasValue && pendingMusicEnabled.Value == stateMusicEnabled)
@@ -291,13 +293,14 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 pendingMusicEnabled = null; // State now matches, clear pending
             }
 
-            if (model.MusicEnabled != stateMusicEnabled)
+            // Check if MusicEnabled changed by comparing with tracked previous value
+            if (lastMusicEnabled != stateMusicEnabled)
             {
-                // State has a different value, update model without dispatching
+                // State has a different value, update tracked value and notify
                 isUpdatingFromState = true;
                 try
                 {
-                    model.MusicEnabled = stateMusicEnabled;
+                    lastMusicEnabled = stateMusicEnabled;
                     pendingMusicEnabled = null; // Clear pending when updating from state
                     OnPropertyChanged(nameof(MusicEnabled));
 
@@ -305,6 +308,22 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                     // NOTE: Loading default music from DB is handled in MusicEnabled setter
                     if (stateMusicEnabled && !previousMusicEnabled)
                     {
+                        // Update lastScheduleMusicType to ensure change detection works
+                        if (currentSchedule.MusicType.HasValue)
+                        {
+                            lastScheduleMusicType = currentSchedule.MusicType;
+                        }
+                        
+                        // Notify MusicTypeDisplayText on main thread with delay to ensure content is visible first
+                        // This is critical for iOS - bindings are evaluated when content becomes visible
+                        MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            // Wait a bit to ensure CollapsibleContent is visible before notifying
+                            OnPropertyChanged(nameof(MusicTypeDisplayText));
+                            OnPropertyChanged(nameof(IsMusicLanguageVisible));
+                            OnPropertyChanged(nameof(IsSongBookVisible));
+                        });
+                        
                         // Check if MusicTrackName is already in state (from bootstrap or from DB load in setter)
                         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
                         {
@@ -741,14 +760,14 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
             {
-                return string.Empty;
+                return "Orchestral Melodies";
             }
 
             return currentSchedule.MusicType.Value switch
             {
                 MusicType.Melodies => "Orchestral Melodies",
                 MusicType.Vocals => "Vocals",
-                _ => string.Empty
+                _ => "Orchestral Melodies"
             };
         }
     }

@@ -726,10 +726,18 @@ public static class ApplicationReducer
         // Deep clone the selected schedule to ensure CurrentSchedule is independent from the item in Schedules collection
         ScheduleStateItem? clonedCurrentSchedule = action.SelectedSchedule?.DeepClone();
 
+        // Sync CurrentMusic from the schedule's music properties (especially important for new schedules)
+        // This ensures CurrentMusic matches CurrentSchedule's music type (defaults to Melodies for new schedules)
+        MusicStateItem? syncedCurrentMusic = null;
+        if (clonedCurrentSchedule != null && HasValidMusicProperties(clonedCurrentSchedule))
+        {
+            syncedCurrentMusic = CreateMusicFromCurrent(clonedCurrentSchedule);
+        }
+
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: clonedCurrentSchedule,
-            currentMusic: state.CurrentMusic,
+            currentMusic: syncedCurrentMusic, // Use synced music from schedule instead of stale state.CurrentMusic
             currentBibleReadingSchedule: currentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
@@ -739,17 +747,40 @@ public static class ApplicationReducer
     public static ApplicationState OnBack(ApplicationState state, BackAction action)
     {
         action.CurrentViewModel?.Dispose();
-        // Preserve overlay state on back navigation
-        return state;
+        // Clear schedule-related state when navigating back (same as ResetScheduleStateAction)
+        // This ensures state is clean when leaving the schedule page
+        return new ApplicationState(
+            schedules: state.Schedules,
+            currentSchedule: null,
+            currentMusic: null,
+            currentBibleReadingSchedule: null,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
 
     [ReducerMethod]
     public static ApplicationState OnMusicSelection(ApplicationState state, MusicSelectionAction action)
     {
+        // Only update CurrentMusic if it doesn't conflict with CurrentSchedule's music type
+        // For new schedules (Id <= 0), CurrentSchedule is the source of truth
+        // Don't let MusicSelectionAction override CurrentSchedule's music type
+        MusicStateItem? finalCurrentMusic = action.CurrentMusic;
+        if (state.CurrentSchedule != null && state.CurrentSchedule.Id <= 0)
+        {
+            // For new schedules, sync CurrentMusic from CurrentSchedule to ensure consistency
+            // This prevents stale CurrentMusic from overriding the new schedule's default (Melodies)
+            if (HasValidMusicProperties(state.CurrentSchedule))
+            {
+                finalCurrentMusic = CreateMusicFromCurrent(state.CurrentSchedule);
+                Log.Debug("ApplicationReducer: OnMusicSelection - New schedule detected, syncing CurrentMusic from CurrentSchedule. MusicType: {MusicType}",
+                    finalCurrentMusic.MusicType);
+            }
+        }
+        
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
-            currentMusic: action.CurrentMusic,
+            currentMusic: finalCurrentMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);

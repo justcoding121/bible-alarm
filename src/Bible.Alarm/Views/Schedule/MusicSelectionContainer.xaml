@@ -86,12 +86,13 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Label Grid.Column="0"
+                    <Label x:Name="MusicTypeLabel"
+                           Grid.Column="0"
                            FontSize="16"
                            FontAttributes="None"
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
-                           Text="{Binding MusicTypeDisplayText}"
+                           Text="{Binding MusicTypeDisplayText, Mode=OneWay}"
                            TextColor="{DynamicResource TextPrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
