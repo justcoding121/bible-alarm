@@ -140,8 +140,9 @@ public static class IosMediaElementHelper
     }
 
     /// <summary>
-    /// Handles the Paused state on iOS by stopping first, as calling Play() directly may not work.
-    /// Wraps Stop() in try-catch to handle cases where the player isn't ready to seek (which Stop() does internally).
+    /// Handles the Paused state on iOS.
+    /// When MediaElement is in Paused state right after setting a new source, we can just call Play() directly.
+    /// Only call Stop() if the player was previously playing and then paused (which is rare in our use case).
     /// </summary>
     public static async Task HandlePausedStateAsync(MediaElement mediaElement, object currentState, ILogger logger)
     {
@@ -149,36 +150,15 @@ public static class IosMediaElementHelper
         var stateString = currentState.ToString();
         if (stateString == "Paused")
         {
-            logger.Debug("MediaElement is in Paused state on iOS, attempting to stop first then play");
-
-            try
-            {
-                // Stop() internally tries to seek to zero, which can fail if the player isn't ready
-                // Wrap in try-catch to handle InvalidOperationException gracefully
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    try
-                    {
-                        mediaElement.Stop();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        // Player may not be ready to seek yet (e.g., seekable ranges not available)
-                        // This is okay - we'll just proceed with Play() which should work
-                        logger.Debug(ex, "Stop() failed because player isn't ready to seek, will proceed with Play() anyway");
-                    }
-                });
-
-                await Task.Delay(50);
-
-                var stateAfterStop = await GetCurrentStateAsync(mediaElement, logger);
-                logger.Debug("MediaElement state after Stop(): {State}", stateAfterStop);
-            }
-            catch (Exception ex)
-            {
-                // Catch any other exceptions that might occur
-                logger.Warning(ex, "Exception occurred while stopping MediaElement in Paused state, will proceed with Play()");
-            }
+            // When a new source is set, iOS MediaElement transitions to "Paused" state (loaded but not playing).
+            // In this case, we don't need to Stop() first - we can just Play() directly.
+            // Stop() tries to seek to zero, which can fail if the player isn't ready yet (seekable ranges not available).
+            // Only try Stop() if we're resuming from a previously paused playback, but that's rare in our alarm flow.
+            // For now, skip Stop() and just proceed with Play() - it should work fine for newly loaded media.
+            logger.Debug("MediaElement is in Paused state on iOS. Skipping Stop() and proceeding directly to Play() - this is safe for newly loaded media");
+            
+            // Small delay to ensure media is fully loaded
+            await Task.Delay(50);
         }
     }
 

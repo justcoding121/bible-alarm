@@ -32,11 +32,19 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly Timer? progressSaveTimer;
     private readonly HashSet<int> manuallyVisitedTrackIndices = [];
     private CancellationTokenSource? preparationCancellationTokenSource;
+    private bool isPreparingTrack = false; // Track if we're in the middle of preparing a track
 
     private bool IsPreparingOrPlayingInternal
     {
         get
         {
+            // If we're actively preparing a track, always return true
+            // This prevents race conditions where state hasn't transitioned yet
+            if (isPreparingTrack)
+            {
+                return true;
+            }
+            
             var isActuallyPlaying = audioPlayer.IsActuallyPlayingOrPaused;
             var status = audioPlayer.Status;
             return isActuallyPlaying ||
@@ -615,19 +623,31 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         var isFirstTrack = currentTrackIndex == 0;
         var isLastTrack = playlist != null && currentTrackIndex == playlist.Count - 1;
 
-        await audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
-
-        // Check if stop was called during PrepareAsync (e.g., after downloads complete but before playback starts)
-        // This ensures stop works correctly in the gap between downloads and playback
-        if (!IsPreparingOrPlayingInternal || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
+        // Mark that we're preparing a track to prevent race conditions in IsPreparingOrPlayingInternal
+        isPreparingTrack = true;
+        try
         {
-            logger.Information("Playback was stopped during PrepareAsync - aborting PlayCurrentTrackAsync");
-            return;
-        }
+            await audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
 
-        // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
-        // Wait for the media to be in a ready state (not None or Failed)
-        await WaitForMediaReadyAsync();
+            // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
+            // Wait for the media to be in a ready state (not None or Failed)
+            // This also gives time for the state to transition from "Opening" to "Paused"
+            await WaitForMediaReadyAsync();
+
+            // Check if stop was called during PrepareAsync or WaitForMediaReadyAsync
+            // This ensures stop works correctly in the gap between downloads and playback
+            // Note: isPreparingTrack flag ensures IsPreparingOrPlayingInternal returns true during this check
+            if (!IsPreparingOrPlayingInternal || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
+            {
+                logger.Information("Playback was stopped during PrepareAsync/WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync");
+                return;
+            }
+        }
+        finally
+        {
+            // Clear the flag after preparation is complete (whether successful or not)
+            isPreparingTrack = false;
+        }
 
         // Check again after WaitForMediaReadyAsync in case stop was called during the wait
         if (!IsPreparingOrPlayingInternal || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
@@ -646,7 +666,21 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             var shouldResume = await ShouldResumeFromLastPositionAsync();
             if (shouldResume)
             {
-                await audioPlayer.SeekToAsync(track.PlayItem.Metadata.FinishedDuration);
+                try
+                {
+                    await audioPlayer.SeekToAsync(track.PlayItem.Metadata.FinishedDuration);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Seek may fail if player isn't ready yet (seekable ranges not available)
+                    // This is okay - we'll just start from the beginning instead
+                    logger.Debug(ex, "Seek to resume position failed (player not ready), will start from beginning");
+                }
+                catch (Exception ex)
+                {
+                    // Catch any other exceptions during seek
+                    logger.Warning(ex, "Unexpected error during seek to resume position, will start from beginning");
+                }
             }
         }
 
@@ -658,6 +692,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
 
         logger.Debug("Calling PlayAsync for track at index {TrackIndex}", currentTrackIndex);
+        // Note: isPreparingTrack is already false at this point, so IsPreparingOrPlayingInternal
+        // will rely on actual MediaElement state, which should be ready by now
         await audioPlayer.PlayAsync();
 
         // On iOS, wait a bit longer for playback to actually start
@@ -858,10 +894,31 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         // On iOS, MediaElement may need a moment after PrepareAsync before it can play
         // This is especially important when transitioning between tracks (Stop -> Prepare -> Play)
-        // Give it a small delay to ensure the MediaElement has fully transitioned states
-        await Task.Delay(200);
-
-        logger.Debug("Media ready check completed, proceeding to play");
+        // Wait for the MediaElement to transition from "Opening" to a ready state (Paused, Playing, or Buffering)
+        // This ensures IsPreparingOrPlayingInternal will return true when we check it
+        
+        var maxWaitTime = TimeSpan.FromSeconds(2);
+        var checkInterval = TimeSpan.FromMilliseconds(50);
+        var elapsed = TimeSpan.Zero;
+        
+        while (elapsed < maxWaitTime)
+        {
+            // Check if MediaElement is in a ready state
+            if (audioPlayer.IsActuallyPlayingOrPaused || 
+                audioPlayer.Status == PlayStatus.Loading || 
+                audioPlayer.Status == PlayStatus.Playing || 
+                audioPlayer.Status == PlayStatus.Paused)
+            {
+                logger.Debug("Media ready check completed - MediaElement is in ready state, proceeding to play");
+                return;
+            }
+            
+            await Task.Delay(checkInterval);
+            elapsed = elapsed.Add(checkInterval);
+        }
+        
+        // If we've waited the max time, proceed anyway - the state might still transition
+        logger.Debug("Media ready check completed after timeout - proceeding to play anyway");
     }
 
     private async Task MarkCurrentTrackAsFinishedAsync()

@@ -37,6 +37,10 @@
 		<!-- Minimum OS version set to iOS 16.0 to support modern UNUserNotificationCenter.SetBadgeCount API -->
 		<!-- CommunityToolkit.Maui.MediaElement supports iOS 15.0+, but we require 16.0 for modern notification APIs -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">16.0</SupportedOSPlatformVersion>
+		<!-- iOS SDK version - use 'latest' to automatically use the latest available SDK that matches installed simulator runtimes -->
+		<!-- If you encounter simulator runtime mismatch errors, ensure your Mac build host has the correct simulator runtime installed -->
+		<!-- To install: Xcode > Settings > Components, or use: xcodebuild -downloadPlatform iOS -->
+		<IosSdkVersion Condition="'$(IosSdkVersion)' == ''">latest</IosSdkVersion>
 
 		<!-- Windows-specific -->
 		<!-- For .NET MAUI 10, minimum supported OS version is Windows 10 version 1809 (10.0.17763.0) with WinUI 3 -->

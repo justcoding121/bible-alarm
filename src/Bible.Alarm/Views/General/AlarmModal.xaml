@@ -303,15 +303,16 @@
                         VerticalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="50" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="50" />
                         </Grid.ColumnDefinitions>
                         <Label
                             Grid.Column="0"
                             FontSize="12"
                             FontAttributes="Bold"
                             HorizontalOptions="Start"
+                            HorizontalTextAlignment="Start"
                             Text="{Binding CurrentTime}"
                             Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />
@@ -333,6 +334,7 @@
                             FontSize="12"
                             FontAttributes="Bold"
                             HorizontalOptions="End"
+                            HorizontalTextAlignment="End"
                             Text="{Binding EndTime}"
                             Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />

@@ -64,6 +64,12 @@ public partial class MediaManager : IDisposable
 	{
 		UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
 
+		// Audio session must be configured even in headless mode for playback to work
+		var avSession = AVAudioSession.SharedInstance();
+		avSession.SetCategory(AVAudioSessionCategory.Playback);
+		avSession.SetActive(true);
+
+		// PlayerViewController-specific settings only apply when we have a view controller
 		if (PlayerViewController is null)
 		{
 			return;
@@ -74,9 +80,6 @@ public partial class MediaManager : IDisposable
 #else
 		PlayerViewController.UpdatesNowPlayingInfoCenter = true;
 #endif
-		var avSession = AVAudioSession.SharedInstance();
-		avSession.SetCategory(AVAudioSessionCategory.Playback);
-		avSession.SetActive(true);
 	}
 
 	void SetupObservers()
