@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -22,7 +23,8 @@ public sealed class PlaylistService(
     IAlarmScheduleService alarmScheduleService,
     IGeneralSettingsService generalSettingsService,
     IBibleTranslationService bibleTranslationService,
-    IMelodyMusicService melodyMusicService) : IPlaylistService, IDisposable
+    IMelodyMusicService melodyMusicService,
+    IDiskCacheService? diskCacheService) : IPlaylistService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
@@ -122,6 +124,10 @@ public sealed class PlaylistService(
         TrackMetadata trackMetadata,
         int? nextTrackNumber)
     {
+        // Clear cache BEFORE save to prevent stale cache if process crashes
+        const string CacheKey = "ScheduleList";
+        diskCacheService?.Remove(CacheKey);
+        
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
             schedule => UpdateScheduleForPlayedTrackInternal(schedule, trackMetadata, nextTrackNumber),
@@ -167,6 +173,10 @@ public sealed class PlaylistService(
     {
         // Get next track/chapter before updating
         var nextTrackInfo = await GetNextTrackInfoAsync(trackMetadata);
+
+        // Clear cache BEFORE save to prevent stale cache if process crashes
+        const string CacheKey = "ScheduleList";
+        diskCacheService?.Remove(CacheKey);
 
         // Update schedule using service
         var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(

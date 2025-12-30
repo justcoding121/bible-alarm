@@ -113,6 +113,10 @@ public class ScheduleEffects(
                 return;
             }
 
+            // Clear cache BEFORE processing (schedule was already saved to DB in PlaylistService)
+            // This prevents stale cache if process crashes after save but before refresh
+            InvalidateScheduleCache();
+
             // Transform DB entity to State DTO
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
@@ -210,6 +214,9 @@ public class ScheduleEffects(
                 return;
             }
 
+            // Clear cache BEFORE save to prevent stale cache if process crashes
+            InvalidateScheduleCache();
+
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
             var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule);
 
@@ -258,8 +265,8 @@ public class ScheduleEffects(
             Log.Information("ScheduleEffects: HandleCreateSchedule - Dispatched CreateScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 scheduleStateItem.Id);
             
-            // Invalidate and refresh cache in background
-            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
+            // Refresh cache in background after successful save
+            _ = Task.Run(async () => await RefreshScheduleCacheAsync());
         }
         catch (Exception ex)
         {
@@ -299,6 +306,9 @@ public class ScheduleEffects(
                 HandleServiceUnavailable(action, dispatcher);
                 return;
             }
+
+            // Clear cache BEFORE save to prevent stale cache if process crashes
+            InvalidateScheduleCache();
 
             var savedSchedule = await UpdateScheduleInDatabaseAsync(action);
             await UpdateAlarmAsync(savedSchedule);
@@ -650,6 +660,9 @@ public class ScheduleEffects(
                 return;
             }
 
+            // Clear cache BEFORE delete to prevent stale cache if process crashes
+            InvalidateScheduleCache();
+
             // Delete cached media files for this schedule
             if (mediaCacheService != null)
             {
@@ -673,8 +686,8 @@ public class ScheduleEffects(
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 action.ScheduleId);
             
-            // Invalidate and refresh cache in background
-            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
+            // Refresh cache in background after successful delete
+            _ = Task.Run(async () => await RefreshScheduleCacheAsync());
         }
         catch (Exception ex)
         {
@@ -692,10 +705,10 @@ public class ScheduleEffects(
     {
         try
         {
-            Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Schedule updated in DB, invalidating cache for schedule {ScheduleId}", action.Schedule?.Id);
+            Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Schedule updated in DB, refreshing cache for schedule {ScheduleId}", action.Schedule?.Id);
 
-            // Invalidate and refresh cache in background after DB update
-            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
+            // Refresh cache in background after successful DB update
+            _ = Task.Run(async () => await RefreshScheduleCacheAsync());
 
             // Dispatch SetCarPlayScreenAction to refresh Android Auto metadata
             // This will trigger DefaultCarScreenEffect to fetch metadata and update MediaSession
@@ -725,10 +738,11 @@ public class ScheduleEffects(
     {
         try
         {
-            Log.Debug("ScheduleEffects: HandleRemoveScheduleSuccess - Schedule deleted from DB, invalidating cache for schedule {ScheduleId}", action.ScheduleId);
+            Log.Debug("ScheduleEffects: HandleRemoveScheduleSuccess - Schedule deleted from DB, refreshing cache for schedule {ScheduleId}", action.ScheduleId);
 
-            // Invalidate and refresh cache in background after DB delete
-            _ = Task.Run(async () => await InvalidateAndRefreshScheduleCacheAsync());
+            // Refresh cache in background after successful DB delete
+            // Note: Cache was already cleared before delete, this just refreshes it
+            _ = Task.Run(async () => await RefreshScheduleCacheAsync());
 
             // Check if the deleted schedule was the last played item saved in Preferences
             var lastPlayedMetadata = LastPlayedMetadataHelper.GetLastPlayedMetadata();
@@ -1381,10 +1395,10 @@ public class ScheduleEffects(
     }
     
     /// <summary>
-    /// Invalidates the schedule list cache and refreshes it in the background.
-    /// Called after successful create, update, or delete operations.
+    /// Clears the schedule list cache before operations that will modify schedules.
+    /// This prevents stale cache if the process crashes after save but before refresh.
     /// </summary>
-    private async Task InvalidateAndRefreshScheduleCacheAsync()
+    private void InvalidateScheduleCache()
     {
         if (diskCacheService == null)
         {
@@ -1397,7 +1411,28 @@ public class ScheduleEffects(
         {
             Log.Debug("ScheduleEffects: Invalidating schedule cache");
             diskCacheService.Remove(CacheKey);
-            
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "ScheduleEffects: Error invalidating schedule cache");
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the schedule list cache in the background after successful DB operations.
+    /// Called after successful create, update, or delete operations.
+    /// </summary>
+    private async Task RefreshScheduleCacheAsync()
+    {
+        if (diskCacheService == null)
+        {
+            return;
+        }
+        
+        const string CacheKey = "ScheduleList";
+        
+        try
+        {
             // Refresh cache by calling the factory
             // This will reload schedules from database and repopulate the cache
             var services = CommonBootstrapHelper.GetRequiredServicesForCache();
@@ -1415,7 +1450,7 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error invalidating and refreshing schedule cache");
+            Log.Error(ex, "ScheduleEffects: Error refreshing schedule cache");
         }
     }
 }
