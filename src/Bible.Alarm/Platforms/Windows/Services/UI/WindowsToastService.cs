@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Runtime.InteropServices;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI;
 using Microsoft.UI.Xaml;
@@ -205,13 +206,17 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
     private static Popup CreateToastPopup(string message, Window currentWindow)
     {
+        var theme = Application.Current?.RequestedTheme ?? AppTheme.Light;
+        var backgroundColor = GetToastBackgroundColor(theme);
+        var textColor = GetToastTextColor(theme);
+
         // Create a TextBlock for the message
         var textBlock = new TextBlock
         {
             Text = message,
             TextWrapping = TextWrapping.Wrap,
             Padding = new Thickness(16, 12, 16, 12),
-            Foreground = new SolidColorBrush(Colors.White),
+            Foreground = new SolidColorBrush(textColor),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             // Limit width for better appearance
@@ -221,10 +226,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         // Create a Border for the toast background
         var border = new Border
         {
-            Background = new SolidColorBrush(Colors.Black)
-            {
-                Opacity = 0.8
-            },
+            Background = new SolidColorBrush(backgroundColor),
             CornerRadius = new CornerRadius(8),
             Child = textBlock,
             HorizontalAlignment = HorizontalAlignment.Center
@@ -239,6 +241,29 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         };
 
         return popup;
+    }
+
+    private static Windows.UI.Color GetToastBackgroundColor(AppTheme theme)
+    {
+        // For dark theme: use a lighter dark background for better contrast
+        // For light theme: use dark background with opacity for visibility
+        if (theme == AppTheme.Dark)
+        {
+            // Use a lighter dark color that contrasts well with dark backgrounds
+            // #2A2A2A with 95% opacity (0xF2 = 242/255 ≈ 95%)
+            return Windows.UI.Color.FromArgb(0xF2, 0x2A, 0x2A, 0x2A);
+        }
+        else
+        {
+            // Use dark background with opacity for light theme (standard toast style)
+            return Windows.UI.Color.FromArgb(0xCC, 0x00, 0x00, 0x00); // Black with 80% opacity (0xCC = 204/255)
+        }
+    }
+
+    private static Windows.UI.Color GetToastTextColor(AppTheme theme)
+    {
+        // White text works well on both dark and semi-transparent dark backgrounds
+        return Colors.White;
     }
 
     private static async Task ShowFlyoutAsync(Popup popup, Window currentWindow, double seconds)
