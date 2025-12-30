@@ -12,6 +12,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:ChapterSelectionViewModel"
     Title="Select Chapter">
@@ -107,35 +108,7 @@
             </Grid>
             
             <!-- BUSY OVERLAY – appears only while IsBusy = true -->
-            <Grid IsVisible="{Binding IsBusy}"
-                  BackgroundColor="{DynamicResource BackgroundColor}"
-                  ZIndex="999">
-                <Grid VerticalOptions="Center" HorizontalOptions="Center">
-                    <Frame BackgroundColor="{DynamicResource CardBackgroundColor}"
-                           CornerRadius="16"
-                           Padding="32"
-                           HasShadow="True">
-                        <ActivityIndicator IsRunning="True"
-                                           IsVisible="True"
-                                           IsEnabled="True"
-                                           Color="{StaticResource PrimaryColor}"
-                                           WidthRequest="60"
-                                           HeightRequest="60"
-                                           VerticalOptions="Center"
-                                           HorizontalOptions="Center">
-                            <ActivityIndicator.Scale>
-                                <OnPlatform x:TypeArguments="x:Double">
-                                    <OnPlatform.Platforms>
-                                        <On Platform="iOS" Value="1.0" />
-                                        <On Platform="Android" Value="1.0" />
-                                        <On Platform="Win" Value="1.0" />
-                                    </OnPlatform.Platforms>
-                                </OnPlatform>
-                            </ActivityIndicator.Scale>
-                        </ActivityIndicator>
-                    </Frame>
-                </Grid>
-            </Grid>
+            <shared:BusyOverlay IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

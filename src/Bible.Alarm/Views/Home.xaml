@@ -10,7 +10,6 @@
     xmlns:models="clr-namespace:Bible.Alarm.Models"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
     xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons"
-    xmlns:progressbar="clr-namespace:Syncfusion.Maui.ProgressBar;assembly=Syncfusion.Maui.ProgressBar"
     xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
@@ -34,7 +33,7 @@
     <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}">
         <Grid
             Grid.Row="0"
-            Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
+            Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
             RowSpacing="0"
             Grid.ZIndex="1">
             <Grid.RowDefinitions>

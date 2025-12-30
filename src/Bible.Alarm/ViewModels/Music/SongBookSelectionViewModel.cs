@@ -354,7 +354,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    private bool isBusy;
+    // Start as true to show busy indicator immediately
+    private bool isBusy = true;
 
     public bool IsBusy
     {

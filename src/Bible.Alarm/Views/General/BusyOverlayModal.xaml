@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage x:Class="Bible.Alarm.Views.General.BusyOverlayModal"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core">
+    <Grid BackgroundColor="{DynamicResource BackgroundColor}"
+          HorizontalOptions="Fill"
+          VerticalOptions="Fill">
+        <Grid VerticalOptions="Center" 
+              HorizontalOptions="Center">
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}"
+                   CornerRadius="16"
+                   Padding="20"
+                   HasShadow="True">
+                <core:SfBusyIndicator
+                    x:Name="busyIndicator"
+                    IsRunning="True"
+                    AnimationType="DoubleCircle"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    HeightRequest="60"
+                    WidthRequest="60"
+                    IndicatorColor="{StaticResource PrimaryColor}" />
+            </Frame>
+        </Grid>
+    </Grid>
+</ContentPage>
+

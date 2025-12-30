@@ -10,6 +10,7 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="music:SongBookSelectionViewModel"
     Padding="0,0,0,0">
@@ -28,7 +29,7 @@
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
-            Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
+            Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
             BackgroundColor="{DynamicResource BackgroundColor}"
             ColumnSpacing="0"
             RowSpacing="0">
@@ -163,37 +164,9 @@
             </Border>
             
             <!-- Busy Overlay -->
-            <Grid Grid.Row="0"
-                  Grid.RowSpan="3"
-                  IsVisible="{Binding IsBusy}"
-                  BackgroundColor="{DynamicResource BackgroundColor}"
-                  ZIndex="999">
-                <Grid VerticalOptions="Center" HorizontalOptions="Center">
-                    <Frame BackgroundColor="{DynamicResource CardBackgroundColor}"
-                           CornerRadius="16"
-                           Padding="32"
-                           HasShadow="True">
-                        <ActivityIndicator IsRunning="True"
-                                           IsVisible="True"
-                                           IsEnabled="True"
-                                           Color="{StaticResource PrimaryColor}"
-                                           WidthRequest="60"
-                                           HeightRequest="60"
-                                           VerticalOptions="Center"
-                                           HorizontalOptions="Center">
-                            <ActivityIndicator.Scale>
-                                <OnPlatform x:TypeArguments="x:Double">
-                                    <OnPlatform.Platforms>
-                                        <On Platform="iOS" Value="1.0" />
-                                        <On Platform="Android" Value="1.0" />
-                                        <On Platform="Win" Value="1.0" />
-                                    </OnPlatform.Platforms>
-                                </OnPlatform>
-                            </ActivityIndicator.Scale>
-                        </ActivityIndicator>
-                    </Frame>
-                </Grid>
-            </Grid>
+            <sharedViews:BusyOverlay Grid.Row="0"
+                                     Grid.RowSpan="3"
+                                     IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

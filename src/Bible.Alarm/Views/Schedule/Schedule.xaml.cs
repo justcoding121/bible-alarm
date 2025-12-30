@@ -71,6 +71,29 @@ public partial class Schedule : BaseContentPage, IDisposable
             // Hide Home page overlay after Schedule page is fully rendered and visible
             viewModel?.HideHomePageOverlay();
         });
+
+        // Subscribe to ViewModel property changes to manually update BusyOverlay if binding doesn't work
+        if (viewModel != null)
+        {
+            viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ScheduleViewModel.IsSchedulePageOverlayVisible))
+        {
+            // Manually update BusyOverlay if binding isn't working
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (scheduleBusyOverlay != null && viewModel != null)
+                {
+                    var newValue = viewModel.IsSchedulePageOverlayVisible;
+                    Log.Debug("Schedule.xaml.cs: Manually updating BusyOverlay.IsVisible to {Value}", newValue);
+                    scheduleBusyOverlay.IsVisible = newValue;
+                }
+            });
+        }
     }
 
     protected override void OnAppearing()
@@ -92,6 +115,12 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
+            // Unsubscribe from property changes
+            if (viewModel != null)
+            {
+                viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            }
+
             // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
             {

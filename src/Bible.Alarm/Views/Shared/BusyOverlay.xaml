@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentView x:Class="Bible.Alarm.Views.Shared.BusyOverlay"
+             x:Name="busyOverlay"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+             xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters">
+    <ContentView.Resources>
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <converters:BoolToOpacityConverter x:Key="boolToOpacityConverter" />
+    </ContentView.Resources>
+    <Grid x:Name="overlayGrid"
+          IsVisible="True"
+          Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}"
+          BackgroundColor="{DynamicResource BackgroundColor}"
+          ZIndex="999"
+          HorizontalOptions="Fill"
+          VerticalOptions="Fill"
+          InputTransparent="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource negateBooleanConverter}}">
+        <Grid VerticalOptions="Center" 
+              HorizontalOptions="Center"
+              IsVisible="True"
+              Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}">
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}"
+                   CornerRadius="16"
+                   Padding="20"
+                   HasShadow="True"
+                   IsVisible="True">
+                <core:SfBusyIndicator
+                    x:Name="busyIndicator"
+                    IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
+                    IsVisible="True"
+                    Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}"
+                    AnimationType="DoubleCircle"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    HeightRequest="60"
+                    WidthRequest="60"
+                    IndicatorColor="{StaticResource PrimaryColor}" />
+            </Frame>
+        </Grid>
+    </Grid>
+</ContentView>
+

@@ -19,6 +19,7 @@ using SolidColorBrush = Microsoft.UI.Xaml.Media.SolidColorBrush;
 using Thickness = Microsoft.UI.Xaml.Thickness;
 using VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment;
 using Window = Microsoft.UI.Xaml.Window;
+using WinUIColor = global::Windows.UI.Color;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
 
@@ -243,7 +244,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         return popup;
     }
 
-    private static Windows.UI.Color GetToastBackgroundColor(AppTheme theme)
+    private static WinUIColor GetToastBackgroundColor(AppTheme theme)
     {
         // For dark theme: use a lighter dark background for better contrast
         // For light theme: use dark background with opacity for visibility
@@ -251,16 +252,16 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         {
             // Use a lighter dark color that contrasts well with dark backgrounds
             // #2A2A2A with 95% opacity (0xF2 = 242/255 ≈ 95%)
-            return Windows.UI.Color.FromArgb(0xF2, 0x2A, 0x2A, 0x2A);
+            return WinUIColor.FromArgb(0xF2, 0x2A, 0x2A, 0x2A);
         }
         else
         {
             // Use dark background with opacity for light theme (standard toast style)
-            return Windows.UI.Color.FromArgb(0xCC, 0x00, 0x00, 0x00); // Black with 80% opacity (0xCC = 204/255)
+            return WinUIColor.FromArgb(0xCC, 0x00, 0x00, 0x00); // Black with 80% opacity (0xCC = 204/255)
         }
     }
 
-    private static Windows.UI.Color GetToastTextColor(AppTheme theme)
+    private static WinUIColor GetToastTextColor(AppTheme theme)
     {
         // White text works well on both dark and semi-transparent dark backgrounds
         return Colors.White;

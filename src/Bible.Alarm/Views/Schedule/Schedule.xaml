@@ -28,7 +28,7 @@
         <Grid AutomationId="SchedulePage"
               BackgroundColor="{DynamicResource PageBackgroundColor}">
             <Grid Grid.ZIndex="1"
-                  Margin="{OnPlatform Default='0', iOS='0,44,0,0', Android='0,24,0,0'}"
+                  Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
                   IsVisible="{Binding IsSchedulePageOverlayVisible, Converter={StaticResource negateBooleanConverter}}"
                   RowSpacing="0">
                 <Grid.RowDefinitions>
@@ -38,7 +38,7 @@
                 </Grid.RowDefinitions>
             <Grid Grid.Row="0"
                   Margin="{OnPlatform Default='5,5,5,10',
-                                    iOS='5,25,5,10'}"
+                                    iOS='5,8,5,10'}"
                   ColumnSpacing="0"
                   RowSpacing="0">
                 <Grid.ColumnDefinitions>
@@ -244,7 +244,7 @@
                     <StackLayout HorizontalOptions="Fill"
                                  Orientation="Vertical"
                                  Spacing="10"
-                                 Margin="10,0,10,0">
+                                 Margin="{OnPlatform Default='10,0,10,0', iOS='10,0,10,0', Android='10,0,10,0'}">
                         <scheduleViews:ScheduleDetailsContainer BindingContext="{Binding ScheduleDetailsContainerViewModel}" />
                         <scheduleViews:BibleSelectionContainer BindingContext="{Binding BibleSelectionContainerViewModel}" />
                         <scheduleViews:ChaptersSelectionContainer BindingContext="{Binding ChaptersSelectionContainerViewModel}" />
@@ -346,30 +346,9 @@
                 </ScrollView>
             </Grid>
             <!-- Overlay with busy indicator -->
-            <Grid Grid.ZIndex="2"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                IsVisible="{Binding IsSchedulePageOverlayVisible}"
-                HorizontalOptions="Fill"
-                VerticalOptions="Fill">
-            <ActivityIndicator
-                HorizontalOptions="Center"
-                IsEnabled="True"
-                IsRunning="{Binding IsSchedulePageOverlayVisible}"
-                IsVisible="{Binding IsSchedulePageOverlayVisible}"
-                Scale="0.5"
-                VerticalOptions="Center"
-                Color="SlateBlue">
-                <ActivityIndicator.Scale>
-                    <OnPlatform x:TypeArguments="system:Double">
-                        <OnPlatform.Platforms>
-                            <On Platform="iOS" Value="4.0" />
-                            <On Platform="Android" Value="1.0" />
-                            <On Platform="Win" Value="1.0" />
-                        </OnPlatform.Platforms>
-                    </OnPlatform>
-                </ActivityIndicator.Scale>
-            </ActivityIndicator>
-            </Grid>
+            <shared:BusyOverlay x:Name="scheduleBusyOverlay"
+                                Grid.ZIndex="2"
+                                IsVisible="{Binding IsSchedulePageOverlayVisible}" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

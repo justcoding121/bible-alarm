@@ -233,14 +233,17 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // If music type, language, or publication changed, repopulate tracks
         if (needsRepopulation && initComplete)
         {
-            if (newLanguageCode == null || newPublicationCode == null)
+            // For melodies, LanguageCode can be null, so only check PublicationCode
+            // For vocals, LanguageCode is required (already checked above)
+            if (newPublicationCode == null)
             {
                 return;
             }
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                await Initialize(newLanguageCode, newPublicationCode);
+                // Pass null/empty for languageCode if it's a melody (LanguageCode can be null for melodies)
+                await Initialize(newLanguageCode ?? string.Empty, newPublicationCode);
                 await Task.Delay(100); // Give CollectionView time to render
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             });
@@ -312,14 +315,17 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
 
         initComplete = true;
-        if (newLanguageCode == null || newPublicationCode == null)
+        // For melodies, LanguageCode can be null, so only check PublicationCode
+        // For vocals, LanguageCode is required (already checked above)
+        if (newPublicationCode == null)
         {
             return;
         }
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(newLanguageCode, newPublicationCode);
+            // Pass null/empty for languageCode if it's a melody (LanguageCode can be null for melodies)
+            await Initialize(newLanguageCode ?? string.Empty, newPublicationCode);
 
             // CollectionView needs a moment to render before hiding the busy indicator
             // Add a small delay to prevent blank page flash (following book selection pattern)
@@ -342,6 +348,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             return;
         }
 
@@ -354,12 +361,14 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // For vocals: require MusicType, LanguageCode, and PublicationCode
         if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             return;
         }
 
         // For vocals, language code is required
         if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             return;
         }
 
@@ -382,14 +391,23 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // Ensure tracks are populated if not already initialized
         if (!initComplete || Tracks == null || Tracks.Count == 0)
         {
-            if (newLanguageCode == null || newPublicationCode == null)
+            // For melodies, LanguageCode can be null, so only check PublicationCode
+            // For vocals, LanguageCode is required (already checked above)
+            if (newPublicationCode == null)
             {
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
                 return;
             }
             initComplete = true;
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-            await Initialize(newLanguageCode, newPublicationCode);
+            // Pass null for languageCode if it's a melody (LanguageCode can be null for melodies)
+            await Initialize(newLanguageCode ?? string.Empty, newPublicationCode);
             await Task.Delay(100); // Give CollectionView time to render
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        }
+        else
+        {
+            // Tracks are already loaded, just hide the busy indicator
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         }
     }
