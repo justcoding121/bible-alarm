@@ -102,37 +102,32 @@
                                             VerticalTextAlignment="Center" />
                                         
                                         <!-- Repeat Control -->
-                                        <HorizontalStackLayout
+                                        <Border
                                             Grid.Column="1"
-                                            Spacing="8"
+                                            IsVisible="{Binding IsSelected}"
+                                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                                            HeightRequest="36"
                                             HorizontalOptions="End"
-                                            VerticalOptions="Center">
-                                            <Border
-                                                IsVisible="{Binding IsSelected}"
-                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                HeightRequest="36"
-                                                HorizontalOptions="End"
-                                                StrokeThickness="0"
-                                                VerticalOptions="Center"
-                                                WidthRequest="36">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="18" />
-                                                </Border.StrokeShape>
-                                                <Button
-                                                    BackgroundColor="Transparent"
-                                                    BorderWidth="0"
-                                                    BorderColor="Transparent"
-                                                    Command="{Binding ToggleRepeatCommand}"
-                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                    FontSize="16"
-                                                    MinimumWidthRequest="36"
-                                                    Padding="0"
-                                                    Text="{x:Static fn:GlyphNames.Repeat}"
-                                                    TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"
-                                                    VerticalOptions="Fill"
-                                                    HorizontalOptions="Fill" />
-                                            </Border>
-                                        </HorizontalStackLayout>
+                                            StrokeThickness="0"
+                                            VerticalOptions="Center"
+                                            WidthRequest="36">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18" />
+                                            </Border.StrokeShape>
+                                            <Button
+                                                BackgroundColor="Transparent"
+                                                BorderWidth="0"
+                                                BorderColor="Transparent"
+                                                Command="{Binding ToggleRepeatCommand}"
+                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                FontSize="16"
+                                                MinimumWidthRequest="36"
+                                                Padding="0"
+                                                Text="{x:Static fn:GlyphNames.Repeat}"
+                                                TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"
+                                                VerticalOptions="Fill"
+                                                HorizontalOptions="Fill" />
+                                        </Border>
                                     </Grid>
                                 </Border>
                             </Grid>

@@ -89,6 +89,10 @@
 		<!-- AndroidX.Core for IconCompat support (required for CarIcon creation) -->
 		<!-- Version must be >= 1.17.0 to satisfy Xamarin.AndroidX.Media dependency -->
 		<PackageReference Include="Xamarin.AndroidX.Core" Version="1.17.0" />
+		<!-- AndroidX.AppCompat required for AppCompat resources referenced by transitive dependencies -->
+		<!-- This resolves APT2260 errors for missing AppCompat styles and attributes -->
+		<!-- Version 1.7.1.1 is required by Microsoft.Maui.Controls 10.0.11 (via Navigation.UI dependency) -->
+		<PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.7.1.1" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -8,13 +8,9 @@
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
              x:DataType="vm:ScheduleViewModel">
-    <ContentView.Resources>
-        <converters:DayColorConverter x:Key="dayColorConverter" />
-        <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
-        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <!-- Theme-aware colors are inherited from BaseContentPage -->
-    </ContentView.Resources>
-    <Grid Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
+    <!-- Converters moved to App.xaml for better performance - shared across all pages -->
+    <!-- Theme-aware colors are inherited from BaseContentPage -->
+    <Grid x:Name="MainGrid"
           RowSpacing="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
@@ -22,312 +18,91 @@
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
         <Grid Grid.Row="0"
-              Margin="{OnPlatform Default='5,5,5,10',
-                                    iOS='5,8,5,10'}"
+              x:Name="ButtonContainer"
               ColumnSpacing="0"
               RowSpacing="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <OnPlatform x:TypeArguments="View">
-                <OnPlatform.Platforms>
-                    <On Platform="WinUI">
-                        <Button Grid.Column="0"
-                                Margin="0,3,3,3"
-                                AutomationId="CancelButton"
-                                BackgroundColor="{DynamicResource DividerColor}"
-                                CornerRadius="8"
-                                Command="{Binding CancelCommand}"
-                                FontSize="17"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="45"
-                                Padding="10,10"
-                                Text="CANCEL"
-                                TextColor="{DynamicResource TextSecondaryColor}"
-                                VerticalOptions="Fill">
-                            <Button.Shadow>
-                                <Shadow Brush="#20000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.2" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                    <On Platform="iOS">
-                        <Button Grid.Column="0"
-                                Margin="0,3,3,3"
-                                AutomationId="CancelButton"
-                                BackgroundColor="{DynamicResource DividerColor}"
-                                CornerRadius="8"
-                                Command="{Binding CancelCommand}"
-                                FontSize="{StaticResource ButtonFontSize}"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="50"
-                                Padding="10,12"
-                                Text="CANCEL"
-                                TextColor="{DynamicResource TextSecondaryColor}"
-                                VerticalOptions="Fill">
-                            <Button.Shadow>
-                                <Shadow Brush="#20000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.2" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                    <On Platform="Android">
-                        <Button Grid.Column="0"
-                                Margin="0,3,3,3"
-                                AutomationId="CancelButton"
-                                BackgroundColor="{DynamicResource DividerColor}"
-                                CornerRadius="8"
-                                Command="{Binding CancelCommand}"
-                                FontSize="{StaticResource ButtonFontSize}"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="45"
-                                Padding="10,6,10,10"
-                                Text="CANCEL"
-                                TextColor="{DynamicResource TextSecondaryColor}"
-                                VerticalOptions="Center">
-                            <Button.Shadow>
-                                <Shadow Brush="#20000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.2" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                    <On Platform="Default">
-                        <Button Grid.Column="0"
-                                Margin="0,3,3,3"
-                                AutomationId="CancelButton"
-                                BackgroundColor="{DynamicResource DividerColor}"
-                                CornerRadius="8"
-                                Command="{Binding CancelCommand}"
-                                FontSize="{StaticResource ButtonFontSize}"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="45"
-                                Padding="10,8"
-                                Text="CANCEL"
-                                TextColor="{DynamicResource TextSecondaryColor}"
-                                VerticalOptions="Fill">
-                            <Button.Shadow>
-                                <Shadow Brush="#20000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.2" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                </OnPlatform.Platforms>
-            </OnPlatform>
-            <OnPlatform x:TypeArguments="View">
-                <OnPlatform.Platforms>
-                    <On Platform="WinUI">
-                        <Button Grid.Column="1"
-                                Margin="3,3,0,3"
-                                AutomationId="SaveButton"
-                                BackgroundColor="{StaticResource PrimaryColor}"
-                                CornerRadius="8"
-                                Command="{Binding SaveCommand}"
-                                FontSize="17"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="45"
-                                Padding="10,10"
-                                Text="SAVE"
-                                TextColor="White"
-                                VerticalOptions="Fill">
-                            <Button.Shadow>
-                                <Shadow Brush="#40000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.3" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                    <On Platform="iOS">
-                        <Button Grid.Column="1"
-                                Margin="3,3,0,3"
-                                AutomationId="SaveButton"
-                                BackgroundColor="{StaticResource PrimaryColor}"
-                                CornerRadius="8"
-                                Command="{Binding SaveCommand}"
-                                FontSize="{StaticResource ButtonFontSize}"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="50"
-                                Padding="10,12"
-                                Text="SAVE"
-                                TextColor="White"
-                                VerticalOptions="Fill">
-                            <Button.Shadow>
-                                <Shadow Brush="#40000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.3" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                    <On Platform="Android">
-                        <Button Grid.Column="1"
-                                Margin="3,3,0,3"
-                                AutomationId="SaveButton"
-                                BackgroundColor="{StaticResource PrimaryColor}"
-                                CornerRadius="8"
-                                Command="{Binding SaveCommand}"
-                                FontSize="{StaticResource ButtonFontSize}"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="45"
-                                Padding="10,6,10,10"
-                                Text="SAVE"
-                                TextColor="White"
-                                VerticalOptions="Center">
-                            <Button.Shadow>
-                                <Shadow Brush="#40000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.3" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                    <On Platform="Default">
-                        <Button Grid.Column="1"
-                                Margin="3,3,0,3"
-                                AutomationId="SaveButton"
-                                BackgroundColor="{StaticResource PrimaryColor}"
-                                CornerRadius="8"
-                                Command="{Binding SaveCommand}"
-                                FontSize="{StaticResource ButtonFontSize}"
-                                FontAttributes="Bold"
-                                HorizontalOptions="Fill"
-                                HeightRequest="45"
-                                Padding="10,8"
-                                Text="SAVE"
-                                TextColor="White"
-                                VerticalOptions="Fill">
-                            <Button.Shadow>
-                                <Shadow Brush="#40000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.3" />
-                            </Button.Shadow>
-                        </Button>
-                    </On>
-                </OnPlatform.Platforms>
-            </OnPlatform>
+            <!-- Cancel button - platform-specific styling handled via code-behind for better performance -->
+            <Button Grid.Column="0"
+                    x:Name="CancelButton"
+                    Margin="0,3,3,3"
+                    AutomationId="CancelButton"
+                    BackgroundColor="{DynamicResource DividerColor}"
+                    CornerRadius="8"
+                    Command="{Binding CancelCommand}"
+                    FontAttributes="Bold"
+                    HorizontalOptions="Fill"
+                    Text="CANCEL"
+                    TextColor="{DynamicResource TextSecondaryColor}">
+                <Button.Shadow>
+                    <Shadow Brush="#20000000" 
+                            Offset="0,2" 
+                            Radius="4" 
+                            Opacity="0.2" />
+                </Button.Shadow>
+            </Button>
+            <!-- Save button - platform-specific styling handled via code-behind for better performance -->
+            <Button Grid.Column="1"
+                    x:Name="SaveButton"
+                    Margin="3,3,0,3"
+                    AutomationId="SaveButton"
+                    BackgroundColor="{StaticResource PrimaryColor}"
+                    CornerRadius="8"
+                    Command="{Binding SaveCommand}"
+                    FontAttributes="Bold"
+                    HorizontalOptions="Fill"
+                    Text="SAVE"
+                    TextColor="White">
+                <Button.Shadow>
+                    <Shadow Brush="#40000000" 
+                            Offset="0,2" 
+                            Radius="4" 
+                            Opacity="0.3" />
+                </Button.Shadow>
+            </Button>
         </Grid>
         <ScrollView x:Name="ScheduleScrollView"
                     Grid.Row="1"
                     Margin="0,0,0,0">
-            <StackLayout HorizontalOptions="Fill"
-                         Orientation="Vertical"
-                         Spacing="10"
-                         Margin="{OnPlatform Default='10,0,10,0', iOS='10,0,10,0', Android='10,0,10,0'}">
-                <scheduleViews:ScheduleDetailsContainer BindingContext="{Binding ScheduleDetailsContainerViewModel}" />
-                <scheduleViews:BibleSelectionContainer BindingContext="{Binding BibleSelectionContainerViewModel}" />
-                <scheduleViews:ChaptersSelectionContainer BindingContext="{Binding ChaptersSelectionContainerViewModel}" />
-                <scheduleViews:MusicSelectionContainer BindingContext="{Binding MusicSelectionContainerViewModel}" />
+            <Grid x:Name="ScrollContentGrid"
+                  HorizontalOptions="Fill"
+                  RowSpacing="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <scheduleViews:ScheduleDetailsContainer Grid.Row="0" BindingContext="{Binding ScheduleDetailsContainerViewModel}" />
+                <scheduleViews:BibleSelectionContainer Grid.Row="1" BindingContext="{Binding BibleSelectionContainerViewModel}" />
+                <scheduleViews:ChaptersSelectionContainer Grid.Row="2" BindingContext="{Binding ChaptersSelectionContainerViewModel}" />
+                <scheduleViews:MusicSelectionContainer Grid.Row="3" BindingContext="{Binding MusicSelectionContainerViewModel}" />
 
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="WinUI">
-                            <Button Margin="0,10,0,5"
-                                  IsVisible="{Binding IsExistingSchedule}"
-                                  VerticalOptions="End"
-                                  BackgroundColor="{StaticResource ErrorColor}"
-                                  CornerRadius="8"
-                                  Command="{Binding DeleteCommand}"
-                                  FontSize="17"
-                                  FontAttributes="Bold"
-                                  HorizontalOptions="Fill"
-                                  HeightRequest="45"
-                                  Padding="10,10"
-                                  Text="DELETE"
-                                  TextColor="White">
-                                <Button.Shadow>
-                                    <Shadow Brush="#40000000" 
-                                            Offset="0,2" 
-                                            Radius="4" 
-                                            Opacity="0.3" />
-                                </Button.Shadow>
-                            </Button>
-                        </On>
-                        <On Platform="iOS">
-                            <Button Margin="0,10,0,5"
-                                  IsVisible="{Binding IsExistingSchedule}"
-                                  VerticalOptions="End"
-                                  BackgroundColor="{StaticResource ErrorColor}"
-                                  CornerRadius="8"
-                                  Command="{Binding DeleteCommand}"
-                                  FontSize="{StaticResource ButtonFontSize}"
-                                  FontAttributes="Bold"
-                                  HorizontalOptions="Fill"
-                                  HeightRequest="50"
-                                  Padding="10,12"
-                                  Text="DELETE"
-                                  TextColor="White">
-                                <Button.Shadow>
-                                    <Shadow Brush="#40000000" 
-                                            Offset="0,2" 
-                                            Radius="4" 
-                                            Opacity="0.3" />
-                                </Button.Shadow>
-                            </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Margin="0,10,0,5"
-                                  IsVisible="{Binding IsExistingSchedule}"
-                                  VerticalOptions="End"
-                                  BackgroundColor="{StaticResource ErrorColor}"
-                                  CornerRadius="8"
-                                  Command="{Binding DeleteCommand}"
-                                  FontSize="{StaticResource ButtonFontSize}"
-                                  FontAttributes="Bold"
-                                  HorizontalOptions="Fill"
-                                  HeightRequest="45"
-                                  Padding="10,6,10,10"
-                                  Text="DELETE"
-                                  TextColor="White">
-                                <Button.Shadow>
-                                    <Shadow Brush="#40000000" 
-                                            Offset="0,2" 
-                                            Radius="4" 
-                                            Opacity="0.3" />
-                                </Button.Shadow>
-                            </Button>
-                        </On>
-                        <On Platform="Default">
-                            <Button Margin="0,10,0,5"
-                                  IsVisible="{Binding IsExistingSchedule}"
-                                  VerticalOptions="End"
-                                  BackgroundColor="{StaticResource ErrorColor}"
-                                  CornerRadius="8"
-                                  Command="{Binding DeleteCommand}"
-                                  FontSize="{StaticResource ButtonFontSize}"
-                                  FontAttributes="Bold"
-                                  HorizontalOptions="Fill"
-                                  HeightRequest="45"
-                                  Padding="10,8"
-                                  Text="DELETE"
-                                  TextColor="White">
-                                <Button.Shadow>
-                                    <Shadow Brush="#40000000" 
-                                            Offset="0,2" 
-                                            Radius="4" 
-                                            Opacity="0.3" />
-                                </Button.Shadow>
-                            </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
-            </StackLayout>
+                <!-- Delete button - platform-specific styling handled via code-behind for better performance -->
+                <Button Grid.Row="4"
+                        x:Name="DeleteButton"
+                        Margin="0,10,0,5"
+                        IsVisible="{Binding IsExistingSchedule}"
+                        VerticalOptions="End"
+                        BackgroundColor="{StaticResource ErrorColor}"
+                        CornerRadius="8"
+                        Command="{Binding DeleteCommand}"
+                        FontAttributes="Bold"
+                        HorizontalOptions="Fill"
+                        Text="DELETE"
+                        TextColor="White">
+                    <Button.Shadow>
+                        <Shadow Brush="#40000000" 
+                                Offset="0,2" 
+                                Radius="4" 
+                                Opacity="0.3" />
+                    </Button.Shadow>
+                </Button>
+            </Grid>
         </ScrollView>
     </Grid>
 </ContentView>

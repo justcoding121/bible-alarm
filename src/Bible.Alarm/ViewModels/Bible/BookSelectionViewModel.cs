@@ -60,16 +60,12 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await navigationService.PopAsync();
-            IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await navigationService.PopModalAsync();
-            IsBusy = false;
         });
 
         ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
@@ -79,92 +75,83 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            IsBusy = true;
-
-            try
+            // Always use CurrentSchedule as the source of truth for language/publication codes
+            // This ensures we use the latest state, not stale data from 'current' field
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null ||
+                string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) ||
+                string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode))
             {
-                // Always use CurrentSchedule as the source of truth for language/publication codes
-                // This ensures we use the latest state, not stale data from 'current' field
-                var currentSchedule = state.Value.CurrentSchedule;
-                if (currentSchedule == null ||
-                    string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) ||
-                    string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode))
+                logger.Warning("BookSelectionViewModel: ChapterSelectionCommand - CurrentSchedule is null or missing required properties");
+                return;
+            }
+
+            // Check if the selected book is the same as the current book
+            var currentBookNumber = currentSchedule.BibleReadingBookNumber;
+            var isSameBook = currentBookNumber.HasValue && currentBookNumber.Value == x.Number;
+
+            // Get chapters for the selected book using the latest language/publication from CurrentSchedule
+            var chapters = await Task.Run(async () =>
+                await mediaService.GetBibleChapters(currentSchedule.BibleReadingLanguageCode, currentSchedule.BibleReadingPublicationCode, x.Number));
+
+            if (chapters == null || chapters.Count == 0)
+            {
+                return;
+            }
+
+            // If it's the same book, preserve the current chapter number (if valid)
+            // Otherwise, use the first chapter
+            int chapterNumber;
+            if (isSameBook && currentSchedule.BibleReadingChapterNumber.HasValue)
+            {
+                var currentChapterNumber = currentSchedule.BibleReadingChapterNumber.Value;
+                // Verify the current chapter exists in the chapters list
+                if (chapters.ContainsKey(currentChapterNumber))
                 {
-                    logger.Warning("BookSelectionViewModel: ChapterSelectionCommand - CurrentSchedule is null or missing required properties");
-                    return;
-                }
-
-                // Check if the selected book is the same as the current book
-                var currentBookNumber = currentSchedule.BibleReadingBookNumber;
-                var isSameBook = currentBookNumber.HasValue && currentBookNumber.Value == x.Number;
-
-                // Get chapters for the selected book using the latest language/publication from CurrentSchedule
-                var chapters = await Task.Run(async () =>
-                    await mediaService.GetBibleChapters(currentSchedule.BibleReadingLanguageCode, currentSchedule.BibleReadingPublicationCode, x.Number));
-
-                if (chapters == null || chapters.Count == 0)
-                {
-                    return;
-                }
-
-                // If it's the same book, preserve the current chapter number (if valid)
-                // Otherwise, use the first chapter
-                int chapterNumber;
-                if (isSameBook && currentSchedule.BibleReadingChapterNumber.HasValue)
-                {
-                    var currentChapterNumber = currentSchedule.BibleReadingChapterNumber.Value;
-                    // Verify the current chapter exists in the chapters list
-                    if (chapters.ContainsKey(currentChapterNumber))
-                    {
-                        chapterNumber = currentChapterNumber;
-                        logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), preserving current chapter {ChapterNumber}",
-                            x.Name, chapterNumber);
-                    }
-                    else
-                    {
-                        // Current chapter doesn't exist in this book, use first chapter
-                        chapterNumber = chapters.Values.First().Number;
-                        logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), but current chapter {CurrentChapter} doesn't exist, using first chapter {FirstChapter}",
-                            x.Name, currentChapterNumber, chapterNumber);
-                    }
+                    chapterNumber = currentChapterNumber;
+                    logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), preserving current chapter {ChapterNumber}",
+                        x.Name, chapterNumber);
                 }
                 else
                 {
-                    // Different book selected, use first chapter
+                    // Current chapter doesn't exist in this book, use first chapter
                     chapterNumber = chapters.Values.First().Number;
-                    logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Different book selected ({BookName}, was {CurrentBook}), using first chapter {FirstChapter}",
-                        x.Name, currentBookNumber?.ToString() ?? "null", chapterNumber);
+                    logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), but current chapter {CurrentChapter} doesn't exist, using first chapter {FirstChapter}",
+                        x.Name, currentChapterNumber, chapterNumber);
                 }
-
-                // Create BibleReadingStateItem with selected book and chapter
-                // IMPORTANT: Include display names from list items (no database query needed)
-                // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
-                var bibleReadingItem = new BibleReadingStateItem
-                {
-                    LanguageCode = currentSchedule.BibleReadingLanguageCode,
-                    PublicationCode = currentSchedule.BibleReadingPublicationCode,
-                    BookNumber = x.Number,
-                    ChapterNumber = chapterNumber,
-                    // Store display names from list items and current state
-                    LanguageName = currentSchedule.BibleReadingLanguageName,
-                    PublicationName = currentSchedule.BibleReadingPublicationName,
-                    BookName = x.Name
-                };
-
-                logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Dispatching ChapterSelectedAction. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-                    bibleReadingItem.LanguageCode, bibleReadingItem.PublicationCode, bibleReadingItem.BookNumber, bibleReadingItem.ChapterNumber);
-
-                // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
-                // Effect will automatically sync to CurrentSchedule
-                dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
-
-                // Navigate back to schedule page
-                await navigationService.PopModalAsync();
             }
-            finally
+            else
             {
-                IsBusy = false;
+                // Different book selected, use first chapter
+                chapterNumber = chapters.Values.First().Number;
+                logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Different book selected ({BookName}, was {CurrentBook}), using first chapter {FirstChapter}",
+                    x.Name, currentBookNumber?.ToString() ?? "null", chapterNumber);
             }
+
+            // Create BibleReadingStateItem with selected book and chapter
+            // IMPORTANT: Include display names from list items (no database query needed)
+            // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
+            var bibleReadingItem = new BibleReadingStateItem
+            {
+                LanguageCode = currentSchedule.BibleReadingLanguageCode,
+                PublicationCode = currentSchedule.BibleReadingPublicationCode,
+                BookNumber = x.Number,
+                ChapterNumber = chapterNumber,
+                // Store display names from list items and current state
+                LanguageName = currentSchedule.BibleReadingLanguageName,
+                PublicationName = currentSchedule.BibleReadingPublicationName,
+                BookName = x.Name
+            };
+
+            logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Dispatching ChapterSelectedAction. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+                bibleReadingItem.LanguageCode, bibleReadingItem.PublicationCode, bibleReadingItem.BookNumber, bibleReadingItem.ChapterNumber);
+
+            // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
+            // Effect will automatically sync to CurrentSchedule
+            dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+
+            // Navigate back to schedule page
+            await navigationService.PopModalAsync();
         });
 
         // Only subscribe OnBibleReadingChanged to state changes

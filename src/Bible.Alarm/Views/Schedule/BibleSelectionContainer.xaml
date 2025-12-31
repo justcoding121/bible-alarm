@@ -20,11 +20,20 @@
                     Radius="16" 
                     Opacity="0.3" />
         </Border.Shadow>
-        <StackLayout Orientation="Vertical"
-                     Spacing="0"
-                     Padding="0">
+        <Grid RowSpacing="0"
+              Padding="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <!-- Language Name with icon -->
             <Grid x:Name="BibleLanguageButton"
+                  Grid.Row="0"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -76,12 +85,14 @@
                 </Border>
             </Grid>
             <!-- Divider -->
-            <BoxView HeightRequest="1"
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
             <!-- Translation Name with right arrow -->
             <Grid x:Name="BibleTranslationButton"
+                  Grid.Row="2"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -128,11 +139,13 @@
                 </Border>
             </Grid>
             <!-- Divider -->
-            <BoxView HeightRequest="1"
+            <BoxView Grid.Row="3"
+                     HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
             <Grid x:Name="BibleBookButton"
+                  Grid.Row="4"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -179,11 +192,13 @@
                 </Border>
             </Grid>
             <!-- Divider -->
-            <BoxView HeightRequest="1"
+            <BoxView Grid.Row="5"
+                     HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
             <Grid x:Name="BibleChapterButton"
+                  Grid.Row="6"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -229,7 +244,7 @@
                         VerticalTextAlignment="Center" />
                 </Border>
             </Grid>
-        </StackLayout>
+        </Grid>
     </Border>
 </ContentView>
 

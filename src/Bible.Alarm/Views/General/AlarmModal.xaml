@@ -64,13 +64,18 @@
             <ScrollView
                 Grid.Row="0"
                 VerticalScrollBarVisibility="Never">
-                <StackLayout
+                <Grid
                     Padding="24,40,24,24"
-                    Spacing="32"
+                    RowSpacing="32"
                     VerticalOptions="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     
                     <!-- Progress indicator when preparing tracks -->
-                    <Border
+                    <Border Grid.Row="0"
                         IsVisible="{Binding IsPreparing}"
                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                         StrokeThickness="0"
@@ -78,25 +83,29 @@
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
                         </Border.StrokeShape>
-                        <StackLayout
-                            Orientation="Vertical"
+                        <Grid
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
-                            Spacing="12">
-                            <Label
+                            RowSpacing="12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Grid.Row="0"
                                 FontSize="16"
                                 FontAttributes="Bold"
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding ProgressText}"
                                 TextColor="{DynamicResource TextPrimaryColor}" />
-                            <ProgressBar
+                            <ProgressBar Grid.Row="1"
                                 Margin="10,5"
                                 MinimumWidthRequest="200"
                                 Progress="{Binding PreparationProgress}"
                                 ProgressColor="{StaticResource PrimaryColor}" />
                             <!-- Busy Indicator below progress bar -->
-                            <Grid
+                            <Grid Grid.Row="2"
                                 IsVisible="{Binding IsPreparing}"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center"
@@ -112,11 +121,11 @@
                                     WidthRequest="40"
                                     IndicatorColor="{StaticResource PrimaryColor}" />
                             </Grid>
-                        </StackLayout>
+                        </Grid>
                     </Border>
                     
                     <!-- Error message when playback fails -->
-                    <Border
+                    <Border Grid.Row="1"
                         IsVisible="{Binding HasError}"
                         BackgroundColor="{DynamicResource ControlBackgroundColor}"
                         StrokeThickness="1"
@@ -136,15 +145,19 @@
                     </Border>
                     
                     <!-- Main Music Player Content -->
-                    <StackLayout
+                    <Grid Grid.Row="2"
                         AutomationId="AlarmModal"
                         IsVisible="{Binding IsPreparing, Converter={StaticResource negateBooleanConverter}}"
-                        Spacing="32"
+                        RowSpacing="32"
                         HorizontalOptions="Center"
                         VerticalOptions="Center">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         
                         <!-- Album Artwork -->
-                        <Grid
+                        <Grid Grid.Row="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
                             <!-- Activity Indicator for loading artwork -->
@@ -200,10 +213,15 @@
                         </Grid>
                         
                         <!-- Track Metadata -->
-                        <StackLayout
-                            Spacing="8"
+                        <Grid Grid.Row="1"
+                            RowSpacing="8"
                             HorizontalOptions="Center">
-                            <Label
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Grid.Row="0"
                                 FontSize="24"
                                 FontAttributes="Bold"
                                 HorizontalOptions="Center"
@@ -212,7 +230,7 @@
                                 TextColor="{DynamicResource TextPrimaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="2" />
-                            <Label
+                            <Label Grid.Row="1"
                                 FontSize="18"
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
@@ -220,7 +238,7 @@
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="1" />
-                            <Label
+                            <Label Grid.Row="2"
                                 FontSize="14"
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
@@ -228,9 +246,9 @@
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="1" />
-                        </StackLayout>
-                    </StackLayout>
-                </StackLayout>
+                        </Grid>
+                    </Grid>
+                </Grid>
             </ScrollView>
             
             <!-- Bottom Controls Panel -->

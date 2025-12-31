@@ -17,34 +17,41 @@
         <x:String x:Key="Friday">Friday</x:String>
         <x:String x:Key="Saturday">Saturday</x:String>
     </ContentView.Resources>
-    <StackLayout Orientation="Vertical"
-                 Spacing="10">
-        <OnPlatform x:TypeArguments="View">
-            <OnPlatform.Platforms>
-                <On Platform="iOS">
-                    <TimePicker AutomationId="AlarmTimePicker"
-                                BackgroundColor="Transparent"
-                                TextColor="{DynamicResource TextPrimaryColor}"
-                                FontSize="{StaticResource TitleFontSize}"
-                                HorizontalOptions="Center"
-                                Margin="0"
-                                Time="{Binding Time, Mode=TwoWay}"
-                                ios:TimePicker.UpdateMode="WhenFinished" />
-                </On>
-                <On Platform="Default">
-                    <TimePicker AutomationId="AlarmTimePicker"
-                                BackgroundColor="Transparent"
-                                FontSize="{StaticResource TitleFontSize}"
-                                HorizontalOptions="Center"
-                                Margin="0"
-                                TextColor="{DynamicResource PrimaryTextColor}"
-                                Time="{Binding Time, Mode=TwoWay}">
-                        <TimePicker.Format>hh:mm tt</TimePicker.Format>
-                    </TimePicker>
-                </On>
-            </OnPlatform.Platforms>
-        </OnPlatform>
-        <Grid Margin="8,0"
+    <Grid RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <OnPlatform x:TypeArguments="View">
+                <OnPlatform.Platforms>
+                    <On Platform="iOS">
+                        <TimePicker AutomationId="AlarmTimePicker"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{DynamicResource TextPrimaryColor}"
+                                    FontSize="{StaticResource TitleFontSize}"
+                                    HorizontalOptions="Center"
+                                    Margin="0"
+                                    Time="{Binding Time, Mode=TwoWay}"
+                                    ios:TimePicker.UpdateMode="WhenFinished" />
+                    </On>
+                    <On Platform="Default">
+                        <TimePicker AutomationId="AlarmTimePicker"
+                                    BackgroundColor="Transparent"
+                                    FontSize="{StaticResource TitleFontSize}"
+                                    HorizontalOptions="Center"
+                                    Margin="0"
+                                    TextColor="{DynamicResource PrimaryTextColor}"
+                                    Time="{Binding Time, Mode=TwoWay}">
+                            <TimePicker.Format>hh:mm tt</TimePicker.Format>
+                        </TimePicker>
+                    </On>
+                </OnPlatform.Platforms>
+            </OnPlatform>
+        </Grid>
+        <Grid Grid.Row="1"
+              Margin="8,0"
               HorizontalOptions="Center"
               MaximumWidthRequest="{OnPlatform Android='350', iOS='350', WinUI='350', Default='350'}"
               ColumnSpacing="4"
@@ -388,10 +395,15 @@
                 </OnPlatform>
             </Border>
         </Grid>
-        <StackLayout Margin="0"
-                     HorizontalOptions="Center"
-                     Orientation="Horizontal">
-            <Border StrokeThickness="1"
+        <Grid Grid.Row="2"
+              Margin="0"
+              HorizontalOptions="Center"
+              ColumnSpacing="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0"
+                    StrokeThickness="1"
                     Stroke="{DynamicResource DividerColor}"
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     HorizontalOptions="Center"
@@ -413,7 +425,7 @@
                        BackgroundColor="Transparent"
                        TextColor="{DynamicResource TextPrimaryColor}" />
             </Border>
-        </StackLayout>
-    </StackLayout>
+        </Grid>
+    </Grid>
 </ContentView>
 

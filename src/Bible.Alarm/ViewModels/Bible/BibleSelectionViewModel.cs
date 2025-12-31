@@ -71,38 +71,25 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 return;
             }
 
-            IsBusy = true;
-
-            try
+            var (bookNumber, chapterNumber, bookName) = await GetBookAndChapterForTranslationAsync(x);
+            if (bookNumber == 0)
             {
-                var (bookNumber, chapterNumber, bookName) = await GetBookAndChapterForTranslationAsync(x);
-                if (bookNumber == 0)
-                {
-                    return;
-                }
+                return;
+            }
 
-                var bibleReadingItem = CreateBibleReadingItemFromSelection(x, bookNumber, chapterNumber, bookName);
-                DispatchBibleReadingSelectionActions(bibleReadingItem);
-                await this.navigationService.PopModalAsync();
-            }
-            finally
-            {
-                IsBusy = false;
-            }
+            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, bookNumber, chapterNumber, bookName);
+            DispatchBibleReadingSelectionActions(bibleReadingItem);
+            await this.navigationService.PopModalAsync();
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await this.navigationService.PopAsync();
-            IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await this.navigationService.PopModalAsync();
-            IsBusy = false;
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -112,29 +99,20 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
                 return;
             }
 
-            IsBusy = true;
+            UpdateSelectedLanguage(x);
+            await this.navigationService.PopModalAsync();
 
-            try
+            var (publicationCode, bookNumber, chapterNumber, bookName, publicationName) =
+                await GetTranslationBookAndChapterForLanguageAsync(x);
+
+            if (publicationCode == null)
             {
-                UpdateSelectedLanguage(x);
-                await this.navigationService.PopModalAsync();
-
-                var (publicationCode, bookNumber, chapterNumber, bookName, publicationName) =
-                    await GetTranslationBookAndChapterForLanguageAsync(x);
-
-                if (publicationCode == null)
-                {
-                    return;
-                }
-
-                var bibleReadingItem = CreateBibleReadingItemForLanguageSelection(
-                    x, publicationCode, bookNumber, chapterNumber, bookName, publicationName);
-                DispatchLanguageSelectionActions(bibleReadingItem, x);
+                return;
             }
-            finally
-            {
-                IsBusy = false;
-            }
+
+            var bibleReadingItem = CreateBibleReadingItemForLanguageSelection(
+                x, publicationCode, bookNumber, chapterNumber, bookName, publicationName);
+            DispatchLanguageSelectionActions(bibleReadingItem, x);
         });
     }
 
@@ -531,10 +509,23 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
         foreach (var translation in translations.Select(x => x.Value))
         {
+            // Skip duplicates - if code already exists, use the existing one
+            if (translationVMsMapping.TryGetValue(translation.Code, out var existingVm))
+            {
+                // Still check if this duplicate matches the current publication code
+                if (!string.IsNullOrEmpty(currentPublicationCode)
+                    && currentPublicationCode == translation.Code)
+                {
+                    existingVm.IsSelected = true;
+                    SelectedTranslation = existingVm;
+                }
+                continue;
+            }
+
             var translationVm = new PublicationListViewItemModel(translation);
 
             translationVMs.Add(translationVm);
-            translationVMsMapping.Add(translationVm.Code, translationVm);
+            translationVMsMapping[translationVm.Code] = translationVm;
 
             // Store the last translation (reverse order) as default
             defaultTranslation = translationVm;

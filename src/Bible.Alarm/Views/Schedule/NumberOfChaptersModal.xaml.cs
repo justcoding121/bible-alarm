@@ -21,8 +21,34 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     {
         InitializeComponent();
 
+        // Apply platform-specific styling in code-behind for better performance
+        // This avoids expensive OnPlatform markup extension evaluation at runtime
+        ApplyPlatformSpecificStyling();
+
         // SelectionChanged handler removed - using SelectionMode="None" with TapGestureRecognizer instead
         Appearing += OnAppearing;
+    }
+
+    private void ApplyPlatformSpecificStyling()
+    {
+        var platform = DeviceInfo.Platform;
+        
+        // Platform-specific margins for main grid
+        if (MainGrid != null)
+        {
+            if (platform == DevicePlatform.iOS)
+            {
+                MainGrid.Margin = new Thickness(0, 20, 0, 0);
+            }
+            else if (platform == DevicePlatform.Android)
+            {
+                MainGrid.Margin = new Thickness(0, 24, 0, 0);
+            }
+            else
+            {
+                MainGrid.Margin = new Thickness(0);
+            }
+        }
     }
 
     private async void OnChapterItemTapped(object? sender, TappedEventArgs e)

@@ -19,10 +19,17 @@
                     Radius="12" 
                     Opacity="0.2" />
         </Border.Shadow>
-        <StackLayout Orientation="Vertical"
-                     Spacing="0"
-                     Padding="0">
+        <Grid RowSpacing="0"
+              Padding="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <Grid x:Name="ChaptersButton"
+                  Grid.Row="0"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -85,19 +92,24 @@
                        VerticalTextAlignment="Center">
                     Resume unfinished chapters from the beginning
                 </Label>
-                <StackLayout Grid.Column="1"
-                             HorizontalOptions="End"
-                             Orientation="Horizontal"
-                             VerticalOptions="Center">
+                <Grid Grid.Column="1"
+                      HorizontalOptions="End"
+                      VerticalOptions="Center"
+                      ColumnSpacing="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <shared:PlatformSwitch
+                        Grid.Column="0"
                         Margin="0,0,12,0"
                         HorizontalOptions="End"
                         IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
-                </StackLayout>
+                </Grid>
             </Grid>
             <!-- Divider -->
-            <BoxView HeightRequest="1"
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill">
@@ -108,6 +120,7 @@
                 </BoxView.IsVisible>
             </BoxView>
             <Grid x:Name="ShowNotificationButton"
+                  Grid.Row="2"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -137,18 +150,22 @@
                        VerticalTextAlignment="Center">
                     Play only when I tap on alarm notification
                 </Label>
-                <StackLayout Grid.Column="1"
-                             HorizontalOptions="End"
-                             Orientation="Horizontal"
-                             VerticalOptions="Center">
+                <Grid Grid.Column="1"
+                      HorizontalOptions="End"
+                      VerticalOptions="Center"
+                      ColumnSpacing="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <shared:PlatformSwitch
+                        Grid.Column="0"
                         Margin="0,0,12,0"
                         HorizontalOptions="End"
                         IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
-                </StackLayout>
+                </Grid>
             </Grid>
-        </StackLayout>
+        </Grid>
     </Border>
 </ContentView>
 

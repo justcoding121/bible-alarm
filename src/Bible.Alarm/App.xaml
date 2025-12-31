@@ -6,7 +6,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
-    xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons">
+    xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons"
+    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <!-- Include Styles resource dictionary -->
@@ -25,6 +26,16 @@
             Theme-aware colors are set programmatically in App.xaml.cs based on current theme.
             Pages use {DynamicResource} to reference these keys for automatic theme updates.
             -->
+
+            <!-- Global Converters - Shared across all pages for better performance -->
+            <!-- Instantiating converters in App.xaml instead of per-page reduces memory and improves load time -->
+            <converters:DayColorConverter x:Key="dayColorConverter" x:Shared="True" />
+            <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" x:Shared="True" />
+            <converters:DayOpacityConverter x:Key="dayOpacityConverter" x:Shared="True" />
+            <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" x:Shared="True" />
+            <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" x:Shared="True" />
+            <converters:NegateBooleanConverter x:Key="negateBooleanConverter" x:Shared="True" />
+            <converters:IsStringNotEmptyConverter x:Key="isStringNotEmptyConverter" x:Shared="True" />
 
             <!-- Global base styles - apply automatically to all controls of these types -->
             <Style TargetType="Label" BasedOn="{StaticResource BaseLabelStyle}" />

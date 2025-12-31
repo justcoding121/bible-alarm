@@ -61,31 +61,22 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                 return;
             }
 
-            IsBusy = true;
-
-            try
+            EnsureCurrentIsSet();
+            var languageCode = CurrentLanguage?.Code ?? string.Empty;
+            if (string.IsNullOrEmpty(languageCode))
             {
-                EnsureCurrentIsSet();
-                var languageCode = CurrentLanguage?.Code ?? string.Empty;
-                if (string.IsNullOrEmpty(languageCode))
-                {
-                    return;
-                }
-
-                var (trackNumber, trackName) = await GetTrackForSongBookAsync(x, languageCode);
-                if (trackNumber == 0)
-                {
-                    return;
-                }
-
-                var trackSelectedItem = CreateMusicStateItemForSongBook(x, languageCode, trackNumber, trackName);
-                dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-                await navigationService.PopModalAsync();
+                return;
             }
-            finally
+
+            var (trackNumber, trackName) = await GetTrackForSongBookAsync(x, languageCode);
+            if (trackNumber == 0)
             {
-                IsBusy = false;
+                return;
             }
+
+            var trackSelectedItem = CreateMusicStateItemForSongBook(x, languageCode, trackNumber, trackName);
+            dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+            await navigationService.PopModalAsync();
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
@@ -146,16 +137,12 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await navigationService.PopAsync();
-            IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await navigationService.PopModalAsync();
-            IsBusy = false;
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -165,27 +152,18 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                 return;
             }
 
-            IsBusy = true;
+            EnsureCurrentIsSet();
+            UpdateSelectedLanguage(x);
 
-            try
+            var (publicationCode, trackNumber, trackName, publicationName) = await GetFirstSongBookAndTrackForLanguageAsync(x);
+            if (publicationCode == null)
             {
-                EnsureCurrentIsSet();
-                UpdateSelectedLanguage(x);
-
-                var (publicationCode, trackNumber, trackName, publicationName) = await GetFirstSongBookAndTrackForLanguageAsync(x);
-                if (publicationCode == null)
-                {
-                    return;
-                }
-
-                var trackSelectedItem = CreateMusicStateItemForLanguage(x, publicationCode, trackNumber, trackName, publicationName);
-                dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-                await navigationService.PopModalAsync();
+                return;
             }
-            finally
-            {
-                IsBusy = false;
-            }
+
+            var trackSelectedItem = CreateMusicStateItemForLanguage(x, publicationCode, trackNumber, trackName, publicationName);
+            dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+            await navigationService.PopModalAsync();
         });
     }
 

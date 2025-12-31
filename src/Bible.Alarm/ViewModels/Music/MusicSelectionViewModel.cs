@@ -70,41 +70,28 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            IsBusy = true;
+            EnsureCurrentIsSet();
+            var currentSchedule = this.state.Value.CurrentSchedule;
+            var isSameMusicType = IsSameMusicType(currentSchedule, x.MusicType);
 
-            try
+            if (x.MusicType == MusicType.Vocals)
             {
-                EnsureCurrentIsSet();
-                var currentSchedule = this.state.Value.CurrentSchedule;
-                var isSameMusicType = IsSameMusicType(currentSchedule, x.MusicType);
-
-                if (x.MusicType == MusicType.Vocals)
-                {
-                    await HandleVocalsSelectionAsync(currentSchedule, isSameMusicType);
-                }
-                else
-                {
-                    await HandleMelodiesSelectionAsync(currentSchedule, isSameMusicType);
-                }
+                await HandleVocalsSelectionAsync(currentSchedule, isSameMusicType);
             }
-            finally
+            else
             {
-                IsBusy = false;
+                await HandleMelodiesSelectionAsync(currentSchedule, isSameMusicType);
             }
         });
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await navigationService.PopAsync();
-            IsBusy = false;
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            IsBusy = true;
             await navigationService.PopModalAsync();
-            IsBusy = false;
         });
     }
 

@@ -24,10 +24,14 @@
         <Border.Resources>
             <converters:RepeatColorConverter x:Key="repeatColorConverter" />
         </Border.Resources>
-        <StackLayout Orientation="Vertical"
-                     Spacing="0"
-                     Padding="0">
+        <Grid RowSpacing="0"
+              Padding="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <Grid x:Name="MusicButton"
+                  Grid.Row="0"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -48,30 +52,45 @@
                        VerticalTextAlignment="Center">
                     Play a music track before Bible audio
                 </Label>
-                <StackLayout Grid.Column="1"
-                             HorizontalOptions="End"
-                             Orientation="Horizontal"
-                             Spacing="12"
-                             VerticalOptions="Center">
+                <Grid Grid.Column="1"
+                      ColumnSpacing="12"
+                      HorizontalOptions="End"
+                      VerticalOptions="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <shared:PlatformSwitch
+                        Grid.Column="0"
                         Margin="0"
                         HorizontalOptions="Start"
                         IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
-                </StackLayout>
+                </Grid>
             </Grid>
             <!-- Collapsible Content Container -->
-            <StackLayout x:Name="CollapsibleContent"
-                         Orientation="Vertical"
-                         Spacing="0"
-                         Padding="0">
+            <Grid x:Name="CollapsibleContent"
+                  Grid.Row="1"
+                  RowSpacing="0"
+                  Padding="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <!-- Divider -->
-                <BoxView HeightRequest="1"
+                <BoxView Grid.Row="0"
+                         HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill" />
                 <!-- Music Type Row -->
                 <Grid x:Name="MusicTypeButton"
+                      Grid.Row="1"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -117,13 +136,15 @@
                     </Border>
                 </Grid>
                 <!-- Divider -->
-                <BoxView HeightRequest="1"
+                <BoxView Grid.Row="2"
+                         HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill"
                          IsVisible="{Binding IsMusicLanguageVisible}" />
                 <!-- Music Language Row (only visible when Music Type is Vocals) -->
                 <Grid x:Name="MusicLanguageButton"
+                      Grid.Row="3"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -169,13 +190,15 @@
                     </Border>
                 </Grid>
                 <!-- Divider -->
-                <BoxView HeightRequest="1"
+                <BoxView Grid.Row="4"
+                         HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill"
                          IsVisible="{Binding IsSongBookVisible}" />
                 <!-- Song Book Row (only visible when Music Type is Vocals) -->
                 <Grid x:Name="SongBookButton"
+                      Grid.Row="5"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -221,12 +244,14 @@
                     </Border>
                 </Grid>
                 <!-- Divider -->
-                <BoxView HeightRequest="1"
+                <BoxView Grid.Row="6"
+                         HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill" />
                 <!-- Track Name Row -->
                 <Grid x:Name="TrackButton"
+                      Grid.Row="7"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -250,12 +275,16 @@
                            TextColor="{DynamicResource TextPrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
-                    <HorizontalStackLayout Grid.Column="1"
-                                           Spacing="8"
-                                           HorizontalOptions="End"
-                                           VerticalOptions="Center">
+                    <Grid Grid.Column="1"
+                          ColumnSpacing="8"
+                          HorizontalOptions="End"
+                          VerticalOptions="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
                         <!-- Repeat Button (only visible when track is selected) -->
-                        <Border
+                        <Border Grid.Column="0"
                             IsVisible="{Binding HasTrackSelected}"
                             BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HeightRequest="36"
@@ -281,7 +310,7 @@
                                 HorizontalOptions="Fill" />
                         </Border>
                         <!-- Arrow Indicator -->
-                        <Border
+                        <Border Grid.Column="1"
                             BackgroundColor="Transparent"
                             HeightRequest="24"
                             HorizontalOptions="End"
@@ -300,10 +329,10 @@
                                 VerticalOptions="Center"
                                 VerticalTextAlignment="Center" />
                         </Border>
-                    </HorizontalStackLayout>
+                    </Grid>
                 </Grid>
-            </StackLayout>
-        </StackLayout>
+            </Grid>
+        </Grid>
     </Border>
 </ContentView>
 

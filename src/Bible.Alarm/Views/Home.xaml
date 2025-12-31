@@ -20,16 +20,8 @@
     x:DataType="vm:HomeViewModel"
     Title="Bible Alarm"
     NavigationPage.HasNavigationBar="False">
-    <ContentPage.Resources>
-        <converters:DayColorConverter x:Key="dayColorConverter" />
-        <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
-        <converters:DayOpacityConverter x:Key="dayOpacityConverter" />
-        <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
-        <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
-        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <converters:IsStringNotEmptyConverter x:Key="isStringNotEmptyConverter" />
-        <!-- Theme-aware colors are inherited from BaseContentPage and available via StaticResource -->
-    </ContentPage.Resources>
+    <!-- Converters moved to App.xaml for better performance - shared across all pages -->
+    <!-- Theme-aware colors are inherited from BaseContentPage and available via StaticResource -->
     <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}">
         <Grid
             Grid.Row="0"
@@ -41,8 +33,11 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <StackLayout Grid.Row="0" Padding="16,12">
-                <Button
+            <Grid Grid.Row="0" Padding="16,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Button Grid.Row="0"
                     Margin="{OnPlatform Default='0,0,0,8',
                                         iOS='0,0,0,8'}"
                     AutomationId="AddScheduleButton"
@@ -66,7 +61,7 @@
                                 Opacity="0.3" />
                     </Button.Shadow>
                 </Button>
-            </StackLayout>
+            </Grid>
             <!-- Progress bar for schedule loading -->
             <shared:AnimatedProgressBar
                 Grid.Row="1"
@@ -130,15 +125,6 @@
                                     <TapGestureRecognizer 
                                             Tapped="OnScheduleItemTapped" />
                                 </Grid.GestureRecognizers>
-                                <Grid.Resources>
-                                    <enums:DaysOfWeek x:Key="Sunday">Sunday</enums:DaysOfWeek>
-                                    <enums:DaysOfWeek x:Key="Monday">Monday</enums:DaysOfWeek>
-                                    <enums:DaysOfWeek x:Key="Tuesday">Tuesday</enums:DaysOfWeek>
-                                    <enums:DaysOfWeek x:Key="Wednesday">Wednesday</enums:DaysOfWeek>
-                                    <enums:DaysOfWeek x:Key="Thursday">Thursday</enums:DaysOfWeek>
-                                    <enums:DaysOfWeek x:Key="Friday">Friday</enums:DaysOfWeek>
-                                    <enums:DaysOfWeek x:Key="Saturday">Saturday</enums:DaysOfWeek>
-                                </Grid.Resources>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="auto" />
                                     <ColumnDefinition Width="*" />
@@ -147,24 +133,27 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
-                                <StackLayout VerticalOptions="Center"
-                                                 Grid.Column="0"
-                                                 Margin="{OnIdiom Default={OnPlatform Default='0,0,12,0',
-                                                                         iOS='0,0,12,0',
-                                                                         WinUI='0,0,12,0'},
-                                                     Tablet={OnPlatform Default='0,0,12,0'}}"
-                                                 Padding="0"
-                                                 Orientation="Vertical">
-                                    <Grid
-                                            Margin="0,0,0,8"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center"
-                                            HeightRequest="{OnPlatform iOS='56',
-                                                                      WinUI='48',
-                                                                      Default='56'}"
-                                            WidthRequest="{OnPlatform iOS='56',
-                                                                     WinUI='48',
-                                                                     Default='56'}">
+                                <Grid VerticalOptions="Center"
+                                      Grid.Column="0"
+                                      Margin="{OnIdiom Default={OnPlatform Default='0,0,12,0',
+                                                                     iOS='0,0,12,0',
+                                                                     WinUI='0,0,12,0'},
+                                         Tablet={OnPlatform Default='0,0,12,0'}}"
+                                      RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid Grid.Row="0"
+                                          Margin="0,0,0,8"
+                                          HorizontalOptions="Center"
+                                          VerticalOptions="Center"
+                                          HeightRequest="{OnPlatform iOS='56',
+                                                                    WinUI='48',
+                                                                    Default='56'}"
+                                          WidthRequest="{OnPlatform iOS='56',
+                                                                   WinUI='48',
+                                                                   Default='56'}">
                                         <Border
                                                 BackgroundColor="{StaticResource PrimaryColor}"
                                                 StrokeThickness="0"
@@ -204,30 +193,32 @@
                                                 HorizontalOptions="Center"
                                                 Opacity="0.95" />
                                     </Grid>
-                                    <StackLayout
-                                            Margin="0"
-                                            Padding="0"
-                                            HorizontalOptions="Center"
-                                            Orientation="Horizontal"
-                                            VerticalOptions="Center"
-                                            Spacing="2">
-                                        <Label
-                                                Padding="0"
-                                                FontSize="{StaticResource AlarmTimeFontSize}"
-                                                FontAttributes="Bold"
-                                                Text="{Binding TimeText}"
-                                                VerticalOptions="Center"
-                                                TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
-                                        <Label
-                                                Margin="0"
-                                                Padding="0"
-                                                FontSize="{StaticResource AlarmMeridianFontSize}"
-                                                Text="{Binding MeridianText}"
-                                                VerticalOptions="Center"
-                                                TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
-                                                VerticalTextAlignment="Center" />
-                                    </StackLayout>
-                                </StackLayout>
+                                    <Grid Grid.Row="1"
+                                          Margin="0"
+                                          HorizontalOptions="Center"
+                                          VerticalOptions="Center"
+                                          ColumnSpacing="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Label Grid.Column="0"
+                                               Padding="0"
+                                               FontSize="{StaticResource AlarmTimeFontSize}"
+                                               FontAttributes="Bold"
+                                               Text="{Binding TimeText}"
+                                               VerticalOptions="Center"
+                                               TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
+                                        <Label Grid.Column="1"
+                                               Margin="0"
+                                               Padding="0"
+                                               FontSize="{StaticResource AlarmMeridianFontSize}"
+                                               Text="{Binding MeridianText}"
+                                               VerticalOptions="Center"
+                                               TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                               VerticalTextAlignment="Center" />
+                                    </Grid>
+                                </Grid>
                                 <Grid
                                         Grid.Column="1"
                                         Margin="{OnPlatform Default='0,0,12,0',
@@ -243,14 +234,22 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <StackLayout Grid.Row="0" 
-                                                     Orientation="Horizontal"
-                                                     HorizontalOptions="Start"
-                                                     Spacing="{OnPlatform WinUI='3', Default='4'}"
-                                                     Margin="0,0,0,8">
-                                        <Border
+                                    <Grid Grid.Row="0" 
+                                          HorizontalOptions="Start"
+                                          ColumnSpacing="{OnPlatform WinUI='3', Default='4'}"
+                                          Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0"
                                                 Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Sunday}}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
                                                 StrokeShape="RoundRectangle 4,4,4,4">
@@ -258,11 +257,11 @@
                                                     FontAttributes="Bold"
                                                     FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
                                                     Text="S"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Sunday'}" />
                                         </Border>
-                                        <Border
+                                        <Border Grid.Column="1"
                                                 Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Monday}}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Monday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
                                                 StrokeShape="RoundRectangle 4,4,4,4">
@@ -270,11 +269,11 @@
                                                     FontAttributes="Bold"
                                                     FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
                                                     Text="M"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Monday'}" />
                                         </Border>
-                                        <Border
+                                        <Border Grid.Column="2"
                                                 Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Tuesday}}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Tuesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
                                                 StrokeShape="RoundRectangle 4,4,4,4">
@@ -282,11 +281,11 @@
                                                     FontAttributes="Bold"
                                                     FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
                                                     Text="T"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Tuesday'}" />
                                         </Border>
-                                        <Border
+                                        <Border Grid.Column="3"
                                                 Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Wednesday}}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Wednesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
                                                 StrokeShape="RoundRectangle 4,4,4,4">
@@ -294,11 +293,11 @@
                                                     FontAttributes="Bold"
                                                     FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
                                                     Text="W"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Wednesday'}" />
                                         </Border>
-                                        <Border
+                                        <Border Grid.Column="4"
                                                 Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Thursday}}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Thursday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
                                                 StrokeShape="RoundRectangle 4,4,4,4">
@@ -306,11 +305,11 @@
                                                     FontAttributes="Bold"
                                                     FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
                                                     Text="T"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Thursday'}" />
                                         </Border>
-                                        <Border
+                                        <Border Grid.Column="5"
                                                 Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Friday}}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Friday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
                                                 StrokeShape="RoundRectangle 4,4,4,4">
@@ -318,11 +317,11 @@
                                                     FontAttributes="Bold"
                                                     FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
                                                     Text="F"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Friday'}" />
                                         </Border>
-                                        <Border
+                                        <Border Grid.Column="6"
                                                 Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter={StaticResource Saturday}}"
+                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Saturday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
                                                 StrokeShape="RoundRectangle 4,4,4,4">
@@ -330,38 +329,44 @@
                                                     FontAttributes="Bold"
                                                     FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
                                                     Text="S"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Saturday'}" />
                                         </Border>
-                                    </StackLayout>
-                                    <StackLayout Grid.Row="1" 
-                                                     Orientation="Vertical"
-                                                     HorizontalOptions="Start"
-                                                     VerticalOptions="Start"
-                                                     Spacing="4">
-                                        <Label
-                                                Margin="0,0,0,4"
-                                                HorizontalOptions="Start"
-                                                HorizontalTextAlignment="Start"
-                                                FontSize="16"
-                                                FontAttributes="Bold"
-                                                Text="{Binding Name}"
-                                                TextColor="{DynamicResource TextPrimaryColor}" />
-                                        <Label
-                                                Margin="0"
-                                                HorizontalOptions="Start"
-                                                HorizontalTextAlignment="Start"
-                                                FontSize="14"
-                                                Text="{Binding SubTitle}"
-                                                TextColor="{DynamicResource PrimaryTextColor}" />
-                                    </StackLayout>
-                                    <StackLayout Grid.Row="2"
-                                                     Grid.Column="0"
-                                                     Orientation="Horizontal" 
-                                                     HorizontalOptions="Start"
-                                                     Margin="0,8,0,0"
-                                                     Spacing="8"
-                                                     VerticalOptions="End">
-                                        <Button
+                                    </Grid>
+                                    <Grid Grid.Row="1" 
+                                          HorizontalOptions="Start"
+                                          VerticalOptions="Start"
+                                          RowSpacing="4">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Label Grid.Row="0"
+                                               Margin="0,0,0,4"
+                                               HorizontalOptions="Start"
+                                               HorizontalTextAlignment="Start"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               Text="{Binding Name}"
+                                               TextColor="{DynamicResource TextPrimaryColor}" />
+                                        <Label Grid.Row="1"
+                                               Margin="0"
+                                               HorizontalOptions="Start"
+                                               HorizontalTextAlignment="Start"
+                                               FontSize="14"
+                                               Text="{Binding SubTitle}"
+                                               TextColor="{DynamicResource PrimaryTextColor}" />
+                                    </Grid>
+                                    <Grid Grid.Row="2"
+                                          Grid.Column="0"
+                                          HorizontalOptions="Start"
+                                          Margin="0,8,0,0"
+                                          ColumnSpacing="8"
+                                          VerticalOptions="End">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0"
                                                 Padding="0"
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                 CornerRadius="6"
@@ -374,7 +379,7 @@
                                                 Text="{x:Static fn:GlyphNames.Left}"
                                                 TextColor="{DynamicResource TextSecondaryColor}"
                                                 VerticalOptions="Center" />
-                                        <Button
+                                        <Button Grid.Column="1"
                                                 Padding="0"
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                                 CornerRadius="6"
@@ -387,16 +392,19 @@
                                                 Text="{x:Static fn:GlyphNames.Right}"
                                                 TextColor="{DynamicResource TextSecondaryColor}"
                                                 VerticalOptions="Center" />
-                                    </StackLayout>
+                                    </Grid>
                                 </Grid>
-                                <StackLayout
-                                        Grid.Column="2"
-                                        Margin="0"
-                                        HorizontalOptions="End"
-                                        Orientation="Vertical"
-                                        VerticalOptions="Center">
+                                <Grid Grid.Column="2"
+                                      Margin="0"
+                                      HorizontalOptions="End"
+                                      VerticalOptions="Center"
+                                      RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
                                     <!-- Windows-specific delete button -->
-                                    <Button
+                                    <Button Grid.Row="0"
                                             Margin="0,0,0,8"
                                             Padding="0"
                                             BackgroundColor="{StaticResource ErrorColor}"
@@ -418,21 +426,24 @@
                                                     Opacity="0.3" />
                                         </Button.Shadow>
                                     </Button>
-                                    <shared:PlatformSwitch
+                                    <shared:PlatformSwitch Grid.Row="1"
                                             HorizontalOptions="End"
                                             IsToggled="{Binding IsEnabled, Mode=TwoWay}"
                                             Scale="1" />
-                                </StackLayout>
+                                </Grid>
                                 <!-- Language label and music icon positioned at bottom right -->
-                                <HorizontalStackLayout
-                                        Grid.Column="1"
-                                        Grid.ColumnSpan="2"
-                                        Grid.Row="0"
-                                        Margin="0,0,0,0"
-                                        HorizontalOptions="End"
-                                        VerticalOptions="End"
-                                        Spacing="4">
-                                    <Label
+                                <Grid Grid.Column="1"
+                                      Grid.ColumnSpan="2"
+                                      Grid.Row="0"
+                                      Margin="0,0,0,0"
+                                      HorizontalOptions="End"
+                                      VerticalOptions="End"
+                                      ColumnSpacing="4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Label Grid.Column="0"
                                             HorizontalOptions="End"
                                             HorizontalTextAlignment="End"
                                             FontSize="12"
@@ -440,7 +451,7 @@
                                             TextColor="{DynamicResource PrimaryTextColor}"
                                             IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
                                             VerticalOptions="Center" />
-                                    <Label
+                                    <Label Grid.Column="1"
                                             HorizontalOptions="End"
                                             VerticalOptions="Center"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -450,7 +461,7 @@
                                             Opacity="0.8"
                                             IsVisible="{Binding MusicEnabled, Mode=OneWay}"
                                             InputTransparent="True" />
-                                </HorizontalStackLayout>
+                                </Grid>
                             </Grid>
                             </Border>
                             </Grid>
