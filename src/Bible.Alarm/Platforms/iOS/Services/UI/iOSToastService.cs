@@ -141,7 +141,7 @@ public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDispo
         // Add background view to container
         containerView.AddSubview(backgroundView);
         backgroundView.TranslatesAutoresizingMaskIntoConstraints = false;
-        
+
         // Add label to background view with padding
         backgroundView.AddSubview(label);
         label.TranslatesAutoresizingMaskIntoConstraints = false;

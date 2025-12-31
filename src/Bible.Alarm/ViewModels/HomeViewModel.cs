@@ -211,7 +211,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 // Existing view model - update it with pre-mapped data
                 // This avoids re-accessing state and re-mapping on UI thread
                 UpdateScheduleListItemFromData(existingViewModel, schedule, scheduleId, scheduleStateItem);
-                
+
                 // Ensure callbacks are set (in case it was created before we added this logic)
                 if (existingViewModel.OnPlayStarted == null)
                 {
@@ -233,10 +233,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             {
                 // New schedule - create new view model and initialize with pre-mapped data
                 logger.Debug("PrepareScheduleViewModels: Creating new ScheduleListItem for schedule {ScheduleId}", scheduleId);
-                
+
                 // Get ViewModel from service provider (just object creation, no initialization yet)
                 var viewModel = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ScheduleListItemViewModel>();
-                
+
                 // Initialize with pre-mapped data (only UI-touching operations here)
                 InitializeScheduleListItemFromData(viewModel, schedule, scheduleId, scheduleStateItem);
 
@@ -781,19 +781,19 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         }
 
         scheduleListItem.Schedule.IsEnabled = scheduleListItem.IsEnabled;
-        
+
         // Navigate FIRST to show the page immediately
         // This ensures instant page appearance (~10-20ms)
         await navigationService.NavigateToScheduleAsync();
-        
+
         // Prepare schedule state item AFTER navigation completes
         // Get the source item on UI thread (safe access to state)
         var sourceScheduleStateItem = GetSourceScheduleStateItem(scheduleListItem.Schedule.Id);
-        
+
         // DeepClone uses JSON serialization which is CPU-intensive
         // Run it off UI thread to avoid blocking
         var scheduleStateItem = await Task.Run(() => sourceScheduleStateItem.DeepClone());
-        
+
         // Dispatch action to load schedule data
         // This happens after page is visible, so user sees overlay immediately
         dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));

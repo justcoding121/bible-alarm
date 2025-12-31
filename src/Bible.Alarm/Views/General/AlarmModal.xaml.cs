@@ -151,15 +151,15 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         // On iOS, DragStarted/DragCompleted events might not fire reliably
         // So we need to handle both tap and drag through ValueChanged
         // Use debouncing: wait for user to stop interacting before seeking
-        
+
         // Check if this is a programmatic update (from binding)
         // If IsUserInteracting is false, this is likely a programmatic update
         // However, on iOS, the first touch might not set IsUserInteracting yet
         // So we need to detect user interaction by checking if the value changed significantly
         // or if we're already in a drag state
-        
+
         var isLikelyUserInteraction = ViewModel.IsUserInteracting || isDragging;
-        
+
         // If not a user interaction, ignore (this is a programmatic update from binding)
         if (!isLikelyUserInteraction)
         {
@@ -227,7 +227,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         seekDebounceTimer?.Stop();
         seekDebounceTimer?.Dispose();
         seekDebounceTimer = null;
-        
+
         isDragging = false;
         if (sender is Slider slider && ViewModel != null)
         {

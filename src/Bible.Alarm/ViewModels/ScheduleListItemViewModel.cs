@@ -339,7 +339,7 @@ public sealed class ScheduleListItemViewModel(
         try
         {
             // Use provided scheduleStateItem if available, otherwise look it up from state
-            var scheduleStateItem = providedScheduleStateItem ?? 
+            var scheduleStateItem = providedScheduleStateItem ??
                 applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
 
             if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)

@@ -109,7 +109,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         InitializeStateHandling();
         InitializeCommands();
         SetupSafetyFallback();
-        
+
         // Initialize containers asynchronously after page is visible
         _ = InitializeContainerViewModelsAsync();
 
@@ -174,13 +174,13 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         state.StateChanged += OnStateChanged;
         IsBusy = true;
-        
+
         // Reset modelInitialized flag when page opens to ensure proper loading flow
         modelInitialized = false;
-        
+
         // Start with overlay visible by default (will be hidden after initialization completes)
         IsSchedulePageOverlayVisible = true;
-        
+
         // Show overlay when page opens
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
 
@@ -273,10 +273,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
             // Reset schedule state
             dispatcher.Dispatch(new ResetScheduleStateAction());
-            
+
             // Hide overlay when navigating away
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-            
+
             await navigationService.NavigateToHomeAsync();
             return;
         }
@@ -323,7 +323,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Clear CurrentSchedule after cancel (discard draft changes)
         dispatcher.Dispatch(new ResetScheduleStateAction());
-        
+
         // Hide overlay when navigating away
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
 
@@ -561,7 +561,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
             // Clear CurrentSchedule after successful save
             dispatcher.Dispatch(new ResetScheduleStateAction());
-            
+
             // Hide overlay when navigating away after successful save
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
 
@@ -593,7 +593,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         await StopPlaybackIfNeeded();
         await DeleteAsync();
-        
+
         // Hide overlay when navigating away after delete
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
         await navigationService.NavigateToHomeAsync();
@@ -605,7 +605,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         var currentScheduleId = stateValue.CurrentSchedule?.Id ?? -1;
         var overlayVisible = stateValue.IsSchedulePageOverlayVisible;
 
-        logger.Debug("OnStateChanged: IsSchedulePageOverlayVisible={OverlayVisible}, CurrentScheduleId={ScheduleId}", 
+        logger.Debug("OnStateChanged: IsSchedulePageOverlayVisible={OverlayVisible}, CurrentScheduleId={ScheduleId}",
             overlayVisible, currentScheduleId);
 
         // Always update overlay visibility when state changes
@@ -614,9 +614,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         var newOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
         if (newOverlayVisible != isSchedulePageOverlayVisible)
         {
-            logger.Debug("OnStateChanged: Overlay visibility changed from {OldValue} to {NewValue}", 
+            logger.Debug("OnStateChanged: Overlay visibility changed from {OldValue} to {NewValue}",
                 isSchedulePageOverlayVisible, newOverlayVisible);
-            
+
             // Use BeginInvokeOnMainThread to ensure we're on the UI thread
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -692,10 +692,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
             // Only update if there are actual changes to avoid infinite loops
             var hasChanges = HandleScheduleUpdateFromState(stateValue, currentScheduleId);
-            
+
             // Always ensure overlay is hidden if schedule is already loaded
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-            
+
             return;
         }
 
@@ -706,7 +706,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         var currentSchedule = stateValue.CurrentSchedule;
         bool hasChanges = false;
-        
+
         if (currentSchedule != null)
         {
             // Check if music properties changed
@@ -749,7 +749,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(MusicEnabled));
             });
         }
-        
+
         return hasChanges;
     }
 
@@ -850,34 +850,34 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private async Task CompleteScheduleLoad()
     {
         modelInitialized = true;
-        
+
         // Wait briefly for initial state to settle
         await Task.Delay(50);
         IsBusy = false;
         OnPropertyChanged(nameof(IsBusy));
-        
+
         // Wait for containers to be initialized (with timeout to prevent indefinite wait)
         var maxWaitTime = TimeSpan.FromMilliseconds(500);
         var startTime = DateTime.UtcNow;
-        while ((BibleSelectionContainerViewModel == null || 
-                MusicSelectionContainerViewModel == null || 
-                ChaptersSelectionContainerViewModel == null || 
+        while ((BibleSelectionContainerViewModel == null ||
+                MusicSelectionContainerViewModel == null ||
+                ChaptersSelectionContainerViewModel == null ||
                 ScheduleDetailsContainerViewModel == null) &&
                (DateTime.UtcNow - startTime) < maxWaitTime)
         {
             await Task.Delay(50);
         }
-        
+
         // Brief delay for property notifications to process
         await Task.Delay(50);
-        
+
         // Hide overlay after everything is loaded and rendered
         logger.Debug("CompleteScheduleLoad: Hiding schedule page overlay");
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-        
+
         // Brief delay for Fluxor to process the action
         await Task.Delay(50);
-        
+
         // Explicitly notify property change to ensure UI updates
         // We're already on the main thread, so call directly
         OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
@@ -946,7 +946,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
             // Map sample schedule to state item
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);
-            
+
             // Log the music type to verify it's Melodies (not Vocals)
             logger.Information("OnCurrentScheduleChanged: Mapped sample schedule. MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}",
                 scheduleStateItem.MusicType?.ToString() ?? "null",
@@ -971,7 +971,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                     // Set modelInitialized BEFORE dispatching to prevent re-entry
                     modelInitialized = true;
                     lastScheduleId = scheduleStateItem.Id;
-                    
+
                     // Dispatch action to set it in state (display names are already populated)
                     dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
 
@@ -995,35 +995,35 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
                     logger.Information("OnCurrentScheduleChanged: New schedule initialized. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}",
                         scheduleStateItem.Id, IsNewSchedule);
-                    
+
                     isInitializingNewSchedule = false;
                     IsBusy = false;
                     OnPropertyChanged(nameof(IsBusy));
-                    
+
                     // Wait for state change to propagate through Fluxor
                     await Task.Delay(100);
-                    
+
                     // Wait for UI thread to process property changes from container view models
                     // The containers update their display text asynchronously via MainThread.BeginInvokeOnMainThread
                     await Task.Delay(300);
-                    
+
                     // Hide overlay after everything is loaded and rendered
                     logger.Debug("Hiding schedule page overlay after new schedule initialization");
                     var beforeState = state.Value.IsSchedulePageOverlayVisible;
                     logger.Debug("Before dispatching SetSchedulePageOverlayAction: IsSchedulePageOverlayVisible={Value}", beforeState);
                     dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-                    
+
                     // Wait for Fluxor to process the action and update state
                     await Task.Delay(150);
-                    
+
                     var afterState = state.Value.IsSchedulePageOverlayVisible;
                     logger.Debug("After dispatching SetSchedulePageOverlayAction: IsSchedulePageOverlayVisible={Value}", afterState);
-                    
+
                     // Explicitly notify property change to ensure UI updates
                     // We're already on the main thread, so call directly
                     logger.Debug("Calling OnPropertyChanged for IsSchedulePageOverlayVisible on main thread");
                     OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
-                    
+
                     // Force a second notification after a small delay to ensure UI updates
                     await Task.Delay(50);
                     OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
@@ -1036,10 +1036,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                     IsBusy = false;
                     OnPropertyChanged(nameof(IsBusy));
                     dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-                    
+
                     // Wait for Fluxor to process the action and update state
                     await Task.Delay(100);
-                    
+
                     // Explicitly notify property change to ensure UI updates
                     // OnStateChanged will also notify, but this ensures it happens on the UI thread
                     OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
@@ -1685,7 +1685,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
-        
+
         // Hide overlay when ViewModel is disposed
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
     }

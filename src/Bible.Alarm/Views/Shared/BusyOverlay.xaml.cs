@@ -28,7 +28,7 @@ public partial class BusyOverlay : ContentView
             {
                 logger.Debug("BusyOverlay.IsVisible: Setting from {OldValue} to {NewValue}", oldValue, value);
                 SetValue(IsVisibleProperty, value);
-                
+
                 // Force spinner to start/stop immediately when visibility changes
                 // This ensures smooth animation without binding delays
                 // Use BeginInvoke to ensure XAML is fully loaded
@@ -56,9 +56,9 @@ public partial class BusyOverlay : ContentView
         if (bindable is BusyOverlay overlay && oldValue != newValue)
         {
             var newBoolValue = (bool)newValue;
-            logger.Debug("BusyOverlay.OnIsVisibleChanged: Property changed from {OldValue} to {NewValue} (opacity will be {Opacity})", 
+            logger.Debug("BusyOverlay.OnIsVisibleChanged: Property changed from {OldValue} to {NewValue} (opacity will be {Opacity})",
                 oldValue, newBoolValue, newBoolValue ? 1.0 : 0.0);
-            
+
             // Opacity binding will handle the visual update automatically
             // No need to invalidate measure or manipulate IsVisible since element stays in visual tree
         }
@@ -96,7 +96,7 @@ public partial class BusyOverlay : ContentView
     public BusyOverlay()
     {
         InitializeComponent();
-        
+
         // Ensure spinner starts when overlay is loaded if it's already visible
         Loaded += OnBusyOverlayLoaded;
     }
@@ -109,7 +109,7 @@ public partial class BusyOverlay : ContentView
             logger.Debug("BusyOverlay: Loaded and visible, starting spinner immediately");
             busyIndicator.IsRunning = true;
         }
-        
+
         // Unsubscribe after first load
         Loaded -= OnBusyOverlayLoaded;
     }

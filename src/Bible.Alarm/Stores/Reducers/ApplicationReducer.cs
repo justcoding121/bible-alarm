@@ -776,7 +776,7 @@ public static class ApplicationReducer
                     finalCurrentMusic.MusicType);
             }
         }
-        
+
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
