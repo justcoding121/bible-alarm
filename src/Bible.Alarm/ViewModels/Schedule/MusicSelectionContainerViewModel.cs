@@ -122,15 +122,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             lastScheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
             lastMusicEnabled = currentSchedule.MusicEnabled;
 
-            OnPropertyChanged(nameof(MusicEnabled));
-            OnPropertyChanged(nameof(MusicTypeDisplayText));
-            OnPropertyChanged(nameof(IsMusicLanguageVisible));
-            OnPropertyChanged(nameof(MusicLanguageDisplayText));
-            OnPropertyChanged(nameof(IsSongBookVisible));
-            OnPropertyChanged(nameof(SongBookDisplayText));
-            OnPropertyChanged(nameof(TrackDisplayText));
-            OnPropertyChanged(nameof(IsRepeatEnabled));
-            OnPropertyChanged(nameof(HasTrackSelected));
+            // Batch property notifications to reduce UI thread work
+            NotifyMusicPropertiesChanged();
 
             // Initialize track name cache from state if available (populated during bootstrap)
             // NOTE: Do NOT query database here - track names should be in state from bootstrap
@@ -980,6 +973,23 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                    currentSchedule.MusicTrackNumber.HasValue &&
                    currentSchedule.MusicTrackNumber.Value > 0;
         }
+    }
+
+    /// <summary>
+    /// Notifies all music-related properties changed in a single batch.
+    /// This reduces UI thread work compared to individual notifications.
+    /// </summary>
+    private void NotifyMusicPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(MusicEnabled));
+        OnPropertyChanged(nameof(MusicTypeDisplayText));
+        OnPropertyChanged(nameof(IsMusicLanguageVisible));
+        OnPropertyChanged(nameof(MusicLanguageDisplayText));
+        OnPropertyChanged(nameof(IsSongBookVisible));
+        OnPropertyChanged(nameof(SongBookDisplayText));
+        OnPropertyChanged(nameof(TrackDisplayText));
+        OnPropertyChanged(nameof(IsRepeatEnabled));
+        OnPropertyChanged(nameof(HasTrackSelected));
     }
 
     public void Dispose()

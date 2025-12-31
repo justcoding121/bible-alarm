@@ -88,7 +88,7 @@
                                        ItemSpacing="16" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ScheduleListItem">
+                    <DataTemplate x:DataType="vm:ScheduleListItemViewModel">
                         <SwipeView>
                             <SwipeView.RightItems>
                                 <SwipeItems>

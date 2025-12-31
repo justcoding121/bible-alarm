@@ -3,9 +3,11 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.ViewModels;
 using Serilog;
 using Syncfusion.Maui.Buttons;
+using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class Home : BaseContentPage, IDisposable
 {
     private bool isDisposed;
@@ -86,7 +88,7 @@ public partial class Home : BaseContentPage, IDisposable
     private void OnScheduleItemTapped(object? sender, TappedEventArgs e)
     {
         View? container = sender as View;
-        if (container == null || container.BindingContext is not ScheduleListItem item)
+        if (container == null || container.BindingContext is not ScheduleListItemViewModel item)
         {
             return;
         }

@@ -17,7 +17,7 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
         // Default to enabled for ScheduleViewModel
         bool isEnabled = true;
 
-        if (value is ScheduleListItem schedule)
+        if (value is ScheduleListItemViewModel schedule)
         {
             daysOfWeek = schedule.DaysOfWeek;
             isEnabled = schedule.IsEnabled;

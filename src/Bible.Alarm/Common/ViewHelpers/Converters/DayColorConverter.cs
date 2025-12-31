@@ -33,7 +33,7 @@ public sealed class DayColorConverter : IValueConverter
         }
         else
         {
-            var schedule = value as ScheduleListItem;
+            var schedule = value as ScheduleListItemViewModel;
 
             if (schedule == null)
             {

@@ -104,10 +104,14 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         this.navigationService = navigationService;
         this.serviceProvider = serviceProvider;
 
-        InitializeContainerViewModels();
+        // Defer container initialization - will be created after page is visible
+        // This prevents blocking the UI thread during page load
         InitializeStateHandling();
         InitializeCommands();
         SetupSafetyFallback();
+        
+        // Initialize containers asynchronously after page is visible
+        _ = InitializeContainerViewModelsAsync();
 
 #if DEBUG
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
@@ -115,12 +119,55 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 #endif
     }
 
-    private void InitializeContainerViewModels()
+    /// <summary>
+    /// Initializes container view models asynchronously off the UI thread.
+    /// This prevents blocking the UI thread during page load.
+    /// Containers are created in Task.Run, then assigned on the UI thread.
+    /// </summary>
+    private async Task InitializeContainerViewModelsAsync()
     {
-        BibleSelectionContainerViewModel = serviceProvider.GetRequiredService<BibleSelectionContainerViewModel>();
-        MusicSelectionContainerViewModel = serviceProvider.GetRequiredService<MusicSelectionContainerViewModel>();
-        ChaptersSelectionContainerViewModel = serviceProvider.GetRequiredService<ChaptersSelectionContainerViewModel>();
-        ScheduleDetailsContainerViewModel = serviceProvider.GetRequiredService<ScheduleDetailsContainerViewModel>();
+#if DEBUG
+        var containerInitStartTime = DateTime.UtcNow;
+        logger.Information("[PERF] ScheduleViewModel: Starting async container initialization at {StartTime}", containerInitStartTime);
+#endif
+
+        try
+        {
+            // Create container view models off UI thread (DI resolution can be CPU-intensive)
+            var containers = await Task.Run(() =>
+            {
+                return new
+                {
+                    BibleSelection = serviceProvider.GetRequiredService<BibleSelectionContainerViewModel>(),
+                    MusicSelection = serviceProvider.GetRequiredService<MusicSelectionContainerViewModel>(),
+                    ChaptersSelection = serviceProvider.GetRequiredService<ChaptersSelectionContainerViewModel>(),
+                    ScheduleDetails = serviceProvider.GetRequiredService<ScheduleDetailsContainerViewModel>()
+                };
+            });
+
+#if DEBUG
+            var containerInitElapsed = (DateTime.UtcNow - containerInitStartTime).TotalMilliseconds;
+            logger.Information("[PERF] ScheduleViewModel: Container creation completed in {ElapsedMs}ms", containerInitElapsed);
+#endif
+
+            // Assign containers on UI thread (property assignments need UI thread for bindings)
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                BibleSelectionContainerViewModel = containers.BibleSelection;
+                MusicSelectionContainerViewModel = containers.MusicSelection;
+                ChaptersSelectionContainerViewModel = containers.ChaptersSelection;
+                ScheduleDetailsContainerViewModel = containers.ScheduleDetails;
+
+#if DEBUG
+                logger.Information("[PERF] ScheduleViewModel: Containers assigned on UI thread");
+#endif
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error initializing container view models");
+            // Continue even if container initialization fails - page can still function
+        }
     }
 
     private void InitializeStateHandling()
@@ -710,55 +757,92 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     /// Loads an existing schedule from state without accessing the database.
     /// For existing schedules, all required fields (including display names) are already populated
     /// in the Schedules collection during bootstrap. The schedule is copied from state (immutable copy).
+    /// 
+    /// Optimized: Data preparation happens off UI thread, only UI updates happen on UI thread.
     /// </summary>
     private void LoadScheduleFromState(ApplicationState stateValue, int currentScheduleId)
     {
         isInitializingNewSchedule = false;
         var currentScheduleItem = stateValue.CurrentSchedule!;
-        lastScheduleId = currentScheduleId;
 
-        // Initialize music tracking fields
-        lastMusicType = currentScheduleItem.MusicType;
-        lastMusicTrackNumber = currentScheduleItem.MusicTrackNumber;
-        lastMusicPublicationCode = currentScheduleItem.MusicPublicationCode;
-        lastMusicLanguageCode = currentScheduleItem.MusicLanguageCode;
-        lastMusicRepeat = currentScheduleItem.MusicRepeat;
-
-        // Reset musicUpdated when loading a schedule (only set to true if music changes after load)
-        musicUpdated = false;
-        bibleReadingUpdated = false;
-
-        var isNew = currentScheduleItem.Id <= 0;
 #if DEBUG
-        logger.Information("[PERF] OnCurrentScheduleChanged: IsNew={IsNew}, invoking on main thread", isNew);
+        logger.Information("[PERF] OnCurrentScheduleChanged: Preparing data off UI thread for ScheduleId={ScheduleId}", currentScheduleId);
 #endif
 
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        // Prepare data structures off UI thread (DeepClone is CPU-intensive JSON serialization)
+        _ = Task.Run(async () =>
         {
             try
             {
 #if DEBUG
-                var mainThreadStartTime = DateTime.UtcNow;
-                logger.Information("[PERF] OnCurrentScheduleChanged: Main thread handler started at {StartTime}", mainThreadStartTime);
+                var dataPrepStartTime = DateTime.UtcNow;
+                logger.Information("[PERF] LoadScheduleFromState: Data preparation started at {StartTime}", dataPrepStartTime);
 #endif
 
-                IsNewSchedule = isNew;
+                // DeepClone uses JSON serialization which is CPU-intensive - do it off UI thread
+                var scheduleStateItemSnapshot = currentScheduleItem.DeepClone();
+                var isNew = scheduleStateItemSnapshot.Id <= 0;
 
-                // Properties read from state, so just notify property changes
-                OnPropertyChanged(nameof(Name));
-                OnPropertyChanged(nameof(IsEnabled));
-                OnPropertyChanged(nameof(DaysOfWeek));
-                OnPropertyChanged(nameof(Time));
-                OnPropertyChanged(nameof(MusicEnabled));
+                // Initialize tracking fields off UI thread (these are just value assignments)
+                lastScheduleId = currentScheduleId;
+                lastMusicType = scheduleStateItemSnapshot.MusicType;
+                lastMusicTrackNumber = scheduleStateItemSnapshot.MusicTrackNumber;
+                lastMusicPublicationCode = scheduleStateItemSnapshot.MusicPublicationCode;
+                lastMusicLanguageCode = scheduleStateItemSnapshot.MusicLanguageCode;
+                lastMusicRepeat = scheduleStateItemSnapshot.MusicRepeat;
 
-                await CompleteScheduleLoad();
+                // Reset musicUpdated when loading a schedule (only set to true if music changes after load)
+                musicUpdated = false;
+                bibleReadingUpdated = false;
+
+#if DEBUG
+                var dataPrepElapsed = (DateTime.UtcNow - dataPrepStartTime).TotalMilliseconds;
+                logger.Information("[PERF] LoadScheduleFromState: Data preparation completed in {ElapsedMs}ms, IsNew={IsNew}", dataPrepElapsed, isNew);
+#endif
+
+                // Capture isNew for closure
+                var isNewSchedule = isNew;
+
+                // Now update UI on main thread (only UI-touching operations)
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    try
+                    {
+#if DEBUG
+                        var mainThreadStartTime = DateTime.UtcNow;
+                        logger.Information("[PERF] LoadScheduleFromState: Main thread handler started at {StartTime}", mainThreadStartTime);
+#endif
+
+                        IsNewSchedule = isNewSchedule;
+
+                        // Properties read from state, so just notify property changes
+                        OnPropertyChanged(nameof(Name));
+                        OnPropertyChanged(nameof(IsEnabled));
+                        OnPropertyChanged(nameof(DaysOfWeek));
+                        OnPropertyChanged(nameof(Time));
+                        OnPropertyChanged(nameof(MusicEnabled));
+
+                        await CompleteScheduleLoad();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "Error in LoadScheduleFromState main thread handler");
+                        IsBusy = false;
+                        OnPropertyChanged(nameof(IsBusy));
+                        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                    }
+                });
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in OnCurrentScheduleChanged handler");
-                IsBusy = false;
-                OnPropertyChanged(nameof(IsBusy));
-                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                logger.Error(ex, "Error in LoadScheduleFromState data preparation");
+                // Fallback: update UI even if data prep fails
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = false;
+                    OnPropertyChanged(nameof(IsBusy));
+                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                });
             }
         });
     }
@@ -766,30 +850,36 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private async Task CompleteScheduleLoad()
     {
         modelInitialized = true;
-        await Task.Delay(100);
+        
+        // Wait briefly for initial state to settle
+        await Task.Delay(50);
         IsBusy = false;
         OnPropertyChanged(nameof(IsBusy));
         
-        // Wait for state change to propagate through Fluxor
-        await Task.Delay(100);
+        // Wait for containers to be initialized (with timeout to prevent indefinite wait)
+        var maxWaitTime = TimeSpan.FromMilliseconds(500);
+        var startTime = DateTime.UtcNow;
+        while ((BibleSelectionContainerViewModel == null || 
+                MusicSelectionContainerViewModel == null || 
+                ChaptersSelectionContainerViewModel == null || 
+                ScheduleDetailsContainerViewModel == null) &&
+               (DateTime.UtcNow - startTime) < maxWaitTime)
+        {
+            await Task.Delay(50);
+        }
         
-        // Wait for UI thread to process property changes from container view models
-        // The containers update their display text asynchronously via MainThread.BeginInvokeOnMainThread
-        await Task.Delay(300);
+        // Brief delay for property notifications to process
+        await Task.Delay(50);
         
         // Hide overlay after everything is loaded and rendered
         logger.Debug("CompleteScheduleLoad: Hiding schedule page overlay");
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
         
-        // Wait for Fluxor to process the action and update state
-        await Task.Delay(150);
+        // Brief delay for Fluxor to process the action
+        await Task.Delay(50);
         
         // Explicitly notify property change to ensure UI updates
         // We're already on the main thread, so call directly
-        OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
-        
-        // Force a second notification after a small delay to ensure UI updates
-        await Task.Delay(50);
         OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
     }
 

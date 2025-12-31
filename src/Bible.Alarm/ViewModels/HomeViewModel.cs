@@ -30,9 +30,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly IScheduleMigrationService scheduleMigrationService;
     private readonly IAlarmScheduleService alarmScheduleService;
 
-    private readonly Dictionary<int, ScheduleListItem> scheduleViewModels = [];
+    private readonly Dictionary<int, ScheduleListItemViewModel> scheduleViewModels = [];
 
-    private readonly Func<int, ScheduleListItem> scheduleListItemFactory;
+    private readonly Func<int, ScheduleListItemViewModel> scheduleListItemFactory;
     private readonly IMapper mapper;
 
     private readonly IDispatcher dispatcher;
@@ -47,7 +47,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     public HomeViewModel(
         ILogger logger,
         IServiceScopeFactory scopeFactory,
-        Func<int, ScheduleListItem> scheduleListItemFactory,
+        Func<int, ScheduleListItemViewModel> scheduleListItemFactory,
         IState<ApplicationState> state,
         IState<PlaybackState> playbackState,
         IDispatcher dispatcher,
@@ -78,7 +78,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             dispatcher.Dispatch(new ViewScheduleAction(null));
         });
 
-        ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItem>(async x =>
+        ViewScheduleCommand = new AsyncRelayCommand<ScheduleListItemViewModel>(async x =>
         {
             if (x == null || x.Schedule == null)
             {
@@ -108,9 +108,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     }
 
 
-    private ObservableHashSet<ScheduleListItem> schedules = [];
+    private ObservableHashSet<ScheduleListItemViewModel> schedules = [];
 
-    public ObservableHashSet<ScheduleListItem> Schedules
+    public ObservableHashSet<ScheduleListItemViewModel> Schedules
     {
         get => schedules;
         set
@@ -168,7 +168,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     /// Helper method to update existing ScheduleListItem with pre-mapped data.
     /// Only UI-touching operations (property notifications) happen here.
     /// </summary>
-    private void UpdateScheduleListItemFromData(ScheduleListItem viewModel, AlarmSchedule schedule, int scheduleId, ScheduleStateItem? scheduleStateItem = null)
+    private void UpdateScheduleListItemFromData(ScheduleListItemViewModel viewModel, AlarmSchedule schedule, int scheduleId, ScheduleStateItem? scheduleStateItem = null)
     {
         // Use the optimized InitializeFromSchedule method which only does UI operations
         viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
@@ -178,7 +178,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     /// Helper method to initialize new ScheduleListItem with pre-mapped data.
     /// Only UI-touching operations (property notifications, event subscriptions) happen here.
     /// </summary>
-    private void InitializeScheduleListItemFromData(ScheduleListItem viewModel, AlarmSchedule schedule, int scheduleId, ScheduleStateItem? scheduleStateItem = null)
+    private void InitializeScheduleListItemFromData(ScheduleListItemViewModel viewModel, AlarmSchedule schedule, int scheduleId, ScheduleStateItem? scheduleStateItem = null)
     {
         // Use the optimized InitializeFromSchedule method which only does UI operations
         viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
@@ -189,11 +189,11 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     /// Uses pre-prepared data from PrepareScheduleDataOffUIThread.
     /// Only UI-touching operations (property notifications, event subscriptions) happen here.
     /// </summary>
-    private (List<ScheduleListItem> schedulesToAdd, List<int> schedulesToRemove, ObservableHashSet<ScheduleListItem> newSchedules) PrepareScheduleViewModelsOnUIThread(
+    private (List<ScheduleListItemViewModel> schedulesToAdd, List<int> schedulesToRemove, ObservableHashSet<ScheduleListItemViewModel> newSchedules) PrepareScheduleViewModelsOnUIThread(
         Dictionary<int, AlarmSchedule> scheduleDataMap,
         Dictionary<int, ScheduleStateItem> scheduleStateItemMap)
     {
-        var schedulesToAdd = new List<ScheduleListItem>();
+        var schedulesToAdd = new List<ScheduleListItemViewModel>();
         var schedulesToRemove = new List<int>();
         var currentViewModelIds = new HashSet<int>(scheduleDataMap.Keys);
 
@@ -235,7 +235,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 logger.Debug("PrepareScheduleViewModels: Creating new ScheduleListItem for schedule {ScheduleId}", scheduleId);
                 
                 // Get ViewModel from service provider (just object creation, no initialization yet)
-                var viewModel = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ScheduleListItem>();
+                var viewModel = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ScheduleListItemViewModel>();
                 
                 // Initialize with pre-mapped data (only UI-touching operations here)
                 InitializeScheduleListItemFromData(viewModel, schedule, scheduleId, scheduleStateItem);
@@ -281,7 +281,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         }
 
         // Prepare new collection
-        var newSchedules = new ObservableHashSet<ScheduleListItem>();
+        var newSchedules = new ObservableHashSet<ScheduleListItemViewModel>();
 
         // Create a snapshot of current Schedules to avoid "Collection was modified" exception
         var currentSchedulesSnapshot = Schedules.ToList();
@@ -646,7 +646,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     // Set the entire collection via property setter
                     // This ensures the CollectionView binding is properly updated on Windows
                     // We create a new ObservableHashSet with all items and set it
-                    var schedulesCollection = new ObservableHashSet<ScheduleListItem>();
+                    var schedulesCollection = new ObservableHashSet<ScheduleListItemViewModel>();
                     foreach (var item in newSchedules)
                     {
                         logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to new collection",
@@ -668,7 +668,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}",
                         schedulesToAdd.Count, schedulesToRemove.Count);
 
-                    var updatedCollection = new ObservableHashSet<ScheduleListItem>();
+                    var updatedCollection = new ObservableHashSet<ScheduleListItemViewModel>();
 
                     // Add all existing items that aren't being removed
                     foreach (var existingItem in Schedules)
@@ -773,7 +773,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         return false;
     }
 
-    private async Task ShowOverlayAndNavigateAsync(ScheduleListItem scheduleListItem)
+    private async Task ShowOverlayAndNavigateAsync(ScheduleListItemViewModel scheduleListItem)
     {
         if (scheduleListItem.Schedule == null)
         {

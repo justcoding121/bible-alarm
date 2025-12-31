@@ -242,14 +242,14 @@ public static class ServiceRegistrationHelper
         services.AddTransient<ScheduleDetailsContainerViewModel>();
 
         // Register ScheduleListItem as transient for list items
-        services.AddTransient<ScheduleListItem>();
+        services.AddTransient<ScheduleListItemViewModel>();
 
         // Register factory for ScheduleListItem (takes schedule ID and returns ScheduleListItem with DI)
         // ScheduleListItem initializes from state using the schedule ID
-        services.AddTransient<Func<int, ScheduleListItem>>(serviceProvider =>
+        services.AddTransient<Func<int, ScheduleListItemViewModel>>(serviceProvider =>
             scheduleId =>
             {
-                var vm = serviceProvider.GetRequiredService<ScheduleListItem>();
+                var vm = serviceProvider.GetRequiredService<ScheduleListItemViewModel>();
                 vm.SetScheduleId(scheduleId);
                 return vm;
             });

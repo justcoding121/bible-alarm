@@ -93,10 +93,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             lastBookDisplayText = BookDisplayText;
             lastChapterDisplayText = ChapterDisplayText;
 
-            OnPropertyChanged(nameof(LanguageDisplayText));
-            OnPropertyChanged(nameof(TranslationDisplayText));
-            OnPropertyChanged(nameof(BookDisplayText));
-            OnPropertyChanged(nameof(ChapterDisplayText));
+            // Batch property notifications to reduce UI thread work
+            NotifyDisplayTextPropertiesChanged();
         }
     }
 
@@ -538,6 +536,18 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
             return string.Empty;
         }
+    }
+
+    /// <summary>
+    /// Notifies all display text properties changed in a single batch.
+    /// This reduces UI thread work compared to individual notifications.
+    /// </summary>
+    private void NotifyDisplayTextPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(LanguageDisplayText));
+        OnPropertyChanged(nameof(TranslationDisplayText));
+        OnPropertyChanged(nameof(BookDisplayText));
+        OnPropertyChanged(nameof(ChapterDisplayText));
     }
 
     public void Dispose()

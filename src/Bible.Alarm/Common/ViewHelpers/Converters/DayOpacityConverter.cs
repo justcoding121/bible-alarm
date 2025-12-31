@@ -12,7 +12,7 @@ public sealed class DayOpacityConverter : IValueConverter
             return 1.0;
         }
 
-        var schedule = value as ScheduleListItem;
+        var schedule = value as ScheduleListItemViewModel;
         if (schedule == null)
         {
             return 1.0;

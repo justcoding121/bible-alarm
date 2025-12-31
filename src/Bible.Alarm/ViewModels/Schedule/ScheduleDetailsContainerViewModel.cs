@@ -57,10 +57,8 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             name = currentSchedule.Name;
             isEnabled = currentSchedule.IsEnabled;
 
-            OnPropertyChanged(nameof(Time));
-            OnPropertyChanged(nameof(DaysOfWeek));
-            OnPropertyChanged(nameof(Name));
-            OnPropertyChanged(nameof(IsEnabled));
+            // Batch property notifications to reduce UI thread work
+            NotifyScheduleDetailsPropertiesChanged();
         }
     }
 
@@ -206,6 +204,18 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         }
 
         OnPropertyChanged(nameof(DaysOfWeek));
+    }
+
+    /// <summary>
+    /// Notifies all schedule details properties changed in a single batch.
+    /// This reduces UI thread work compared to individual notifications.
+    /// </summary>
+    private void NotifyScheduleDetailsPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(Time));
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(IsEnabled));
     }
 
     public void Dispose()

@@ -18,7 +18,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public sealed class ScheduleListItem(
+public sealed class ScheduleListItemViewModel(
     ILogger logger,
     ISchedulePlaybackService playbackService,
     IScheduleDisplayService displayService,
@@ -297,7 +297,7 @@ public sealed class ScheduleListItem(
 
     public string MeridianText => Meridian.ToString().ToUpperInvariant();
 
-    public ScheduleListItem This => this;
+    public ScheduleListItemViewModel This => this;
 
     public ICommand PlayCommand { get; private set; } = null!;
 
@@ -477,7 +477,7 @@ public sealed class ScheduleListItem(
         // Try state first, then fallback to async lookup
         RefreshSubTitleFromState();
 
-    public int CompareTo(object? obj) => obj is not ScheduleListItem other ? 1 : ScheduleId.CompareTo(other.ScheduleId);
+    public int CompareTo(object? obj) => obj is not ScheduleListItemViewModel other ? 1 : ScheduleId.CompareTo(other.ScheduleId);
 
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {

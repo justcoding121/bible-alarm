@@ -2,9 +2,11 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
 using Serilog;
+using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Schedule;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class Schedule : BaseContentPage, IDisposable
 {
     private bool isDisposed;
@@ -79,14 +81,23 @@ public partial class Schedule : BaseContentPage, IDisposable
             {
                 Log.Debug("Schedule.xaml.cs: Ensuring overlay is visible on page appear");
                 scheduleBusyOverlay.IsVisible = true;
-                
-                // Force a layout update to ensure spinner starts immediately
-                scheduleBusyOverlay.InvalidateMeasure();
             }
         });
 
-        // Small delay to ensure page is rendered, overlay is visible, and spinner has started
+        // Small delay to ensure page is rendered and XAML is fully loaded
         await Task.Delay(50);
+        
+        // Now start the spinner after page is rendered
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (scheduleBusyOverlay != null)
+            {
+                Log.Debug("Schedule.xaml.cs: Starting spinner after page render");
+                // Force spinner to start immediately, bypassing binding delays
+                // This ensures smooth animation from the moment the overlay appears
+                scheduleBusyOverlay.StartSpinnerImmediately();
+            }
+        });
 
         // Hide Home page overlay after Schedule page is visible
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -94,7 +105,11 @@ public partial class Schedule : BaseContentPage, IDisposable
             viewModel?.HideHomePageOverlay();
         });
 
-        // Load heavy content asynchronously after page is shown
+        // Add delay after showing overlay to ensure spinner is animating smoothly
+        // This improves perceived performance - user sees spinner working before heavy content loads
+        await Task.Delay(100);
+
+        // Load heavy content asynchronously after spinner is animating smoothly
         await LoadScheduleContentAsync();
         
         // Mark content as loaded - now allow ViewModel to control overlay
