@@ -705,20 +705,34 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         }
 
         scheduleListItem.Schedule.IsEnabled = scheduleListItem.IsEnabled;
-        var navigationTask = navigationService.NavigateToScheduleAsync();
-        var scheduleStateItem = GetScheduleStateItem(scheduleListItem.Schedule.Id);
+        
+        // Navigate FIRST to show the page immediately
+        // This ensures instant page appearance (~10-20ms)
+        await navigationService.NavigateToScheduleAsync();
+        
+        // Prepare schedule state item AFTER navigation completes
+        // Get the source item on UI thread (safe access to state)
+        var sourceScheduleStateItem = GetSourceScheduleStateItem(scheduleListItem.Schedule.Id);
+        
+        // DeepClone uses JSON serialization which is CPU-intensive
+        // Run it off UI thread to avoid blocking
+        var scheduleStateItem = await Task.Run(() => sourceScheduleStateItem.DeepClone());
+        
+        // Dispatch action to load schedule data
+        // This happens after page is visible, so user sees overlay immediately
         dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
-        await navigationTask;
     }
 
-    private ScheduleStateItem GetScheduleStateItem(int scheduleId)
+    private ScheduleStateItem GetSourceScheduleStateItem(int scheduleId)
     {
+        // Access state and view models on UI thread (these are safe reads)
         var scheduleStateItem = state.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
         if (scheduleStateItem == null)
         {
             return mapper.Map<ScheduleStateItem>(scheduleViewModels[scheduleId].Schedule);
         }
-        return scheduleStateItem.DeepClone();
+        // Return the source item - DeepClone will be done off UI thread
+        return scheduleStateItem;
     }
 
     public void Dispose()
