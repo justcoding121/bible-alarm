@@ -244,6 +244,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     {
         if (initComplete)
         {
+            // If already initialized, ensure IsBusy is false
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
             return;
         }
 
@@ -253,6 +255,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
         {
+            // If CurrentSchedule is null, we can't initialize, so set IsBusy to false to prevent hanging spinner
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
             return;
         }
 
@@ -262,6 +266,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
         if (!newMusicType.HasValue || string.IsNullOrEmpty(newLanguageCode))
         {
+            // If MusicType or LanguageCode is missing, we can't initialize, so set IsBusy to false to prevent hanging spinner
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
             return;
         }
 
@@ -453,6 +459,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
+            // If CurrentSchedule is null or MusicType is missing, set IsBusy to false to prevent hanging spinner
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             return;
         }
 
@@ -473,6 +481,9 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         {
             await PopulateLanguages();
         }
+
+        // Always set IsBusy to false after refreshing from state to ensure spinner doesn't hang
+        await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
     }
 
     private readonly Dictionary<string, PublicationListViewItemModel> songBookVMsMapping = [];

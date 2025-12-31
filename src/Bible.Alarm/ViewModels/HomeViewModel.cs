@@ -44,6 +44,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly Dictionary<int, DateTime> recentPlayClicks = new();
     private const int PlayClickCooldownMs = 500; // 500ms cooldown after play click
 
+    // Track last processed state to prevent redundant processing
+    private int? lastProcessedSchedulesCount;
+    private HashSet<int>? lastProcessedScheduleIds;
+
     public HomeViewModel(
         ILogger logger,
         IServiceScopeFactory scopeFactory,
@@ -575,6 +579,18 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         {
             if (stateValue.Schedules != null)
             {
+                // Check if Schedules collection has actually changed
+                var currentScheduleIds = new HashSet<int>(stateValue.Schedules.Where(s => s.Id > 0).Select(s => s.Id));
+                var schedulesCountChanged = lastProcessedSchedulesCount != stateValue.Schedules.Count;
+                var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
+
+                // Only process if the Schedules collection has changed (not just CurrentSchedule)
+                if (!schedulesCountChanged && !scheduleIdsChanged && lastProcessedScheduleIds != null)
+                {
+                    logger.Debug("OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}", stateValue.Schedules.Count);
+                    return;
+                }
+
                 logger.Debug("OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}",
                     stateValue.Schedules.Count, Schedules?.Count ?? 0);
 
@@ -738,12 +754,20 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     // Keep control in visual tree (using opacity) to prevent animation reset
                     await FadeOutProgressBarAsync();
                 }
+
+                // Update last processed state after successful processing
+                lastProcessedSchedulesCount = stateValue.Schedules.Count;
+                lastProcessedScheduleIds = currentScheduleIds;
             }
             else
             {
                 // State doesn't have schedules yet - ensure we show loading state
                 logger.Debug("OnStateChanged: State.Schedules is null, showing loading state");
                 UpdateProgressBarVisibility();
+                
+                // Reset tracking when schedules are cleared
+                lastProcessedSchedulesCount = null;
+                lastProcessedScheduleIds = null;
             }
         });
     }

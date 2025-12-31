@@ -51,6 +51,16 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private string? lastPublicationCode;
     private int? lastBookNumber;
     private int? lastChapterNumber;
+    
+    // Track if we've already reset progress for the current cascade change to prevent loops
+    private bool progressResetForCurrentCascade;
+    
+    // Track the last processed state to prevent processing the same state multiple times
+    private int? lastProcessedScheduleId;
+    private string? lastProcessedLanguageCode;
+    private string? lastProcessedPublicationCode;
+    private int? lastProcessedBookNumber;
+    private int? lastProcessedChapterNumber;
 
     public BibleSelectionContainerViewModel(
         ILogger logger,
@@ -92,6 +102,13 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             lastTranslationDisplayText = TranslationDisplayText;
             lastBookDisplayText = BookDisplayText;
             lastChapterDisplayText = ChapterDisplayText;
+            
+            // Initialize last processed state to prevent duplicate processing
+            lastProcessedScheduleId = currentSchedule.Id;
+            lastProcessedLanguageCode = currentSchedule.BibleReadingLanguageCode;
+            lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
+            lastProcessedBookNumber = currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber;
+            lastProcessedChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber;
 
             // Batch property notifications to reduce UI thread work
             NotifyDisplayTextPropertiesChanged();
@@ -203,6 +220,17 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             return;
         }
 
+        // Early exit if we've already processed this exact state
+        if (currentSchedule != null && 
+            currentSchedule.Id == lastProcessedScheduleId &&
+            currentSchedule.BibleReadingLanguageCode == lastProcessedLanguageCode &&
+            (currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode) == lastProcessedPublicationCode &&
+            (currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber) == lastProcessedBookNumber &&
+            (currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber) == lastProcessedChapterNumber)
+        {
+            return;
+        }
+
         LogStateChange(currentSchedule, currentBibleReading);
         HandleScheduleIdChange(currentSchedule);
         UpdateBibleReadingUpdatedFlag(currentSchedule);
@@ -210,9 +238,25 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         var changeInfo = DetectPropertyChanges(currentSchedule, currentBibleReading);
         if (changeInfo.HasChanges)
         {
+            // Reset the flag when a new cascade change is detected (before updating last values)
+            if (changeInfo.CascadeChangeOccurred)
+            {
+                progressResetForCurrentCascade = false;
+            }
+            
             UpdateLastValues(changeInfo);
             ResetProgressIfNeeded(currentSchedule, changeInfo);
             NotifyPropertyChanges(changeInfo);
+        }
+        
+        // Update last processed state after handling changes
+        if (currentSchedule != null)
+        {
+            lastProcessedScheduleId = currentSchedule.Id;
+            lastProcessedLanguageCode = currentSchedule.BibleReadingLanguageCode;
+            lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
+            lastProcessedBookNumber = currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber;
+            lastProcessedChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber;
         }
     }
 
@@ -254,6 +298,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Schedule ID changed from {OldScheduleId} to {NewScheduleId}, initializing from state",
                 scheduleId, currentSchedule.Id);
             InitializeFromState();
+            // Reset last processed state to ensure new schedule is processed
+            lastProcessedScheduleId = null;
         }
     }
 
@@ -346,11 +392,13 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         if (changeInfo.CascadeChangeOccurred && currentSchedule != null)
         {
             var currentProgress = currentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero;
-            if (currentProgress != TimeSpan.Zero)
+            // Only reset if progress is non-zero AND we haven't already reset for this cascade change
+            if (currentProgress != TimeSpan.Zero && !progressResetForCurrentCascade)
             {
                 logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Cascade change detected, resetting BibleReadingFinishedDuration from {CurrentProgress} to zero",
                     currentProgress);
 
+                progressResetForCurrentCascade = true;
                 var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
                 scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));

@@ -33,6 +33,8 @@ using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Schedule;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Bootstrap;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Storage;
@@ -147,6 +149,16 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IMediaMigrationService, MediaMigrationService>();
         services.AddSingleton<IScheduleDatabaseVersionService, ScheduleDatabaseVersionService>();
         services.AddSingleton<IDiskCacheService, DiskCacheService>();
+
+        // Register schedule services
+        services.AddSingleton<IScheduleDisplayNameService, ScheduleDisplayNameService>();
+        services.AddSingleton<IScheduleSaveService, ScheduleSaveService>();
+        services.AddSingleton<IScheduleValidationService, ScheduleValidationService>();
+        services.AddSingleton<IScheduleInitializationService, ScheduleInitializationService>();
+        services.AddSingleton<IScheduleCommandService, ScheduleCommandService>();
+        services.AddSingleton<IScheduleMediaCacheService, ScheduleMediaCacheService>();
+        services.AddSingleton<IScheduleContainerService, ScheduleContainerService>();
+        services.AddSingleton<Bible.Alarm.Services.Schedule.Helpers.ScheduleStateChangeHandler>();
 
         // Register bootstrap services
         services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();

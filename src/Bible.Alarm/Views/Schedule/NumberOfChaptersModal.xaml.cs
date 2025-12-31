@@ -32,7 +32,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     private void ApplyPlatformSpecificStyling()
     {
         var platform = DeviceInfo.Platform;
-        
+
         // Platform-specific margins for main grid
         if (MainGrid != null)
         {

@@ -5,5 +5,5 @@ namespace CommunityToolkit.Maui.Services;
 
 sealed class BoundServiceBinder(MediaControlsService mediaControlsService) : Binder
 {
-	public MediaControlsService Service { get; } = mediaControlsService;
+    public MediaControlsService Service { get; } = mediaControlsService;
 }

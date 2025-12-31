@@ -10,17 +10,17 @@ public partial class ScheduleContent : ContentView
     public ScheduleContent()
     {
         InitializeComponent();
-        
+
         // Apply platform-specific styling in code-behind for better performance
         // This avoids expensive OnPlatform markup extension evaluation at runtime
         ApplyPlatformSpecificStyling();
     }
-    
+
     private void ApplyPlatformSpecificStyling()
     {
         var platform = DeviceInfo.Platform;
         var buttonFontSize = (double)Application.Current!.Resources["ButtonFontSize"]!;
-        
+
         // Platform-specific margins for main grid
         if (MainGrid != null)
         {
@@ -37,13 +37,13 @@ public partial class ScheduleContent : ContentView
                 MainGrid.Margin = new Thickness(0);
             }
         }
-        
+
         // Platform-specific margins for scroll content grid
         if (ScrollContentGrid != null)
         {
             ScrollContentGrid.Margin = new Thickness(10, 0, 10, 0);
         }
-        
+
         // Platform-specific styling for Cancel and Save buttons
         if (platform == DevicePlatform.WinUI)
         {
@@ -129,7 +129,7 @@ public partial class ScheduleContent : ContentView
                 ButtonContainer.Margin = new Thickness(5, 5, 5, 10);
             }
         }
-        
+
         // Platform-specific styling for Delete button
         if (DeleteButton != null)
         {

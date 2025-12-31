@@ -9,8 +9,8 @@ namespace CommunityToolkit.Maui.Core;
 /// <param name="requestedPosition">The requested position to seek to.</param>
 sealed class MediaSeekRequestedEventArgs(TimeSpan requestedPosition) : EventArgs
 {
-	/// <summary>
-	/// Gets the requested position to seek to.
-	/// </summary>
-	public TimeSpan RequestedPosition { get; } = requestedPosition;
+    /// <summary>
+    /// Gets the requested position to seek to.
+    /// </summary>
+    public TimeSpan RequestedPosition { get; } = requestedPosition;
 }

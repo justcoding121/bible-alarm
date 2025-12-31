@@ -7,44 +7,44 @@ namespace CommunityToolkit.Maui.Services;
 
 sealed class BoundServiceConnection(MediaManager mediaManager) : Object, IServiceConnection
 {
-	readonly WeakEventManager taskRemovedEventManager = new();
+    readonly WeakEventManager taskRemovedEventManager = new();
 
-	public event EventHandler MediaControlsServiceTaskRemoved
-	{
-		add => taskRemovedEventManager.AddEventHandler(value);
-		remove => taskRemovedEventManager.RemoveEventHandler(value);
-	}
+    public event EventHandler MediaControlsServiceTaskRemoved
+    {
+        add => taskRemovedEventManager.AddEventHandler(value);
+        remove => taskRemovedEventManager.RemoveEventHandler(value);
+    }
 
-	public MediaManager? Activity { get; } = mediaManager;
+    public MediaManager? Activity { get; } = mediaManager;
 
-	public bool IsConnected => Binder is not null;
+    public bool IsConnected => Binder is not null;
 
-	public BoundServiceBinder? Binder { get; private set; }
+    public BoundServiceBinder? Binder { get; private set; }
 
-	void HandleTaskRemoved(object? sender, EventArgs e)
-	{
-		taskRemovedEventManager.HandleEvent(this, EventArgs.Empty, nameof(MediaControlsServiceTaskRemoved));
-	}
+    void HandleTaskRemoved(object? sender, EventArgs e)
+    {
+        taskRemovedEventManager.HandleEvent(this, EventArgs.Empty, nameof(MediaControlsServiceTaskRemoved));
+    }
 
-	void IServiceConnection.OnServiceConnected(ComponentName? name, IBinder? service)
-	{
-		Binder = service as BoundServiceBinder;
+    void IServiceConnection.OnServiceConnected(ComponentName? name, IBinder? service)
+    {
+        Binder = service as BoundServiceBinder;
 
-		if (Binder is not null)
-		{
-			Binder.Service.TaskRemoved += HandleTaskRemoved;
-		}
+        if (Binder is not null)
+        {
+            Binder.Service.TaskRemoved += HandleTaskRemoved;
+        }
 
-		// UpdateNotifications needs to be called as it may have been called before the service was connected
-		Activity?.UpdateNotifications();
-	}
+        // UpdateNotifications needs to be called as it may have been called before the service was connected
+        Activity?.UpdateNotifications();
+    }
 
-	void IServiceConnection.OnServiceDisconnected(ComponentName? name)
-	{
-		if (Binder is not null)
-		{
-			Binder.Service.TaskRemoved -= HandleTaskRemoved;
-			Binder = null;
-		}
-	}
+    void IServiceConnection.OnServiceDisconnected(ComponentName? name)
+    {
+        if (Binder is not null)
+        {
+            Binder.Service.TaskRemoved -= HandleTaskRemoved;
+            Binder = null;
+        }
+    }
 }

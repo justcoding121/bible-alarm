@@ -102,7 +102,7 @@ public sealed class NavigationService(
             {
                 logger?.Debug("Found NavigationPage in window.Page");
                 var navigation = navPage.Navigation;
-                
+
                 // Verify navigation is accessible before caching
                 try
                 {
@@ -302,7 +302,7 @@ public sealed class NavigationService(
 
         var pageStartTime = DateTime.UtcNow;
 #endif
-        var page = serviceProvider.GetRequiredService<Schedule>();
+        var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
 #if DEBUG
         var pageElapsed = (DateTime.UtcNow - pageStartTime).TotalMilliseconds;
         logger.Information("[PERF] NavigateToScheduleAsync: Page service resolution took {ElapsedMs}ms", pageElapsed);

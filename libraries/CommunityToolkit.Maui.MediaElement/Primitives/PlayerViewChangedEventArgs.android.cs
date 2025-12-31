@@ -4,5 +4,5 @@ namespace CommunityToolkit.Maui.Core;
 
 public sealed class PlayerViewChangedEventArgs(PlayerView playerView) : EventArgs
 {
-	public PlayerView UpdatedPlayerView { get; } = playerView;
+    public PlayerView UpdatedPlayerView { get; } = playerView;
 }

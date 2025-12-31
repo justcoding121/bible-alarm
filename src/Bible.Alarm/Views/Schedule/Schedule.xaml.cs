@@ -17,6 +17,7 @@ public partial class Schedule : BaseContentPage, IDisposable
     private bool hasHandledFirstLoad;
     private bool isContentLoaded;
     private bool isOverlayForcedVisible;
+    private bool? lastOverlayVisibleValue;
 
     public Schedule(ScheduleViewModel viewModel)
     {
@@ -81,6 +82,7 @@ public partial class Schedule : BaseContentPage, IDisposable
             {
                 Log.Debug("Schedule.xaml.cs: Ensuring overlay is visible on page appear");
                 scheduleBusyOverlay.IsVisible = true;
+                lastOverlayVisibleValue = true;
             }
         });
 
@@ -172,6 +174,13 @@ public partial class Schedule : BaseContentPage, IDisposable
                 {
                     var newValue = viewModel.IsSchedulePageOverlayVisible;
 
+                    // Skip if we've already set the overlay to this value
+                    if (lastOverlayVisibleValue == newValue)
+                    {
+                        Log.Debug("Schedule.xaml.cs: Skipping overlay update - already set to {Value}", newValue);
+                        return;
+                    }
+
                     // Don't allow ViewModel to hide overlay if we've forced it visible
                     // This ensures smooth spinning throughout the loading process
                     if (!newValue && isOverlayForcedVisible)
@@ -190,6 +199,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 
                     Log.Debug("Schedule.xaml.cs: Updating BusyOverlay.IsVisible to {Value}", newValue);
                     scheduleBusyOverlay.IsVisible = newValue;
+                    lastOverlayVisibleValue = newValue;
                 }
             });
         }
@@ -198,18 +208,19 @@ public partial class Schedule : BaseContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        
+
         // If content is already loaded, we're coming back from a modal - don't show overlay
         if (isContentLoaded)
         {
             Log.Debug("Schedule.xaml.cs: OnAppearing - Content already loaded, skipping overlay (modal was closed)");
             return;
         }
-        
+
         // Reset flags when page appears again (e.g., navigating back to it)
         hasHandledFirstLoad = false;
         isContentLoaded = false;
         isOverlayForcedVisible = false;
+        lastOverlayVisibleValue = null;
         // Load content asynchronously after page appears
         OnPageAppearing();
     }
