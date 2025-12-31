@@ -608,19 +608,29 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         logger.Debug("OnStateChanged: IsSchedulePageOverlayVisible={OverlayVisible}, CurrentScheduleId={ScheduleId}",
             overlayVisible, currentScheduleId);
 
-        // Always update overlay visibility when state changes
-        // This ensures the UI updates when SetSchedulePageOverlayAction is dispatched
-        // Use SetProperty to ensure proper change notification
+        // Update overlay visibility when state changes, but prevent showing it when just handling modal updates
+        // Only allow overlay to be set to true when schedule is actually changing (not just updating)
         var newOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
+        var isScheduleUpdate = currentScheduleId == lastScheduleId && modelInitialized;
+        
         if (newOverlayVisible != isSchedulePageOverlayVisible)
         {
-            logger.Debug("OnStateChanged: Overlay visibility changed from {OldValue} to {NewValue}",
-                isSchedulePageOverlayVisible, newOverlayVisible);
+            logger.Debug("OnStateChanged: Overlay visibility changed from {OldValue} to {NewValue}, IsScheduleUpdate={IsUpdate}",
+                isSchedulePageOverlayVisible, newOverlayVisible, isScheduleUpdate);
 
             // Use BeginInvokeOnMainThread to ensure we're on the UI thread
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                IsSchedulePageOverlayVisible = newOverlayVisible;
+                // Don't show overlay when just handling modal updates (schedule hasn't changed)
+                // Only allow hiding it or showing it when schedule is actually changing
+                if (!newOverlayVisible || !isScheduleUpdate)
+                {
+                    IsSchedulePageOverlayVisible = newOverlayVisible;
+                }
+                else
+                {
+                    logger.Debug("OnStateChanged: Preventing overlay from showing during modal update");
+                }
             });
         }
 

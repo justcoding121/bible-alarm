@@ -33,11 +33,11 @@ public partial class BusyOverlay : ContentView
 
                 // Force spinner to start/stop immediately when visibility changes
                 // This ensures smooth animation without binding delays
-                // Use BeginInvoke to ensure XAML is fully loaded
+                // Use Dispatch to ensure XAML is fully loaded
                 if (value)
                 {
                     // Wait for next UI cycle to ensure XAML is fully loaded
-                    MainThread.BeginInvokeOnMainThread(() =>
+                    this.Dispatcher.Dispatch(() =>
                     {
                         StartSpinnerImmediately();
                     });

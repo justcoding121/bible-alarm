@@ -27,14 +27,15 @@ public sealed class NavigationService(
     private bool isDisposed;
 
     // Helper method to create navigation retry policy
+    // Limit retries to prevent infinite loops when navigation is unavailable
     private RetryPolicy CreateNavigationRetryPolicy() => Policy
         .Handle<InvalidOperationException>()
         .WaitAndRetry(
-            retryCount: int.MaxValue,
+            retryCount: 10, // Limit to 10 retries (2 seconds total) to prevent infinite loops
             sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
             onRetry: (exception, timeSpan, retryCount, _) =>
             {
-                logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}). Error: {exception.Message}");
+                logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}/10). Error: {exception.Message}");
             });
 
 
@@ -42,7 +43,19 @@ public sealed class NavigationService(
     {
         if (cachedNavigation is not null)
         {
-            return cachedNavigation;
+            // Verify cached navigation is still valid before returning it
+            try
+            {
+                // Access a property to verify the navigation is still valid
+                _ = cachedNavigation.NavigationStack;
+                return cachedNavigation;
+            }
+            catch
+            {
+                // Cached navigation is invalid, clear it and try to get a new one
+                logger?.Debug("Cached navigation is invalid, clearing cache");
+                cachedNavigation = null;
+            }
         }
 
         if (!shouldRetry)
@@ -54,6 +67,13 @@ public sealed class NavigationService(
         var retryPolicy = CreateNavigationRetryPolicy();
 
         var retryResponse = retryPolicy.ExecuteAndCapture(() => NavigationFinder());
+
+        if (retryResponse.Outcome == OutcomeType.Failure)
+        {
+            // If retries failed, clear cache and throw the exception
+            cachedNavigation = null;
+            throw retryResponse.FinalException;
+        }
 
         return retryResponse.Result;
     }
@@ -81,8 +101,20 @@ public sealed class NavigationService(
             if (window?.Page is NavigationPage navPage)
             {
                 logger?.Debug("Found NavigationPage in window.Page");
-                cachedNavigation = navPage.Navigation;
-                return cachedNavigation;
+                var navigation = navPage.Navigation;
+                
+                // Verify navigation is accessible before caching
+                try
+                {
+                    _ = navigation.NavigationStack;
+                    cachedNavigation = navigation;
+                    return cachedNavigation;
+                }
+                catch (Exception ex)
+                {
+                    logger?.Debug(ex, "Navigation is not accessible yet, will retry");
+                    throw new InvalidOperationException("Navigation is not accessible yet", ex);
+                }
             }
         }
         else
@@ -423,8 +455,8 @@ public sealed class NavigationService(
         if (navigation.ModalStack.Count > 0)
         {
             var modal = navigation.ModalStack.LastOrDefault();
-            // Keep animation enabled for modal dismissal
-            var page = await navigation.PopModalAsync(animated: true);
+            // Disable animation for instant modal dismissal (especially for sub-modals from schedule page)
+            var page = await navigation.PopModalAsync(animated: false);
 
             // Dispose the modal - handle both direct modals and wrapped modals
             if (page is IDisposable disposablePage)

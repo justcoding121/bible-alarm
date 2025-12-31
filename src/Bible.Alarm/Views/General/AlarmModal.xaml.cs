@@ -197,7 +197,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             seekDebounceTimer = null;
 
             // User has stopped interacting - perform seek
-            MainThread.BeginInvokeOnMainThread(() =>
+            this.Dispatcher.Dispatch(() =>
             {
                 if (pendingSeekValue.HasValue && ViewModel != null)
                 {
@@ -282,7 +282,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             // Reset flag after a short delay to allow ValueChanged to process normally for drags
             Task.Delay(100).ContinueWith(_ =>
             {
-                MainThread.BeginInvokeOnMainThread(() =>
+                this.Dispatcher.Dispatch(() =>
                 {
                     isHandlingTap = false;
                 });

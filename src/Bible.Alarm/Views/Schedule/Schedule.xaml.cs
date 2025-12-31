@@ -70,7 +70,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 
         // Ensure overlay is visible when page appears
         // This is critical for both viewing and adding schedules
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        await this.Dispatcher.DispatchAsync(() =>
         {
             // Mark overlay as forced visible - this prevents ViewModel from hiding it
             isOverlayForcedVisible = true;
@@ -88,7 +88,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         await Task.Delay(50);
 
         // Now start the spinner after page is rendered
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        await this.Dispatcher.DispatchAsync(() =>
         {
             if (scheduleBusyOverlay != null)
             {
@@ -100,7 +100,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         });
 
         // Hide Home page overlay after Schedule page is visible
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        await this.Dispatcher.DispatchAsync(() =>
         {
             viewModel?.HideHomePageOverlay();
         });
@@ -121,7 +121,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         // If ViewModel wants to hide overlay, allow it
         if (viewModel != null && !viewModel.IsSchedulePageOverlayVisible)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            await this.Dispatcher.DispatchAsync(() =>
             {
                 if (scheduleBusyOverlay != null)
                 {
@@ -140,7 +140,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 #endif
 
         // Load content on UI thread (XAML parsing must be on UI thread)
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        await this.Dispatcher.DispatchAsync(() =>
         {
             // Create the content view with all heavy XAML
             var scheduleContent = new ScheduleContent
@@ -166,7 +166,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         if (e.PropertyName == nameof(ScheduleViewModel.IsSchedulePageOverlayVisible))
         {
             // Manually update BusyOverlay if binding isn't working
-            MainThread.BeginInvokeOnMainThread(() =>
+            this.Dispatcher.Dispatch(() =>
             {
                 if (scheduleBusyOverlay != null && viewModel != null)
                 {
@@ -198,6 +198,14 @@ public partial class Schedule : BaseContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        
+        // If content is already loaded, we're coming back from a modal - don't show overlay
+        if (isContentLoaded)
+        {
+            Log.Debug("Schedule.xaml.cs: OnAppearing - Content already loaded, skipping overlay (modal was closed)");
+            return;
+        }
+        
         // Reset flags when page appears again (e.g., navigating back to it)
         hasHandledFirstLoad = false;
         isContentLoaded = false;

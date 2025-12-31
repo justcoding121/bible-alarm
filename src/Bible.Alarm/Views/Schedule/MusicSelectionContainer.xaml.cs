@@ -122,7 +122,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             var token = debounceTokenSource.Token;
 
             // Small delay to debounce rapid changes, but trigger update immediately on UI thread
-            MainThread.BeginInvokeOnMainThread(() =>
+            this.Dispatcher.Dispatch(() =>
             {
                 if (!token.IsCancellationRequested && Handler != null)
                 {
@@ -141,7 +141,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 #endif
 
             // Small delay to ensure layout is complete
-            MainThread.BeginInvokeOnMainThread(async () =>
+            this.Dispatcher.DispatchAsync(async () =>
             {
                 await Task.Delay(200); // Delay to allow UI to update
                 ScrollToExpandedContent();
@@ -403,7 +403,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 
             // On initial load, ensure content visibility matches MusicEnabled state without animation
             // Use a small delay to ensure the visual tree is fully initialized
-            MainThread.BeginInvokeOnMainThread(async () =>
+            this.Dispatcher.DispatchAsync(async () =>
             {
                 // Wait a bit for the visual tree to be ready
                 await Task.Delay(100);
@@ -455,7 +455,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 #endif
 
                 // Scroll to bottom with animation
-                MainThread.BeginInvokeOnMainThread(async () =>
+                this.Dispatcher.DispatchAsync(async () =>
                 {
                     await Task.Delay(150); // Small delay to ensure layout is complete after animation
 
