@@ -59,6 +59,25 @@ public sealed class ScheduleListItem(
     }
 
     /// <summary>
+    /// Initializes the ScheduleListItem from pre-mapped AlarmSchedule data.
+    /// This is optimized for performance - mapping happens off UI thread, only UI operations here.
+    /// </summary>
+    public void InitializeFromSchedule(AlarmSchedule schedule, ScheduleStateItem? scheduleStateItem = null)
+    {
+        if (schedule == null || schedule.Id <= 0)
+        {
+            logger.Warning("InitializeFromSchedule: Invalid schedule or schedule ID {ScheduleId}", schedule?.Id ?? 0);
+            return;
+        }
+
+        // Get schedule state item if not provided (for subtitle tracking)
+        scheduleStateItem ??= applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == schedule.Id);
+
+        // Use shared initialization method
+        InitializeCommon(schedule, scheduleStateItem);
+    }
+
+    /// <summary>
     /// Initializes the ScheduleListItem from state using the schedule ID.
     /// This follows the state-driven architecture pattern where view models initialize from state.
     /// </summary>
@@ -81,6 +100,16 @@ public sealed class ScheduleListItem(
         // Map ScheduleStateItem to AlarmSchedule entity
         var schedule = mapper.Map<AlarmSchedule>(scheduleStateItem);
 
+        // Use shared initialization method
+        InitializeCommon(schedule, scheduleStateItem);
+    }
+
+    /// <summary>
+    /// Common initialization logic shared by InitializeFromSchedule and SetScheduleId.
+    /// Sets up the schedule, property notifications, event subscriptions, and commands.
+    /// </summary>
+    private void InitializeCommon(AlarmSchedule schedule, ScheduleStateItem? scheduleStateItem)
+    {
         isInitializing = true;
         try
         {
@@ -92,6 +121,7 @@ public sealed class ScheduleListItem(
             isInitializing = false;
         }
 
+        // Trigger property change notifications (UI thread operation)
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(TimeText));
         OnPropertyChanged(nameof(Hour));
@@ -101,6 +131,7 @@ public sealed class ScheduleListItem(
         OnPropertyChanged(nameof(DaysOfWeek));
         OnPropertyChanged(nameof(IsEnabled));
         OnPropertyChanged(nameof(MusicEnabled));
+        // Note: SubTitle and Language will be set by RefreshSubTitleFromState() below
 
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
@@ -108,8 +139,11 @@ public sealed class ScheduleListItem(
         lastKnownSchedule = Schedule;
 
         // Initialize tracked subtitle values from state
-        lastKnownBibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageName;
-        lastKnownBookName = scheduleStateItem.BibleReadingBookName;
+        if (scheduleStateItem != null)
+        {
+            lastKnownBibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageName;
+            lastKnownBookName = scheduleStateItem.BibleReadingBookName;
+        }
 
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -128,8 +162,9 @@ public sealed class ScheduleListItem(
             }
         });
 
-        // Initialize subtitle from state (BookName is pre-populated during bootstrap)
-        RefreshSubTitleFromState();
+        // Initialize subtitle and language from state (BookName is pre-populated during bootstrap)
+        // Use the provided scheduleStateItem if available to avoid re-looking it up
+        RefreshSubTitleFromState(scheduleStateItem);
 
         PreviousCommand = new AsyncRelayCommand(async () =>
         {
@@ -140,7 +175,8 @@ public sealed class ScheduleListItem(
                 {
                     await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
                 });
-                RefreshSubTitleFromState();
+                // Don't refresh here - OnApplicationStateChanged will handle it when state updates
+                // This prevents showing stale data before the state is updated
             }
         });
 
@@ -153,7 +189,8 @@ public sealed class ScheduleListItem(
                 {
                     await playlistService.MoveToNextBibleChapter(Schedule.Id);
                 });
-                RefreshSubTitleFromState();
+                // Don't refresh here - OnApplicationStateChanged will handle it when state updates
+                // This prevents showing stale data before the state is updated
             }
         });
 
@@ -290,7 +327,7 @@ public sealed class ScheduleListItem(
     /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated BookName).
     /// Falls back to async database lookup if BookName is not available in state.
     /// </summary>
-    private void RefreshSubTitleFromState()
+    private void RefreshSubTitleFromState(ScheduleStateItem? providedScheduleStateItem = null)
     {
         if (Schedule == null || Schedule.Id <= 0)
         {
@@ -301,8 +338,9 @@ public sealed class ScheduleListItem(
 
         try
         {
-            var scheduleStateItem = applicationState.Value.Schedules?
-                .FirstOrDefault(s => s.Id == scheduleId);
+            // Use provided scheduleStateItem if available, otherwise look it up from state
+            var scheduleStateItem = providedScheduleStateItem ?? 
+                applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
 
             if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)
             {
@@ -531,7 +569,8 @@ public sealed class ScheduleListItem(
         {
             lastKnownBibleReadingLanguageName = changeInfo.NewBibleReadingLanguageName;
             lastKnownBookName = changeInfo.NewBookName;
-            RefreshChapterName();
+            // Use the updated scheduleStateItem to ensure we have the latest data
+            RefreshSubTitleFromState(updatedScheduleItem);
         }
     }
 
