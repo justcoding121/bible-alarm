@@ -1,11 +1,13 @@
 #nullable enable
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 using Syncfusion.Maui.Core;
 
 namespace Bible.Alarm.Views.Shared;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class BusyOverlay : ContentView
 {
     private static readonly ILogger logger = Log.ForContext<BusyOverlay>();

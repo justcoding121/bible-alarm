@@ -1,12 +1,14 @@
 #nullable enable
 
 using Bible.Alarm.ViewModels.Schedule;
+using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 using System.ComponentModel;
 using System.Threading;
 
 namespace Bible.Alarm.Views.Schedule;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class MusicSelectionContainer : ContentView, IDisposable
 {
     private bool isAnimating;

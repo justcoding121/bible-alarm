@@ -4,12 +4,14 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Views;
+using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 #if ANDROID
 #endif
 
 namespace Bible.Alarm;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class App : Application
 {
     private readonly IExceptionHandlingService exceptionHandlingService;

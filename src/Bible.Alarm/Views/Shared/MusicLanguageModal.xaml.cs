@@ -5,10 +5,12 @@ using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class MusicLanguageModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;

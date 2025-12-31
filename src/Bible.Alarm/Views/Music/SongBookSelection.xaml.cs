@@ -3,9 +3,11 @@ using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Music;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class SongBookSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;

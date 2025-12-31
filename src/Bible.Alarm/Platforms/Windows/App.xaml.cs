@@ -4,6 +4,7 @@ using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Microsoft.Maui.Controls.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
 using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
@@ -13,6 +14,7 @@ namespace Bible.Alarm.WinUI;
 /// <summary>
 /// Provides application-specific behavior to supplement the default Application class.
 /// </summary>
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class App : MauiWinUIApplication
 {
     private static readonly ILogger logger = Log.ForContext<App>();

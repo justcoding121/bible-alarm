@@ -1,8 +1,10 @@
 #nullable enable
 using Bible.Alarm.Services.UI;
+using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views;
 
+[XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class Styles : ResourceDictionary
 {
     public Styles()
