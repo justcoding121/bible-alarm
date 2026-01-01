@@ -28,14 +28,15 @@ namespace Bible.Alarm.ViewModels.Schedule;
 public sealed class MusicSelectionContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
-    private readonly INavigationService navigationService;
-    private readonly IScheduleSelectionService scheduleSelectionService;
-    private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private readonly IServiceProvider serviceProvider;
-    private readonly IToastService toastService;
+
+    // Helper classes for modular functionality
+    private readonly MusicCommandInitializer commandInitializer;
+    private readonly MusicDisplayTextProvider displayTextProvider;
+    private readonly MusicPropertyNotifier propertyNotifier;
 
     private int scheduleId;
     private bool isNewSchedule;
@@ -44,13 +45,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private AlarmMusic? lastMusic;
     private AlarmSchedule? model;
 
-    private string? cachedSongBookName;
-    private string? lastMusicPublicationCode;
-    private string? cachedTrackName;
-    private int? lastMusicTrackNumber;
-    private string? lastTrackPublicationCode;
-    private string? lastTrackLanguageCode;
-    private MusicType? lastTrackMusicType;
     private bool isUpdatingFromState;
     private bool? pendingMusicEnabled; // Optimistic update value
     private bool? initialMusicEnabledOnPageLoad; // Track MusicEnabled state when schedule page was first opened
@@ -83,14 +77,16 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         IToastService toastService)
     {
         this.logger = logger;
-        this.navigationService = navigationService;
-        this.scheduleSelectionService = scheduleSelectionService;
-        this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
         this.serviceProvider = serviceProvider;
-        this.toastService = toastService;
+
+        // Initialize helper classes
+        commandInitializer = new MusicCommandInitializer(
+            logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
+        displayTextProvider = new MusicDisplayTextProvider(state);
+        propertyNotifier = new MusicPropertyNotifier(this, displayTextProvider);
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -123,7 +119,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             lastMusicEnabled = currentSchedule.MusicEnabled;
 
             // Batch property notifications to reduce UI thread work
-            NotifyMusicPropertiesChanged();
+            propertyNotifier.NotifyAllMusicPropertiesChanged();
 
             // Initialize track name cache from state if available (populated during bootstrap)
             // NOTE: Do NOT query database here - track names should be in state from bootstrap
@@ -134,11 +130,12 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 // If MusicTrackName is already in state (from bootstrap), use it immediately
                 if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
                 {
-                    cachedTrackName = currentSchedule.MusicTrackName;
-                    lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
-                    lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
-                    lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
-                    lastTrackMusicType = currentSchedule.MusicType;
+                    displayTextProvider.UpdateTrackCache(
+                        currentSchedule.MusicTrackName,
+                        currentSchedule.MusicTrackNumber,
+                        currentSchedule.MusicPublicationCode,
+                        currentSchedule.MusicLanguageCode,
+                        currentSchedule.MusicType);
                 }
             }
         }
@@ -146,109 +143,17 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     private void InitializeCommands()
     {
-        SelectMusicCommand = new AsyncRelayCommand(async () =>
-        {
-            // Run database operations off UI thread
-            music = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, music));
-
-            // Create view model and open modal
-            var musicSelectionViewModel = serviceProvider.GetRequiredService<MusicSelectionViewModel>();
-            await navigationService.OpenMusicSelectionModalAsync(musicSelectionViewModel);
-
-            // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(music);
-            dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
-        });
-
-        SelectMusicTypeCommand = new AsyncRelayCommand(async () =>
-        {
-            // Run database operations off UI thread
-            music = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, music));
-
-            // Create view model and open modal
-            var musicSelectionViewModel = serviceProvider.GetRequiredService<MusicSelectionViewModel>();
-            await navigationService.OpenMusicSelectionModalAsync(musicSelectionViewModel);
-
-            // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(music);
-            dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
-        });
-
-        SelectSongBookCommand = new AsyncRelayCommand(async () =>
-        {
-            // Run database operations off UI thread
-            music = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, music));
-
-            // Create view model and open modal
-            var songBookSelectionViewModel = serviceProvider.GetRequiredService<SongBookSelectionViewModel>();
-            await navigationService.OpenSongBookSelectionModalAsync(songBookSelectionViewModel);
-
-            // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(music);
-            dispatcher.Dispatch(new SongBookSelectionAction(musicStateItem));
-        });
-
-        SelectTrackCommand = new AsyncRelayCommand(async () =>
-        {
-            // Run database operations off UI thread
-            music = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, music));
-
-            // Create view model and open modal
-            var trackSelectionViewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
-            await navigationService.OpenTrackSelectionModalAsync(trackSelectionViewModel);
-
-            // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(music);
-            dispatcher.Dispatch(new TrackSelectionAction(musicStateItem));
-        });
-
-        SelectMusicLanguageCommand = new AsyncRelayCommand(async () =>
-        {
-            // Run database operations off UI thread
-            music = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, music));
-
-            // Create SongBookSelectionViewModel instance to open the language modal
-            var songBookSelectionViewModel = serviceProvider.GetRequiredService<SongBookSelectionViewModel>();
-
-            // Open the language modal using the SongBookSelectionViewModel
-            await navigationService.OpenLanguageModalAsync(songBookSelectionViewModel);
-        });
-
-        ToggleRepeatCommand = new RelayCommand(() =>
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null)
-            {
-                logger.Warning("ToggleRepeatCommand: CurrentSchedule is null, cannot toggle repeat");
-                return;
-            }
-
-            // Toggle the repeat value
-            var newRepeatValue = !(currentSchedule.MusicRepeat ?? false);
-
-            logger.Debug("ToggleRepeatCommand: Toggling repeat from {OldValue} to {NewValue}",
-                currentSchedule.MusicRepeat ?? false, newRepeatValue);
-
-            // Update state
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
-            scheduleStateItem.MusicRepeat = newRepeatValue;
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
-
-            // Show toast message when repeat is enabled, hide it when disabled
-            if (newRepeatValue)
-            {
-                toastService.ShowMessage("Repeat Enabled");
-            }
-            else
-            {
-                toastService.Clear();
-            }
-        });
+        SelectMusicCommand = commandInitializer.CreateSelectMusicCommand(
+            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+        SelectMusicTypeCommand = commandInitializer.CreateSelectMusicTypeCommand(
+            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+        SelectSongBookCommand = commandInitializer.CreateSelectSongBookCommand(
+            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+        SelectTrackCommand = commandInitializer.CreateSelectTrackCommand(
+            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+        SelectMusicLanguageCommand = commandInitializer.CreateSelectMusicLanguageCommand(
+            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+        ToggleRepeatCommand = commandInitializer.CreateToggleRepeatCommand();
     }
 
     public void SetModel(AlarmSchedule model)
@@ -321,11 +226,12 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
                         {
                             // Update cache and notify
-                            cachedTrackName = currentSchedule.MusicTrackName;
-                            lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
-                            lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
-                            lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
-                            lastTrackMusicType = currentSchedule.MusicType;
+                            displayTextProvider.UpdateTrackCache(
+                                currentSchedule.MusicTrackName,
+                                currentSchedule.MusicTrackNumber,
+                                currentSchedule.MusicPublicationCode,
+                                currentSchedule.MusicLanguageCode,
+                                currentSchedule.MusicType);
                             MainThread.BeginInvokeOnMainThread(() =>
                             {
                                 OnPropertyChanged(nameof(TrackDisplayText));
@@ -389,86 +295,15 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 // Trigger property change notifications with cascading logic
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    // Music type change cascades to all below
-                    if (notifyMusicType)
-                    {
-                        OnPropertyChanged(nameof(MusicTypeDisplayText));
-                        OnPropertyChanged(nameof(IsMusicLanguageVisible));
-                        OnPropertyChanged(nameof(IsSongBookVisible));
-
-                        // Clear cached values when music type changes
-                        cachedSongBookName = null;
-                        cachedTrackName = null;
-                        lastMusicPublicationCode = null;
-                        lastMusicTrackNumber = null;
-                        lastTrackPublicationCode = null;
-                        lastTrackLanguageCode = null;
-                        lastTrackMusicType = null;
-
-                        // For vocals: notify language, song book, and track
-                        // For melodies: only notify track
-                        if (scheduleMusicType == MusicType.Vocals)
-                        {
-                            OnPropertyChanged(nameof(MusicLanguageDisplayText));
-                            OnPropertyChanged(nameof(SongBookDisplayText));
-
-                            // Signal to scroll to bottom when user selects vocals (only if music is enabled)
-                            var currentSchedule = state.Value.CurrentSchedule;
-                            if (currentSchedule?.MusicEnabled == true)
-                            {
-                                ShouldScrollToBottom = true;
-                            }
-                        }
-                        OnPropertyChanged(nameof(TrackDisplayText));
-                    }
-                    // Language change (vocals only) cascades to song book and track
-                    else if (notifyLanguage && scheduleMusicType == MusicType.Vocals)
-                    {
-                        OnPropertyChanged(nameof(MusicLanguageDisplayText));
-                        OnPropertyChanged(nameof(SongBookDisplayText));
-                        OnPropertyChanged(nameof(TrackDisplayText));
-
-                        // Clear song book and track caches when language changes
-                        cachedSongBookName = null;
-                        cachedTrackName = null;
-                        lastMusicPublicationCode = null;
-                        lastMusicTrackNumber = null;
-                        lastTrackPublicationCode = null;
-                        lastTrackLanguageCode = null;
-                        lastTrackMusicType = null;
-                    }
-                    // Song book change cascades to track
-                    else if (notifySongBook)
-                    {
-                        OnPropertyChanged(nameof(SongBookDisplayText));
-                        OnPropertyChanged(nameof(TrackDisplayText));
-
-                        // Clear track cache when song book changes
-                        cachedTrackName = null;
-                        lastMusicTrackNumber = null;
-                        lastTrackPublicationCode = null;
-                        lastTrackLanguageCode = null;
-                        lastTrackMusicType = null;
-                    }
-                    // Track change only affects itself
-                    else if (notifyTrack)
-                    {
-                        OnPropertyChanged(nameof(TrackDisplayText));
-
-                        // Clear track cache when track changes
-                        cachedTrackName = null;
-                        lastMusicTrackNumber = null;
-                        lastTrackPublicationCode = null;
-                        lastTrackLanguageCode = null;
-                        lastTrackMusicType = null;
-                    }
-
-                    // Always notify repeat and has track selected if any music property changed
-                    if (notifyMusicType || notifyLanguage || notifySongBook || notifyTrack || repeatChanged)
-                    {
-                        OnPropertyChanged(nameof(IsRepeatEnabled));
-                        OnPropertyChanged(nameof(HasTrackSelected));
-                    }
+                    var currentSchedule = state.Value.CurrentSchedule;
+                    propertyNotifier.NotifyPropertiesChanged(
+                        notifyMusicType,
+                        notifyLanguage,
+                        notifySongBook,
+                        notifyTrack,
+                        repeatChanged,
+                        scheduleMusicType,
+                        shouldScroll => { if (currentSchedule?.MusicEnabled == true) ShouldScrollToBottom = shouldScroll; });
                 });
             }
         }
@@ -515,79 +350,13 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             // Trigger cascading property change notifications
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                // Music type change cascades to all below
-                if (musicTypeChanged)
-                {
-                    OnPropertyChanged(nameof(MusicTypeDisplayText));
-                    OnPropertyChanged(nameof(IsMusicLanguageVisible));
-                    OnPropertyChanged(nameof(IsSongBookVisible));
-
-                    // Clear cached values when music type changes
-                    cachedSongBookName = null;
-                    cachedTrackName = null;
-                    lastMusicPublicationCode = null;
-                    lastMusicTrackNumber = null;
-                    lastTrackPublicationCode = null;
-                    lastTrackLanguageCode = null;
-                    lastTrackMusicType = null;
-
-                    // For vocals: notify language, song book, and track
-                    // For melodies: only notify track
-                    if (newMusic.MusicType == MusicType.Vocals)
-                    {
-                        OnPropertyChanged(nameof(MusicLanguageDisplayText));
-                        OnPropertyChanged(nameof(SongBookDisplayText));
-                    }
-                    OnPropertyChanged(nameof(TrackDisplayText));
-                }
-                // Language change (vocals only) cascades to song book and track
-                else if (languageCodeChanged && newMusic.MusicType == MusicType.Vocals)
-                {
-                    OnPropertyChanged(nameof(MusicLanguageDisplayText));
-                    OnPropertyChanged(nameof(SongBookDisplayText));
-                    OnPropertyChanged(nameof(TrackDisplayText));
-
-                    // Clear song book and track caches when language changes
-                    cachedSongBookName = null;
-                    cachedTrackName = null;
-                    lastMusicPublicationCode = null;
-                    lastMusicTrackNumber = null;
-                    lastTrackPublicationCode = null;
-                    lastTrackLanguageCode = null;
-                    lastTrackMusicType = null;
-                }
-                // Song book change cascades to track
-                else if (publicationCodeChanged)
-                {
-                    OnPropertyChanged(nameof(SongBookDisplayText));
-                    OnPropertyChanged(nameof(TrackDisplayText));
-
-                    // Clear track cache when song book changes
-                    cachedTrackName = null;
-                    lastMusicTrackNumber = null;
-                    lastTrackPublicationCode = null;
-                    lastTrackLanguageCode = null;
-                    lastTrackMusicType = null;
-                }
-                // Track change only affects itself
-                else if (trackNumberChanged)
-                {
-                    OnPropertyChanged(nameof(TrackDisplayText));
-
-                    // Clear track cache when track changes
-                    cachedTrackName = null;
-                    lastMusicTrackNumber = null;
-                    lastTrackPublicationCode = null;
-                    lastTrackLanguageCode = null;
-                    lastTrackMusicType = null;
-                }
-
-                // Always notify repeat and has track selected if any music property changed
-                if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged)
-                {
-                    OnPropertyChanged(nameof(IsRepeatEnabled));
-                    OnPropertyChanged(nameof(HasTrackSelected));
-                }
+                propertyNotifier.NotifyPropertiesChanged(
+                    musicTypeChanged,
+                    languageCodeChanged,
+                    publicationCodeChanged,
+                    trackNumberChanged,
+                    false,
+                    newMusic.MusicType);
             });
         });
     }
@@ -746,251 +515,16 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         }
     }
 
-    public string MusicTypeDisplayText
-    {
-        get
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
-            {
-                return "Orchestral Melodies";
-            }
-
-            return currentSchedule.MusicType.Value switch
-            {
-                MusicType.Melodies => "Orchestral Melodies",
-                MusicType.Vocals => "Vocals",
-                _ => "Orchestral Melodies"
-            };
-        }
-    }
-
-    public bool IsSongBookVisible
-    {
-        get
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            return currentSchedule != null &&
-                   currentSchedule.MusicType.HasValue &&
-                   currentSchedule.MusicType.Value == MusicType.Vocals;
-        }
-    }
-
-    public bool IsMusicLanguageVisible
-    {
-        get
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            return currentSchedule != null &&
-                   currentSchedule.MusicType.HasValue &&
-                   currentSchedule.MusicType.Value == MusicType.Vocals;
-        }
-    }
-
-    public string MusicLanguageDisplayText
-    {
-        get
-        {
-            if (!IsMusicLanguageVisible)
-            {
-                return string.Empty;
-            }
-
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageName))
-            {
-                return string.Empty;
-            }
-
-            return currentSchedule.MusicLanguageName;
-        }
-    }
-
-    public string SongBookDisplayText
-    {
-        get
-        {
-            if (!IsSongBookVisible)
-            {
-                return string.Empty;
-            }
-
-            var currentSchedule = state.Value.CurrentSchedule;
-
-            // First, check if MusicPublicationName is already available in state (populated during bootstrap or from effect)
-            if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
-            {
-                // Update cache if it's different or empty
-                if (string.IsNullOrEmpty(cachedSongBookName) || cachedSongBookName != currentSchedule.MusicPublicationName)
-                {
-                    cachedSongBookName = currentSchedule.MusicPublicationName;
-                    lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
-                }
-                return currentSchedule.MusicPublicationName;
-            }
-
-            // Return cached value if available
-            if (!string.IsNullOrEmpty(cachedSongBookName))
-            {
-                return cachedSongBookName;
-            }
-
-            // Return empty if not loaded yet
-            return string.Empty;
-        }
-    }
-
-    public async Task<string> GetSongBookDisplayTextAsync()
-    {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null ||
-            !currentSchedule.MusicType.HasValue ||
-            currentSchedule.MusicType.Value != MusicType.Vocals ||
-            string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode) ||
-            string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
-        {
-            return string.Empty;
-        }
-
-        // First check if publication name is already in state (populated during bootstrap or from effect)
-        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
-        {
-            cachedSongBookName = currentSchedule.MusicPublicationName;
-            lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
-            return currentSchedule.MusicPublicationName;
-        }
-
-        // Return cached value if publication code hasn't changed
-        if (!string.IsNullOrEmpty(cachedSongBookName) &&
-            lastMusicPublicationCode == currentSchedule.MusicPublicationCode)
-        {
-            return cachedSongBookName;
-        }
-
-        // NOTE: Do NOT query database here - publication names should be in state from bootstrap
-        // If publication name is missing, it means bootstrap didn't populate it, which is an error
-        logger.Warning("GetSongBookDisplayTextAsync: Publication name not in state for MusicType=Vocals, PublicationCode={PublicationCode}. Publication name should be populated during bootstrap.",
-            currentSchedule.MusicPublicationCode);
-
-        return string.Empty;
-    }
-
-    public string TrackDisplayText
-    {
-        get
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null ||
-                !currentSchedule.MusicType.HasValue ||
-                !currentSchedule.MusicTrackNumber.HasValue ||
-                currentSchedule.MusicTrackNumber.Value <= 0)
-            {
-                return string.Empty;
-            }
-
-            // First, check if MusicTrackName is already available in state (populated during bootstrap)
-            if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
-            {
-                // Update cache if it's different or empty
-                if (string.IsNullOrEmpty(cachedTrackName) || cachedTrackName != currentSchedule.MusicTrackName)
-                {
-                    cachedTrackName = currentSchedule.MusicTrackName;
-                    lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
-                    lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
-                    lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
-                    lastTrackMusicType = currentSchedule.MusicType.Value;
-                }
-                return currentSchedule.MusicTrackName;
-            }
-
-            // Return cached value if available
-            if (!string.IsNullOrEmpty(cachedTrackName))
-            {
-                return cachedTrackName;
-            }
-
-            // Return empty if not loaded yet (will be loaded asynchronously)
-            return string.Empty;
-        }
-    }
-
-    public async Task<string> GetTrackDisplayTextAsync()
-    {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null ||
-            !currentSchedule.MusicType.HasValue ||
-            !currentSchedule.MusicTrackNumber.HasValue ||
-            currentSchedule.MusicTrackNumber.Value <= 0)
-        {
-            return string.Empty;
-        }
-
-        // First check if track name is already in state (populated during bootstrap)
-        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
-        {
-            cachedTrackName = currentSchedule.MusicTrackName;
-            lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
-            lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
-            lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
-            lastTrackMusicType = currentSchedule.MusicType.Value;
-            return currentSchedule.MusicTrackName;
-        }
-
-        // Return cached value if nothing changed
-        if (!string.IsNullOrEmpty(cachedTrackName) &&
-            lastMusicTrackNumber == currentSchedule.MusicTrackNumber.Value &&
-            lastTrackPublicationCode == currentSchedule.MusicPublicationCode &&
-            lastTrackLanguageCode == currentSchedule.MusicLanguageCode &&
-            lastTrackMusicType == currentSchedule.MusicType.Value)
-        {
-            return cachedTrackName;
-        }
-
-        // NOTE: Do NOT query database here - track names should be in state from bootstrap
-        // If track name is missing, it means bootstrap didn't populate it, which is an error
-        logger.Warning("GetTrackDisplayTextAsync: Track name not in state for MusicType={MusicType}, TrackNumber={TrackNumber}. Track name should be populated during bootstrap.",
-            currentSchedule.MusicType, currentSchedule.MusicTrackNumber);
-
-        return string.Empty;
-    }
-
-    public bool IsRepeatEnabled
-    {
-        get
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            return currentSchedule?.MusicRepeat ?? false;
-        }
-    }
-
-    public bool HasTrackSelected
-    {
-        get
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            return currentSchedule != null &&
-                   currentSchedule.MusicType.HasValue &&
-                   currentSchedule.MusicTrackNumber.HasValue &&
-                   currentSchedule.MusicTrackNumber.Value > 0;
-        }
-    }
-
-    /// <summary>
-    /// Notifies all music-related properties changed in a single batch.
-    /// This reduces UI thread work compared to individual notifications.
-    /// </summary>
-    private void NotifyMusicPropertiesChanged()
-    {
-        OnPropertyChanged(nameof(MusicEnabled));
-        OnPropertyChanged(nameof(MusicTypeDisplayText));
-        OnPropertyChanged(nameof(IsMusicLanguageVisible));
-        OnPropertyChanged(nameof(MusicLanguageDisplayText));
-        OnPropertyChanged(nameof(IsSongBookVisible));
-        OnPropertyChanged(nameof(SongBookDisplayText));
-        OnPropertyChanged(nameof(TrackDisplayText));
-        OnPropertyChanged(nameof(IsRepeatEnabled));
-        OnPropertyChanged(nameof(HasTrackSelected));
-    }
+    public string MusicTypeDisplayText => displayTextProvider.GetMusicTypeDisplayText();
+    public bool IsSongBookVisible => displayTextProvider.GetIsSongBookVisible();
+    public bool IsMusicLanguageVisible => displayTextProvider.GetIsMusicLanguageVisible();
+    public string MusicLanguageDisplayText => displayTextProvider.GetMusicLanguageDisplayText();
+    public string SongBookDisplayText => displayTextProvider.GetSongBookDisplayText();
+    public async Task<string> GetSongBookDisplayTextAsync() => await displayTextProvider.GetSongBookDisplayTextAsync();
+    public string TrackDisplayText => displayTextProvider.GetTrackDisplayText();
+    public async Task<string> GetTrackDisplayTextAsync() => await displayTextProvider.GetTrackDisplayTextAsync();
+    public bool IsRepeatEnabled => displayTextProvider.GetIsRepeatEnabled();
+    public bool HasTrackSelected => displayTextProvider.GetHasTrackSelected();
 
     public void Dispose()
     {
