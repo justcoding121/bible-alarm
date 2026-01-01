@@ -1,0 +1,66 @@
+#nullable enable
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
+using Serilog;
+
+namespace Bible.Alarm.Services.Media.Playback;
+
+/// <summary>
+/// Manages playback state (playlist, track index, schedule ID, etc.).
+/// Separated from PlaybackService for better modularity.
+/// </summary>
+public sealed class PlaybackStateManager
+{
+    private readonly ILogger logger;
+
+    public List<AudioPlayerTrack>? Playlist { get; set; }
+    public int CurrentTrackIndex { get; set; } = -1;
+    public int? CurrentScheduleId { get; set; }
+    public bool IsAlarm { get; set; }
+    public HashSet<int> ManuallyVisitedTrackIndices { get; } = [];
+    public CancellationTokenSource? PreparationCancellationTokenSource { get; set; }
+    public bool IsPreparingTrack { get; set; }
+
+    public PlaybackStateManager(ILogger logger)
+    {
+        this.logger = logger;
+    }
+
+    public void Reset()
+    {
+        CurrentScheduleId = null;
+        Playlist = null;
+        CurrentTrackIndex = -1;
+        IsAlarm = false;
+        ManuallyVisitedTrackIndices.Clear();
+
+        // Dispose cancellation token source
+        try
+        {
+            PreparationCancellationTokenSource?.Dispose();
+            PreparationCancellationTokenSource = null;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error disposing preparation cancellation token source");
+        }
+    }
+
+    public bool IsPreparingOrPlaying(IAudioPlayer audioPlayer)
+    {
+        // If we're actively preparing a track, always return true
+        // This prevents race conditions where state hasn't transitioned yet
+        if (IsPreparingTrack)
+        {
+            return true;
+        }
+
+        var isActuallyPlaying = audioPlayer.IsActuallyPlayingOrPaused;
+        var status = audioPlayer.Status;
+        return isActuallyPlaying ||
+               status == PlayStatus.Loading ||
+               status == PlayStatus.Playing ||
+               status == PlayStatus.Paused;
+    }
+}
+
