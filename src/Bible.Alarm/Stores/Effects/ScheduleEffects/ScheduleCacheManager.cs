@@ -4,7 +4,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Serilog;
 
-namespace Bible.Alarm.Stores.Effects;
+namespace Bible.Alarm.Stores.Effects.ScheduleEffects;
 
 /// <summary>
 /// Handles cache operations for schedules.

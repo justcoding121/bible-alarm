@@ -4,7 +4,7 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 
-namespace Bible.Alarm.Stores.Effects;
+namespace Bible.Alarm.Stores.Effects.ScheduleEffects;
 
 /// <summary>
 /// Handles updating of schedule entities in the database.

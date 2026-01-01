@@ -16,7 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Schedule;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelection;
 
 /// <summary>
 /// Handles initialization of commands for music selection.

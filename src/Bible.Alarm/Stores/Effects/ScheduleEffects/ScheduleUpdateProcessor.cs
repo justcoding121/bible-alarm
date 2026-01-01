@@ -9,7 +9,7 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.Stores.Effects;
+namespace Bible.Alarm.Stores.Effects.ScheduleEffects;
 
 /// <summary>
 /// Handles processing of schedule update operations.

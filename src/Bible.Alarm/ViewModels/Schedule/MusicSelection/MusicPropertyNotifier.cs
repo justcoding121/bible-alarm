@@ -2,7 +2,7 @@
 using Bible.Alarm.Shared.Models.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Schedule;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelection;
 
 /// <summary>
 /// Handles cascading property change notifications for music properties.

@@ -16,6 +16,7 @@ using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Schedule.MusicSelection;
 using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

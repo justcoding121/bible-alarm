@@ -1,7 +1,7 @@
 #nullable enable
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Schedule;
+namespace Bible.Alarm.ViewModels.Schedule.BibleSelection;
 
 /// <summary>
 /// Handles cascading property change notifications for bible properties.

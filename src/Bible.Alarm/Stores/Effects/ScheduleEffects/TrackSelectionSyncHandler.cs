@@ -8,7 +8,7 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.Stores.Effects;
+namespace Bible.Alarm.Stores.Effects.ScheduleEffects;
 
 /// <summary>
 /// Handles syncing of track selection to CurrentSchedule.

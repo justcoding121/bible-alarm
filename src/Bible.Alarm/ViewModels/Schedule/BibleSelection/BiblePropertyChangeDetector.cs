@@ -1,7 +1,7 @@
 #nullable enable
 using Bible.Alarm.Stores.Models;
 
-namespace Bible.Alarm.ViewModels.Schedule;
+namespace Bible.Alarm.ViewModels.Schedule.BibleSelection;
 
 /// <summary>
 /// Detects property changes in bible selection.

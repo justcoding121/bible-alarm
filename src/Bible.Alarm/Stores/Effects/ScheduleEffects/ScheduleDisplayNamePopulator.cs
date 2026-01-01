@@ -7,7 +7,7 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 
-namespace Bible.Alarm.Stores.Effects;
+namespace Bible.Alarm.Stores.Effects.ScheduleEffects;
 
 /// <summary>
 /// Handles population of display names for schedule state items.
