@@ -431,6 +431,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private async Task CompleteScheduleLoadAsync()
     {
         await scheduleInitializationService.CompleteScheduleLoadAsync();
+        
+        // Mark model as initialized for existing schedules
+        modelInitialized = true;
+        
         IsBusy = false;
         OnPropertyChanged(nameof(IsBusy));
 
