@@ -8,6 +8,7 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
+using Bible.Alarm.ViewModels.Shared.AlarmViewModal;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -27,21 +28,19 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
     private readonly IGeneralSettingsService generalSettingsService;
 
     private bool isDisposed;
-    private bool hasReceivedInitialState;
-    private string? previousTrackTitle;
-    private string? previousTrackArtist;
-    private string? previousTrackAlbum;
-    private string? previousArtworkUrl;
     private TimeSpan currentDuration = TimeSpan.Zero;
-    // True when user is dragging or tapping the slider
-    private bool isUserInteracting;
-    // Track where user wants to seek to
-    private double? targetSeekProgress;
+
+    // Helper classes
+    private readonly AlarmViewModalCommandInitializer commandInitializer;
+    private readonly AlarmViewModalReviewHandler reviewHandler;
+    private readonly AlarmViewModalStateUpdater stateUpdater;
+    private readonly AlarmViewModalSliderHandler sliderHandler;
+    private readonly AlarmViewModalArtworkHandler artworkHandler;
 
     /// <summary>
     /// Public property to allow code-behind to check if user is interacting
     /// </summary>
-    public bool IsUserInteracting => isUserInteracting;
+    public bool IsUserInteracting => sliderHandler.IsUserInteracting;
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
@@ -69,8 +68,37 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         currentTime = "00:00";
         endTime = "00:00";
 
-        // Controls are hidden until first playback state is received
-        hasReceivedInitialState = false;
+        // Initialize helper classes
+        reviewHandler = new AlarmViewModalReviewHandler(logger, generalSettingsService);
+        commandInitializer = new AlarmViewModalCommandInitializer(logger, playbackService, reviewHandler.HandleReviewRequestAsync);
+        stateUpdater = new AlarmViewModalStateUpdater(
+            logger,
+            (t) => Title = t,
+            (s) => SubTitle = s,
+            (d) => Description = d,
+            (e) => EndTime = e,
+            (e) => ErrorMessage = e,
+            (n) => NextEnabled = n,
+            (p) => PreviousEnabled = p,
+            (p) => PlayVisible = p,
+            (p) => PauseVisible = p,
+            (d) => currentDuration = d,
+            (url) => UpdateArtwork(url),
+            () => OnPropertyChanged(nameof(AreControlsEnabled)),
+            () => OnPropertyChanged(nameof(ProgressText)),
+            () => OnPropertyChanged(nameof(PreparationProgress)),
+            () => OnPropertyChanged(nameof(HasError)));
+        sliderHandler = new AlarmViewModalSliderHandler(
+            logger,
+            () => AreControlsEnabled,
+            () => currentDuration,
+            SetProgressDirectly,
+            () => OnPropertyChanged(nameof(Progress)));
+        artworkHandler = new AlarmViewModalArtworkHandler(
+            logger,
+            (s) => ArtworkSource = s,
+            (l) => IsArtworkLoading = l,
+            () => artworkBytes = null);
 
         // Subscribe to Fluxor state changes for reactive updates
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -79,65 +107,20 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
         WeakReferenceMessenger.Default.Register<PlaybackPreparationProgressMessage>(this);
 
+        // Initialize commands
+        DismissCommand = commandInitializer.CreateDismissCommand();
+        CancelCommand = commandInitializer.CreateCancelCommand();
+        PlayCommand = commandInitializer.CreatePlayCommand();
+        PauseCommand = commandInitializer.CreatePauseCommand();
+        PreviousCommand = commandInitializer.CreatePreviousCommand();
+        NextCommand = commandInitializer.CreateNextCommand();
+        ForwardCommand = commandInitializer.CreateForwardCommand();
+        BackwardCommand = commandInitializer.CreateBackwardCommand();
+        SeekCommand = commandInitializer.CreateSeekCommand();
+        sliderHandler.SetSeekCommand(SeekCommand);
+
         // Initialize from current state
         UpdateFromState();
-
-        DismissCommand = new AsyncRelayCommand(async () =>
-        {
-            logger.Information("DismissCommand executed - stopping playback and cancelling downloads");
-            try
-            {
-                // Stop immediately - cancellation will be handled by PlaybackService
-                await playbackService.StopAsync();
-                await HandleReviewRequest();
-                logger.Information("DismissCommand completed successfully");
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in DismissCommand");
-                // Don't throw - ensure cleanup happens even on error
-            }
-        }, () => true); // Always allow execution
-
-        CancelCommand = new RelayCommand(() =>
-        {
-            // This command doesn't need navigation - the modal will be closed when playback is dismissed
-        });
-
-        PlayCommand = new AsyncRelayCommand(async () =>
-        {
-            await playbackService.PlayAsync();
-        });
-
-        PauseCommand = new AsyncRelayCommand(async () =>
-        {
-            await playbackService.PauseAsync();
-        });
-
-        PreviousCommand = new AsyncRelayCommand(async () =>
-        {
-            await playbackService.PlayPreviousAsync();
-        });
-
-        NextCommand = new AsyncRelayCommand(async () =>
-        {
-            await playbackService.PlayNextAsync();
-        });
-
-        ForwardCommand = new AsyncRelayCommand(async () =>
-        {
-            await playbackService.SeekForwardAsync();
-        });
-
-        BackwardCommand = new AsyncRelayCommand(async () =>
-        {
-            await playbackService.SeekBackwardAsync();
-        });
-
-        SeekCommand = new AsyncRelayCommand<TimeSpan>(async position =>
-        {
-            await playbackService.SeekToAsync(position);
-        });
 
         // NOTE:
         // Do not reset Title/SubTitle/Description/etc here.
@@ -175,65 +158,6 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         await Task.Delay(100);
     }
 
-    private async Task HandleReviewRequest()
-    {
-        try
-        {
-            await Task.Run(async () =>
-            {
-                if (!await generalSettingsService.GeneralSettingExistsAsync(
-                        AppConstants.GeneralSettingsKeys.ReviewRequested))
-                {
-                    await ProcessDismissCount();
-                }
-            });
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "An error happened when review was requested.");
-        }
-    }
-
-    private async Task ProcessDismissCount()
-    {
-        var dismissCount = await generalSettingsService.GetGeneralSettingAsync(
-            AppConstants.GeneralSettingsKeys.DismissCount);
-
-        if (dismissCount != null && dismissCount.Value != null && int.Parse(dismissCount.Value) >= 6)
-        {
-            await RequestReview();
-        }
-        else
-        {
-            await IncrementDismissCount(dismissCount);
-        }
-    }
-
-    private async Task RequestReview()
-    {
-        await generalSettingsService.SetGeneralSettingAsync(
-            AppConstants.GeneralSettingsKeys.ReviewRequested,
-            "True");
-
-        await MainThread.InvokeOnMainThreadAsync(async () =>
-            await CrossStoreReview.Current.RequestReview(false));
-    }
-
-    private async Task IncrementDismissCount(GeneralSettings? dismissCount)
-    {
-        if (dismissCount?.Value != null)
-        {
-            await generalSettingsService.SetGeneralSettingAsync(
-                AppConstants.GeneralSettingsKeys.DismissCount,
-                (int.Parse(dismissCount.Value) + 1).ToString());
-        }
-        else
-        {
-            await generalSettingsService.SetGeneralSettingAsync(
-                AppConstants.GeneralSettingsKeys.DismissCount,
-                "1");
-        }
-    }
 
     private string title;
 
@@ -366,24 +290,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
     /// </summary>
     public void OnSliderTapped(double targetValue)
     {
-        logger?.Debug("[Slider] Tap detected - TargetValue: {TargetValue}", targetValue);
-
-        if (!AreControlsEnabled || currentDuration.TotalSeconds <= 0)
-        {
-            return;
-        }
-
-        // Clamp value to valid range (0.0 to 1.0)
-        var progress = Math.Max(0.0, Math.Min(1.0, targetValue));
-        targetSeekProgress = progress;
-
-        // Update visual position directly (bypass Progress setter to avoid feedback loop)
-        isUserInteracting = true;
-        this.progress = progress;
-        OnPropertyChanged(nameof(Progress));
-
-        // Perform seek immediately for tap
-        PerformSeek();
+        sliderHandler.OnSliderTapped(targetValue);
     }
 
     /// <summary>
@@ -391,8 +298,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
     /// </summary>
     public void OnSliderDragStarted()
     {
-        isUserInteracting = true;
-        logger?.Debug("[Slider] Drag started");
+        sliderHandler.OnSliderDragStarted();
     }
 
     /// <summary>
@@ -400,62 +306,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
     /// </summary>
     public void OnSliderDragCompleted(double finalValue)
     {
-        logger?.Debug("[Slider] Drag completed - FinalValue: {FinalValue}", finalValue);
-
-        if (!AreControlsEnabled || currentDuration.TotalSeconds <= 0)
-        {
-            isUserInteracting = false;
-            return;
-        }
-
-        // Update target and perform seek immediately
-        var progress = Math.Max(0.0, Math.Min(1.0, finalValue));
-        targetSeekProgress = progress;
-
-        // Update visual position (bypass Progress setter to avoid feedback loop)
-        this.progress = progress;
-        OnPropertyChanged(nameof(Progress));
-
-        PerformSeek();
-    }
-
-    /// <summary>
-    /// Performs the actual seek operation to the target position
-    /// </summary>
-    private void PerformSeek()
-    {
-        if (!targetSeekProgress.HasValue || !AreControlsEnabled || currentDuration.TotalSeconds <= 0)
-        {
-            isUserInteracting = false;
-            targetSeekProgress = null;
-            return;
-        }
-
-        try
-        {
-            var seekPosition = TimeSpan.FromSeconds(currentDuration.TotalSeconds * targetSeekProgress.Value);
-            logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}",
-                seekPosition, targetSeekProgress.Value);
-
-            if (SeekCommand != null && SeekCommand.CanExecute(seekPosition))
-            {
-                SeekCommand.Execute(seekPosition);
-            }
-
-            // Reset interaction flag after delay to allow seek to complete
-            Task.Delay(500).ContinueWith(_ =>
-            {
-                isUserInteracting = false;
-                targetSeekProgress = null;
-                logger?.Debug("[Slider] User interaction ended");
-            });
-        }
-        catch (Exception ex)
-        {
-            logger?.Error(ex, "[Slider] Error performing seek");
-            isUserInteracting = false;
-            targetSeekProgress = null;
-        }
+        sliderHandler.OnSliderDragCompleted(finalValue);
     }
 
     private bool nextEnabled;
@@ -508,7 +359,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
     /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
     /// </summary>
     public bool AreControlsEnabled =>
-        hasReceivedInitialState &&
+        stateUpdater.HasReceivedInitialState &&
         !IsPreparing &&
         !HasError &&
         !IsBusy &&
@@ -547,116 +398,23 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var state = playbackState.Value;
-            var trackChanged = DetectTrackChange(state);
-            HandleTrackChange(trackChanged, state);
-            UpdateControlsFromState(state);
-            UpdateMetadataFromState(state, trackChanged);
-            UpdatePlaybackStateFromState(state);
+            var trackChanged = stateUpdater.DetectTrackChange(state);
+            stateUpdater.HandleTrackChange(trackChanged, state);
+            stateUpdater.UpdateControlsFromState(state);
+            stateUpdater.UpdateMetadataFromState(state, trackChanged);
+            stateUpdater.UpdatePlaybackStateFromState(state);
         });
-    }
-
-    private bool DetectTrackChange(PlaybackState state)
-    {
-        var currentTitle = state.Title ?? "";
-        var currentArtist = state.Artist ?? "";
-        var currentAlbum = state.Album ?? "";
-
-        return hasReceivedInitialState &&
-               (previousTrackTitle != currentTitle ||
-                previousTrackArtist != currentArtist ||
-                previousTrackAlbum != currentAlbum);
-    }
-
-    private void HandleTrackChange(bool trackChanged, PlaybackState state)
-    {
-        if (trackChanged)
-        {
-            hasReceivedInitialState = false;
-            OnPropertyChanged(nameof(AreControlsEnabled));
-        }
-
-        if (!hasReceivedInitialState &&
-            (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
-        {
-            hasReceivedInitialState = true;
-            OnPropertyChanged(nameof(AreControlsEnabled));
-        }
-
-        if (hasReceivedInitialState)
-        {
-            previousTrackTitle = state.Title ?? "";
-            previousTrackArtist = state.Artist ?? "";
-            previousTrackAlbum = state.Album ?? "";
-        }
-    }
-
-    private void UpdateControlsFromState(PlaybackState state)
-    {
-        // Only enable prev/next buttons when playback actually starts (Playing or Paused status)
-        // Don't show buttons during Loading/buffering or when not playing
-        // When showing default schedule metadata (not playing), buttons should be disabled
-        if (state.IsPreparingOrPlaying && (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
-        {
-            // During actual playback (Playing or Paused):
-            // - Next button: enabled only if not on last track
-            // - Previous button: always enabled (first track restarts current track, matching Android Auto behavior)
-            NextEnabled = state.CanPlayNext;
-            PreviousEnabled = true; // Always enable previous during playback (first track restarts current track)
-        }
-        else
-        {
-            // Not playing or still loading/buffering: disable both buttons (only play button should be available)
-            NextEnabled = false;
-            PreviousEnabled = false;
-        }
-    }
-
-    private void UpdateMetadataFromState(PlaybackState state, bool trackChanged)
-    {
-        Title = state.Title ?? "";
-        SubTitle = state.Artist ?? "";
-        Description = state.Album ?? "";
-
-        var artworkUrl = state.ArtworkUrl;
-        var shouldForceUpdate = trackChanged || (previousArtworkUrl != artworkUrl);
-        if (shouldForceUpdate)
-        {
-            previousArtworkUrl = artworkUrl;
-            if (trackChanged)
-            {
-                lastArtworkUrl = null;
-            }
-            UpdateArtwork(artworkUrl);
-        }
-    }
-
-    private void UpdatePlaybackStateFromState(PlaybackState state)
-    {
-        var duration = state.Duration;
-        currentDuration = duration;
-        EndTime = $"{duration.Minutes:00}:{duration.Seconds:00}";
-
-        ErrorMessage = state.ErrorMessage ?? "";
-
-        // Show pause button if playing OR if auto-advancing (smooth transition during initial play and track transitions)
-        // This prevents the play button from briefly appearing during Loading/buffering when auto-advancing
-        // Matches Android Auto behavior: pause button visible during Buffering state when auto-advancing
-        var isPlaying = state.Status == PlayStatus.Playing ||
-                        (state.IsAutoAdvancing && state.Status != PlayStatus.Paused);
-        PlayVisible = !isPlaying;
-        PauseVisible = isPlaying;
-
-        OnPropertyChanged(nameof(ProgressText));
-        OnPropertyChanged(nameof(PreparationProgress));
-        OnPropertyChanged(nameof(HasError));
-        OnPropertyChanged(nameof(AreControlsEnabled));
     }
 
     public void Receive(PlaybackPositionChangedMessage message)
     {
-        if (ShouldIgnorePositionUpdate(message))
+        if (message.CurrentPosition.HasValue && currentDuration.TotalSeconds > 0)
         {
-            return;
+            var actualProgress = message.CurrentPosition.Value.TotalSeconds / currentDuration.TotalSeconds;
+            if (sliderHandler.ShouldIgnorePositionUpdate(actualProgress))
+            {
+                return;
+            }
         }
 
         MainThread.BeginInvokeOnMainThread(() =>
@@ -664,29 +422,6 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
             UpdatePositionFromMessage(message);
             OnPropertyChanged(nameof(ProgressText));
         });
-    }
-
-    private bool ShouldIgnorePositionUpdate(PlaybackPositionChangedMessage message)
-    {
-        if (!isUserInteracting)
-        {
-            return false;
-        }
-
-        if (message.CurrentPosition.HasValue && targetSeekProgress.HasValue && currentDuration.TotalSeconds > 0)
-        {
-            var actualProgress = message.CurrentPosition.Value.TotalSeconds / currentDuration.TotalSeconds;
-            var progressDiff = Math.Abs(actualProgress - targetSeekProgress.Value);
-
-            if (progressDiff < 0.02)
-            {
-                isUserInteracting = false;
-                targetSeekProgress = null;
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void UpdatePositionFromMessage(PlaybackPositionChangedMessage message)
@@ -750,7 +485,6 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
     private void UpdateArtwork(string? artworkUrl)
     {
-        // Avoid unnecessary updates if URL hasn't changed
         if (lastArtworkUrl == artworkUrl)
         {
             return;
@@ -761,7 +495,6 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
         if (string.IsNullOrEmpty(artworkUrl))
         {
-            // Only clear if we currently have artwork displayed
             if (artworkSource != null)
             {
                 ClearArtwork();
@@ -769,8 +502,6 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
             return;
         }
 
-        // Only clear existing artwork if we're switching to a different artwork
-        // Don't clear if we're loading artwork for the first time (to avoid showing bell icon briefly)
         if (artworkSource != null && !string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
         {
             ClearArtwork();
@@ -807,7 +538,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         ArtworkSource = null;
         artworkBytes = null;
         IsArtworkLoading = false;
-        lastArtworkUrl = null; // Reset so we can reload if needed
+        lastArtworkUrl = null;
     }
 
     private bool TryLoadFromUri(string artworkUrl)

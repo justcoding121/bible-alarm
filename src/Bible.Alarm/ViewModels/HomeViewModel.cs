@@ -13,6 +13,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.HomeViewModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -30,8 +31,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly IScheduleMigrationService scheduleMigrationService;
     private readonly IAlarmScheduleService alarmScheduleService;
 
-    private readonly Dictionary<int, ScheduleListItemViewModel> scheduleViewModels = [];
-
     private readonly Func<int, ScheduleListItemViewModel> scheduleListItemFactory;
     private readonly IMapper mapper;
 
@@ -40,9 +39,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly IState<PlaybackState> playbackState;
     private readonly INavigationService navigationService;
 
-    // Track recent play button clicks to prevent navigation race condition
-    private readonly Dictionary<int, DateTime> recentPlayClicks = new();
-    private const int PlayClickCooldownMs = 500; // 500ms cooldown after play click
+    // Helper classes
+    private readonly ScheduleDataPreparer scheduleDataPreparer;
+    private readonly ScheduleViewModelManager scheduleViewModelManager;
+    private readonly HomeNavigationHelper navigationHelper;
 
     // Track last processed state to prevent redundant processing
     private int? lastProcessedSchedulesCount;
@@ -73,6 +73,11 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         this.navigationService = navigationService;
         this.mapper = mapper;
 
+        // Initialize helper classes
+        scheduleDataPreparer = new ScheduleDataPreparer(mapper);
+        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, state, playbackState, mapper);
+        scheduleViewModelManager = new ScheduleViewModelManager(logger, scopeFactory, navigationHelper.TrackPlayClick);
+
         AddScheduleCommand = new AsyncRelayCommand(async () =>
         {
             // Reset schedule state before creating a new schedule
@@ -89,12 +94,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            if (ShouldSkipNavigation(x.Schedule.Id))
+            if (navigationHelper.ShouldSkipNavigation(x.Schedule.Id, scheduleViewModelManager.ScheduleViewModels))
             {
                 return;
             }
 
-            await ShowOverlayAndNavigateAsync(x);
+            await navigationHelper.ShowOverlayAndNavigateAsync(x, scheduleViewModelManager.ScheduleViewModels);
         });
 
         state.StateChanged += OnStateChanged;
@@ -125,234 +130,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Prepares schedule data structures off UI thread (IDs, filtering, and mapping).
-    /// This moves CPU-intensive operations off the UI thread:
-    /// - List snapshot creation
-    /// - Filtering invalid schedules
-    /// - AutoMapper mapping (ScheduleStateItem -> AlarmSchedule)
-    /// Returns prepared data that can be used to initialize ViewModels on UI thread.
-    /// </summary>
-    private (Dictionary<int, AlarmSchedule> scheduleDataMap, Dictionary<int, ScheduleStateItem> scheduleStateItemMap) PrepareScheduleDataOffUIThread(ObservableHashSet<ScheduleStateItem> scheduleItems)
-    {
-        var scheduleDataMap = new Dictionary<int, AlarmSchedule>();
-        var scheduleStateItemMap = new Dictionary<int, ScheduleStateItem>();
-
-        // Create a snapshot of the schedule items collection to avoid "Collection was modified" exception
-        // This can happen when state changes occur rapidly (e.g., track transitions)
-        var scheduleItemsSnapshot = scheduleItems.ToList();
-
-        // Process each schedule item from the snapshot
-        // Filter out unsaved schedules (ID <= 0) - these should not appear in the home list
-        // Map ScheduleStateItem to AlarmSchedule (CPU-intensive AutoMapper operation)
-        // All of this happens off UI thread
-        foreach (var scheduleItem in scheduleItemsSnapshot)
-        {
-            var scheduleId = scheduleItem.Id;
-
-            // Skip unsaved schedules (ID <= 0) - they should not appear in the home list
-            if (scheduleId <= 0)
-            {
-                continue;
-            }
-
-            // Store ScheduleStateItem for subtitle tracking (needed by InitializeFromSchedule)
-            scheduleStateItemMap[scheduleId] = scheduleItem;
-
-            // Map ScheduleStateItem to AlarmSchedule entity (CPU-intensive, can be off UI thread)
-            // AutoMapper is thread-safe for mapping operations
-            var schedule = mapper.Map<AlarmSchedule>(scheduleItem);
-            scheduleDataMap[scheduleId] = schedule;
-        }
-
-        return (scheduleDataMap, scheduleStateItemMap);
-    }
-
-    /// <summary>
-    /// Helper method to update existing ScheduleListItem with pre-mapped data.
-    /// Only UI-touching operations (property notifications) happen here.
-    /// </summary>
-    private void UpdateScheduleListItemFromData(ScheduleListItemViewModel viewModel, AlarmSchedule schedule, int scheduleId, ScheduleStateItem? scheduleStateItem = null)
-    {
-        // Use the optimized InitializeFromSchedule method which only does UI operations
-        viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
-    }
-
-    /// <summary>
-    /// Helper method to initialize new ScheduleListItem with pre-mapped data.
-    /// Only UI-touching operations (property notifications, event subscriptions) happen here.
-    /// </summary>
-    private void InitializeScheduleListItemFromData(ScheduleListItemViewModel viewModel, AlarmSchedule schedule, int scheduleId, ScheduleStateItem? scheduleStateItem = null)
-    {
-        // Use the optimized InitializeFromSchedule method which only does UI operations
-        viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
-    }
-
-    /// <summary>
-    /// Prepares ViewModels and updates collection. Must be called on UI thread.
-    /// Uses pre-prepared data from PrepareScheduleDataOffUIThread.
-    /// Only UI-touching operations (property notifications, event subscriptions) happen here.
-    /// </summary>
-    private (List<ScheduleListItemViewModel> schedulesToAdd, List<int> schedulesToRemove, ObservableHashSet<ScheduleListItemViewModel> newSchedules) PrepareScheduleViewModelsOnUIThread(
-        Dictionary<int, AlarmSchedule> scheduleDataMap,
-        Dictionary<int, ScheduleStateItem> scheduleStateItemMap)
-    {
-        var schedulesToAdd = new List<ScheduleListItemViewModel>();
-        var schedulesToRemove = new List<int>();
-        var currentViewModelIds = new HashSet<int>(scheduleDataMap.Keys);
-
-        // Initialize Schedules if null
-        Schedules ??= [];
-
-        // Process each schedule using pre-mapped data
-        foreach (var (scheduleId, schedule) in scheduleDataMap)
-        {
-            // Get ScheduleStateItem for subtitle tracking
-            scheduleStateItemMap.TryGetValue(scheduleId, out var scheduleStateItem);
-
-            if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
-            {
-                // Existing view model - update it with pre-mapped data
-                // This avoids re-accessing state and re-mapping on UI thread
-                UpdateScheduleListItemFromData(existingViewModel, schedule, scheduleId, scheduleStateItem);
-
-                // Ensure callbacks are set (in case it was created before we added this logic)
-                if (existingViewModel.OnPlayStarted == null)
-                {
-                    existingViewModel.OnPlayStarted = () =>
-                    {
-                        // Track play button click to prevent navigation
-                        recentPlayClicks[scheduleId] = DateTime.UtcNow;
-                    };
-                }
-                if (existingViewModel.OnPlaybackStarted == null)
-                {
-                    existingViewModel.OnPlaybackStarted = () =>
-                    {
-                        // Playback started - no action needed
-                    };
-                }
-            }
-            else
-            {
-                // New schedule - create new view model and initialize with pre-mapped data
-                logger.Debug("PrepareScheduleViewModels: Creating new ScheduleListItem for schedule {ScheduleId}", scheduleId);
-
-                // Get ViewModel from service provider (just object creation, no initialization yet)
-                var viewModel = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ScheduleListItemViewModel>();
-
-                // Initialize with pre-mapped data (only UI-touching operations here)
-                InitializeScheduleListItemFromData(viewModel, schedule, scheduleId, scheduleStateItem);
-
-                // Verify the view model was initialized correctly
-                if (viewModel.Schedule == null)
-                {
-                    logger.Warning("PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} was not initialized properly (Schedule is null)", scheduleId);
-                }
-                else
-                {
-                    logger.Debug("PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} initialized successfully with name '{Name}'",
-                        scheduleId, viewModel.Schedule.Name);
-                }
-
-                // Set callbacks when play is pressed/started
-                viewModel.OnPlayStarted = () =>
-                {
-                    // Track play button click to prevent navigation
-                    recentPlayClicks[scheduleId] = DateTime.UtcNow;
-                };
-                viewModel.OnPlaybackStarted = () =>
-                {
-                    // Playback started - no action needed
-                };
-                scheduleViewModels[scheduleId] = viewModel;
-                schedulesToAdd.Add(viewModel);
-            }
-        }
-
-        // Identify view models to remove
-        var toRemove = scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
-        foreach (var id in toRemove)
-        {
-            if (!scheduleViewModels.TryGetValue(id, out var viewModel))
-            {
-                continue;
-            }
-
-            schedulesToRemove.Add(id);
-            viewModel.Dispose();
-            scheduleViewModels.Remove(id);
-        }
-
-        // Prepare new collection
-        var newSchedules = new ObservableHashSet<ScheduleListItemViewModel>();
-
-        // Create a snapshot of current Schedules to avoid "Collection was modified" exception
-        var currentSchedulesSnapshot = Schedules.ToList();
-
-        // Add all existing items that aren't being removed
-        foreach (var item in currentSchedulesSnapshot)
-        {
-            if (item.ScheduleId > 0 && !schedulesToRemove.Contains(item.ScheduleId))
-            {
-                newSchedules.Add(item);
-            }
-        }
-
-        // Add new items
-        foreach (var item in schedulesToAdd)
-        {
-            newSchedules.Add(item);
-        }
-
-        return (schedulesToAdd, schedulesToRemove, newSchedules);
-    }
-
-    private void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems)
-    {
-        var currentViewModelIds = new HashSet<int>();
-
-        // Initialize Schedules if null
-        Schedules ??= [];
-
-        // Create a snapshot of the schedule items collection to avoid "Collection was modified" exception
-        var scheduleItemsSnapshot = scheduleItems.ToList();
-
-        // Process each schedule item from the snapshot
-        foreach (var scheduleItem in scheduleItemsSnapshot)
-        {
-            var scheduleId = scheduleItem.Id;
-
-            if (scheduleId <= 0)
-            {
-                continue;
-            }
-
-            currentViewModelIds.Add(scheduleId);
-
-            if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
-            {
-                // Existing view model - update it from state
-                existingViewModel.SetScheduleId(scheduleId);
-                // Ensure callbacks are set
-                if (existingViewModel.OnPlayStarted == null)
-                {
-                    existingViewModel.OnPlayStarted = () =>
-                    {
-                        recentPlayClicks[scheduleId] = DateTime.UtcNow;
-                    };
-                }
-                if (existingViewModel.OnPlaybackStarted == null)
-                {
-                    existingViewModel.OnPlaybackStarted = () =>
-                    {
-                        // Playback started - no action needed
-                    };
-                }
-            }
-        }
-        // For updates only, we don't change the collection - just update existing items
-    }
 
     private bool isBusy = true;
     private bool shouldShowProgressBar = true;
@@ -613,15 +390,14 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 // - AutoMapper mapping (ScheduleStateItem -> AlarmSchedule)
                 var (scheduleDataMap, scheduleStateItemMap) = await Task.Run(() =>
                 {
-                    return PrepareScheduleDataOffUIThread(stateValue.Schedules);
+                    return scheduleDataPreparer.PrepareScheduleDataOffUIThread(stateValue.Schedules);
                 });
 
-                // Prepare ViewModels and collection on UI thread (requires UI thread for property notifications)
-                // This creates the actual ViewModel objects and prepares the collection
-                // Only UI-touching operations happen here (property notifications, event subscriptions)
-                var (schedulesToAdd, schedulesToRemove, newSchedules) = PrepareScheduleViewModelsOnUIThread(
+                // Prepare ViewModels and collection on UI thread
+                var (schedulesToAdd, schedulesToRemove, newSchedules) = scheduleViewModelManager.PrepareScheduleViewModelsOnUIThread(
                     scheduleDataMap,
-                    scheduleStateItemMap);
+                    scheduleStateItemMap,
+                    Schedules ?? new ObservableHashSet<ScheduleListItemViewModel>());
                 var hasSchedulesNow = newSchedules != null && newSchedules.Count > 0;
 
                 // Show progress bar when delete is detected (schedule count decreased)
@@ -719,7 +495,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 else
                 {
                     // No collection change, but still update existing items
-                    UpdateScheduleViewModels(stateValue.Schedules);
+                    scheduleViewModelManager.UpdateScheduleViewModels(stateValue.Schedules, navigationHelper.TrackPlayClick);
 
                     // Hide progress bar if delete was rolled back (schedule count increased back)
                     if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
@@ -772,68 +548,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         });
     }
 
-    private bool ShouldSkipNavigation(int scheduleId)
-    {
-        var currentPlaybackState = playbackState.Value;
-        if (currentPlaybackState.IsPreparingOrPlaying &&
-            currentPlaybackState.CurrentScheduleId == scheduleId)
-        {
-            logger.Debug("ViewScheduleCommand: Skipping navigation - playback is active for schedule {ScheduleId}", scheduleId);
-            return true;
-        }
-
-        if (recentPlayClicks.TryGetValue(scheduleId, out var playClickTime))
-        {
-            var timeSincePlayClick = (DateTime.UtcNow - playClickTime).TotalMilliseconds;
-            if (timeSincePlayClick < PlayClickCooldownMs)
-            {
-                logger.Debug("ViewScheduleCommand: Skipping navigation - play button was clicked {TimeSinceClick}ms ago for schedule {ScheduleId}",
-                    timeSincePlayClick, scheduleId);
-                return true;
-            }
-            recentPlayClicks.Remove(scheduleId);
-        }
-
-        return false;
-    }
-
-    private async Task ShowOverlayAndNavigateAsync(ScheduleListItemViewModel scheduleListItem)
-    {
-        if (scheduleListItem.Schedule == null)
-        {
-            return;
-        }
-
-        scheduleListItem.Schedule.IsEnabled = scheduleListItem.IsEnabled;
-
-        // Navigate FIRST to show the page immediately
-        // This ensures instant page appearance (~10-20ms)
-        await navigationService.NavigateToScheduleAsync();
-
-        // Prepare schedule state item AFTER navigation completes
-        // Get the source item on UI thread (safe access to state)
-        var sourceScheduleStateItem = GetSourceScheduleStateItem(scheduleListItem.Schedule.Id);
-
-        // DeepClone uses JSON serialization which is CPU-intensive
-        // Run it off UI thread to avoid blocking
-        var scheduleStateItem = await Task.Run(() => sourceScheduleStateItem.DeepClone());
-
-        // Dispatch action to load schedule data
-        // This happens after page is visible, so user sees overlay immediately
-        dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
-    }
-
-    private ScheduleStateItem GetSourceScheduleStateItem(int scheduleId)
-    {
-        // Access state and view models on UI thread (these are safe reads)
-        var scheduleStateItem = state.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
-        if (scheduleStateItem == null)
-        {
-            return mapper.Map<ScheduleStateItem>(scheduleViewModels[scheduleId].Schedule);
-        }
-        // Return the source item - DeepClone will be done off UI thread
-        return scheduleStateItem;
-    }
 
     public void Dispose()
     {
@@ -842,13 +556,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         // Stop and dispose progress animation timer
         StopProgressAnimation();
 
-        if (Schedules != null)
-        {
-            foreach (var item in Schedules)
-            {
-                item.Dispose();
-            }
-        }
+        scheduleViewModelManager.DisposeAll();
 
     }
 }

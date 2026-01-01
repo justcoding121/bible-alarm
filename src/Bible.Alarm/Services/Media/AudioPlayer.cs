@@ -2,6 +2,7 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Services.Media.AudioPlayer;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;
@@ -27,22 +28,17 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
     private AudioPlayerTrack? currentTrack;
     private TaskCompletionSource<bool>? mediaOpenedCompletionSource;
-    private bool isResetting;
-    private TimeSpan lastDuration = TimeSpan.Zero;
-    private bool isSeeking;
-    private PlayStatus statusBeforeSeek = PlayStatus.Stopped;
-    // Track when we're transitioning from Loading to Playing to ignore intermediate Paused states
-    private bool isTransitioningFromLoadingToPlaying;
-    private DateTime? lastLoadingToPlayingTransitionTime;
-    // Throttle position updates to 500ms to reduce update frequency
-    private DateTime? lastPositionUpdateTime;
-    private const int PositionUpdateIntervalMs = 500;
     // MediaElement instance - populated in PrepareAsync
     private MediaElement? mediaElement;
 
+    // Helper classes
+    private readonly AudioPlayerStateManager stateManager;
+    private readonly AudioPlayerMetadataHandler metadataHandler;
+    private readonly AudioPlayerPositionTracker positionTracker;
+
     public TimeSpan? CurrentPosition => mediaElement?.Position;
     public TimeSpan Duration => mediaElement?.Duration ?? TimeSpan.Zero;
-    public PlayStatus Status { get; private set; } = PlayStatus.Stopped;
+    public PlayStatus Status => stateManager.Status;
 
     /// <summary>
     /// Gets the actual current state of the MediaElement, not just the cached Status
@@ -53,7 +49,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         get
         {
             // If we're resetting, don't check the actual state (it might be in transition)
-            if (isResetting)
+            if (stateManager.IsResetting)
             {
                 return false;
             }
@@ -92,6 +88,11 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 #if ANDROID
         this.androidPlayerNotificationService = androidPlayerNotificationService;
 #endif
+
+        // Initialize helper classes
+        stateManager = new AudioPlayerStateManager(logger, dispatcher);
+        metadataHandler = new AudioPlayerMetadataHandler(logger, displayMetadataService, dispatcher);
+        positionTracker = new AudioPlayerPositionTracker(logger, dispatcher);
 
         // MediaElement will be initialized lazily when first accessed
         // Event handlers will be attached in PrepareAsync
@@ -136,10 +137,10 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         await SafeStopMediaElementAsync(clearSource: false);
 
         currentTrack = track;
-        Status = PlayStatus.Loading;
+        stateManager.Status = PlayStatus.Loading;
         mediaOpenedCompletionSource = new TaskCompletionSource<bool>();
         // Reset duration tracking so new track's duration will be detected as changed
-        lastDuration = TimeSpan.Zero;
+        positionTracker.ResetDuration();
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
@@ -236,147 +237,25 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         mediaOpenedCompletionSource?.TrySetResult(true);
 
         // Update duration when track opens (track change)
-        var currentDuration = Duration;
-        if (currentDuration != lastDuration && currentDuration > TimeSpan.Zero)
-        {
-            lastDuration = currentDuration;
-            dispatcher.Dispatch(new PlaybackDurationChangedAction
-            {
-                Duration = currentDuration
-            });
-        }
+        positionTracker.UpdateDuration(Duration);
 
-        try
+        // Handle metadata
+        if (mediaElement != null)
         {
-            var metadata = await displayMetadataService.GetDisplayMetadataAsync(currentTrack);
-            await ApplyMetadataToMediaElement(metadata);
-            SendMetadataMessage(metadata);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Metadata extraction failed");
-            var fallbackMeta = new MetaData
-            {
-                Title = "Unknown Title",
-                Artist = "Unknown Artist"
-            };
-            await ApplyMetadataToMediaElement(fallbackMeta);
-            SendMetadataMessage(fallbackMeta);
+            await metadataHandler.HandleMediaOpenedAsync(currentTrack, mediaElement);
         }
     }
 
-    private void SendMetadataMessage(MetaData meta)
-    {
-        // If we have artwork bytes, save them to a file and use that path
-        // Uses different filename than default schedule artwork to avoid conflicts
-        string? artworkUrl = meta.ArtworkUrl;
-        if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0 && string.IsNullOrEmpty(artworkUrl))
-        {
-            try
-            {
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "playing_track_artwork.jpg");
-                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
-                artworkUrl = artworkPath;
-                logger.Debug($"Saved playing track artwork to {artworkPath}, size: {meta.ArtworkBytes.Length} bytes");
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Failed to save playing track artwork to file");
-            }
-        }
-
-        // Dispatch Fluxor action
-        dispatcher.Dispatch(new PlaybackMetadataChangedAction
-        {
-            Title = meta.Title,
-            Artist = meta.Artist,
-            Album = meta.Album,
-            ArtworkUrl = artworkUrl
-        });
-
-        if (!string.IsNullOrEmpty(artworkUrl))
-        {
-            logger.Debug($"Dispatched metadata with ArtworkUrl: {artworkUrl}");
-        }
-        else
-        {
-            logger.Debug("Dispatched metadata without ArtworkUrl");
-        }
-    }
-
-    private void SendPositionUpdate()
-    {
-        // Throttle position updates to 500ms to reduce update frequency
-        // MediaElement's PositionChanged event fires every ~200ms, but we only need updates every 500ms
-        var now = DateTime.UtcNow;
-        if (lastPositionUpdateTime.HasValue)
-        {
-            var timeSinceLastUpdate = (now - lastPositionUpdateTime.Value).TotalMilliseconds;
-            if (timeSinceLastUpdate < PositionUpdateIntervalMs)
-            {
-                // Skip this update - not enough time has passed
-                return;
-            }
-        }
-
-        // Update the last update time
-        lastPositionUpdateTime = now;
-
-        // Send position update via MVVM messaging (throttled to 500ms)
-        WeakReferenceMessenger.Default.Send(new PlaybackPositionChangedMessage
-        {
-            CurrentPosition = CurrentPosition
-        });
-
-        // Check if duration changed (track change) and update Fluxor state if needed
-        var currentDuration = Duration;
-        if (currentDuration != lastDuration && currentDuration > TimeSpan.Zero)
-        {
-            lastDuration = currentDuration;
-            dispatcher.Dispatch(new PlaybackDurationChangedAction
-            {
-                Duration = currentDuration
-            });
-        }
-    }
-
-
-    private async Task ApplyMetadataToMediaElement(MetaData meta)
-    {
-        var mediaElement = this.mediaElement;
-        if (mediaElement == null)
-        {
-            return;
-        }
-
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            mediaElement.MetadataTitle = meta.Title ?? "";
-            mediaElement.MetadataArtist = meta.Artist ?? "";
-
-            if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
-            {
-                // Use same filename as SendMetadataMessage for consistency
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "playing_track_artwork.jpg");
-                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
-                mediaElement.MetadataArtworkUrl = artworkPath;
-            }
-            else if (!string.IsNullOrEmpty(meta.ArtworkUrl))
-            {
-                mediaElement.MetadataArtworkUrl = meta.ArtworkUrl;
-            }
-        });
-    }
 
     private void OnMediaEnded(object? sender, EventArgs e)
     {
-        Status = PlayStatus.Ended;
+        stateManager.Status = PlayStatus.Ended;
         MediaEnded?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnMediaFailed(object? sender, EventArgs e)
     {
-        Status = PlayStatus.Failed;
+        stateManager.Status = PlayStatus.Failed;
         mediaOpenedCompletionSource?.TrySetResult(false);
 
         var trackUri = currentTrack?.Uri ?? "Unknown";
@@ -389,132 +268,24 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
     private void OnStateChanged(object? sender, MediaStateChangedEventArgs e)
     {
-        // Don't update status if we're in the middle of resetting
-        // This prevents race conditions where state changes fire after ResetAsync sets status to Stopped
-        if (isResetting && e.NewState != MediaElementState.Stopped)
+        if (stateManager.ShouldIgnoreStateChange(e.NewState, mediaElement))
         {
-            logger.Debug("Ignoring state change to {NewState} during reset", e.NewState);
             return;
         }
 
-        // Ignore Stopped state changes when we're in Loading state (preparing a new track)
-        // This prevents the intermediate Stopped state from SafeStopMediaElementAsync during PrepareAsync
-        // from causing Android Auto controls to flicker (play => stop => play => pause)
-        if (e.NewState == MediaElementState.Stopped && Status == PlayStatus.Loading)
-        {
-            logger.Debug("Ignoring Stopped state change during Loading (preparing new track)");
-            return;
-        }
-
-        // Ignore intermediate Paused states when transitioning from Loading/Buffering to Playing
-        // MediaElement briefly goes through Paused state when transitioning from Buffering to Playing,
-        // which causes rapid button flicker in Android Auto. We'll ignore Paused if we were just in Loading
-        // and mark that we're in a transition. If Playing follows within 200ms, we'll clear the flag.
-        // If we get another Paused after the window, it's a real pause.
-        if (e.NewState == MediaElementState.Paused)
-        {
-            if (Status == PlayStatus.Loading)
-            {
-                // First Paused state after Loading - mark transition and ignore it
-                isTransitioningFromLoadingToPlaying = true;
-                lastLoadingToPlayingTransitionTime = DateTime.UtcNow;
-                logger.Debug("Ignoring intermediate Paused state during Loading->Playing transition (preventing button flicker)");
-                return;
-            }
-            else if (isTransitioningFromLoadingToPlaying)
-            {
-                // We're in a transition and got another Paused state
-                var timeSinceTransition = lastLoadingToPlayingTransitionTime.HasValue
-                    ? (DateTime.UtcNow - lastLoadingToPlayingTransitionTime.Value).TotalMilliseconds
-                    : double.MaxValue;
-
-                // If more than 200ms has passed since the transition started, treat this as a real pause
-                if (timeSinceTransition > 200)
-                {
-                    isTransitioningFromLoadingToPlaying = false;
-                    lastLoadingToPlayingTransitionTime = null;
-                    logger.Debug("Paused state received after transition window ({Time}ms), treating as real pause", timeSinceTransition);
-                    // Continue to process this Paused state normally
-                }
-                else
-                {
-                    logger.Debug("Ignoring Paused state during Loading->Playing transition ({Time}ms since transition start)", timeSinceTransition);
-                    return;
-                }
-            }
-        }
-
-        // If we're transitioning from Loading to Playing and we get a Playing state,
-        // clear the transition flag
-        if (e.NewState == MediaElementState.Playing && isTransitioningFromLoadingToPlaying)
-        {
-            isTransitioningFromLoadingToPlaying = false;
-            lastLoadingToPlayingTransitionTime = null;
-        }
-
-        // On iOS, MediaElement can fire state change events even after Source is set to null
-        // If Source is null, we should ignore state changes (except Stopped/None) to prevent stale status updates
-        // Also, if Source is null, force status to Stopped regardless of the state change
-        if (mediaElement?.Source == null)
-        {
-            if (e.NewState is not MediaElementState.Stopped and not MediaElementState.None)
-            {
-                logger.Debug("Ignoring state change to {NewState} because Source is null, forcing Status to Stopped", e.NewState);
-                Status = PlayStatus.Stopped;
-                SendStatusMessage();
-                return;
-            }
-        }
-
-        // During seeking, preserve the previous status to prevent flickering
-        // MediaElement may transition to Buffering during seek, but we want to keep showing
-        // the correct play/pause button state
-        if (isSeeking && e.NewState == MediaElementState.Buffering)
-        {
-            // Preserve the status we had before seeking started
-            Status = statusBeforeSeek;
-            logger.Debug("Ignoring Buffering state change during seek, preserving status: {Status}", Status);
-        }
-        else
-        {
-            Status = e.NewState switch
-            {
-                MediaElementState.Playing => PlayStatus.Playing,
-                MediaElementState.Paused => PlayStatus.Paused,
-                MediaElementState.Stopped => PlayStatus.Stopped,
-                MediaElementState.Buffering => PlayStatus.Loading,
-                MediaElementState.Failed => PlayStatus.Failed,
-                // None is equivalent to Stopped
-                MediaElementState.None => PlayStatus.Stopped,
-                _ => PlayStatus.Stopped
-            };
-        }
-
-        SendStatusMessage();
+        stateManager.UpdateStatus(e.NewState);
     }
 
     private void OnPositionChanged(object? sender, EventArgs e)
     {
         // MediaElement's PositionChanged event fires when position updates
-        // MediaElement has its own internal timer (200ms) that triggers this event
         // Removed verbose logging to reduce CPU usage - only log if seeking
-        if (isSeeking)
+        if (stateManager.IsSeeking)
         {
             logger.Debug("[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}",
                 CurrentPosition?.ToString() ?? "null");
         }
-        SendPositionUpdate();
-    }
-
-    private void SendStatusMessage()
-    {
-        // Dispatch status change to Fluxor state
-        logger.Debug(
-            "[AudioPlayer] SendStatusMessage: Dispatching PlaybackStatusChangedAction - Status={Status}, CurrentPosition={CurrentPosition}ms, Duration={Duration}ms",
-            Status,
-            (long)(CurrentPosition?.TotalMilliseconds ?? 0),
-            (long)Duration.TotalMilliseconds);
-        dispatcher.Dispatch(new PlaybackStatusChangedAction(Status));
+        positionTracker.SendPositionUpdate(CurrentPosition, Duration);
     }
 
     public Task PauseAsync() => MainThread.InvokeOnMainThreadAsync(() => mediaElement?.Pause());
@@ -550,7 +321,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
     public async Task ResetAsync()
     {
-        isResetting = true;
+        stateManager.IsResetting = true;
 
         try
         {
@@ -572,16 +343,10 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
             }
 
             // Ensure status is reset to Stopped
-            Status = PlayStatus.Stopped;
             currentTrack = null;
             mediaOpenedCompletionSource?.TrySetCanceled();
             mediaOpenedCompletionSource = null;
-            // Clear transition flag
-            isTransitioningFromLoadingToPlaying = false;
-            lastLoadingToPlayingTransitionTime = null;
-            // Clear position update throttling
-            lastPositionUpdateTime = null;
-            SendStatusMessage();
+            stateManager.Reset();
 
 #if ANDROID
             // Release MediaSession to hide the media notification
@@ -608,22 +373,21 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
             // Verify final state
             actualState = await MainThread.InvokeOnMainThreadAsync(() => mediaElement?.CurrentState ?? MediaElementState.None);
-            logger.Debug("Reset completed. MediaElement state: {State}, Status: {Status}", actualState, Status);
+            logger.Debug("Reset completed. MediaElement state: {State}, Status: {Status}", actualState, stateManager.Status);
         }
         finally
         {
-            isResetting = false;
+            stateManager.IsResetting = false;
         }
     }
 
     public async Task SeekToAsync(TimeSpan position)
     {
         // Track that we're seeking to prevent state flickering during seek
-        isSeeking = true;
-        statusBeforeSeek = Status;
+        stateManager.StartSeeking();
 
         logger.Debug("[AudioPlayer] SeekToAsync called - Position: {Position}, StatusBeforeSeek: {Status}, Setting _isSeeking = true",
-            position, statusBeforeSeek);
+            position, stateManager.Status);
 
         try
         {
@@ -632,7 +396,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
                 if (mediaElement == null)
                 {
                     logger.Warning("[AudioPlayer] MediaElement is null, cannot seek");
-                    isSeeking = false;
+                    stateManager.EndSeeking();
                     return;
                 }
 
@@ -652,36 +416,35 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
                 {
                     // Seek failed (e.g., position outside seekable ranges, player not ready)
                     logger.Warning(ex, "[AudioPlayer] SeekTo failed - {Message}", ex.Message);
-                    isSeeking = false;
+                    stateManager.EndSeeking();
                 }
             });
         }
         catch (Exception ex)
         {
             logger.Error(ex, "[AudioPlayer] Error during SeekToAsync");
-            isSeeking = false;
+            stateManager.EndSeeking();
         }
     }
 
     private void OnSeekCompleted(object? sender, EventArgs e)
     {
         // Seek has completed - reset the seeking flag
-        // This allows position updates to resume and status changes to be processed normally
         var currentPosition = CurrentPosition;
         logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false",
             currentPosition?.ToString() ?? "null");
-        isSeeking = false;
-        logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates. _isSeeking: {IsSeeking}", isSeeking);
+        stateManager.EndSeeking();
+        logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates");
     }
 
     private async Task ResetSeekingFlagWithTimeoutAsync()
     {
         // Fallback: If SeekCompleted doesn't fire within 3 seconds, reset the flag anyway
         await Task.Delay(3000);
-        if (isSeeking)
+        if (stateManager.IsSeeking)
         {
             logger.Warning("[AudioPlayer] SeekCompleted event did not fire within 3 seconds - resetting _isSeeking flag as fallback");
-            isSeeking = false;
+            stateManager.EndSeeking();
         }
     }
 
