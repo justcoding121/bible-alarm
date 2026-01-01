@@ -2,7 +2,7 @@
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 
-namespace Bible.Alarm.Services.Schedule.Helpers;
+namespace Bible.Alarm.ViewModels.ScheduleViewModel;
 
 public static class SchedulePropertyHelper
 {

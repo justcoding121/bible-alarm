@@ -155,10 +155,10 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleSaveService, ScheduleSaveService>();
         services.AddSingleton<IScheduleValidationService, ScheduleValidationService>();
         services.AddSingleton<IScheduleInitializationService, ScheduleInitializationService>();
-        services.AddSingleton<IScheduleCommandService, ScheduleCommandService>();
+        services.AddSingleton<IScheduleCommandService, Bible.Alarm.ViewModels.ScheduleViewModel.ScheduleCommandService>();
         services.AddSingleton<IScheduleMediaCacheService, ScheduleMediaCacheService>();
         services.AddSingleton<IScheduleContainerService, ScheduleContainerService>();
-        services.AddSingleton<Bible.Alarm.Services.Schedule.Helpers.ScheduleStateChangeHandler>();
+        services.AddSingleton<Bible.Alarm.ViewModels.ScheduleViewModel.ScheduleStateChangeHandler>();
 
         // Register bootstrap services
         services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();

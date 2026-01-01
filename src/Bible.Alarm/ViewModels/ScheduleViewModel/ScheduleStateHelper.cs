@@ -1,7 +1,7 @@
 #nullable enable
 using Bible.Alarm.Stores.Models;
 
-namespace Bible.Alarm.Services.Schedule.Helpers;
+namespace Bible.Alarm.ViewModels.ScheduleViewModel;
 
 public static class ScheduleStateHelper
 {

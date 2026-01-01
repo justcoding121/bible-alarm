@@ -3,7 +3,6 @@ using AutoMapper;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Schedule.Helpers;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -16,7 +15,7 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.Services.Schedule;
+namespace Bible.Alarm.ViewModels.ScheduleViewModel;
 
 public sealed class ScheduleCommandService : IScheduleCommandService
 {

@@ -6,7 +6,7 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.Services.Schedule.Helpers;
+namespace Bible.Alarm.ViewModels.ScheduleViewModel;
 
 public class ScheduleStateChangeHandler
 {
