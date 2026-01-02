@@ -13,7 +13,6 @@ public class PropertyManager
     private ObservableHashSet<ScheduleListItemViewModel> schedules = [];
     private bool isBusy = true;
     private bool loaded;
-    private ScheduleViewModel? selectedSchedule;
 
     public ObservableHashSet<ScheduleListItemViewModel> Schedules
     {
@@ -45,18 +44,19 @@ public class PropertyManager
     public bool Loaded
     {
         get => loaded;
-        set => loaded = value;
+        set
+        {
+            if (loaded != value)
+            {
+                loaded = value;
+                LoadedChanged?.Invoke(value);
+            }
+        }
     }
 
-    public ScheduleViewModel? SelectedSchedule
-    {
-        get => selectedSchedule;
-        set => selectedSchedule = value;
-    }
-
-    public bool IsHomePageOverlayVisible => false;
 
     public event Action? SchedulesChanged;
     public event Action<bool>? IsBusyChanged;
+    public event Action<bool>? LoadedChanged;
 }
 

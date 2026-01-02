@@ -111,6 +111,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(IsBusy));
             progressBarManager.UpdateVisibility(isBusy, propertyManager.Schedules?.Count);
         };
+        propertyManager.LoadedChanged += (loaded) =>
+        {
+            OnPropertyChanged(nameof(Loaded));
+        };
 
         // Initialize command handler
         commandHandler = new CommandHandler(
@@ -164,13 +168,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         set => propertyManager.Loaded = value;
     }
 
-    public ScheduleViewModel? SelectedSchedule
-    {
-        get => propertyManager.SelectedSchedule;
-        set => propertyManager.SelectedSchedule = value;
-    }
-
-    public bool IsHomePageOverlayVisible => propertyManager.IsHomePageOverlayVisible;
 
     public bool IsLoadingSchedules
     {

@@ -120,9 +120,8 @@ public class ScheduleViewModelManager
         return (schedulesToAdd, schedulesToRemove, newSchedules);
     }
 
-    public void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems, Action<int> trackPlayClick)
+    public void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems)
     {
-        var currentViewModelIds = new HashSet<int>();
         var scheduleItemsSnapshot = scheduleItems.ToList();
 
         foreach (var scheduleItem in scheduleItemsSnapshot)
@@ -133,19 +132,10 @@ public class ScheduleViewModelManager
                 continue;
             }
 
-            currentViewModelIds.Add(scheduleId);
-
             if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
             {
+                // Update the view model with latest state
                 existingViewModel.SetScheduleId(scheduleId);
-                if (existingViewModel.OnPlayStarted == null)
-                {
-                    existingViewModel.OnPlayStarted = () => trackPlayClick(scheduleId);
-                }
-                if (existingViewModel.OnPlaybackStarted == null)
-                {
-                    existingViewModel.OnPlaybackStarted = () => { };
-                }
             }
         }
     }

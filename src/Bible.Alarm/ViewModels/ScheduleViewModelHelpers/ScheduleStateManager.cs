@@ -86,56 +86,37 @@ public sealed class ScheduleStateManager
         var newOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
         var isScheduleUpdate = currentScheduleId == lastScheduleId && modelInitialized;
 
+        // Always call onCurrentScheduleChanged if schedule ID changed or model not initialized
+        // This ensures LoadScheduleFromState is called which will hide the overlay
+        if (currentScheduleId != lastScheduleId || !modelInitialized)
+        {
+            onCurrentScheduleChanged(null, EventArgs.Empty);
+        }
+
         // Early exit if we've already processed this exact state (only for schedule updates, not initial loads)
-        // Also check if the property value itself hasn't changed to prevent unnecessary updates
         if (isScheduleUpdate &&
             currentScheduleId == lastProcessedScheduleId &&
-            newOverlayVisible == lastProcessedOverlayVisible &&
-            newOverlayVisible == GetCurrentOverlayVisible())
+            newOverlayVisible == lastProcessedOverlayVisible)
         {
             logger.Debug("ScheduleViewModel: OnStateChanged - Skipping processing as no relevant changes detected. ScheduleId: {ScheduleId}, OverlayVisible: {OverlayVisible}",
                 currentScheduleId, newOverlayVisible);
             return;
         }
 
-        // Early exit if property value already matches state value (prevents unnecessary PropertyChanged events)
-        // This is especially important when visiting the same schedule multiple times
-        // Check this BEFORE checking isScheduleUpdate to catch all cases where property already matches
-        if (newOverlayVisible == GetCurrentOverlayVisible())
-        {
-            // Still update tracking fields to prevent future unnecessary processing
-            // Only update if this is a schedule update (not initial load) to avoid interfering with initialization
-            if (isScheduleUpdate)
-            {
-                lastProcessedScheduleId = currentScheduleId;
-                lastProcessedOverlayVisible = newOverlayVisible;
-            }
-            // Always return early if property already matches - no need to process further
-            return;
-        }
-
-        // Only update property if value actually changed to prevent unnecessary PropertyChanged events
-        if (newOverlayVisible != GetCurrentOverlayVisible())
+        // Update overlay visibility if it changed
+        if (newOverlayVisible != lastProcessedOverlayVisible)
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                // Double-check the value hasn't changed since we checked (race condition protection)
-                if (newOverlayVisible != GetCurrentOverlayVisible())
+                // Only hide overlay if it's a schedule update (not initial load) or if explicitly set to false
+                if (!newOverlayVisible || !isScheduleUpdate)
                 {
-                    if (!newOverlayVisible || !isScheduleUpdate)
-                    {
-                        setOverlayVisible(newOverlayVisible);
-                    }
+                    setOverlayVisible(newOverlayVisible);
                 }
             });
         }
 
         notifySchedulePropertiesChanged();
-
-        if (currentScheduleId != lastScheduleId || !modelInitialized)
-        {
-            onCurrentScheduleChanged(null, EventArgs.Empty);
-        }
 
         // Update last processed state after handling changes
         lastProcessedScheduleId = currentScheduleId;
@@ -245,6 +226,9 @@ public sealed class ScheduleStateManager
 
         // Mark model as initialized for existing schedules
         modelInitialized = true;
+
+        // Hide overlay after schedule is loaded
+        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
     }
 
     private void HandleLoadError()
@@ -320,12 +304,6 @@ public sealed class ScheduleStateManager
         return new ApplicationState();
     }
 
-    private bool GetCurrentOverlayVisible()
-    {
-        // This would need to be passed in or accessed differently
-        // For now, returning a placeholder
-        return true;
-    }
 
     // Properties and methods to expose state
     public int LastScheduleId => lastScheduleId;

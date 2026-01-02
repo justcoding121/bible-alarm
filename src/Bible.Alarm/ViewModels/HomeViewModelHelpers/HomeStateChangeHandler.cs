@@ -123,59 +123,30 @@ public class HomeStateChangeHandler
             logger.Debug("OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedules}",
                 schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
 
-            // Yield multiple times before updating collection
-            for (int i = 0; i < 3; i++)
-            {
-                await Task.Yield();
-                await Task.Delay(30);
-            }
+            // Yield once to allow UI to process any pending updates
+            await Task.Yield();
 
             var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
 
             if (isInitialLoad && hasSchedulesNow)
             {
                 logger.Debug("OnStateChanged: Initial load - setting {Count} schedules via property setter", newSchedules.Count);
-                await Task.Delay(300);
-
-                var schedulesCollection = new ObservableHashSet<ScheduleListItemViewModel>();
-                foreach (var item in newSchedules)
-                {
-                    logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to new collection",
-                        item.ScheduleId, item.Name);
-                    schedulesCollection.Add(item);
-                }
-
+                
+                var schedulesCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
                 setSchedules(schedulesCollection);
                 logger.Debug("OnStateChanged: Initial load complete. Collection now has {Count} items", getSchedules()?.Count ?? 0);
-                await Task.Delay(200);
             }
             else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
             {
                 logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}",
                     schedulesToAdd.Count, schedulesToRemove.Count);
 
-                var updatedCollection = new ObservableHashSet<ScheduleListItemViewModel>();
-                foreach (var existingItem in getSchedules() ?? [])
-                {
-                    if (!schedulesToRemove.Contains(existingItem.ScheduleId))
-                    {
-                        updatedCollection.Add(existingItem);
-                    }
-                }
-
-                foreach (var item in schedulesToAdd)
-                {
-                    logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
-                        item.ScheduleId, item.Name);
-                    updatedCollection.Add(item);
-                }
-
+                var updatedCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
                 setSchedules(updatedCollection);
                 logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", getSchedules()?.Count ?? 0);
 
                 if (schedulesToRemove.Count > 0)
                 {
-                    await Task.Delay(200);
                     setIsBusy(false);
                     await fadeOutProgressBarAsync();
                 }
@@ -183,30 +154,20 @@ public class HomeStateChangeHandler
             else
             {
                 // No collection change, but still update existing items
-                viewModelManager.UpdateScheduleViewModels(stateValue.Schedules, _ => { });
+                viewModelManager.UpdateScheduleViewModels(stateValue.Schedules);
 
                 if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
                 {
                     logger.Debug("OnStateChanged: Delete rollback detected - hiding progress bar");
-                    await Task.Delay(200);
                     setIsBusy(false);
                     await fadeOutProgressBarAsync();
                 }
             }
 
-            // Yield a few more times
-            for (int i = 0; i < 3; i++)
-            {
-                await Task.Yield();
-                await Task.Delay(30);
-            }
-
             // Only set IsBusy to false if we actually have schedules now
-            if (hasSchedulesNow)
+            if (hasSchedulesNow && getIsBusy())
             {
-                await Task.Delay(100);
                 setIsBusy(false);
-                await Task.Delay(400);
                 await fadeOutProgressBarAsync();
             }
 
@@ -223,6 +184,35 @@ public class HomeStateChangeHandler
             lastProcessedScheduleIds = null;
             lastProcessedScheduleProperties = null;
         }
+    }
+
+    /// <summary>
+    /// Builds a new schedule collection by keeping existing items (excluding those to remove) and adding new items.
+    /// </summary>
+    private ObservableHashSet<ScheduleListItemViewModel> BuildScheduleCollection(
+        ObservableHashSet<ScheduleListItemViewModel> newSchedules,
+        List<int> schedulesToRemove)
+    {
+        var collection = new ObservableHashSet<ScheduleListItemViewModel>();
+        
+        // Add all existing items that aren't being removed
+        foreach (var existingItem in getSchedules() ?? [])
+        {
+            if (!schedulesToRemove.Contains(existingItem.ScheduleId))
+            {
+                collection.Add(existingItem);
+            }
+        }
+
+        // Add new items
+        foreach (var item in newSchedules)
+        {
+            logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
+                item.ScheduleId, item.Name);
+            collection.Add(item);
+        }
+
+        return collection;
     }
 }
 

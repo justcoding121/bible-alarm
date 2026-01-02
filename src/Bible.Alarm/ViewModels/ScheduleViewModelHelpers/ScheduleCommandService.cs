@@ -240,6 +240,9 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", scheduleId);
         dispatcher.Dispatch(new DeleteScheduleAction(scheduleId));
 
+        // Clear CurrentSchedule after delete operation
+        dispatcher.Dispatch(new ResetScheduleStateAction());
+
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
         await navigationService.NavigateToHomeAsync();
     }

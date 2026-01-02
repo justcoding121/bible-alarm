@@ -220,11 +220,19 @@ public static class ApplicationReducer
             syncedCurrentMusic = ScheduleStateSyncHelper.CreateMusicFromCurrent(clonedCurrentSchedule);
         }
 
-        return StateFactory.CreateUpdatedState(
-            state,
-            clonedCurrentSchedule,
-            syncedCurrentMusic,
-            currentBibleReadingSchedule);
+        // For new schedules (SelectedSchedule is null or Id <= 0), set overlay to visible by default
+        // For existing schedules (Id > 0), preserve the current overlay state
+        var overlayVisible = action.SelectedSchedule == null || action.SelectedSchedule.Id <= 0
+            ? true 
+            : state.IsSchedulePageOverlayVisible;
+
+        return new ApplicationState(
+            schedules: state.Schedules,
+            currentSchedule: clonedCurrentSchedule,
+            currentMusic: syncedCurrentMusic,
+            currentBibleReadingSchedule: currentBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: overlayVisible);
     }
 
     [ReducerMethod]
