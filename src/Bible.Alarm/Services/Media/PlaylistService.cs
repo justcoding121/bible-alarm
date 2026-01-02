@@ -1,8 +1,8 @@
 #nullable enable
-
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Playlist;
+using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
@@ -40,6 +40,11 @@ public sealed class PlaylistService(
     private readonly PlaylistBibleTrackBuilder bibleTrackBuilder = new(logger, mediaService);
     private readonly PlaylistMusicTrackBuilder musicTrackBuilder = new(logger, mediaService, melodyMusicService);
 
+    // Helper classes
+    private readonly TrackChangeDetector trackChangeDetector = new(logger, alarmScheduleService, cancellationTokenSource.Token);
+    private readonly ChapterNavigator chapterNavigator = new(logger, mediaService);
+    private readonly ScheduleUpdater scheduleUpdater = new(logger, alarmScheduleService, cancellationTokenSource.Token);
+
     public async Task<int> GetRelevantScheduleToPlay()
     {
         return await scheduleManager.GetRelevantScheduleToPlay();
@@ -52,7 +57,7 @@ public sealed class PlaylistService(
 
     public async Task MarkTrackAsPlayed(TrackMetadata trackMetadata)
     {
-        var trackChanged = await CheckIfTrackChanged(trackMetadata);
+        var trackChanged = await trackChangeDetector.CheckIfTrackChanged(trackMetadata);
         var nextTrackNumber = await GetNextTrackNumberIfNeeded(trackMetadata);
 
         var updatedSchedule = await UpdateScheduleForPlayedTrack(
@@ -63,26 +68,6 @@ public sealed class PlaylistService(
         {
             dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
         }
-    }
-
-    private async Task<bool> CheckIfTrackChanged(TrackMetadata trackMetadata)
-    {
-        if (trackMetadata.PlayType != PlayType.Bible)
-        {
-            return false;
-        }
-
-        var scheduleBeforeUpdate = await alarmScheduleService.GetScheduleByIdAsync(
-            (int)trackMetadata.ScheduleId, false, true, cancellationTokenSource.Token);
-
-        if (scheduleBeforeUpdate?.BibleReadingSchedule == null)
-        {
-            return false;
-        }
-
-        var bibleReadingSchedule = scheduleBeforeUpdate.BibleReadingSchedule;
-        return bibleReadingSchedule.BookNumber != trackMetadata.BookNumber ||
-               bibleReadingSchedule.ChapterNumber != trackMetadata.ChapterNumber;
     }
 
     private async Task<int?> GetNextTrackNumberIfNeeded(TrackMetadata trackMetadata)
@@ -149,7 +134,7 @@ public sealed class PlaylistService(
         }
         else
         {
-            var nextChapter = await GetNextBibleChapter(
+            var nextChapter = await chapterNavigator.GetNextBibleChapter(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
                 trackMetadata.BookNumber,
@@ -244,7 +229,8 @@ public sealed class PlaylistService(
 
         var bibleReadingSchedule = schedule.BibleReadingSchedule ??
             throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        var bibleTracks = await bibleTrackBuilder.BuildBibleTracks(scheduleId, schedule, bibleReadingSchedule, GetNextBibleChapter);
+        var bibleTracks = await bibleTrackBuilder.BuildBibleTracks(scheduleId, schedule, bibleReadingSchedule, 
+            (lang, pub, book, chapter) => chapterNavigator.GetNextBibleChapter(lang, pub, book, chapter));
         result.AddRange(bibleTracks);
 
         return result;
@@ -254,201 +240,65 @@ public sealed class PlaylistService(
 
     public async Task MoveToNextBibleChapter(int scheduleId)
     {
-        var schedule = await GetScheduleWithBibleReadingAsync(scheduleId);
+        var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
         if (schedule.BibleReadingSchedule == null)
         {
             return;
         }
-        var next = await GetNextChapterForScheduleAsync(schedule.BibleReadingSchedule);
+        var next = await chapterNavigator.GetNextBibleChapter(
+            schedule.BibleReadingSchedule.LanguageCode,
+            schedule.BibleReadingSchedule.PublicationCode,
+            schedule.BibleReadingSchedule.BookNumber,
+            schedule.BibleReadingSchedule.ChapterNumber);
 
-        var updatedSchedule = await UpdateScheduleToNextChapterAsync(scheduleId, next);
+        var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextChapterAsync(scheduleId, next);
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
-    }
-
-    private async Task<AlarmSchedule> GetScheduleWithBibleReadingAsync(int scheduleId)
-    {
-        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-            scheduleId, false, true, cancellationTokenSource.Token);
-
-        if (schedule?.BibleReadingSchedule == null)
-        {
-            throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        }
-
-        return schedule;
-    }
-
-    private async Task<KeyValuePair<BibleBook, BibleChapter>> GetNextChapterForScheduleAsync(BibleReadingSchedule bibleReadingSchedule)
-    {
-        return await GetNextBibleChapter(
-            bibleReadingSchedule.LanguageCode,
-            bibleReadingSchedule.PublicationCode,
-            bibleReadingSchedule.BookNumber,
-            bibleReadingSchedule.ChapterNumber);
-    }
-
-    private async Task<AlarmSchedule> UpdateScheduleToNextChapterAsync(int scheduleId, KeyValuePair<BibleBook, BibleChapter> next)
-    {
-        return await alarmScheduleService.UpdateScheduleByIdAsync(
-            scheduleId,
-            s =>
-            {
-                var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-                brs.BookNumber = next.Key.Number;
-                brs.ChapterNumber = next.Value.Number;
-                brs.FinishedDuration = TimeSpan.Zero;
-            },
-            cancellationTokenSource.Token);
     }
 
     public async Task MoveToPreviousBibleChapter(int scheduleId)
     {
-        var schedule = await GetScheduleWithBibleReadingAsync(scheduleId);
+        var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
         if (schedule.BibleReadingSchedule == null)
         {
             return;
         }
-        var previous = await GetPreviousChapterForScheduleAsync(schedule.BibleReadingSchedule);
-        ValidateChapterPair(previous, "Previous");
+        var previous = await chapterNavigator.GetPreviousBibleChapter(
+            schedule.BibleReadingSchedule.LanguageCode,
+            schedule.BibleReadingSchedule.PublicationCode,
+            schedule.BibleReadingSchedule.BookNumber,
+            schedule.BibleReadingSchedule.ChapterNumber);
 
-        var updatedSchedule = await UpdateScheduleToPreviousChapterAsync(scheduleId, previous);
-        dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
-    }
-
-    private async Task<KeyValuePair<BibleBook, BibleChapter>> GetPreviousChapterForScheduleAsync(BibleReadingSchedule bibleReadingSchedule)
-    {
-        return await GetPreviousBibleChapter(
-            bibleReadingSchedule.LanguageCode,
-            bibleReadingSchedule.PublicationCode,
-            bibleReadingSchedule.BookNumber,
-            bibleReadingSchedule.ChapterNumber);
-    }
-
-    private static void ValidateChapterPair(KeyValuePair<BibleBook, BibleChapter> chapterPair, string context)
-    {
-        if (chapterPair.Key == null || chapterPair.Value == null)
+        if (previous.Key == null || previous.Value == null)
         {
-            throw new InvalidOperationException($"{context} chapter Key or Value is null");
+            throw new InvalidOperationException("Previous chapter Key or Value is null");
         }
-    }
 
-    private async Task<AlarmSchedule> UpdateScheduleToPreviousChapterAsync(int scheduleId, KeyValuePair<BibleBook, BibleChapter> previous)
-    {
-        return await alarmScheduleService.UpdateScheduleByIdAsync(
-            scheduleId,
-            s =>
-            {
-                var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-                brs.BookNumber = previous.Key.Number;
-                brs.ChapterNumber = previous.Value.Number;
-                brs.FinishedDuration = TimeSpan.Zero;
-            },
-            cancellationTokenSource.Token);
+        var updatedSchedule = await scheduleUpdater.UpdateScheduleToPreviousChapterAsync(scheduleId, previous);
+        dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetNextBibleChapter(string languageCode,
         string publicationCode, int bookNumber, int chapter)
     {
-        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber) ?? throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
-        var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
-        var nextChapter = chapters.SkipWhile(kvp => kvp.Key <= chapter).FirstOrDefault();
-
-        if (!nextChapter.Equals(default(KeyValuePair<int, BibleChapter>)))
-        {
-            return new KeyValuePair<BibleBook, BibleChapter>(currentBook, nextChapter.Value);
-        }
-
-        var nextBook = await GetNextBibleBook(languageCode, publicationCode, bookNumber);
-        if (nextBook.Value == null)
-        {
-            throw new InvalidOperationException($"Next bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
-        }
-
-        chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, nextBook.Key);
-        if (chapters.Count == 0)
-        {
-            throw new InvalidOperationException($"No chapters in next book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={nextBook.Key}");
-        }
-
-        // Start at the first chapter of the next book (index 0)
-        return new KeyValuePair<BibleBook, BibleChapter>(nextBook.Value, chapters.ElementAt(0).Value);
+        return await chapterNavigator.GetNextBibleChapter(languageCode, publicationCode, bookNumber, chapter);
     }
 
     public async Task<KeyValuePair<BibleBook, BibleChapter>> GetPreviousBibleChapter(string languageCode,
         string publicationCode, int bookNumber, int chapter)
     {
-        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber) ?? throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
-        var chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
-        var previousChapter = chapters.Reverse().SkipWhile(kvp => kvp.Key >= chapter).FirstOrDefault();
-
-        if (!previousChapter.Equals(default(KeyValuePair<int, BibleChapter>)))
-        {
-            return new KeyValuePair<BibleBook, BibleChapter>(currentBook, previousChapter.Value);
-        }
-
-        var previousBook = await GetPreviousBibleBook(languageCode, publicationCode, bookNumber);
-        if (previousBook.Value == null)
-        {
-            throw new InvalidOperationException($"Previous bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
-        }
-
-        chapters = await mediaService.GetBibleChapters(languageCode, publicationCode, previousBook.Key);
-        if (chapters.Count == 0)
-        {
-            throw new InvalidOperationException($"No chapters in previous book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={previousBook.Key}");
-        }
-
-        return new KeyValuePair<BibleBook, BibleChapter>(previousBook.Value, chapters.ElementAt(chapters.Count - 1).Value);
+        return await chapterNavigator.GetPreviousBibleChapter(languageCode, publicationCode, bookNumber, chapter);
     }
 
     public async Task<KeyValuePair<int, BibleBook>> GetPreviousBibleBook(string languageCode, string publicationCode,
         int bookNumber)
     {
-        var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
-        if (books.Count == 0)
-        {
-            throw new InvalidOperationException($"No bible books found: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
-        var previousBook = books.Reverse().SkipWhile(kvp => kvp.Key >= bookNumber).FirstOrDefault();
-
-        if (!previousBook.Equals(default(KeyValuePair<int, BibleBook>)))
-        {
-            return previousBook;
-        }
-
-        var maxKey = books.Keys.Max();
-        if (!books.TryGetValue(maxKey, out var maxBook))
-        {
-            throw new InvalidOperationException($"Bible book with key {maxKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
-        return new KeyValuePair<int, BibleBook>(maxKey, maxBook);
+        return await chapterNavigator.GetPreviousBibleBook(languageCode, publicationCode, bookNumber);
     }
 
     public async Task<KeyValuePair<int, BibleBook>> GetNextBibleBook(string languageCode, string publicationCode,
         int bookNumber)
     {
-        var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
-        if (books.Count == 0)
-        {
-            throw new InvalidOperationException($"No bible books found: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
-        var previousBook = books.SkipWhile(kvp => kvp.Key <= bookNumber).FirstOrDefault();
-
-        if (!previousBook.Equals(default(KeyValuePair<int, BibleBook>)))
-        {
-            return previousBook;
-        }
-
-        var minKey = books.Keys.Min();
-        if (!books.TryGetValue(minKey, out var minBook))
-        {
-            throw new InvalidOperationException($"Bible book with key {minKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
-        return new KeyValuePair<int, BibleBook>(minKey, minBook);
+        return await chapterNavigator.GetNextBibleBook(languageCode, publicationCode, bookNumber);
     }
 
     private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
