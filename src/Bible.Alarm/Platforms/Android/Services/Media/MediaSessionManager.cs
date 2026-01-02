@@ -1,16 +1,11 @@
 #nullable enable
-using Android.Content;
-using Android.Graphics;
-using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+using Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Serilog;
-using Application = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
@@ -24,7 +19,11 @@ public sealed class MediaSessionManager
     private MediaSessionCompat? mediaSession;
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
     private readonly IServiceProvider serviceProvider;
-    private long? lastDurationMs; // Track last duration to avoid unnecessary metadata updates
+
+    // Helper classes
+    private readonly MediaSessionInitializer initializer = new(logger, serviceProvider);
+    private readonly PlaybackStateManager playbackStateManager = new(logger);
+    private readonly MetadataManager metadataManager = new(logger, serviceProvider);
 
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
@@ -45,48 +44,10 @@ public sealed class MediaSessionManager
         {
             mediaSession = MediaSessionHelper.Create();
             // Set callback after getting the session (requires IServiceProvider)
-            SetMediaSessionCallback(mediaSession);
+            initializer.SetMediaSessionCallback(mediaSession);
         }
 
         return mediaSession;
-    }
-
-    private void SetMediaSessionCallback(MediaSessionCompat session)
-    {
-        // CRITICAL: SetCallback must be called on the main thread (requires Looper)
-        // Create MediaSessionCallback lazily to avoid startup dependency resolution issues
-        var playbackService = serviceProvider.GetRequiredService<IPlaybackService>();
-        var serviceLogger = serviceProvider.GetRequiredService<ILogger>();
-        var mediaSessionCallback = new MediaSessionCallback(playbackService, serviceLogger);
-
-        // Ensure SetCallback runs on main thread to avoid Looper exception
-        if (MainThread.IsMainThread)
-        {
-            // The preferred path: if we are on the main thread, execute immediately.
-            session.SetCallback(mediaSessionCallback);
-            logger.Debug("MediaSessionCallback set synchronously on main thread");
-        }
-        else
-        {
-            // CRITICAL: Ensure SetCallback is run on the main thread without blocking the current Binder thread.
-            // The callback will be set asynchronously. The MediaSession will be operational shortly after.
-            // Android Auto is tolerant of this slight delay, and blocking the Binder thread causes deadlocks/ANRs.
-            logger.Warning("MediaSession creation not on MainThread. Invoking SetCallback asynchronously to avoid blocking Binder thread.");
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                try
-                {
-                    session?.SetCallback(mediaSessionCallback);
-                    logger.Information("Successfully set MediaSessionCallback on main thread (async)");
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error setting MediaSessionCallback asynchronously");
-                }
-            });
-            // NO BLOCKING CALL HERE (e.g., .Wait() or Task.Run().Wait())
-            // The Binder thread returns immediately, allowing Android Auto to complete binding without timeout.
-        }
     }
 
 
@@ -96,9 +57,9 @@ public sealed class MediaSessionManager
     /// </summary>
     public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
     {
-        var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
-        var stateName = GetStateName(state);
-        var actionsDescription = GetActionsDescription(actions);
+        var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var stateName = StateHelper.GetStateName(state);
+        var actionsDescription = StateHelper.GetActionsDescription(actions);
 
         logger.Information(
             "[AndroidAuto] UpdatePlaybackState: State={StateName} ({StateValue}), Position={Position}ms, Actions={Actions}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
@@ -109,7 +70,7 @@ public sealed class MediaSessionManager
             canPlayNext,
             canPlayPrevious);
 
-        var playbackState = AndroidAutoPlayScreenHelper.CreatePlaybackState(
+        var playbackState = playbackStateManager.CreatePlaybackState(
             state,
             position,
             playbackSpeed: 1.0f,
@@ -121,34 +82,12 @@ public sealed class MediaSessionManager
             logger.Information(
                 "[AndroidAuto] MediaSessionCompat.SetPlaybackState called successfully - State={StateName}, ButtonState={ButtonState}",
                 stateName,
-                GetButtonStateFromActions(actions));
+                StateHelper.GetButtonStateFromActions(actions));
         }
         else
         {
             logger.Warning("[AndroidAuto] Failed to create PlaybackStateCompat - state update skipped");
         }
-    }
-
-    private static long BuildPlaybackActions(bool canPlayNext, bool canPlayPrevious)
-    {
-        // Base actions that are always available
-        long actions = PlaybackStateCompat.ActionPlay |
-                       PlaybackStateCompat.ActionPause |
-                       PlaybackStateCompat.ActionPlayPause |
-                       PlaybackStateCompat.ActionPlayFromMediaId;
-
-        // Add next/previous actions only when available
-        if (canPlayNext)
-        {
-            actions |= PlaybackStateCompat.ActionSkipToNext;
-        }
-
-        if (canPlayPrevious)
-        {
-            actions |= PlaybackStateCompat.ActionSkipToPrevious;
-        }
-
-        return actions;
     }
 
     /// <summary>
@@ -170,8 +109,8 @@ public sealed class MediaSessionManager
             return;
         }
 
-        var currentStateName = GetStateName(playbackState.State);
-        if (!IsPlaybackActive(playbackState))
+        var currentStateName = StateHelper.GetStateName(playbackState.State);
+        if (!playbackStateManager.IsPlaybackActive(playbackState))
         {
             logger.Debug(
                 "[AndroidAuto] UpdatePlaybackPosition: Playback not active (State={StateName}), skipping position update - Position={Position}ms, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
@@ -184,8 +123,8 @@ public sealed class MediaSessionManager
 
         var positionMs = (long)position.TotalMilliseconds;
         var durationMs = (long)duration.TotalMilliseconds;
-        var actions = BuildPlaybackActions(canPlayNext, canPlayPrevious);
-        var actionsDescription = GetActionsDescription(actions);
+        var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var actionsDescription = StateHelper.GetActionsDescription(actions);
 
         logger.Information(
             "[AndroidAuto] UpdatePlaybackPosition: Updating position - CurrentState={StateName}, Position={Position}ms, Duration={Duration}ms, Actions={Actions}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, ButtonState={ButtonState}",
@@ -195,32 +134,25 @@ public sealed class MediaSessionManager
             actionsDescription,
             canPlayNext,
             canPlayPrevious,
-            GetButtonStateFromActions(actions));
+            StateHelper.GetButtonStateFromActions(actions));
 
         UpdatePlaybackStateWithPosition(playbackState, positionMs, actions);
-        UpdateMetadataDuration(durationMs);
-    }
-
-    private bool IsPlaybackActive(PlaybackStateCompat playbackState)
-    {
-        return playbackState.State is PlaybackStateCompat.StatePlaying or
-               PlaybackStateCompat.StateBuffering or
-               PlaybackStateCompat.StatePaused;
+        metadataManager.UpdateMetadataDuration(mediaSession, durationMs);
     }
 
     private void UpdatePlaybackStateWithPosition(PlaybackStateCompat playbackState, long positionMs, long actions)
     {
-        var stateName = GetStateName(playbackState.State);
-        var actionsDescription = GetActionsDescription(actions);
+        var stateName = StateHelper.GetStateName(playbackState.State);
+        var actionsDescription = StateHelper.GetActionsDescription(actions);
 
         logger.Information(
             "[AndroidAuto] UpdatePlaybackStateWithPosition: Updating state with position - CurrentState={StateName}, NewPosition={Position}ms, Actions={Actions}, ButtonState={ButtonState}",
             stateName,
             positionMs,
             actionsDescription,
-            GetButtonStateFromActions(actions));
+            StateHelper.GetButtonStateFromActions(actions));
 
-        var playbackStateCompat = AndroidAutoPlayScreenHelper.CreatePlaybackStateFromExisting(
+        var playbackStateCompat = playbackStateManager.CreatePlaybackStateFromExisting(
             playbackState,
             positionMs,
             actions);
@@ -232,41 +164,11 @@ public sealed class MediaSessionManager
                 "[AndroidAuto] UpdatePlaybackStateWithPosition: MediaSessionCompat.SetPlaybackState called successfully - State={StateName}, Position={Position}ms, ButtonState={ButtonState}",
                 stateName,
                 positionMs,
-                GetButtonStateFromActions(actions));
+                StateHelper.GetButtonStateFromActions(actions));
         }
         else
         {
             logger.Warning("[AndroidAuto] UpdatePlaybackStateWithPosition: Failed to create PlaybackStateCompat - state update skipped");
-        }
-    }
-
-    private void UpdateMetadataDuration(long durationMs)
-    {
-        // Only update duration if it has changed (duration rarely changes, only on track change)
-        // Position updates are frequent (~200ms), but duration only changes when a new track starts
-        if (durationMs <= 0 || durationMs == lastDurationMs)
-        {
-            return;
-        }
-
-        if (mediaSession?.Controller?.Metadata == null)
-        {
-            return;
-        }
-
-        // Use CreateMetadataBuilderFromExisting to ensure artwork and all metadata is preserved
-        var existingMetadata = mediaSession.Controller.Metadata;
-        if (existingMetadata != null)
-        {
-            var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(existingMetadata);
-            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
-            var metadata = metadataBuilder.Build();
-            if (metadata != null)
-            {
-                mediaSession?.SetMetadata(metadata);
-                lastDurationMs = durationMs;
-                logger.Debug("Duration updated in metadata - Duration: {Duration}ms (artwork preserved)", durationMs);
-            }
         }
     }
 
@@ -285,118 +187,15 @@ public sealed class MediaSessionManager
             return;
         }
 
-        var builder = CreateMetadataBuilder(title, artist, album);
+        var builder = metadataManager.CreateMetadataBuilder(title, artist, album);
         if (builder == null)
         {
             logger.Warning("Failed to create MediaMetadataCompat.Builder");
             return;
         }
 
-        PreserveExistingMetadata(builder, scheduleId, artworkUrl);
+        metadataManager.PreserveExistingMetadata(builder, mediaSession, scheduleId, artworkUrl);
         ApplyMetadata(builder);
-    }
-
-    private MediaMetadataCompat.Builder? CreateMetadataBuilder(string title, string artist, string? album)
-    {
-        // Handle empty strings with fallback values (consistent with AndroidAutoPlayScreenHelper)
-        // This ensures we never show empty text in Android Auto UI
-        return new MediaMetadataCompat.Builder()
-            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? "Bible Alarm" : title)
-            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? "Tap to play" : artist)
-            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? "..." : album);
-    }
-
-    private void PreserveExistingMetadata(MediaMetadataCompat.Builder builder, int? scheduleId, string? artworkUrl)
-    {
-        if (mediaSession?.Controller?.Metadata != null)
-        {
-            var existingMetadata = mediaSession.Controller.Metadata;
-            PreserveMediaId(builder, existingMetadata, scheduleId);
-            PreserveOrLoadArtwork(builder, existingMetadata, artworkUrl);
-        }
-        else
-        {
-            if (scheduleId.HasValue)
-            {
-                // Set MediaId if no existing metadata and scheduleId is provided
-                builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
-            }
-
-            // Load artwork from URL if provided and no existing metadata
-            if (builder != null)
-            {
-                LoadArtworkFromUrl(builder, artworkUrl);
-            }
-        }
-    }
-
-    private static void PreserveMediaId(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, int? scheduleId)
-    {
-        // Preserve MediaId (scheduleId) for OnPlayFromMediaId
-        var existingMediaId = existingMetadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-        if (!string.IsNullOrEmpty(existingMediaId))
-        {
-            builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, existingMediaId);
-        }
-        else if (scheduleId.HasValue)
-        {
-            // Set MediaId if provided and not already present
-            builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
-        }
-    }
-
-    private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
-    {
-        // Always use new artworkUrl if provided (e.g., when switching from playback to default schedule)
-        // This ensures artwork is updated correctly when metadata changes
-        if (!string.IsNullOrEmpty(artworkUrl))
-        {
-            // Load artwork from URL - this will replace any existing artwork
-            LoadArtworkFromUrl(builder, artworkUrl);
-        }
-        else
-        {
-            // Only preserve existing artwork if no new artworkUrl is provided
-            Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-            if (existingArtwork != null)
-            {
-                builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-            }
-        }
-    }
-
-    private void LoadArtworkFromUrl(MediaMetadataCompat.Builder builder, string? artworkUrl)
-    {
-        if (string.IsNullOrEmpty(artworkUrl))
-        {
-            return;
-        }
-
-        try
-        {
-            var artworkService = serviceProvider.GetService<AndroidArtworkService>();
-            if (artworkService != null)
-            {
-                var artworkBitmap = artworkService.LoadArtworkBitmap(artworkUrl);
-                if (artworkBitmap != null)
-                {
-                    builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
-                    logger.Debug("Loaded artwork bitmap from: {ArtworkUrl}", artworkUrl);
-                }
-                else
-                {
-                    logger.Debug("Failed to load artwork bitmap from: {ArtworkUrl}", artworkUrl);
-                }
-            }
-            else
-            {
-                logger.Warning("AndroidArtworkService not available - cannot load artwork");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", artworkUrl);
-        }
     }
 
     private void ApplyMetadata(MediaMetadataCompat.Builder builder)
@@ -404,7 +203,7 @@ public sealed class MediaSessionManager
         var metadata = builder?.Build();
         mediaSession?.SetMetadata(metadata);
         // Reset tracked duration when metadata changes (new track may have different duration)
-        lastDurationMs = null;
+        metadataManager.LastDurationMs = null;
     }
 
     /// <summary>
@@ -423,7 +222,7 @@ public sealed class MediaSessionManager
         try
         {
             logger.Information("[AndroidAuto] SetBufferingStateOnly: Setting MediaSession to buffering state (preserving metadata, no button state change)");
-            AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
+            playbackStateManager.SetBufferingStateOnly(mediaSession);
             logger.Information("[AndroidAuto] SetBufferingStateOnly: MediaSession set to buffering state successfully");
         }
         catch (Exception ex)
@@ -444,7 +243,7 @@ public sealed class MediaSessionManager
             return;
         }
 
-        AndroidAutoPlayScreenHelper.SetStoppedState(mediaSession);
+        playbackStateManager.SetStoppedState(mediaSession);
     }
 
     /// <summary>
@@ -458,18 +257,9 @@ public sealed class MediaSessionManager
             return;
         }
 
-        var state = status switch
-        {
-            PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
-            PlayStatus.Paused => PlaybackStateCompat.StatePaused,
-            PlayStatus.Loading => PlaybackStateCompat.StateBuffering,
-            PlayStatus.Stopped => PlaybackStateCompat.StateStopped,
-            PlayStatus.Ended => PlaybackStateCompat.StateStopped,
-            PlayStatus.Failed => PlaybackStateCompat.StateError,
-            _ => PlaybackStateCompat.StateNone
-        };
+        var state = playbackStateManager.MapPlayStatusToState(status);
 
-        var stateName = GetStateName(state);
+        var stateName = StateHelper.GetStateName(state);
         logger.Information(
             "[AndroidAuto] SetPlaybackStatus: InputStatus={InputStatus}, MappedState={StateName} ({StateValue}), CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
             status,
@@ -491,7 +281,7 @@ public sealed class MediaSessionManager
             // Setting Active=false causes Android Auto to not discover the app when car connects
             SetActive(true);
             // Reset tracked duration when playback stops
-            lastDurationMs = null;
+            metadataManager.LastDurationMs = null;
             // Note: Audio focus is released globally by AudioFocusEffect when playback stops
             logger.Information("MediaSessionCompat kept active when stopped - Android Auto can discover app even when idle");
         }
@@ -540,46 +330,5 @@ public sealed class MediaSessionManager
         }
     }
 
-    private static string GetStateName(int state)
-    {
-        return state switch
-        {
-            PlaybackStateCompat.StateNone => "StateNone",
-            PlaybackStateCompat.StateStopped => "StateStopped",
-            PlaybackStateCompat.StatePaused => "StatePaused",
-            PlaybackStateCompat.StatePlaying => "StatePlaying",
-            PlaybackStateCompat.StateFastForwarding => "StateFastForwarding",
-            PlaybackStateCompat.StateRewinding => "StateRewinding",
-            PlaybackStateCompat.StateBuffering => "StateBuffering",
-            PlaybackStateCompat.StateError => "StateError",
-            PlaybackStateCompat.StateConnecting => "StateConnecting",
-            PlaybackStateCompat.StateSkippingToPrevious => "StateSkippingToPrevious",
-            PlaybackStateCompat.StateSkippingToNext => "StateSkippingToNext",
-            PlaybackStateCompat.StateSkippingToQueueItem => "StateSkippingToQueueItem",
-            _ => $"Unknown({state})"
-        };
-    }
-
-    private static string GetActionsDescription(long actions)
-    {
-        var actionList = new List<string>();
-        if ((actions & PlaybackStateCompat.ActionPlay) != 0) actionList.Add("Play");
-        if ((actions & PlaybackStateCompat.ActionPause) != 0) actionList.Add("Pause");
-        if ((actions & PlaybackStateCompat.ActionPlayPause) != 0) actionList.Add("PlayPause");
-        if ((actions & PlaybackStateCompat.ActionSkipToNext) != 0) actionList.Add("Next");
-        if ((actions & PlaybackStateCompat.ActionSkipToPrevious) != 0) actionList.Add("Previous");
-        if ((actions & PlaybackStateCompat.ActionPlayFromMediaId) != 0) actionList.Add("PlayFromMediaId");
-        return string.Join(", ", actionList.Count > 0 ? actionList : new[] { "None" });
-    }
-
-    private static string GetButtonStateFromActions(long actions)
-    {
-        var hasPlay = (actions & PlaybackStateCompat.ActionPlay) != 0;
-        var hasPause = (actions & PlaybackStateCompat.ActionPause) != 0;
-
-        if (hasPause) return "PAUSE_BUTTON_VISIBLE";
-        if (hasPlay) return "PLAY_BUTTON_VISIBLE";
-        return "NO_BUTTON";
-    }
 }
 
