@@ -2,7 +2,7 @@
 using Bible;
 using Bible.Alarm.Stores.Models;
 
-namespace Bible.Alarm.ViewModels.Services.BibleSelection;
+namespace Bible.Alarm.ViewModels.Services.Schedule.BibleSelection;
 
 /// <summary>
 /// Detects property changes in bible selection.

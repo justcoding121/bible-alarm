@@ -5,7 +5,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 
-namespace Bible.Alarm.ViewModels.Services.MusicSelection;
+namespace Bible.Alarm.ViewModels.Services.Schedule.MusicSelection;
 
 /// <summary>
 /// Provides display text for music-related properties.

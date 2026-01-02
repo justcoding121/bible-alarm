@@ -22,7 +22,7 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.ViewModels.Services.MusicSelection;
+using Bible.Alarm.ViewModels.Services.Schedule.MusicSelection;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 

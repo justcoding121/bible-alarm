@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Services.BibleSelection;
+namespace Bible.Alarm.ViewModels.Services.Schedule.BibleSelection;
 
 /// <summary>
 /// Handles initialization of commands for bible selection.

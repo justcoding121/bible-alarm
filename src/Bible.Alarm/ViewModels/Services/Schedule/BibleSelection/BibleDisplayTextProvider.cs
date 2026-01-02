@@ -6,7 +6,7 @@ using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Services.BibleSelection;
+namespace Bible.Alarm.ViewModels.Services.Schedule.BibleSelection;
 
 /// <summary>
 /// Provides display text for bible-related properties.

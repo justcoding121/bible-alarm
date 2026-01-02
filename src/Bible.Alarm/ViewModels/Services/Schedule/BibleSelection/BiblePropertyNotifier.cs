@@ -2,7 +2,7 @@
 using Bible;
 using Bible.Alarm.ViewModels.Schedule;
 
-namespace Bible.Alarm.ViewModels.Services.BibleSelection;
+namespace Bible.Alarm.ViewModels.Services.Schedule.BibleSelection;
 
 /// <summary>
 /// Handles cascading property change notifications for bible properties.
