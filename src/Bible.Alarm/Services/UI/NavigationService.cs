@@ -1,15 +1,8 @@
 #nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.Services.UI.NavigationServiceHelpers;
 using Bible.Alarm.Views;
-using Bible.Alarm.Views.Bible;
-using Bible.Alarm.Views.General;
-using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
-using Bible.Alarm.Views.Shared;
-using Polly;
-using Polly.Retry;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
@@ -21,241 +14,25 @@ public sealed class NavigationService(
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    // Cached navigation instance to avoid retries on every call
-    private INavigation? cachedNavigation;
+    // Helper classes
+    private readonly NavigationInstanceManager navigationManager = new(logger);
+    private readonly HomeNavigationHandler homeHandler = new(logger, serviceProvider);
+    private readonly ModalNavigationHandler modalHandler = new(logger, serviceProvider);
+    private readonly NavigationStackManager stackManager = new();
 
     private bool isDisposed;
 
-    // Helper method to create navigation retry policy
-    // Limit retries to prevent infinite loops when navigation is unavailable
-    private RetryPolicy CreateNavigationRetryPolicy() => Policy
-        .Handle<InvalidOperationException>()
-        .WaitAndRetry(
-            retryCount: 10, // Limit to 10 retries (2 seconds total) to prevent infinite loops
-            sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
-            onRetry: (exception, timeSpan, retryCount, _) =>
-            {
-                logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}/10). Error: {exception.Message}");
-            });
-
-
-    private INavigation GetNavigation(bool shouldRetry = true)
-    {
-        if (cachedNavigation is not null)
-        {
-            // Verify cached navigation is still valid before returning it
-            try
-            {
-                // Access a property to verify the navigation is still valid
-                _ = cachedNavigation.NavigationStack;
-                return cachedNavigation;
-            }
-            catch
-            {
-                // Cached navigation is invalid, clear it and try to get a new one
-                logger?.Debug("Cached navigation is invalid, clearing cache");
-                cachedNavigation = null;
-            }
-        }
-
-        if (!shouldRetry)
-        {
-            // Try once without retry - throw immediately if navigation is not available
-            return NavigationFinder();
-        }
-
-        var retryPolicy = CreateNavigationRetryPolicy();
-
-        var retryResponse = retryPolicy.ExecuteAndCapture(() => NavigationFinder());
-
-        if (retryResponse.Outcome == OutcomeType.Failure)
-        {
-            // If retries failed, clear cache and throw the exception
-            cachedNavigation = null;
-            throw retryResponse.FinalException;
-        }
-
-        return retryResponse.Result;
-    }
-
-    private INavigation NavigationFinder()
-    {
-        // If not in DI or GetService returned null, get it directly from the current application window
-        var app = Application.Current;
-        if (app is null)
-        {
-            var errorMsg = "Application.Current is null. Cannot get INavigation.";
-            logger?.Error(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
-
-        logger?.Debug($"Application.Current found. Windows count: {app.Windows.Count}");
-
-        // Try to get navigation from windows
-        if (app.Windows.Count > 0)
-        {
-            var window = app.Windows[0];
-            logger?.Debug($"Window found. Page type: {window?.Page?.GetType().Name ?? "null"}");
-
-            // Check if window.Page is NavigationPage
-            if (window?.Page is NavigationPage navPage)
-            {
-                logger?.Debug("Found NavigationPage in window.Page");
-                var navigation = navPage.Navigation;
-
-                // Verify navigation is accessible before caching
-                try
-                {
-                    _ = navigation.NavigationStack;
-                    cachedNavigation = navigation;
-                    return cachedNavigation;
-                }
-                catch (Exception ex)
-                {
-                    logger?.Debug(ex, "Navigation is not accessible yet, will retry");
-                    throw new InvalidOperationException("Navigation is not accessible yet", ex);
-                }
-            }
-        }
-        else
-        {
-            logger?.Warning("Application.Current.Windows.Count is 0 - window may not be initialized yet");
-        }
-
-        var mainPageType = app.Windows.Count > 0 ? app.Windows[0].Page?.GetType().Name ?? "null" : "null (no windows)";
-        var finalErrorMsg = $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={mainPageType}";
-        logger?.Error(finalErrorMsg);
-        throw new InvalidOperationException(finalErrorMsg);
-    }
+    private INavigation GetNavigation(bool shouldRetry = true) => navigationManager.GetNavigation(shouldRetry);
 
     /// <summary>
     /// Clears the cached navigation. Call this when the app is disposed or navigation becomes invalid.
     /// </summary>
-    public void ClearCache()
-    {
-        cachedNavigation = null;
-        logger?.Debug("Navigation cache cleared");
-    }
+    public void ClearCache() => navigationManager.ClearCache();
 
     public async Task NavigateToHomeAsync()
     {
-#if DEBUG
-        var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-        logger.Information("[BOOTSTRAP] NavigateToHomeAsync starting");
-#endif
-
         var navigation = GetNavigation();
-
-        if (IsAlreadyOnHomePage(navigation))
-        {
-#if DEBUG
-            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (already on home) in {ElapsedMs:F2}ms", navElapsed);
-#endif
-            return;
-        }
-
-        var existingHome = FindExistingHomeInStack(navigation);
-        if (existingHome != null)
-        {
-            await PopToExistingHomeAsync(navigation, existingHome);
-#if DEBUG
-            var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (existing home) in {ElapsedMs:F2}ms", navElapsed);
-#endif
-        }
-        else
-        {
-            await PopToRootAndPushNewHomeAsync(navigation);
-#if DEBUG
-            var navTotalElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (new home) in {ElapsedMs:F2}ms", navTotalElapsed);
-#endif
-        }
-    }
-
-    private static bool IsAlreadyOnHomePage(INavigation navigation)
-    {
-        return navigation.NavigationStack.Count > 0 &&
-               navigation.NavigationStack.LastOrDefault() is Home;
-    }
-
-    private static Home? FindExistingHomeInStack(INavigation navigation)
-    {
-        for (int i = navigation.NavigationStack.Count - 1; i >= 0; i--)
-        {
-            if (navigation.NavigationStack[i] is Home home)
-            {
-                return home;
-            }
-        }
-        return null;
-    }
-
-    private async Task PopToExistingHomeAsync(INavigation navigation, Home existingHome)
-    {
-        // Home exists in stack - pop all pages until we reach Home (root)
-        while (navigation.NavigationStack.Count > 1 && navigation.NavigationStack.LastOrDefault() != existingHome)
-        {
-            var page = navigation.NavigationStack.LastOrDefault();
-            await navigation.PopAsync(animated: true);
-            if (page != existingHome && page is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-        }
-    }
-
-    private async Task PopToRootAndPushNewHomeAsync(INavigation navigation)
-    {
-        // Home doesn't exist - pop all pages to root, then push new Home
-#if DEBUG
-        var popStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-        await PopAllPagesToRootAsync(navigation);
-#if DEBUG
-        var popElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - popStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        logger.Information("[BOOTSTRAP] PopAllPagesToRootAsync completed in {ElapsedMs:F2}ms", popElapsed);
-#endif
-
-#if DEBUG
-        var homeCreateStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-        var homePage = serviceProvider.GetRequiredService<Home>();
-#if DEBUG
-        var homeCreateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - homeCreateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        logger.Information("[BOOTSTRAP] Home page service resolution completed in {ElapsedMs:F2}ms", homeCreateElapsed);
-#endif
-
-        ConfigureHomePageNavigation(homePage);
-
-#if DEBUG
-        var pushStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-        await navigation.PushAsync(homePage, animated: false);
-#if DEBUG
-        var pushElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - pushStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        logger.Information("[BOOTSTRAP] Home page PushAsync completed in {ElapsedMs:F2}ms", pushElapsed);
-#endif
-    }
-
-    private async Task PopAllPagesToRootAsync(INavigation navigation)
-    {
-        while (navigation.NavigationStack.Count > 1)
-        {
-            var page = navigation.NavigationStack.LastOrDefault();
-            await navigation.PopAsync(animated: true);
-            if (page is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-        }
-    }
-
-    private static void ConfigureHomePageNavigation(Home homePage)
-    {
-        NavigationPage.SetHasBackButton(homePage, false);
-        NavigationPage.SetHasNavigationBar(homePage, false);
+        await homeHandler.NavigateToHomeAsync(navigation);
     }
 
     /// <summary>
@@ -266,7 +43,7 @@ public sealed class NavigationService(
         try
         {
             var navigation = GetNavigation(shouldRetry: false);
-            return navigation.NavigationStack.LastOrDefault() as Home;
+            return homeHandler.GetCurrentHomePage(navigation);
         }
         catch
         {
@@ -281,17 +58,7 @@ public sealed class NavigationService(
     public void SetHomePageVisibility(bool isPlaybackActive)
     {
         var homePage = GetCurrentHomePage();
-        if (homePage == null)
-        {
-            return;
-        }
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            // If playback is active, hide Home page to prevent flash before modal appears
-            // Home will be shown when modal appears or playback stops
-            homePage.Opacity = isPlaybackActive ? 0.0 : 1.0;
-        });
+        homeHandler.SetHomePageVisibility(homePage, isPlaybackActive);
     }
 
     public async Task NavigateToScheduleAsync()
@@ -333,152 +100,73 @@ public sealed class NavigationService(
     public async Task OpenMusicSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<MusicSelectionModal>();
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenMusicSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenSongBookSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<SongBookSelectionModal>();
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenSongBookSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenTrackSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<TrackSelectionModal>();
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenTrackSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenBibleSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<BibleSelectionModal>();
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenBibleSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenBookSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<BookSelectionModal>();
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenBookSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenChapterSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<ChapterSelectionModal>();
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenChapterSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<NumberOfChaptersModal>();
-        modal.BindingContext = bindingContext;
-        // Disable animation for instant appearance
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenNumberOfChaptersModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenLanguageModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-
-        ContentPage modal = bindingContext switch
-        {
-            // Use the appropriate modal based on the ViewModel type for compiled bindings
-            BibleSelectionViewModel => serviceProvider.GetRequiredService<BibleLanguageModal>(),
-            SongBookSelectionViewModel => serviceProvider.GetRequiredService<MusicLanguageModal>(),
-            _ => throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}",
-                nameof(bindingContext))
-        };
-
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenLanguageModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenAlarmModalAsync()
     {
-        await MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            try
-            {
-                var navigation = GetNavigation();
-                if (IsAlarmModalAlreadyShown(navigation))
-                {
-                    return;
-                }
-
-                var modal = serviceProvider.GetRequiredService<AlarmModal>();
-                ConfigureAlarmModal(modal);
-                await navigation.PushModalAsync(modal, animated: false);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error opening AlarmModal");
-            }
-        });
+        var navigation = GetNavigation();
+        await modalHandler.OpenAlarmModalAsync(navigation);
     }
-
-    private static bool IsAlarmModalAlreadyShown(INavigation navigation)
-    {
-        var existingModal = navigation.ModalStack.LastOrDefault();
-        return existingModal?.GetType() == typeof(AlarmModal) ||
-               (existingModal is NavigationPage navPage && navPage.CurrentPage is AlarmModal);
-    }
-
-    private static void ConfigureAlarmModal(AlarmModal modal)
-    {
-        NavigationPage.SetHasNavigationBar(modal, false);
-    }
-
 
     public async Task OpenBatteryOptimizationModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        var modal = serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
-        modal.BindingContext = bindingContext;
-        // Disable animation for instant appearance
-        await navigation.PushModalAsync(modal, animated: false);
+        await modalHandler.OpenBatteryOptimizationModalAsync(navigation, bindingContext);
     }
 
     public async Task PopModalAsync()
     {
         var navigation = GetNavigation();
-        if (navigation.ModalStack.Count > 0)
-        {
-            var modal = navigation.ModalStack.LastOrDefault();
-            // Disable animation for instant modal dismissal (especially for sub-modals from schedule page)
-            var page = await navigation.PopModalAsync(animated: false);
-
-            // Dispose the modal - handle both direct modals and wrapped modals
-            if (page is IDisposable disposablePage)
-            {
-                disposablePage.Dispose();
-            }
-        }
+        await stackManager.PopModalAsync(navigation);
     }
 
     public async Task PopAsync()
     {
         var navigation = GetNavigation();
-        if (navigation.NavigationStack.Count > 1)
-        {
-            var page = navigation.NavigationStack.LastOrDefault();
-            // Keep animation enabled for navigation back
-            await navigation.PopAsync(animated: true);
-            if (page is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-        }
+        await stackManager.PopAsync(navigation);
     }
 
     /// <summary>
