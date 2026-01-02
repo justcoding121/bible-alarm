@@ -43,27 +43,12 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IScheduleContainerService scheduleContainerService;
     private readonly ScheduleStateChangeHandler scheduleStateChangeHandler;
 
-    private int lastScheduleId = -1;
-    private bool modelInitialized;
-    private bool isInitializingNewSchedule;
-    private bool isSaving;
-    private bool isScrolledToBottom;
-
-    // Track previous music state to detect changes
-    private MusicType? lastMusicType;
-    private int? lastMusicTrackNumber;
-    private string? lastMusicPublicationCode;
-    private string? lastMusicLanguageCode;
-    private bool? lastMusicRepeat;
-
-    // Track last processed state to prevent redundant processing
-    private int lastProcessedScheduleId = -1;
-    private bool lastProcessedOverlayVisible = true;
-
-    public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel { get; set; }
-    public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel { get; set; }
-    public ChaptersSelectionContainerViewModel? ChaptersSelectionContainerViewModel { get; set; }
-    public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel { get; set; }
+    // Helper classes
+    private readonly ScheduleStateManager stateManager;
+    private readonly ScheduleCommandExecutor commandExecutor;
+    private readonly SchedulePropertyManager propertyManager;
+    private readonly ScheduleContainerManager containerManager;
+    private readonly ScheduleOverlayManager overlayManager;
 
 
     public ScheduleViewModel(
@@ -98,16 +83,21 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         this.playbackState = playbackState;
         this.dispatcher = dispatcher;
         this.serviceProvider = serviceProvider;
-        this.scheduleInitializationService = scheduleInitializationService;
-        this.scheduleCommandService = scheduleCommandService;
-        this.scheduleMediaCacheService = scheduleMediaCacheService;
-        this.scheduleContainerService = scheduleContainerService;
-        this.scheduleStateChangeHandler = scheduleStateChangeHandler;
 
-        // Defer container initialization - will be created after page is visible
-        // This prevents blocking the UI thread during page load
-        InitializeStateHandling();
-        InitializeCommands();
+        // Initialize helper classes
+        stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher);
+        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper);
+        propertyManager = new SchedulePropertyManager(logger, state);
+        containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
+        overlayManager = new ScheduleOverlayManager(dispatcher);
+
+        // Initialize state handling and commands
+        stateManager.InitializeStateHandling(state, () => propertyManager.IsBusy = true, () => overlayManager.ShowSchedulePageOverlay());
+        commandExecutor.InitializeCommands(out var cancelCmd, out var saveCmd, out var deleteCmd);
+        CancelCommand = cancelCmd;
+        SaveCommand = saveCmd;
+        DeleteCommand = deleteCmd;
+
         SetupSafetyFallback();
 
         // Initialize containers asynchronously after page is visible
@@ -121,12 +111,12 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     /// </summary>
     private async Task InitializeContainerViewModelsAsync()
     {
-        await scheduleContainerService.InitializeContainersAsync(serviceProvider, (bible, music, chapters, details) =>
+        await containerManager.InitializeContainerViewModelsAsync((bible, music, chapters, details) =>
         {
-            BibleSelectionContainerViewModel = bible;
-            MusicSelectionContainerViewModel = music;
-            ChaptersSelectionContainerViewModel = chapters;
-            ScheduleDetailsContainerViewModel = details;
+            propertyManager.BibleSelectionContainerViewModel = bible;
+            propertyManager.MusicSelectionContainerViewModel = music;
+            propertyManager.ChaptersSelectionContainerViewModel = chapters;
+            propertyManager.ScheduleDetailsContainerViewModel = details;
         });
     }
 
@@ -161,13 +151,13 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         _ = Task.Run(async () =>
         {
             await Task.Delay(2000);
-            if (IsBusy && !modelInitialized)
+            if (propertyManager.IsBusy && !stateManager.ModelInitialized)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    IsBusy = false;
-                    dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
-                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                    propertyManager.IsBusy = false;
+                    overlayManager.HideHomePageOverlay();
+                    overlayManager.HideSchedulePageOverlay();
                 });
             }
         });
@@ -180,387 +170,38 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         DeleteCommand = new AsyncRelayCommand(ExecuteDeleteCommand);
     }
 
-    private async Task ExecuteCancelCommand()
-    {
-        await scheduleCommandService.ExecuteCancelAsync(IsNewSchedule, ScheduleId, state.Value.CurrentSchedule);
-    }
-
-
-    private async Task ExecuteSaveCommand()
-    {
-        logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
-            IsNewSchedule, ScheduleId, Name);
-
-        isSaving = true;
-
-        try
-        {
-            var currentSchedule = state.Value.CurrentSchedule;
-            await scheduleCommandService.ValidateNotificationPermissionsAsync(currentSchedule);
-
-            await scheduleCommandService.StopPlaybackIfNeededAsync(
-                IsNewSchedule,
-                playbackState.Value.IsPreparingOrPlaying,
-                ScheduleId,
-                playbackState.Value.CurrentScheduleId ?? -1);
-
-            if (currentSchedule != null)
-            {
-                var saved = await scheduleCommandService.ExecuteSaveAsync(
-                    IsNewSchedule,
-                    ScheduleId,
-                    currentSchedule,
-                    musicUpdated,
-                    bibleReadingUpdated,
-                    modelInitialized);
-
-                if (saved)
-                {
-                    scheduleMediaCacheService.SetupMediaCache(ScheduleId, isUpdate: !IsNewSchedule);
-                }
-
-                var model = GetModel();
-                await scheduleCommandService.HandleSaveResultAsync(saved, ScheduleId, IsEnabled, model);
-            }
-        }
-        finally
-        {
-            isSaving = false;
-        }
-    }
-
-    private async Task ExecuteDeleteCommand()
-    {
-        await scheduleCommandService.StopPlaybackIfNeededAsync(
-            IsNewSchedule,
-            playbackState.Value.IsPreparingOrPlaying,
-            ScheduleId,
-            playbackState.Value.CurrentScheduleId ?? -1);
-
-        var scheduleCount = state.Value.Schedules?.Count ?? 0;
-        await scheduleCommandService.ExecuteDeleteAsync(IsNewSchedule, ScheduleId, scheduleCount);
-    }
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-        var currentScheduleId = stateValue.CurrentSchedule?.Id ?? -1;
-        var newOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
-        var isScheduleUpdate = currentScheduleId == lastScheduleId && modelInitialized;
-
-        // Early exit if we've already processed this exact state (only for schedule updates, not initial loads)
-        // Also check if the property value itself hasn't changed to prevent unnecessary updates
-        if (isScheduleUpdate &&
-            currentScheduleId == lastProcessedScheduleId &&
-            newOverlayVisible == lastProcessedOverlayVisible &&
-            newOverlayVisible == isSchedulePageOverlayVisible)
-        {
-            logger.Debug("ScheduleViewModel: OnStateChanged - Skipping processing as no relevant changes detected. ScheduleId: {ScheduleId}, OverlayVisible: {OverlayVisible}",
-                currentScheduleId, newOverlayVisible);
-            return;
-        }
-
-        // Early exit if property value already matches state value (prevents unnecessary PropertyChanged events)
-        // This is especially important when visiting the same schedule multiple times
-        // Check this BEFORE checking isScheduleUpdate to catch all cases where property already matches
-        if (newOverlayVisible == isSchedulePageOverlayVisible)
-        {
-            // Still update tracking fields to prevent future unnecessary processing
-            // Only update if this is a schedule update (not initial load) to avoid interfering with initialization
-            if (isScheduleUpdate)
-            {
-                lastProcessedScheduleId = currentScheduleId;
-                lastProcessedOverlayVisible = newOverlayVisible;
-            }
-            // Always return early if property already matches - no need to process further
-            return;
-        }
-
-        // Only update property if value actually changed to prevent unnecessary PropertyChanged events
-        if (newOverlayVisible != isSchedulePageOverlayVisible)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                // Double-check the value hasn't changed since we checked (race condition protection)
-                if (newOverlayVisible != isSchedulePageOverlayVisible)
-                {
-                    if (!newOverlayVisible || !isScheduleUpdate)
-                    {
-                        IsSchedulePageOverlayVisible = newOverlayVisible;
-                    }
-                }
-            });
-        }
-
-        NotifySchedulePropertiesChanged();
-
-        if (currentScheduleId != lastScheduleId || !modelInitialized)
-        {
-            OnCurrentScheduleChanged(sender, e);
-        }
-
-        // Update last processed state after handling changes
-        lastProcessedScheduleId = currentScheduleId;
-        lastProcessedOverlayVisible = newOverlayVisible;
+        stateManager.HandleStateChanged(
+            state,
+            (visible) => propertyManager.IsSchedulePageOverlayVisible = visible,
+            () => propertyManager.NotifySchedulePropertiesChanged(),
+            OnCurrentScheduleChanged);
     }
 
-    private void NotifySchedulePropertiesChanged()
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            OnPropertyChanged(nameof(Name));
-            OnPropertyChanged(nameof(IsEnabled));
-            OnPropertyChanged(nameof(DaysOfWeek));
-            OnPropertyChanged(nameof(Time));
-            OnPropertyChanged(nameof(MusicEnabled));
-        });
-    }
 
     private void OnCurrentScheduleChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-
-        if (stateValue.CurrentSchedule != null)
-        {
-            HandleExistingScheduleUpdate(stateValue);
-        }
-        else
-        {
-            HandleNewScheduleInitialization(stateValue);
-        }
-    }
-
-    private void HandleExistingScheduleUpdate(ApplicationState stateValue)
-    {
-        var currentScheduleId = stateValue.CurrentSchedule!.Id;
-
-        if (currentScheduleId == lastScheduleId && modelInitialized)
-        {
-            if (isSaving) return;
-            HandleScheduleUpdateFromState(stateValue, currentScheduleId);
-            // Only dispatch if overlay is currently visible to avoid infinite loops
-            if (stateValue.IsSchedulePageOverlayVisible)
-            {
-                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-            }
-            return;
-        }
-
-        // Reset tracking fields when schedule ID changes
-        lastProcessedScheduleId = -1;
-        lastProcessedOverlayVisible = true;
-
-        LoadScheduleFromState(stateValue, currentScheduleId);
-    }
-
-    private bool HandleScheduleUpdateFromState(ApplicationState stateValue, int currentScheduleId)
-    {
-        var currentSchedule = stateValue.CurrentSchedule;
-        var hasChanges = scheduleStateChangeHandler.HandleScheduleUpdateFromState(
-            currentSchedule,
-            ref lastMusicType,
-            ref lastMusicTrackNumber,
-            ref lastMusicPublicationCode,
-            ref lastMusicLanguageCode,
-            ref lastMusicRepeat,
-            out var musicChanged);
-
-        if (musicChanged)
-        {
-            musicUpdated = true;
-        }
-
-        if (hasChanges)
-        {
-            NotifySchedulePropertiesChanged();
-        }
-
-        return hasChanges;
-    }
-
-    private void LoadScheduleFromState(ApplicationState stateValue, int currentScheduleId)
-    {
-        isInitializingNewSchedule = false;
-        var currentScheduleItem = stateValue.CurrentSchedule!;
-
-        // Reset tracking fields when loading a new schedule
-        lastProcessedScheduleId = -1;
-        lastProcessedOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                var scheduleStateItemSnapshot = currentScheduleItem.DeepClone();
-                scheduleInitializationService.InitializeTrackingFields(
-                    scheduleStateItemSnapshot,
-                    ref lastScheduleId,
-                    ref lastMusicType,
-                    ref lastMusicTrackNumber,
-                    ref lastMusicPublicationCode,
-                    ref lastMusicLanguageCode,
-                    ref lastMusicRepeat);
-
-                musicUpdated = false;
-                bibleReadingUpdated = false;
-
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    try
-                    {
-                        IsNewSchedule = scheduleStateItemSnapshot.Id <= 0;
-                        NotifySchedulePropertiesChanged();
-                        await CompleteScheduleLoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Error in LoadScheduleFromState main thread handler");
-                        HandleLoadError();
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in LoadScheduleFromState data preparation");
-                await MainThread.InvokeOnMainThreadAsync(HandleLoadError);
-            }
-        });
-    }
-
-    private async Task CompleteScheduleLoadAsync()
-    {
-        await scheduleInitializationService.CompleteScheduleLoadAsync();
-
-        // Mark model as initialized for existing schedules
-        modelInitialized = true;
-
-        IsBusy = false;
-        OnPropertyChanged(nameof(IsBusy));
-
-        var maxWaitTime = TimeSpan.FromMilliseconds(500);
-        var startTime = DateTime.UtcNow;
-        while ((BibleSelectionContainerViewModel == null ||
-                MusicSelectionContainerViewModel == null ||
-                ChaptersSelectionContainerViewModel == null ||
-                ScheduleDetailsContainerViewModel == null) &&
-               (DateTime.UtcNow - startTime) < maxWaitTime)
-        {
-            await Task.Delay(50);
-        }
-
-        await Task.Delay(50);
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-        await Task.Delay(50);
-        OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
-    }
-
-    private void HandleLoadError()
-    {
-        IsBusy = false;
-        OnPropertyChanged(nameof(IsBusy));
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+        stateManager.HandleCurrentScheduleChanged(state);
     }
 
 
-    private void HandleNewScheduleInitialization(ApplicationState stateValue)
-    {
-        if (modelInitialized && !isSaving)
-        {
-            ResetViewModelForNewSchedule();
-        }
-        if (!modelInitialized && !isInitializingNewSchedule)
-        {
-            InitializeNewSchedule();
-        }
-    }
 
-    private void ResetViewModelForNewSchedule()
-    {
-        modelInitialized = false;
-        lastScheduleId = -1;
-        IsNewSchedule = false;
-        scheduleStateChangeHandler.ResetMusicTrackingFields(
-            ref lastMusicType,
-            ref lastMusicTrackNumber,
-            ref lastMusicPublicationCode,
-            ref lastMusicLanguageCode,
-            ref lastMusicRepeat);
-        musicUpdated = false;
-        bibleReadingUpdated = false;
-    }
 
-    private void InitializeNewSchedule()
-    {
-        isInitializingNewSchedule = true;
-        MainThread.BeginInvokeOnMainThread(() => IsBusy = true);
-
-        Task.Run(async () =>
-        {
-            var scheduleStateItem = await scheduleInitializationService.InitializeNewScheduleAsync();
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                var currentState = state.Value;
-                if (isInitializingNewSchedule && !modelInitialized && currentState.CurrentSchedule == null)
-                {
-                    modelInitialized = true;
-                    scheduleInitializationService.InitializeTrackingFields(
-                        scheduleStateItem,
-                        ref lastScheduleId,
-                        ref lastMusicType,
-                        ref lastMusicTrackNumber,
-                        ref lastMusicPublicationCode,
-                        ref lastMusicLanguageCode,
-                        ref lastMusicRepeat);
-
-                    dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
-                    IsNewSchedule = true;
-                    musicUpdated = false;
-                    bibleReadingUpdated = false;
-                    NotifySchedulePropertiesChanged();
-                    await FinalizeNewScheduleInitialization();
-                }
-                else
-                {
-                    await FinalizeNewScheduleInitialization();
-                }
-            });
-        });
-    }
-
-    private async Task FinalizeNewScheduleInitialization()
-    {
-        isInitializingNewSchedule = false;
-        IsBusy = false;
-        OnPropertyChanged(nameof(IsBusy));
-        await Task.Delay(400);
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-        await Task.Delay(100);
-        OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
-    }
 
     public ICommand CancelCommand { get; set; } = null!;
 
     public ICommand SaveCommand { get; set; } = null!;
     public ICommand DeleteCommand { get; set; } = null!;
 
-    private AlarmSchedule GetModel()
-    {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null)
-        {
-            return new AlarmSchedule { Id = 0 };
-        }
-        return mapper.Map<AlarmSchedule>(currentSchedule);
-    }
 
     private int ScheduleId => SchedulePropertyHelper.GetScheduleId(state.Value.CurrentSchedule);
 
-    private bool isBusy;
-
     public bool IsBusy
     {
-        get => isBusy;
-        set => SetProperty(ref isBusy, value);
+        get => propertyManager.IsBusy;
+        set => propertyManager.IsBusy = value;
     }
 
 
@@ -578,7 +219,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     public AlarmMusic? Music
     {
-        get => GetModel().Music;
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return null;
+            }
+            return mapper.Map<AlarmSchedule>(currentSchedule).Music;
+        }
         set
         {
             // Music updates are handled by MusicSelectionContainerViewModel via actions
@@ -591,7 +240,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     public BibleReadingSchedule? BibleReadingSchedule
     {
-        get => GetModel().BibleReadingSchedule;
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return null;
+            }
+            return mapper.Map<AlarmSchedule>(currentSchedule).BibleReadingSchedule;
+        }
         set
         {
             // Bible reading updates are handled by BibleSelectionContainerViewModel via actions
@@ -600,30 +257,19 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         }
     }
 
-    private bool isNewSchedule;
-    private bool isExistingSchedule;
-
     public bool IsNewSchedule
     {
-        get => isNewSchedule;
-        private set
-        {
-            IsExistingSchedule = !value;
-            SetProperty(ref isNewSchedule, value);
-        }
+        get => propertyManager.IsNewSchedule;
+        set => propertyManager.IsNewSchedule = value;
     }
 
     public bool IsScrolledToBottom
     {
-        get => isScrolledToBottom;
-        set => SetProperty(ref isScrolledToBottom, value);
+        get => propertyManager.IsScrolledToBottom;
+        set => propertyManager.IsScrolledToBottom = value;
     }
 
-    public bool IsExistingSchedule
-    {
-        get => isExistingSchedule;
-        private set => SetProperty(ref isExistingSchedule, value);
-    }
+    public bool IsExistingSchedule => propertyManager.IsExistingSchedule;
 
 
 
@@ -631,32 +277,19 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Hides the Home page overlay. Called when the Schedule page is fully rendered and visible.
     /// </summary>
-    public void HideHomePageOverlay() => dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
-
-    // Start as true to show busy indicator overlay immediately
-    private bool isSchedulePageOverlayVisible = true;
+    public void HideHomePageOverlay() => overlayManager.HideHomePageOverlay();
 
     /// <summary>
     /// Gets the overlay visibility from application state.
     /// This property is bound to the Schedule page overlay.
     /// Uses a cached value that's updated when state changes to ensure bindings work correctly.
     /// </summary>
-    public bool IsSchedulePageOverlayVisible
-    {
-        get => isSchedulePageOverlayVisible;
-        private set
-        {
-            if (SetProperty(ref isSchedulePageOverlayVisible, value))
-            {
-                logger.Debug("IsSchedulePageOverlayVisible: Property changed to {Value}", value);
-            }
-        }
-    }
+    public bool IsSchedulePageOverlayVisible => propertyManager.IsSchedulePageOverlayVisible;
 
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
     /// </summary>
-    public void HideSchedulePageOverlay() => dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+    public void HideSchedulePageOverlay() => overlayManager.HideSchedulePageOverlay();
 
 
     public void Dispose()
@@ -664,7 +297,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         state.StateChanged -= OnStateChanged;
 
         // Hide overlay when ViewModel is disposed
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+        overlayManager.Dispose();
     }
 }
 
