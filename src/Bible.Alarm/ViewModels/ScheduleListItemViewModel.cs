@@ -1,20 +1,14 @@
 #nullable enable
 using System.Windows.Input;
-using AutoMapper;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.ScheduleListItemHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -30,10 +24,13 @@ public sealed class ScheduleListItemViewModel(
     IMapper mapper)
     : ObservableObject, IComparable, IDisposable
 {
-    private bool isInitializing;
-    private AlarmSchedule? lastKnownSchedule;
-    private string? lastKnownBibleReadingLanguageName;
-    private string? lastKnownBookName;
+    // Helper classes
+    private readonly ScheduleListItemInitializer initializer = new(logger, mapper, applicationState);
+    private readonly ScheduleListItemPropertyManager propertyManager = new(logger, scheduleStateService);
+    private readonly ScheduleListItemCommandHandler commandHandler = new(logger, playbackService, playlistService, applicationState, dispatcher);
+    private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
+    private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, displayService, applicationState);
+
     private bool isBusy;
     private Action? onPlayStarted;
     private Action? onPlaybackStarted;
@@ -64,17 +61,13 @@ public sealed class ScheduleListItemViewModel(
     /// </summary>
     public void InitializeFromSchedule(AlarmSchedule schedule, ScheduleStateItem? scheduleStateItem = null)
     {
-        if (schedule == null || schedule.Id <= 0)
+        var (validSchedule, stateItem) = initializer.InitializeFromSchedule(schedule, scheduleStateItem);
+        if (validSchedule == null)
         {
-            logger.Warning("InitializeFromSchedule: Invalid schedule or schedule ID {ScheduleId}", schedule?.Id ?? 0);
             return;
         }
 
-        // Get schedule state item if not provided (for subtitle tracking)
-        scheduleStateItem ??= applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == schedule.Id);
-
-        // Use shared initialization method
-        InitializeCommon(schedule, scheduleStateItem);
+        InitializeCommon(validSchedule, stateItem);
     }
 
     /// <summary>
@@ -83,24 +76,12 @@ public sealed class ScheduleListItemViewModel(
     /// </summary>
     public void SetScheduleId(int scheduleId)
     {
-        if (scheduleId <= 0)
+        var (schedule, scheduleStateItem) = initializer.SetScheduleId(scheduleId);
+        if (schedule == null)
         {
-            logger.Warning("SetScheduleId: Invalid schedule ID {ScheduleId}", scheduleId);
             return;
         }
 
-        // Find schedule from state
-        var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
-        if (scheduleStateItem == null)
-        {
-            logger.Warning("SetScheduleId: Schedule {ScheduleId} not found in state", scheduleId);
-            return;
-        }
-
-        // Map ScheduleStateItem to AlarmSchedule entity
-        var schedule = mapper.Map<AlarmSchedule>(scheduleStateItem);
-
-        // Use shared initialization method
         InitializeCommon(schedule, scheduleStateItem);
     }
 
@@ -110,15 +91,16 @@ public sealed class ScheduleListItemViewModel(
     /// </summary>
     private void InitializeCommon(AlarmSchedule schedule, ScheduleStateItem? scheduleStateItem)
     {
-        isInitializing = true;
+        propertyManager.IsInitializing = true;
         try
         {
             Schedule = schedule;
-            isEnabled = schedule.IsEnabled;
+            var (isEnabled, _, _, _, _, _, _, _) = propertyManager.GetPropertiesFromSchedule(schedule);
+            propertyManager.IsEnabled = isEnabled;
         }
         finally
         {
-            isInitializing = false;
+            propertyManager.IsInitializing = false;
         }
 
         // Trigger property change notifications (UI thread operation)
@@ -136,18 +118,19 @@ public sealed class ScheduleListItemViewModel(
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
         // Store initial state for comparison
-        lastKnownSchedule = Schedule;
+        stateHandler.LastKnownSchedule = Schedule;
 
         // Initialize tracked subtitle values from state
         if (scheduleStateItem != null)
         {
-            lastKnownBibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageName;
-            lastKnownBookName = scheduleStateItem.BibleReadingBookName;
+            stateHandler.LastKnownBibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageName;
+            stateHandler.LastKnownBookName = scheduleStateItem.BibleReadingBookName;
         }
 
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
 
+        // Initialize commands using helper
         PlayCommand = new AsyncRelayCommand(async () =>
         {
             if (Schedule?.Id > 0)
@@ -161,80 +144,39 @@ public sealed class ScheduleListItemViewModel(
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });
+        PreviousCommand = commandHandler.CreatePreviousCommand(Schedule);
+        NextCommand = commandHandler.CreateNextCommand(Schedule);
+        DeleteCommand = commandHandler.CreateDeleteCommand(Schedule);
 
         // Initialize subtitle and language from state (BookName is pre-populated during bootstrap)
         // Use the provided scheduleStateItem if available to avoid re-looking it up
         RefreshSubTitleFromState(scheduleStateItem);
-
-        PreviousCommand = new AsyncRelayCommand(async () =>
-        {
-            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(Schedule.Id))
-            {
-                // Run database operations off UI thread
-                await Task.Run(async () =>
-                {
-                    await playlistService.MoveToPreviousBibleChapter(Schedule.Id);
-                });
-                // Don't refresh here - OnApplicationStateChanged will handle it when state updates
-                // This prevents showing stale data before the state is updated
-            }
-        });
-
-        NextCommand = new AsyncRelayCommand(async () =>
-        {
-            if (Schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(Schedule.Id))
-            {
-                // Run database operations off UI thread
-                await Task.Run(async () =>
-                {
-                    await playlistService.MoveToNextBibleChapter(Schedule.Id);
-                });
-                // Don't refresh here - OnApplicationStateChanged will handle it when state updates
-                // This prevents showing stale data before the state is updated
-            }
-        });
-
-        DeleteCommand = new AsyncRelayCommand(async () =>
-        {
-            if (Schedule == null || Schedule.Id <= 0)
-            {
-                return;
-            }
-
-            // Check if this is the last schedule - prevent deletion if it is
-            var scheduleCount = applicationState.Value.Schedules?.Count ?? 0;
-            if (scheduleCount <= 1)
-            {
-                logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", Schedule.Id);
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
-                return;
-            }
-
-            // Dispatch DeleteScheduleAction (following Fluxor best practices)
-            // The Effect will handle the actual DB deletion and dispatch success/failure actions
-            logger.Information("ScheduleListItem: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", Schedule.Id);
-            dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
-        });
     }
 
     public int ScheduleId => Schedule?.Id ?? 0;
 
     public string Name => Schedule?.Name ?? string.Empty;
 
-    public string SubTitle { get; private set; } = string.Empty;
+    public string SubTitle
+    {
+        get => subtitleManager.SubTitle;
+        private set => subtitleManager.SubTitle = value;
+    }
 
-    public string Language { get; private set; } = string.Empty;
+    public string Language
+    {
+        get => subtitleManager.Language;
+        private set => subtitleManager.Language = value;
+    }
 
     public bool MusicEnabled => Schedule?.MusicEnabled ?? false;
 
-    private bool isEnabled;
-
     public bool IsEnabled
     {
-        get => isEnabled;
+        get => propertyManager.IsEnabled;
         set
         {
-            if (SetProperty(ref isEnabled, value) && !isInitializing && Schedule != null)
+            if (SetProperty(ref propertyManager.IsEnabled, value) && !propertyManager.IsInitializing && Schedule != null)
             {
                 _ = HandleIsEnabledChanged(value);
             }
@@ -243,25 +185,13 @@ public sealed class ScheduleListItemViewModel(
 
     private async Task HandleIsEnabledChanged(bool newValue)
     {
-        try
-        {
-            NotifyThisPropertyChanged();
-            var success = await scheduleStateService.UpdateScheduleEnabledStateAsync(ScheduleId, newValue);
-
-            if (!success)
-            {
-                await RevertIsEnabledChange(newValue);
-            }
-            else
-            {
-                NotifyPropertiesChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "An error occurred while handling IsEnabled change for schedule {ScheduleId}", ScheduleId);
-            await RevertIsEnabledChange(newValue);
-        }
+        await propertyManager.HandleIsEnabledChanged(
+            ScheduleId,
+            newValue,
+            Schedule,
+            () => OnPropertyChanged(nameof(This)),
+            () => NotifyPropertiesChanged(),
+            async (attemptedValue) => await RevertIsEnabledChange(attemptedValue));
     }
 
     private void NotifyThisPropertyChanged()
@@ -273,7 +203,7 @@ public sealed class ScheduleListItemViewModel(
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            isEnabled = !attemptedValue;
+            propertyManager.IsEnabled = !attemptedValue;
             OnPropertyChanged(nameof(IsEnabled));
             OnPropertyChanged(nameof(This));
         });
@@ -334,81 +264,12 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
-        var scheduleId = Schedule.Id;
-
-        try
-        {
-            // Use provided scheduleStateItem if available, otherwise look it up from state
-            var scheduleStateItem = providedScheduleStateItem ??
-                applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
-
-            if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)
-            {
-                UpdateLanguageFromState(scheduleStateItem);
-                var subtitle = BuildSubtitleFromState(scheduleStateItem);
-                if (!string.IsNullOrEmpty(subtitle))
-                {
-                    SubTitle = subtitle;
-                    OnPropertyChanged(nameof(SubTitle));
-                    return;
-                }
-            }
-            else
-            {
-                ClearLanguage();
-            }
-
-            _ = RefreshChapterNameAsync(force: false);
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
-            _ = RefreshChapterNameAsync(force: false);
-        }
-    }
-
-    private void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem)
-    {
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
-        {
-            Language = scheduleStateItem.BibleReadingLanguageName;
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
-        {
-            Language = scheduleStateItem.BibleReadingLanguageCode;
-        }
-        else
-        {
-            Language = string.Empty;
-        }
-        OnPropertyChanged(nameof(Language));
-    }
-
-    private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
-    {
-        var subtitleParts = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingBookName))
-        {
-            subtitleParts.Add(scheduleStateItem.BibleReadingBookName);
-        }
-        else if (scheduleStateItem.BibleReadingBookNumber.HasValue && scheduleStateItem.BibleReadingBookNumber.Value > 0)
-        {
-            subtitleParts.Add($"Book {scheduleStateItem.BibleReadingBookNumber.Value}");
-        }
-
-        if (scheduleStateItem.BibleReadingChapterNumber.HasValue && scheduleStateItem.BibleReadingChapterNumber.Value > 0)
-        {
-            subtitleParts.Add(scheduleStateItem.BibleReadingChapterNumber.Value.ToString());
-        }
-
-        return subtitleParts.Count > 0 ? string.Join(" ", subtitleParts) : string.Empty;
-    }
-
-    private void ClearLanguage()
-    {
-        Language = string.Empty;
-        OnPropertyChanged(nameof(Language));
+        subtitleManager.RefreshSubTitleFromState(
+            Schedule.Id,
+            providedScheduleStateItem,
+            value => SubTitle = value,
+            value => Language = value,
+            OnPropertyChanged);
     }
 
     /// <summary>
@@ -421,56 +282,13 @@ public sealed class ScheduleListItemViewModel(
         {
             return;
         }
-        // Capture to avoid null reference
-        var schedule = Schedule;
-        if (schedule == null)
-        {
-            return;
-        }
 
-        var scheduleId = schedule.Id;
-
-        try
-        {
-            // Try to get Language from state first (synchronous)
-            var scheduleStateItem = applicationState.Value.Schedules
-                .FirstOrDefault(s => s.Id == scheduleId);
-
-            string language = string.Empty;
-            if (scheduleStateItem != null)
-            {
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
-                {
-                    language = scheduleStateItem.BibleReadingLanguageName;
-                }
-                else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
-                {
-                    language = scheduleStateItem.BibleReadingLanguageCode;
-                }
-            }
-
-            // Run database operations off UI thread
-            var displayName = await Task.Run(async () =>
-                await displayService.GetChapterDisplayNameAsync(scheduleId, force));
-
-            // Update UI on main thread
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!string.IsNullOrEmpty(displayName))
-                {
-                    SubTitle = displayName;
-                    OnPropertyChanged(nameof(SubTitle));
-                }
-
-                // Update Language property
-                Language = language;
-                OnPropertyChanged(nameof(Language));
-            });
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", scheduleId);
-        }
+        await subtitleManager.RefreshChapterNameAsync(
+            Schedule.Id,
+            force,
+            value => SubTitle = value,
+            value => Language = value,
+            OnPropertyChanged);
     }
 
     public void RefreshChapterName(bool force = false) =>
@@ -486,95 +304,36 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
-        var schedule = Schedule;
-        if (schedule == null)
+        var changeInfo = stateHandler.HandleApplicationStateChanged(Schedule.Id, Schedule);
+        if (changeInfo == null)
         {
             return;
         }
 
-        var scheduleId = schedule.Id;
-        var updatedScheduleItem = applicationState.Value.Schedules
-            .FirstOrDefault(s => s.Id == scheduleId);
-
-        if (updatedScheduleItem == null)
-        {
-            return;
-        }
-
-        var changeInfo = DetectScheduleChanges(updatedScheduleItem);
-        UpdateScheduleFromState(updatedScheduleItem, changeInfo);
+        UpdateScheduleFromState(changeInfo);
         NotifyPropertyChanges(changeInfo);
     }
 
-    private ScheduleChangeInfo DetectScheduleChanges(ScheduleStateItem updatedScheduleItem)
-    {
-        var oldBookNumber = Schedule?.BibleReadingSchedule?.BookNumber;
-        var oldChapterNumber = Schedule?.BibleReadingSchedule?.ChapterNumber;
-        var oldDaysOfWeek = Schedule?.DaysOfWeek ?? 0;
-        var oldIsEnabled = isEnabled;
-        var oldName = Schedule?.Name ?? string.Empty;
-        var oldHour = Schedule?.Hour ?? 0;
-        var oldMinute = Schedule?.Minute ?? 0;
-        var oldMusicEnabled = Schedule?.MusicEnabled ?? false;
-
-        var updatedSchedule = mapper.Map<AlarmSchedule>(updatedScheduleItem);
-        var trackChanged = DetectTrackChange(updatedSchedule);
-        var newBibleReadingLanguageName = updatedScheduleItem.BibleReadingLanguageName;
-        var newBookName = updatedScheduleItem.BibleReadingBookName;
-
-        return new ScheduleChangeInfo
-        {
-            UpdatedSchedule = updatedSchedule,
-            TrackChanged = trackChanged,
-            BookNumberChanged = oldBookNumber != updatedSchedule.BibleReadingSchedule?.BookNumber,
-            ChapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber,
-            BibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName,
-            BookNameChanged = lastKnownBookName != newBookName,
-            DaysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek,
-            IsEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled,
-            NameChanged = oldName != updatedSchedule.Name,
-            TimeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute,
-            MusicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled,
-            NewBibleReadingLanguageName = newBibleReadingLanguageName,
-            NewBookName = newBookName
-        };
-    }
-
-    private bool DetectTrackChange(AlarmSchedule updatedSchedule)
-    {
-        if (lastKnownSchedule?.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
-        {
-            return lastKnownSchedule.BibleReadingSchedule.BookNumber != updatedSchedule.BibleReadingSchedule.BookNumber ||
-                   lastKnownSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber;
-        }
-
-        if (lastKnownSchedule?.Music != null && updatedSchedule.Music != null)
-        {
-            return lastKnownSchedule.Music.TrackNumber != updatedSchedule.Music.TrackNumber;
-        }
-
-        return false;
-    }
-
-    private void UpdateScheduleFromState(ScheduleStateItem updatedScheduleItem, ScheduleChangeInfo changeInfo)
+    private void UpdateScheduleFromState(ScheduleListItemStateHandler.ScheduleChangeInfo changeInfo)
     {
         Schedule = changeInfo.UpdatedSchedule;
-        lastKnownSchedule = changeInfo.UpdatedSchedule;
-        isEnabled = changeInfo.UpdatedSchedule.IsEnabled;
+        stateHandler.LastKnownSchedule = changeInfo.UpdatedSchedule;
+        propertyManager.IsEnabled = changeInfo.UpdatedSchedule.IsEnabled;
 
         var subtitleChanged = changeInfo.TrackChanged || changeInfo.BookNumberChanged || changeInfo.ChapterNumberChanged ||
                              changeInfo.BibleReadingLanguageNameChanged || changeInfo.BookNameChanged;
 
         if (subtitleChanged)
         {
-            lastKnownBibleReadingLanguageName = changeInfo.NewBibleReadingLanguageName;
-            lastKnownBookName = changeInfo.NewBookName;
-            // Use the updated scheduleStateItem to ensure we have the latest data
+            stateHandler.LastKnownBibleReadingLanguageName = changeInfo.NewBibleReadingLanguageName;
+            stateHandler.LastKnownBookName = changeInfo.NewBookName;
+            // Refresh subtitle from state
+            var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule.Id);
             RefreshSubTitleFromState(updatedScheduleItem);
         }
     }
 
-    private void NotifyPropertyChanges(ScheduleChangeInfo changeInfo)
+    private void NotifyPropertyChanges(ScheduleListItemStateHandler.ScheduleChangeInfo changeInfo)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -602,23 +361,6 @@ public sealed class ScheduleListItemViewModel(
                 OnPropertyChanged(nameof(MusicEnabled));
             }
         });
-    }
-
-    private record ScheduleChangeInfo
-    {
-        public AlarmSchedule UpdatedSchedule { get; init; } = null!;
-        public bool TrackChanged { get; init; }
-        public bool BookNumberChanged { get; init; }
-        public bool ChapterNumberChanged { get; init; }
-        public bool BibleReadingLanguageNameChanged { get; init; }
-        public bool BookNameChanged { get; init; }
-        public bool DaysOfWeekChanged { get; init; }
-        public bool IsEnabledChanged { get; init; }
-        public bool NameChanged { get; init; }
-        public bool TimeChanged { get; init; }
-        public bool MusicEnabledChanged { get; init; }
-        public string? NewBibleReadingLanguageName { get; init; }
-        public string? NewBookName { get; init; }
     }
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
