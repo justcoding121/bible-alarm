@@ -134,7 +134,7 @@ public sealed class ScheduleListItemViewModel(
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
 
-        // Initialize commands using helper
+        // Initialize commands using helper (recreate with updated schedule)
         PlayCommand = new AsyncRelayCommand(async () =>
         {
             if (Schedule?.Id > 0)
@@ -148,6 +148,7 @@ public sealed class ScheduleListItemViewModel(
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });
+        // Recreate commands with updated schedule to ensure they use the latest chapter information
         PreviousCommand = commandHandler.CreatePreviousCommand(Schedule);
         NextCommand = commandHandler.CreateNextCommand(Schedule);
         DeleteCommand = commandHandler.CreateDeleteCommand(Schedule);

@@ -12,6 +12,7 @@ using Fluxor;
 using Serilog;
 using System.Windows.Input;
 using IDispatcher = Fluxor.IDispatcher;
+using IToastService = Bible.Alarm.Services.UI.Interfaces.IToastService;
 
 namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 
@@ -50,15 +51,44 @@ public sealed class ScheduleListItemCommandHandler(
     {
         return new AsyncRelayCommand(async () =>
         {
-            if (schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(schedule.Id))
+            if (schedule?.Id <= 0)
+            {
+                logger.Warning("PreviousCommand: Schedule is null or has invalid ID");
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule not found"));
+                return;
+            }
+
+            // Check if schedule has Bible reading configured
+            if (schedule.BibleReadingSchedule == null)
+            {
+                logger.Debug("PreviousCommand: Schedule {ScheduleId} does not have Bible reading configured", schedule.Id);
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Please configure Bible reading for this schedule"));
+                return;
+            }
+
+            var canMove = await playbackService.CanMoveChapterAsync(schedule.Id);
+            if (!canMove)
+            {
+                logger.Debug("PreviousCommand: Cannot move chapter for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
+                return;
+            }
+
+            logger.Information("PreviousCommand: Moving to previous chapter for schedule {ScheduleId}", schedule.Id);
+            try
             {
                 // Run database operations off UI thread
                 await Task.Run(async () =>
                 {
                     await playlistService.MoveToPreviousBibleChapter(schedule.Id);
                 });
+                logger.Information("PreviousCommand: Successfully moved to previous chapter for schedule {ScheduleId}", schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates
                 // This prevents showing stale data before the state is updated
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "PreviousCommand: Error moving to previous chapter for schedule {ScheduleId}", schedule.Id);
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to previous chapter"));
             }
         });
     }
@@ -70,15 +100,44 @@ public sealed class ScheduleListItemCommandHandler(
     {
         return new AsyncRelayCommand(async () =>
         {
-            if (schedule?.Id > 0 && await playbackService.CanMoveChapterAsync(schedule.Id))
+            if (schedule?.Id <= 0)
+            {
+                logger.Warning("NextCommand: Schedule is null or has invalid ID");
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule not found"));
+                return;
+            }
+
+            // Check if schedule has Bible reading configured
+            if (schedule.BibleReadingSchedule == null)
+            {
+                logger.Debug("NextCommand: Schedule {ScheduleId} does not have Bible reading configured", schedule.Id);
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Please configure Bible reading for this schedule"));
+                return;
+            }
+
+            var canMove = await playbackService.CanMoveChapterAsync(schedule.Id);
+            if (!canMove)
+            {
+                logger.Debug("NextCommand: Cannot move chapter for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
+                return;
+            }
+
+            logger.Information("NextCommand: Moving to next chapter for schedule {ScheduleId}", schedule.Id);
+            try
             {
                 // Run database operations off UI thread
                 await Task.Run(async () =>
                 {
                     await playlistService.MoveToNextBibleChapter(schedule.Id);
                 });
+                logger.Information("NextCommand: Successfully moved to next chapter for schedule {ScheduleId}", schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates
                 // This prevents showing stale data before the state is updated
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "NextCommand: Error moving to next chapter for schedule {ScheduleId}", schedule.Id);
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to next chapter"));
             }
         });
     }

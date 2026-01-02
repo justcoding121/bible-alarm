@@ -28,6 +28,7 @@ public class HomeStateChangeHandler
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
+    private Dictionary<int, (int? BookNumber, int? ChapterNumber)>? lastProcessedScheduleProperties;
     private bool shouldShowProgressBar = true;
 
     public HomeStateChangeHandler(
@@ -65,7 +66,17 @@ public class HomeStateChangeHandler
             var schedulesCountChanged = lastProcessedSchedulesCount != stateValue.Schedules.Count;
             var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
 
-            if (!schedulesCountChanged && !scheduleIdsChanged && lastProcessedScheduleIds != null)
+            // Check if schedule properties (like chapter number) have changed
+            var currentScheduleProperties = stateValue.Schedules
+                .Where(s => s.Id > 0)
+                .ToDictionary(s => s.Id, s => (BookNumber: s.BibleReadingBookNumber, ChapterNumber: s.BibleReadingChapterNumber));
+            var schedulePropertiesChanged = lastProcessedScheduleProperties == null ||
+                currentScheduleProperties.Any(kvp => 
+                    !lastProcessedScheduleProperties.ContainsKey(kvp.Key) ||
+                    lastProcessedScheduleProperties[kvp.Key].BookNumber != kvp.Value.BookNumber ||
+                    lastProcessedScheduleProperties[kvp.Key].ChapterNumber != kvp.Value.ChapterNumber);
+
+            if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
             {
                 logger.Debug("OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}", stateValue.Schedules.Count);
                 return;
@@ -202,6 +213,7 @@ public class HomeStateChangeHandler
             // Update last processed state
             lastProcessedSchedulesCount = stateValue.Schedules.Count;
             lastProcessedScheduleIds = currentScheduleIds;
+            lastProcessedScheduleProperties = currentScheduleProperties;
         }
         else
         {
@@ -209,6 +221,7 @@ public class HomeStateChangeHandler
             updateProgressBarVisibility();
             lastProcessedSchedulesCount = null;
             lastProcessedScheduleIds = null;
+            lastProcessedScheduleProperties = null;
         }
     }
 }
