@@ -16,6 +16,7 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.ViewModels.Bible.BookSelectionViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
@@ -31,9 +32,8 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
     private bool initComplete;
     private BibleReadingSchedule? lastCurrent;
 
-    // Track last language and publication code to detect changes
-    private string? lastLanguageCode;
-    private string? lastPublicationCode;
+    // Helper class
+    private readonly StateChangeHandler stateChangeHandler;
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
@@ -154,6 +154,19 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             await navigationService.PopModalAsync();
         });
 
+        // Initialize helper
+        stateChangeHandler = new StateChangeHandler(
+            logger,
+            mapper,
+            () => current,
+            (c) => current = c,
+            (c) => lastCurrent = c,
+            () => initComplete,
+            (b) => IsBusy = b,
+            () => Books,
+            (lang, pub) => _ = Initialize(lang, pub),
+            SetSelectedBook);
+
         // Only subscribe OnBibleReadingChanged to state changes
         // OnBibleReadingInitialized will only be called once manually in the constructor
         state.StateChanged += OnBibleReadingChanged;
@@ -166,102 +179,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
     private void OnBibleReadingChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-
-        // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
-        // CurrentSchedule is updated first and is authoritative
-        if (stateValue.CurrentSchedule == null)
-        {
-            logger.Warning("BookSelectionViewModel: OnBibleReadingChanged - CurrentSchedule is null, returning");
-            return;
-        }
-
-        var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-
-        logger.Information("BookSelectionViewModel: OnBibleReadingChanged - CurrentSchedule: Id={ScheduleId}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, InitComplete: {InitComplete}",
-            currentSchedule.Id,
-            newLanguageCode ?? "null",
-            newPublicationCode ?? "null",
-            initComplete);
-
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
-        {
-            logger.Warning("BookSelectionViewModel: OnBibleReadingChanged - LanguageCode or PublicationCode is null/empty, returning");
-            return;
-        }
-
-        // Check if language or publication code changed (need to repopulate books)
-        var languageChanged = lastLanguageCode != newLanguageCode;
-        var publicationCodeChanged = lastPublicationCode != newPublicationCode;
-        var needsRepopulation = languageChanged || publicationCodeChanged;
-
-        logger.Information("BookSelectionViewModel: OnBibleReadingChanged - LanguageChanged: {LanguageChanged} ({LastLang} -> {NewLang}), PublicationChanged: {PublicationChanged} ({LastPub} -> {NewPub}), NeedsRepopulation: {NeedsRepopulation}",
-            languageChanged, lastLanguageCode ?? "null", newLanguageCode,
-            publicationCodeChanged, lastPublicationCode ?? "null", newPublicationCode,
-            needsRepopulation);
-
-        // If no changes detected and we're already initialized, skip
-        if (!needsRepopulation && initComplete)
-        {
-            logger.Debug("BookSelectionViewModel: OnBibleReadingChanged - No changes detected, returning");
-            return;
-        }
-
-        // Update tracking variables
-        lastLanguageCode = newLanguageCode;
-        lastPublicationCode = newPublicationCode;
-
-        // Update current if we have CurrentBibleReadingSchedule (for other properties like BookNumber)
-        if (stateValue.CurrentBibleReadingSchedule != null)
-        {
-            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal BibleReadingSchedule from CurrentSchedule
-            current = new BibleReadingSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
-                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
-            };
-            lastCurrent = current;
-        }
-
-        // If language or publication code changed, repopulate books
-        if (needsRepopulation && initComplete)
-        {
-            logger.Information("BookSelectionViewModel: OnBibleReadingChanged - Starting repopulation with LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-                newLanguageCode, newPublicationCode);
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                    await Initialize(newLanguageCode, newPublicationCode);
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-
-                    logger.Information("BookSelectionViewModel: OnBibleReadingChanged - Repopulation completed. Books count: {BooksCount}",
-                        Books?.Count ?? 0);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "BookSelectionViewModel: OnBibleReadingChanged - Error during repopulation");
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                }
-            });
-        }
-        else
-        {
-            logger.Information("BookSelectionViewModel: OnBibleReadingChanged - No repopulation needed, updating selected book");
-            // Update selected book when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(SetSelectedBook);
-        }
+        stateChangeHandler.HandleStateChanged(state.Value);
     }
 
     private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
