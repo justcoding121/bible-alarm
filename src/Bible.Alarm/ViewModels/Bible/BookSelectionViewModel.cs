@@ -31,6 +31,8 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
     private readonly IMapper mapper;
     private bool initComplete;
     private BibleReadingSchedule? lastCurrent;
+    private string? lastLanguageCode;
+    private string? lastPublicationCode;
 
     // Helper class
     private readonly StateChangeHandler stateChangeHandler;

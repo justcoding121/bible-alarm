@@ -1,0 +1,109 @@
+#nullable enable
+using Bible;
+using Bible.Alarm.Models;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Stores;
+using Bible.Alarm.ViewModels.Schedule;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Fluxor;
+using Serilog;
+
+namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
+
+/// <summary>
+/// Handles property management for ScheduleViewModel.
+/// </summary>
+public sealed class SchedulePropertyManager : ObservableObject
+{
+    private readonly ILogger logger;
+    private readonly IState<ApplicationState> state;
+
+    public SchedulePropertyManager(IState<ApplicationState> state, ILogger logger)
+    {
+        this.logger = logger;
+        this.state = state;
+    }
+
+    // Container ViewModels
+    public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel { get; set; }
+    public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel { get; set; }
+    public ChaptersSelectionContainerViewModel? ChaptersSelectionContainerViewModel { get; set; }
+    public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel { get; set; }
+
+    // Properties
+    private bool isBusy;
+    private bool isNewSchedule;
+    private bool isExistingSchedule;
+    private bool isScrolledToBottom;
+    private bool isSchedulePageOverlayVisible = true;
+
+    public bool IsBusy
+    {
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
+    }
+
+    public bool IsNewSchedule
+    {
+        get => isNewSchedule;
+        set
+        {
+            IsExistingSchedule = !value;
+            SetProperty(ref isNewSchedule, value);
+        }
+    }
+
+    public bool IsScrolledToBottom
+    {
+        get => isScrolledToBottom;
+        set => SetProperty(ref isScrolledToBottom, value);
+    }
+
+    public bool IsExistingSchedule
+    {
+        get => isExistingSchedule;
+        private set => SetProperty(ref isExistingSchedule, value);
+    }
+
+    public bool IsSchedulePageOverlayVisible
+    {
+        get => isSchedulePageOverlayVisible;
+        set
+        {
+            if (SetProperty(ref isSchedulePageOverlayVisible, value))
+            {
+                logger.Debug("IsSchedulePageOverlayVisible: Property changed to {Value}", value);
+            }
+        }
+    }
+
+    // Computed properties from state
+    public string Name => SchedulePropertyHelper.GetName(state.Value.CurrentSchedule);
+
+    public bool IsEnabled => SchedulePropertyHelper.GetIsEnabled(state.Value.CurrentSchedule);
+
+    public DaysOfWeek DaysOfWeek => SchedulePropertyHelper.GetDaysOfWeek(state.Value.CurrentSchedule);
+
+    public TimeSpan Time => SchedulePropertyHelper.GetTime(state.Value.CurrentSchedule);
+
+    public bool MusicEnabled => SchedulePropertyHelper.GetMusicEnabled(state.Value.CurrentSchedule);
+
+    public int ScheduleId => SchedulePropertyHelper.GetScheduleId(state.Value.CurrentSchedule);
+
+    // Methods for property change notifications
+    public void NotifySchedulePropertiesChanged()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnPropertyChanged(nameof(Name));
+            OnPropertyChanged(nameof(IsEnabled));
+            OnPropertyChanged(nameof(DaysOfWeek));
+            OnPropertyChanged(nameof(Time));
+            OnPropertyChanged(nameof(MusicEnabled));
+        });
+    }
+
+    public void SetIsBusy(bool value) => IsBusy = value;
+    public void SetIsNewSchedule(bool value) => IsNewSchedule = value;
+    public void SetIsSchedulePageOverlayVisible(bool value) => IsSchedulePageOverlayVisible = value;
+}

@@ -1,10 +1,12 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.Music.TrackSelectionHelpers;
+using Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -92,10 +94,48 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private async Task InitializeTracks()
     {
-        if (stateManager.Current != null && !string.IsNullOrEmpty(stateManager.Current.LanguageCode))
+        if (stateManager.Current != null && !string.IsNullOrEmpty(stateManager.Current.PublicationCode))
         {
             await Initialize(stateManager.Current.LanguageCode, stateManager.Current.PublicationCode);
         }
+    }
+
+    /// <summary>
+    /// Refreshes the tracks list from the current state. Can be called when modal appears to ensure latest state is used.
+    /// </summary>
+    public async Task RefreshFromState()
+    {
+        var stateValue = state.Value;
+        if (stateValue.CurrentSchedule == null)
+        {
+            logger.Warning("TrackSelectionViewModel: RefreshFromState - CurrentSchedule is null, returning");
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var musicType = currentSchedule.MusicType;
+        var languageCode = currentSchedule.MusicLanguageCode;
+        var publicationCode = currentSchedule.MusicPublicationCode;
+
+        if (!musicType.HasValue || string.IsNullOrEmpty(publicationCode))
+        {
+            logger.Warning("TrackSelectionViewModel: RefreshFromState - MusicType or PublicationCode is null/empty, returning");
+            return;
+        }
+
+        // For vocals, language code is required
+        if (musicType.Value == MusicType.Vocals && string.IsNullOrEmpty(languageCode))
+        {
+            logger.Warning("TrackSelectionViewModel: RefreshFromState - LanguageCode is required for vocal music, returning");
+            return;
+        }
+
+        // Update state manager tracking
+        stateManager.HandleMusicChanged(
+            state,
+            busy => propertyManager.IsBusy = busy,
+            async (lang, pub) => await Initialize(lang, pub),
+            () => SetSelectedTrack());
     }
 
     private void OnMusicInitialized(object? o, EventArgs eventArgs)
@@ -130,9 +170,10 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         listManager.SetSelectedTrack(stateManager.Current, propertyManager.Tracks, track => propertyManager.SetSelectedTrack(track));
     }
 
-    private async Task Initialize(string languageCode, string publicationCode)
+    private async Task Initialize(string? languageCode, string publicationCode)
     {
-        await listManager.PopulateTracks(languageCode, publicationCode, propertyManager.Tracks);
+        var musicType = stateManager.LastMusicType ?? stateManager.Current?.MusicType ?? MusicType.Vocals;
+        await listManager.PopulateTracks(musicType, languageCode, publicationCode, propertyManager.Tracks);
 
         // Subscribe to PropertyChanged events for Repeat
         foreach (var track in propertyManager.Tracks)

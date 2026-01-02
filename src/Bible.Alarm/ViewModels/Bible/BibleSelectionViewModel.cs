@@ -11,13 +11,13 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Interfaces;
-using Bible.Alarm.ViewModels.Services.BibleSelection;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 using Microsoft.Extensions.DependencyInjection;
+using Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Bible;
 

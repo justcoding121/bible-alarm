@@ -1,6 +1,6 @@
 #nullable enable
 
-using Bible.Alarm.ViewModels.Services.Home;
+using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using Microsoft.Maui.Essentials;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;

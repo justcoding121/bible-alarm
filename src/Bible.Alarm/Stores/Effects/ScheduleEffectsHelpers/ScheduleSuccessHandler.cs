@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.Services;
@@ -68,7 +69,7 @@ public class ScheduleSuccessHandler
                 Log.Information("ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was the last played item, refreshing metadata", action.ScheduleId);
 
                 // Get default schedule service to refresh metadata
-                var defaultScheduleService = ServiceProviderManager.GetService<Shared.Services.Schedule.Interfaces.IDefaultScheduleService>();
+                var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
                 if (defaultScheduleService != null)
                 {
                     // GetNextScheduleTrackMetaDataAsync will automatically save to Preferences

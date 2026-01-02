@@ -19,8 +19,7 @@ using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
-using Bible.Alarm.ViewModels.Schedule.ScheduleViewModelHelpers;
-using Bible.Alarm.ViewModels.Services.Schedule;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -86,9 +85,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         this.serviceProvider = serviceProvider;
 
         // Initialize helper classes
-        stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher);
-        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper);
-        propertyManager = new SchedulePropertyManager(logger, state);
+        stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher, logger);
+        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger);
+        propertyManager = new SchedulePropertyManager(state, logger);
         containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(dispatcher);
 
@@ -125,8 +124,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         state.StateChanged += OnStateChanged;
         IsBusy = true;
-        modelInitialized = false;
-        IsSchedulePageOverlayVisible = true;
+        propertyManager.SetIsSchedulePageOverlayVisible(true);
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
 
         var currentState = state.Value;
@@ -139,7 +137,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             _ = Task.Run(async () =>
             {
                 await Task.Delay(100);
-                if (state.Value.CurrentSchedule != null && !modelInitialized)
+                if (state.Value.CurrentSchedule != null && !stateManager.ModelInitialized)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
                 }
@@ -164,12 +162,6 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         });
     }
 
-    private void InitializeCommands()
-    {
-        CancelCommand = new AsyncRelayCommand(ExecuteCancelCommand);
-        SaveCommand = new AsyncRelayCommand(ExecuteSaveCommand);
-        DeleteCommand = new AsyncRelayCommand(ExecuteDeleteCommand);
-    }
 
 
     private void OnStateChanged(object? sender, EventArgs e)

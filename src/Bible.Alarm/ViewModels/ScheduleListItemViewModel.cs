@@ -1,14 +1,18 @@
 #nullable enable
 using System.Windows.Input;
+using AutoMapper;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.ScheduleListItemHelpers;
+using Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
@@ -176,9 +180,14 @@ public sealed class ScheduleListItemViewModel(
         get => propertyManager.IsEnabled;
         set
         {
-            if (SetProperty(ref propertyManager.IsEnabled, value) && !propertyManager.IsInitializing && Schedule != null)
+            if (propertyManager.IsEnabled != value)
             {
-                _ = HandleIsEnabledChanged(value);
+                propertyManager.IsEnabled = value;
+                OnPropertyChanged();
+                if (!propertyManager.IsInitializing && Schedule != null)
+                {
+                    _ = HandleIsEnabledChanged(value);
+                }
             }
         }
     }

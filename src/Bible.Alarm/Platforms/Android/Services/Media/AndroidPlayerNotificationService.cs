@@ -1,11 +1,11 @@
 #nullable enable
 using AndroidX.Media3.DataSource;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotification;
 using Serilog;
 using Application = Android.App.Application;
 using Exception = System.Exception;
 using Uri = Android.Net.Uri;
+using Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotificationHelpers;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 

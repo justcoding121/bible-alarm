@@ -61,13 +61,14 @@ using Bible.Alarm.Views.Shared;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using Bible.Alarm.ViewModels.Services.Schedule;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.UI;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 #endif
 
 namespace Bible.Alarm.Common.Helpers;
@@ -248,7 +249,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BibleSelectionViewModel>();
         services.AddTransient<BookSelectionViewModel>();
         services.AddTransient<ChapterSelectionViewModel>();
-        services.AddTransient<AlarmViewModal>();
+        services.AddTransient<AlarmViewModel>();
         services.AddTransient<BibleSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();
         services.AddTransient<ChaptersSelectionContainerViewModel>();

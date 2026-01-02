@@ -98,7 +98,7 @@ public class PropertyChangeHandler
 #if DEBUG
                     Serilog.Log.Debug("[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate=false, isEnabled={IsEnabled}", newState);
 #endif
-                    updateVisibility(newState, animate: false);
+                    updateVisibility(newState, false);
                 }
             });
         }

@@ -5,6 +5,8 @@ using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.Bible;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -17,12 +19,11 @@ namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 public sealed class TrackMarker(
     ILogger logger,
     IAlarmScheduleService alarmScheduleService,
-    IPlaylistMusicTrackBuilder musicTrackBuilder,
     IDiskCacheService? diskCacheService,
     IDispatcher dispatcher,
     CancellationToken cancellationToken)
 {
-    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleBook, BibleChapter>? NextChapter);
+    public record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleBook, BibleChapter>? NextChapter);
 
     /// <summary>
     /// Marks a track as played.

@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Models.Media.Music;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -6,10 +7,10 @@ namespace Bible.Alarm.ViewModels.Music;
 
 public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
 {
-    private readonly Shared.Models.Media.Music.MusicTrack track;
+    private readonly MusicTrack track;
     private readonly bool isMelody;
 
-    public MusicTrackListViewItemModel(Shared.Models.Media.Music.MusicTrack track, bool isMelody)
+    public MusicTrackListViewItemModel(MusicTrack track, bool isMelody)
     {
         this.track = track;
         this.isMelody = isMelody;

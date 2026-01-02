@@ -63,21 +63,18 @@ public class ScheduleEffects(
     private readonly ChapterSelectionSyncHandler chapterSyncHandler = new(state);
     private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
 
-    // Effect handlers
-    private readonly ScheduleAddHandler addHandler;
-    private readonly ScheduleUpdateHandler updateHandler;
-    private readonly ScheduleCreateHandler createHandler;
-    private readonly ScheduleDeleteHandler deleteHandler;
-    private readonly ScheduleSuccessHandler successHandler;
+    // Effect handlers - initialized lazily when first accessed
+    private ScheduleAddHandler? _addHandler;
+    private ScheduleUpdateHandler? _updateHandler;
+    private ScheduleCreateHandler? _createHandler;
+    private ScheduleDeleteHandler? _deleteHandler;
+    private ScheduleSuccessHandler? _successHandler;
 
-    // Initialize effect handlers in constructor body
-    {
-        addHandler = new ScheduleAddHandler(mapper, displayNamePopulator);
-        updateHandler = new ScheduleUpdateHandler(mapper, displayNamePopulator, cacheManager);
-        createHandler = new ScheduleCreateHandler(mapper, this.alarmScheduleService, this.alarmService, cacheManager);
-        deleteHandler = new ScheduleDeleteHandler(mapper, this.alarmScheduleService, this.alarmService, this.mediaCacheService, displayNamePopulator, cacheManager);
-        successHandler = new ScheduleSuccessHandler(cacheManager);
-    }
+    private ScheduleAddHandler addHandler => _addHandler ??= new ScheduleAddHandler(mapper, displayNamePopulator);
+    private ScheduleUpdateHandler updateHandler => _updateHandler ??= new ScheduleUpdateHandler(mapper, displayNamePopulator, cacheManager);
+    private ScheduleCreateHandler createHandler => _createHandler ??= new ScheduleCreateHandler(mapper, this.alarmScheduleService, this.alarmService, cacheManager);
+    private ScheduleDeleteHandler deleteHandler => _deleteHandler ??= new ScheduleDeleteHandler(mapper, this.alarmScheduleService, this.alarmService, this.mediaCacheService, displayNamePopulator, cacheManager);
+    private ScheduleSuccessHandler successHandler => _successHandler ??= new ScheduleSuccessHandler(cacheManager);
 
     /// <summary>
     /// Effect: Transform DB entity to DTO and dispatch success action.

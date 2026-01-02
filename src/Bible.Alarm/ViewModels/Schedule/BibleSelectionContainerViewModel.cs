@@ -15,7 +15,7 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Services.Schedule.BibleSelection;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;

@@ -12,7 +12,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    x:DataType="shared:AlarmViewModal">
+    x:DataType="shared:AlarmViewModel">
     <ContentPage.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:IsNullConverter x:Key="isNullConverter" />

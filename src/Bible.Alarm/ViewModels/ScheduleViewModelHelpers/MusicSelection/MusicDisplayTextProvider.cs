@@ -1,0 +1,272 @@
+#nullable enable
+using Bible;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
+using Fluxor;
+
+namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
+
+/// <summary>
+/// Provides display text for music-related properties.
+/// Separated from MusicSelectionContainerViewModel for better modularity.
+/// </summary>
+public sealed class MusicDisplayTextProvider
+{
+    private readonly IState<ApplicationState> state;
+
+    // Cache fields
+    private string? cachedSongBookName;
+    private string? lastMusicPublicationCode;
+    private string? cachedTrackName;
+    private int? lastMusicTrackNumber;
+    private string? lastTrackPublicationCode;
+    private string? lastTrackLanguageCode;
+    private MusicType? lastTrackMusicType;
+
+    public MusicDisplayTextProvider(IState<ApplicationState> state)
+    {
+        this.state = state;
+    }
+
+    public void ClearCaches()
+    {
+        cachedSongBookName = null;
+        cachedTrackName = null;
+        lastMusicPublicationCode = null;
+        lastMusicTrackNumber = null;
+        lastTrackPublicationCode = null;
+        lastTrackLanguageCode = null;
+        lastTrackMusicType = null;
+    }
+
+    public void ClearSongBookCache()
+    {
+        cachedSongBookName = null;
+        lastMusicPublicationCode = null;
+    }
+
+    public void ClearTrackCache()
+    {
+        cachedTrackName = null;
+        lastMusicTrackNumber = null;
+        lastTrackPublicationCode = null;
+        lastTrackLanguageCode = null;
+        lastTrackMusicType = null;
+    }
+
+    public void UpdateTrackCache(string? trackName, int? trackNumber, string? publicationCode, string? languageCode, MusicType? musicType)
+    {
+        cachedTrackName = trackName;
+        lastMusicTrackNumber = trackNumber;
+        lastTrackPublicationCode = publicationCode;
+        lastTrackLanguageCode = languageCode;
+        lastTrackMusicType = musicType;
+    }
+
+    public void UpdateSongBookCache(string? songBookName, string? publicationCode)
+    {
+        cachedSongBookName = songBookName;
+        lastMusicPublicationCode = publicationCode;
+    }
+
+    public string GetMusicTypeDisplayText()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
+        {
+            return "Orchestral Melodies";
+        }
+
+        return currentSchedule.MusicType.Value switch
+        {
+            MusicType.Melodies => "Orchestral Melodies",
+            MusicType.Vocals => "Vocals",
+            _ => "Orchestral Melodies"
+        };
+    }
+
+    public bool GetIsSongBookVisible()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        return currentSchedule != null &&
+               currentSchedule.MusicType.HasValue &&
+               currentSchedule.MusicType.Value == MusicType.Vocals;
+    }
+
+    public bool GetIsMusicLanguageVisible()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        return currentSchedule != null &&
+               currentSchedule.MusicType.HasValue &&
+               currentSchedule.MusicType.Value == MusicType.Vocals;
+    }
+
+    public string GetMusicLanguageDisplayText()
+    {
+        if (!GetIsMusicLanguageVisible())
+        {
+            return string.Empty;
+        }
+
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageName))
+        {
+            return string.Empty;
+        }
+
+        return currentSchedule.MusicLanguageName;
+    }
+
+    public string GetSongBookDisplayText()
+    {
+        if (!GetIsSongBookVisible())
+        {
+            return string.Empty;
+        }
+
+        var currentSchedule = state.Value.CurrentSchedule;
+
+        // First, check if MusicPublicationName is already available in state (populated during bootstrap or from effect)
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
+        {
+            // Update cache if it's different or empty
+            if (string.IsNullOrEmpty(cachedSongBookName) || cachedSongBookName != currentSchedule.MusicPublicationName)
+            {
+                cachedSongBookName = currentSchedule.MusicPublicationName;
+                lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
+            }
+            return currentSchedule.MusicPublicationName;
+        }
+
+        // Return cached value if available
+        if (!string.IsNullOrEmpty(cachedSongBookName))
+        {
+            return cachedSongBookName;
+        }
+
+        // Return empty if not loaded yet
+        return string.Empty;
+    }
+
+    public async Task<string> GetSongBookDisplayTextAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null ||
+            !currentSchedule.MusicType.HasValue ||
+            currentSchedule.MusicType.Value != MusicType.Vocals ||
+            string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode) ||
+            string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
+        {
+            return string.Empty;
+        }
+
+        // First check if publication name is already in state (populated during bootstrap or from effect)
+        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
+        {
+            cachedSongBookName = currentSchedule.MusicPublicationName;
+            lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
+            return currentSchedule.MusicPublicationName;
+        }
+
+        // Return cached value if publication code hasn't changed
+        if (!string.IsNullOrEmpty(cachedSongBookName) &&
+            lastMusicPublicationCode == currentSchedule.MusicPublicationCode)
+        {
+            return cachedSongBookName;
+        }
+
+        // NOTE: Do NOT query database here - publication names should be in state from bootstrap
+        // If publication name is missing, it means bootstrap didn't populate it, which is an error
+        return string.Empty;
+    }
+
+    public string GetTrackDisplayText()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null ||
+            !currentSchedule.MusicType.HasValue ||
+            !currentSchedule.MusicTrackNumber.HasValue ||
+            currentSchedule.MusicTrackNumber.Value <= 0)
+        {
+            return string.Empty;
+        }
+
+        // First, check if MusicTrackName is already available in state (populated during bootstrap)
+        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
+        {
+            // Update cache if it's different or empty
+            if (string.IsNullOrEmpty(cachedTrackName) || cachedTrackName != currentSchedule.MusicTrackName)
+            {
+                cachedTrackName = currentSchedule.MusicTrackName;
+                lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
+                lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
+                lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
+                lastTrackMusicType = currentSchedule.MusicType.Value;
+            }
+            return currentSchedule.MusicTrackName;
+        }
+
+        // Return cached value if available
+        if (!string.IsNullOrEmpty(cachedTrackName))
+        {
+            return cachedTrackName;
+        }
+
+        // Return empty if not loaded yet (will be loaded asynchronously)
+        return string.Empty;
+    }
+
+    public async Task<string> GetTrackDisplayTextAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null ||
+            !currentSchedule.MusicType.HasValue ||
+            !currentSchedule.MusicTrackNumber.HasValue ||
+            currentSchedule.MusicTrackNumber.Value <= 0)
+        {
+            return string.Empty;
+        }
+
+        // First check if track name is already in state (populated during bootstrap)
+        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
+        {
+            cachedTrackName = currentSchedule.MusicTrackName;
+            lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
+            lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
+            lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
+            lastTrackMusicType = currentSchedule.MusicType.Value;
+            return currentSchedule.MusicTrackName;
+        }
+
+        // Return cached value if nothing changed
+        if (!string.IsNullOrEmpty(cachedTrackName) &&
+            lastMusicTrackNumber == currentSchedule.MusicTrackNumber.Value &&
+            lastTrackPublicationCode == currentSchedule.MusicPublicationCode &&
+            lastTrackLanguageCode == currentSchedule.MusicLanguageCode &&
+            lastTrackMusicType == currentSchedule.MusicType.Value)
+        {
+            return cachedTrackName;
+        }
+
+        // NOTE: Do NOT query database here - track names should be in state from bootstrap
+        // If track name is missing, it means bootstrap didn't populate it, which is an error
+        return string.Empty;
+    }
+
+    public bool GetIsRepeatEnabled()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        return currentSchedule?.MusicRepeat ?? false;
+    }
+
+    public bool GetHasTrackSelected()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        return currentSchedule != null &&
+               currentSchedule.MusicType.HasValue &&
+               currentSchedule.MusicTrackNumber.HasValue &&
+               currentSchedule.MusicTrackNumber.Value > 0;
+    }
+}
+

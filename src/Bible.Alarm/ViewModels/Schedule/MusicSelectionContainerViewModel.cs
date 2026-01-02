@@ -22,8 +22,8 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.ViewModels.Services.Schedule.MusicSelection;
 using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 

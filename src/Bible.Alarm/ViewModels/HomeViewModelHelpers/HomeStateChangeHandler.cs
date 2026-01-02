@@ -1,0 +1,215 @@
+#nullable enable
+using Bible;
+using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
+using Microsoft.Maui.Essentials;
+using Serilog;
+
+namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
+
+/// <summary>
+/// Handles state change processing for HomeViewModel.
+/// Separated from HomeViewModel for better modularity.
+/// </summary>
+public class HomeStateChangeHandler
+{
+    private readonly ILogger logger;
+    private readonly ScheduleDataPreparer dataPreparer;
+    private readonly ScheduleViewModelManager viewModelManager;
+    private readonly ProgressBarAnimator progressAnimator;
+    private readonly Action<bool> setIsBusy;
+    private readonly Action<double> setProgressBarOpacity;
+    private readonly Func<bool> getIsBusy;
+    private readonly Func<ObservableHashSet<ScheduleListItemViewModel>?> getSchedules;
+    private readonly Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules;
+    private readonly Action updateProgressBarVisibility;
+    private readonly Func<Task> fadeOutProgressBarAsync;
+
+    private int? lastProcessedSchedulesCount;
+    private HashSet<int>? lastProcessedScheduleIds;
+    private bool shouldShowProgressBar = true;
+
+    public HomeStateChangeHandler(
+        ILogger logger,
+        ScheduleDataPreparer dataPreparer,
+        ScheduleViewModelManager viewModelManager,
+        ProgressBarAnimator progressAnimator,
+        Action<bool> setIsBusy,
+        Action<double> setProgressBarOpacity,
+        Func<bool> getIsBusy,
+        Func<ObservableHashSet<ScheduleListItemViewModel>?> getSchedules,
+        Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules,
+        Action updateProgressBarVisibility,
+        Func<Task> fadeOutProgressBarAsync)
+    {
+        this.logger = logger;
+        this.dataPreparer = dataPreparer;
+        this.viewModelManager = viewModelManager;
+        this.progressAnimator = progressAnimator;
+        this.setIsBusy = setIsBusy;
+        this.setProgressBarOpacity = setProgressBarOpacity;
+        this.getIsBusy = getIsBusy;
+        this.getSchedules = getSchedules;
+        this.setSchedules = setSchedules;
+        this.updateProgressBarVisibility = updateProgressBarVisibility;
+        this.fadeOutProgressBarAsync = fadeOutProgressBarAsync;
+    }
+
+    public async Task HandleStateChangedAsync(ApplicationState stateValue)
+    {
+        if (stateValue.Schedules != null)
+        {
+            // Check if Schedules collection has actually changed
+            var currentScheduleIds = new HashSet<int>(stateValue.Schedules.Where(s => s.Id > 0).Select(s => s.Id));
+            var schedulesCountChanged = lastProcessedSchedulesCount != stateValue.Schedules.Count;
+            var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
+
+            if (!schedulesCountChanged && !scheduleIdsChanged && lastProcessedScheduleIds != null)
+            {
+                logger.Debug("OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}", stateValue.Schedules.Count);
+                return;
+            }
+
+            logger.Debug("OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}",
+                stateValue.Schedules.Count, getSchedules()?.Count ?? 0);
+
+            var hadSchedules = getSchedules() != null && getSchedules()!.Count > 0;
+            var previousScheduleCount = getSchedules()?.Count ?? 0;
+            var currentScheduleCount = stateValue.Schedules.Count;
+
+            // If we had schedules but now don't (cleared), reset progress bar flag
+            if (hadSchedules && (stateValue.Schedules == null || stateValue.Schedules.Count == 0))
+            {
+                shouldShowProgressBar = true;
+                setIsBusy(true);
+                updateProgressBarVisibility();
+            }
+
+            // Prepare data structures off UI thread
+            var (scheduleDataMap, scheduleStateItemMap) = await Task.Run(() =>
+            {
+                return dataPreparer.PrepareScheduleDataOffUIThread(stateValue.Schedules);
+            });
+
+            // Prepare ViewModels and collection on UI thread
+            var currentSchedules = getSchedules() ?? new ObservableHashSet<ScheduleListItemViewModel>();
+            var (schedulesToAdd, schedulesToRemove, newSchedules) = viewModelManager.PrepareScheduleViewModelsOnUIThread(
+                scheduleDataMap,
+                scheduleStateItemMap,
+                currentSchedules);
+            var hasSchedulesNow = newSchedules != null && newSchedules.Count > 0;
+
+            // Show progress bar when delete is detected
+            if (schedulesToRemove.Count > 0 && previousScheduleCount > currentScheduleCount)
+            {
+                logger.Debug("OnStateChanged: Delete detected - showing progress bar. Removing {Count} schedules", schedulesToRemove.Count);
+                shouldShowProgressBar = true;
+                setIsBusy(true);
+                updateProgressBarVisibility();
+            }
+
+            logger.Debug("OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedules}",
+                schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
+
+            // Yield multiple times before updating collection
+            for (int i = 0; i < 3; i++)
+            {
+                await Task.Yield();
+                await Task.Delay(30);
+            }
+
+            var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
+
+            if (isInitialLoad && hasSchedulesNow)
+            {
+                logger.Debug("OnStateChanged: Initial load - setting {Count} schedules via property setter", newSchedules.Count);
+                await Task.Delay(300);
+
+                var schedulesCollection = new ObservableHashSet<ScheduleListItemViewModel>();
+                foreach (var item in newSchedules)
+                {
+                    logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to new collection",
+                        item.ScheduleId, item.Name);
+                    schedulesCollection.Add(item);
+                }
+
+                setSchedules(schedulesCollection);
+                logger.Debug("OnStateChanged: Initial load complete. Collection now has {Count} items", getSchedules()?.Count ?? 0);
+                await Task.Delay(200);
+            }
+            else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
+            {
+                logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}",
+                    schedulesToAdd.Count, schedulesToRemove.Count);
+
+                var updatedCollection = new ObservableHashSet<ScheduleListItemViewModel>();
+                foreach (var existingItem in getSchedules() ?? [])
+                {
+                    if (!schedulesToRemove.Contains(existingItem.ScheduleId))
+                    {
+                        updatedCollection.Add(existingItem);
+                    }
+                }
+
+                foreach (var item in schedulesToAdd)
+                {
+                    logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
+                        item.ScheduleId, item.Name);
+                    updatedCollection.Add(item);
+                }
+
+                setSchedules(updatedCollection);
+                logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", getSchedules()?.Count ?? 0);
+
+                if (schedulesToRemove.Count > 0)
+                {
+                    await Task.Delay(200);
+                    setIsBusy(false);
+                    await fadeOutProgressBarAsync();
+                }
+            }
+            else
+            {
+                // No collection change, but still update existing items
+                viewModelManager.UpdateScheduleViewModels(stateValue.Schedules, _ => { });
+
+                if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
+                {
+                    logger.Debug("OnStateChanged: Delete rollback detected - hiding progress bar");
+                    await Task.Delay(200);
+                    setIsBusy(false);
+                    await fadeOutProgressBarAsync();
+                }
+            }
+
+            // Yield a few more times
+            for (int i = 0; i < 3; i++)
+            {
+                await Task.Yield();
+                await Task.Delay(30);
+            }
+
+            // Only set IsBusy to false if we actually have schedules now
+            if (hasSchedulesNow)
+            {
+                await Task.Delay(100);
+                setIsBusy(false);
+                await Task.Delay(400);
+                await fadeOutProgressBarAsync();
+            }
+
+            // Update last processed state
+            lastProcessedSchedulesCount = stateValue.Schedules.Count;
+            lastProcessedScheduleIds = currentScheduleIds;
+        }
+        else
+        {
+            logger.Debug("OnStateChanged: State.Schedules is null, showing loading state");
+            updateProgressBarVisibility();
+            lastProcessedSchedulesCount = null;
+            lastProcessedScheduleIds = null;
+        }
+    }
+}
+

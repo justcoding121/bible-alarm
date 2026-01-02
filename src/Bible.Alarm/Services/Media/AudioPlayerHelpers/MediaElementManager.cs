@@ -6,6 +6,10 @@ using Bible.Alarm.Services.Media.Models;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Essentials;
 using Serilog;
+using Bible.Alarm.Shared.Models.Media;
+using CommunityToolkit.Maui.Core;
+
+
 #if ANDROID
 using Bible.Alarm.Services.Media.Interfaces;
 #endif

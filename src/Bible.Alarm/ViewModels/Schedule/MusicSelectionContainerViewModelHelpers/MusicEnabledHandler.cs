@@ -5,6 +5,8 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;

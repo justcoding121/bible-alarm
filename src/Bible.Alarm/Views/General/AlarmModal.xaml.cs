@@ -12,11 +12,11 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool hasHandledFirstLoad;
-    private readonly AlarmViewModal viewModel;
+    private readonly AlarmViewModel viewModel;
 
-    public AlarmViewModal? ViewModel => BindingContext as AlarmViewModal;
+    public AlarmViewModel? ViewModel => BindingContext as AlarmViewModel;
 
-    public AlarmModal(AlarmViewModal viewModel)
+    public AlarmModal(AlarmViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;

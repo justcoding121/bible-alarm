@@ -17,16 +17,16 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class PlaylistService(
-    ILogger logger,
-    IMediaService mediaService,
-    IDispatcher dispatcher,
-    IAlarmScheduleService alarmScheduleService,
-    IGeneralSettingsService generalSettingsService,
-    IBibleTranslationService bibleTranslationService,
-    IMelodyMusicService melodyMusicService,
-    IDiskCacheService? diskCacheService) : IPlaylistService, IDisposable
+public sealed class PlaylistService : IPlaylistService, IDisposable
 {
+    private readonly ILogger logger;
+    private readonly IMediaService mediaService;
+    private readonly IDispatcher dispatcher;
+    private readonly IAlarmScheduleService alarmScheduleService;
+    private readonly IGeneralSettingsService generalSettingsService;
+    private readonly IBibleTranslationService bibleTranslationService;
+    private readonly IMelodyMusicService melodyMusicService;
+    private readonly IDiskCacheService? diskCacheService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
     private PlaylistScheduleManager? _scheduleManager;
@@ -37,13 +37,38 @@ public sealed class PlaylistService(
         bibleTranslationService,
         melodyMusicService,
         cancellationTokenSource.Token);
-    private readonly PlaylistBibleTrackBuilder bibleTrackBuilder = new(logger, mediaService);
-    private readonly PlaylistMusicTrackBuilder musicTrackBuilder = new(logger, mediaService, melodyMusicService);
+    private readonly PlaylistBibleTrackBuilder bibleTrackBuilder;
+    private readonly PlaylistMusicTrackBuilder musicTrackBuilder;
 
     // Helper classes
-    private readonly TrackChangeDetector trackChangeDetector = new(logger, alarmScheduleService, cancellationTokenSource.Token);
-    private readonly ChapterNavigator chapterNavigator = new(logger, mediaService);
-    private readonly ScheduleUpdater scheduleUpdater = new(logger, alarmScheduleService, cancellationTokenSource.Token);
+    private readonly TrackChangeDetector trackChangeDetector;
+    private readonly ChapterNavigator chapterNavigator;
+    private readonly ScheduleUpdater scheduleUpdater;
+
+    public PlaylistService(
+        ILogger logger,
+        IMediaService mediaService,
+        IDispatcher dispatcher,
+        IAlarmScheduleService alarmScheduleService,
+        IGeneralSettingsService generalSettingsService,
+        IBibleTranslationService bibleTranslationService,
+        IMelodyMusicService melodyMusicService,
+        IDiskCacheService? diskCacheService)
+    {
+        this.logger = logger;
+        this.mediaService = mediaService;
+        this.dispatcher = dispatcher;
+        this.alarmScheduleService = alarmScheduleService;
+        this.generalSettingsService = generalSettingsService;
+        this.bibleTranslationService = bibleTranslationService;
+        this.melodyMusicService = melodyMusicService;
+        this.diskCacheService = diskCacheService;
+        bibleTrackBuilder = new PlaylistBibleTrackBuilder(logger, mediaService);
+        musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService);
+        trackChangeDetector = new TrackChangeDetector(logger, alarmScheduleService, cancellationTokenSource.Token);
+        chapterNavigator = new ChapterNavigator(logger, mediaService);
+        scheduleUpdater = new ScheduleUpdater(logger, alarmScheduleService, cancellationTokenSource.Token);
+    }
 
     public async Task<int> GetRelevantScheduleToPlay()
     {
