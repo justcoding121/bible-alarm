@@ -52,65 +52,15 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 public class CarAppService : AndroidX.Car.App.CarAppService
 {
     private static readonly ILogger logger = Log.ForContext<CarAppService>();
+    private readonly CarAppServiceInitializer initializer = new(logger);
 
     public override void OnCreate()
     {
-        // Create MediaSession as the very first thing - even before MAUI services are registered
-        // This ensures MediaSession is available immediately on process start
-        try
-        {
-            Platforms.Android.Services.Media.MediaSessionHelper.Create();
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "CarAppService.OnCreate: failed to create MediaSession");
-        }
-
         base.OnCreate();
-
         logger.Information("CarAppService.OnCreate() called - Ensuring MauiApp is created");
 
-        // Create the DI container immediately (fast) so ServiceProviderManager is available synchronously.
-        // MediaSession will be created here if needed (for SessionToken), but buffering state is set
-        // centrally after bootstrap completes in CommonBootstrapHelper.InitializeSchedules().
-        try
-        {
-            MauiAppHolder.CreateAndStore();
-            var mediaSessionManager = ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
-            mediaSessionManager?.GetOrCreate();
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "CarAppService.OnCreate: failed to create MauiApp / initialize MediaSession");
-        }
-
-        // Ensure MauiApp is created and bootstrap is initialized (idempotent - safe to call multiple times)
-        // Bootstrap initialization is thread-safe and will only run once even if called from multiple services
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                logger.Information("✅ CarAppService.OnCreate() completed - Bootstrap initialization started");
-
-                // Wait for bootstrap to complete
-                // Use a longer timeout for OnCreate since it's not blocking the UI
-                // SetCarPlayScreenAction will be dispatched after bootstrap completes (handled by CommonBootstrapHelper)
-                try
-                {
-                    await MauiProgram.WaitForBootstrapAsync();
-                }
-                catch (Exception bootstrapEx)
-                {
-                    logger.Warning(bootstrapEx, "Bootstrap timed out in CarAppService.OnCreate - will retry when template is requested");
-                    // Don't throw - allow service to continue, template will be generated when bootstrap completes
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error initializing bootstrap in CarAppService");
-            }
-        });
+        initializer.InitializeMediaSession();
+        initializer.InitializeBootstrapInBackground();
     }
 
 
@@ -186,9 +136,9 @@ public class MainCarScreen : Screen, IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<MainCarScreen>();
     private readonly MediaSessionManager mediaSessionManager;
-    private List<ScheduleStateItem>? scheduleItems;
-    private IState<ApplicationState>? applicationState;
-    private AndroidAutoScheduleChangeTracker? scheduleChangeTracker;
+    private readonly CarScreenStateManager stateManager = new(logger);
+    private readonly CarScreenTemplateBuilder templateBuilder = new(logger);
+    private readonly CarScreenActionHandler actionHandler = new(logger);
     private bool disposed;
 
     public MainCarScreen(CarContext carContext, MediaSessionManager mediaSessionManager) : base(carContext)
@@ -196,7 +146,7 @@ public class MainCarScreen : Screen, IDisposable
         this.mediaSessionManager = mediaSessionManager ?? throw new ArgumentNullException(nameof(mediaSessionManager));
         logger.Information("✅ MainCarScreen created");
 
-        // Subscribe to state changes to refresh the template when schedules are added/updated/removed
+        // Initialize state management
         try
         {
             applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
@@ -316,50 +266,12 @@ public class MainCarScreen : Screen, IDisposable
 
         try
         {
-            // CRITICAL: Don't block OnGetTemplate() - return template immediately to prevent "Getting your selection" message
-            // Bootstrap should already be complete from Android Auto connection, but if not, proceed with available data
-            // This ensures Android Auto shows the list immediately instead of the loading message
+            // Load schedules using state manager
+            stateManager.LoadScheduleItems();
 
-            LoadSchedules();
-
-            if (scheduleItems == null || scheduleItems.Count == 0)
-            {
-                logger.Information("No schedules found in state - showing empty list");
-                return CreateEmptyListTemplate();
-            }
-
-            logger.Information("Creating ListTemplate with {Count} schedules from state", scheduleItems.Count);
-
-            var rows = BuildRowsFromSchedules();
-            if (rows.Count == 0)
-            {
-                logger.Warning("No rows created from schedules - showing empty list");
-                return CreateEmptyListTemplate();
-            }
-
-            var itemList = BuildItemList(rows);
-            if (itemList == null)
-            {
-                logger.Warning("Failed to build item list, returning empty template");
-                return CreateEmptyListTemplate();
-            }
-
-            var header = BuildHeader();
-            if (header == null)
-            {
-                logger.Warning("Failed to build header, returning empty template");
-                return CreateEmptyListTemplate();
-            }
-
-            var listTemplate = BuildListTemplate(header, itemList);
-            if (listTemplate == null)
-            {
-                logger.Warning("Failed to build list template, returning empty template");
-                return CreateEmptyListTemplate();
-            }
-
-            logger.Information("✅ ListTemplate created successfully with {Count} schedules", rows.Count);
-            return listTemplate;
+            // Build template using template builder
+            var refreshAction = actionHandler.CreateRefreshAction();
+            return templateBuilder.BuildMainTemplate(stateManager.ScheduleItems, refreshAction);
         }
         catch (Exception ex)
         {
@@ -391,67 +303,7 @@ public class MainCarScreen : Screen, IDisposable
         return rows;
     }
 
-    private ItemList? BuildItemList(List<Row> rows)
-    {
-        var itemListBuilder = new ItemList.Builder()
-            .SetNoItemsMessage("No schedules available");
-
-        foreach (var row in rows)
-        {
-            itemListBuilder?.AddItem(row);
-        }
-
-        return itemListBuilder?.Build();
-    }
-
-    private Header? BuildHeader()
-    {
-        return new Header.Builder()
-            ?.SetTitle("Bible Alarm")
-            ?.SetStartHeaderAction(Action.AppIcon)
-            ?.Build();
-    }
-
-    private static ListTemplate? BuildListTemplate(Header header, ItemList itemList)
-    {
-        return new ListTemplate.Builder()
-            ?.SetHeader(header)
-            ?.SetSingleList(itemList)
-            ?.Build();
-    }
-
-    private ITemplate CreateFallbackTemplate()
-    {
-        try
-        {
-            var fallbackHeader = BuildHeader();
-            if (fallbackHeader == null)
-            {
-                logger.Warning("Failed to build fallback header, returning empty template");
-                return CreateEmptyListTemplate();
-            }
-
-            var messageTemplate = new MessageTemplate.Builder("An error occurred loading your schedules.")
-                ?.SetHeader(fallbackHeader)
-                ?.Build();
-
-            if (messageTemplate != null)
-            {
-                return messageTemplate;
-            }
-
-            return CreateEmptyListTemplate();
-        }
-        catch (Exception fallbackEx)
-        {
-            logger.Error(fallbackEx, "❌ Failed to create fallback MessageTemplate");
-            return CreateEmptyListTemplate();
-        }
-    }
-
-    private void LoadSchedules() => scheduleItems = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
-
-    private Row? CreateRowForSchedule(ScheduleStateItem scheduleItem)
+    // Template building methods have been moved to CarScreenTemplateBuilder helper class
     {
         try
         {
