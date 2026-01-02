@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Serilog;
+using Border = Microsoft.UI.Xaml.Controls.Border;
+using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 

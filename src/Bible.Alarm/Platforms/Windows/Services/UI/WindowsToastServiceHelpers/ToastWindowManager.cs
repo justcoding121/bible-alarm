@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Application = Microsoft.Maui.Controls.Application;
 using Frame = Microsoft.UI.Xaml.Controls.Frame;
+using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 

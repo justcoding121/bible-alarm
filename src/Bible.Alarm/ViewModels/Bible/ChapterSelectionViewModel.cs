@@ -1,8 +1,10 @@
 #nullable enable
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;

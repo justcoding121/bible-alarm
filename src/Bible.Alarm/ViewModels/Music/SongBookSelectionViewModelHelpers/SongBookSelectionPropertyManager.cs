@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;

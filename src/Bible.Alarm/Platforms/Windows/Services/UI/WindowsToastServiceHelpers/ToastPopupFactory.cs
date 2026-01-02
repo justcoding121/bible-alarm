@@ -12,6 +12,7 @@ using HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment;
 using SolidColorBrush = Microsoft.UI.Xaml.Media.SolidColorBrush;
 using Thickness = Microsoft.UI.Xaml.Thickness;
 using VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment;
+using Window = Microsoft.UI.Xaml.Window;
 using WinUIColor = global::Windows.UI.Color;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;

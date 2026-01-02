@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Serilog;
 using Application = Microsoft.Maui.Controls.Application;
+using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
 

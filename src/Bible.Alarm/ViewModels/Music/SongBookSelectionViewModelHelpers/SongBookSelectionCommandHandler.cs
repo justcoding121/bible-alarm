@@ -8,6 +8,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Interfaces;
+using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;

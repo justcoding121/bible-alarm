@@ -4,6 +4,7 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
