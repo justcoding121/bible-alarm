@@ -36,6 +36,9 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
     private readonly AlarmViewModalStateUpdater stateUpdater;
     private readonly AlarmViewModalSliderHandler sliderHandler;
     private readonly AlarmViewModalArtworkHandler artworkHandler;
+    private readonly ArtworkManager artworkManager;
+    private readonly PositionManager positionManager;
+    private readonly MessageHandler messageHandler;
 
     /// <summary>
     /// Public property to allow code-behind to check if user is interacting
@@ -100,12 +103,16 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
             (l) => IsArtworkLoading = l,
             () => artworkBytes = null);
 
+        // Initialize new helper classes
+        artworkManager = new ArtworkManager(logger);
+        positionManager = new PositionManager(logger);
+        messageHandler = new MessageHandler(positionManager);
+
         // Subscribe to Fluxor state changes for reactive updates
         playbackState.StateChanged += OnPlaybackStateChanged;
 
         // Subscribe to position and preparation progress messages (high-frequency updates)
-        WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
-        WeakReferenceMessenger.Default.Register<PlaybackPreparationProgressMessage>(this);
+        messageHandler.RegisterHandlers(this, this);
 
         // Initialize commands
         DismissCommand = commandInitializer.CreateDismissCommand();
@@ -192,7 +199,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
     public ImageSource? ArtworkSource
     {
-        get => artworkSource;
+        get => artworkManager.ArtworkSource;
         private set
         {
             if (SetProperty(ref artworkSource, value))
@@ -206,7 +213,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
     public bool IsArtworkLoading
     {
-        get => isArtworkLoading;
+        get => artworkManager.IsArtworkLoading;
         private set
         {
             if (SetProperty(ref isArtworkLoading, value))
@@ -216,7 +223,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         }
     }
 
-    public bool HasArtwork => ArtworkSource != null && !IsArtworkLoading;
+    public bool HasArtwork => artworkManager.HasArtwork;
 
     private bool playVisible;
 
@@ -408,254 +415,51 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
 
     public void Receive(PlaybackPositionChangedMessage message)
     {
-        if (message.CurrentPosition.HasValue && currentDuration.TotalSeconds > 0)
-        {
-            var actualProgress = message.CurrentPosition.Value.TotalSeconds / currentDuration.TotalSeconds;
-            if (sliderHandler.ShouldIgnorePositionUpdate(actualProgress))
-            {
-                return;
-            }
-        }
-
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            UpdatePositionFromMessage(message);
-            OnPropertyChanged(nameof(ProgressText));
+            messageHandler.HandlePlaybackPositionMessage(
+                message,
+                currentDuration,
+                (progress) => sliderHandler.ShouldIgnorePositionUpdate(progress),
+                (time) => CurrentTime = time,
+                (progress) => Progress = progress,
+                () => OnPropertyChanged(nameof(ProgressText)));
         });
     }
 
-    private void UpdatePositionFromMessage(PlaybackPositionChangedMessage message)
-    {
-        if (message.CurrentPosition.HasValue)
-        {
-            var position = message.CurrentPosition.Value;
-            CurrentTime = $"{position.Minutes:00}:{position.Seconds:00}";
-
-            if (currentDuration.TotalSeconds > 0)
-            {
-                var newProgress = position.TotalSeconds / currentDuration.TotalSeconds;
-                if (Math.Abs(newProgress - progress) > 0.001)
-                {
-                    Progress = newProgress;
-                }
-            }
-            else
-            {
-                Progress = 0.0;
-            }
-        }
-        else
-        {
-            CurrentTime = "00:00";
-            Progress = 0.0;
-        }
-    }
-
-    private DateTime lastProgressUpdate = DateTime.MinValue;
-    private const int ProgressUpdateThrottleMs = 100; // Throttle to max 10 updates per second
 
     public void Receive(PlaybackPreparationProgressMessage message)
     {
-        // Throttle progress updates to avoid flooding UI thread
-        var now = DateTime.UtcNow;
-        var timeSinceLastUpdate = (now - lastProgressUpdate).TotalMilliseconds;
-
-        if (timeSinceLastUpdate < ProgressUpdateThrottleMs && message.LoadedTracks < message.TotalTracks)
-        {
-            // Skip this update if it's too soon (but always process final update)
-            return;
-        }
-
-        lastProgressUpdate = now;
-
         // Handle high-frequency preparation progress updates via messaging
         // Use BeginInvokeOnMainThread to queue on UI thread without blocking
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            loadedTracks = message.LoadedTracks;
-            totalTracks = message.TotalTracks;
-            PreparationProgress = totalTracks > 0 ? loadedTracks / (double)totalTracks : 0.0;
-            IsPreparing = totalTracks > 0 && loadedTracks < totalTracks;
-
-            // Notify property changes
-            OnPropertyChanged(nameof(ProgressText));
-            OnPropertyChanged(nameof(PreparationProgress));
+            messageHandler.HandlePreparationProgressMessage(
+                message,
+                (loaded, total, progress, preparing) =>
+                {
+                    loadedTracks = loaded;
+                    totalTracks = total;
+                    PreparationProgress = progress;
+                    IsPreparing = preparing;
+                },
+                () =>
+                {
+                    // Notify property changes
+                    OnPropertyChanged(nameof(ProgressText));
+                    OnPropertyChanged(nameof(PreparationProgress));
+                });
         });
     }
 
     private void UpdateArtwork(string? artworkUrl)
     {
-        if (lastArtworkUrl == artworkUrl)
-        {
-            return;
-        }
-
-        var previousUrl = lastArtworkUrl;
-        lastArtworkUrl = artworkUrl;
-
-        if (string.IsNullOrEmpty(artworkUrl))
-        {
-            if (artworkSource != null)
-            {
-                ClearArtwork();
-            }
-            return;
-        }
-
-        if (artworkSource != null && !string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
-        {
-            ClearArtwork();
-        }
-
-        IsArtworkLoading = true;
-
-        try
-        {
-            if (TryLoadFromUri(artworkUrl))
-            {
-                return;
-            }
-
-            var filePath = ResolveFilePath(artworkUrl);
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                LoadFromFile(filePath);
-            }
-            else
-            {
-                ClearArtwork();
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Error updating artwork from URL: {ArtworkUrl}", artworkUrl);
-            ClearArtwork();
-        }
+        artworkManager.UpdateArtwork(
+            artworkUrl,
+            (source) => ArtworkSource = source,
+            (loading) => IsArtworkLoading = loading);
     }
 
-    private void ClearArtwork()
-    {
-        ArtworkSource = null;
-        artworkBytes = null;
-        IsArtworkLoading = false;
-        lastArtworkUrl = null;
-    }
-
-    private bool TryLoadFromUri(string artworkUrl)
-    {
-        if (!Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != "http" && uri.Scheme != "https"))
-        {
-            return false;
-        }
-
-        ArtworkSource = ImageSource.FromUri(uri);
-        IsArtworkLoading = false;
-        return true;
-    }
-
-    private string? ResolveFilePath(string artworkUrl)
-    {
-        // Handle file:// URIs
-        if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
-        {
-            try
-            {
-                return new Uri(artworkUrl).LocalPath;
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
-                return null;
-            }
-        }
-
-        // Handle direct file paths
-        if (Path.IsPathRooted(artworkUrl))
-        {
-            return artworkUrl;
-        }
-
-        return null;
-    }
-
-    private void LoadFromFile(string filePath)
-    {
-        if (!File.Exists(filePath))
-        {
-            ClearArtwork();
-            return;
-        }
-
-        var fileInfo = new FileInfo(filePath);
-        if (fileInfo.Length == 0)
-        {
-            ClearArtwork();
-            return;
-        }
-
-        if (DeviceInfo.Platform == DevicePlatform.Android)
-        {
-            LoadFromFileAndroid(filePath);
-        }
-        else
-        {
-            LoadFromFileOtherPlatforms(filePath);
-        }
-    }
-
-    private void LoadFromFileAndroid(string filePath)
-    {
-        try
-        {
-            artworkBytes = File.ReadAllBytes(filePath);
-            if (artworkBytes == null || artworkBytes.Length == 0)
-            {
-                ClearArtwork();
-                return;
-            }
-
-            // Store bytes in field to keep them alive, create new stream each time
-            // Capture for lambda
-            var bytes = artworkBytes;
-            ArtworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
-            IsArtworkLoading = false;
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Failed to create ImageSource from stream for Android, trying FromFile fallback: {FilePath}", filePath);
-            artworkBytes = null;
-            LoadFromFileFallback(filePath);
-        }
-    }
-
-    private void LoadFromFileOtherPlatforms(string filePath)
-    {
-        try
-        {
-            ArtworkSource = ImageSource.FromFile(filePath);
-            IsArtworkLoading = false;
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Failed to create ImageSource from file for artwork: {FilePath}", filePath);
-            ClearArtwork();
-        }
-    }
-
-    private void LoadFromFileFallback(string filePath)
-    {
-        try
-        {
-            ArtworkSource = ImageSource.FromFile(filePath);
-            IsArtworkLoading = false;
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Failed to create ImageSource from file for artwork (fallback): {FilePath}", filePath);
-            ClearArtwork();
-        }
-    }
 
     /// <summary>
     /// Hides the Home page overlay. Called when the Alarm Modal is fully rendered and visible.
@@ -667,9 +471,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         if (!isDisposed)
         {
             playbackState.StateChanged -= OnPlaybackStateChanged;
-            WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
-            WeakReferenceMessenger.Default.Unregister<PlaybackPreparationProgressMessage>(this);
-
+            messageHandler.UnregisterHandlers(this, this);
 
             isDisposed = true;
         }
