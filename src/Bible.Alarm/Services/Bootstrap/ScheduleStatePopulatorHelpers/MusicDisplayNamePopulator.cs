@@ -1,0 +1,104 @@
+#nullable enable
+using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Stores.Models;
+using Serilog;
+
+namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
+
+/// <summary>
+/// Populates music display names from cached lookup data.
+/// </summary>
+internal sealed class MusicDisplayNamePopulator
+{
+    public void Populate(
+        AlarmSchedule schedule,
+        ScheduleStateItem scheduleStateItem,
+        LookupDataLoader.LookupData lookupData)
+    {
+        if (schedule.Music == null)
+        {
+            return;
+        }
+
+        var music = schedule.Music;
+
+        if (music.MusicType == MusicType.Vocals)
+        {
+            PopulateVocalMusic(schedule, scheduleStateItem, music, lookupData);
+        }
+        else if (music.MusicType == MusicType.Melodies)
+        {
+            PopulateMelodyMusic(schedule, scheduleStateItem, music, lookupData);
+        }
+    }
+
+    private static void PopulateVocalMusic(
+        AlarmSchedule schedule,
+        ScheduleStateItem scheduleStateItem,
+        AlarmMusic music,
+        LookupDataLoader.LookupData lookupData)
+    {
+        // Use cached vocal languages
+        if (!string.IsNullOrWhiteSpace(music.LanguageCode))
+        {
+            if (lookupData.VocalLanguages.TryGetValue(music.LanguageCode, out var vocalLanguage))
+            {
+                scheduleStateItem.MusicLanguageName = vocalLanguage.Name;
+                Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    vocalLanguage.Name, schedule.Id, music.LanguageCode);
+            }
+            else
+            {
+                scheduleStateItem.MusicLanguageName = music.LanguageCode;
+            }
+        }
+
+        // Use cached vocal releases
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+        {
+            var releaseKey = (music.LanguageCode, music.PublicationCode);
+            if (lookupData.VocalReleases.TryGetValue(releaseKey, out var release))
+            {
+                scheduleStateItem.MusicPublicationName = release.Name;
+                Log.Logger.Debug("Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    release.Name, schedule.Id, music.PublicationCode);
+            }
+        }
+
+        // Use cached vocal tracks
+        if (music.TrackNumber > 0 &&
+            !string.IsNullOrWhiteSpace(music.LanguageCode) &&
+            !string.IsNullOrWhiteSpace(music.PublicationCode))
+        {
+            var trackKey = (music.LanguageCode, music.PublicationCode);
+            if (lookupData.VocalTracks.TryGetValue(trackKey, out var tracks) &&
+                tracks.TryGetValue(music.TrackNumber, out var track))
+            {
+                scheduleStateItem.MusicTrackName = track.Title;
+                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                    track.Title, schedule.Id, music.TrackNumber);
+            }
+        }
+    }
+
+    private static void PopulateMelodyMusic(
+        AlarmSchedule schedule,
+        ScheduleStateItem scheduleStateItem,
+        AlarmMusic music,
+        LookupDataLoader.LookupData lookupData)
+    {
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode) && music.TrackNumber > 0)
+        {
+            // Use cached melody tracks
+            if (lookupData.MelodyTracks.TryGetValue(music.PublicationCode, out var tracks) &&
+                tracks.TryGetValue(music.TrackNumber, out var track))
+            {
+                scheduleStateItem.MusicTrackName = $"Melody Number(s) {track.Title}";
+                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                    track.Title, schedule.Id, music.TrackNumber);
+            }
+        }
+    }
+}
+

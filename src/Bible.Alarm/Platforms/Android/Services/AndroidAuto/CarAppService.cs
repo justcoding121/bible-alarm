@@ -12,6 +12,7 @@ using AndroidX.Car.App.Validation;
 using AndroidX.Core.Content;
 using AndroidX.Core.Graphics.Drawable;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -139,6 +140,9 @@ public class MainCarScreen : Screen, IDisposable
     private readonly CarScreenStateManager stateManager = new(logger);
     private readonly CarScreenTemplateBuilder templateBuilder = new(logger);
     private readonly CarScreenActionHandler actionHandler = new(logger);
+    private readonly CarScreenPlaybackHandler playbackHandler = new(logger);
+    private IState<ApplicationState>? applicationState;
+    private AndroidAutoScheduleChangeTracker? scheduleChangeTracker;
     private bool disposed;
 
     public MainCarScreen(CarContext carContext, MediaSessionManager mediaSessionManager) : base(carContext)
@@ -280,194 +284,18 @@ public class MainCarScreen : Screen, IDisposable
         }
     }
 
-    private List<Row> BuildRowsFromSchedules()
+    private ITemplate CreateFallbackTemplate()
     {
-        var rows = new List<Row>();
-
-        foreach (var scheduleItem in scheduleItems!.OrderBy(s => s.Name))
-        {
-            try
-            {
-                var row = CreateRowForSchedule(scheduleItem);
-                if (row != null)
-                {
-                    rows.Add(row);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
-            }
-        }
-
-        return rows;
-    }
-
-    // Template building methods have been moved to CarScreenTemplateBuilder helper class
-    {
-        try
-        {
-            // Use shared helper to build title and subtitle from ScheduleStateItem DTO
-            var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
-            var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
-
-            // Create book icon for the row
-            var bookIcon = CreateBookIcon();
-
-            // Create Row with title, subtitle, icon, and click callback
-            // Store schedule ID in a closure so we can access it when clicked
-            var scheduleId = scheduleItem.Id;
-            var rowBuilder = new Row.Builder()
-                ?.SetTitle(title)
-                ?.AddText(subtitle)
-                ?.SetOnClickListener(new ScheduleClickCallback(this, scheduleId));
-
-            // Add book icon if available
-            if (bookIcon != null)
-            {
-                rowBuilder?.SetImage(bookIcon);
-            }
-
-            var row = rowBuilder?.Build();
-            if (row == null)
-            {
-                logger.Warning("Failed to build row for schedule {ScheduleId}", scheduleItem.Id);
-                throw new InvalidOperationException("Failed to build row");
-            }
-
-            return row;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to create Row for schedule {ScheduleId}", scheduleItem.Id);
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Creates a CarIcon for playlist items to display in Android Auto.
-    /// Uses a custom open book icon to represent Bible reading schedules.
-    /// </summary>
-    private CarIcon? CreateBookIcon()
-    {
-        try
-        {
-            const int BookIconSize = 128;
-            const int BookOffset = BookIconSize / 2 - 8;
-            const int BitmapSize = BookIconSize + BookOffset;
-
-            var bookDrawable = ContextCompat.GetDrawable(CarContext, ResourceConstant.Drawable.ic_book_open);
-            if (bookDrawable == null)
-            {
-                logger.Warning("Could not get app drawable for book icon");
-                return null;
-            }
-
-            var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
-            var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
-            bitmap.EraseColor(Color.Transparent);
-
-            var canvas = new Canvas(bitmap);
-
-            // Draw book icon
-            bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
-            bookDrawable.Draw(canvas);
-
-            // Convert bitmap to IconCompat
-            var iconCompat = IconCompat.CreateWithBitmap(bitmap);
-            return new CarIcon.Builder(iconCompat).Build();
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to create book icon - Rows will display without icon");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Converts a Drawable to a Bitmap.
-    /// </summary>
-    private static Bitmap? DrawableToBitmap(Drawable? drawable)
-    {
-        if (drawable == null)
-        {
-            return null;
-        }
-
-        if (drawable is BitmapDrawable bitmapDrawable && bitmapDrawable.Bitmap != null)
-        {
-            return bitmapDrawable.Bitmap;
-        }
-
-        var width = drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 64;
-        var height = drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 64;
-
-        var bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888 ?? Bitmap.Config.Argb8888!);
-        using var canvas = new Canvas(bitmap);
-        drawable.SetBounds(0, 0, canvas.Width, canvas.Height);
-        drawable.Draw(canvas);
-        return bitmap;
-    }
-
-    private static ITemplate CreateEmptyListTemplate()
-    {
-        var itemList = (new ItemList.Builder()
-            ?.SetNoItemsMessage("No schedules available")
-            ?.Build()) ?? throw new InvalidOperationException("Failed to build empty item list");
-
-        // 2025 Modern Header: Title and HeaderAction are now part of a Header object
-        var header = (new Header.Builder()
-            ?.SetTitle("Bible Alarm")
-            ?.SetStartHeaderAction(Action.AppIcon)
-            ?.Build()) ?? throw new InvalidOperationException("Failed to build header for empty list template");
-
-        // Modern ListTemplate: Replaces direct SetTitle/SetHeaderAction with SetHeader
-        var template = (new ListTemplate.Builder()
-            ?.SetHeader(header)
-            ?.SetSingleList(itemList)
-            ?.Build()) ?? throw new InvalidOperationException("Failed to build empty list template");
-        return template;
+        var message = new MessageTemplate.Builder("Error loading schedules")
+            .SetTitle("Bible Alarm")
+            .SetHeaderAction(Action.AppIcon)
+            .Build();
+        return message;
     }
 
     internal void OnScheduleItemClicked(int scheduleId)
     {
-        logger.Information("Schedule {ScheduleId} clicked - starting playback", scheduleId);
-
-        try
-        {
-            // SetBufferingNoControlsState is now handled in MediaSessionEffect.HandlePlaybackStatusChanged
-            // when PlayStatus.Loading is dispatched (which happens in PrepareAndPlayAsync)
-            StartPlaybackAsync(scheduleId);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error handling schedule click for schedule {ScheduleId}", scheduleId);
-        }
-    }
-
-    private void StartPlaybackAsync(int scheduleId)
-    {
-        var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
-        if (playbackService == null)
-        {
-            logger.Error("ISchedulePlaybackService is null - cannot play schedule {ScheduleId}", scheduleId);
-            return;
-        }
-
-        // Play asynchronously - don't block the UI thread
-        // This returns immediately so Android Auto doesn't show "Getting your selection"
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await playbackService.PlayScheduleAsync(scheduleId);
-                logger.Information("✅ Started playback for schedule {ScheduleId}", scheduleId);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error playing schedule {ScheduleId}", scheduleId);
-            }
-        });
+        playbackHandler.HandleScheduleItemClicked(scheduleId);
     }
 }
 

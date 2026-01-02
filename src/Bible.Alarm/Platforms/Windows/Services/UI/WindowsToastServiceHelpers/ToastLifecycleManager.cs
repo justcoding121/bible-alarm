@@ -1,0 +1,99 @@
+#nullable enable
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Serilog;
+
+namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
+
+/// <summary>
+/// Manages toast popup lifecycle (cleanup, closing, etc.).
+/// </summary>
+internal sealed class ToastLifecycleManager
+{
+    public static async Task CloseExistingPopupIfNeededAsync(Popup? currentPopup)
+    {
+        if (currentPopup != null)
+        {
+            try
+            {
+                currentPopup.IsOpen = false;
+                await Task.Delay(100);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Exception occurred while closing existing popup before showing new one");
+            }
+            finally
+            {
+                CleanupPopup(currentPopup);
+            }
+        }
+    }
+
+    public static void CleanupPopup(Popup? popup)
+    {
+        if (popup == null)
+        {
+            return;
+        }
+
+        try
+        {
+            popup.Child = null;
+        }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Exception occurred while clearing popup child");
+        }
+    }
+
+    public static async Task CleanupFlyoutResources(Window? currentWindow, Popup popup)
+    {
+        ToastPositionManager.UnsubscribeFromWindowSizeChanges(currentWindow);
+
+        try
+        {
+            if (popup.IsOpen)
+            {
+                popup.IsOpen = false;
+            }
+        }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Exception occurred while closing popup in ShowFlyoutAsync finally block");
+        }
+
+        await Task.Delay(200);
+        CleanupPopup(popup);
+    }
+
+    public static FrameworkElement? SetupPopupAndGetWindowContent(Popup popup, Window currentWindow)
+    {
+        try
+        {
+            if (currentWindow?.Content is FrameworkElement content)
+            {
+                if (content.XamlRoot != null)
+                {
+                    popup.XamlRoot = content.XamlRoot;
+                }
+                return content;
+            }
+        }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            Log.Debug(ex, "Window content not accessible when setting up popup (window may be disposed)");
+        }
+
+        return null;
+    }
+}
+
