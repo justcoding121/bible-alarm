@@ -1,0 +1,146 @@
+#nullable enable
+
+using Bible.Alarm.ViewModels.Schedule;
+using System.ComponentModel;
+using System.Threading;
+
+namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
+
+/// <summary>
+/// Handles property change events from MusicSelectionContainerViewModel.
+/// </summary>
+public class PropertyChangeHandler
+{
+    private readonly MusicSelectionContainer container;
+    private readonly Action<bool, bool> updateVisibility;
+    private readonly Action scrollToBottom;
+    private bool lastMusicEnabledState;
+    private bool isInitialLoad = true;
+    private CancellationTokenSource? debounceTokenSource;
+    private bool shouldScrollOnExpand;
+
+    public PropertyChangeHandler(
+        MusicSelectionContainer container,
+        Action<bool, bool> updateVisibility,
+        Action scrollToBottom)
+    {
+        this.container = container;
+        this.updateVisibility = updateVisibility;
+        this.scrollToBottom = scrollToBottom;
+    }
+
+    public bool IsInitialLoad
+    {
+        get => isInitialLoad;
+        set => isInitialLoad = value;
+    }
+
+    public bool LastMusicEnabledState
+    {
+        get => lastMusicEnabledState;
+        set => lastMusicEnabledState = value;
+    }
+
+    public void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e, MusicSelectionContainerViewModel? viewModel)
+    {
+        if (sender is not MusicSelectionContainerViewModel vm)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled))
+        {
+            var newState = vm.MusicEnabled;
+
+#if DEBUG
+            Serilog.Log.Debug("[MusicSelectionContainer] PropertyChanged: MusicEnabled = {NewState}, LastState = {LastState}, isInitialLoad = {IsInitialLoad}", newState, lastMusicEnabledState, isInitialLoad);
+#endif
+
+            // Ignore property changes during initial load
+            if (isInitialLoad)
+            {
+#if DEBUG
+                Serilog.Log.Debug("[MusicSelectionContainer] Ignoring property change during initial load");
+#endif
+                lastMusicEnabledState = newState; // Update last state but don't animate
+                return;
+            }
+
+            // Debounce rapid changes
+            if (newState == lastMusicEnabledState)
+            {
+#if DEBUG
+                Serilog.Log.Debug("[MusicSelectionContainer] State unchanged, ignoring");
+#endif
+                return; // Ignore if state hasn't actually changed
+            }
+
+            // Only scroll if user is toggling from false to true (user-initiated expand)
+            shouldScrollOnExpand = !lastMusicEnabledState && newState;
+
+            lastMusicEnabledState = newState;
+
+#if DEBUG
+            Serilog.Log.Debug("[MusicSelectionContainer] Triggering animation for MusicEnabled = {NewState}, shouldScrollOnExpand = {ShouldScrollOnExpand}", newState, shouldScrollOnExpand);
+#endif
+
+            // Cancel and dispose any pending debounce
+            debounceTokenSource?.Cancel();
+            debounceTokenSource?.Dispose();
+            debounceTokenSource = new CancellationTokenSource();
+            var token = debounceTokenSource.Token;
+
+            // Small delay to debounce rapid changes, but trigger update immediately on UI thread
+            container.Dispatcher.Dispatch(() =>
+            {
+                if (!token.IsCancellationRequested && container.Handler != null)
+                {
+#if DEBUG
+                    Serilog.Log.Debug("[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate=false, isEnabled={IsEnabled}", newState);
+#endif
+                    updateVisibility(newState, animate: false);
+                }
+            });
+        }
+        else if (e.PropertyName == nameof(MusicSelectionContainerViewModel.ShouldScrollToBottom) && vm.ShouldScrollToBottom)
+        {
+            // Scroll to bottom when ViewModel signals it
+#if DEBUG
+            Serilog.Log.Debug("[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom");
+#endif
+
+            // Small delay to ensure layout is complete
+            container.Dispatcher.DispatchAsync(async () =>
+            {
+                await Task.Delay(200); // Delay to allow UI to update
+                scrollToBottom();
+
+                // Reset the flag after scrolling
+                if (viewModel != null)
+                {
+                    viewModel.ShouldScrollToBottom = false;
+                }
+            });
+        }
+    }
+
+    public bool ShouldScrollOnExpand
+    {
+        get => shouldScrollOnExpand;
+        set => shouldScrollOnExpand = value;
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            debounceTokenSource?.Cancel();
+            debounceTokenSource?.Dispose();
+        }
+        catch
+        {
+            // Ignore errors during cancellation/disposal
+        }
+    }
+}
+
