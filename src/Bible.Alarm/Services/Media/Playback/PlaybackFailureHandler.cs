@@ -7,6 +7,8 @@ using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Common.Interfaces.UI;
 
 namespace Bible.Alarm.Services.Media.Playback;
 

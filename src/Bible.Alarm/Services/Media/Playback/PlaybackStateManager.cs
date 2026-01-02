@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Models.Media;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;

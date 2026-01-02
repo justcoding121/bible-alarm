@@ -2,6 +2,7 @@
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
@@ -137,12 +138,12 @@ public sealed class TrackPlaybackHandler
         logger.Debug("PlayAsync completed for track at index {TrackIndex}, Status: {Status}",
             currentTrackIndex,
             audioPlayer.Status);
-        
+
         progressTracker.StartIfBibleTrack(playlistBeforePlay, currentTrackIndex);
 
         // Don't clear auto-advancing flag here - let the reducer handle it when status stabilizes to Playing
         // This prevents rapid state changes from causing flicker
-        
+
         return true;
     }
 }

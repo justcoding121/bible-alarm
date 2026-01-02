@@ -3,6 +3,7 @@ using System.Timers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
 using Serilog;
 using Timer = System.Timers.Timer;
 

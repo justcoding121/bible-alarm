@@ -8,3 +8,4 @@ public interface IScheduleValidationService
     Task<bool> ValidateDaysOfWeekAsync(DaysOfWeek daysOfWeek);
 }
 
+

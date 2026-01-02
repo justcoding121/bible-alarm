@@ -7,3 +7,4 @@ public interface IScheduleMediaCacheService
     void SetupMediaCache(int scheduleId, bool isUpdate = false);
 }
 
+

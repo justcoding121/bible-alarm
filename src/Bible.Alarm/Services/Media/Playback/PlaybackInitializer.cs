@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
 using Serilog;
@@ -53,7 +54,7 @@ public sealed class PlaybackInitializer
         // Run track preparation (including downloads) on background thread to avoid blocking main thread
         // This ensures UI remains responsive during download/preparation phase
         logger.Debug("Starting track preparation on background thread for schedule {ScheduleId}", scheduleId);
-        
+
         try
         {
             return await Task.Run(async () => await preparePlaybackService.PrepareTracksAsync(scheduleId, cancellationToken));

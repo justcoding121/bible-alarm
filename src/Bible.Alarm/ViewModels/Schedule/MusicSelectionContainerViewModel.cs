@@ -16,13 +16,13 @@ using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Music;
-using Bible.Alarm.ViewModels.Schedule.MusicSelection;
 using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.ViewModels.Services.MusicSelection;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
@@ -87,7 +87,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         commandInitializer = new MusicCommandInitializer(
             logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
         displayTextProvider = new MusicDisplayTextProvider(state);
-        propertyNotifier = new MusicPropertyNotifier(this, displayTextProvider);
+        propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();

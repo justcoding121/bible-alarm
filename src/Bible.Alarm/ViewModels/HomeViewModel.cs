@@ -13,7 +13,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.HomeViewModel;
+using Bible.Alarm.ViewModels.Services.Home;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -540,7 +540,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 // State doesn't have schedules yet - ensure we show loading state
                 logger.Debug("OnStateChanged: State.Schedules is null, showing loading state");
                 UpdateProgressBarVisibility();
-                
+
                 // Reset tracking when schedules are cleared
                 lastProcessedSchedulesCount = null;
                 lastProcessedScheduleIds = null;

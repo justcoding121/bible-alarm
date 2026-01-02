@@ -15,7 +15,7 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.Schedule.BibleSelection;
+using Bible.Alarm.ViewModels.Services.BibleSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -44,10 +44,10 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private bool bibleReadingUpdated;
     private BibleReadingSchedule? bibleReadingSchedule;
     private AlarmSchedule? model;
-    
+
     // Track if we've already reset progress for the current cascade change to prevent loops
     private bool progressResetForCurrentCascade;
-    
+
     // Track the last processed state to prevent processing the same state multiple times
     private int? lastProcessedScheduleId;
     private string? lastProcessedLanguageCode;
@@ -73,7 +73,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         commandInitializer = new BibleCommandInitializer(logger, navigationService, scheduleSelectionService, dispatcher, mapper, serviceProvider);
         displayTextProvider = new BibleDisplayTextProvider(state, logger);
         propertyChangeDetector = new BiblePropertyChangeDetector(displayTextProvider);
-        propertyNotifier = new BiblePropertyNotifier(this);
+        propertyNotifier = new BiblePropertyNotifier(propertyName => OnPropertyChanged(propertyName));
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -95,7 +95,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
                 currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode,
                 currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber,
                 currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber);
-            
+
             // Initialize last processed state to prevent duplicate processing
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BibleReadingLanguageCode;
@@ -142,7 +142,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         }
 
         // Early exit if we've already processed this exact state
-        if (currentSchedule != null && 
+        if (currentSchedule != null &&
             currentSchedule.Id == lastProcessedScheduleId &&
             currentSchedule.BibleReadingLanguageCode == lastProcessedLanguageCode &&
             (currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode) == lastProcessedPublicationCode &&
@@ -164,11 +164,11 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             {
                 progressResetForCurrentCascade = false;
             }
-            
+
             ResetProgressIfNeeded(currentSchedule, changeInfo);
             MainThread.BeginInvokeOnMainThread(() => propertyNotifier.NotifyPropertyChanges(changeInfo));
         }
-        
+
         // Update last processed state after handling changes
         if (currentSchedule != null)
         {

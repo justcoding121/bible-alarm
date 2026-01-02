@@ -8,7 +8,7 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
-using Bible.Alarm.ViewModels.Shared.AlarmViewModal;
+using Bible.Alarm.ViewModels.Services.Alarm;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -258,7 +258,7 @@ public sealed class AlarmViewModal : ObservableObject, IDisposable, IRecipient<P
         set
         {
             // Only update if user is not interacting (to prevent feedback loops)
-            if (!isUserInteracting)
+            if (!sliderHandler.IsUserInteracting)
             {
                 // Only update if value actually changed (reduces unnecessary UI work)
                 if (Math.Abs(progress - value) > 0.0001) // Small threshold to avoid floating point noise

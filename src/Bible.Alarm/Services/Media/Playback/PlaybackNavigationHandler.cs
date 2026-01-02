@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
 using Serilog;
@@ -54,7 +55,7 @@ public sealed class PlaybackNavigationHandler
             progressTracker.Stop();
             await audioPlayer.StopAsync();
             await markCurrentTrackAsPlayedAsync(currentTrackIndex);
-            
+
             // Set auto-advancing flag for smooth transition during manual navigation
             logger.Information(
                 "[PlaybackService] PlayNextAsync: Dispatching SetAutoAdvancingAction(true) for manual next - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
@@ -62,7 +63,7 @@ public sealed class PlaybackNavigationHandler
                 currentTrackIndex,
                 currentTrackIndex + 1);
             dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-            
+
             var nextTrackIndex = currentTrackIndex + 1;
             setCurrentTrackIndex(nextTrackIndex);
 
@@ -101,7 +102,7 @@ public sealed class PlaybackNavigationHandler
             progressTracker.Stop();
             await audioPlayer.StopAsync();
             await markCurrentTrackAsPlayedAsync(currentTrackIndex);
-            
+
             // Set auto-advancing flag for smooth transition during manual navigation
             logger.Information(
                 "[PlaybackService] PlayPreviousAsync: Dispatching SetAutoAdvancingAction(true) for manual previous - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
@@ -109,7 +110,7 @@ public sealed class PlaybackNavigationHandler
                 currentTrackIndex,
                 currentTrackIndex - 1);
             dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-            
+
             var previousTrackIndex = currentTrackIndex - 1;
             setCurrentTrackIndex(previousTrackIndex);
 
@@ -120,7 +121,7 @@ public sealed class PlaybackNavigationHandler
 
             // Previous button always starts from beginning
             manuallyVisitedTrackIndices.Add(previousTrackIndex);
-            await playCurrentTrackAsync(startFromBeginning: true);
+            await playCurrentTrackAsync(true);
         }
         else if (currentTrackIndex == 0)
         {
@@ -128,7 +129,7 @@ public sealed class PlaybackNavigationHandler
             progressTracker.Stop();
             await audioPlayer.StopAsync();
             manuallyVisitedTrackIndices.Add(currentTrackIndex);
-            await playCurrentTrackAsync(startFromBeginning: true);
+            await playCurrentTrackAsync(true);
             // Don't call NotifyNavigationChanged() - we're still on the same track
         }
     }

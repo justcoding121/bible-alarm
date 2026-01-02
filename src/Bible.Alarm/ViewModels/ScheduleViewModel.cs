@@ -9,8 +9,6 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.ViewModels.ScheduleViewModel;
-using static Bible.Alarm.ViewModels.ScheduleViewModel.SchedulePropertyHelper;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -21,6 +19,7 @@ using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
+using Bible.Alarm.ViewModels.Services.Schedule;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -251,12 +250,12 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Early exit if we've already processed this exact state (only for schedule updates, not initial loads)
         // Also check if the property value itself hasn't changed to prevent unnecessary updates
-        if (isScheduleUpdate && 
-            currentScheduleId == lastProcessedScheduleId && 
+        if (isScheduleUpdate &&
+            currentScheduleId == lastProcessedScheduleId &&
             newOverlayVisible == lastProcessedOverlayVisible &&
             newOverlayVisible == isSchedulePageOverlayVisible)
         {
-            logger.Debug("ScheduleViewModel: OnStateChanged - Skipping processing as no relevant changes detected. ScheduleId: {ScheduleId}, OverlayVisible: {OverlayVisible}", 
+            logger.Debug("ScheduleViewModel: OnStateChanged - Skipping processing as no relevant changes detected. ScheduleId: {ScheduleId}, OverlayVisible: {OverlayVisible}",
                 currentScheduleId, newOverlayVisible);
             return;
         }
@@ -350,7 +349,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         // Reset tracking fields when schedule ID changes
         lastProcessedScheduleId = -1;
         lastProcessedOverlayVisible = true;
-        
+
         LoadScheduleFromState(stateValue, currentScheduleId);
     }
 
@@ -431,10 +430,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private async Task CompleteScheduleLoadAsync()
     {
         await scheduleInitializationService.CompleteScheduleLoadAsync();
-        
+
         // Mark model as initialized for existing schedules
         modelInitialized = true;
-        
+
         IsBusy = false;
         OnPropertyChanged(nameof(IsBusy));
 

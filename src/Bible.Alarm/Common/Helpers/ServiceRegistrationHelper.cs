@@ -61,6 +61,7 @@ using Bible.Alarm.Views.Shared;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Bible.Alarm.ViewModels.Services.Schedule;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.UI;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
@@ -155,10 +156,10 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleSaveService, ScheduleSaveService>();
         services.AddSingleton<IScheduleValidationService, ScheduleValidationService>();
         services.AddSingleton<IScheduleInitializationService, ScheduleInitializationService>();
-        services.AddSingleton<IScheduleCommandService, Bible.Alarm.ViewModels.ScheduleViewModel.ScheduleCommandService>();
+        services.AddSingleton<IScheduleCommandService, ScheduleCommandService>();
         services.AddSingleton<IScheduleMediaCacheService, ScheduleMediaCacheService>();
         services.AddSingleton<IScheduleContainerService, ScheduleContainerService>();
-        services.AddSingleton<Bible.Alarm.ViewModels.ScheduleViewModel.ScheduleStateChangeHandler>();
+        services.AddSingleton<ScheduleStateChangeHandler>();
 
         // Register bootstrap services
         services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();

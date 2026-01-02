@@ -1,8 +1,8 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Services.Media.Audio;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
-using Bible.Alarm.Services.Media.AudioPlayer;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;

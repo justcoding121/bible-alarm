@@ -2,7 +2,7 @@
 
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.PlaylistService;
+using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;

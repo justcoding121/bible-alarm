@@ -1,16 +1,19 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Effects.ScheduleEffects;
+using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
@@ -222,7 +225,7 @@ public class ScheduleEffects(
             }
 
             // Clear cache BEFORE save to prevent stale cache if process crashes
-            InvalidateScheduleCache();
+            cacheManager.InvalidateScheduleCache();
 
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
             var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule);
