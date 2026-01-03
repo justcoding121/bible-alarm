@@ -15,7 +15,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public ChaptersSelectionContainerViewModel? ViewModel => BindingContext as ChaptersSelectionContainerViewModel;
+    public NumberOfChapterContainerViewModel? ViewModel => BindingContext as NumberOfChapterContainerViewModel;
 
     public NumberOfChaptersModal()
     {

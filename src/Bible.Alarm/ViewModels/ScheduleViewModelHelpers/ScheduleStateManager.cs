@@ -1,8 +1,5 @@
 #nullable enable
-using Bible;
-using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Schedule.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -13,31 +10,20 @@ using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
 /// <summary>
-/// Handles state management and schedule lifecycle for ScheduleViewModel.
+/// Handles state management for ScheduleViewModel.
+/// Simple flow:
+/// 1. Navigate to page (spinner shown via state)
+/// 2. Create/Load schedule → set CurrentSchedule in state
+/// 3. Containers render from state → signal ready
+/// 4. All ready → hide spinner
 /// </summary>
 public sealed class ScheduleStateManager
 {
     private readonly ILogger logger;
     private readonly IScheduleInitializationService scheduleInitializationService;
-    private readonly ScheduleStateChangeHandler scheduleStateChangeHandler;
     private readonly IDispatcher dispatcher;
-
-    // Tracking fields
-    private int lastScheduleId = -1;
-    private bool modelInitialized;
-    private bool isInitializingNewSchedule;
-    private bool isSaving;
-
-    // Track previous music state to detect changes
-    private MusicType? lastMusicType;
-    private int? lastMusicTrackNumber;
-    private string? lastMusicPublicationCode;
-    private string? lastMusicLanguageCode;
-    private bool? lastMusicRepeat;
-
-    // Track last processed state to prevent redundant processing
-    private int lastProcessedScheduleId = -1;
-    private bool lastProcessedOverlayVisible = true;
+    
+    private bool isInitializing;
 
     public ScheduleStateManager(
         IScheduleInitializationService scheduleInitializationService,
@@ -47,34 +33,71 @@ public sealed class ScheduleStateManager
     {
         this.logger = logger;
         this.scheduleInitializationService = scheduleInitializationService;
-        this.scheduleStateChangeHandler = scheduleStateChangeHandler;
         this.dispatcher = dispatcher;
     }
 
+    /// <summary>
+    /// Called when ScheduleViewModel is created.
+    /// Checks if CurrentSchedule is already set (View flow) or needs to be created (Add flow).
+    /// </summary>
     public void InitializeStateHandling(IState<ApplicationState> state, Action setBusy, Action setOverlayVisible)
     {
         setBusy();
-        modelInitialized = false;
+        
+        // Show overlay immediately when page is created (via state action)
+        dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = true });
         setOverlayVisible();
 
-        var currentState = state.Value;
-        if (currentState.CurrentSchedule != null)
+        var currentSchedule = state.Value.CurrentSchedule;
+        
+        if (currentSchedule != null)
         {
-            MainThread.BeginInvokeOnMainThread(() => HandleCurrentScheduleChanged(state));
+            // View flow: CurrentSchedule already set by HomeNavigationHelper
+            // Containers will initialize from state and signal ready
+            logger.Debug("ScheduleStateManager: CurrentSchedule exists (Id={Id}), containers will initialize from state", currentSchedule.Id);
         }
         else
         {
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(100);
-                if (state.Value.CurrentSchedule != null && !modelInitialized)
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() => HandleCurrentScheduleChanged(state));
-                }
-            });
+            // Add flow: Need to create sample schedule
+            logger.Debug("ScheduleStateManager: No CurrentSchedule, creating sample schedule for Add flow");
+            InitializeNewScheduleAsync();
         }
     }
 
+    /// <summary>
+    /// Creates a sample schedule and dispatches ViewScheduleAction.
+    /// Containers will initialize when they receive state change with CurrentSchedule set.
+    /// </summary>
+    private void InitializeNewScheduleAsync()
+    {
+        if (isInitializing) return;
+        isInitializing = true;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                var scheduleStateItem = await scheduleInitializationService.InitializeNewScheduleAsync();
+                
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    logger.Debug("ScheduleStateManager: Dispatching ViewScheduleAction for new schedule");
+                    dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
+                    isInitializing = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error creating sample schedule");
+                isInitializing = false;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Called on state changes. Updates overlay visibility and notifies property changes.
+    /// The overlay is hidden when ContainerReadiness.AllReady is true (handled in ScheduleViewModel).
+    /// </summary>
     public void HandleStateChanged(
         IState<ApplicationState> state,
         Action<bool> setOverlayVisible,
@@ -82,236 +105,21 @@ public sealed class ScheduleStateManager
         Action<object?, EventArgs> onCurrentScheduleChanged)
     {
         var stateValue = state.Value;
-        var currentScheduleId = stateValue.CurrentSchedule?.Id ?? -1;
-        var newOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
-        var isScheduleUpdate = currentScheduleId == lastScheduleId && modelInitialized;
-
-        // Always call onCurrentScheduleChanged if schedule ID changed or model not initialized
-        // This ensures LoadScheduleFromState is called which will hide the overlay
-        if (currentScheduleId != lastScheduleId || !modelInitialized)
-        {
-            onCurrentScheduleChanged(null, EventArgs.Empty);
-        }
-
-        // Early exit if we've already processed this exact state (only for schedule updates, not initial loads)
-        if (isScheduleUpdate &&
-            currentScheduleId == lastProcessedScheduleId &&
-            newOverlayVisible == lastProcessedOverlayVisible)
-        {
-            logger.Debug("ScheduleViewModel: OnStateChanged - Skipping processing as no relevant changes detected. ScheduleId: {ScheduleId}, OverlayVisible: {OverlayVisible}",
-                currentScheduleId, newOverlayVisible);
-            return;
-        }
-
-        // Update overlay visibility if it changed
-        if (newOverlayVisible != lastProcessedOverlayVisible)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                // Only hide overlay if it's a schedule update (not initial load) or if explicitly set to false
-                if (!newOverlayVisible || !isScheduleUpdate)
-                {
-                    setOverlayVisible(newOverlayVisible);
-                }
-            });
-        }
-
+        
+        // Sync overlay visibility with state
+        setOverlayVisible(stateValue.IsSchedulePageOverlayVisible);
+        
+        // Notify UI of property changes
         notifySchedulePropertiesChanged();
-
-        // Update last processed state after handling changes
-        lastProcessedScheduleId = currentScheduleId;
-        lastProcessedOverlayVisible = newOverlayVisible;
     }
 
+    /// <summary>
+    /// Unused - kept for interface compatibility. 
+    /// Schedule changes are handled via state subscriptions in containers.
+    /// </summary>
     public void HandleCurrentScheduleChanged(IState<ApplicationState> state)
     {
-        var stateValue = state.Value;
-
-        if (stateValue.CurrentSchedule != null)
-        {
-            HandleExistingScheduleUpdate(stateValue);
-        }
-        else
-        {
-            HandleNewScheduleInitialization(stateValue);
-        }
+        // Containers handle their own initialization from state.
+        // This method is no longer needed in the simplified flow.
     }
-
-    private void HandleExistingScheduleUpdate(ApplicationState stateValue)
-    {
-        var currentScheduleId = stateValue.CurrentSchedule!.Id;
-
-        if (currentScheduleId == lastScheduleId && modelInitialized)
-        {
-            if (isSaving) return;
-            HandleScheduleUpdateFromState(stateValue, currentScheduleId);
-            // Only dispatch if overlay is currently visible to avoid infinite loops
-            if (stateValue.IsSchedulePageOverlayVisible)
-            {
-                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-            }
-            return;
-        }
-
-        // Reset tracking fields when schedule ID changes
-        lastProcessedScheduleId = -1;
-        lastProcessedOverlayVisible = true;
-
-        LoadScheduleFromState(stateValue, currentScheduleId);
-    }
-
-    private bool HandleScheduleUpdateFromState(ApplicationState stateValue, int currentScheduleId)
-    {
-        var currentSchedule = stateValue.CurrentSchedule;
-        var hasChanges = scheduleStateChangeHandler.HandleScheduleUpdateFromState(
-            currentSchedule,
-            ref lastMusicType,
-            ref lastMusicTrackNumber,
-            ref lastMusicPublicationCode,
-            ref lastMusicLanguageCode,
-            ref lastMusicRepeat,
-            out var musicChanged);
-
-        return hasChanges;
-    }
-
-    private void LoadScheduleFromState(ApplicationState stateValue, int currentScheduleId)
-    {
-        isInitializingNewSchedule = false;
-        var currentScheduleItem = stateValue.CurrentSchedule!;
-
-        // Reset tracking fields when loading a new schedule
-        lastProcessedScheduleId = -1;
-        lastProcessedOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                var scheduleStateItemSnapshot = currentScheduleItem.DeepClone();
-                scheduleInitializationService.InitializeTrackingFields(
-                    scheduleStateItemSnapshot,
-                    ref lastScheduleId,
-                    ref lastMusicType,
-                    ref lastMusicTrackNumber,
-                    ref lastMusicPublicationCode,
-                    ref lastMusicLanguageCode,
-                    ref lastMusicRepeat);
-
-                // Handle completion on main thread
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    try
-                    {
-                        await CompleteScheduleLoadAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Error in LoadScheduleFromState main thread handler");
-                        HandleLoadError();
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in LoadScheduleFromState data preparation");
-                await MainThread.InvokeOnMainThreadAsync(HandleLoadError);
-            }
-        });
-    }
-
-    private async Task CompleteScheduleLoadAsync()
-    {
-        await scheduleInitializationService.CompleteScheduleLoadAsync();
-
-        // Mark model as initialized for existing schedules
-        modelInitialized = true;
-
-        // Hide overlay after schedule is loaded
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-    }
-
-    private void HandleLoadError()
-    {
-        // Error handling logic would be passed in as callbacks
-    }
-
-    private void HandleNewScheduleInitialization(ApplicationState stateValue)
-    {
-        if (modelInitialized && !isSaving)
-        {
-            ResetViewModelForNewSchedule();
-        }
-        if (!modelInitialized && !isInitializingNewSchedule)
-        {
-            InitializeNewSchedule();
-        }
-    }
-
-    private void ResetViewModelForNewSchedule()
-    {
-        modelInitialized = false;
-        lastScheduleId = -1;
-        scheduleStateChangeHandler.ResetMusicTrackingFields(
-            ref lastMusicType,
-            ref lastMusicTrackNumber,
-            ref lastMusicPublicationCode,
-            ref lastMusicLanguageCode,
-            ref lastMusicRepeat);
-    }
-
-    private void InitializeNewSchedule()
-    {
-        isInitializingNewSchedule = true;
-
-        Task.Run(async () =>
-        {
-            var scheduleStateItem = await scheduleInitializationService.InitializeNewScheduleAsync();
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                var currentState = GetCurrentState();
-                if (isInitializingNewSchedule && !modelInitialized && currentState.CurrentSchedule == null)
-                {
-                    modelInitialized = true;
-                    scheduleInitializationService.InitializeTrackingFields(
-                        scheduleStateItem,
-                        ref lastScheduleId,
-                        ref lastMusicType,
-                        ref lastMusicTrackNumber,
-                        ref lastMusicPublicationCode,
-                        ref lastMusicLanguageCode,
-                        ref lastMusicRepeat);
-
-                    dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
-                }
-                else
-                {
-                    await FinalizeNewScheduleInitialization();
-                }
-            });
-        });
-    }
-
-    private async Task FinalizeNewScheduleInitialization()
-    {
-        isInitializingNewSchedule = false;
-    }
-
-    private ApplicationState GetCurrentState()
-    {
-        // This would need to be passed in or accessed differently
-        // For now, returning a placeholder
-        return new ApplicationState();
-    }
-
-
-    // Properties and methods to expose state
-    public int LastScheduleId => lastScheduleId;
-    public bool ModelInitialized => modelInitialized;
-    public bool IsInitializingNewSchedule => isInitializingNewSchedule;
-    public bool IsSaving => isSaving;
-
-    public void SetIsSaving(bool value) => isSaving = value;
-    public void SetModelInitialized(bool value) => modelInitialized = value;
-    public void SetLastScheduleId(int value) => lastScheduleId = value;
 }

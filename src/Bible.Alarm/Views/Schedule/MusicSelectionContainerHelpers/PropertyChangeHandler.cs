@@ -56,23 +56,32 @@ public class PropertyChangeHandler
             Serilog.Log.Debug("[MusicSelectionContainer] PropertyChanged: MusicEnabled = {NewState}, LastState = {LastState}, isInitialLoad = {IsInitialLoad}", newState, lastMusicEnabledState, isInitialLoad);
 #endif
 
-            // Ignore property changes during initial load
-            if (isInitialLoad)
-            {
-#if DEBUG
-                Serilog.Log.Debug("[MusicSelectionContainer] Ignoring property change during initial load");
-#endif
-                lastMusicEnabledState = newState; // Update last state but don't animate
-                return;
-            }
-
-            // Debounce rapid changes
-            if (newState == lastMusicEnabledState)
+            // Debounce rapid changes (but not during initial load - always update during initial load)
+            if (!isInitialLoad && newState == lastMusicEnabledState)
             {
 #if DEBUG
                 Serilog.Log.Debug("[MusicSelectionContainer] State unchanged, ignoring");
 #endif
-                return; // Ignore if state hasn't actually changed
+                return; // Ignore if state hasn't actually changed (but only after initial load)
+            }
+
+            // During initial load, still update visibility but without animation
+            // This ensures the UI reflects the correct state even during initialization
+            if (isInitialLoad)
+            {
+#if DEBUG
+                Serilog.Log.Debug("[MusicSelectionContainer] Property change during initial load - updating visibility without animation. NewState={NewState}, LastState={LastState}", newState, lastMusicEnabledState);
+#endif
+                lastMusicEnabledState = newState; // Update last state
+                // Still update visibility, just without animation
+                container.Dispatcher.Dispatch(() =>
+                {
+                    if (container.Handler != null)
+                    {
+                        updateVisibility(newState, false);
+                    }
+                });
+                return;
             }
 
             // Only scroll if user is toggling from false to true (user-initiated expand)
@@ -90,15 +99,19 @@ public class PropertyChangeHandler
             debounceTokenSource = new CancellationTokenSource();
             var token = debounceTokenSource.Token;
 
+            // Use animation for user-initiated changes (not initial load)
+            // This provides better UX and ensures scroll callback is triggered
+            var shouldAnimate = true;
+
             // Small delay to debounce rapid changes, but trigger update immediately on UI thread
             container.Dispatcher.Dispatch(() =>
             {
                 if (!token.IsCancellationRequested && container.Handler != null)
                 {
 #if DEBUG
-                    Serilog.Log.Debug("[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate=false, isEnabled={IsEnabled}", newState);
+                    Serilog.Log.Debug("[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate={Animate}, isEnabled={IsEnabled}", shouldAnimate, newState);
 #endif
-                    updateVisibility(newState, false);
+                    updateVisibility(newState, shouldAnimate);
                 }
             });
         }

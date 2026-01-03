@@ -21,6 +21,8 @@
             <!-- Binding removed to prevent conflicts - controlled entirely from code-behind -->
             <shared:BusyOverlay x:Name="scheduleBusyOverlay"
                                 Grid.ZIndex="2"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill"
                                 IsVisible="True" />
         </Grid>
     </ContentPage.Content>

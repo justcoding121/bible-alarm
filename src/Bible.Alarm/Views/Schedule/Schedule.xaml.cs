@@ -16,8 +16,6 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     private bool hasHandledFirstLoad;
     private bool isContentLoaded;
-    private bool isOverlayForcedVisible;
-    private bool? lastOverlayVisibleValue;
 
     public Schedule(ScheduleViewModel viewModel)
     {
@@ -32,6 +30,13 @@ public partial class Schedule : BaseContentPage, IDisposable
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
         Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
 #endif
+
+        // Set busy overlay to visible by default
+        if (scheduleBusyOverlay != null)
+        {
+            scheduleBusyOverlay.IsVisible = true;
+            Log.Debug("Schedule.xaml.cs: Constructor - Set busy overlay to visible");
+        }
 
         BindingContext = viewModel;
         this.viewModel = viewModel;
@@ -62,44 +67,11 @@ public partial class Schedule : BaseContentPage, IDisposable
 
         hasHandledFirstLoad = true;
 
-        // Subscribe to ViewModel property changes BEFORE setting overlay visible
-        // This ensures we can prevent overlay from being hidden prematurely
+        // Subscribe to ViewModel property changes for overlay sync
         if (viewModel != null)
         {
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
         }
-
-        // Ensure overlay is visible when page appears
-        // This is critical for both viewing and adding schedules
-        await this.Dispatcher.DispatchAsync(() =>
-        {
-            // Mark overlay as forced visible - this prevents ViewModel from hiding it
-            isOverlayForcedVisible = true;
-
-            // Force overlay to be visible when page appears
-            // This ensures it shows even if ViewModel state hasn't propagated yet
-            if (scheduleBusyOverlay != null)
-            {
-                Log.Debug("Schedule.xaml.cs: Ensuring overlay is visible on page appear");
-                scheduleBusyOverlay.IsVisible = true;
-                lastOverlayVisibleValue = true;
-            }
-        });
-
-        // Small delay to ensure page is rendered and XAML is fully loaded
-        await Task.Delay(50);
-
-        // Now start the spinner after page is rendered
-        await this.Dispatcher.DispatchAsync(() =>
-        {
-            if (scheduleBusyOverlay != null)
-            {
-                Log.Debug("Schedule.xaml.cs: Starting spinner after page render");
-                // Force spinner to start immediately, bypassing binding delays
-                // This ensures smooth animation from the moment the overlay appears
-                scheduleBusyOverlay.StartSpinnerImmediately();
-            }
-        });
 
         // Hide Home page overlay after Schedule page is visible
         await this.Dispatcher.DispatchAsync(() =>
@@ -107,31 +79,61 @@ public partial class Schedule : BaseContentPage, IDisposable
             viewModel?.HideHomePageOverlay();
         });
 
-        // Add delay after showing overlay to ensure spinner is animating smoothly
-        // This improves perceived performance - user sees spinner working before heavy content loads
-        await Task.Delay(100);
-
-        // Load heavy content asynchronously after spinner is animating smoothly
+        // Load heavy content asynchronously
         await LoadScheduleContentAsync();
 
-        // Mark content as loaded - now allow ViewModel to control overlay
+        // Mark content as loaded
         isContentLoaded = true;
 
-        // Allow overlay to be controlled by ViewModel now that content is loaded
-        isOverlayForcedVisible = false;
+        Log.Debug("Schedule.xaml.cs: Content loaded, calling OnContentLoaded. isContentLoaded={IsContentLoaded}", isContentLoaded);
 
-        // If ViewModel wants to hide overlay, allow it
-        if (viewModel != null && !viewModel.IsSchedulePageOverlayVisible)
+        // Notify ViewModel that content is loaded - it will hide overlay if containers are ready
+        viewModel?.OnContentLoaded();
+    }
+
+    private void SyncOverlayWithState()
+    {
+        this.Dispatcher.Dispatch(() =>
         {
-            await this.Dispatcher.DispatchAsync(() =>
+            if (scheduleBusyOverlay == null)
             {
-                if (scheduleBusyOverlay != null)
+                return;
+            }
+
+            // If ViewModel is not initialized yet, keep overlay visible (default state)
+            // It will be synced when ViewModel is ready
+            if (viewModel == null)
+            {
+                Log.Debug("Schedule.xaml.cs: ViewModel not ready yet, keeping overlay visible (default)");
+                scheduleBusyOverlay.IsVisible = true;
+                return;
+            }
+
+            var shouldBeVisible = viewModel.IsSchedulePageOverlayVisible;
+
+            // Only sync if ViewModel says it should be visible, or if overlay is currently visible and ViewModel says hide
+            // This prevents hiding the overlay prematurely during initial sync
+            if (shouldBeVisible)
+            {
+                // ViewModel says show - always show
+                if (!scheduleBusyOverlay.IsVisible)
                 {
-                    Log.Debug("Schedule.xaml.cs: Content loaded, hiding overlay as ViewModel requested");
-                    scheduleBusyOverlay.IsVisible = false;
+                    Log.Debug("Schedule.xaml.cs: Syncing overlay with state - showing (IsVisible=true)");
+                    scheduleBusyOverlay.IsVisible = true;
                 }
-            });
-        }
+            }
+            else if (scheduleBusyOverlay.IsVisible && isContentLoaded)
+            {
+                // ViewModel says hide AND content is loaded - safe to hide
+                Log.Debug("Schedule.xaml.cs: Syncing overlay with state - hiding (IsVisible=false, content loaded)");
+                scheduleBusyOverlay.IsVisible = false;
+            }
+            else if (!shouldBeVisible && !isContentLoaded)
+            {
+                // ViewModel says hide but content not loaded yet - keep visible
+                Log.Debug("Schedule.xaml.cs: ViewModel says hide but content not loaded - keeping overlay visible");
+            }
+        });
     }
 
     private async Task LoadScheduleContentAsync()
@@ -142,7 +144,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 #endif
 
         // Load content on UI thread (XAML parsing must be on UI thread)
-        await this.Dispatcher.DispatchAsync(() =>
+        await this.Dispatcher.DispatchAsync(async () =>
         {
             // Create the content view with all heavy XAML
             var scheduleContent = new ScheduleContent
@@ -154,7 +156,7 @@ public partial class Schedule : BaseContentPage, IDisposable
             contentContainer.Content = scheduleContent;
 
             // Fade in content smoothly
-            contentContainer.FadeTo(1.0, 200);
+            await contentContainer.FadeTo(1.0, 200);
         });
 
 #if DEBUG
@@ -167,41 +169,32 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
         if (e.PropertyName == nameof(ScheduleViewModel.IsSchedulePageOverlayVisible))
         {
-            // Manually update BusyOverlay if binding isn't working
+            // State is the source of truth - sync overlay with ViewModel
+            // But only hide if content is loaded (prevents hiding before content renders)
             this.Dispatcher.Dispatch(() =>
             {
                 if (scheduleBusyOverlay != null && viewModel != null)
                 {
                     var newValue = viewModel.IsSchedulePageOverlayVisible;
 
-                    // Skip if we've already set the overlay to this value
-                    if (lastOverlayVisibleValue == newValue)
-                    {
-                        Log.Debug("Schedule.xaml.cs: Skipping overlay update - already set to {Value}", newValue);
-                        return;
-                    }
-
-                    // Don't allow ViewModel to hide overlay if we've forced it visible
-                    // This ensures smooth spinning throughout the loading process
-                    if (!newValue && isOverlayForcedVisible)
-                    {
-                        Log.Debug("Schedule.xaml.cs: Preventing overlay hide - overlay is forced visible during loading");
-                        return;
-                    }
-
                     // Don't hide overlay until content is loaded
-                    // This ensures overlay stays visible when viewing existing schedules that load quickly
                     if (!newValue && !isContentLoaded)
                     {
                         Log.Debug("Schedule.xaml.cs: Preventing overlay hide - content not loaded yet");
                         return;
                     }
 
-                    Log.Debug("Schedule.xaml.cs: Updating BusyOverlay.IsVisible to {Value}", newValue);
+                    Log.Debug("Schedule.xaml.cs: State changed - overlay IsVisible={Value}", newValue);
                     scheduleBusyOverlay.IsVisible = newValue;
-                    lastOverlayVisibleValue = newValue;
                 }
             });
+        }
+
+        // Also check if we should hide overlay when containers become ready (after content is loaded)
+        // This handles the case where containers signal ready AFTER content loads
+        if (isContentLoaded && viewModel != null)
+        {
+            viewModel.OnContentLoaded();
         }
     }
 
@@ -219,8 +212,21 @@ public partial class Schedule : BaseContentPage, IDisposable
         // Reset flags when page appears again (e.g., navigating back to it)
         hasHandledFirstLoad = false;
         isContentLoaded = false;
-        isOverlayForcedVisible = false;
-        lastOverlayVisibleValue = null;
+
+        // Reset ViewModel's content loaded flag as well
+        viewModel?.ResetContentLoaded();
+
+        // Force overlay visible immediately when page appears (before content loads)
+        // This ensures the busy indicator is visible even if ViewModel state hasn't synced yet
+        if (scheduleBusyOverlay != null)
+        {
+            scheduleBusyOverlay.IsVisible = true;
+            Log.Debug("Schedule.xaml.cs: OnAppearing - Forcing overlay visible (will sync with state later)");
+        }
+
+        // Sync with state (but won't hide if content not loaded due to our fix in SyncOverlayWithState)
+        SyncOverlayWithState();
+
         // Load content asynchronously after page appears
         OnPageAppearing();
     }

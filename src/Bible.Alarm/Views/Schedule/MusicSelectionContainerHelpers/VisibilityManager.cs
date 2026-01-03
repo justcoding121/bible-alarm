@@ -62,6 +62,17 @@ public class VisibilityManager
             Serilog.Log.Debug("[MusicSelectionContainer] Setting initial state without animation");
 #endif
             animationManager.SetContentStateDirectly(isEnabled);
+            
+            // If expanding (enabling), trigger scroll callback after a delay to allow layout to complete
+            if (isEnabled && onExpandComplete != null)
+            {
+                // Use a small delay to ensure layout is complete before scrolling
+                collapsibleContent.Dispatcher.DispatchAsync(async () =>
+                {
+                    await Task.Delay(200); // Delay to allow UI to update
+                    onExpandComplete.Invoke();
+                });
+            }
         }
     }
 }

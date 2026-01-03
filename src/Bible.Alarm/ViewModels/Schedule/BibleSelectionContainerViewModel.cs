@@ -15,6 +15,7 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -43,7 +44,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private bool isNewSchedule;
     private bool bibleReadingUpdated;
     private BibleReadingSchedule? bibleReadingSchedule;
-    private AlarmSchedule? model;
+    private bool hasSignaledReady;
 
     // Track if we've already reset progress for the current cascade change to prevent loops
     private bool progressResetForCurrentCascade;
@@ -105,7 +106,22 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
             // Batch property notifications to reduce UI thread work
             propertyNotifier.NotifyAllDisplayTextPropertiesChanged();
+            
+            // Signal that this container is ready (initialized from CurrentSchedule)
+            SignalContainerReady();
         }
+    }
+
+    private void SignalContainerReady()
+    {
+        if (hasSignaledReady) return;
+        hasSignaledReady = true;
+        
+        // Dispatch to state that this container is ready
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            dispatcher.Dispatch(new ContainerReadyAction("BibleSelection"));
+        });
     }
 
     private void InitializeCommands()
@@ -117,11 +133,6 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
         SelectChapterCommand = commandInitializer.CreateSelectChapterCommand(
             () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
-    }
-
-    public void SetModel(AlarmSchedule model)
-    {
-        this.model = model;
     }
 
     public void SetScheduleId(int scheduleId, bool isNewSchedule)
@@ -136,8 +147,26 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         var currentSchedule = stateValue.CurrentSchedule;
         var currentBibleReading = stateValue.CurrentBibleReadingSchedule;
 
-        if (!ShouldProcessStateChange(currentSchedule))
+        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+        if (hasSignaledReady && !stateValue.ContainerReadiness.BibleSelection && currentSchedule != null)
         {
+            logger.Debug("BibleSelectionContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
+            hasSignaledReady = false;
+            // Re-initialize and signal ready again
+            InitializeFromState();
+            return;
+        }
+
+        if (!ShouldProcessStateChange(currentSchedule, out var isInitialLoad))
+        {
+            return;
+        }
+
+        // For initial load (scheduleId was 0), call InitializeFromState to set up and signal ready
+        if (isInitialLoad)
+        {
+            InitializeFromState();
             return;
         }
 
@@ -180,14 +209,34 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         }
     }
 
-    private bool ShouldProcessStateChange(ScheduleStateItem? currentSchedule)
+    private bool ShouldProcessStateChange(ScheduleStateItem? currentSchedule, out bool isInitialLoad)
     {
-        if (currentSchedule == null || (scheduleId > 0 && currentSchedule.Id > 0 && currentSchedule.Id != scheduleId))
+        isInitialLoad = false;
+        
+        // If we don't have a scheduleId yet (initial state), always process when CurrentSchedule is set
+        // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
+        if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
         {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Skipping state change. CurrentSchedule: {CurrentSchedule}, OurScheduleId: {ScheduleId}",
-                currentSchedule != null ? $"Id={currentSchedule.Id}" : "null", scheduleId);
+            isInitialLoad = true;
+            return true;
+        }
+        
+        // If CurrentSchedule is null, skip (unless we're waiting for it to be set)
+        if (currentSchedule == null)
+        {
+            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Skipping state change. CurrentSchedule: null, OurScheduleId: {ScheduleId}",
+                scheduleId);
             return false;
         }
+        
+        // If schedule IDs don't match and we already have a scheduleId, skip
+        if (scheduleId > 0 && currentSchedule.Id > 0 && currentSchedule.Id != scheduleId)
+        {
+            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Skipping state change. CurrentSchedule: Id={CurrentScheduleId}, OurScheduleId: {ScheduleId}",
+                currentSchedule.Id, scheduleId);
+            return false;
+        }
+        
         return true;
     }
 
@@ -213,10 +262,11 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
     private void HandleScheduleIdChange(ScheduleStateItem? currentSchedule)
     {
-        if (currentSchedule != null && currentSchedule.Id != scheduleId)
+        if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
         {
             logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Schedule ID changed from {OldScheduleId} to {NewScheduleId}, initializing from state",
                 scheduleId, currentSchedule.Id);
+            hasSignaledReady = false; // Reset for new schedule
             InitializeFromState();
             // Reset last processed state to ensure new schedule is processed
             lastProcessedScheduleId = null;
@@ -225,7 +275,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
     private void UpdateBibleReadingUpdatedFlag(ScheduleStateItem? currentSchedule)
     {
-        if (currentSchedule != null && model != null)
+        if (currentSchedule != null)
         {
             var hasBibleReading = currentSchedule.BibleReadingScheduleId.HasValue;
             if (hasBibleReading && currentSchedule.BibleReadingScheduleId.HasValue &&

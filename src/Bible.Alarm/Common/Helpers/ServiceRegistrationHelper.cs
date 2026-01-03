@@ -252,7 +252,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<AlarmViewModel>();
         services.AddTransient<BibleSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();
-        services.AddTransient<ChaptersSelectionContainerViewModel>();
+        services.AddTransient<NumberOfChapterContainerViewModel>();
         services.AddTransient<ScheduleDetailsContainerViewModel>();
 
         // Register ScheduleListItem as transient for list items

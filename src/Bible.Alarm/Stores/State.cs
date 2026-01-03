@@ -19,12 +19,14 @@ public class ApplicationState
 
     public bool IsHomePageOverlayVisible { get; set; }
     public bool IsSchedulePageOverlayVisible { get; set; }
+    public ContainerReadiness ContainerReadiness { get; set; }
 
     public ApplicationState()
     {
         Schedules = [];
         IsHomePageOverlayVisible = false;
         IsSchedulePageOverlayVisible = false;
+        ContainerReadiness = Models.ContainerReadiness.NotReady;
     }
 
     public ApplicationState(
@@ -33,7 +35,8 @@ public class ApplicationState
         MusicStateItem? currentMusic = null,
         BibleReadingStateItem? currentBibleReadingSchedule = null,
         bool isHomePageOverlayVisible = false,
-        bool isSchedulePageOverlayVisible = false)
+        bool isSchedulePageOverlayVisible = false,
+        ContainerReadiness? containerReadiness = null)
     {
         Schedules = schedules ?? [];
         CurrentSchedule = currentSchedule;
@@ -41,5 +44,6 @@ public class ApplicationState
         CurrentBibleReadingSchedule = currentBibleReadingSchedule;
         IsHomePageOverlayVisible = isHomePageOverlayVisible;
         IsSchedulePageOverlayVisible = isSchedulePageOverlayVisible;
+        ContainerReadiness = containerReadiness ?? Models.ContainerReadiness.NotReady;
     }
 }

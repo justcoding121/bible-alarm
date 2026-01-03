@@ -7,6 +7,7 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Stores.Reducers.Services;
 using Fluxor;
 using Serilog;
@@ -232,7 +233,8 @@ public static class ApplicationReducer
             currentMusic: syncedCurrentMusic,
             currentBibleReadingSchedule: currentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: overlayVisible);
+            isSchedulePageOverlayVisible: overlayVisible,
+            containerReadiness: Models.ContainerReadiness.NotReady); // Reset for new schedule load
     }
 
     [ReducerMethod]
@@ -247,7 +249,8 @@ public static class ApplicationReducer
             currentMusic: null,
             currentBibleReadingSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            containerReadiness: Models.ContainerReadiness.NotReady);
     }
 
     [ReducerMethod]
@@ -373,7 +376,8 @@ public static class ApplicationReducer
             currentMusic: state.CurrentMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: action.IsVisible);
+            isSchedulePageOverlayVisible: action.IsVisible,
+            containerReadiness: state.ContainerReadiness); // Preserve container readiness
     }
 
     [ReducerMethod]
@@ -387,6 +391,7 @@ public static class ApplicationReducer
             currentMusic: null,
             currentBibleReadingSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            containerReadiness: Models.ContainerReadiness.NotReady); // Reset container readiness
     }
 }

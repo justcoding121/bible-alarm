@@ -4,9 +4,11 @@
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-             xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters">
+             xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+             BackgroundColor="Transparent"
+             HorizontalOptions="Fill"
+             VerticalOptions="Fill">
     <ContentView.Resources>
-        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:BoolToOpacityConverter x:Key="boolToOpacityConverter" />
     </ContentView.Resources>
     <Grid x:Name="overlayGrid"
@@ -15,8 +17,7 @@
           BackgroundColor="{DynamicResource BackgroundColor}"
           ZIndex="999"
           HorizontalOptions="Fill"
-          VerticalOptions="Fill"
-          InputTransparent="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource negateBooleanConverter}}">
+          VerticalOptions="Fill">
         <Grid VerticalOptions="Center" 
               HorizontalOptions="Center"
               IsVisible="True"

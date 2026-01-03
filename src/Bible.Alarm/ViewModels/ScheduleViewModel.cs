@@ -24,6 +24,7 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -49,6 +50,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private readonly SchedulePropertyManager propertyManager;
     private readonly ScheduleContainerManager containerManager;
     private readonly ScheduleOverlayManager overlayManager;
+    
+    // Track if content has been loaded
+    private bool isContentLoaded;
 
 
     public ScheduleViewModel(
@@ -91,14 +95,44 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(dispatcher);
 
+        // Subscribe to property manager changes to forward property changes
+        propertyManager.PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName == nameof(SchedulePropertyManager.IsSchedulePageOverlayVisible))
+            {
+                OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
+            }
+            // Forward container ViewModel property changes
+            else if (e.PropertyName == nameof(SchedulePropertyManager.BibleSelectionContainerViewModel))
+            {
+                OnPropertyChanged(nameof(BibleSelectionContainerViewModel));
+            }
+            else if (e.PropertyName == nameof(SchedulePropertyManager.MusicSelectionContainerViewModel))
+            {
+                OnPropertyChanged(nameof(MusicSelectionContainerViewModel));
+            }
+            else if (e.PropertyName == nameof(SchedulePropertyManager.NumberOfChapterContainerViewModel))
+            {
+                OnPropertyChanged(nameof(NumberOfChapterContainerViewModel));
+            }
+            else if (e.PropertyName == nameof(SchedulePropertyManager.ScheduleDetailsContainerViewModel))
+            {
+                OnPropertyChanged(nameof(ScheduleDetailsContainerViewModel));
+            }
+        };
+
+        // Subscribe to state changes
+        state.StateChanged += OnStateChanged;
+
         // Initialize state handling and commands
-        stateManager.InitializeStateHandling(state, () => propertyManager.IsBusy = true, () => overlayManager.ShowSchedulePageOverlay());
+        stateManager.InitializeStateHandling(
+            state, 
+            () => propertyManager.IsBusy = true, 
+            () => overlayManager.ShowSchedulePageOverlay());
         commandExecutor.InitializeCommands(out var cancelCmd, out var saveCmd, out var deleteCmd);
         CancelCommand = cancelCmd;
         SaveCommand = saveCmd;
         DeleteCommand = deleteCmd;
-
-        SetupSafetyFallback();
 
         // Initialize containers asynchronously after page is visible
         _ = InitializeContainerViewModelsAsync();
@@ -115,68 +149,61 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             propertyManager.BibleSelectionContainerViewModel = bible;
             propertyManager.MusicSelectionContainerViewModel = music;
-            propertyManager.ChaptersSelectionContainerViewModel = chapters;
+            propertyManager.NumberOfChapterContainerViewModel = chapters;
             propertyManager.ScheduleDetailsContainerViewModel = details;
         });
     }
 
-    private void InitializeStateHandling()
-    {
-        state.StateChanged += OnStateChanged;
-        IsBusy = true;
-        propertyManager.SetIsSchedulePageOverlayVisible(true);
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
-
-        var currentState = state.Value;
-        if (currentState.CurrentSchedule != null)
-        {
-            MainThread.BeginInvokeOnMainThread(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
-        }
-        else
-        {
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(100);
-                if (state.Value.CurrentSchedule != null && !stateManager.ModelInitialized)
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() => OnCurrentScheduleChanged(this, EventArgs.Empty));
-                }
-            });
-        }
-    }
-
-    private void SetupSafetyFallback()
-    {
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(2000);
-            if (propertyManager.IsBusy && !stateManager.ModelInitialized)
-            {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    propertyManager.IsBusy = false;
-                    overlayManager.HideHomePageOverlay();
-                    overlayManager.HideSchedulePageOverlay();
-                });
-            }
-        });
-    }
 
 
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        stateManager.HandleStateChanged(
-            state,
-            (visible) => propertyManager.IsSchedulePageOverlayVisible = visible,
-            () => propertyManager.NotifySchedulePropertiesChanged(),
-            OnCurrentScheduleChanged);
-    }
+        var stateValue = state.Value;
+        
+        // Marshal property updates to UI thread to ensure PropertyChanged events are raised on the correct thread
+        // This is important because OnStateChanged can be called from background threads when Fluxor actions
+        // are dispatched from Task.Run or other background operations (e.g., InitializeNewScheduleAsync)
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Sync overlay visibility with state
+            propertyManager.IsSchedulePageOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
+            
+            // Notify UI of property changes when CurrentSchedule changes
+            // Note: NotifySchedulePropertiesChanged also marshals to UI thread, but since we're already
+            // on UI thread here, it will execute immediately (MainThread.BeginInvokeOnMainThread checks
+            // if already on main thread and executes synchronously if so)
+            propertyManager.NotifySchedulePropertiesChanged();
+        });
 
-
-    private void OnCurrentScheduleChanged(object? sender, EventArgs e)
-    {
-        stateManager.HandleCurrentScheduleChanged(state);
+        // Check if we should hide overlay: both containers ready AND content loaded
+        // Also call OnContentLoaded when containers become ready (handles case where containers become ready after content loads)
+        if (stateValue.ContainerReadiness.AllReady && isContentLoaded)
+        {
+            if (stateValue.IsSchedulePageOverlayVisible)
+            {
+                logger.Debug("ScheduleViewModel: All containers ready and content loaded, hiding overlay");
+                dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+            }
+            else
+            {
+                // Containers became ready after overlay was already hidden - this is fine
+                logger.Debug("ScheduleViewModel: All containers ready, but overlay already hidden");
+            }
+        }
+        else if (stateValue.ContainerReadiness.AllReady && !isContentLoaded)
+        {
+            logger.Debug("ScheduleViewModel: All containers ready, waiting for content to load before hiding overlay");
+        }
+        else if (!stateValue.ContainerReadiness.AllReady && isContentLoaded)
+        {
+            // Content is loaded but containers aren't ready yet - log for debugging
+            logger.Debug("ScheduleViewModel: Content loaded but containers not ready yet. BibleSelection={Bible}, MusicSelection={Music}, NumberOfChapter={Number}, ScheduleDetails={Schedule}",
+                stateValue.ContainerReadiness.BibleSelection,
+                stateValue.ContainerReadiness.MusicSelection,
+                stateValue.ContainerReadiness.NumberOfChapter,
+                stateValue.ContainerReadiness.ScheduleDetails);
+        }
     }
 
 
@@ -208,8 +235,6 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     public bool MusicEnabled => SchedulePropertyHelper.GetMusicEnabled(state.Value.CurrentSchedule);
 
-    private bool musicUpdated;
-
     public AlarmMusic? Music
     {
         get
@@ -228,8 +253,6 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             // as the container view model dispatches actions directly
         }
     }
-
-    private bool bibleReadingUpdated;
 
     public BibleReadingSchedule? BibleReadingSchedule
     {
@@ -264,8 +287,11 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     public bool IsExistingSchedule => propertyManager.IsExistingSchedule;
 
-
-
+    // Container ViewModels - exposed for XAML binding
+    public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel => propertyManager.BibleSelectionContainerViewModel;
+    public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel => propertyManager.MusicSelectionContainerViewModel;
+    public NumberOfChapterContainerViewModel? NumberOfChapterContainerViewModel => propertyManager.NumberOfChapterContainerViewModel;
+    public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel => propertyManager.ScheduleDetailsContainerViewModel;
 
     /// <summary>
     /// Hides the Home page overlay. Called when the Schedule page is fully rendered and visible.
@@ -283,6 +309,48 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
     /// </summary>
     public void HideSchedulePageOverlay() => overlayManager.HideSchedulePageOverlay();
+
+    /// <summary>
+    /// Checks if all containers are ready. Used by page code-behind to determine when to hide overlay.
+    /// </summary>
+    public bool AreAllContainersReady => state.Value.ContainerReadiness.AllReady;
+
+    /// <summary>
+    /// Resets the content loaded flag. Called when page appears to handle re-navigation.
+    /// </summary>
+    public void ResetContentLoaded()
+    {
+        logger.Debug("ScheduleViewModel: Resetting isContentLoaded flag");
+        isContentLoaded = false;
+    }
+
+    /// <summary>
+    /// Called by page code-behind after content is loaded.
+    /// Hides overlay if all containers are ready.
+    /// </summary>
+    public void OnContentLoaded()
+    {
+        isContentLoaded = true;
+        
+        var stateValue = state.Value;
+        var allReady = stateValue.ContainerReadiness.AllReady;
+        var overlayVisible = stateValue.IsSchedulePageOverlayVisible;
+        
+        logger.Debug("ScheduleViewModel: OnContentLoaded called - AllReady={AllReady}, OverlayVisible={OverlayVisible}, isContentLoaded={IsContentLoaded}", 
+            allReady, overlayVisible, isContentLoaded);
+        
+        // Check if we should hide overlay: both containers ready AND content loaded
+        if (allReady && overlayVisible)
+        {
+            logger.Debug("ScheduleViewModel: Content loaded and all containers ready, hiding overlay");
+            dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+        }
+        else
+        {
+            logger.Debug("ScheduleViewModel: OnContentLoaded - Condition not met. AllReady={AllReady}, OverlayVisible={OverlayVisible}", 
+                allReady, overlayVisible);
+        }
+    }
 
 
     public void Dispose()

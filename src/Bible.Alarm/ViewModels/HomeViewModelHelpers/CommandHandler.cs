@@ -5,6 +5,7 @@ using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using System.Windows.Input;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -36,9 +37,17 @@ public class CommandHandler
     {
         return new AsyncRelayCommand(async () =>
         {
+            // Show overlay BEFORE navigation so it's visible immediately when page appears
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+            
+            // Reset state
             dispatcher.Dispatch(new ResetScheduleStateAction());
+            
+            // Navigate immediately - the page will show with busy indicator
+            // Containers will be assigned asynchronously once ready (handled by ScheduleViewModel)
             await navigationService.NavigateToScheduleAsync();
-            dispatcher.Dispatch(new ViewScheduleAction(null));
+            
+            // CurrentSchedule is initialized by ScheduleViewModel after navigation
         });
     }
 

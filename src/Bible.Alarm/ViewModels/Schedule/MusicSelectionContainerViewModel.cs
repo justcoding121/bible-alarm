@@ -17,6 +17,7 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Music;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -24,6 +25,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
@@ -46,7 +48,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private bool musicUpdated;
     private AlarmMusic? music;
     private AlarmMusic? lastMusic;
-    private AlarmSchedule? model;
+    private bool hasSignaledReady;
 
     private bool isUpdatingFromState;
     private bool? pendingMusicEnabled; // Optimistic update value
@@ -142,7 +144,22 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                         currentSchedule.MusicType);
                 }
             }
+            
+            // Signal that this container is ready (initialized from CurrentSchedule)
+            SignalContainerReady();
         }
+    }
+
+    private void SignalContainerReady()
+    {
+        if (hasSignaledReady) return;
+        hasSignaledReady = true;
+        
+        // Dispatch to state that this container is ready
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            dispatcher.Dispatch(new ContainerReadyAction("MusicSelection"));
+        });
     }
 
     private void InitializeCommands()
@@ -160,11 +177,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         ToggleRepeatCommand = commandInitializer.CreateToggleRepeatCommand();
     }
 
-    public void SetModel(AlarmSchedule model)
-    {
-        this.model = model;
-    }
-
     public void SetMusicUpdated(bool musicUpdated)
     {
         this.musicUpdated = musicUpdated;
@@ -175,11 +187,33 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
 
-        // Initialize if schedule ID changed (new schedule opened)
-        if (currentSchedule != null && currentSchedule.Id != scheduleId)
+        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+        if (hasSignaledReady && !stateValue.ContainerReadiness.MusicSelection && currentSchedule != null)
+        {
+            logger.Debug("MusicSelectionContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
+            hasSignaledReady = false;
+            // Re-initialize and signal ready again
+            InitializeFromState();
+            return;
+        }
+
+        // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
+        // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
+        if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
         {
             // Reset initial MusicEnabled tracking when a new schedule is opened
             initialMusicEnabledOnPageLoad = null;
+            InitializeFromState();
+            return;
+        }
+
+        // Initialize if schedule ID changed (new schedule opened)
+        if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
+        {
+            // Reset initial MusicEnabled tracking when a new schedule is opened
+            initialMusicEnabledOnPageLoad = null;
+            hasSignaledReady = false; // Reset for new schedule
             InitializeFromState();
         }
 
@@ -204,7 +238,12 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 {
                     lastMusicEnabled = stateMusicEnabled;
                     pendingMusicEnabled = null; // Clear pending when updating from state
-                    OnPropertyChanged(nameof(MusicEnabled));
+                    // Marshal to UI thread to ensure PropertyChanged events are raised on the correct thread
+                    // This is important because OnStateChanged can be called from background threads
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        OnPropertyChanged(nameof(MusicEnabled));
+                    });
 
                     // If music was just enabled, update cache from state
                     // NOTE: Loading default music from DB is handled in MusicEnabled setter
@@ -391,7 +430,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 value,
                 currentValue,
                 isUpdatingFromState,
-                model,
                 initialMusicEnabledOnPageLoad,
                 (val) => pendingMusicEnabled = val,
                 (val) => ShouldScrollToBottom = val,

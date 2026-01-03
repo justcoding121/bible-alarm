@@ -33,10 +33,37 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 
         if (viewModel != null && propertyChangeHandler != null)
         {
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] Constructor - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}", 
+                viewModel.GetType().Name, propertyChangeHandler != null);
+#endif
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
             propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
             propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
             propertyChangeHandler.IsInitialLoad = true; // Mark as initial load
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] Constructor - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}", 
+                viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);
+#endif
+            
+            // Immediately process any pending property changes that might have occurred before subscription
+            // This ensures we don't miss property changes that were raised before the view subscribed
+            Dispatcher.Dispatch(() =>
+            {
+                if (viewModel != null && propertyChangeHandler != null)
+                {
+                    // Trigger property change handler to sync with current state
+                    var currentMusicEnabled = viewModel.MusicEnabled;
+                    if (currentMusicEnabled != propertyChangeHandler.LastMusicEnabledState)
+                    {
+#if DEBUG
+                        Log.Debug("[MusicSelectionContainer] Constructor - Syncing with current MusicEnabled state: {MusicEnabled}", currentMusicEnabled);
+#endif
+                        propertyChangeHandler.OnViewModelPropertyChanged(viewModel, new System.ComponentModel.PropertyChangedEventArgs(nameof(MusicSelectionContainerViewModel.MusicEnabled)), viewModel);
+                    }
+                }
+            });
+            
             // Don't set initial state here - wait for OnHandlerChanged when CollapsibleContent is ready
             // Mark initial load as complete after a short delay to allow any property changes to settle
             Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(500), () =>
@@ -79,34 +106,112 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     {
         base.OnBindingContextChanged();
 
+#if DEBUG
+        Log.Debug("[MusicSelectionContainer] OnBindingContextChanged called. Old ViewModel: {OldViewModel}, New BindingContext: {NewBindingContext}", 
+            viewModel?.GetType().Name ?? "null",
+            BindingContext?.GetType().Name ?? "null");
+#endif
+
         // Unsubscribe from old view model
         if (viewModel != null)
         {
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Unsubscribing from old ViewModel");
+#endif
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
 
         // Subscribe to new view model
-        viewModel = BindingContext as MusicSelectionContainerViewModel;
+        var newViewModel = BindingContext as MusicSelectionContainerViewModel;
+        
+        // Only reset isInitialLoad if this is actually a different ViewModel instance
+        var isNewViewModel = newViewModel != null && newViewModel != viewModel;
+        
+        viewModel = newViewModel;
+        
+        // Ensure helpers are initialized before subscribing
+        // This is important because InitializeHelpers requires CollapsibleContent to be non-null
+        // which might not be the case when OnBindingContextChanged is called early
+        if (propertyChangeHandler == null && CollapsibleContent != null)
+        {
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Initializing helpers (CollapsibleContent is ready)");
+#endif
+            InitializeHelpers();
+        }
+        
         if (viewModel != null && propertyChangeHandler != null)
         {
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}, IsNewViewModel: {IsNew}", 
+                viewModel.GetType().Name, propertyChangeHandler != null, isNewViewModel);
+#endif
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
             propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
-            propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
-            propertyChangeHandler.IsInitialLoad = true; // Mark as initial load
-            // Don't set initial state here - wait for OnHandlerChanged when CollapsibleContent is ready
-            // Mark initial load as complete after a short delay to allow any property changes to settle
-            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(500), () =>
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}", 
+                viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);
+#endif
+            
+            // Immediately process any pending property changes that might have occurred before subscription
+            // This ensures we don't miss property changes that were raised before the view subscribed
+            Dispatcher.Dispatch(() =>
             {
-                if (propertyChangeHandler != null)
+                if (viewModel != null && propertyChangeHandler != null)
                 {
-                    propertyChangeHandler.IsInitialLoad = false;
+                    // Trigger property change handler to sync with current state
+                    var currentMusicEnabled = viewModel.MusicEnabled;
+                    if (currentMusicEnabled != propertyChangeHandler.LastMusicEnabledState)
+                    {
+#if DEBUG
+                        Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Syncing with current MusicEnabled state: {MusicEnabled}", currentMusicEnabled);
+#endif
+                        propertyChangeHandler.OnViewModelPropertyChanged(viewModel, new System.ComponentModel.PropertyChangedEventArgs(nameof(MusicSelectionContainerViewModel.MusicEnabled)), viewModel);
+                    }
                 }
             });
+            
+            // Only reset isInitialLoad if this is a new ViewModel instance
+            // If it's the same ViewModel being reassigned, keep the current isInitialLoad state
+            if (isNewViewModel)
+            {
+                propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
+                propertyChangeHandler.IsInitialLoad = true; // Mark as initial load
+                // Don't set initial state here - wait for OnHandlerChanged when CollapsibleContent is ready
+                // Mark initial load as complete after a short delay to allow any property changes to settle
+                Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(500), () =>
+                {
+                    if (propertyChangeHandler != null)
+                    {
+                        propertyChangeHandler.IsInitialLoad = false;
+                    }
+                });
+            }
+        }
+        else
+        {
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Cannot subscribe. ViewModel: {HasViewModel}, Handler: {HasHandler}", 
+                viewModel != null, propertyChangeHandler != null);
+#endif
         }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+#if DEBUG
+        Log.Debug("[MusicSelectionContainer] OnViewModelPropertyChanged received: Property={PropertyName}, Sender type: {SenderType}, Handler: {HasHandler}, ViewModel: {HasViewModel}", 
+            e.PropertyName ?? "null",
+            sender?.GetType().Name ?? "null", 
+            propertyChangeHandler != null, 
+            viewModel != null);
+#endif
+        if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled))
+        {
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] OnViewModelPropertyChanged: MusicEnabled property changed. Calling handler.");
+#endif
+        }
         propertyChangeHandler?.OnViewModelPropertyChanged(sender, e, viewModel);
     }
 
@@ -115,7 +220,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     {
         base.OnHandlerChanged();
 
-        if (Handler == null || CollapsibleContent == null || viewModel == null)
+        if (Handler == null || CollapsibleContent == null)
         {
             return;
         }
@@ -129,6 +234,31 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         if (animationManager != null)
         {
             animationManager.CachedHeight = null;
+        }
+
+        // Ensure subscription happens when handler is ready
+        // This is important because OnBindingContextChanged might be called before CollapsibleContent is ready
+        if (viewModel == null)
+        {
+            viewModel = BindingContext as MusicSelectionContainerViewModel;
+        }
+        
+        if (viewModel != null && propertyChangeHandler != null)
+        {
+            // Check if we're already subscribed (avoid duplicate subscriptions)
+            // We can't easily check if an event handler is subscribed, so we'll just subscribe
+            // Event handlers can be safely subscribed multiple times, but we want to avoid it
+            // For now, we'll unsubscribe first to ensure clean subscription
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            
+#if DEBUG
+            Log.Debug("[MusicSelectionContainer] OnHandlerChanged - Ensured subscription. MusicEnabled: {MusicEnabled}, LastState: {LastState}", 
+                viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);
+#endif
+            
+            // Update last state to match current state
+            propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
         }
 
         // On initial load, ensure content visibility matches MusicEnabled state without animation

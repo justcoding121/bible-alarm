@@ -15,7 +15,7 @@
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="vm:ChaptersSelectionContainerViewModel"
+    x:DataType="vm:NumberOfChapterContainerViewModel"
     Padding="0"
     mc:Ignorable="d">
     <ContentPage.Resources>

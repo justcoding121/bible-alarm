@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.ViewModels.Schedule;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
@@ -17,7 +18,7 @@ public sealed class ScheduleContainerService : IScheduleContainerService
 
     public async Task InitializeContainersAsync(
         IServiceProvider serviceProvider,
-        Action<BibleSelectionContainerViewModel, MusicSelectionContainerViewModel, ChaptersSelectionContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady)
+        Action<BibleSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfChapterContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady)
     {
         try
         {
@@ -25,7 +26,7 @@ public sealed class ScheduleContainerService : IScheduleContainerService
             {
                 BibleSelection = serviceProvider.GetRequiredService<BibleSelectionContainerViewModel>(),
                 MusicSelection = serviceProvider.GetRequiredService<MusicSelectionContainerViewModel>(),
-                ChaptersSelection = serviceProvider.GetRequiredService<ChaptersSelectionContainerViewModel>(),
+                NumberOfChapter = serviceProvider.GetRequiredService<NumberOfChapterContainerViewModel>(),
                 ScheduleDetails = serviceProvider.GetRequiredService<ScheduleDetailsContainerViewModel>()
             });
 
@@ -34,7 +35,7 @@ public sealed class ScheduleContainerService : IScheduleContainerService
                 onContainersReady(
                     containers.BibleSelection,
                     containers.MusicSelection,
-                    containers.ChaptersSelection,
+                    containers.NumberOfChapter,
                     containers.ScheduleDetails);
             });
         }

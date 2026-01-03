@@ -11,6 +11,8 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
+using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
@@ -25,6 +27,8 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private DaysOfWeek daysOfWeek;
     private string name = string.Empty;
     private bool isEnabled;
+    private bool hasSignaledReady;
+    private int scheduleId;
 
     public ScheduleDetailsContainerViewModel(
         ILogger logger,
@@ -52,6 +56,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule != null)
         {
+            scheduleId = currentSchedule.Id;
             time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
             daysOfWeek = currentSchedule.DaysOfWeek;
             name = currentSchedule.Name;
@@ -59,12 +64,62 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
 
             // Batch property notifications to reduce UI thread work
             NotifyScheduleDetailsPropertiesChanged();
+            
+            // Signal that this container is ready (initialized from CurrentSchedule)
+            SignalContainerReady();
         }
+    }
+
+    private void SignalContainerReady()
+    {
+        if (hasSignaledReady) return;
+        hasSignaledReady = true;
+        
+        // Dispatch to state that this container is ready
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            dispatcher.Dispatch(new ContainerReadyAction("ScheduleDetails"));
+        });
     }
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        InitializeFromState();
+        var stateValue = state.Value;
+        var currentSchedule = stateValue.CurrentSchedule;
+        
+        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+        if (hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null)
+        {
+            logger.Debug("ScheduleDetailsContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
+            hasSignaledReady = false;
+            // Re-initialize and signal ready again
+            InitializeFromState();
+            return;
+        }
+        
+        // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
+        // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
+        if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+        {
+            InitializeFromState();
+            return;
+        }
+        
+        // Reset hasSignaledReady when schedule ID changes to a different positive ID (existing schedule opened)
+        if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
+        {
+            hasSignaledReady = false;
+            InitializeFromState();
+            return;
+        }
+        
+        // Only update properties if they changed (don't re-initialize)
+        if (currentSchedule != null && !hasSignaledReady)
+        {
+            // Handle case where InitializeFromState hasn't been called yet
+            InitializeFromState();
+        }
     }
 
     public ICommand ToggleDayCommand { get; private set; } = null!;

@@ -12,6 +12,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -22,7 +23,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDisposable
+public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
@@ -33,11 +34,12 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
     private int scheduleId;
     private bool notificationEnabled;
     private bool alwaysPlayFromStart;
+    private bool hasSignaledReady;
 
     private ObservableCollection<NumberOfChaptersListViewItemModel> numberOfChaptersList = new();
     private NumberOfChaptersListViewItemModel? currentNumberOfChapters;
 
-    public ChaptersSelectionContainerViewModel(
+    public NumberOfChapterContainerViewModel(
         ILogger logger,
         INavigationService navigationService,
         IServiceProvider serviceProvider,
@@ -131,14 +133,52 @@ public sealed class ChaptersSelectionContainerViewModel : ObservableObject, IDis
 
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
+            
+            // Signal that this container is ready (initialized from CurrentSchedule)
+            SignalContainerReady();
         }
+    }
+
+    private void SignalContainerReady()
+    {
+        if (hasSignaledReady) return;
+        hasSignaledReady = true;
+        
+        // Dispatch to state that this container is ready
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            dispatcher.Dispatch(new ContainerReadyAction("NumberOfChapter"));
+        });
     }
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule != null && currentSchedule.Id != scheduleId)
+        var stateValue = state.Value;
+        var currentSchedule = stateValue.CurrentSchedule;
+        
+        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+        if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfChapter && currentSchedule != null)
         {
+            logger.Debug("NumberOfChapterContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
+            hasSignaledReady = false;
+            // Re-initialize and signal ready again
+            InitializeFromState();
+            return;
+        }
+        
+        // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
+        // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
+        if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+        {
+            InitializeFromState();
+            return;
+        }
+        
+        // Initialize if schedule ID changed to a different positive ID (existing schedule opened)
+        if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
+        {
+            hasSignaledReady = false; // Reset for new schedule
             InitializeFromState();
         }
         else if (currentSchedule != null)

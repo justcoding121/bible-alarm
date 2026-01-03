@@ -11,6 +11,7 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -45,7 +46,6 @@ public class MusicEnabledHandler
         bool value,
         bool currentValue,
         bool isUpdatingFromState,
-        AlarmSchedule? model,
         bool? initialMusicEnabledOnPageLoad,
         Action<bool> setPendingMusicEnabled,
         Action<bool> setShouldScrollToBottom,
@@ -70,10 +70,6 @@ public class MusicEnabledHandler
         if (isUpdatingFromState)
         {
             logger.Debug("MusicEnabled setter: Update from state, skipping dispatch");
-            if (model != null)
-            {
-                model.MusicEnabled = value;
-            }
             setPendingMusicEnabled(false); // Clear pending when updating from state
             onPropertyChanged();
             return false;
@@ -83,13 +79,13 @@ public class MusicEnabledHandler
 
         // Set optimistic update value immediately
         setPendingMusicEnabled(value);
-        if (model != null)
-        {
-            model.MusicEnabled = value;
-        }
 
-        // Trigger PropertyChanged immediately to update UI
-        onPropertyChanged();
+        // Trigger PropertyChanged immediately to update UI (must be on UI thread for MAUI)
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            logger.Debug("MusicEnabled setter: Calling OnPropertyChanged on UI thread");
+            onPropertyChanged();
+        });
 
         // Signal to scroll to bottom when user enables music
         if (value && !currentValue)

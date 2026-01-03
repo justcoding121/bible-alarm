@@ -25,10 +25,34 @@ public sealed class SchedulePropertyManager : ObservableObject
     }
 
     // Container ViewModels
-    public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel { get; set; }
-    public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel { get; set; }
-    public ChaptersSelectionContainerViewModel? ChaptersSelectionContainerViewModel { get; set; }
-    public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel { get; set; }
+    private BibleSelectionContainerViewModel? bibleSelectionContainerViewModel;
+    private MusicSelectionContainerViewModel? musicSelectionContainerViewModel;
+    private NumberOfChapterContainerViewModel? numberOfChapterContainerViewModel;
+    private ScheduleDetailsContainerViewModel? scheduleDetailsContainerViewModel;
+
+    public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel
+    {
+        get => bibleSelectionContainerViewModel;
+        set => SetProperty(ref bibleSelectionContainerViewModel, value);
+    }
+
+    public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel
+    {
+        get => musicSelectionContainerViewModel;
+        set => SetProperty(ref musicSelectionContainerViewModel, value);
+    }
+
+    public NumberOfChapterContainerViewModel? NumberOfChapterContainerViewModel
+    {
+        get => numberOfChapterContainerViewModel;
+        set => SetProperty(ref numberOfChapterContainerViewModel, value);
+    }
+
+    public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel
+    {
+        get => scheduleDetailsContainerViewModel;
+        set => SetProperty(ref scheduleDetailsContainerViewModel, value);
+    }
 
     // Properties
     private bool isBusy;
