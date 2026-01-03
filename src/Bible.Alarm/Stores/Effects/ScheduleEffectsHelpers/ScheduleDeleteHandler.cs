@@ -48,6 +48,21 @@ public class ScheduleDeleteHandler
     {
         try
         {
+            Log.Information("ScheduleDeleteHandler: HandleAsync called - ScheduleId: {ScheduleId}, Action null: {IsNull}, Dispatcher null: {DispatcherNull}", 
+                action?.ScheduleId ?? -1, action == null, dispatcher == null);
+            
+            if (action == null)
+            {
+                Log.Error("ScheduleDeleteHandler: HandleAsync - Action is null!");
+                return;
+            }
+            
+            if (dispatcher == null)
+            {
+                Log.Error("ScheduleDeleteHandler: HandleAsync - Dispatcher is null!");
+                return;
+            }
+            
             Log.Information("ScheduleEffects: HandleDeleteSchedule - ScheduleId: {ScheduleId}", action.ScheduleId);
 
             if (alarmScheduleService == null)
@@ -57,11 +72,12 @@ public class ScheduleDeleteHandler
                 return;
             }
 
-            // Check if this is the last schedule - prevent deletion if it is
-            var allSchedules = await alarmScheduleService.GetAllSchedulesAsync(
-                includeMusic: false,
-                includeBibleReading: false,
-                CancellationToken.None);
+            // Check if this is the last schedule - prevent deletion if it is (on background thread)
+            var allSchedules = await Task.Run(async () => 
+                await alarmScheduleService.GetAllSchedulesAsync(
+                    includeMusic: false,
+                    includeBibleReading: false,
+                    CancellationToken.None));
 
             if (allSchedules.Count <= 1)
             {
@@ -69,22 +85,27 @@ public class ScheduleDeleteHandler
                 // Show toast message to user
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
 
-                // Load the schedule from DB to restore it in the reducer
+                // Load the schedule from DB to restore it in the reducer (on background thread)
                 ScheduleStateItem? scheduleToRestore = null;
                 try
                 {
-                    var scheduleFromDb = await alarmScheduleService.GetScheduleByIdAsync(
-                        action.ScheduleId,
-                        includeMusic: true,
-                        includeBibleReading: true,
-                        CancellationToken.None);
-
-                    if (scheduleFromDb != null)
+                    scheduleToRestore = await Task.Run(async () =>
                     {
-                        scheduleToRestore = mapper.Map<ScheduleStateItem>(scheduleFromDb);
-                        await displayNamePopulator.PopulateTranslationNameAsync(scheduleToRestore, scheduleFromDb);
-                        await displayNamePopulator.PopulateBookNameAsync(scheduleToRestore, scheduleFromDb);
-                    }
+                        var scheduleFromDb = await alarmScheduleService.GetScheduleByIdAsync(
+                            action.ScheduleId,
+                            includeMusic: true,
+                            includeBibleReading: true,
+                            CancellationToken.None);
+
+                        if (scheduleFromDb != null)
+                        {
+                            var mapped = mapper.Map<ScheduleStateItem>(scheduleFromDb);
+                            await displayNamePopulator.PopulateTranslationNameAsync(mapped, scheduleFromDb);
+                            await displayNamePopulator.PopulateBookNameAsync(mapped, scheduleFromDb);
+                            return mapped;
+                        }
+                        return null;
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -98,20 +119,21 @@ public class ScheduleDeleteHandler
             // Clear cache BEFORE delete to prevent stale cache if process crashes
             cacheManager.InvalidateScheduleCache();
 
-            // Delete cached media files for this schedule
+            // Delete cached media files for this schedule (on background thread)
             if (mediaCacheService != null)
             {
-                await mediaCacheService.DeleteScheduleCacheAsync(action.ScheduleId);
+                await Task.Run(async () => await mediaCacheService.DeleteScheduleCacheAsync(action.ScheduleId));
             }
 
-            // Delete alarm notification
+            // Delete alarm notification (on background thread)
             if (alarmService != null)
             {
                 await Task.Run(() => alarmService.Delete(action.ScheduleId));
             }
 
-            // Delete from database
-            await alarmScheduleService.DeleteScheduleAsync(action.ScheduleId, CancellationToken.None);
+            // Delete from database (on background thread)
+            await Task.Run(async () => 
+                await alarmScheduleService.DeleteScheduleAsync(action.ScheduleId, CancellationToken.None));
 
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Deleted from DB. ScheduleId: {ScheduleId}", action.ScheduleId);
 

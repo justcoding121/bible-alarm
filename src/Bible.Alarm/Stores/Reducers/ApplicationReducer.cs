@@ -57,17 +57,44 @@ public static class ApplicationReducer
 
         // Only update the Schedules collection if shouldSave is true (changes are being saved)
         // When shouldSave is false, only update CurrentSchedule to avoid triggering Android Auto updates
+        // IMPORTANT: Create new collection to maintain immutability
+        ObservableHashSet<ScheduleStateItem>? newSchedules = null;
         if (action.ShouldSave)
         {
-            var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
-            if (existingScheduleItem != null)
+            newSchedules = new ObservableHashSet<ScheduleStateItem>();
+            if (state.Schedules != null)
             {
-                DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(action.Schedule, existingScheduleItem);
-                UpdateScheduleInCollection(state.Schedules, existingScheduleItem, action.Schedule);
+                foreach (var scheduleItem in state.Schedules)
+                {
+                    if (scheduleItem.Id == action.Schedule.Id)
+                    {
+                        // Create new schedule item with updated properties (immutable update)
+                        DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(action.Schedule, scheduleItem);
+                        var updatedSchedule = action.Schedule.DeepClone();
+                        newSchedules.Add(updatedSchedule);
+                    }
+                    else
+                    {
+                        // Keep existing schedule unchanged
+                        newSchedules.Add(scheduleItem);
+                    }
+                }
             }
-            else
+
+            // If schedule not found in collection and has valid ID, add it
+            if (!newSchedules.Any(s => s.Id == action.Schedule.Id))
             {
-                state.Schedules.Add(action.Schedule.DeepClone());
+                // Only add to Schedules collection if the schedule has a valid ID (Id > 0)
+                // Unsaved schedules (Id=0) should not be in the Schedules collection
+                // They should only exist in CurrentSchedule until saved
+                if (action.Schedule.Id > 0)
+                {
+                    newSchedules.Add(action.Schedule.DeepClone());
+                }
+                else
+                {
+                    Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Skipping add to Schedules collection for unsaved schedule (Id=0). Schedule should only exist in CurrentSchedule until saved.");
+                }
             }
         }
         else
@@ -79,7 +106,22 @@ public static class ApplicationReducer
         var updatedCurrentBibleReadingSchedule = ScheduleStateSyncHelper.SyncBibleReadingScheduleIfNeeded(action, updatedCurrentSchedule);
         var updatedCurrentMusic = ScheduleStateSyncHelper.SyncMusicIfNeeded(action, updatedCurrentSchedule);
 
-        return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule, updatedCurrentMusic, updatedCurrentBibleReadingSchedule);
+        // Create new state with new Schedules collection if it was updated, otherwise use existing
+        if (newSchedules != null)
+        {
+            return new ApplicationState(
+                schedules: newSchedules,
+                currentSchedule: updatedCurrentSchedule,
+                currentMusic: updatedCurrentMusic,
+                currentBibleReadingSchedule: updatedCurrentBibleReadingSchedule,
+                isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+                isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+                containerReadiness: state.ContainerReadiness);
+        }
+        else
+        {
+            return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule, updatedCurrentMusic, updatedCurrentBibleReadingSchedule);
+        }
     }
 
     private static void LogUpdateStart(UpdateScheduleFromViewModelAction action)
@@ -92,13 +134,8 @@ public static class ApplicationReducer
             action.Schedule.BibleReadingPublicationName ?? "null");
     }
 
-    private static void UpdateScheduleInCollection(ObservableHashSet<ScheduleStateItem> schedules, ScheduleStateItem existingScheduleItem, ScheduleStateItem actionSchedule)
-    {
-        // Update the existing item in place to avoid Remove/Add sequence that causes Android Auto to remove the item
-        // Deep clone the source to ensure independence from CurrentSchedule
-        var sourceSchedule = actionSchedule.DeepClone();
-        SchedulePropertyCopier.CopyScheduleProperties(existingScheduleItem, sourceSchedule);
-    }
+    // REMOVED: UpdateScheduleInCollection - This method was mutating existing state objects.
+    // All state updates now create new instances to maintain immutability.
 
     /// <summary>
     /// Optimistic reducer: Handle DeleteScheduleAction - immediately remove from store for fast UI feedback.
@@ -107,6 +144,8 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
     {
+        Log.Information("ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}, Action null: {IsNull}", 
+            action?.ScheduleId ?? -1, action?.GetType().FullName ?? "null", action == null);
         return ScheduleCrudReducer.OnDeleteSchedule(state, action);
     }
 

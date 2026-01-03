@@ -27,6 +27,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IServiceScopeFactory scopeFactory;
+    private readonly IServiceProvider serviceProvider;
 
     private readonly IDatabaseSeedService databaseSeedService;
     private readonly IScheduleMigrationService scheduleMigrationService;
@@ -53,6 +54,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     public HomeViewModel(
         ILogger logger,
         IServiceScopeFactory scopeFactory,
+        IServiceProvider serviceProvider,
         Func<int, ScheduleListItemViewModel> scheduleListItemFactory,
         IState<ApplicationState> state,
         IState<PlaybackState> playbackState,
@@ -65,6 +67,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     {
         this.logger = logger;
         this.scopeFactory = scopeFactory;
+        this.serviceProvider = serviceProvider;
         this.scheduleListItemFactory = scheduleListItemFactory;
         this.state = state;
         this.playbackState = playbackState;
@@ -78,7 +81,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         // Initialize helper classes
         scheduleDataPreparer = new ScheduleDataPreparer(mapper);
         navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, state, playbackState, mapper);
-        scheduleViewModelManager = new ScheduleViewModelManager(logger, scopeFactory, navigationHelper.TrackPlayClick);
+        scheduleViewModelManager = new ScheduleViewModelManager(logger, serviceProvider, navigationHelper.TrackPlayClick);
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);
         propertyManager = new PropertyManager();

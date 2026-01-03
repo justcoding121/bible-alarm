@@ -299,9 +299,14 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
                     currentProgress);
 
                 progressResetForCurrentCascade = true;
-                var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
-                scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
-                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
+                // Run DeepClone and mapping on background thread to avoid blocking UI
+                _ = Task.Run(() =>
+                {
+                    var clonedSchedule = currentSchedule.DeepClone();
+                    var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
+                    scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
+                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
+                });
 
                 logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Dispatched UpdateScheduleFromViewModelAction to reset progress. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
                     changeInfo.CurrentLanguageCode ?? "null",

@@ -163,10 +163,14 @@ public sealed class MusicCommandInitializer
             logger.Debug("ToggleRepeatCommand: Toggling repeat from {OldValue} to {NewValue}",
                 currentSchedule.MusicRepeat ?? false, newRepeatValue);
 
-            // Update state
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
-            scheduleStateItem.MusicRepeat = newRepeatValue;
-            dispatcher.Dispatch(new Stores.Actions.Schedule.UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
+            // Update state - run DeepClone and mapping on background thread to avoid blocking UI
+            _ = Task.Run(() =>
+            {
+                var clonedSchedule = currentSchedule.DeepClone();
+                var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
+                scheduleStateItem.MusicRepeat = newRepeatValue;
+                dispatcher.Dispatch(new Stores.Actions.Schedule.UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
+            });
 
             // Show toast message when repeat is enabled, hide it when disabled
             if (newRepeatValue)

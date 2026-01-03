@@ -94,9 +94,14 @@ public class MusicEnabledHandler
         }
 
         // Update state (will clear pendingMusicEnabled when state updates)
-        var scheduleStateItem = mapper.Map<ScheduleStateItem>(currentSchedule.DeepClone());
-        scheduleStateItem.MusicEnabled = value;
-        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
+        // Run DeepClone and mapping on background thread to avoid blocking UI
+        _ = Task.Run(() =>
+        {
+            var clonedSchedule = currentSchedule.DeepClone();
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
+            scheduleStateItem.MusicEnabled = value;
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
+        });
 
         // If enabling music, only reset to default music if:
         // 1. Music was disabled when schedule page was first opened (initialMusicEnabledOnPageLoad == false)
@@ -139,7 +144,9 @@ public class MusicEnabledHandler
 
                             // Update state with default music properties (reset to default)
                             // IMPORTANT: Preserve MusicEnabled from the latest state
-                            var scheduleStateItem = mapper.Map<ScheduleStateItem>(latestSchedule.DeepClone());
+                            // Run DeepClone and mapping on background thread to avoid blocking UI
+                            var clonedSchedule = latestSchedule.DeepClone();
+                            var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
                             scheduleStateItem.MusicEnabled = true; // Ensure MusicEnabled is true when resetting
                             scheduleStateItem.MusicType = MusicType.Melodies;
                             scheduleStateItem.MusicPublicationCode = DefaultPublicationCode;

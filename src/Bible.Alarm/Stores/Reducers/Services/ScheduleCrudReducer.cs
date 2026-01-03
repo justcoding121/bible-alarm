@@ -82,12 +82,17 @@ public static class ScheduleCrudReducer
 
     public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
     {
+        Log.Information("ScheduleCrudReducer: OnDeleteSchedule called - ScheduleId: {ScheduleId}, State.Schedules is null: {IsNull}", 
+            action.ScheduleId, state.Schedules == null);
+        
         if (state.Schedules == null)
         {
+            Log.Warning("ScheduleCrudReducer: OnDeleteSchedule - State.Schedules is null, returning state unchanged");
             return state;
         }
 
-        Log.Information("ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}", action.ScheduleId);
+        Log.Information("ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}, Current schedule count: {Count}", 
+            action.ScheduleId, state.Schedules.Count);
 
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         foreach (var scheduleItem in state.Schedules)
@@ -233,25 +238,42 @@ public static class ScheduleCrudReducer
         Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}', MusicEnabled: {MusicEnabled}",
             action.Schedule.Id, action.Schedule.BibleReadingLanguageName ?? "null", action.Schedule.BibleReadingBookName ?? "null", action.Schedule.MusicEnabled);
 
-        var existingScheduleItem = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
-
-        if (existingScheduleItem != null)
+        // Create new Schedules collection to maintain immutability
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        ScheduleStateItem? updatedScheduleItem = null;
+        
+        if (state.Schedules != null)
         {
-            Log.Debug("ApplicationReducer: Existing item BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}', MusicEnabled: {MusicEnabled}",
-                existingScheduleItem.BibleReadingLanguageName ?? "null", existingScheduleItem.BibleReadingBookName ?? "null", existingScheduleItem.MusicEnabled);
-
-            // Update the existing item in place to avoid Remove/Add sequence that causes Android Auto to remove the item
-            var sourceSchedule = action.Schedule.DeepClone();
-            var oldMusicEnabled = existingScheduleItem.MusicEnabled;
-            SchedulePropertyCopier.CopyScheduleProperties(existingScheduleItem, sourceSchedule);
-
-            Log.Debug("ApplicationReducer: Updated schedule item in place - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
-                oldMusicEnabled, existingScheduleItem.MusicEnabled, existingScheduleItem.Name, action.Schedule.Name);
+            foreach (var scheduleItem in state.Schedules)
+            {
+                if (scheduleItem.Id == action.Schedule.Id)
+                {
+                    // Create new schedule item with updated properties (immutable update)
+                    var oldMusicEnabled = scheduleItem.MusicEnabled;
+                    var sourceSchedule = action.Schedule.DeepClone();
+                    updatedScheduleItem = sourceSchedule; // Use the cloned schedule directly
+                    
+                    Log.Debug("ApplicationReducer: Existing item BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingBookName: '{BibleReadingBookName}', MusicEnabled: {MusicEnabled}",
+                        scheduleItem.BibleReadingLanguageName ?? "null", scheduleItem.BibleReadingBookName ?? "null", scheduleItem.MusicEnabled);
+                    
+                    Log.Debug("ApplicationReducer: Updated schedule item (new instance) - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
+                        oldMusicEnabled, updatedScheduleItem.MusicEnabled, updatedScheduleItem.Name, action.Schedule.Name);
+                    
+                    newSchedules.Add(updatedScheduleItem);
+                }
+                else
+                {
+                    // Keep existing schedule unchanged
+                    newSchedules.Add(scheduleItem);
+                }
+            }
         }
-        else
+
+        if (updatedScheduleItem == null)
         {
             // Schedule not found, add it (shouldn't happen, but handle gracefully) - deep clone for independence
-            state.Schedules.Add(action.Schedule.DeepClone());
+            updatedScheduleItem = action.Schedule.DeepClone();
+            newSchedules.Add(updatedScheduleItem);
             Log.Debug("ApplicationReducer: Added new schedule item to state");
         }
 
@@ -259,16 +281,18 @@ public static class ScheduleCrudReducer
         ScheduleStateItem? updatedCurrentSchedule = state.CurrentSchedule;
         if (state.CurrentSchedule != null && state.CurrentSchedule.Id == action.Schedule.Id)
         {
-            // Use the updated item from the collection if it exists, but deep clone it
-            var updatedItemFromCollection = state.Schedules.FirstOrDefault(s => s.Id == action.Schedule.Id);
-            updatedCurrentSchedule = (updatedItemFromCollection ?? action.Schedule).DeepClone();
+            // Use the updated item from the new collection, but deep clone it for independence
+            updatedCurrentSchedule = updatedScheduleItem?.DeepClone() ?? action.Schedule.DeepClone();
         }
 
-        return StateFactory.CreateUpdatedState(
-            state,
-            updatedCurrentSchedule,
-            state.CurrentMusic,
-            state.CurrentBibleReadingSchedule);
+        return new ApplicationState(
+            schedules: newSchedules,
+            currentSchedule: updatedCurrentSchedule,
+            currentMusic: state.CurrentMusic,
+            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            containerReadiness: state.ContainerReadiness);
     }
 
     public static ApplicationState OnRemoveScheduleSuccess(ApplicationState state, RemoveScheduleSuccessAction action)

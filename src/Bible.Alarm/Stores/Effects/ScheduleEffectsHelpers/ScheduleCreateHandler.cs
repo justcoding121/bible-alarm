@@ -54,8 +54,8 @@ public class ScheduleCreateHandler
             // Clear cache BEFORE save to prevent stale cache if process crashes
             cacheManager.InvalidateScheduleCache();
 
-            // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule)
-            var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule);
+            // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule) on background thread
+            var dbSchedule = await Task.Run(() => mapper.Map<AlarmSchedule>(action.Schedule));
 
             Log.Debug("ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
                 dbSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
@@ -64,8 +64,9 @@ public class ScheduleCreateHandler
             // Set ID to 0 for new schedule (EF Core will generate it)
             dbSchedule.Id = 0;
 
-            // Save to database
-            var savedSchedule = await alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None);
+            // Save to database on background thread to avoid blocking UI
+            var savedSchedule = await Task.Run(async () => 
+                await alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None));
 
             Log.Debug("ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
                 savedSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
@@ -73,28 +74,33 @@ public class ScheduleCreateHandler
 
             Log.Information("ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}", savedSchedule.Id);
 
-            // Create alarm if enabled
+            // Create alarm if enabled (on background thread)
             if (savedSchedule.IsEnabled && alarmService != null)
             {
-                await alarmService.Create(savedSchedule);
+                await Task.Run(() => alarmService.Create(savedSchedule));
             }
 
-            // Map DB entity → domain model (ScheduleStateItem)
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
-
-            // IMPORTANT: Display names are already populated in action.Schedule (from CurrentSchedule state).
-            // Selection pages/containers populate display names when user selects items (via HandleChapterSelected/HandleTrackSelected effects).
-            // We should NOT query the database here - just preserve the display names from the action.
-            // Copy display names from action.Schedule to scheduleStateItem (which was mapped from savedSchedule, so it doesn't have display names)
-            if (action.Schedule != null)
+            // Map DB entity → domain model (ScheduleStateItem) on background thread
+            var scheduleStateItem = await Task.Run(() =>
             {
-                scheduleStateItem.BibleReadingLanguageName = action.Schedule.BibleReadingLanguageName;
-                scheduleStateItem.BibleReadingPublicationName = action.Schedule.BibleReadingPublicationName;
-                scheduleStateItem.BibleReadingBookName = action.Schedule.BibleReadingBookName;
-                scheduleStateItem.MusicLanguageName = action.Schedule.MusicLanguageName;
-                scheduleStateItem.MusicPublicationName = action.Schedule.MusicPublicationName;
-                scheduleStateItem.MusicTrackName = action.Schedule.MusicTrackName;
-            }
+                var mapped = mapper.Map<ScheduleStateItem>(savedSchedule);
+
+                // IMPORTANT: Display names are already populated in action.Schedule (from CurrentSchedule state).
+                // Selection pages/containers populate display names when user selects items (via HandleChapterSelected/HandleTrackSelected effects).
+                // We should NOT query the database here - just preserve the display names from the action.
+                // Copy display names from action.Schedule to scheduleStateItem (which was mapped from savedSchedule, so it doesn't have display names)
+                if (action.Schedule != null)
+                {
+                    mapped.BibleReadingLanguageName = action.Schedule.BibleReadingLanguageName;
+                    mapped.BibleReadingPublicationName = action.Schedule.BibleReadingPublicationName;
+                    mapped.BibleReadingBookName = action.Schedule.BibleReadingBookName;
+                    mapped.MusicLanguageName = action.Schedule.MusicLanguageName;
+                    mapped.MusicPublicationName = action.Schedule.MusicPublicationName;
+                    mapped.MusicTrackName = action.Schedule.MusicTrackName;
+                }
+
+                return mapped;
+            });
 
             // Dispatch success action with DTO (display names preserved from state)
             dispatcher.Dispatch(new CreateScheduleSuccessAction(scheduleStateItem));

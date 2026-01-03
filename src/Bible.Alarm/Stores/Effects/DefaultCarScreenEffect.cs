@@ -24,7 +24,9 @@ public class DefaultCarScreenEffect(
         {
             logger.Debug("SetCarPlayScreenAction received - fetching default schedule metadata");
 
-            var metadata = await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
+            // Fetch metadata on background thread to avoid blocking UI
+            var metadata = await Task.Run(async () => 
+                await defaultScheduleService.GetNextScheduleTrackMetaDataAsync());
 
             logger.Information("SetCarPlayScreenAction: Fetched default schedule metadata - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
                 metadata.ScheduleId, metadata.Title, metadata.Artist);

@@ -1,5 +1,6 @@
 #nullable enable
 using Bible;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -9,6 +10,7 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using System.Windows.Input;
 using IDispatcher = Fluxor.IDispatcher;
@@ -152,31 +154,4 @@ public sealed class ScheduleListItemCommandHandler(
         });
     }
 
-    /// <summary>
-    /// Creates the delete command.
-    /// </summary>
-    public ICommand CreateDeleteCommand(AlarmSchedule? schedule)
-    {
-        return new AsyncRelayCommand(async () =>
-        {
-            if (schedule == null || schedule.Id <= 0)
-            {
-                return;
-            }
-
-            // Check if this is the last schedule - prevent deletion if it is
-            var scheduleCount = applicationState.Value.Schedules?.Count ?? 0;
-            if (scheduleCount <= 1)
-            {
-                logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", schedule.Id);
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
-                return;
-            }
-
-            // Dispatch DeleteScheduleAction (following Fluxor best practices)
-            // The Effect will handle the actual DB deletion and dispatch success/failure actions
-            logger.Information("ScheduleListItem: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", schedule.Id);
-            dispatcher.Dispatch(new DeleteScheduleAction(schedule.Id));
-        });
-    }
 }

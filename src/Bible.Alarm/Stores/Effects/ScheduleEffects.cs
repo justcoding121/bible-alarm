@@ -173,7 +173,7 @@ public class ScheduleEffects(
             var savedSchedule = await updateProcessor.UpdateScheduleInDatabaseAsync(action);
             await updateProcessor.UpdateAlarmAsync(savedSchedule);
 
-            var scheduleStateItem = updateProcessor.MapAndPreserveDisplayNames(action, savedSchedule);
+            var scheduleStateItem = await updateProcessor.MapAndPreserveDisplayNames(action, savedSchedule);
             dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleStateItem));
 
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicType={MusicType}",
@@ -198,7 +198,31 @@ public class ScheduleEffects(
     [EffectMethod]
     public async Task HandleDeleteSchedule(DeleteScheduleAction action, IDispatcher dispatcher)
     {
-        await deleteHandler.HandleAsync(action, dispatcher);
+        try
+        {
+            Log.Information("ScheduleEffects: HandleDeleteSchedule Effect method called - ScheduleId: {ScheduleId}", action.ScheduleId);
+            
+            if (action == null)
+            {
+                Log.Error("ScheduleEffects: HandleDeleteSchedule - Action is null!");
+                return;
+            }
+            
+            if (dispatcher == null)
+            {
+                Log.Error("ScheduleEffects: HandleDeleteSchedule - Dispatcher is null!");
+                return;
+            }
+            
+            Log.Debug("ScheduleEffects: HandleDeleteSchedule - Calling deleteHandler.HandleAsync for ScheduleId: {ScheduleId}", action.ScheduleId);
+            await deleteHandler.HandleAsync(action, dispatcher);
+            Log.Debug("ScheduleEffects: HandleDeleteSchedule - deleteHandler.HandleAsync completed for ScheduleId: {ScheduleId}", action.ScheduleId);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: HandleDeleteSchedule - Exception occurred! ScheduleId: {ScheduleId}", action?.ScheduleId ?? -1);
+            throw; // Re-throw to ensure Fluxor sees the error
+        }
     }
 
     /// <summary>

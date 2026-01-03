@@ -12,6 +12,7 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -70,6 +71,28 @@ public sealed class ScheduleCommandExecutor
         logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
             IsNewSchedule(), GetScheduleId(), GetName());
 
+        // Show busy overlay immediately when save is clicked
+        // Dispatch state update first - this updates the state synchronously
+        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+        logger.Debug("SaveCommand: Showing busy overlay immediately");
+
+        // Ensure we're on the UI thread and wait for the state update to propagate to the UI
+        // This gives the UI time to render the overlay before starting the save operation
+        // The delay ensures:
+        // 1. Fluxor state update completes
+        // 2. ViewModel's OnStateChanged is called
+        // 3. PropertyChanged event is raised
+        // 4. Page's SyncOverlayWithState is called
+        // 5. Overlay IsVisible is set to true
+        // 6. UI renders the overlay
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            // Wait for state update to propagate and UI to render
+            // 300ms should be enough for the state update -> ViewModel -> Page -> UI rendering chain
+            await Task.Delay(300);
+            logger.Debug("SaveCommand: Overlay should now be visible, starting save operation");
+        });
+
         try
         {
             var currentSchedule = state.Value.CurrentSchedule;
@@ -103,10 +126,18 @@ public sealed class ScheduleCommandExecutor
                 var model = GetModel();
                 await scheduleCommandService.HandleSaveResultAsync(saved, scheduleId, GetIsEnabled(), model);
             }
+            else
+            {
+                // Hide overlay if currentSchedule is null
+                logger.Warning("SaveCommand: CurrentSchedule is null, hiding overlay");
+                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+            }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error executing save command");
+            // Hide overlay on error
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
         }
     }
 
@@ -121,8 +152,9 @@ public sealed class ScheduleCommandExecutor
             scheduleId,
             playbackState.Value.CurrentScheduleId ?? -1);
 
-        var scheduleCount = state.Value.Schedules?.Count ?? 0;
-        await scheduleCommandService.ExecuteDeleteAsync(isNewSchedule, scheduleId, scheduleCount);
+        // Only count saved schedules (Id > 0), not unsaved/new schedules
+        var savedScheduleCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
+        await scheduleCommandService.ExecuteDeleteAsync(isNewSchedule, scheduleId, savedScheduleCount);
     }
 
     // Helper methods for accessing state

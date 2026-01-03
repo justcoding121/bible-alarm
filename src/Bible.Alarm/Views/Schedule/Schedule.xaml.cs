@@ -146,6 +146,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         // Load content on UI thread (XAML parsing must be on UI thread)
         await this.Dispatcher.DispatchAsync(async () =>
         {
+            await Task.Delay(50);
             // Create the content view with all heavy XAML
             var scheduleContent = new ScheduleContent
             {

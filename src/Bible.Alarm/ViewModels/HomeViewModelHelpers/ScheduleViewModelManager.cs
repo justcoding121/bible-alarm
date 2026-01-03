@@ -15,17 +15,17 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 public class ScheduleViewModelManager
 {
     private readonly ILogger logger;
-    private readonly IServiceScopeFactory scopeFactory;
+    private readonly IServiceProvider serviceProvider;
     private readonly Dictionary<int, ScheduleListItemViewModel> scheduleViewModels = [];
     private readonly Action<int> trackPlayClick;
 
     public ScheduleViewModelManager(
         ILogger logger,
-        IServiceScopeFactory scopeFactory,
+        IServiceProvider serviceProvider,
         Action<int> trackPlayClick)
     {
         this.logger = logger;
-        this.scopeFactory = scopeFactory;
+        this.serviceProvider = serviceProvider;
         this.trackPlayClick = trackPlayClick;
     }
 
@@ -65,7 +65,7 @@ public class ScheduleViewModelManager
                 // New schedule - create new view model
                 logger.Debug("PrepareScheduleViewModels: Creating new ScheduleListItem for schedule {ScheduleId}", scheduleId);
 
-                var viewModel = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ScheduleListItemViewModel>();
+                var viewModel = serviceProvider.GetRequiredService<ScheduleListItemViewModel>();
                 viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
 
                 if (viewModel.Schedule == null)

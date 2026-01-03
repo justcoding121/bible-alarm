@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Text.Json;
+using System.Threading;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Microsoft.Maui.Storage;
 using Serilog;
@@ -16,6 +17,7 @@ public sealed class DiskCacheService : IDiskCacheService
     private const string CacheKeyPrefix = "DiskCache_";
     private readonly ILogger logger;
     private readonly JsonSerializerOptions jsonOptions;
+    private readonly SemaphoreSlim preferencesLock = new(1, 1);
 
     public DiskCacheService(ILogger logger)
     {
@@ -140,23 +142,44 @@ public sealed class DiskCacheService : IDiskCacheService
     /// <summary>
     /// Sets a value in the cache.
     /// </summary>
-    public Task SetAsync<T>(string key, T value, CancellationToken cancellationToken = default)
+    public async Task SetAsync<T>(string key, T value, CancellationToken cancellationToken = default)
     {
         var cacheKey = GetCacheKey(key);
 
+        // Serialize access to Preferences to prevent file locking issues
+        await preferencesLock.WaitAsync(cancellationToken);
         try
         {
             var json = JsonSerializer.Serialize(value, jsonOptions);
-            Preferences.Set(cacheKey, json);
-            logger.Debug("Cached value for key: {Key}", key);
+            
+            // Retry logic for Preferences.Set() which can throw IOException if file is locked
+            const int maxRetries = 5;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    Preferences.Set(cacheKey, json);
+                    logger.Debug("Cached value for key: {Key}", key);
+                    return;
+                }
+                catch (IOException ioEx) when (attempt < maxRetries)
+                {
+                    var delayMs = 100 * (int)Math.Pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms, 1600ms
+                    logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}", 
+                        attempt, maxRetries, delayMs, key);
+                    await Task.Delay(delayMs, cancellationToken);
+                }
+            }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error serializing and caching value for key: {Key}", key);
             throw;
         }
-
-        return Task.CompletedTask;
+        finally
+        {
+            preferencesLock.Release();
+        }
     }
 
     /// <summary>
@@ -166,6 +189,8 @@ public sealed class DiskCacheService : IDiskCacheService
     {
         var cacheKey = GetCacheKey(key);
 
+        // Serialize access to Preferences to prevent file locking issues
+        preferencesLock.Wait();
         try
         {
             if (Preferences.ContainsKey(cacheKey))
@@ -177,6 +202,10 @@ public sealed class DiskCacheService : IDiskCacheService
         catch (Exception ex)
         {
             logger.Warning(ex, "Error removing cache entry for key: {Key}", key);
+        }
+        finally
+        {
+            preferencesLock.Release();
         }
     }
 

@@ -98,7 +98,18 @@ public static class ServiceRegistrationHelper
         services.AddAutoMapper(typeof(ServiceRegistrationHelper).Assembly);
 
         // Register Fluxor
-        services.AddFluxor(options => options.ScanAssemblies(typeof(ServiceRegistrationHelper).Assembly));
+        services.AddFluxor(options =>
+        {
+            options.ScanAssemblies(typeof(ServiceRegistrationHelper).Assembly);
+#if DEBUG
+            // Enable Redux DevTools for debugging (optional, can help diagnose Effect registration issues)
+            // options.UseReduxDevTools();
+#endif
+        });
+        
+        // Explicitly register ScheduleEffects to ensure it's available for Effect discovery
+        // Note: Fluxor should auto-discover Effects, but explicit registration ensures DI can resolve it
+        services.AddScoped<Bible.Alarm.Stores.Effects.ScheduleEffects>();
 
         // Register logging
         services.AddSingleton(_ => Log.Logger);

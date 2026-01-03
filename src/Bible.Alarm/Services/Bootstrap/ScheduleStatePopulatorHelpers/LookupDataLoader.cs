@@ -74,7 +74,9 @@ internal sealed class LookupDataLoader
         {
             try
             {
-                var releases = await mediaService?.GetVocalMusicReleases(group.Key);
+                var releases = mediaService != null
+                    ? await mediaService.GetVocalMusicReleases(group.Key)
+                    : null;
                 return (LanguageCode: group.Key, Releases: releases ?? new Dictionary<string, VocalMusic>());
             }
             catch (Exception ex)
@@ -88,7 +90,9 @@ internal sealed class LookupDataLoader
         {
             try
             {
-                var tracks = await mediaService?.GetVocalMusicTracks(key.LanguageCode, key.PublicationCode);
+                var tracks = mediaService != null
+                    ? await mediaService.GetVocalMusicTracks(key.LanguageCode, key.PublicationCode)
+                    : null;
                 return (Key: key, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
             }
             catch (Exception ex)
@@ -103,7 +107,9 @@ internal sealed class LookupDataLoader
         {
             try
             {
-                var tracks = await mediaService?.GetMelodyMusicTracks(pubCode);
+                var tracks = mediaService != null
+                    ? await mediaService.GetMelodyMusicTracks(pubCode)
+                    : null;
                 return (PublicationCode: pubCode, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
             }
             catch (Exception ex)

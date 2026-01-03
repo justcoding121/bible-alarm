@@ -20,12 +20,30 @@ public sealed class SchedulerService(
 
     private static readonly SemaphoreSlim @lock = new(1);
 
+    // Increased timeout from 1000ms to 10000ms to allow for bootstrap operations
+    private const int LockTimeoutMs = 10000;
+
     public async Task ProcessScheduledTasksAsync() => await HandleAsync();
 
     public async Task<bool> HandleAsync()
     {
         try
         {
+            // Wait for bootstrap to complete before attempting scheduler operations
+            // This prevents lock timeouts when bootstrap is still running database operations
+            if (!BootstrapHelper.IsBootstrapCompleted())
+            {
+                logger.Debug("Bootstrap not completed yet, waiting for bootstrap before running scheduler");
+                try
+                {
+                    await BootstrapHelper.WaitForBootstrapAsync(timeoutMs: 30000);
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Failed to wait for bootstrap completion, proceeding with scheduler anyway");
+                }
+            }
+
             var downloaded = await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 try
@@ -53,11 +71,11 @@ public sealed class SchedulerService(
                 }
 
                 return downloaded;
-            }, timeoutMs: 1000);
+            }, timeoutMs: LockTimeoutMs);
 
             if (!downloaded)
             {
-                logger.Warning("Failed to acquire lock for scheduler task (timeout). Db directory: {CacheRoot}", storageService.CacheRoot);
+                logger.Warning("Failed to acquire lock for scheduler task (timeout after {TimeoutMs}ms). Db directory: {CacheRoot}", LockTimeoutMs, storageService.CacheRoot);
                 return false;
             }
 

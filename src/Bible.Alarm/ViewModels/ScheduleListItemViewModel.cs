@@ -1,15 +1,18 @@
 #nullable enable
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -160,7 +163,26 @@ public sealed class ScheduleListItemViewModel(
         // Recreate commands with updated schedule to ensure they use the latest chapter information
         PreviousCommand = commandHandler.CreatePreviousCommand(Schedule);
         NextCommand = commandHandler.CreateNextCommand(Schedule);
-        DeleteCommand = commandHandler.CreateDeleteCommand(Schedule);
+
+        DeleteCommand = new AsyncRelayCommand(async () =>
+        {
+            if (Schedule == null || Schedule.Id <= 0)
+            {
+                return;
+            }
+
+            // Check if this is the last schedule - prevent deletion if it is
+            var scheduleCount = applicationState.Value.Schedules?.Count ?? 0;
+            if (scheduleCount <= 1)
+            {
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
+                return;
+            }
+
+            // Dispatch DeleteScheduleAction (following Fluxor best practices)
+            // The Effect will handle the actual DB deletion and dispatch success/failure actions
+            dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
+        });
 
         // Initialize subtitle and language from state (BookName is pre-populated during bootstrap)
         // Use the provided scheduleStateItem if available to avoid re-looking it up

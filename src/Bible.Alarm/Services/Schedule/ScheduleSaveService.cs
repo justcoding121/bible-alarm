@@ -44,7 +44,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         EnsureDefaultPublicationCode(model);
 
         // If music was updated, ensure model.Music has the correct music type from state
-        if (musicUpdated)
+        if (musicUpdated && currentSchedule != null)
         {
             logger.Information("PrepareModelForSave: musicUpdated=true, updating model.Music from state");
             if (currentSchedule.MusicType.HasValue &&
@@ -99,7 +99,10 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         ClearUnchangedMusic(model, isNewSchedule, musicUpdated);
 
         // Ensure MusicEnabled is set from CurrentSchedule state
-        model.MusicEnabled = currentSchedule.MusicEnabled;
+        if (currentSchedule != null)
+        {
+            model.MusicEnabled = currentSchedule.MusicEnabled;
+        }
         logger.Information("PrepareModelForSave: Set model.MusicEnabled={MusicEnabled} from CurrentSchedule state",
             model.MusicEnabled);
 

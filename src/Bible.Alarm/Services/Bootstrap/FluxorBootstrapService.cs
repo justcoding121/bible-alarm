@@ -43,6 +43,25 @@ public class FluxorBootstrapService : IFluxorBootstrapService
 
         // Set the static store reference
         ReduxContainer.Store = store;
+        
+        // Log registered effects for debugging
+        try
+        {
+            // Try to verify ScheduleEffects is registered
+            var scheduleEffects = ServiceProviderManager.GetService<Bible.Alarm.Stores.Effects.ScheduleEffects>();
+            if (scheduleEffects != null)
+            {
+                Log.Logger.Debug("Fluxor: ScheduleEffects is registered in DI container");
+            }
+            else
+            {
+                Log.Logger.Warning("Fluxor: ScheduleEffects is NOT registered in DI container!");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Could not verify ScheduleEffects registration");
+        }
 
 #if DEBUG
         var fluxorElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - fluxorStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;

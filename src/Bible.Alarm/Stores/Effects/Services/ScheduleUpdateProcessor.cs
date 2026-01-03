@@ -55,11 +55,15 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public async Task<AlarmSchedule> UpdateScheduleInDatabaseAsync(UpdateScheduleFromViewModelAction action)
     {
-        var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule!);
-        var savedSchedule = await alarmScheduleService!.UpdateScheduleByIdAsync(
-            action.Schedule.Id,
-            existing => ScheduleEntityUpdater.UpdateScheduleEntity(existing, dbSchedule, action),
-            CancellationToken.None);
+        // Map and run database update on background thread to avoid blocking UI
+        var savedSchedule = await Task.Run(async () =>
+        {
+            var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule!);
+            return await alarmScheduleService!.UpdateScheduleByIdAsync(
+                action.Schedule.Id,
+                existing => ScheduleEntityUpdater.UpdateScheduleEntity(existing, dbSchedule, action),
+                CancellationToken.None);
+        });
 
         LogScheduleUpdateResult(savedSchedule);
         return savedSchedule;
@@ -92,19 +96,23 @@ public sealed class ScheduleUpdateProcessor
 
     /// <summary>
     /// Maps saved schedule to state item and preserves display names from action.
+    /// Runs on background thread to avoid blocking UI.
     /// </summary>
-    public ScheduleStateItem MapAndPreserveDisplayNames(UpdateScheduleFromViewModelAction action, AlarmSchedule savedSchedule)
+    public async Task<ScheduleStateItem> MapAndPreserveDisplayNames(UpdateScheduleFromViewModelAction action, AlarmSchedule savedSchedule)
     {
-        var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
-        LogMappingResult(scheduleStateItem);
-
-        if (action.Schedule != null)
+        return await Task.Run(() =>
         {
-            CopyDisplayNamesFromAction(scheduleStateItem, action.Schedule);
-            PreserveMusicPropertiesIfNeeded(scheduleStateItem, action.Schedule);
-        }
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
+            LogMappingResult(scheduleStateItem);
 
-        return scheduleStateItem;
+            if (action.Schedule != null)
+            {
+                CopyDisplayNamesFromAction(scheduleStateItem, action.Schedule);
+                PreserveMusicPropertiesIfNeeded(scheduleStateItem, action.Schedule);
+            }
+
+            return scheduleStateItem;
+        });
     }
 
     /// <summary>

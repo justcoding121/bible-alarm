@@ -169,6 +169,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             // Sync overlay visibility with state
             propertyManager.IsSchedulePageOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
             
+            // Update IsNewSchedule based on CurrentSchedule ID
+            // This determines if the delete button should be visible
+            var currentSchedule = stateValue.CurrentSchedule;
+            var isNew = currentSchedule == null || currentSchedule.Id <= 0;
+            if (propertyManager.IsNewSchedule != isNew)
+            {
+                propertyManager.IsNewSchedule = isNew;
+            }
+            
             // Notify UI of property changes when CurrentSchedule changes
             // Note: NotifySchedulePropertiesChanged also marshals to UI thread, but since we're already
             // on UI thread here, it will execute immediately (MainThread.BeginInvokeOnMainThread checks
