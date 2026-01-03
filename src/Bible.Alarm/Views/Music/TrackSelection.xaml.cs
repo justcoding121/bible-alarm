@@ -15,7 +15,7 @@ public partial class TrackSelection : BaseContentPage, IDisposable
     private readonly TrackSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public TrackSelectionViewModel ViewModel => BindingContext as TrackSelectionViewModel;
+    public TrackSelectionViewModel? ViewModel => BindingContext as TrackSelectionViewModel;
 
 
     public TrackSelection(TrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
@@ -30,7 +30,7 @@ public partial class TrackSelection : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 

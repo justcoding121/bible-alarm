@@ -65,9 +65,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.diskCacheService = diskCacheService;
         bibleTrackBuilder = new PlaylistBibleTrackBuilder(logger, mediaService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService);
-        trackChangeDetector = new TrackChangeDetector(logger, alarmScheduleService, cancellationTokenSource.Token);
-        chapterNavigator = new ChapterNavigator(logger, mediaService);
-        scheduleUpdater = new ScheduleUpdater(logger, alarmScheduleService, cancellationTokenSource.Token);
+        trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
+        chapterNavigator = new ChapterNavigator(mediaService);
+        scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
     }
 
     public async Task<int> GetRelevantScheduleToPlay()

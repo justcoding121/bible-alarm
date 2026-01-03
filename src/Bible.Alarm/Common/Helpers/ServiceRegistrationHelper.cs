@@ -95,7 +95,7 @@ public static class ServiceRegistrationHelper
     private static void RegisterCommonServices(IServiceCollection services)
     {
         // Register AutoMapper
-        services.AddAutoMapper(typeof(ServiceRegistrationHelper).Assembly);
+        services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ServiceRegistrationHelper).Assembly));
 
         // Register Fluxor
         services.AddFluxor(options =>

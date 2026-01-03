@@ -12,7 +12,7 @@ namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
 /// <summary>
 /// Handles data population for SongBookSelectionViewModel.
 /// </summary>
-public sealed class SongBookSelectionDataProvider(ILogger logger, IMediaService mediaService)
+public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
 {
     private readonly Dictionary<string, PublicationListViewItemModel> songBookVMsMapping = [];
 

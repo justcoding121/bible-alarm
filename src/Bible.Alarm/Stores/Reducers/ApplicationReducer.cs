@@ -144,8 +144,12 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
     {
-        Log.Information("ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}, Action null: {IsNull}", 
-            action?.ScheduleId ?? -1, action?.GetType().FullName ?? "null", action == null);
+        if (action == null)
+        {
+            return state;
+        }
+        Log.Information("ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}", 
+            action.ScheduleId, action.GetType().FullName);
         return ScheduleCrudReducer.OnDeleteSchedule(state, action);
     }
 

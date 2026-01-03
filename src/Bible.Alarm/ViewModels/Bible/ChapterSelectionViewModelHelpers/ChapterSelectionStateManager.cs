@@ -11,7 +11,7 @@ namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
 /// <summary>
 /// Handles state management and initialization for ChapterSelectionViewModel.
 /// </summary>
-public sealed class ChapterSelectionStateManager(ILogger logger, IMapper mapper)
+public sealed class ChapterSelectionStateManager(IMapper mapper)
 {
     private BibleReadingSchedule? current;
     private BibleReadingSchedule? lastCurrent;

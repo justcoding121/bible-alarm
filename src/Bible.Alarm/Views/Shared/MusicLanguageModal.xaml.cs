@@ -16,7 +16,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public IListViewModel ViewModel => BindingContext as IListViewModel;
+    public IListViewModel? ViewModel => BindingContext as IListViewModel;
 
     public MusicLanguageModal()
     {
@@ -43,7 +43,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 

@@ -15,7 +15,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
     private readonly MusicSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public MusicSelectionViewModel ViewModel => BindingContext as MusicSelectionViewModel;
+    public MusicSelectionViewModel? ViewModel => BindingContext as MusicSelectionViewModel;
 
     public MusicSelection(MusicSelectionViewModel viewModel)
     {
@@ -27,7 +27,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 

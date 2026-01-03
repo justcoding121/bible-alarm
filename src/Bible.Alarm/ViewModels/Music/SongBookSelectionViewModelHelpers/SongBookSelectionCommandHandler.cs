@@ -19,12 +19,9 @@ namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
 /// Handles command execution for SongBookSelectionViewModel.
 /// </summary>
 public sealed class SongBookSelectionCommandHandler(
-    ILogger logger,
-    IMediaService mediaService,
     INavigationService navigationService,
     IState<ApplicationState> state,
-    IDispatcher dispatcher,
-    IMapper mapper)
+    IDispatcher dispatcher)
 {
     public async Task HandleTrackSelectionAsync(
         PublicationListViewItemModel songBook,

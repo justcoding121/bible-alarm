@@ -49,8 +49,8 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         this.mapper = mapper;
 
         // Initialize helper classes
-        stateManager = new ChapterSelectionStateManager(logger, mapper);
-        dataProvider = new ChapterSelectionDataProvider(logger, mediaService);
+        stateManager = new ChapterSelectionStateManager(mapper);
+        dataProvider = new ChapterSelectionDataProvider(mediaService);
         commandHandler = new ChapterSelectionCommandHandler(logger, state, dispatcher, navigationService);
         propertyManager = new ChapterSelectionPropertyManager();
 

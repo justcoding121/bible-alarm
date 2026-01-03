@@ -101,11 +101,11 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
             logger,
             (s) => ArtworkSource = s,
             (l) => IsArtworkLoading = l,
-            () => artworkBytes = null);
+            () => { });
 
         // Initialize new helper classes
         artworkManager = new ArtworkManager(logger);
-        positionManager = new PositionManager(logger);
+        positionManager = new PositionManager();
         messageHandler = new MessageHandler(positionManager);
 
         // Subscribe to Fluxor state changes for reactive updates
@@ -192,14 +192,10 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
     private ImageSource? artworkSource;
     private bool isArtworkLoading;
-    // Keep bytes in memory for stream-based images
-    private byte[]? artworkBytes;
-    // Track last artwork URL to avoid unnecessary updates
-    private string? lastArtworkUrl;
 
     public ImageSource? ArtworkSource
     {
-        get => artworkManager.ArtworkSource;
+        get => artworkSource;
         private set
         {
             if (SetProperty(ref artworkSource, value))
@@ -213,7 +209,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
     public bool IsArtworkLoading
     {
-        get => artworkManager.IsArtworkLoading;
+        get => isArtworkLoading;
         private set
         {
             if (SetProperty(ref isArtworkLoading, value))

@@ -33,6 +33,10 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
 
     public async Task<ScheduleStateItem> InitializeNewScheduleAsync()
     {
+        if (bibleTranslationService == null || melodyMusicService == null)
+        {
+            throw new InvalidOperationException("Required services are not initialized");
+        }
         var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, bibleTranslationService, melodyMusicService);
 
         // Map sample schedule to state item

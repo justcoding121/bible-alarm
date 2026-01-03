@@ -48,9 +48,9 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         this.mapper = mapper;
 
         // Initialize helper classes
-        stateManager = new SongBookSelectionStateManager(logger, mapper);
-        dataProvider = new SongBookSelectionDataProvider(logger, mediaService);
-        commandHandler = new SongBookSelectionCommandHandler(logger, mediaService, navigationService, state, dispatcher, mapper);
+        stateManager = new SongBookSelectionStateManager(mapper);
+        dataProvider = new SongBookSelectionDataProvider(mediaService);
+        commandHandler = new SongBookSelectionCommandHandler(navigationService, state, dispatcher);
         propertyManager = new SongBookSelectionPropertyManager();
 
         state.StateChanged += OnMusicInitialized;
@@ -65,11 +65,14 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
         TrackSelectionCommand = new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
-            await commandHandler.HandleTrackSelectionAsync(
-                x,
-                propertyManager.CurrentLanguage,
-                dataProvider,
-                stateManager.Current);
+            if (x != null)
+            {
+                await commandHandler.HandleTrackSelectionAsync(
+                    x,
+                    propertyManager.CurrentLanguage,
+                    dataProvider,
+                    stateManager.Current);
+            }
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
@@ -115,11 +118,14 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
         {
-            await commandHandler.HandleLanguageSelectionAsync(
-                x,
-                dataProvider,
-                lang => propertyManager.CurrentLanguage = lang,
-                UpdateSelectedLanguage);
+            if (x != null)
+            {
+                await commandHandler.HandleLanguageSelectionAsync(
+                    x,
+                    dataProvider,
+                    lang => propertyManager.CurrentLanguage = lang,
+                    UpdateSelectedLanguage);
+            }
         });
     }
 

@@ -12,7 +12,7 @@ namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
 /// <summary>
 /// Handles state management and initialization for SongBookSelectionViewModel.
 /// </summary>
-public sealed class SongBookSelectionStateManager(ILogger logger, IMapper mapper)
+public sealed class SongBookSelectionStateManager(IMapper mapper)
 {
     private AlarmMusic? current;
     private AlarmMusic? lastCurrent;

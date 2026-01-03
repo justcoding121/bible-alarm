@@ -17,7 +17,6 @@ namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 /// Handles marking tracks as played or finished.
 /// </summary>
 public sealed class TrackMarker(
-    ILogger logger,
     IAlarmScheduleService alarmScheduleService,
     IDiskCacheService? diskCacheService,
     IDispatcher dispatcher,

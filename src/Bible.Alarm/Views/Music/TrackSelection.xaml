@@ -21,16 +21,6 @@
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:RepeatColorConverter x:Key="repeatColorConverter" />
         <!-- Theme-aware colors are inherited from BaseContentPage -->
-        
-        <!-- Style for selected/unselected item background using DynamicResource -->
-        <Style x:Key="TrackItemBorderStyle" TargetType="Border">
-            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
-            <Style.Triggers>
-                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid BackgroundColor="{DynamicResource BackgroundColor}">
@@ -48,6 +38,17 @@
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Tracks}"
                     SelectionMode="None">
+                    <CollectionView.Resources>
+                        <!-- Style for selected/unselected item background using DynamicResource -->
+                        <Style x:Key="TrackItemBorderStyle" TargetType="Border">
+                            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
+                            <Style.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </CollectionView.Resources>
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
                             <LinearItemsLayout.ItemSpacing>

@@ -36,7 +36,6 @@ public class AlarmViewModalStateUpdater
     private string? previousTrackArtist;
     private string? previousTrackAlbum;
     private string? previousArtworkUrl;
-    private string? lastArtworkUrl;
 
     public AlarmViewModalStateUpdater(
         ILogger logger,
@@ -140,10 +139,6 @@ public class AlarmViewModalStateUpdater
         if (shouldForceUpdate)
         {
             previousArtworkUrl = artworkUrl;
-            if (trackChanged)
-            {
-                lastArtworkUrl = null;
-            }
             updateArtwork(artworkUrl);
         }
     }

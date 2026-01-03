@@ -16,8 +16,6 @@ public class AlarmViewModelArtworkHandler
     private readonly Action clearArtworkBytes;
 
     private string? lastArtworkUrl;
-    private ImageSource? artworkSource;
-    private byte[]? artworkBytes;
 
     public AlarmViewModelArtworkHandler(
         ILogger logger,
@@ -44,15 +42,12 @@ public class AlarmViewModelArtworkHandler
 
         if (string.IsNullOrEmpty(artworkUrl))
         {
-            if (artworkSource != null)
-            {
-                clearArtwork();
-            }
+            clearArtwork();
             return;
         }
 
         // Only clear existing artwork if we're switching to a different artwork
-        if (artworkSource != null && !string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
+        if (!string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
         {
             clearArtwork();
         }

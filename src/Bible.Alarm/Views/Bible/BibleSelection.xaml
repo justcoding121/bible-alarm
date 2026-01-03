@@ -20,16 +20,6 @@
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <!-- Theme-aware colors are inherited from BaseContentPage -->
-        
-        <!-- Style for selected/unselected item background using DynamicResource -->
-        <Style x:Key="TranslationItemBorderStyle" TargetType="Border">
-            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
-            <Style.Triggers>
-                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid x:Name="MainContentGrid" BackgroundColor="{DynamicResource BackgroundColor}">
@@ -56,6 +46,17 @@
                             </LinearItemsLayout.ItemSpacing>
                         </LinearItemsLayout>
                     </CollectionView.ItemsLayout>
+                    <CollectionView.Resources>
+                        <!-- Style for selected/unselected item background using DynamicResource -->
+                        <Style x:Key="TranslationItemBorderStyle" TargetType="Border">
+                            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
+                            <Style.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </CollectionView.Resources>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="shared:PublicationListViewItemModel">
                             <Grid Margin="16,0">

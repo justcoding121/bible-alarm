@@ -4,6 +4,7 @@ using Android.Support.V4.Media.Session;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Models;
 using Serilog;
 

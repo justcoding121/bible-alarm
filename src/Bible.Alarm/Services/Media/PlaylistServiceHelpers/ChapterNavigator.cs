@@ -9,7 +9,7 @@ namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 /// <summary>
 /// Handles Bible chapter and book navigation.
 /// </summary>
-public sealed class ChapterNavigator(ILogger logger, IMediaService mediaService)
+public sealed class ChapterNavigator(IMediaService mediaService)
 {
     /// <summary>
     /// Gets the next Bible chapter.

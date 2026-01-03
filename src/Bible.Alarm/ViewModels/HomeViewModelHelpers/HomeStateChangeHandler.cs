@@ -30,7 +30,6 @@ public class HomeStateChangeHandler
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
     private Dictionary<int, (int? BookNumber, int? ChapterNumber, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek)>? lastProcessedScheduleProperties;
-    private bool shouldShowProgressBar = true;
 
     public HomeStateChangeHandler(
         ILogger logger,
@@ -103,7 +102,6 @@ public class HomeStateChangeHandler
             // If we had schedules but now don't (cleared), reset progress bar flag
             if (hadSchedules && (stateValue.Schedules == null || stateValue.Schedules.Count == 0))
             {
-                shouldShowProgressBar = true;
                 setIsBusy(true);
                 updateProgressBarVisibility();
             }
@@ -126,7 +124,6 @@ public class HomeStateChangeHandler
             if (schedulesToRemove.Count > 0 && previousScheduleCount > currentScheduleCount)
             {
                 logger.Debug("OnStateChanged: Delete detected - showing progress bar. Removing {Count} schedules", schedulesToRemove.Count);
-                shouldShowProgressBar = true;
                 setIsBusy(true);
                 updateProgressBarVisibility();
             }

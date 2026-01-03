@@ -1,6 +1,9 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Audio;
+#if IOS
+using Bible.Alarm.Platforms.iOS.Helpers;
+#endif
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Essentials;

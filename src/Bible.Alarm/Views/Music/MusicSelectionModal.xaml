@@ -14,15 +14,6 @@
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
-        
-        <Style x:Key="MusicTypeItemBorderStyle" TargetType="Border">
-            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
-            <Style.Triggers>
-                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
@@ -71,6 +62,17 @@
                 HorizontalOptions="Fill"
                 ItemsSource="{Binding MusicTypes}"
                 SelectionMode="None">
+                <CollectionView.Resources>
+                    <!-- Style for selected/unselected item background using DynamicResource -->
+                    <Style x:Key="MusicTypeItemBorderStyle" TargetType="Border">
+                        <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
+                        <Style.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </CollectionView.Resources>
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
                         <LinearItemsLayout.ItemSpacing>

@@ -38,11 +38,6 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private readonly IServiceProvider serviceProvider;
-    private readonly IScheduleInitializationService scheduleInitializationService;
-    private readonly IScheduleCommandService scheduleCommandService;
-    private readonly IScheduleMediaCacheService scheduleMediaCacheService;
-    private readonly IScheduleContainerService scheduleContainerService;
-    private readonly ScheduleStateChangeHandler scheduleStateChangeHandler;
 
     // Helper classes
     private readonly ScheduleStateManager stateManager;

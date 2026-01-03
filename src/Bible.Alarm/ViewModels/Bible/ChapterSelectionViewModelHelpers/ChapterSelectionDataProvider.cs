@@ -10,7 +10,7 @@ namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
 /// <summary>
 /// Handles data population for ChapterSelectionViewModel.
 /// </summary>
-public sealed class ChapterSelectionDataProvider(ILogger logger, IMediaService mediaService)
+public sealed class ChapterSelectionDataProvider(IMediaService mediaService)
 {
     public async Task PopulateChapters(
         string languageCode,

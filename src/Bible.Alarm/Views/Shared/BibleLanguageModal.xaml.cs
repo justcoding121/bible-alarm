@@ -16,7 +16,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public IListViewModel ViewModel => BindingContext as IListViewModel;
+    public IListViewModel? ViewModel => BindingContext as IListViewModel;
 
     public BibleLanguageModal()
     {
@@ -26,7 +26,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 

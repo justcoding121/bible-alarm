@@ -12,6 +12,7 @@ using AndroidX.Core.Content;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;

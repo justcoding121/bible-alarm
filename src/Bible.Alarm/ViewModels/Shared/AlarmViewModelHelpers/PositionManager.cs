@@ -8,7 +8,7 @@ namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 /// <summary>
 /// Handles position updates and progress calculations for the alarm modal.
 /// </summary>
-public sealed class PositionManager(ILogger logger)
+public sealed class PositionManager()
 {
     private DateTime lastProgressUpdate = DateTime.MinValue;
     private const int ProgressUpdateThrottleMs = 100; // Throttle to max 10 updates per second

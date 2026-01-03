@@ -62,22 +62,22 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
 		<!-- Note: Microsoft.EntityFrameworkCore.Design is NOT needed here - it's in .tools/Bible.Alarm.DbMigration -->
 		<!-- Design tools are only needed for creating migrations, which is done via the DbMigration project -->
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.20" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
-		<PackageReference Include="AutoMapper" Version="13.0.1" />
+		<PackageReference Include="AutoMapper" Version="16.0.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Fluxor" Version="6.9.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
 		<PackageReference Include="Polly" Version="8.6.5" />
 		<PackageReference Include="Quartz" Version="3.15.1" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-		<PackageReference Include="Syncfusion.Maui.Core" Version="31.2.15" />
-		<PackageReference Include="Syncfusion.Maui.Buttons" Version="31.2.15" />
+		<PackageReference Include="Syncfusion.Maui.Core" Version="32.1.21" />
+		<PackageReference Include="Syncfusion.Maui.Buttons" Version="32.1.21" />
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 
@@ -89,10 +89,7 @@
 		<!-- AndroidX.Core for IconCompat support (required for CarIcon creation) -->
 		<!-- Version must be >= 1.17.0 to satisfy Xamarin.AndroidX.Media dependency -->
 		<PackageReference Include="Xamarin.AndroidX.Core" Version="1.17.0" />
-		<!-- AndroidX.AppCompat required for AppCompat resources referenced by transitive dependencies -->
-		<!-- This resolves APT2260 errors for missing AppCompat styles and attributes -->
-		<!-- Version 1.7.1.1 is required by Microsoft.Maui.Controls 10.0.11 (via Navigation.UI dependency) -->
-		<PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.7.1.1" />
+
 	</ItemGroup>
 
 	<ItemGroup>

@@ -15,7 +15,7 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
     private readonly ChapterSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public ChapterSelectionViewModel ViewModel => BindingContext as ChapterSelectionViewModel;
+    public ChapterSelectionViewModel? ViewModel => BindingContext as ChapterSelectionViewModel;
 
 
     public ChapterSelection(ChapterSelectionViewModel viewModel, TaskScheduler taskScheduler)
@@ -30,7 +30,7 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 

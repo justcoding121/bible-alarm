@@ -15,7 +15,7 @@ public partial class BookSelection : BaseContentPage, IDisposable
     private readonly BookSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public BookSelectionViewModel ViewModel => BindingContext as BookSelectionViewModel;
+    public BookSelectionViewModel? ViewModel => BindingContext as BookSelectionViewModel;
 
     public BookSelection(BookSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
@@ -29,7 +29,7 @@ public partial class BookSelection : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object sender, EventArgs e)
+    private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 

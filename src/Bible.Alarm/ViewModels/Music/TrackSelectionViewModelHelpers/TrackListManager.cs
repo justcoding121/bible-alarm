@@ -15,9 +15,7 @@ namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
 /// </summary>
 public sealed class TrackListManager(
     ILogger logger,
-    IMediaService mediaService,
-    IMediaUrlRefreshService urlRefreshService,
-    IDownloadService downloadService)
+    IMediaService mediaService)
 {
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> propertyChangedHandlers = [];
 

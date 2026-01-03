@@ -9,25 +9,10 @@ namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 /// </summary>
 public sealed class ArtworkManager(ILogger logger)
 {
-    private ImageSource? artworkSource;
-    private bool isArtworkLoading;
     private byte[]? artworkBytes;
     private string? lastArtworkUrl;
+    private ImageSource? artworkSource;
 
-    /// <summary>
-    /// Gets the current artwork source.
-    /// </summary>
-    public ImageSource? ArtworkSource => artworkSource;
-
-    /// <summary>
-    /// Gets whether artwork is currently loading.
-    /// </summary>
-    public bool IsArtworkLoading => isArtworkLoading;
-
-    /// <summary>
-    /// Gets whether artwork is available.
-    /// </summary>
-    public bool HasArtwork => ArtworkSource != null && !IsArtworkLoading;
 
     /// <summary>
     /// Updates the artwork from a URL.
@@ -83,10 +68,16 @@ public sealed class ArtworkManager(ILogger logger)
     }
 
     /// <summary>
+    /// Gets whether artwork is currently loaded.
+    /// </summary>
+    public bool HasArtwork => artworkSource != null;
+
+    /// <summary>
     /// Clears the current artwork.
     /// </summary>
     private void ClearArtwork(Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
     {
+        artworkSource = null;
         setArtworkSource(null);
         artworkBytes = null;
         setIsArtworkLoading(false);
@@ -104,7 +95,8 @@ public sealed class ArtworkManager(ILogger logger)
             return false;
         }
 
-        setArtworkSource(ImageSource.FromUri(uri));
+        artworkSource = ImageSource.FromUri(uri);
+        setArtworkSource(artworkSource);
         setIsArtworkLoading(false);
         return true;
     }
@@ -182,7 +174,8 @@ public sealed class ArtworkManager(ILogger logger)
             // Store bytes in field to keep them alive, create new stream each time
             // Capture for lambda
             var bytes = artworkBytes;
-            setArtworkSource(ImageSource.FromStream(() => new MemoryStream(bytes)));
+            artworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
+            setArtworkSource(artworkSource);
             setIsArtworkLoading(false);
         }
         catch (Exception ex)
@@ -200,7 +193,8 @@ public sealed class ArtworkManager(ILogger logger)
     {
         try
         {
-            setArtworkSource(ImageSource.FromFile(filePath));
+            artworkSource = ImageSource.FromFile(filePath);
+            setArtworkSource(artworkSource);
             setIsArtworkLoading(false);
         }
         catch (Exception ex)
@@ -217,7 +211,8 @@ public sealed class ArtworkManager(ILogger logger)
     {
         try
         {
-            setArtworkSource(ImageSource.FromFile(filePath));
+            artworkSource = ImageSource.FromFile(filePath);
+            setArtworkSource(artworkSource);
             setIsArtworkLoading(false);
         }
         catch (Exception ex)

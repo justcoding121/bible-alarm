@@ -94,7 +94,7 @@
                                     StrokeThickness="0"
                                     Padding="0">
                                 <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
                                         <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
                                     </DataTrigger>
                                 </Border.Triggers>

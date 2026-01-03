@@ -151,7 +151,6 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
     public async Task InitializeMediaElementAsync()
     {
         TaskCompletionSource<bool>? taskSource = null;
-        bool shouldInitialize = false;
 
         // Use local lock to synchronize
         lock (lockObject)
@@ -174,7 +173,6 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
                 // Start initialization
                 isInitializing = true;
                 initializationTaskSource = new TaskCompletionSource<bool>();
-                shouldInitialize = true;
             }
         }
 

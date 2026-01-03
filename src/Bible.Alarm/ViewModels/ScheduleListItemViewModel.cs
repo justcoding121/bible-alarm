@@ -34,7 +34,7 @@ public sealed class ScheduleListItemViewModel(
     // Helper classes
     private readonly ScheduleListItemInitializer initializer = new(logger, mapper, applicationState);
     private readonly ScheduleListItemPropertyManager propertyManager = new(logger, scheduleStateService);
-    private readonly ScheduleListItemCommandHandler commandHandler = new(logger, playbackService, playlistService, applicationState, dispatcher);
+    private readonly ScheduleListItemCommandHandler commandHandler = new(logger, playbackService, playlistService);
     private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
     private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, displayService, applicationState);
 

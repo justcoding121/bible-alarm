@@ -11,7 +11,6 @@ namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 /// Handles schedule updates for chapter navigation.
 /// </summary>
 public sealed class ScheduleUpdater(
-    ILogger logger,
     IAlarmScheduleService alarmScheduleService,
     CancellationToken cancellationToken)
 {

@@ -12,7 +12,6 @@ namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 /// Handles detection of track changes.
 /// </summary>
 public sealed class TrackChangeDetector(
-    ILogger logger,
     IAlarmScheduleService alarmScheduleService,
     CancellationToken cancellationToken)
 {

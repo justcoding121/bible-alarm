@@ -24,9 +24,7 @@ namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 public sealed class ScheduleListItemCommandHandler(
     ILogger logger,
     ISchedulePlaybackService playbackService,
-    IPlaylistService playlistService,
-    IState<ApplicationState> applicationState,
-    IDispatcher dispatcher)
+    IPlaylistService playlistService)
 {
     /// <summary>
     /// Creates the play command.
