@@ -52,6 +52,10 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     private readonly MediaBrowser mediaBrowser = new(logger);
     private readonly PlaybackController playbackController = new(logger);
     private readonly StateSubscriptionManager stateSubscriptionManager = new(logger);
+    
+    // MediaSession references
+    private MediaSessionCompat? session;
+    private Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager? mediaSessionManager;
 
     public override void OnCreate()
     {

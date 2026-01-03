@@ -52,7 +52,7 @@ public partial class TrackSelection : BaseContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        ViewModel.BackCommand.Execute(null);
+        ViewModel?.BackCommand?.Execute(null);
         return true;
     }
 

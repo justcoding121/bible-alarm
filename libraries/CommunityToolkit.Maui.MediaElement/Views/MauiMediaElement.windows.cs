@@ -96,6 +96,11 @@ public partial class MauiMediaElement : Grid, IDisposable
 
     CustomTransportControls SetTransportControls()
     {
+        if (mediaPlayerElement?.TransportControls is null)
+        {
+            throw new InvalidOperationException("MediaPlayerElement or TransportControls is null");
+        }
+        
         mediaPlayerElement.TransportControls.IsEnabled = false;
         var temp = new CustomTransportControls
         {

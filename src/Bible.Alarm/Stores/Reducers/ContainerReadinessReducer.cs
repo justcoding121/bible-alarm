@@ -63,22 +63,8 @@ public static class ContainerReadinessReducer
             containerReadiness: ContainerReadiness.NotReady);
     }
 
-    /// <summary>
-    /// Reset container readiness when viewing a schedule (new or existing).
-    /// Note: This reducer only resets ContainerReadiness. The main ViewScheduleAction
-    /// handling is done by ApplicationReducer.OnViewSchedule which creates the full new state.
-    /// To avoid creating duplicate states, we skip this reducer since ApplicationReducer
-    /// already handles ViewScheduleAction and creates a new state with ContainerReadiness.NotReady.
-    /// </summary>
-    // Removed: [ReducerMethod(typeof(ViewScheduleAction))] - handled by ApplicationReducer
-
-    /// <summary>
-    /// Reset container readiness when resetting schedule state (navigating away).
-    /// Note: This reducer only resets ContainerReadiness. The main ResetScheduleStateAction
-    /// handling is done by ApplicationReducer.OnResetScheduleState which creates the full new state.
-    /// To avoid creating duplicate states, we skip this reducer since ApplicationReducer
-    /// already handles ResetScheduleStateAction and creates a new state with ContainerReadiness.NotReady.
-    /// </summary>
-    // Removed: [ReducerMethod(typeof(ResetScheduleStateAction))] - handled by ApplicationReducer
+    // Note: ViewScheduleAction and ResetScheduleStateAction are handled by ApplicationReducer
+    // to avoid creating duplicate states. ApplicationReducer creates the full new state
+    // with ContainerReadiness.NotReady, so no separate reducer is needed here.
 }
 

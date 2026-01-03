@@ -274,8 +274,8 @@ public class MainCarScreen : Screen, IDisposable
             stateManager.LoadScheduleItems();
 
             // Build template using template builder
-            var refreshAction = actionHandler.CreateRefreshAction();
-            return templateBuilder.BuildMainTemplate(stateManager.ScheduleItems, refreshAction);
+            var refreshAction = actionHandler.CreateRefreshAction(this);
+            return templateBuilder.BuildMainTemplate(stateManager.ScheduleItems, refreshAction, this);
         }
         catch (Exception ex)
         {
@@ -286,11 +286,16 @@ public class MainCarScreen : Screen, IDisposable
 
     private ITemplate CreateFallbackTemplate()
     {
-        var message = new MessageTemplate.Builder("Error loading schedules")
-            .SetTitle("Bible Alarm")
-            .SetHeaderAction(Action.AppIcon)
+        var headerBuilder = new Header.Builder();
+        var header = headerBuilder?
+            .SetTitle("Bible Alarm")?
+            .SetStartHeaderAction(Action.AppIcon)?
+            .Build() ?? throw new InvalidOperationException("Failed to build Header");
+        var messageBuilder = new MessageTemplate.Builder("Error loading schedules");
+        var message = messageBuilder?
+            .SetHeader(header)?
             .Build();
-        return message;
+        return message ?? throw new InvalidOperationException("Failed to build fallback MessageTemplate");
     }
 
     internal void OnScheduleItemClicked(int scheduleId)

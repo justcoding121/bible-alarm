@@ -293,26 +293,26 @@ public sealed class PlayerManager(ILogger logger)
         // Required interface methods - can be empty
         public void OnAudioAttributesChanged(AndroidX.Media3.Common.AudioAttributes? audioAttributes) { }
         public void OnAudioSessionIdChanged(int audioSessionId) { }
-        public void OnAvailableCommandsChanged(AndroidX.Media3.ExoPlayer.PlayerCommands? player) { }
+        public void OnAvailableCommandsChanged(PlayerCommands? player) { }
         public void OnCues(AndroidX.Media3.Common.Text.CueGroup? cues) { }
         public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo? deviceInfo) { }
         public void OnDeviceVolumeChanged(int volume, bool muted) { }
-        public void OnEvents(IExoPlayer? player, AndroidX.Media3.ExoPlayer.PlayerEvents? playerEvents) { }
+        public void OnEvents(IExoPlayer? player, PlayerEvents? playerEvents) { }
         public void OnIsLoadingChanged(bool isLoading) { }
         public void OnIsPlayingChanged(bool isPlaying) { }
         public void OnLoadingChanged(bool isLoading) { }
         public void OnMaxSeekToPreviousPositionChanged(long maxSeekToPreviousPositionMs) { }
         public void OnMediaMetadataChanged(AndroidX.Media3.Common.MediaMetadata? mediaMetadata) { }
         public void OnMetadata(AndroidX.Media3.Common.Metadata? metadata) { }
-        public void OnPlaybackParametersChanged(AndroidX.Media3.ExoPlayer.PlaybackParameters? playbackParameters) { }
+        public void OnPlaybackParametersChanged(PlaybackParameters? playbackParameters) { }
         public void OnPlaybackStateChanged(int playbackState) { }
         public void OnPlaybackSuppressionReasonChanged(int playbackSuppressionReason) { }
         public void OnPlayWhenReadyChanged(bool playWhenReady, int reason) { }
         public void OnPlayerStateChanged(bool playWhenReady, int playbackState) { }
-        public void OnPlayerError(AndroidX.Media3.ExoPlayer.PlaybackException? error) { }
-        public void OnPlayerErrorChanged(AndroidX.Media3.ExoPlayer.PlaybackException? error) { }
+        public void OnPlayerError(PlaybackException? error) { }
+        public void OnPlayerErrorChanged(PlaybackException? error) { }
         public void OnPlaylistMetadataChanged(AndroidX.Media3.Common.MediaMetadata? mediaMetadata) { }
-        public void OnPositionDiscontinuity(AndroidX.Media3.ExoPlayer.PlayerPositionInfo? oldPosition, AndroidX.Media3.ExoPlayer.PlayerPositionInfo? newPosition, int reason) { }
+        public void OnPositionDiscontinuity(PlayerPositionInfo? oldPosition, PlayerPositionInfo? newPosition, int reason) { }
         public void OnRepeatModeChanged(int repeatMode) { }
         public void OnRenderedFirstFrame() { }
         public void OnSeekBackIncrementChanged(long seekBackIncrementMs) { }
@@ -320,9 +320,9 @@ public sealed class PlayerManager(ILogger logger)
         public void OnShuffleModeEnabledChanged(bool shuffleModeEnabled) { }
         public void OnSkipSilenceEnabledChanged(bool skipSilenceEnabled) { }
         public void OnSurfaceSizeChanged(int width, int height) { }
-        public void OnTimelineChanged(AndroidX.Media3.ExoPlayer.Timeline? timeline, int reason) { }
-        public void OnTrackSelectionParametersChanged(AndroidX.Media3.ExoPlayer.TrackSelectionParameters? trackSelectionParameters) { }
-        public void OnTracksChanged(AndroidX.Media3.ExoPlayer.Tracks? tracks) { }
+        public void OnTimelineChanged(Timeline? timeline, int reason) { }
+        public void OnTrackSelectionParametersChanged(TrackSelectionParameters? trackSelectionParameters) { }
+        public void OnTracksChanged(Tracks? tracks) { }
         public void OnVolumeChanged(float volume) { }
     }
 }

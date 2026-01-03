@@ -21,15 +21,20 @@ public sealed class MediaSessionManager
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
     private readonly IServiceProvider serviceProvider;
 
-    // Helper classes
-    private readonly MediaSessionInitializer initializer = new(logger, serviceProvider);
-    private readonly PlaybackStateManager playbackStateManager = new(logger);
-    private readonly MetadataManager metadataManager = new(logger, serviceProvider);
+    // Helper classes - initialized in constructor
+    private readonly MediaSessionInitializer initializer;
+    private readonly PlaybackStateManager playbackStateManager;
+    private readonly MetadataManager metadataManager;
 
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
         logger.Debug("MediaSessionManager constructor called with serviceProvider: {ServiceProvider}", serviceProvider != null ? "provided" : "null");
         this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        
+        // Initialize helper classes after serviceProvider is set
+        initializer = new MediaSessionInitializer(logger, serviceProvider);
+        playbackStateManager = new PlaybackStateManager();
+        metadataManager = new MetadataManager(logger, serviceProvider);
     }
 
     /// <summary>

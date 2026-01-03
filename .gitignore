@@ -216,6 +216,3 @@ docs/manifest.json
 _index*/
 
 BundleArtifacts*/
-
-# Application settings (modified at build time)
-src/Bible.Alarm/AppSettings.cs

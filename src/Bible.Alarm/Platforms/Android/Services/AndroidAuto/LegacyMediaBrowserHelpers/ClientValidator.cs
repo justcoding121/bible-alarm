@@ -2,6 +2,7 @@
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using AndroidX.Media;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
@@ -16,7 +17,7 @@ public sealed class ClientValidator(ILogger logger)
     /// <summary>
     /// Validates if a client package is a car host and returns appropriate BrowserRoot.
     /// </summary>
-    public BrowserRoot? ValidateClientAndGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
+    public MediaBrowserServiceCompat.BrowserRoot? ValidateClientAndGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
     {
         logger.Information("✅ OnGetRoot called for client: {ClientPackageName} (UID: {ClientUid})",
             clientPackageName, clientUid);
@@ -36,7 +37,7 @@ public sealed class ClientValidator(ILogger logger)
         // Android Auto will automatically pull the top items from the root browse tree for "For You" recommendations.
         // The system reuses the exact MediaDescriptionCompat for those items, including their icons.
         // We do NOT provide explicit recommendations via EXTRA_SUGGESTED to keep it simple and let the system handle it.
-        return new BrowserRoot(RootId, null);
+        return new MediaBrowserServiceCompat.BrowserRoot(RootId, null);
     }
 
     /// <summary>

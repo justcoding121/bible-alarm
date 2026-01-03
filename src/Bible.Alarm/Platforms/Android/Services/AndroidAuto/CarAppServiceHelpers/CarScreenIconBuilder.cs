@@ -1,4 +1,5 @@
 #nullable enable
+using _Microsoft.Android.Resource.Designer;
 using Android.Content;
 using Android.Graphics;
 using Android.Graphics.Drawables;
@@ -14,7 +15,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelper
 /// <summary>
 /// Builds icons for car screen UI elements.
 /// </summary>
-public sealed class CarScreenIconBuilder(Android.Content.Context context, ILogger logger)
+public sealed class CarScreenIconBuilder(Context context, ILogger logger)
 {
     /// <summary>
     /// Creates a CarIcon for playlist items to display in Android Auto.

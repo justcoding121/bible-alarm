@@ -20,7 +20,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     // Helper classes
     private readonly MediaSourceBuilder mediaSourceBuilder = new(logger);
     private readonly PlayerManager playerManager = new(logger);
-    private readonly MediaSessionManager mediaSessionManager = new(logger);
+    private readonly AndroidPlayerNotificationHelpers.MediaSessionManager mediaSessionManager = new(logger);
     private readonly NotificationLogger notificationLogger = new(logger);
 
     /// <summary>

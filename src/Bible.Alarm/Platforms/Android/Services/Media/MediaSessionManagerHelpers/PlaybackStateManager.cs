@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelper
 /// <summary>
 /// Handles playback state management for MediaSession.
 /// </summary>
-public sealed class PlaybackStateManager(ILogger logger)
+public sealed class PlaybackStateManager
 {
     /// <summary>
     /// Builds playback actions based on navigation availability.

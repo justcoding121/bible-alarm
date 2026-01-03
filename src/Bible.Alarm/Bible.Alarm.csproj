@@ -197,6 +197,8 @@
 	<PropertyGroup>
 		<!-- Use PowerShell script only on Windows (Windows image used for deployment builds) -->
 		<PreBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/replace-license-key.ps1"</PreBuildEvent>
+		<!-- Post-build task: Restore license key placeholder to prevent accidental commits -->
+		<PostBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/restore-license-key-placeholder.ps1"</PostBuildEvent>
 	</PropertyGroup>
 
 	<!-- Platform-specific resources -->

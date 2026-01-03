@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;

@@ -1,6 +1,7 @@
 #nullable enable
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 using Action = AndroidX.Car.App.Model.Action;
@@ -16,92 +17,103 @@ public sealed class CarScreenTemplateBuilder(ILogger logger)
     /// <summary>
     /// Builds the main template for the car screen.
     /// </summary>
-    public Template BuildMainTemplate(List<ScheduleStateItem>? scheduleItems, Action refreshAction)
+    public AndroidX.Car.App.Model.ITemplate BuildMainTemplate(List<ScheduleStateItem>? scheduleItems, Action refreshAction, Screen screen)
     {
         if (scheduleItems == null || scheduleItems.Count == 0)
         {
             return BuildEmptyTemplate(refreshAction);
         }
 
-        var itemList = BuildItemList(scheduleItems);
-        var template = new ListTemplate.Builder()
-            .SetTitle("Bible Alarm")
-            .SetHeaderAction(Action.AppIcon)
-            .SetSingleList(itemList)
+        var itemList = BuildItemList(scheduleItems, screen);
+        var headerBuilder = new Header.Builder();
+        var header = headerBuilder?
+            .SetTitle("Bible Alarm")?
+            .SetStartHeaderAction(Action.AppIcon)?
+            .Build() ?? throw new InvalidOperationException("Failed to build Header");
+        var templateBuilder = new ListTemplate.Builder();
+        var template = templateBuilder?
+            .SetHeader(header)?
+            .SetSingleList(itemList)?
             .Build();
 
         logger.Debug("Built ListTemplate with {Count} schedule items", scheduleItems.Count);
-        return template;
+        return template ?? throw new InvalidOperationException("Failed to build ListTemplate");
     }
 
     /// <summary>
     /// Builds an empty template when no schedules are available.
     /// </summary>
-    private Template BuildEmptyTemplate(Action refreshAction)
+    private AndroidX.Car.App.Model.ITemplate BuildEmptyTemplate(Action refreshAction)
     {
-        var template = new PaneTemplate.Builder(
-                new Pane.Builder()
-                    .SetLoading(false)
-                    .AddAction(refreshAction)
-                    .Build())
-            .SetTitle("Bible Alarm")
-            .SetHeaderAction(Action.AppIcon)
+        var headerBuilder = new Header.Builder();
+        var header = headerBuilder?
+            .SetTitle("Bible Alarm")?
+            .SetStartHeaderAction(Action.AppIcon)?
+            .Build() ?? throw new InvalidOperationException("Failed to build Header");
+        var paneBuilder = new Pane.Builder();
+        var pane = paneBuilder?
+            .SetLoading(false)?
+            .AddAction(refreshAction)?
+            .Build() ?? throw new InvalidOperationException("Failed to build Pane");
+        var templateBuilder = new PaneTemplate.Builder(pane);
+        var template = templateBuilder?
+            .SetHeader(header)?
             .Build();
 
         logger.Debug("Built empty PaneTemplate - no schedules available");
-        return template;
+        return template ?? throw new InvalidOperationException("Failed to build PaneTemplate");
     }
 
     /// <summary>
     /// Builds the item list for schedules.
     /// </summary>
-    private ItemList BuildItemList(List<ScheduleStateItem> scheduleItems)
+    private ItemList BuildItemList(List<ScheduleStateItem> scheduleItems, Screen screen)
     {
         var itemListBuilder = new ItemList.Builder();
 
         foreach (var scheduleItem in scheduleItems)
         {
-            var row = BuildScheduleRow(scheduleItem);
+            var row = BuildScheduleRow(scheduleItem, screen);
             itemListBuilder.AddItem(row);
         }
 
-        return itemListBuilder.Build();
+        return itemListBuilder.Build() ?? throw new InvalidOperationException("Failed to build ItemList");
     }
 
     /// <summary>
     /// Builds a row for a schedule item.
     /// </summary>
-    private Row BuildScheduleRow(ScheduleStateItem scheduleItem)
+    private Row BuildScheduleRow(ScheduleStateItem scheduleItem, Screen screen)
     {
         var title = AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem);
         var subtitle = AndroidAutoScheduleHelper.BuildScheduleSubtitle(scheduleItem);
 
-        var rowBuilder = new Row.Builder()
-            .SetTitle(title)
-            .SetOnClickListener(PendingIntentForScheduleClick(scheduleItem.Id));
-
-        if (!string.IsNullOrEmpty(subtitle))
+        var mainCarScreen = screen as MainCarScreen;
+        var rowBuilder = new Row.Builder();
+        
+        // Start the chain with SetTitle
+        var rowWithTitle = rowBuilder?.SetTitle(title);
+        
+        // Conditionally add click listener
+        if (rowWithTitle != null && mainCarScreen != null)
         {
-            rowBuilder.SetTexts(subtitle);
+            rowWithTitle.SetOnClickListener(new ScheduleRowClickCallback(mainCarScreen, scheduleItem.Id));
         }
 
-        // Add playback controls for the currently playing schedule
-        if (IsCurrentlyPlaying(scheduleItem))
+        // Conditionally add subtitle
+        if (rowWithTitle != null && !string.IsNullOrEmpty(subtitle))
         {
-            rowBuilder.AddAction(BuildPlayPauseAction());
+            rowWithTitle.AddText(subtitle);
         }
 
-        return rowBuilder.Build();
-    }
+        // Conditionally add playback controls
+        if (rowWithTitle != null && IsCurrentlyPlaying(scheduleItem))
+        {
+            rowWithTitle.AddAction(BuildPlayPauseAction());
+        }
 
-    /// <summary>
-    /// Creates a pending intent for schedule click.
-    /// </summary>
-    private Object PendingIntentForScheduleClick(int scheduleId)
-    {
-        // Implementation would create pending intent for schedule selection
-        // This is a placeholder - actual implementation would depend on the specific requirements
-        return new Object();
+        return rowWithTitle?
+            .Build() ?? throw new InvalidOperationException("Failed to build Row");
     }
 
     /// <summary>
@@ -120,7 +132,33 @@ public sealed class CarScreenTemplateBuilder(ILogger logger)
     private Action BuildPlayPauseAction()
     {
         // Implementation would build play/pause action
-        // This is a placeholder
-        return Action.Pause;
+        // This is a placeholder - would need to create proper Action with callback
+        // Note: CarIcon.Pause doesn't exist, using AppIcon as placeholder
+        var actionBuilder = new Action.Builder();
+        return actionBuilder?
+            .SetTitle("Pause")?
+            .SetIcon(CarIcon.AppIcon)?
+            .Build() ?? throw new InvalidOperationException("Failed to build play/pause action");
+    }
+}
+
+/// <summary>
+/// Click callback for schedule items in the Car App list.
+/// </summary>
+internal class ScheduleRowClickCallback(MainCarScreen screen, int scheduleId) : Object, IOnClickListener
+{
+    private static readonly ILogger logger = Log.ForContext<ScheduleRowClickCallback>();
+
+    public void OnClick()
+    {
+        try
+        {
+            logger.Information("Schedule {ScheduleId} clicked - starting playback", scheduleId);
+            screen.OnScheduleItemClicked(scheduleId);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error handling schedule click for schedule {ScheduleId}", scheduleId);
+        }
     }
 }

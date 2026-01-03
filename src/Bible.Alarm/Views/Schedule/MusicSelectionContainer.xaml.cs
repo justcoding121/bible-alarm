@@ -46,7 +46,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             }
 #if DEBUG
             Log.Debug("[MusicSelectionContainer] Constructor - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}", 
-                viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);
+                viewModel?.MusicEnabled ?? false, propertyChangeHandler?.LastMusicEnabledState ?? false);
 #endif
             
             // Immediately process any pending property changes that might have occurred before subscription
@@ -156,7 +156,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             }
 #if DEBUG
             Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}", 
-                viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);
+                viewModel?.MusicEnabled ?? false, propertyChangeHandler?.LastMusicEnabledState ?? false);
 #endif
             
             // Immediately process any pending property changes that might have occurred before subscription
@@ -179,7 +179,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             
             // Only reset isInitialLoad if this is a new ViewModel instance
             // If it's the same ViewModel being reassigned, keep the current isInitialLoad state
-            if (isNewViewModel)
+            if (isNewViewModel && propertyChangeHandler != null)
             {
                 propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
                 propertyChangeHandler.IsInitialLoad = true; // Mark as initial load

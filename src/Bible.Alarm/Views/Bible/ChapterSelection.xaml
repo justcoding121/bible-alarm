@@ -37,17 +37,6 @@
                     HorizontalOptions="Fill"
                     ItemsSource="{Binding Chapters}"
                     SelectionMode="None">
-                    <CollectionView.Resources>
-                        <!-- Style for selected/unselected item background using DynamicResource -->
-                        <Style x:Key="ChapterItemBorderStyle" TargetType="Border">
-                            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
-                            <Style.Triggers>
-                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
-                                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </CollectionView.Resources>
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
                             <LinearItemsLayout.ItemSpacing>
@@ -62,9 +51,18 @@
                         <DataTemplate x:DataType="bible:BibleChapterListViewItemModel">
                             <Grid Margin="16,0">
                                 <Border
-                                    Style="{StaticResource ChapterItemBorderStyle}"
+                                    BackgroundColor="{DynamicResource CardBackgroundColor}"
                                     StrokeThickness="0"
                                     Padding="0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="12" />
                                     </Border.StrokeShape>

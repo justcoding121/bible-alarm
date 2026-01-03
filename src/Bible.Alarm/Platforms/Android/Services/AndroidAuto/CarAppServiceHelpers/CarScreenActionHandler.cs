@@ -1,8 +1,10 @@
 #nullable enable
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Serilog;
 using Action = AndroidX.Car.App.Model.Action;
+using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
 
@@ -50,33 +52,72 @@ public sealed class CarScreenActionHandler(ILogger logger)
     /// <summary>
     /// Creates a refresh action.
     /// </summary>
-    public Action CreateRefreshAction()
+    public Action CreateRefreshAction(Screen screen)
     {
-        return new Action.Builder()
-            .SetTitle("Refresh")
-            .SetOnClickListener(() => HandleRefresh())
-            .Build();
+        var actionBuilder = new Action.Builder();
+        return actionBuilder?
+            .SetTitle("Refresh")?
+            .SetOnClickListener(new RefreshActionCallback(screen, this))?
+            .Build() ?? throw new InvalidOperationException("Failed to build refresh action");
     }
 
     /// <summary>
     /// Creates a play action.
     /// </summary>
-    public Action CreatePlayAction()
+    public Action CreatePlayAction(Screen screen)
     {
-        return new Action.Builder()
-            .SetIcon(CarIcon.AppIcon)
-            .SetOnClickListener(() => HandlePlay())
-            .Build();
+        var actionBuilder = new Action.Builder();
+        return actionBuilder?
+            .SetIcon(CarIcon.AppIcon)?
+            .SetOnClickListener(new PlayActionCallback(screen, this))?
+            .Build() ?? throw new InvalidOperationException("Failed to build play action");
     }
 
     /// <summary>
     /// Creates a pause action.
     /// </summary>
-    public Action CreatePauseAction()
+    public Action CreatePauseAction(Screen screen)
     {
-        return new Action.Builder()
-            .SetIcon(CarIcon.AppIcon)
-            .SetOnClickListener(() => HandlePause())
-            .Build();
+        var actionBuilder = new Action.Builder();
+        return actionBuilder?
+            .SetIcon(CarIcon.AppIcon)?
+            .SetOnClickListener(new PauseActionCallback(screen, this))?
+            .Build() ?? throw new InvalidOperationException("Failed to build pause action");
+    }
+}
+
+/// <summary>
+/// Callback for refresh action.
+/// </summary>
+internal class RefreshActionCallback(Screen screen, CarScreenActionHandler handler) : Object, IOnClickListener
+{
+    public void OnClick()
+    {
+        handler.HandleRefresh();
+        screen?.Invalidate();
+    }
+}
+
+/// <summary>
+/// Callback for play action.
+/// </summary>
+internal class PlayActionCallback(Screen screen, CarScreenActionHandler handler) : Object, IOnClickListener
+{
+    public void OnClick()
+    {
+        handler.HandlePlay();
+        screen?.Invalidate();
+    }
+}
+
+/// <summary>
+/// Callback for pause action.
+/// </summary>
+internal class PauseActionCallback(Screen screen, CarScreenActionHandler handler) : Object, IOnClickListener
+{
+    public void OnClick()
+    {
+        handler.HandlePause();
+        screen?.Invalidate();
     }
 }
