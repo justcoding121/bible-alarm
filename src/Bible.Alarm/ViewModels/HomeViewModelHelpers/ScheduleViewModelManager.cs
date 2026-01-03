@@ -123,19 +123,39 @@ public class ScheduleViewModelManager
     public void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems)
     {
         var scheduleItemsSnapshot = scheduleItems.ToList();
+        logger.Debug("ScheduleViewModelManager: UpdateScheduleViewModels called with {Count} schedule items from state.", scheduleItemsSnapshot.Count);
 
         foreach (var scheduleItem in scheduleItemsSnapshot)
         {
             var scheduleId = scheduleItem.Id;
             if (scheduleId <= 0)
             {
+                logger.Warning("ScheduleViewModelManager: Skipping update for invalid schedule ID {ScheduleId}", scheduleId);
                 continue;
             }
 
             if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
             {
+                logger.Debug("ScheduleViewModelManager: Updating existing ViewModel for schedule {ScheduleId}. DaysOfWeek: {DaysOfWeek}", 
+                    scheduleId, scheduleItem.DaysOfWeek);
                 // Update the view model with latest state
-                existingViewModel.SetScheduleId(scheduleId);
+                // Note: SetScheduleId may fail if schedule is not in state yet (timing issue),
+                // but OnApplicationStateChanged will handle the update when state is ready
+                try
+                {
+                    existingViewModel.SetScheduleId(scheduleId);
+                    logger.Debug("ScheduleViewModelManager: Successfully updated ViewModel for schedule {ScheduleId}", scheduleId);
+                }
+                catch (Exception ex)
+                {
+                    // Schedule not found in state yet - OnApplicationStateChanged will handle it
+                    // This can happen due to async state updates
+                    logger.Warning(ex, "ScheduleViewModelManager: Failed to update ViewModel for schedule {ScheduleId}. OnApplicationStateChanged will handle it when state is ready.", scheduleId);
+                }
+            }
+            else
+            {
+                logger.Warning("ScheduleViewModelManager: ViewModel for schedule {ScheduleId} not found in dictionary, cannot update.", scheduleId);
             }
         }
     }

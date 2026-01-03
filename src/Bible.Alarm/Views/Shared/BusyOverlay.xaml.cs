@@ -12,7 +12,7 @@ public partial class BusyOverlay : ContentView
 {
     private static readonly ILogger logger = Log.ForContext<BusyOverlay>();
 
-    public static readonly BindableProperty IsVisibleProperty = BindableProperty.Create(
+    public static new readonly BindableProperty IsVisibleProperty = BindableProperty.Create(
         nameof(IsVisible),
         typeof(bool),
         typeof(BusyOverlay),
@@ -20,7 +20,7 @@ public partial class BusyOverlay : ContentView
         BindingMode.OneWay,
         propertyChanged: OnIsVisibleChanged);
 
-    public bool IsVisible
+    public new bool IsVisible
     {
         get => (bool)GetValue(IsVisibleProperty);
         set

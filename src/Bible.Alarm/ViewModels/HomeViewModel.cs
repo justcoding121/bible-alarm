@@ -120,7 +120,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         commandHandler = new CommandHandler(
             dispatcher,
             navigationService,
-            (x) => navigationHelper.ShouldSkipNavigation(x.Schedule.Id, scheduleViewModelManager.ScheduleViewModels),
+            (x) => x.Schedule?.Id > 0 ? navigationHelper.ShouldSkipNavigation(x.Schedule.Id, scheduleViewModelManager.ScheduleViewModels) : false,
             async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x, scheduleViewModelManager.ScheduleViewModels));
 
         AddScheduleCommand = commandHandler.CreateAddScheduleCommand();

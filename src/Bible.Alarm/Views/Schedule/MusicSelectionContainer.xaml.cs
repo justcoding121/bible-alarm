@@ -38,7 +38,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                 viewModel.GetType().Name, propertyChangeHandler != null);
 #endif
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
-            propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
+            propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled; // viewModel is not null here due to the if check above
             propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
             propertyChangeHandler.IsInitialLoad = true; // Mark as initial load
 #if DEBUG
@@ -147,7 +147,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                 viewModel.GetType().Name, propertyChangeHandler != null, isNewViewModel);
 #endif
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
-            propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
+            propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled; // viewModel is not null here due to the if check above
 #if DEBUG
             Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}", 
                 viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);

@@ -55,7 +55,7 @@ internal sealed class MusicDisplayNamePopulator
         }
 
         // Use cached vocal releases
-        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode) && !string.IsNullOrWhiteSpace(music.LanguageCode))
         {
             var releaseKey = (music.LanguageCode, music.PublicationCode);
             if (lookupData.VocalReleases.TryGetValue(releaseKey, out var release))

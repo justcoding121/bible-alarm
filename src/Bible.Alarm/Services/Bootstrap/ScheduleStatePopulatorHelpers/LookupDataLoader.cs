@@ -34,8 +34,10 @@ internal sealed class LookupDataLoader
         {
             try
             {
-                var translation = await bibleTranslationService?.GetByLanguageAndCodeWithBooksAsync(
-                    key.LanguageCode, key.PublicationCode);
+                var translation = bibleTranslationService != null 
+                    ? await bibleTranslationService.GetByLanguageAndCodeWithBooksAsync(
+                        key.LanguageCode, key.PublicationCode)
+                    : null;
                 return (Key: key, Translation: translation);
             }
             catch (Exception ex)
@@ -50,8 +52,10 @@ internal sealed class LookupDataLoader
         {
             try
             {
-                var bookName = await bibleBookService?.GetBookNameAsync(
-                    key.LanguageCode, key.PublicationCode, key.BookNumber);
+                var bookName = bibleBookService != null
+                    ? await bibleBookService.GetBookNameAsync(
+                        key.LanguageCode, key.PublicationCode, key.BookNumber)
+                    : null;
                 return (Key: key, BookName: bookName);
             }
             catch (Exception ex)

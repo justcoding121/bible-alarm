@@ -68,7 +68,6 @@ using Bible.Alarm.Platforms.Windows.Services.Handlers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
 using Bible.Alarm.Platforms.Windows.Services.Platform;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 #endif
 
 namespace Bible.Alarm.Common.Helpers;

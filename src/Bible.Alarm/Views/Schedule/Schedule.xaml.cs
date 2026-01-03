@@ -156,7 +156,7 @@ public partial class Schedule : BaseContentPage, IDisposable
             contentContainer.Content = scheduleContent;
 
             // Fade in content smoothly
-            await contentContainer.FadeTo(1.0, 200);
+            await contentContainer.FadeToAsync(1.0, 200);
         });
 
 #if DEBUG

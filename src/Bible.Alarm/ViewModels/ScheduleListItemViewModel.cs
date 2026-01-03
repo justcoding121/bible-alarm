@@ -108,15 +108,24 @@ public sealed class ScheduleListItemViewModel(
         }
 
         // Trigger property change notifications (UI thread operation)
-        OnPropertyChanged(nameof(Name));
-        OnPropertyChanged(nameof(TimeText));
-        OnPropertyChanged(nameof(Hour));
-        OnPropertyChanged(nameof(Minute));
-        OnPropertyChanged(nameof(Meridian));
-        OnPropertyChanged(nameof(MeridianText));
-        OnPropertyChanged(nameof(DaysOfWeek));
-        OnPropertyChanged(nameof(IsEnabled));
-        OnPropertyChanged(nameof(MusicEnabled));
+        // Ensure these are on UI thread for proper binding updates
+        // NOTE: Also notify 'This' property to trigger converters that bind to the entire ViewModel
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnPropertyChanged(nameof(Name));
+            OnPropertyChanged(nameof(TimeText));
+            OnPropertyChanged(nameof(Hour));
+            OnPropertyChanged(nameof(Minute));
+            OnPropertyChanged(nameof(Meridian));
+            OnPropertyChanged(nameof(MeridianText));
+            OnPropertyChanged(nameof(DaysOfWeek));
+            OnPropertyChanged(nameof(IsEnabled));
+            OnPropertyChanged(nameof(MusicEnabled));
+            // Notify 'This' to trigger converters that bind to the entire ViewModel (e.g., dayColorConverter, dayBackgroundColorConverter)
+            OnPropertyChanged(nameof(This));
+            logger.Debug("ScheduleListItemViewModel: InitializeCommon - Notified all properties including This. ScheduleId={ScheduleId}, DaysOfWeek={DaysOfWeek}", 
+                Schedule?.Id ?? 0, Schedule?.DaysOfWeek ?? 0);
+        });
         // Note: SubTitle and Language will be set by RefreshSubTitleFromState() below
 
         // Subscribe to ApplicationState changes to react when this schedule is updated
@@ -293,8 +302,14 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
+        var schedule = Schedule;
+        if (schedule == null)
+        {
+            return;
+        }
+
         await subtitleManager.RefreshChapterNameAsync(
-            Schedule.Id,
+            schedule.Id,
             force,
             value => SubTitle = value,
             value => Language = value,
@@ -309,26 +324,56 @@ public sealed class ScheduleListItemViewModel(
 
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {
-        if (Schedule?.Id <= 0)
+        var schedule = Schedule;
+        if (schedule?.Id <= 0)
         {
             return;
         }
 
-        var changeInfo = stateHandler.HandleApplicationStateChanged(Schedule.Id, Schedule);
+        if (schedule == null)
+        {
+            return;
+        }
+
+        var changeInfo = stateHandler.HandleApplicationStateChanged(schedule.Id, schedule);
         if (changeInfo == null)
         {
             return;
         }
 
+        // Store old DaysOfWeek before updating to ensure we can detect changes
+        var oldDaysOfWeek = schedule.DaysOfWeek;
+
         UpdateScheduleFromState(changeInfo);
         NotifyPropertyChanges(changeInfo);
+
+        // Double-check DaysOfWeek change after update (in case comparison missed it)
+        // This handles edge cases where the schedule was already updated but DaysOfWeek changed
+        var updatedSchedule = changeInfo.UpdatedSchedule;
+        if (!changeInfo.DaysOfWeekChanged && updatedSchedule != null && updatedSchedule.DaysOfWeek != oldDaysOfWeek)
+        {
+            logger.Debug("ScheduleListItemViewModel: DaysOfWeek changed but not detected by comparison. Old: {OldDaysOfWeek}, New: {NewDaysOfWeek}. Forcing property change.",
+                oldDaysOfWeek, updatedSchedule.DaysOfWeek);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                OnPropertyChanged(nameof(DaysOfWeek));
+                // Also notify 'This' to trigger converters that bind to the entire ViewModel
+                OnPropertyChanged(nameof(This));
+            });
+        }
+        else if (changeInfo.DaysOfWeekChanged)
+        {
+            logger.Debug("ScheduleListItemViewModel: DaysOfWeek change was detected. Old: {OldDaysOfWeek}, New: {NewDaysOfWeek}.",
+                oldDaysOfWeek, Schedule?.DaysOfWeek ?? 0);
+        }
     }
 
     private void UpdateScheduleFromState(ScheduleListItemStateHandler.ScheduleChangeInfo changeInfo)
     {
-        Schedule = changeInfo.UpdatedSchedule;
-        stateHandler.LastKnownSchedule = changeInfo.UpdatedSchedule;
-        propertyManager.IsEnabled = changeInfo.UpdatedSchedule.IsEnabled;
+        var updatedSchedule = changeInfo.UpdatedSchedule;
+        Schedule = updatedSchedule;
+        stateHandler.LastKnownSchedule = updatedSchedule;
+        propertyManager.IsEnabled = updatedSchedule.IsEnabled;
 
         var subtitleChanged = changeInfo.TrackChanged || changeInfo.BookNumberChanged || changeInfo.ChapterNumberChanged ||
                              changeInfo.BibleReadingLanguageNameChanged || changeInfo.BookNameChanged;
@@ -338,7 +383,7 @@ public sealed class ScheduleListItemViewModel(
             stateHandler.LastKnownBibleReadingLanguageName = changeInfo.NewBibleReadingLanguageName;
             stateHandler.LastKnownBookName = changeInfo.NewBookName;
             // Refresh subtitle from state
-            var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule.Id);
+            var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
             RefreshSubTitleFromState(updatedScheduleItem);
         }
     }
@@ -347,9 +392,15 @@ public sealed class ScheduleListItemViewModel(
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            OnPropertyChanged(nameof(DaysOfWeek));
+            // Always notify 'This' first to trigger converters that bind to the entire ViewModel
             OnPropertyChanged(nameof(This));
 
+            if (changeInfo.DaysOfWeekChanged)
+            {
+                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - DaysOfWeek changed for schedule {ScheduleId}. New value: {NewDaysOfWeek}",
+                    ScheduleId, Schedule?.DaysOfWeek ?? 0);
+                OnPropertyChanged(nameof(DaysOfWeek));
+            }
             if (changeInfo.IsEnabledChanged)
             {
                 OnPropertyChanged(nameof(IsEnabled));

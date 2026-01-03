@@ -58,6 +58,11 @@ public sealed class ScheduleListItemCommandHandler(
                 return;
             }
 
+            if (schedule == null)
+            {
+                return;
+            }
+
             // Check if schedule has Bible reading configured
             if (schedule.BibleReadingSchedule == null)
             {
@@ -104,6 +109,11 @@ public sealed class ScheduleListItemCommandHandler(
             {
                 logger.Warning("NextCommand: Schedule is null or has invalid ID");
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule not found"));
+                return;
+            }
+
+            if (schedule == null)
+            {
                 return;
             }
 

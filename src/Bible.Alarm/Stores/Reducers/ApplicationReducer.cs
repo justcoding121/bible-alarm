@@ -7,7 +7,6 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Stores.Reducers.Services;
 using Fluxor;
 using Serilog;

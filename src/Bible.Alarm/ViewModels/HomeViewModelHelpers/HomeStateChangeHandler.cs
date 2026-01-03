@@ -1,6 +1,7 @@
 #nullable enable
 using Bible;
 using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Microsoft.Maui.Essentials;
@@ -28,7 +29,7 @@ public class HomeStateChangeHandler
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
-    private Dictionary<int, (int? BookNumber, int? ChapterNumber)>? lastProcessedScheduleProperties;
+    private Dictionary<int, (int? BookNumber, int? ChapterNumber, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek)>? lastProcessedScheduleProperties;
     private bool shouldShowProgressBar = true;
 
     public HomeStateChangeHandler(
@@ -66,15 +67,25 @@ public class HomeStateChangeHandler
             var schedulesCountChanged = lastProcessedSchedulesCount != stateValue.Schedules.Count;
             var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
 
-            // Check if schedule properties (like chapter number) have changed
+            // Check if schedule properties (like chapter number, name, time, days of week) have changed
             var currentScheduleProperties = stateValue.Schedules
                 .Where(s => s.Id > 0)
-                .ToDictionary(s => s.Id, s => (BookNumber: s.BibleReadingBookNumber, ChapterNumber: s.BibleReadingChapterNumber));
+                .ToDictionary(s => s.Id, s => (
+                    BookNumber: s.BibleReadingBookNumber, 
+                    ChapterNumber: s.BibleReadingChapterNumber,
+                    Name: s.Name ?? string.Empty,
+                    Hour: s.Hour,
+                    Minute: s.Minute,
+                    DaysOfWeek: s.DaysOfWeek));
             var schedulePropertiesChanged = lastProcessedScheduleProperties == null ||
                 currentScheduleProperties.Any(kvp => 
                     !lastProcessedScheduleProperties.ContainsKey(kvp.Key) ||
                     lastProcessedScheduleProperties[kvp.Key].BookNumber != kvp.Value.BookNumber ||
-                    lastProcessedScheduleProperties[kvp.Key].ChapterNumber != kvp.Value.ChapterNumber);
+                    lastProcessedScheduleProperties[kvp.Key].ChapterNumber != kvp.Value.ChapterNumber ||
+                    lastProcessedScheduleProperties[kvp.Key].Name != kvp.Value.Name ||
+                    lastProcessedScheduleProperties[kvp.Key].Hour != kvp.Value.Hour ||
+                    lastProcessedScheduleProperties[kvp.Key].Minute != kvp.Value.Minute ||
+                    lastProcessedScheduleProperties[kvp.Key].DaysOfWeek != kvp.Value.DaysOfWeek);
 
             if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
             {
@@ -100,7 +111,7 @@ public class HomeStateChangeHandler
             // Prepare data structures off UI thread
             var (scheduleDataMap, scheduleStateItemMap) = await Task.Run(() =>
             {
-                return dataPreparer.PrepareScheduleDataOffUIThread(stateValue.Schedules);
+                return dataPreparer.PrepareScheduleDataOffUIThread(stateValue.Schedules ?? new ObservableHashSet<ScheduleStateItem>());
             });
 
             // Prepare ViewModels and collection on UI thread
@@ -128,7 +139,7 @@ public class HomeStateChangeHandler
 
             var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
 
-            if (isInitialLoad && hasSchedulesNow)
+            if (isInitialLoad && hasSchedulesNow && newSchedules != null)
             {
                 logger.Debug("OnStateChanged: Initial load - setting {Count} schedules via property setter", newSchedules.Count);
                 
@@ -141,9 +152,12 @@ public class HomeStateChangeHandler
                 logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}",
                     schedulesToAdd.Count, schedulesToRemove.Count);
 
-                var updatedCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
-                setSchedules(updatedCollection);
-                logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", getSchedules()?.Count ?? 0);
+                if (newSchedules != null)
+                {
+                    var updatedCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
+                    setSchedules(updatedCollection);
+                    logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", getSchedules()?.Count ?? 0);
+                }
 
                 if (schedulesToRemove.Count > 0)
                 {
@@ -154,7 +168,10 @@ public class HomeStateChangeHandler
             else
             {
                 // No collection change, but still update existing items
-                viewModelManager.UpdateScheduleViewModels(stateValue.Schedules);
+                if (stateValue.Schedules != null)
+                {
+                    viewModelManager.UpdateScheduleViewModels(stateValue.Schedules);
+                }
 
                 if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
                 {
@@ -172,9 +189,12 @@ public class HomeStateChangeHandler
             }
 
             // Update last processed state
-            lastProcessedSchedulesCount = stateValue.Schedules.Count;
-            lastProcessedScheduleIds = currentScheduleIds;
-            lastProcessedScheduleProperties = currentScheduleProperties;
+            if (stateValue.Schedules != null)
+            {
+                lastProcessedSchedulesCount = stateValue.Schedules.Count;
+                lastProcessedScheduleIds = currentScheduleIds;
+                lastProcessedScheduleProperties = currentScheduleProperties;
+            }
         }
         else
         {

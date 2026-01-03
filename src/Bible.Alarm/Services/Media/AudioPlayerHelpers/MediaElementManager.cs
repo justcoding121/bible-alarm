@@ -9,9 +9,7 @@ using Serilog;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Maui.Core;
 
-
 #if ANDROID
-using Bible.Alarm.Services.Media.Interfaces;
 #endif
 #if IOS
 using Bible.Alarm.Platforms.iOS.Helpers;

@@ -76,6 +76,15 @@ public sealed class ScheduleListItemStateHandler(
         var newBibleReadingLanguageName = updatedScheduleItem.BibleReadingLanguageName;
         var newBookName = updatedScheduleItem.BibleReadingBookName;
 
+        var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
+        
+        // Log DaysOfWeek changes for debugging
+        if (daysOfWeekChanged)
+        {
+            logger.Debug("ScheduleListItemStateHandler: DaysOfWeek changed for schedule {ScheduleId}. Old: {OldDaysOfWeek}, New: {NewDaysOfWeek}",
+                updatedScheduleItem.Id, oldDaysOfWeek, updatedSchedule.DaysOfWeek);
+        }
+
         return new ScheduleChangeInfo
         {
             UpdatedSchedule = updatedSchedule,
@@ -84,7 +93,7 @@ public sealed class ScheduleListItemStateHandler(
             ChapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber,
             BibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName,
             BookNameChanged = lastKnownBookName != newBookName,
-            DaysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek,
+            DaysOfWeekChanged = daysOfWeekChanged,
             IsEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled,
             NameChanged = oldName != updatedSchedule.Name,
             TimeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute,
