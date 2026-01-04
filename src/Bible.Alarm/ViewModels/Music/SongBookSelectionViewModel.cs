@@ -57,8 +57,10 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         state.StateChanged += OnMusicChanged;
 
         // Check current state immediately in case state is already set
+        // Also check CurrentSchedule as fallback (source of truth for new schedules)
         var currentState = state.Value;
-        if (currentState.CurrentMusic != null)
+        if (currentState.CurrentMusic != null || 
+            (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue))
         {
             OnMusicInitialized(null, EventArgs.Empty);
         }

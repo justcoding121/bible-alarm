@@ -1,10 +1,24 @@
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Shared.Models.Enums;
 
 namespace Bible.Alarm.Services.Scheduler.Interfaces;
 
 public interface IScheduleSelectionService : IDisposable
 {
-    Task<AlarmMusic> LoadMusicForSelectionAsync(int scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic);
-    Task<BibleReadingSchedule> LoadBibleReadingForSelectionAsync(int scheduleId, bool isNewSchedule, bool bibleReadingUpdated, BibleReadingSchedule currentBibleReading);
+    /// <summary>
+    /// Loads music for selection modal. For existing schedules, creates AlarmMusic from CurrentSchedule properties
+    /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
+    /// Only queries media index DB for track lists, publications, etc.
+    /// </summary>
+    AlarmMusic? LoadMusicForSelection(int scheduleId, bool isNewSchedule, AlarmMusic? currentMusic, 
+        MusicType? musicType, string? publicationCode, string? languageCode, int? trackNumber, bool? repeat);
+    
+    /// <summary>
+    /// Loads Bible reading for selection modal. For existing schedules, creates BibleReadingSchedule from CurrentSchedule properties
+    /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
+    /// Only queries media index DB for book lists, chapters, etc.
+    /// </summary>
+    BibleReadingSchedule? LoadBibleReadingForSelection(int scheduleId, bool isNewSchedule, BibleReadingSchedule? currentBibleReading,
+        string? languageCode, string? publicationCode, int? bookNumber, int? chapterNumber, TimeSpan? finishedDuration);
 }
 

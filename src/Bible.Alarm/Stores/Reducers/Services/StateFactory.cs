@@ -26,7 +26,8 @@ public static class StateFactory
             currentMusic: updatedCurrentMusic,
             currentBibleReadingSchedule: updatedCurrentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            containerReadiness: state.ContainerReadiness);
     }
 
     public static ApplicationState CreateStateWithSchedules(
@@ -40,7 +41,8 @@ public static class StateFactory
             currentMusic: state.CurrentMusic,
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            containerReadiness: state.ContainerReadiness);
     }
 }
 

@@ -61,11 +61,18 @@ public sealed class SongBookSelectionStateManager(IMapper mapper)
         var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
 
-        if (!newMusicType.HasValue || string.IsNullOrEmpty(newLanguageCode))
+        // Require MusicType, but allow LanguageCode to be null/empty for Vocals
+        // (user might be opening language modal to select a language)
+        // For Melodies, LanguageCode can be null
+        if (!newMusicType.HasValue)
         {
             MainThread.BeginInvokeOnMainThread(() => setBusy(false));
             return;
         }
+
+        // For Vocals, we need LanguageCode eventually, but allow initialization without it
+        // Initialize() will set a default language if needed
+        // For Melodies, LanguageCode can be null
 
         // Update tracking variables
         lastMusicType = newMusicType.Value;
@@ -80,10 +87,11 @@ public sealed class SongBookSelectionStateManager(IMapper mapper)
         else
         {
             // Create a minimal AlarmMusic from CurrentSchedule
+            // LanguageCode can be null/empty for Vocals when opening language modal
             current = new AlarmMusic
             {
                 MusicType = newMusicType.Value,
-                LanguageCode = newLanguageCode,
+                LanguageCode = newLanguageCode ?? string.Empty,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                 Repeat = currentSchedule.MusicRepeat ?? false

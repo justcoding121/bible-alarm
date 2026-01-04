@@ -19,6 +19,23 @@ public static class ContainerReadinessReducer
     {
         var currentReadiness = state.ContainerReadiness;
         
+        // Check if container is already ready to prevent duplicate processing
+        bool alreadyReady = action.ContainerName switch
+        {
+            "BibleSelection" => currentReadiness.BibleSelection,
+            "MusicSelection" => currentReadiness.MusicSelection,
+            "NumberOfChapter" => currentReadiness.NumberOfChapter,
+            "ScheduleDetails" => currentReadiness.ScheduleDetails,
+            _ => false
+        };
+
+        if (alreadyReady)
+        {
+            // Container already ready - this is a duplicate action, ignore it
+            Logger.Debug("ContainerReadyAction: {ContainerName} already ready, ignoring duplicate action", action.ContainerName);
+            return state; // Return same state to avoid unnecessary state change
+        }
+        
         var updatedReadiness = action.ContainerName switch
         {
             "BibleSelection" => currentReadiness with { BibleSelection = true },

@@ -95,6 +95,16 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         musicEnabledHandler = new MusicEnabledHandler(logger, mapper, dispatcher, serviceProvider, state);
 
         state.StateChanged += OnStateChanged;
+        
+        // Initialize scheduleId and isNewSchedule before creating commands
+        // so commands capture the correct values
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule != null)
+        {
+            scheduleId = currentSchedule.Id;
+            isNewSchedule = currentSchedule.Id <= 0;
+        }
+        
         InitializeCommands();
         InitializeFromState();
     }
@@ -152,12 +162,22 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     private void SignalContainerReady()
     {
-        if (hasSignaledReady) return;
+        // Check if already signaled or already marked ready in state
+        if (hasSignaledReady || state.Value.ContainerReadiness.MusicSelection) return;
         hasSignaledReady = true;
         
         // Dispatch to state that this container is ready
+        // Check state again inside the queued action to prevent race conditions
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            // Double-check state before dispatching to prevent duplicates from queued actions
+            // If state already shows we're ready, another action already handled it
+            if (state.Value.ContainerReadiness.MusicSelection)
+            {
+                // Ensure flag is set to prevent future attempts
+                hasSignaledReady = true;
+                return;
+            }
             dispatcher.Dispatch(new ContainerReadyAction("MusicSelection"));
         });
     }
@@ -205,16 +225,20 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             // Reset initial MusicEnabled tracking when a new schedule is opened
             initialMusicEnabledOnPageLoad = null;
             InitializeFromState();
+            // Recreate commands with updated scheduleId and isNewSchedule
+            InitializeCommands();
             return;
         }
 
         // Initialize if schedule ID changed (new schedule opened)
-        if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
+        if (currentSchedule != null && currentSchedule.Id != scheduleId)
         {
             // Reset initial MusicEnabled tracking when a new schedule is opened
             initialMusicEnabledOnPageLoad = null;
             hasSignaledReady = false; // Reset for new schedule
             InitializeFromState();
+            // Recreate commands with updated scheduleId and isNewSchedule
+            InitializeCommands();
         }
 
         // Check if MusicEnabled changed in state

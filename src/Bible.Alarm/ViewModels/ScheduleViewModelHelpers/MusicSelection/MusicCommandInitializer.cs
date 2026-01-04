@@ -57,9 +57,19 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Run database operations off UI thread
-            var loadedMusic = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, getMusic()));
+            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
+            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var currentSchedule = state.Value.CurrentSchedule;
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+                scheduleId, 
+                isNewSchedule, 
+                getMusic(),
+                currentSchedule?.MusicType,
+                currentSchedule?.MusicPublicationCode,
+                currentSchedule?.MusicLanguageCode,
+                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicRepeat);
+            
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -67,8 +77,11 @@ public sealed class MusicCommandInitializer
             await navigationService.OpenMusicSelectionModalAsync(musicSelectionViewModel);
 
             // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
-            dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
+            if (loadedMusic != null)
+            {
+                var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
+                dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
+            }
         });
     }
 
@@ -76,9 +89,19 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Run database operations off UI thread
-            var loadedMusic = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, getMusic()));
+            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
+            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var currentSchedule = state.Value.CurrentSchedule;
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+                scheduleId, 
+                isNewSchedule, 
+                getMusic(),
+                currentSchedule?.MusicType,
+                currentSchedule?.MusicPublicationCode,
+                currentSchedule?.MusicLanguageCode,
+                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicRepeat);
+            
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -86,8 +109,11 @@ public sealed class MusicCommandInitializer
             await navigationService.OpenMusicSelectionModalAsync(musicSelectionViewModel);
 
             // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
-            dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
+            if (loadedMusic != null)
+            {
+                var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
+                dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
+            }
         });
     }
 
@@ -95,9 +121,19 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Run database operations off UI thread
-            var loadedMusic = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, getMusic()));
+            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
+            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var currentSchedule = state.Value.CurrentSchedule;
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+                scheduleId, 
+                isNewSchedule, 
+                getMusic(),
+                currentSchedule?.MusicType,
+                currentSchedule?.MusicPublicationCode,
+                currentSchedule?.MusicLanguageCode,
+                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicRepeat);
+            
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -105,8 +141,11 @@ public sealed class MusicCommandInitializer
             await navigationService.OpenSongBookSelectionModalAsync(songBookSelectionViewModel);
 
             // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
-            dispatcher.Dispatch(new SongBookSelectionAction(musicStateItem));
+            if (loadedMusic != null)
+            {
+                var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
+                dispatcher.Dispatch(new SongBookSelectionAction(musicStateItem));
+            }
         });
     }
 
@@ -114,9 +153,19 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Run database operations off UI thread
-            var loadedMusic = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, getMusic()));
+            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
+            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var currentSchedule = state.Value.CurrentSchedule;
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+                scheduleId, 
+                isNewSchedule, 
+                getMusic(),
+                currentSchedule?.MusicType,
+                currentSchedule?.MusicPublicationCode,
+                currentSchedule?.MusicLanguageCode,
+                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicRepeat);
+            
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -124,8 +173,11 @@ public sealed class MusicCommandInitializer
             await navigationService.OpenTrackSelectionModalAsync(trackSelectionViewModel);
 
             // Map entity to DTO before dispatching
-            var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
-            dispatcher.Dispatch(new TrackSelectionAction(musicStateItem));
+            if (loadedMusic != null)
+            {
+                var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
+                dispatcher.Dispatch(new TrackSelectionAction(musicStateItem));
+            }
         });
     }
 
@@ -133,10 +185,28 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Run database operations off UI thread
-            var loadedMusic = await Task.Run(async () =>
-                await scheduleSelectionService.LoadMusicForSelectionAsync(scheduleId, isNewSchedule, musicUpdated, getMusic()));
+            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
+            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var currentSchedule = state.Value.CurrentSchedule;
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+                scheduleId, 
+                isNewSchedule, 
+                getMusic(),
+                currentSchedule?.MusicType,
+                currentSchedule?.MusicPublicationCode,
+                currentSchedule?.MusicLanguageCode,
+                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicRepeat);
+            
             setMusic(loadedMusic);
+
+            // Map entity to DTO before dispatching
+            // SongBookSelectionViewModel needs CurrentMusic in state to initialize
+            if (loadedMusic != null)
+            {
+                var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
+                dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
+            }
 
             // Create SongBookSelectionViewModel instance to open the language modal
             var songBookSelectionViewModel = serviceProvider.GetRequiredService<SongBookSelectionViewModel>();

@@ -141,12 +141,22 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
 
     private void SignalContainerReady()
     {
-        if (hasSignaledReady) return;
+        // Check if already signaled or already marked ready in state
+        if (hasSignaledReady || state.Value.ContainerReadiness.NumberOfChapter) return;
         hasSignaledReady = true;
         
         // Dispatch to state that this container is ready
+        // Check state again inside the queued action to prevent race conditions
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            // Double-check state before dispatching to prevent duplicates from queued actions
+            // If state already shows we're ready, another action already handled it
+            if (state.Value.ContainerReadiness.NumberOfChapter)
+            {
+                // Ensure flag is set to prevent future attempts
+                hasSignaledReady = true;
+                return;
+            }
             dispatcher.Dispatch(new ContainerReadyAction("NumberOfChapter"));
         });
     }

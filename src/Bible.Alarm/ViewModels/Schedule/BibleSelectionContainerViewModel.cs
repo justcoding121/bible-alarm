@@ -71,7 +71,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         this.mapper = mapper;
 
         // Initialize helper classes
-        commandInitializer = new BibleCommandInitializer(logger, navigationService, scheduleSelectionService, dispatcher, mapper, serviceProvider);
+        commandInitializer = new BibleCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
         displayTextProvider = new BibleDisplayTextProvider(state, logger);
         propertyChangeDetector = new BiblePropertyChangeDetector(displayTextProvider);
         propertyNotifier = new BiblePropertyNotifier(propertyName => OnPropertyChanged(propertyName));
@@ -114,12 +114,22 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
     private void SignalContainerReady()
     {
-        if (hasSignaledReady) return;
+        // Check if already signaled or already marked ready in state
+        if (hasSignaledReady || state.Value.ContainerReadiness.BibleSelection) return;
         hasSignaledReady = true;
         
         // Dispatch to state that this container is ready
+        // Check state again inside the queued action to prevent race conditions
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            // Double-check state before dispatching to prevent duplicates from queued actions
+            // If state already shows we're ready, another action already handled it
+            if (state.Value.ContainerReadiness.BibleSelection)
+            {
+                // Ensure flag is set to prevent future attempts
+                hasSignaledReady = true;
+                return;
+            }
             dispatcher.Dispatch(new ContainerReadyAction("BibleSelection"));
         });
     }

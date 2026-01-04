@@ -1,57 +1,82 @@
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-public sealed class ScheduleSelectionService(
-    ILogger logger,
-    IAlarmMusicService alarmMusicService,
-    IBibleReadingScheduleService bibleReadingScheduleService)
+public sealed class ScheduleSelectionService(ILogger logger)
     : IScheduleSelectionService, IDisposable
 {
-    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<AlarmMusic> LoadMusicForSelectionAsync(int scheduleId, bool isNewSchedule, bool musicUpdated, AlarmMusic currentMusic)
+    /// <summary>
+    /// Loads music for selection modal. Creates AlarmMusic from CurrentSchedule properties
+    /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
+    /// Only queries media index DB for track lists, publications, etc.
+    /// </summary>
+    public AlarmMusic? LoadMusicForSelection(int scheduleId, bool isNewSchedule, AlarmMusic? currentMusic,
+        MusicType? musicType, string? publicationCode, string? languageCode, int? trackNumber, bool? repeat)
     {
-        try
+        // Create AlarmMusic from CurrentSchedule properties if we have the required data
+        // This works for both new and existing schedules - CurrentSchedule is the source of truth
+        // For new schedules, CurrentSchedule has the music data from when it was created/updated
+        // For existing schedules, CurrentSchedule has the music data loaded from AlarmDB on page load
+        if (musicType.HasValue && !string.IsNullOrWhiteSpace(publicationCode) && trackNumber.HasValue)
         {
-            // Get the latest music track if needed
-            if (currentMusic == null || (!isNewSchedule && !musicUpdated))
+            return new AlarmMusic
             {
-                var music = await alarmMusicService.GetMusicByScheduleIdAsync(scheduleId, cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Music not found for schedule {scheduleId}");
-                return music;
-            }
+                Id = 0, // Will be set when saved
+                MusicType = musicType.Value,
+                PublicationCode = publicationCode,
+                LanguageCode = languageCode,
+                TrackNumber = trackNumber.Value,
+                Repeat = repeat ?? false,
+                AlarmScheduleId = scheduleId
+            };
+        }
 
-            return currentMusic;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error loading music for selection for schedule {ScheduleId}", scheduleId);
-            return currentMusic;
-        }
+        // Fallback to currentMusic if CurrentSchedule doesn't have required properties
+        return currentMusic;
     }
 
-    public async Task<BibleReadingSchedule> LoadBibleReadingForSelectionAsync(int scheduleId, bool isNewSchedule, bool bibleReadingUpdated, BibleReadingSchedule currentBibleReading)
+    /// <summary>
+    /// Loads Bible reading for selection modal. For existing schedules, creates BibleReadingSchedule from CurrentSchedule properties
+    /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
+    /// Only queries media index DB for book lists, chapters, etc.
+    /// </summary>
+    public BibleReadingSchedule? LoadBibleReadingForSelection(int scheduleId, bool isNewSchedule, BibleReadingSchedule? currentBibleReading,
+        string? languageCode, string? publicationCode, int? bookNumber, int? chapterNumber, TimeSpan? finishedDuration)
     {
-        try
+        // For new schedules, return currentBibleReading (which may be null)
+        if (isNewSchedule)
         {
-            // Get the latest bible track if needed
-            if (currentBibleReading == null || (!isNewSchedule && !bibleReadingUpdated))
-            {
-                var bibleReading = await bibleReadingScheduleService.GetBibleReadingScheduleByScheduleIdAsync(scheduleId, cancellationTokenSource.Token) ?? throw new InvalidOperationException($"BibleReadingSchedule not found for schedule {scheduleId}");
-                return bibleReading;
-            }
+            return currentBibleReading;
+        }
 
-            return currentBibleReading;
-        }
-        catch (Exception ex)
+        // For existing schedules, create BibleReadingSchedule from CurrentSchedule properties
+        // All data is already loaded from AlarmDB when the schedule page opened
+        // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+        if (!string.IsNullOrWhiteSpace(languageCode) && 
+            !string.IsNullOrWhiteSpace(publicationCode) && 
+            bookNumber.HasValue && 
+            chapterNumber.HasValue)
         {
-            logger.Error(ex, "Error loading bible reading for selection for schedule {ScheduleId}", scheduleId);
-            return currentBibleReading;
+            return new BibleReadingSchedule
+            {
+                Id = 0, // Will be set when saved
+                LanguageCode = languageCode,
+                PublicationCode = publicationCode,
+                BookNumber = bookNumber.Value,
+                ChapterNumber = chapterNumber.Value,
+                FinishedDuration = finishedDuration ?? TimeSpan.Zero,
+                AlarmScheduleId = scheduleId
+            };
         }
+
+        // Fallback to currentBibleReading if CurrentSchedule doesn't have required properties
+        return currentBibleReading;
     }
 
     public void Dispose()
@@ -62,21 +87,7 @@ public sealed class ScheduleSelectionService(
         }
 
         isDisposed = true;
-
-        // Cancel and dispose cancellation token source
-        try
-        {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
-        }
-
-        // IServiceScopeFactory is a singleton, so don't dispose it
-        // No event handlers to unsubscribe
+        // No resources to dispose - all methods are synchronous now
     }
 }
 

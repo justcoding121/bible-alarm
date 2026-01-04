@@ -142,12 +142,24 @@ public class MusicEnabledHandler
                                 return;
                             }
 
+                            // Check if music properties are already set to what we want to set
+                            // This prevents redundant dispatches if the state was already updated
+                            if (latestSchedule.MusicType == MusicType.Melodies &&
+                                latestSchedule.MusicPublicationCode == DefaultPublicationCode &&
+                                latestSchedule.MusicTrackNumber == randomTrack.Number &&
+                                latestSchedule.MusicEnabled == true)
+                            {
+                                logger.Debug("MusicEnabled: Music properties already match default, skipping redundant update");
+                                return;
+                            }
+
                             // Update state with default music properties (reset to default)
-                            // IMPORTANT: Preserve MusicEnabled from the latest state
+                            // IMPORTANT: Preserve MusicEnabled from the latest state (should already be true from first dispatch)
                             // Run DeepClone and mapping on background thread to avoid blocking UI
                             var clonedSchedule = latestSchedule.DeepClone();
                             var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
-                            scheduleStateItem.MusicEnabled = true; // Ensure MusicEnabled is true when resetting
+                            // MusicEnabled should already be true from the first dispatch, but ensure it's set
+                            scheduleStateItem.MusicEnabled = true;
                             scheduleStateItem.MusicType = MusicType.Melodies;
                             scheduleStateItem.MusicPublicationCode = DefaultPublicationCode;
                             scheduleStateItem.MusicLanguageCode = null;
@@ -155,10 +167,10 @@ public class MusicEnabledHandler
                             scheduleStateItem.MusicRepeat = false;
                             scheduleStateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
 
-                            logger.Information("MusicEnabled: Resetting to default music. MusicEnabled={MusicEnabled}, MusicType={MusicType}, TrackNumber={TrackNumber}",
-                                scheduleStateItem.MusicEnabled, scheduleStateItem.MusicType, scheduleStateItem.MusicTrackNumber);
+                            logger.Information("MusicEnabled: Resetting to default music. MusicType={MusicType}, TrackNumber={TrackNumber}",
+                                scheduleStateItem.MusicType, scheduleStateItem.MusicTrackNumber);
 
-                            // Update state
+                            // Update state with music properties (MusicEnabled should already be true from first dispatch)
                             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
 
                             logger.Information("MusicEnabled: Reset to default music. MusicType=Melodies, TrackNumber={TrackNumber}, TrackName={TrackName}",
