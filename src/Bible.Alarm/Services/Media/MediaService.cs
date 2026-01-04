@@ -9,7 +9,7 @@ using Serilog;
 namespace Bible.Alarm.Services.Media;
 
 public sealed class MediaService(
-    IMediaIndexService mediaLookUpService,
+    IMediaIndexService mediaIndexService,
     IBibleTranslationService bibleTranslationService,
     IBibleBookService bibleBookService,
     IBibleChapterService bibleChapterService,
@@ -17,6 +17,7 @@ public sealed class MediaService(
     IVocalMusicService vocalMusicService)
     : IMediaService, IDisposable
 {
+    private readonly IMediaIndexService mediaIndexService = mediaIndexService ?? throw new ArgumentNullException(nameof(mediaIndexService));
     private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService ?? throw new ArgumentNullException(nameof(bibleTranslationService));
     private readonly IBibleBookService bibleBookService = bibleBookService ?? throw new ArgumentNullException(nameof(bibleBookService));
     private readonly IBibleChapterService bibleChapterService = bibleChapterService ?? throw new ArgumentNullException(nameof(bibleChapterService));
@@ -27,59 +28,59 @@ public sealed class MediaService(
 
     public async Task<Dictionary<string, Language>> GetBibleLanguages()
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await bibleTranslationService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, BibleTranslation>> GetBibleTranslations(string languageCode)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await bibleTranslationService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, BibleBook>> GetBibleBooks(
         string languageCode, string versionCode)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await bibleBookService.GetBooksByTranslationAsync(languageCode, versionCode, cancellationTokenSource.Token);
     }
 
     public async Task<BibleBook> GetBibleBook(string languageCode, string versionCode, int bookNumber)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await bibleBookService.GetBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, BibleChapter>>
         GetBibleChapters(string languageCode, string versionCode, int bookNumber)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await bibleChapterService.GetChaptersByBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
     }
 
     public async Task<BibleChapter> GetBibleChapter(string languageCode,
         string versionCode, int bookNumber, int chapterNumber)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await bibleChapterService.GetChapterAsync(languageCode, versionCode, bookNumber, chapterNumber, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases()
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await melodyMusicService.GetAllAsync(cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>>
         GetMelodyMusicTracks(string publicationCode)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await melodyMusicService.GetTracksByCodeAsync(publicationCode, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         var result = await vocalMusicService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
         Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: returned {Count} languages: {LanguageCodes}",
             result.Count, string.Join(", ", result.Keys));
@@ -100,34 +101,34 @@ public sealed class MediaService(
 
     public async Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>>
         GetVocalMusicTracks(string languageCode, string publicationCode)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         return await vocalMusicService.GetTracksByLanguageAndCodeAsync(languageCode, publicationCode, cancellationTokenSource.Token);
     }
 
     public async Task UpdateBibleTrackUrl(string languageCode, string versionCode,
         int bookNumber, int chapterNumber, string url)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         await bibleChapterService.UpdateChapterUrlAsync(languageCode, versionCode, bookNumber, chapterNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateVocalTrackUrl(string languageCode, string publicationCode,
         int trackNumber, string url)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         await vocalMusicService.UpdateTrackUrlAsync(languageCode, publicationCode, trackNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateMelodyTrackUrl(string publicationCode, int trackNumber, string url)
     {
-        await mediaLookUpService.Verify();
+        await mediaIndexService.Verify();
         await melodyMusicService.UpdateTrackUrlAsync(publicationCode, trackNumber, url, cancellationTokenSource.Token);
     }
 
@@ -184,7 +185,7 @@ public sealed class MediaService(
         }
 
         // Note: DbContext is now created via IServiceScopeFactory and disposed by the scope
-        // mediaLookUpService (MediaIndexService) and IServiceScopeFactory are singletons
+        // mediaIndexService (MediaIndexService) and IServiceScopeFactory are singletons
         // and should not be disposed here as they are managed by the DI container
     }
 }

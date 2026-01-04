@@ -54,6 +54,13 @@ public partial class BibleSelectionModal : BaseContentPage, IDisposable
                 // Force hide busy overlay since binding might not work
                 ForceHideBusyOverlay();
 
+                // Wait for IsBusy to become false (data loaded) using Polly retry policy
+                // This ensures the CollectionView is ready and SelectedTranslation is set before scrolling
+                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
+
+                // Small additional delay to ensure CollectionView is rendered
+                await Task.Delay(200, cancellationTokenSource.Token);
+
                 if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)
                 {
                     await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false, cancellationToken: cancellationTokenSource.Token);

@@ -48,8 +48,14 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
                 // Force hide busy overlay since binding might not work
                 ForceHideBusyOverlay();
 
-                // Scroll to selected book - matching the pattern used in MusicLanguageModal
-                // No need to wait for IsBusy - RefreshFromState handles that internally
+                // Wait for IsBusy to become false (data loaded) using Polly retry policy
+                // This ensures the CollectionView is ready and SelectedBook is set before scrolling
+                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
+
+                // Small additional delay to ensure CollectionView is rendered
+                await Task.Delay(200, cancellationTokenSource.Token);
+
+                // Scroll to selected book - matching the pattern used in BookSelection.xaml.cs
                 if (ViewModel.SelectedBook != null && bookCollectionView != null)
                 {
                     await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook, animated: false, cancellationToken: cancellationTokenSource.Token);

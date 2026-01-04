@@ -47,6 +47,14 @@ public partial class ChapterSelectionModal : BaseContentPage, IDisposable
                 // Force hide busy overlay since binding might not work
                 ForceHideBusyOverlay();
 
+                // Wait for IsBusy to become false (data loaded) using Polly retry policy
+                // This ensures the CollectionView is ready and SelectedChapter is set before scrolling
+                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
+
+                // Small additional delay to ensure CollectionView is rendered
+                await Task.Delay(200, cancellationTokenSource.Token);
+
+                // Scroll to selected chapter - matching the pattern used in ChapterSelection.xaml.cs
                 if (ViewModel.SelectedChapter != null && chapterCollectionView != null)
                 {
                     await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter, animated: false, cancellationToken: cancellationTokenSource.Token);

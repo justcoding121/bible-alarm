@@ -58,7 +58,7 @@
             <CollectionView
                 x:Name="bookCollectionView"
                 Grid.Row="1"
-                Margin="0,8,0,0"
+                Margin="0,8,0,20"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"

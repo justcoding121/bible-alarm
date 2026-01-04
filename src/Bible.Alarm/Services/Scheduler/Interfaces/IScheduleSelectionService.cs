@@ -1,3 +1,4 @@
+#nullable enable
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 

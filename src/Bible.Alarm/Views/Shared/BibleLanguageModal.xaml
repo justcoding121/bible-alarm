@@ -107,7 +107,7 @@
             <CollectionView
                 x:Name="LanguageCollectionView"
                 Grid.Row="2"
-                Margin="0,8,0,0"
+                Margin="0,8,0,20"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"

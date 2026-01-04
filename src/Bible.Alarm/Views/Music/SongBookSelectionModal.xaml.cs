@@ -38,6 +38,13 @@ public partial class SongBookSelectionModal : BaseContentPage, IDisposable
                 // Force hide busy overlay since binding might not work
                 ForceHideBusyOverlay();
 
+                // Wait for IsBusy to become false (data loaded) using Polly retry policy
+                // This ensures the CollectionView is ready and SelectedSongBook is set before scrolling
+                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
+
+                // Small additional delay to ensure CollectionView is rendered
+                await Task.Delay(200, cancellationTokenSource.Token);
+
                 if (ViewModel.SelectedSongBook != null && songBooksCollectionView != null)
                 {
                     await CollectionViewHelper.ScrollToWhenReadyAsync(songBooksCollectionView, ViewModel.SelectedSongBook, animated: false, cancellationToken: cancellationTokenSource.Token);

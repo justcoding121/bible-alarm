@@ -95,7 +95,15 @@ public sealed class BibleSelectionPropertyManager : ObservableObject
     {
         if (Languages != null)
         {
+            var selectedLanguages = Languages.Where(l => l.IsSelected).ToList();
             var selectedLanguage = Languages.FirstOrDefault(l => l.IsSelected);
+
+            if (selectedLanguages.Count > 1)
+            {
+                Serilog.Log.Warning("[BibleSelectionPropertyManager] Multiple languages selected: {Languages}",
+                    string.Join(", ", selectedLanguages.Select(l => $"{l.Name} ({l.Code})")));
+            }
+
             if (selectedLanguage != null)
             {
                 CurrentLanguage = selectedLanguage;

@@ -71,11 +71,17 @@ public sealed class BibleTranslationService(IServiceScopeFactory scopeFactory, I
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BibleTranslations
+            var bibleTranslationsCount = await dbContext.BibleTranslations.CountAsync(cancellationToken);
+            var distinctLanguages = await dbContext.BibleTranslations
                 .AsNoTracking()
                 .Select(x => x.Language)
                 .Distinct()
-                .ToDictionaryAsync(x => x.Code, x => x, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            logger.Information("BibleTranslationService.GetDistinctLanguagesAsync: Found {TranslationCount} Bible translations across {LanguageCount} distinct languages",
+                bibleTranslationsCount, distinctLanguages.Count);
+
+            return distinctLanguages.ToDictionary(x => x.Code, x => x);
         }
         catch (Exception ex)
         {

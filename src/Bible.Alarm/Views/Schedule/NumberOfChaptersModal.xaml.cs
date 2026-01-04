@@ -69,9 +69,19 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel?.CurrentNumberOfChapters != null && ChaptersCollectionView != null)
+        try
         {
-            await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, cancellationToken: cancellationTokenSource.Token);
+            if (ViewModel?.CurrentNumberOfChapters != null && ChaptersCollectionView != null)
+            {
+                // Small delay to ensure CollectionView is rendered
+                await Task.Delay(200, cancellationTokenSource.Token);
+
+                await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, animated: false, cancellationToken: cancellationTokenSource.Token);
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Error in NumberOfChaptersModal.OnAppearing");
         }
     }
 

@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Bible;
@@ -46,15 +47,35 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
                     var bibleViewModel = ViewModel as BibleSelectionViewModel;
                     if (bibleViewModel != null)
                     {
-                        // Ensure initialization is complete and busy is turned off
+                        // Ensure initialization is complete and busy is turned off first
                         await bibleViewModel.RefreshFromState();
 
                         // Force hide busy overlay since binding might not work
                         ForceHideBusyOverlay();
 
-                        if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
+                        // Clear search term to show all languages when modal opens
+                        // This ensures the selected language is visible and scrollable
+                        try
                         {
-                            await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, cancellationToken: cancellationTokenSource.Token);
+                            bibleViewModel.LanguageSearchTerm = string.Empty;
+                        }
+                        catch
+                        {
+                            // Ignore errors when clearing search term
+                        }
+
+                        // Wait for IsBusy to become false (data loaded) using Polly retry policy
+                        // This ensures the CollectionView is ready and languages are populated before scrolling
+                        await CollectionViewHelper.WaitForNotBusyAsync(() => bibleViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
+
+                        // Small additional delay to ensure CollectionView is rendered
+                        await Task.Delay(200, cancellationTokenSource.Token);
+
+                        // Find the currently selected language in the collection
+                        var selectedLanguage = bibleViewModel.Languages?.FirstOrDefault(l => l.IsSelected);
+                        if (selectedLanguage != null && LanguageCollectionView != null)
+                        {
+                            await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, selectedLanguage, animated: false, cancellationToken: cancellationTokenSource.Token);
                         }
                     }
                 }

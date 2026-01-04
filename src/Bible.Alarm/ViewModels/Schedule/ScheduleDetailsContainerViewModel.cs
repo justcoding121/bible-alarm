@@ -74,21 +74,35 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private void SignalContainerReady()
     {
         // Check if already signaled or already marked ready in state
+        // This check must happen first to prevent any duplicate work
         if (hasSignaledReady || state.Value.ContainerReadiness.ScheduleDetails) return;
         
         // Check if action is already queued to prevent duplicate queued actions
+        // This prevents multiple rapid calls from queuing multiple actions
         if (isReadyActionQueued) return;
+        
+        // Atomically set both flags to prevent race conditions
+        // If another thread/call checks between these lines, it will see isReadyActionQueued=true
         isReadyActionQueued = true;
         hasSignaledReady = true;
         
+        // Double-check state immediately after setting flags (before queuing)
+        // This catches the case where state changed between the initial check and flag setting
+        if (state.Value.ContainerReadiness.ScheduleDetails)
+        {
+            // State already shows ready, reset flags and return
+            isReadyActionQueued = false;
+            hasSignaledReady = true;
+            return;
+        }
+        
         // Dispatch to state that this container is ready
-        // Check state again inside the queued action to prevent race conditions
+        // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
             isReadyActionQueued = false; // Reset flag when action executes
             
-            // Double-check state before dispatching to prevent duplicates from queued actions
-            // If state already shows we're ready, another action already handled it
+            // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.ScheduleDetails)
             {
                 // Ensure flag is set to prevent future attempts
@@ -109,6 +123,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         if (hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null)
         {
             hasSignaledReady = false;
+            isReadyActionQueued = false; // Reset queued flag as well
             // Re-initialize and signal ready again
             InitializeFromState();
             return;
@@ -126,6 +141,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
         {
             hasSignaledReady = false;
+            isReadyActionQueued = false; // Reset queued flag as well
             InitializeFromState();
             return;
         }

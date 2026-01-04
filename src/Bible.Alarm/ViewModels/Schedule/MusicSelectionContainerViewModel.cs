@@ -52,6 +52,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private bool isReadyActionQueued;
 
     private bool isUpdatingFromState;
+    private bool isMusicEnabledNotificationQueued;
     private bool? pendingMusicEnabled; // Optimistic update value
     private bool? initialMusicEnabledOnPageLoad; // Track MusicEnabled state when schedule page was first opened
 
@@ -162,21 +163,35 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private void SignalContainerReady()
     {
         // Check if already signaled or already marked ready in state
+        // This check must happen first to prevent any duplicate work
         if (hasSignaledReady || state.Value.ContainerReadiness.MusicSelection) return;
         
         // Check if action is already queued to prevent duplicate queued actions
+        // This prevents multiple rapid calls from queuing multiple actions
         if (isReadyActionQueued) return;
+        
+        // Atomically set both flags to prevent race conditions
+        // If another thread/call checks between these lines, it will see isReadyActionQueued=true
         isReadyActionQueued = true;
         hasSignaledReady = true;
         
+        // Double-check state immediately after setting flags (before queuing)
+        // This catches the case where state changed between the initial check and flag setting
+        if (state.Value.ContainerReadiness.MusicSelection)
+        {
+            // State already shows ready, reset flags and return
+            isReadyActionQueued = false;
+            hasSignaledReady = true;
+            return;
+        }
+        
         // Dispatch to state that this container is ready
-        // Check state again inside the queued action to prevent race conditions
+        // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
             isReadyActionQueued = false; // Reset flag when action executes
             
-            // Double-check state before dispatching to prevent duplicates from queued actions
-            // If state already shows we're ready, another action already handled it
+            // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.MusicSelection)
             {
                 // Ensure flag is set to prevent future attempts
@@ -217,6 +232,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         if (hasSignaledReady && !stateValue.ContainerReadiness.MusicSelection && currentSchedule != null)
         {
             hasSignaledReady = false;
+            isReadyActionQueued = false; // Reset queued flag as well
             // Re-initialize and signal ready again
             InitializeFromState();
             return;
@@ -240,6 +256,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             // Reset initial MusicEnabled tracking when a new schedule is opened
             initialMusicEnabledOnPageLoad = null;
             hasSignaledReady = false; // Reset for new schedule
+            isReadyActionQueued = false; // Reset queued flag as well
             InitializeFromState();
             // Recreate commands with updated scheduleId and isNewSchedule
             InitializeCommands();
@@ -260,16 +277,27 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             // Check if MusicEnabled changed by comparing with tracked previous value
             if (lastMusicEnabled != stateMusicEnabled)
             {
+                // Check if notification is already queued to prevent duplicate queued notifications
+                if (isMusicEnabledNotificationQueued)
+                {
+                    // Update tracked value but don't queue another notification
+                    lastMusicEnabled = stateMusicEnabled;
+                    pendingMusicEnabled = null;
+                    return;
+                }
+                
                 // State has a different value, update tracked value and notify
                 isUpdatingFromState = true;
                 try
                 {
                     lastMusicEnabled = stateMusicEnabled;
                     pendingMusicEnabled = null; // Clear pending when updating from state
+                    isMusicEnabledNotificationQueued = true; // Mark as queued
                     // Marshal to UI thread to ensure PropertyChanged events are raised on the correct thread
                     // This is important because OnStateChanged can be called from background threads
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
+                        isMusicEnabledNotificationQueued = false; // Reset flag when notification executes
                         OnPropertyChanged(nameof(MusicEnabled));
                     });
 
