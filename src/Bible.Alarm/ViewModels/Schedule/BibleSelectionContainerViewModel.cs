@@ -167,7 +167,6 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
         if (hasSignaledReady && !stateValue.ContainerReadiness.BibleSelection && currentSchedule != null)
         {
-            logger.Debug("BibleSelectionContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
             hasSignaledReady = false;
             // Re-initialize and signal ready again
             InitializeFromState();
@@ -247,16 +246,12 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         // If CurrentSchedule is null, skip (unless we're waiting for it to be set)
         if (currentSchedule == null)
         {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Skipping state change. CurrentSchedule: null, OurScheduleId: {ScheduleId}",
-                scheduleId);
             return false;
         }
         
         // If schedule IDs don't match and we already have a scheduleId, skip
         if (scheduleId > 0 && currentSchedule.Id > 0 && currentSchedule.Id != scheduleId)
         {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Skipping state change. CurrentSchedule: Id={CurrentScheduleId}, OurScheduleId: {ScheduleId}",
-                currentSchedule.Id, scheduleId);
             return false;
         }
         
@@ -265,30 +260,13 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
     private void LogStateChange(ScheduleStateItem? currentSchedule, BibleReadingStateItem? currentBibleReading)
     {
-        logger.Information("BibleSelectionContainerViewModel: OnStateChanged - CurrentSchedule: {CurrentSchedule}, CurrentBibleReadingSchedule: {CurrentBibleReadingSchedule}",
-            currentSchedule != null ? $"Id={currentSchedule.Id}" : "null",
-            currentBibleReading != null ? $"LanguageCode={currentBibleReading.LanguageCode}, PublicationCode={currentBibleReading.PublicationCode}" : "null");
-
-        if (currentSchedule != null)
-        {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - CurrentSchedule details. Id: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, BookNumber: {BookNumber}, BookName: {BookName}, ChapterNumber: {ChapterNumber}",
-                currentSchedule.Id,
-                currentSchedule.BibleReadingLanguageCode ?? "null",
-                currentSchedule.BibleReadingLanguageName ?? "null",
-                currentSchedule.BibleReadingPublicationCode ?? "null",
-                currentSchedule.BibleReadingPublicationName ?? "null",
-                currentSchedule.BibleReadingBookNumber ?? 0,
-                currentSchedule.BibleReadingBookName ?? "null",
-                currentSchedule.BibleReadingChapterNumber ?? 0);
-        }
+        // Logging removed - not needed for normal operation
     }
 
     private void HandleScheduleIdChange(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
         {
-            logger.Debug("BibleSelectionContainerViewModel: OnStateChanged - Schedule ID changed from {OldScheduleId} to {NewScheduleId}, initializing from state",
-                scheduleId, currentSchedule.Id);
             hasSignaledReady = false; // Reset for new schedule
             InitializeFromState();
             // Reset last processed state to ensure new schedule is processed
@@ -318,9 +296,6 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             // Only reset if progress is non-zero AND we haven't already reset for this cascade change
             if (currentProgress != TimeSpan.Zero && !progressResetForCurrentCascade)
             {
-                logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Cascade change detected, resetting BibleReadingFinishedDuration from {CurrentProgress} to zero",
-                    currentProgress);
-
                 progressResetForCurrentCascade = true;
                 // Run DeepClone and mapping on background thread to avoid blocking UI
                 _ = Task.Run(() =>
@@ -330,12 +305,6 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
                     scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
                     dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
                 });
-
-                logger.Information("BibleSelectionContainerViewModel: OnStateChanged - Dispatched UpdateScheduleFromViewModelAction to reset progress. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-                    changeInfo.CurrentLanguageCode ?? "null",
-                    changeInfo.CurrentPublicationCode ?? "null",
-                    changeInfo.CurrentBookNumber?.ToString() ?? "null",
-                    changeInfo.CurrentChapterNumber?.ToString() ?? "null");
             }
         }
     }

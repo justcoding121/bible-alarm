@@ -63,7 +63,6 @@ public sealed class BibleSelectionPropertyManager : ObservableObject
         set
         {
 #if DEBUG
-            Serilog.Log.Debug("BibleSelectionPropertyManager: IsBusy set to {Value}", value);
 #endif
             SetProperty(ref isBusy, value);
         }

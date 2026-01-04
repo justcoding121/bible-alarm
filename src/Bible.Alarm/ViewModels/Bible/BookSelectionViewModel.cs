@@ -49,13 +49,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         this.dispatcher = dispatcher;
         this.mapper = mapper;
 
-        // Log current state when view model is created
-        var currentState = state.Value;
-        logger.Information("BookSelectionViewModel: Constructor - CurrentBibleReadingSchedule: {CurrentBibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-            currentState.CurrentBibleReadingSchedule != null ? "not null" : "null",
-            currentState.CurrentBibleReadingSchedule?.LanguageCode ?? "null",
-            currentState.CurrentBibleReadingSchedule?.PublicationCode ?? "null");
-
         // Don't initialize here - let OnBibleReadingInitialized handle it
         // This ensures we always get the latest state when the modal opens
         // But we need to initialize tracking variables to null so OnBibleReadingInitialized can detect changes
@@ -84,7 +77,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) ||
                 string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode))
             {
-                logger.Warning("BookSelectionViewModel: ChapterSelectionCommand - CurrentSchedule is null or missing required properties");
                 return;
             }
 
@@ -111,23 +103,17 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 if (chapters.ContainsKey(currentChapterNumber))
                 {
                     chapterNumber = currentChapterNumber;
-                    logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), preserving current chapter {ChapterNumber}",
-                        x.Name, chapterNumber);
                 }
                 else
                 {
                     // Current chapter doesn't exist in this book, use first chapter
                     chapterNumber = chapters.Values.First().Number;
-                    logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Same book selected ({BookName}), but current chapter {CurrentChapter} doesn't exist, using first chapter {FirstChapter}",
-                        x.Name, currentChapterNumber, chapterNumber);
                 }
             }
             else
             {
                 // Different book selected, use first chapter
                 chapterNumber = chapters.Values.First().Number;
-                logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Different book selected ({BookName}, was {CurrentBook}), using first chapter {FirstChapter}",
-                    x.Name, currentBookNumber?.ToString() ?? "null", chapterNumber);
             }
 
             // Create BibleReadingStateItem with selected book and chapter
@@ -144,9 +130,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 PublicationName = currentSchedule.BibleReadingPublicationName,
                 BookName = x.Name
             };
-
-            logger.Information("BookSelectionViewModel: ChapterSelectionCommand - Dispatching ChapterSelectedAction. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-                bibleReadingItem.LanguageCode, bibleReadingItem.PublicationCode, bibleReadingItem.BookNumber, bibleReadingItem.ChapterNumber);
 
             // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
             // Effect will automatically sync to CurrentSchedule
@@ -190,7 +173,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         // Subsequent state changes should be handled by OnBibleReadingChanged
         if (initComplete)
         {
-            logger.Warning("BookSelectionViewModel: OnBibleReadingInitialized - Already initialized, ignoring call");
             return;
         }
 
@@ -209,7 +191,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
         {
-            logger.Warning("BookSelectionViewModel: RefreshFromState - CurrentSchedule is null, returning");
             return;
         }
 
@@ -217,15 +198,8 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
 
-        logger.Information("BookSelectionViewModel: RefreshFromState - CurrentSchedule: Id={ScheduleId}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, InitComplete: {InitComplete}",
-            currentSchedule.Id,
-            newLanguageCode ?? "null",
-            newPublicationCode ?? "null",
-            initComplete);
-
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
-            logger.Warning("BookSelectionViewModel: RefreshFromState - LanguageCode or PublicationCode is null/empty, returning");
             return;
         }
 
@@ -233,11 +207,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = languageChanged || publicationCodeChanged || !initComplete;
-
-        logger.Information("BookSelectionViewModel: RefreshFromState - LanguageChanged: {LanguageChanged} ({LastLang} -> {NewLang}), PublicationChanged: {PublicationChanged} ({LastPub} -> {NewPub}), NeedsRepopulation: {NeedsRepopulation}",
-            languageChanged, lastLanguageCode ?? "null", newLanguageCode,
-            publicationCodeChanged, lastPublicationCode ?? "null", newPublicationCode,
-            needsRepopulation);
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
@@ -270,9 +239,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         // Initialize or repopulate with the current language/publication
         if (needsRepopulation)
         {
-            logger.Information("BookSelectionViewModel: RefreshFromState - Starting repopulation with LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-                newLanguageCode, newPublicationCode);
-
             try
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
@@ -288,9 +254,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
                 // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-
-                logger.Information("BookSelectionViewModel: RefreshFromState - Repopulation completed. Books count: {BooksCount}, SelectedBook: {SelectedBook}",
-                    Books?.Count ?? 0, SelectedBook?.Name ?? "null");
             }
             catch (Exception ex)
             {
@@ -301,7 +264,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         }
         else
         {
-            logger.Information("BookSelectionViewModel: RefreshFromState - No repopulation needed, updating selected book");
             // Update selected book when state changes (e.g., after navigating back)
             // Ensure this runs on main thread for UI updates
             MainThread.BeginInvokeOnMainThread(() => SetSelectedBook());
@@ -360,17 +322,11 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
     private async Task PopulateBooks(string languageCode, string publicationCode)
     {
-        logger.Information("BookSelectionViewModel: PopulateBooks - Starting with LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-            languageCode, publicationCode);
-
         bookVMsMapping.Clear();
 
         // Run database operations off UI thread
         var books = await Task.Run(async () =>
             await mediaService.GetBibleBooks(languageCode, publicationCode));
-
-        logger.Information("BookSelectionViewModel: PopulateBooks - Retrieved {BooksCount} books from database for LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-            books?.Count ?? 0, languageCode, publicationCode);
 
         if (books == null)
         {
@@ -415,9 +371,6 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             {
                 SelectedBook = selectedBook;
             }
-            
-            logger.Information("BookSelectionViewModel: PopulateBooks - Assigned {BooksCount} books to UI. SelectedBook: {SelectedBook}",
-                bookViewModelList.Count, SelectedBook?.Name ?? "null");
         });
     }
 }

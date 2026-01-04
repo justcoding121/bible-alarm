@@ -50,8 +50,6 @@ public sealed class ChapterSelectionCommandHandler(
             BookName = currentSchedule.BibleReadingBookName
         };
 
-        logger.Information("ChapterSelectionViewModel: SetChapterCommand - Dispatching ChapterSelectedAction. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-            chapterSelectedItem.LanguageCode, chapterSelectedItem.PublicationCode, chapterSelectedItem.BookNumber, chapterSelectedItem.ChapterNumber);
 
         dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
 

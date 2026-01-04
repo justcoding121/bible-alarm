@@ -80,17 +80,17 @@ public class HomeNavigationHelper
 
         scheduleListItem.Schedule.IsEnabled = scheduleListItem.IsEnabled;
 
-        // Navigate FIRST to show the page immediately
-        await navigationService.NavigateToScheduleAsync();
-
-        // Prepare schedule state item AFTER navigation completes
+        // Prepare schedule state item BEFORE navigation
+        // This ensures CurrentSchedule is set in state before the page initializes
+        // The reducer will DeepClone it, so we don't need to clone here
         var sourceScheduleStateItem = GetSourceScheduleStateItem(scheduleListItem.Schedule.Id, scheduleViewModels);
 
-        // DeepClone uses JSON serialization which is CPU-intensive
-        var scheduleStateItem = await Task.Run(() => sourceScheduleStateItem.DeepClone());
+        // Dispatch action to set CurrentSchedule BEFORE navigation
+        // This prevents ScheduleStateManager from creating a sample schedule
+        dispatcher.Dispatch(new ViewScheduleAction(sourceScheduleStateItem));
 
-        // Dispatch action to load schedule data
-        dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
+        // Navigate AFTER dispatching action so CurrentSchedule is already set when page initializes
+        await navigationService.NavigateToScheduleAsync();
     }
 
     private ScheduleStateItem GetSourceScheduleStateItem(int scheduleId, Dictionary<int, ScheduleListItemViewModel> scheduleViewModels)

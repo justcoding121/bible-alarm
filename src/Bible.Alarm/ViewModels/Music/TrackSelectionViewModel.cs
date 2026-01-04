@@ -117,7 +117,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         var stateValue = state.Value;
         if (stateValue.CurrentSchedule == null)
         {
-            logger.Warning("TrackSelectionViewModel: RefreshFromState - CurrentSchedule is null, returning");
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
         }
@@ -129,7 +128,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
         if (!musicType.HasValue || string.IsNullOrEmpty(publicationCode))
         {
-            logger.Warning("TrackSelectionViewModel: RefreshFromState - MusicType or PublicationCode is null/empty, returning");
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
         }
@@ -137,7 +135,6 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // For vocals, language code is required
         if (musicType.Value == MusicType.Vocals && string.IsNullOrEmpty(languageCode))
         {
-            logger.Warning("TrackSelectionViewModel: RefreshFromState - LanguageCode is required for vocal music, returning");
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
         }

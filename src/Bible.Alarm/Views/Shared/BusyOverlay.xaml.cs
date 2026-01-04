@@ -30,24 +30,11 @@ public partial class BusyOverlay : ContentView
             {
                 logger.Debug("BusyOverlay.IsVisible: Setting from {OldValue} to {NewValue} (via property setter)", oldValue, value);
                 SetValue(IsVisibleProperty, value);
-
-                var opacity = value ? 1.0 : 0.0;
-                var inputTransparent = !value; // When visible, don't allow input through (false), when hidden, allow input through (true)
+                // Note: OnIsVisibleChanged will be called automatically by BindableProperty, which handles opacity/InputTransparent
+                // We only need to handle spinner start/stop here for immediate feedback
                 
-                // Set opacity and InputTransparent on both the ContentView itself and the inner Grid
-                // This ensures input is properly blocked/allowed at all levels
-                this.InputTransparent = inputTransparent;
-                
-                if (overlayGrid != null)
-                {
-                    overlayGrid.Opacity = opacity;
-                    overlayGrid.InputTransparent = inputTransparent;
-                    logger.Debug("BusyOverlay.IsVisible: Set ContentView.InputTransparent to {InputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {InputTransparent} immediately", inputTransparent, opacity, inputTransparent);
-                }
-
                 // Force spinner to start/stop immediately when visibility changes
                 // This ensures smooth animation without binding delays
-                // Use Dispatch to ensure XAML is fully loaded
                 if (value)
                 {
                     // Wait for next UI cycle to ensure XAML is fully loaded
@@ -133,40 +120,12 @@ public partial class BusyOverlay : ContentView
 
     private void OnBusyOverlayLoaded(object? sender, EventArgs e)
     {
-        // When overlay is loaded, if it's visible, ensure opacity and InputTransparent are set and spinner starts immediately
-        if (IsVisible)
+        // OnIsVisibleChanged already handles opacity and InputTransparent setup
+        // We only need to ensure spinner starts if overlay is visible when loaded
+        if (IsVisible && busyIndicator != null)
         {
-            logger.Debug("BusyOverlay: Loaded and visible, setting opacity, InputTransparent and starting spinner immediately");
-            
-            // Set InputTransparent on the ContentView itself (block input when visible)
-            this.InputTransparent = false;
-            
-            // Set opacity and InputTransparent directly to ensure it's visible and blocks input immediately
-            if (overlayGrid != null)
-            {
-                overlayGrid.Opacity = 1.0;
-                overlayGrid.InputTransparent = false; // When visible, block input
-                logger.Debug("BusyOverlay: Set ContentView.InputTransparent to false, overlayGrid.Opacity to 1.0, overlayGrid.InputTransparent to false on load");
-            }
-            
-            // Start spinner
-            if (busyIndicator != null)
-            {
-                busyIndicator.IsRunning = true;
-            }
-        }
-        else
-        {
-            // When overlay is loaded but not visible, ensure it allows input through
-            // Set InputTransparent on the ContentView itself (allow input when hidden)
-            this.InputTransparent = true;
-            
-            if (overlayGrid != null)
-            {
-                overlayGrid.Opacity = 0.0;
-                overlayGrid.InputTransparent = true; // When hidden, allow input through
-                logger.Debug("BusyOverlay: Loaded but not visible, set ContentView.InputTransparent to true, overlayGrid.Opacity to 0.0, overlayGrid.InputTransparent to true on load");
-            }
+            logger.Debug("BusyOverlay: Loaded and visible, starting spinner immediately");
+            busyIndicator.IsRunning = true;
         }
 
         // Unsubscribe after first load

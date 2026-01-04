@@ -122,8 +122,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             if (!initialMusicEnabledOnPageLoad.HasValue)
             {
                 initialMusicEnabledOnPageLoad = currentSchedule.MusicEnabled;
-                logger.Information("MusicSelectionContainerViewModel: InitializeFromState - Tracked initial MusicEnabled={MusicEnabled} for schedule {ScheduleId}",
-                    initialMusicEnabledOnPageLoad.Value, scheduleId);
             }
 
             // Initialize last values from CurrentSchedule
@@ -211,7 +209,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
         if (hasSignaledReady && !stateValue.ContainerReadiness.MusicSelection && currentSchedule != null)
         {
-            logger.Debug("MusicSelectionContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
             hasSignaledReady = false;
             // Re-initialize and signal ready again
             InitializeFromState();
@@ -346,12 +343,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
             if (notifyMusicType || notifyLanguage || notifySongBook || notifyTrack || repeatChanged)
             {
-                logger.Debug("MusicSelectionContainerViewModel: CurrentSchedule music changed. MusicType: {OldType} -> {NewType}, LanguageCode: {OldLang} -> {NewLang}, PublicationCode: {OldPub} -> {NewPub}, TrackNumber: {OldTrack} -> {NewTrack}",
-                    lastScheduleMusicType, scheduleMusicType,
-                    lastScheduleMusicLanguageCode, scheduleMusicLanguageCode,
-                    lastScheduleMusicPublicationCode, scheduleMusicPublicationCode,
-                    lastScheduleMusicTrackNumber, scheduleMusicTrackNumber);
-
                 // Update last values
                 lastScheduleMusicType = scheduleMusicType;
                 lastScheduleMusicTrackNumber = scheduleMusicTrackNumber;

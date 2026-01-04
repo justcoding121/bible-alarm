@@ -170,7 +170,6 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
         if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfChapter && currentSchedule != null)
         {
-            logger.Debug("NumberOfChapterContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
             hasSignaledReady = false;
             // Re-initialize and signal ready again
             InitializeFromState();

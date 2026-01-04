@@ -101,7 +101,6 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
         if (hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null)
         {
-            logger.Debug("ScheduleDetailsContainerViewModel: ContainerReadiness reset to NotReady, resetting hasSignaledReady flag and re-initializing");
             hasSignaledReady = false;
             // Re-initialize and signal ready again
             InitializeFromState();
@@ -168,7 +167,6 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         get => name;
         set
         {
-            logger.Debug("Name: Setting value from '{OldValue}' to '{NewValue}'", name, value);
             if (SetProperty(ref name, value))
             {
                 DispatchScheduleUpdate(s => s.Name = value);

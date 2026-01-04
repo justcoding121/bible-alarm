@@ -92,9 +92,16 @@ public sealed class BibleSelectionStateHandler
                 };
             }
 
-            // Always populate languages, even if initComplete is true but languages aren't populated
-            // This handles the case where the modal opens before initialization completes
-            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
+            // Check if languages are already populated before setting IsBusy to true
+            // This avoids unnecessary busy overlay toggling when languages are already loaded
+            var needsLanguagePopulation = languages == null || languages.Count == 0;
+            
+            // Only set IsBusy to true if we actually need to populate languages
+            // This prevents the quick show/hide toggle when languages are already populated
+            if (needsLanguagePopulation)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
+            }
 
             if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
             {
@@ -119,8 +126,11 @@ public sealed class BibleSelectionStateHandler
             // Update CurrentLanguage after languages are populated
             updateCurrentLanguage?.Invoke();
 
-            // CollectionView needs a moment to render before hiding the busy indicator
-            await Task.Delay(100);
+            // CollectionView needs a moment to render before hiding the busy indicator (only if we showed it)
+            if (needsLanguagePopulation)
+            {
+                await Task.Delay(100);
+            }
 
             // Set initComplete to true only after languages are successfully populated
             initComplete = true;
@@ -152,7 +162,11 @@ public sealed class BibleSelectionStateHandler
                 }
             }
 
-            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+            // Only set IsBusy to false if we set it to true earlier
+            if (needsLanguagePopulation)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+            }
         }
         catch (Exception ex)
         {

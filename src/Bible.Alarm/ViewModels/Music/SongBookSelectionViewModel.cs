@@ -284,7 +284,6 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
             if (languageToSelect == null)
             {
                 languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == "E");
-                Serilog.Log.Debug("SongBookSelectionViewModel: No language in schedule, defaulting to English for Vocals");
             }
 
             if (languageToSelect != null)
@@ -292,7 +291,6 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
                 propertyManager.CurrentLanguage = languageToSelect;
                 languageToSelect.IsSelected = true;
                 languageCodeToUse = languageToSelect.Code;
-                Serilog.Log.Debug("SongBookSelectionViewModel: Selected language '{Language}' for Vocals", languageToSelect.Name);
             }
         }
         else if (propertyManager.CurrentLanguage != null)

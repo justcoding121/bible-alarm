@@ -60,14 +60,12 @@ public sealed class BibleSelectionCommandHandler
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
-                Log.Warning("BibleSelectionCommandHandler: Cannot execute BookSelectionCommand - CurrentSchedule is null");
                 return;
             }
 
             var languageCode = currentSchedule.BibleReadingLanguageCode;
             if (string.IsNullOrEmpty(languageCode))
             {
-                Log.Warning("BibleSelectionCommandHandler: Cannot execute BookSelectionCommand - no language code in CurrentSchedule");
                 return;
             }
 
@@ -91,24 +89,17 @@ public sealed class BibleSelectionCommandHandler
 
             var itemSelector = new BibleSelectionItemSelector(mediaService, state);
             var (bookNumber, chapterNumber, bookName) = await itemSelector.GetBookAndChapterForTranslationAsync(x, currentLanguage);
-            Log.Debug("BibleSelectionCommandHandler: GetBookAndChapterForTranslationAsync returned - BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}, BookName: {BookName}",
-                bookNumber, chapterNumber, bookName);
             
             if (bookNumber == 0)
             {
-                Log.Warning("BibleSelectionCommandHandler: BookNumber is 0, cannot proceed");
                 return;
             }
 
             var bibleReadingItem = CreateBibleReadingItemFromSelection(x, bookNumber, chapterNumber, bookName, currentLanguage, currentSchedule);
-            Log.Debug("BibleSelectionCommandHandler: Created BibleReadingStateItem - LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-                bibleReadingItem.LanguageCode, bibleReadingItem.PublicationCode, bibleReadingItem.BookNumber, bibleReadingItem.ChapterNumber);
             
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBibleReadingSelectionActions(bibleReadingItem);
-            Log.Debug("BibleSelectionCommandHandler: Actions dispatched, popping modal");
             await navigationService.PopModalAsync();
-            Log.Debug("BibleSelectionCommandHandler: Modal popped successfully");
         });
     }
 

@@ -46,7 +46,6 @@ public sealed class TrackSelectionHandler(
             !currentSchedule.MusicType.HasValue ||
             string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
-            logger.Warning("TrackSelectionHandler: HandleTrackSelection - CurrentSchedule is null or missing required properties");
             return;
         }
 
@@ -73,9 +72,6 @@ public sealed class TrackSelectionHandler(
             PublicationName = currentSchedule.MusicPublicationName,
             TrackName = track.Title
         };
-
-        logger.Information("TrackSelectionHandler: HandleTrackSelection - Dispatching TrackSelectedAction. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
-            trackSelectedItem.MusicType, trackSelectedItem.LanguageCode ?? "null", trackSelectedItem.PublicationCode, trackSelectedItem.TrackNumber);
 
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 

@@ -37,7 +37,6 @@ public sealed class TrackListManager(
             {
                 if (string.IsNullOrEmpty(languageCode))
                 {
-                    logger.Warning("LanguageCode is required for vocal music tracks");
                     return;
                 }
                 tracksFromDb = await Task.Run(async () =>

@@ -54,7 +54,6 @@ public class MusicEnabledHandler
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null)
         {
-            logger.Warning("MusicEnabled setter: CurrentSchedule is null, cannot update");
             return false;
         }
 
@@ -62,20 +61,16 @@ public class MusicEnabledHandler
         if (currentValue == value)
         {
             // Value hasn't changed, don't dispatch
-            logger.Debug("MusicEnabled setter: Value unchanged ({Value}), skipping", value);
             return false;
         }
 
         // Prevent dispatching if this update is coming from state (not user interaction)
         if (isUpdatingFromState)
         {
-            logger.Debug("MusicEnabled setter: Update from state, skipping dispatch");
             setPendingMusicEnabled(false); // Clear pending when updating from state
             onPropertyChanged();
             return false;
         }
-
-        logger.Debug("MusicEnabled setter: Setting to {Value} (was {CurrentValue})", value, currentValue);
 
         // Set optimistic update value immediately
         setPendingMusicEnabled(value);
@@ -83,7 +78,6 @@ public class MusicEnabledHandler
         // Trigger PropertyChanged immediately to update UI (must be on UI thread for MAUI)
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            logger.Debug("MusicEnabled setter: Calling OnPropertyChanged on UI thread");
             onPropertyChanged();
         });
 
@@ -124,8 +118,6 @@ public class MusicEnabledHandler
                         const string DefaultPublicationCode = "iam";
                         var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
 
-                        logger.Information("MusicEnabled: First enable after opening schedule with music disabled, resetting to default music (same as new schedule)");
-
                         // Get default music from DB (same as sample schedule)
                         var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(DefaultPublicationCode);
 
@@ -138,7 +130,6 @@ public class MusicEnabledHandler
                             var latestSchedule = state.Value.CurrentSchedule;
                             if (latestSchedule == null)
                             {
-                                logger.Warning("MusicEnabled: CurrentSchedule is null when resetting to default music");
                                 return;
                             }
 
@@ -149,7 +140,6 @@ public class MusicEnabledHandler
                                 latestSchedule.MusicTrackNumber == randomTrack.Number &&
                                 latestSchedule.MusicEnabled == true)
                             {
-                                logger.Debug("MusicEnabled: Music properties already match default, skipping redundant update");
                                 return;
                             }
 
@@ -167,18 +157,8 @@ public class MusicEnabledHandler
                             scheduleStateItem.MusicRepeat = false;
                             scheduleStateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
 
-                            logger.Information("MusicEnabled: Resetting to default music. MusicType={MusicType}, TrackNumber={TrackNumber}",
-                                scheduleStateItem.MusicType, scheduleStateItem.MusicTrackNumber);
-
                             // Update state with music properties (MusicEnabled should already be true from first dispatch)
                             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
-
-                            logger.Information("MusicEnabled: Reset to default music. MusicType=Melodies, TrackNumber={TrackNumber}, TrackName={TrackName}",
-                                randomTrack.Number, scheduleStateItem.MusicTrackName);
-                        }
-                        else
-                        {
-                            logger.Warning("MusicEnabled: Could not load default music from DB. Melody music or tracks not found.");
                         }
                     }
                     catch (Exception ex)
@@ -191,8 +171,6 @@ public class MusicEnabledHandler
             {
                 // Subsequent enable or music was already enabled on page load
                 // Preserve existing music selection
-                logger.Information("MusicEnabled: Re-enabling music, preserving existing music selection. InitialMusicEnabledOnPageLoad={InitialMusicEnabled}",
-                    initialMusicEnabledOnPageLoad?.ToString() ?? "null");
             }
         }
 

@@ -35,7 +35,6 @@ public partial class Schedule : BaseContentPage, IDisposable
         if (scheduleBusyOverlay != null)
         {
             scheduleBusyOverlay.IsVisible = true;
-            Log.Debug("Schedule.xaml.cs: Constructor - Set busy overlay to visible");
         }
 
         BindingContext = viewModel;
@@ -85,8 +84,6 @@ public partial class Schedule : BaseContentPage, IDisposable
         // Mark content as loaded
         isContentLoaded = true;
 
-        Log.Debug("Schedule.xaml.cs: Content loaded, calling OnContentLoaded. isContentLoaded={IsContentLoaded}", isContentLoaded);
-
         // Notify ViewModel that content is loaded - it will hide overlay if containers are ready
         viewModel?.OnContentLoaded();
     }
@@ -104,7 +101,6 @@ public partial class Schedule : BaseContentPage, IDisposable
             // It will be synced when ViewModel is ready
             if (viewModel == null)
             {
-                Log.Debug("Schedule.xaml.cs: ViewModel not ready yet, keeping overlay visible (default)");
                 scheduleBusyOverlay.IsVisible = true;
                 return;
             }
@@ -118,20 +114,13 @@ public partial class Schedule : BaseContentPage, IDisposable
                 // ViewModel says show - always show
                 if (!scheduleBusyOverlay.IsVisible)
                 {
-                    Log.Debug("Schedule.xaml.cs: Syncing overlay with state - showing (IsVisible=true)");
                     scheduleBusyOverlay.IsVisible = true;
                 }
             }
             else if (scheduleBusyOverlay.IsVisible && isContentLoaded)
             {
                 // ViewModel says hide AND content is loaded - safe to hide
-                Log.Debug("Schedule.xaml.cs: Syncing overlay with state - hiding (IsVisible=false, content loaded)");
                 scheduleBusyOverlay.IsVisible = false;
-            }
-            else if (!shouldBeVisible && !isContentLoaded)
-            {
-                // ViewModel says hide but content not loaded yet - keep visible
-                Log.Debug("Schedule.xaml.cs: ViewModel says hide but content not loaded - keeping overlay visible");
             }
         });
     }
@@ -181,11 +170,9 @@ public partial class Schedule : BaseContentPage, IDisposable
                     // Don't hide overlay until content is loaded
                     if (!newValue && !isContentLoaded)
                     {
-                        Log.Debug("Schedule.xaml.cs: Preventing overlay hide - content not loaded yet");
                         return;
                     }
 
-                    Log.Debug("Schedule.xaml.cs: State changed - overlay IsVisible={Value}", newValue);
                     scheduleBusyOverlay.IsVisible = newValue;
                 }
             });
@@ -206,7 +193,6 @@ public partial class Schedule : BaseContentPage, IDisposable
         // If content is already loaded, we're coming back from a modal - don't show overlay
         if (isContentLoaded)
         {
-            Log.Debug("Schedule.xaml.cs: OnAppearing - Content already loaded, skipping overlay (modal was closed)");
             return;
         }
 
@@ -222,7 +208,6 @@ public partial class Schedule : BaseContentPage, IDisposable
         if (scheduleBusyOverlay != null)
         {
             scheduleBusyOverlay.IsVisible = true;
-            Log.Debug("Schedule.xaml.cs: OnAppearing - Forcing overlay visible (will sync with state later)");
         }
 
         // Sync with state (but won't hide if content not loaded due to our fix in SyncOverlayWithState)

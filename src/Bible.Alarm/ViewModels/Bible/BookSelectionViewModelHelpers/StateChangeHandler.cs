@@ -60,7 +60,6 @@ public class StateChangeHandler
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
         {
-            logger.Warning("BookSelectionViewModel: OnBibleReadingChanged - CurrentSchedule is null, returning");
             return;
         }
 
@@ -68,15 +67,8 @@ public class StateChangeHandler
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
 
-        logger.Information("BookSelectionViewModel: OnBibleReadingChanged - CurrentSchedule: Id={ScheduleId}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, InitComplete: {InitComplete}",
-            currentSchedule.Id,
-            newLanguageCode ?? "null",
-            newPublicationCode ?? "null",
-            getInitComplete());
-
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
-            logger.Warning("BookSelectionViewModel: OnBibleReadingChanged - LanguageCode or PublicationCode is null/empty, returning");
             return;
         }
 
@@ -85,15 +77,9 @@ public class StateChangeHandler
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = languageChanged || publicationCodeChanged;
 
-        logger.Information("BookSelectionViewModel: OnBibleReadingChanged - LanguageChanged: {LanguageChanged} ({LastLang} -> {NewLang}), PublicationChanged: {PublicationChanged} ({LastPub} -> {NewPub}), NeedsRepopulation: {NeedsRepopulation}",
-            languageChanged, lastLanguageCode ?? "null", newLanguageCode,
-            publicationCodeChanged, lastPublicationCode ?? "null", newPublicationCode,
-            needsRepopulation);
-
         // If no changes detected and we're already initialized, skip
         if (!needsRepopulation && getInitComplete())
         {
-            logger.Debug("BookSelectionViewModel: OnBibleReadingChanged - No changes detected, returning");
             return;
         }
 
@@ -125,9 +111,6 @@ public class StateChangeHandler
         // If language or publication code changed, repopulate books
         if (needsRepopulation && getInitComplete())
         {
-            logger.Information("BookSelectionViewModel: OnBibleReadingChanged - Starting repopulation with LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-                newLanguageCode, newPublicationCode);
-
             Task.Run(async () =>
             {
                 try
@@ -135,9 +118,6 @@ public class StateChangeHandler
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
                     initialize(newLanguageCode, newPublicationCode);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
-
-                    logger.Information("BookSelectionViewModel: OnBibleReadingChanged - Repopulation completed. Books count: {BooksCount}",
-                        getBooks()?.Count ?? 0);
                 }
                 catch (Exception ex)
                 {
@@ -148,7 +128,6 @@ public class StateChangeHandler
         }
         else
         {
-            logger.Information("BookSelectionViewModel: OnBibleReadingChanged - No repopulation needed, updating selected book");
             // Update selected book when state changes (e.g., after navigating back)
             MainThread.BeginInvokeOnMainThread(setSelectedBook);
         }
