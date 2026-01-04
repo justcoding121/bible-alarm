@@ -45,86 +45,124 @@ public sealed class BibleSelectionStateHandler
         lastLanguageCode = initialLanguageCode;
     }
 
-    public async Task HandleBibleReadingInitializedAsync(Action<bool> setIsBusy, string? languageCode)
+    public async Task HandleBibleReadingInitializedAsync(Action<bool> setIsBusy, ObservableCollection<LanguageListViewItemModel>? languages, string? languageCode, Action? updateCurrentLanguage = null)
     {
-        if (initComplete)
+        var stateValue = state.Value;
+
+        // If already initialized and languages are populated, ensure IsBusy is false and skip
+        if (initComplete && languages != null && languages.Count > 0)
         {
+            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
             return;
         }
 
-        var stateValue = state.Value;
-
-        // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
-        string? newLanguageCode = null;
-        if (stateValue.CurrentSchedule != null)
+        try
         {
-            newLanguageCode = stateValue.CurrentSchedule.BibleReadingLanguageCode;
-        }
-
-        // Update tracking variable
-        if (!string.IsNullOrEmpty(newLanguageCode))
-        {
-            lastLanguageCode = newLanguageCode;
-        }
-
-        // Update current if we have CurrentBibleReadingSchedule (for other properties like PublicationCode)
-        if (stateValue.CurrentBibleReadingSchedule != null)
-        {
-            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
-            if (string.IsNullOrEmpty(lastLanguageCode))
+            // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
+            string? newLanguageCode = null;
+            if (stateValue.CurrentSchedule != null)
             {
-                lastLanguageCode = current.LanguageCode;
+                newLanguageCode = stateValue.CurrentSchedule.BibleReadingLanguageCode;
             }
-        }
-        else if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(newLanguageCode))
-        {
-            // Create a minimal BibleReadingSchedule from CurrentSchedule
-            current = new BibleReadingSchedule
+
+            // Update tracking variable
+            if (!string.IsNullOrEmpty(newLanguageCode))
             {
-                LanguageCode = newLanguageCode,
-                PublicationCode = stateValue.CurrentSchedule.BibleReadingPublicationCode,
-                BookNumber = stateValue.CurrentSchedule.BibleReadingBookNumber ?? 1,
-                ChapterNumber = stateValue.CurrentSchedule.BibleReadingChapterNumber ?? 1
-            };
-        }
+                lastLanguageCode = newLanguageCode;
+            }
 
-        initComplete = true;
-
-        await Task.Run(async () =>
-        {
-            try
+            // Update current if we have CurrentBibleReadingSchedule (for other properties like PublicationCode)
+            if (stateValue.CurrentBibleReadingSchedule != null)
             {
-                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
-
-                if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
+                current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+                if (string.IsNullOrEmpty(lastLanguageCode))
                 {
-                    // Initialize with current language code if we have a current schedule
-                    await InitializeAsync(current.LanguageCode);
+                    lastLanguageCode = current.LanguageCode;
                 }
-                else
-                {
-                    // For language modal use case, just populate languages without translations
-                    await dataProvider.PopulateLanguagesAsync(null, null);
-
-                    // Subscribe to LanguageSearchTerm property changes will be handled by the view model
-                }
-
-                // CollectionView needs a moment to render before hiding the busy indicator
-                await Task.Delay(100);
-
-                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
             }
-            catch (Exception ex)
+            else if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(newLanguageCode))
             {
-                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
-#if DEBUG
-                Log.Error(ex, "Error initializing BibleSelectionStateHandler");
-#endif
+                // Create a minimal BibleReadingSchedule from CurrentSchedule
+                current = new BibleReadingSchedule
+                {
+                    LanguageCode = newLanguageCode,
+                    PublicationCode = stateValue.CurrentSchedule.BibleReadingPublicationCode,
+                    BookNumber = stateValue.CurrentSchedule.BibleReadingBookNumber ?? 1,
+                    ChapterNumber = stateValue.CurrentSchedule.BibleReadingChapterNumber ?? 1
+                };
             }
-        });
+
+            // Always populate languages, even if initComplete is true but languages aren't populated
+            // This handles the case where the modal opens before initialization completes
+            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
+
+            if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
+            {
+                // Initialize with current language code if we have a current schedule
+                // Note: translations collection is not available here, will be populated in RefreshFromStateAsync
+                await InitializeAsync(current.LanguageCode, languages, null);
+            }
+            else
+            {
+                // For language modal use case, just populate languages without translations
+                // Pass the languages collection so it gets populated and displayed
+                // Ensure languages collection is not null - it should be initialized by property manager
+                if (languages == null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+                    return;
+                }
+
+                await dataProvider.PopulateLanguagesAsync(null, languages);
+            }
+
+            // Update CurrentLanguage after languages are populated
+            updateCurrentLanguage?.Invoke();
+
+            // CollectionView needs a moment to render before hiding the busy indicator
+            await Task.Delay(100);
+
+            // Set initComplete to true only after languages are successfully populated
+            initComplete = true;
+
+            // Set CurrentLanguage to the selected language for scrolling to work
+            if (languages != null)
+            {
+                var selectedLanguage = languages.FirstOrDefault(l => l.IsSelected);
+                if (selectedLanguage != null)
+                {
+                    // We need to set the CurrentLanguage property through the property manager
+                    // But we don't have direct access to it here. The property manager should be updated
+                    // when the state changes, but for the modal, we need to set it explicitly.
+                    // For now, let's set current to have the correct language code so SelectedItem works
+                    if (current == null)
+                    {
+                        current = new BibleReadingSchedule
+                        {
+                            LanguageCode = selectedLanguage.Code,
+                            PublicationCode = string.Empty,
+                            BookNumber = 1,
+                            ChapterNumber = 1
+                        };
+                    }
+                    else
+                    {
+                        current.LanguageCode = selectedLanguage.Code;
+                    }
+                }
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+        }
+        catch (Exception ex)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+            // Don't set initComplete on error so it can retry
+            // Don't re-throw - async void methods can't properly handle exceptions
+        }
     }
 
-    public async Task HandleBibleReadingChangedAsync(Action<bool> setIsBusy, Action setSelectedTranslation)
+    public async Task HandleBibleReadingChangedAsync(Action<bool> setIsBusy, Action setSelectedTranslation, ObservableCollection<PublicationListViewItemModel>? translations)
     {
         var stateValue = state.Value;
 
@@ -184,15 +222,12 @@ public sealed class BibleSelectionStateHandler
                     // Clear the mapping dictionary before repopulating
                     dataProvider.ClearTranslationVMsMapping();
                     // Pass languageChanged flag to PopulateTranslations so it can select default translation
-                    await dataProvider.PopulateTranslationsAsync(newLanguageCode, null, languageChanged);
+                    await dataProvider.PopulateTranslationsAsync(newLanguageCode, translations, languageChanged);
                     await Task.Delay(100);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
                 catch (Exception ex)
                 {
-#if DEBUG
-                    Log.Error(ex, "Error repopulating translations in BibleSelectionStateHandler");
-#endif
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
             });
@@ -248,7 +283,7 @@ public sealed class BibleSelectionStateHandler
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
             if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
             {
-                await dataProvider.PopulateTranslationsAsync(current.LanguageCode, null, false);
+                await dataProvider.PopulateTranslationsAsync(current.LanguageCode, translations, false);
             }
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
@@ -257,9 +292,9 @@ public sealed class BibleSelectionStateHandler
 
     public BibleReadingSchedule? Current => current;
 
-    private async Task InitializeAsync(string languageCode)
+    private async Task InitializeAsync(string languageCode, ObservableCollection<LanguageListViewItemModel>? languages, ObservableCollection<PublicationListViewItemModel>? translations)
     {
-        await dataProvider.PopulateLanguagesAsync(null, null);
-        await dataProvider.PopulateTranslationsAsync(languageCode, null, false);
+        await dataProvider.PopulateLanguagesAsync(null, languages);
+        await dataProvider.PopulateTranslationsAsync(languageCode, translations, false);
     }
 }

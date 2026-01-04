@@ -60,7 +60,13 @@ public sealed class BibleSelectionPropertyManager : ObservableObject
     public bool IsBusy
     {
         get => isBusy;
-        set => SetProperty(ref isBusy, value);
+        set
+        {
+#if DEBUG
+            Serilog.Log.Debug("BibleSelectionPropertyManager: IsBusy set to {Value}", value);
+#endif
+            SetProperty(ref isBusy, value);
+        }
     }
 
     public string LanguageSearchTerm
@@ -85,6 +91,18 @@ public sealed class BibleSelectionPropertyManager : ObservableObject
     }
 
     public object? SelectedItem => CurrentLanguage;
+
+    public void UpdateCurrentLanguageFromLanguages()
+    {
+        if (Languages != null)
+        {
+            var selectedLanguage = Languages.FirstOrDefault(l => l.IsSelected);
+            if (selectedLanguage != null)
+            {
+                CurrentLanguage = selectedLanguage;
+            }
+        }
+    }
 
     public void SetupPropertyChangedHandler(Action<string?> populateLanguages)
     {

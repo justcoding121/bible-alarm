@@ -9,6 +9,7 @@
     xmlns:music="clr-namespace:Bible.Alarm.ViewModels.Music"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
+    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="music:MusicSelectionViewModel"
     Padding="0,0,0,0">
@@ -159,6 +160,12 @@
                     TextColor="{DynamicResource PrimaryTextColor}"
                     VerticalOptions="Fill" />
             </Border>
+
+            <!-- BUSY OVERLAY – appears only while IsBusy = true -->
+            <sharedViews:BusyOverlay x:Name="BusyOverlay"
+                                     Grid.Row="0"
+                                     Grid.RowSpan="3"
+                                     IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

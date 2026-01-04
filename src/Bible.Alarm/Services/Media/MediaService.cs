@@ -80,7 +80,22 @@ public sealed class MediaService(
     public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
     {
         await mediaLookUpService.Verify();
-        return await vocalMusicService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
+        var result = await vocalMusicService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
+        Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: returned {Count} languages: {LanguageCodes}",
+            result.Count, string.Join(", ", result.Keys));
+
+        // If no vocal languages found, fall back to basic languages (English)
+        // This can happen if the vocal music database doesn't have language metadata
+        if (result.Count == 0)
+        {
+            Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: No vocal languages found, falling back to English");
+            result = new Dictionary<string, Language>
+            {
+                ["E"] = new Language { Code = "E", Name = "English" }
+            };
+        }
+
+        return result;
     }
 
     public async Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode)

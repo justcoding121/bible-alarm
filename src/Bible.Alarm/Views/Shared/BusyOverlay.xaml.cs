@@ -28,7 +28,7 @@ public partial class BusyOverlay : ContentView
             var oldValue = (bool)GetValue(IsVisibleProperty);
             if (oldValue != value)
             {
-                logger.Debug("BusyOverlay.IsVisible: Setting from {OldValue} to {NewValue}", oldValue, value);
+                logger.Debug("BusyOverlay.IsVisible: Setting from {OldValue} to {NewValue} (via property setter)", oldValue, value);
                 SetValue(IsVisibleProperty, value);
 
                 var opacity = value ? 1.0 : 0.0;
@@ -74,7 +74,7 @@ public partial class BusyOverlay : ContentView
             var newBoolValue = (bool)newValue;
             var opacity = newBoolValue ? 1.0 : 0.0;
             var inputTransparent = !newBoolValue; // When visible, don't allow input through (false), when hidden, allow input through (true)
-            logger.Debug("BusyOverlay.OnIsVisibleChanged: Property changed from {OldValue} to {NewValue} (opacity will be {Opacity}, inputTransparent will be {InputTransparent})",
+            logger.Debug("BusyOverlay.OnIsVisibleChanged: Property changed from {OldValue} to {NewValue} (via binding, opacity will be {Opacity}, inputTransparent will be {InputTransparent})",
                 oldValue, newBoolValue, opacity, inputTransparent);
 
             // Set opacity and InputTransparent directly on both the ContentView itself and the overlay grid

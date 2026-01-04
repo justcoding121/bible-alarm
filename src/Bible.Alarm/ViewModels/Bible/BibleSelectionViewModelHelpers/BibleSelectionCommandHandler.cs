@@ -5,6 +5,7 @@ using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
@@ -50,22 +51,64 @@ public sealed class BibleSelectionCommandHandler
     {
         return new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
-            if (x == null || getCurrentLanguage() == null)
+            if (x == null)
             {
                 return;
+            }
+
+            // Always use CurrentSchedule as the source of truth for language
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                Log.Warning("BibleSelectionCommandHandler: Cannot execute BookSelectionCommand - CurrentSchedule is null");
+                return;
+            }
+
+            var languageCode = currentSchedule.BibleReadingLanguageCode;
+            if (string.IsNullOrEmpty(languageCode))
+            {
+                Log.Warning("BibleSelectionCommandHandler: Cannot execute BookSelectionCommand - no language code in CurrentSchedule");
+                return;
+            }
+
+            // Get language from the languages collection
+            LanguageListViewItemModel currentLanguage;
+            var languages = await Task.Run(async () => await mediaService.GetBibleLanguages());
+            if (languages.TryGetValue(languageCode, out var language))
+            {
+                currentLanguage = new LanguageListViewItemModel(language);
+            }
+            else
+            {
+                // Create a minimal language item from the code if not found in collection
+                currentLanguage = new LanguageListViewItemModel(new Language
+                {
+                    Id = 0,
+                    Code = languageCode,
+                    Name = languageCode
+                });
             }
 
             var itemSelector = new BibleSelectionItemSelector(mediaService, state);
-            var (bookNumber, chapterNumber, bookName) = await itemSelector.GetBookAndChapterForTranslationAsync(x, getCurrentLanguage()!);
+            var (bookNumber, chapterNumber, bookName) = await itemSelector.GetBookAndChapterForTranslationAsync(x, currentLanguage);
+            Log.Debug("BibleSelectionCommandHandler: GetBookAndChapterForTranslationAsync returned - BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}, BookName: {BookName}",
+                bookNumber, chapterNumber, bookName);
+            
             if (bookNumber == 0)
             {
+                Log.Warning("BibleSelectionCommandHandler: BookNumber is 0, cannot proceed");
                 return;
             }
 
-            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, bookNumber, chapterNumber, bookName, getCurrentLanguage()!);
+            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, bookNumber, chapterNumber, bookName, currentLanguage, currentSchedule);
+            Log.Debug("BibleSelectionCommandHandler: Created BibleReadingStateItem - LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+                bibleReadingItem.LanguageCode, bibleReadingItem.PublicationCode, bibleReadingItem.BookNumber, bibleReadingItem.ChapterNumber);
+            
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBibleReadingSelectionActions(bibleReadingItem);
+            Log.Debug("BibleSelectionCommandHandler: Actions dispatched, popping modal");
             await navigationService.PopModalAsync();
+            Log.Debug("BibleSelectionCommandHandler: Modal popped successfully");
         });
     }
 
@@ -109,8 +152,15 @@ public sealed class BibleSelectionCommandHandler
                 return;
             }
 
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null");
+                return;
+            }
+
             var bibleReadingItem = CreateBibleReadingItemForLanguageSelection(
-                x, publicationCode, bookNumber, chapterNumber, bookName, publicationName);
+                x, publicationCode, bookNumber, chapterNumber, bookName, publicationName, currentSchedule);
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchLanguageSelectionActions(bibleReadingItem, x);
         });
@@ -121,8 +171,11 @@ public sealed class BibleSelectionCommandHandler
         int bookNumber,
         int chapterNumber,
         string bookName,
-        LanguageListViewItemModel language)
+        LanguageListViewItemModel language,
+        ScheduleStateItem currentSchedule)
     {
+        // Match the pattern used in BookSelectionViewModel and ChapterSelectionCommandHandler
+        // They don't set Id or AlarmScheduleId - let them default to 0
         return new BibleReadingStateItem
         {
             PublicationCode = publication.Code,
@@ -141,8 +194,11 @@ public sealed class BibleSelectionCommandHandler
         int bookNumber,
         int chapterNumber,
         string bookName,
-        string publicationName)
+        string publicationName,
+        ScheduleStateItem currentSchedule)
     {
+        // Match the pattern used in BookSelectionViewModel and ChapterSelectionCommandHandler
+        // They don't set Id or AlarmScheduleId - let them default to 0
         return new BibleReadingStateItem
         {
             LanguageCode = language.Code,

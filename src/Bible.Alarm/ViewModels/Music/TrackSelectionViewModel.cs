@@ -81,6 +81,15 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
         state.StateChanged += OnMusicInitialized;
         state.StateChanged += OnMusicChanged;
+
+        // Check current state immediately in case state is already set
+        // Also check CurrentSchedule as fallback (source of truth for new schedules)
+        var currentState = state.Value;
+        if (currentState.CurrentMusic != null || 
+            (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue))
+        {
+            OnMusicInitialized(null, EventArgs.Empty);
+        }
     }
 
     private void OnMusicChanged(object? sender, EventArgs e)
@@ -109,6 +118,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         if (stateValue.CurrentSchedule == null)
         {
             logger.Warning("TrackSelectionViewModel: RefreshFromState - CurrentSchedule is null, returning");
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
         }
 
@@ -120,6 +130,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         if (!musicType.HasValue || string.IsNullOrEmpty(publicationCode))
         {
             logger.Warning("TrackSelectionViewModel: RefreshFromState - MusicType or PublicationCode is null/empty, returning");
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
         }
 
@@ -127,6 +138,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         if (musicType.Value == MusicType.Vocals && string.IsNullOrEmpty(languageCode))
         {
             logger.Warning("TrackSelectionViewModel: RefreshFromState - LanguageCode is required for vocal music, returning");
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
         }
 
@@ -136,6 +148,11 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             busy => propertyManager.IsBusy = busy,
             async (lang, pub) => await Initialize(lang, pub),
             () => SetSelectedTrack());
+        
+        // Ensure IsBusy is set to false after a short delay to allow async operations to complete
+        // This handles cases where HandleMusicChanged returns early or async work completes quickly
+        await Task.Delay(200);
+        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
     private void OnMusicInitialized(object? o, EventArgs eventArgs)
@@ -143,7 +160,8 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         stateManager.HandleMusicInitialized(
             state,
             busy => propertyManager.IsBusy = busy,
-            InitializeTracks);
+            InitializeTracks,
+            () => SetSelectedTrack());
     }
 
 

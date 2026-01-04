@@ -201,7 +201,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Refreshes the books list from the current state. Can be called when modal appears to ensure latest state is used.
     /// </summary>
-    public void RefreshFromState()
+    public async Task RefreshFromState()
     {
         var stateValue = state.Value;
 
@@ -273,33 +273,38 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             logger.Information("BookSelectionViewModel: RefreshFromState - Starting repopulation with LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
                 newLanguageCode, newPublicationCode);
 
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                    // Use the latest state values, not cached ones
-                    await Initialize(newLanguageCode, newPublicationCode);
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                // Use the latest state values, not cached ones
+                await Initialize(newLanguageCode, newPublicationCode);
 
-                    // Set IsBusy to false after collection is assigned - the busy overlay will hide instantly
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                // Set selected book after books are populated (on main thread to ensure UI is ready)
+                await MainThread.InvokeOnMainThreadAsync(() => SetSelectedBook());
 
-                    logger.Information("BookSelectionViewModel: RefreshFromState - Repopulation completed. Books count: {BooksCount}",
-                        Books?.Count ?? 0);
-                }
-                catch (Exception ex)
-                {
-                    // Log error but don't throw - allow modal to continue functioning
-                    logger.Error(ex, "BookSelectionViewModel: RefreshFromState - Error during repopulation");
-                    await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-                }
-            });
+                // Give CollectionView time to render before hiding busy indicator
+                // This matches the pattern used in ChapterSelectionViewModel
+                await Task.Delay(100);
+
+                // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+
+                logger.Information("BookSelectionViewModel: RefreshFromState - Repopulation completed. Books count: {BooksCount}, SelectedBook: {SelectedBook}",
+                    Books?.Count ?? 0, SelectedBook?.Name ?? "null");
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't throw - allow modal to continue functioning
+                logger.Error(ex, "BookSelectionViewModel: RefreshFromState - Error during repopulation");
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            }
         }
         else
         {
             logger.Information("BookSelectionViewModel: RefreshFromState - No repopulation needed, updating selected book");
             // Update selected book when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(SetSelectedBook);
+            // Ensure this runs on main thread for UI updates
+            MainThread.BeginInvokeOnMainThread(() => SetSelectedBook());
         }
     }
 
@@ -310,7 +315,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
     private void SetSelectedBook()
     {
-        if (current == null)
+        if (current == null || Books == null || Books.Count == 0)
         {
             return;
         }
@@ -320,13 +325,14 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             SelectedBook.IsSelected = false;
         }
 
-        if (!bookVMsMapping.TryGetValue(current.BookNumber, out var book))
+        // Find the book from the Books collection (same instance as in ItemsSource)
+        // This matches the pattern used in ChapterSelectionViewModel
+        var book = Books.FirstOrDefault(b => b.Number == current.BookNumber);
+        if (book != null)
         {
-            return;
+            SelectedBook = book;
+            SelectedBook.IsSelected = true;
         }
-
-        SelectedBook = book;
-        SelectedBook.IsSelected = true;
     }
 
     public BibleBookListViewItemModel? SelectedBook { get; set; }
@@ -371,16 +377,18 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var bookVMs = new ObservableCollection<BibleBookListViewItemModel>();
+        // Build the list of book view models
+        var bookViewModelList = new List<BibleBookListViewItemModel>();
+        BibleBookListViewItemModel? selectedBook = null;
 
         foreach (var book in books.Select(x => x.Value))
         {
             var bookVm = new BibleBookListViewItemModel(book);
 
-            bookVMs.Add(bookVm);
+            bookViewModelList.Add(bookVm);
             bookVMsMapping.Add(bookVm.Number, bookVm);
 
-            if (current == null)
+            if (current is null)
             {
                 continue;
             }
@@ -390,16 +398,26 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            bookVm.IsSelected = true;
-            SelectedBook = bookVm;
+            selectedBook = bookVm;
+            selectedBook.IsSelected = true;
         }
 
-        // Assign collection on main thread to ensure UI updates before IsBusy is set to false
+        // Assign the complete collection on main thread
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            Books = bookVMs;
+            Books.Clear();
+            foreach (var book in bookViewModelList)
+            {
+                Books.Add(book);
+            }
+
+            if (selectedBook is not null)
+            {
+                SelectedBook = selectedBook;
+            }
+            
             logger.Information("BookSelectionViewModel: PopulateBooks - Assigned {BooksCount} books to UI. SelectedBook: {SelectedBook}",
-                bookVMs.Count, SelectedBook?.Name ?? "null");
+                bookViewModelList.Count, SelectedBook?.Name ?? "null");
         });
     }
 }

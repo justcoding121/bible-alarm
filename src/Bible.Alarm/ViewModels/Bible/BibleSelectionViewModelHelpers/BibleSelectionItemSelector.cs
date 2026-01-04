@@ -1,6 +1,7 @@
 #nullable enable
 using Bible;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
@@ -45,7 +46,7 @@ public sealed class BibleSelectionItemSelector
             return await GetPreservedBookAndChapterAsync(currentSchedule!, publication, books);
         }
 
-        return await GetFirstBookAndChapterAsync(publication, books);
+        return await GetFirstBookAndChapterAsync(language.Code, publication, books);
     }
 
     public async Task<(string? PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)>
@@ -105,16 +106,19 @@ public sealed class BibleSelectionItemSelector
             return (currentBookNumber, chapterNumber, currentBook.Name);
         }
 
-        return await GetFirstBookAndChapterAsync(publication, books);
+        // Use the language code from the schedule directly
+        var languageCode = currentSchedule.BibleReadingLanguageCode ?? "en";
+        return await GetFirstBookAndChapterAsync(languageCode, publication, books);
     }
 
     private async Task<(int BookNumber, int ChapterNumber, string BookName)> GetFirstBookAndChapterAsync(
+        string languageCode,
         PublicationListViewItemModel publication,
         IDictionary<int, BibleBook> books)
     {
         var firstBook = books.Values.First();
         var chapters = await Task.Run(async () =>
-            await mediaService.GetBibleChapters("en", publication.Code, firstBook.Number));
+            await mediaService.GetBibleChapters(languageCode, publication.Code, firstBook.Number));
 
         if (chapters == null || chapters.Count == 0)
         {

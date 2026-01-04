@@ -27,18 +27,36 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
+        try
         {
-            // Refresh from state when modal appears to ensure we have the latest music type
-            // This is important when the modal is opened after music is enabled or changed
-            ViewModel.RefreshFromState();
-
-            await Task.Delay(200, cancellationTokenSource.Token);
-
-            if (ViewModel.SelectedMusicType != null && musicTypesCollectionView != null)
+            if (ViewModel != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false, cancellationToken: cancellationTokenSource.Token);
+                // Refresh from state when modal appears to ensure we have the latest music type
+                // This is important when the modal is opened after music is enabled or changed
+                ViewModel.RefreshFromState();
+
+                // Force hide busy overlay since binding might not work
+                ForceHideBusyOverlay();
+
+                if (ViewModel.SelectedMusicType != null && musicTypesCollectionView != null)
+                {
+                    await CollectionViewHelper.ScrollToWhenReadyAsync(musicTypesCollectionView, ViewModel.SelectedMusicType, animated: false, cancellationToken: cancellationTokenSource.Token);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Error in MusicSelectionModal.OnAppearing");
+            ForceHideBusyOverlay();
+        }
+    }
+
+    private void ForceHideBusyOverlay()
+    {
+        if (BusyOverlay != null)
+        {
+            BusyOverlay.IsVisible = false;
+            BusyOverlay.InputTransparent = true; // Ensure input is allowed through
         }
     }
 

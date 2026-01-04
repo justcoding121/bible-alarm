@@ -63,7 +63,8 @@
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
-                IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                InputTransparent="False"
+                IsVisible="True"
                 ItemsSource="{Binding Translations}"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
@@ -105,7 +106,8 @@
                                     Padding="20,18"
                                     ColumnSpacing="12"
                                     MinimumHeightRequest="56"
-                                    BackgroundColor="Transparent">
+                                    BackgroundColor="Transparent"
+                                    InputTransparent="False">
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer Tapped="OnTranslationItemTapped" />
                                     </Grid.GestureRecognizers>
@@ -118,6 +120,7 @@
                                         FontSize="16"
                                         HorizontalOptions="Fill"
                                         HorizontalTextAlignment="Start"
+                                        InputTransparent="True"
                                         LineBreakMode="TailTruncation"
                                         Text="{Binding Name}"
                                         TextColor="{DynamicResource TextPrimaryColor}"
@@ -164,7 +167,8 @@
             </Border>
             
             <!-- Busy Overlay -->
-            <sharedViews:BusyOverlay Grid.Row="0"
+            <sharedViews:BusyOverlay x:Name="BusyOverlay"
+                                Grid.Row="0"
                                 Grid.RowSpan="3"
                                 IsVisible="{Binding IsBusy}" />
         </Grid>

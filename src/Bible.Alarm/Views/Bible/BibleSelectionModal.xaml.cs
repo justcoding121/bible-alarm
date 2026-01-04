@@ -24,21 +24,47 @@ public partial class BibleSelectionModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
+    // Force busy overlay to hide when needed
+    private void ForceHideBusyOverlay()
+    {
+        if (BusyOverlay != null)
+        {
+            // Ensure this runs on the main thread
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                BusyOverlay.IsVisible = false;
+                // Also ensure InputTransparent is set to allow taps through
+                BusyOverlay.InputTransparent = true;
+                Serilog.Log.Debug("BibleSelectionModal: ForceHideBusyOverlay - Set IsVisible=false, InputTransparent=true");
+            });
+        }
+    }
+
     private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
+        try
         {
-            // Refresh from state when modal appears to ensure translations are populated
-            await ViewModel.RefreshFromState();
-
-            await Task.Delay(200, cancellationTokenSource.Token);
-
-            if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)
+            if (ViewModel != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false, cancellationToken: cancellationTokenSource.Token);
+                // Refresh from state when modal appears to ensure translations are populated
+                await ViewModel.RefreshFromState();
+
+                // Force hide busy overlay since binding might not work
+                ForceHideBusyOverlay();
+
+                if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)
+                {
+                    await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false, cancellationToken: cancellationTokenSource.Token);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Error in BibleSelectionModal.OnAppearing");
+            // Force hide busy overlay on error
+            ForceHideBusyOverlay();
         }
     }
 

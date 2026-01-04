@@ -26,6 +26,15 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
+    // Force busy overlay to hide when needed
+    private void ForceHideBusyOverlay()
+    {
+        if (BusyOverlay != null)
+        {
+            BusyOverlay.IsVisible = false;
+        }
+    }
+
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
         if (sender is Grid grid && grid.BindingContext is LanguageListViewItemModel languageItem)
@@ -56,11 +65,8 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
                 await songBookViewModel.RefreshFromState();
             }
 
-            // Wait for IsBusy to become false (data loaded) using Polly retry policy
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-
-            // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200, cancellationTokenSource.Token);
+            // Force hide busy overlay since binding might not work
+            ForceHideBusyOverlay();
 
             if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
             {

@@ -52,8 +52,11 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     // Track the last processed state to prevent processing the same state multiple times
     private int? lastProcessedScheduleId;
     private string? lastProcessedLanguageCode;
+    private string? lastProcessedLanguageName;
     private string? lastProcessedPublicationCode;
+    private string? lastProcessedPublicationName;
     private int? lastProcessedBookNumber;
+    private string? lastProcessedBookName;
     private int? lastProcessedChapterNumber;
 
     public BibleSelectionContainerViewModel(
@@ -100,8 +103,11 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             // Initialize last processed state to prevent duplicate processing
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BibleReadingLanguageCode;
+            lastProcessedLanguageName = currentSchedule.BibleReadingLanguageName;
             lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
+            lastProcessedPublicationName = currentSchedule.BibleReadingPublicationName;
             lastProcessedBookNumber = currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber;
+            lastProcessedBookName = currentSchedule.BibleReadingBookName;
             lastProcessedChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber;
 
             // Batch property notifications to reduce UI thread work
@@ -181,11 +187,15 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         }
 
         // Early exit if we've already processed this exact state
+        // Also check display names (language name, publication name, book name) to ensure display text updates when they change
         if (currentSchedule != null &&
             currentSchedule.Id == lastProcessedScheduleId &&
             currentSchedule.BibleReadingLanguageCode == lastProcessedLanguageCode &&
+            currentSchedule.BibleReadingLanguageName == lastProcessedLanguageName &&
             (currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode) == lastProcessedPublicationCode &&
+            currentSchedule.BibleReadingPublicationName == lastProcessedPublicationName &&
             (currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber) == lastProcessedBookNumber &&
+            currentSchedule.BibleReadingBookName == lastProcessedBookName &&
             (currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber) == lastProcessedChapterNumber)
         {
             return;
@@ -213,8 +223,11 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         {
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BibleReadingLanguageCode;
+            lastProcessedLanguageName = currentSchedule.BibleReadingLanguageName;
             lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
+            lastProcessedPublicationName = currentSchedule.BibleReadingPublicationName;
             lastProcessedBookNumber = currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber;
+            lastProcessedBookName = currentSchedule.BibleReadingBookName;
             lastProcessedChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber;
         }
     }

@@ -45,6 +45,7 @@ public sealed class BibleSelectionDataProvider
         // Run database operations off UI thread
         var languagesData = await Task.Run(async () =>
             await mediaService.GetBibleLanguages());
+
         var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
 
         // Trim the search term before using it

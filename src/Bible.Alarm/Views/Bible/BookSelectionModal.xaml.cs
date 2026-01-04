@@ -23,22 +23,43 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
+    // Force busy overlay to hide when needed
+    private void ForceHideBusyOverlay()
+    {
+        if (BusyOverlay != null)
+        {
+            BusyOverlay.IsVisible = false;
+            BusyOverlay.InputTransparent = true;
+        }
+    }
+
     private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
+        try
         {
-            // Refresh from state when modal appears to ensure we have the latest language/publication
-            // This is important when the modal is opened after language or translation changes
-            ViewModel.RefreshFromState();
-
-            await Task.Delay(200, cancellationTokenSource.Token);
-
-            if (ViewModel.SelectedBook != null && bookCollectionView != null)
+            if (ViewModel != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook, animated: false, cancellationToken: cancellationTokenSource.Token);
+                // Refresh from state when modal appears to ensure we have the latest language/publication
+                // This is important when the modal is opened after language or translation changes
+                await ViewModel.RefreshFromState();
+
+                // Force hide busy overlay since binding might not work
+                ForceHideBusyOverlay();
+
+                // Scroll to selected book - matching the pattern used in MusicLanguageModal
+                // No need to wait for IsBusy - RefreshFromState handles that internally
+                if (ViewModel.SelectedBook != null && bookCollectionView != null)
+                {
+                    await CollectionViewHelper.ScrollToWhenReadyAsync(bookCollectionView, ViewModel.SelectedBook, animated: false, cancellationToken: cancellationTokenSource.Token);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Error in BookSelectionModal.OnAppearing");
+            ForceHideBusyOverlay();
         }
     }
 

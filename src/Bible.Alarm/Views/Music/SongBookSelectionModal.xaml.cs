@@ -28,17 +28,35 @@ public partial class SongBookSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
+        try
         {
-            // Refresh from state when modal appears to ensure song books are populated
-            await ViewModel.RefreshFromState();
-
-            await Task.Delay(200, cancellationTokenSource.Token);
-
-            if (ViewModel.SelectedSongBook != null && songBooksCollectionView != null)
+            if (ViewModel != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(songBooksCollectionView, ViewModel.SelectedSongBook, animated: false, cancellationToken: cancellationTokenSource.Token);
+                // Refresh from state when modal appears to ensure song books are populated
+                await ViewModel.RefreshFromState();
+
+                // Force hide busy overlay since binding might not work
+                ForceHideBusyOverlay();
+
+                if (ViewModel.SelectedSongBook != null && songBooksCollectionView != null)
+                {
+                    await CollectionViewHelper.ScrollToWhenReadyAsync(songBooksCollectionView, ViewModel.SelectedSongBook, animated: false, cancellationToken: cancellationTokenSource.Token);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Error in SongBookSelectionModal.OnAppearing");
+            ForceHideBusyOverlay();
+        }
+    }
+
+    private void ForceHideBusyOverlay()
+    {
+        if (BusyOverlay != null)
+        {
+            BusyOverlay.IsVisible = false;
+            BusyOverlay.InputTransparent = true; // Ensure input is allowed through
         }
     }
 

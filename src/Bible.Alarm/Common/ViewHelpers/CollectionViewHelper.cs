@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml;
 #endif
 using System.Collections;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Polly;
 using Serilog;
@@ -14,6 +15,7 @@ public static class CollectionViewHelper
     /// <summary>
     /// Waits for the CollectionView to be ready and then scrolls to the specified item.
     /// On Windows, this waits for the visual tree to be fully loaded before scrolling.
+    /// Automatically uses ScrollToPosition.End for items in the last 20% of the list to ensure they are fully visible.
     /// </summary>
     public static async Task ScrollToWhenReadyAsync(MauiCollectionView collectionView, object item, ScrollToPosition position = ScrollToPosition.Center, bool animated = false, CancellationToken cancellationToken = default)
     {
@@ -41,7 +43,10 @@ public static class CollectionViewHelper
                 return;
             }
 
-            await PerformScrollAsync(collectionView, item, position, animated, cancellationToken);
+            // Determine the best scroll position based on item location in the list
+            var finalPosition = DetermineOptimalScrollPosition(collectionView, item, position);
+
+            await PerformScrollAsync(collectionView, item, finalPosition, animated, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -51,6 +56,76 @@ public static class CollectionViewHelper
         {
             // Ignore errors - scrolling is not critical
             Log.Logger.Debug(ex, "Exception in ScrollToWhenReadyAsync - scrolling is not critical: {Message}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Determines the optimal scroll position based on where the item is located in the list.
+    /// For items in the last 20% of the list, uses ScrollToPosition.End to ensure full visibility.
+    /// </summary>
+    private static ScrollToPosition DetermineOptimalScrollPosition(
+        MauiCollectionView collectionView,
+        object item,
+        ScrollToPosition requestedPosition)
+    {
+        // If position is explicitly set to something other than Center, use it
+        if (requestedPosition != ScrollToPosition.Center)
+        {
+            return requestedPosition;
+        }
+
+        try
+        {
+            // Get the ItemsSource to determine item position
+            var itemsSource = collectionView.ItemsSource;
+            if (itemsSource == null)
+            {
+                return requestedPosition;
+            }
+
+            // Convert to enumerable to find index
+            var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
+            if (itemsList == null || itemsList.Count == 0)
+            {
+                return requestedPosition;
+            }
+
+            // Find the index of the item
+            int itemIndex = -1;
+            for (int i = 0; i < itemsList.Count; i++)
+            {
+                if (ReferenceEquals(itemsList[i], item))
+                {
+                    itemIndex = i;
+                    break;
+                }
+            }
+
+            if (itemIndex == -1)
+            {
+                // Item not found, use requested position
+                return requestedPosition;
+            }
+
+            // If item is in the last 20% of the list, use End to ensure it's fully visible
+            // Also use End if it's within the last 10 items (for smaller lists)
+            var totalItems = itemsList.Count;
+            var isInLast20Percent = itemIndex >= totalItems * 0.8;
+            var isInLast10Items = itemIndex >= totalItems - 10;
+
+            if (isInLast20Percent || isInLast10Items)
+            {
+                Log.Logger.Debug("Item at index {ItemIndex} of {TotalItems} is near the end, using ScrollToPosition.End", itemIndex, totalItems);
+                return ScrollToPosition.End;
+            }
+
+            return requestedPosition;
+        }
+        catch (Exception ex)
+        {
+            // If we can't determine position, fall back to requested position
+            Log.Logger.Debug(ex, "Error determining optimal scroll position, using requested position: {Position}", requestedPosition);
+            return requestedPosition;
         }
     }
 
@@ -86,6 +161,10 @@ public static class CollectionViewHelper
                     collectionView.ScrollTo(item, position: position, animate: animated);
                     Log.Logger.Debug("Successfully scrolled to item in CollectionView");
                 });
+
+                // Small delay after scrolling to let the layout settle and prevent scrollbar jitter
+                // This allows the CollectionView to complete any layout adjustments before the scrollbar fades
+                await Task.Delay(50, cancellationToken);
             }
             catch (OperationCanceledException)
             {

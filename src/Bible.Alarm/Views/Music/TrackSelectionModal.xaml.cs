@@ -27,17 +27,41 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
+        try
         {
-            // Refresh from state when modal appears to ensure tracks are populated
-            await ViewModel.RefreshFromState();
-
-            await Task.Delay(200, cancellationTokenSource.Token);
-
-            if (ViewModel.SelectedTrack != null && trackCollectionView != null)
+            if (ViewModel != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack, animated: false, cancellationToken: cancellationTokenSource.Token);
+                // Refresh from state when modal appears to ensure tracks are populated
+                await ViewModel.RefreshFromState();
+
+                // Force hide busy overlay since binding might not work
+                ForceHideBusyOverlay();
+
+                // Wait for IsBusy to become false (data loaded)
+                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
+
+                // Small additional delay to ensure CollectionView is rendered
+                await Task.Delay(200, cancellationTokenSource.Token);
+
+                if (ViewModel.SelectedTrack != null && trackCollectionView != null)
+                {
+                    await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack, animated: false, cancellationToken: cancellationTokenSource.Token);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Error in TrackSelectionModal.OnAppearing");
+            ForceHideBusyOverlay();
+        }
+    }
+
+    private void ForceHideBusyOverlay()
+    {
+        if (BusyOverlay != null)
+        {
+            BusyOverlay.IsVisible = false;
+            BusyOverlay.InputTransparent = true; // Ensure input is allowed through
         }
     }
 

@@ -29,14 +29,29 @@ public sealed class TrackStateManager(IMapper mapper)
     public void InitializeCurrent(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
+        // Use CurrentSchedule as the source of truth, with CurrentMusic as fallback
         if (stateValue.CurrentMusic != null)
         {
             current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
             lastCurrent = current;
         }
+        else if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+        {
+            // Create a minimal AlarmMusic from CurrentSchedule
+            var currentSchedule = stateValue.CurrentSchedule;
+            current = new AlarmMusic
+            {
+                MusicType = currentSchedule.MusicType.Value,
+                LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
+                PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
+                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                Repeat = currentSchedule.MusicRepeat ?? false
+            };
+            lastCurrent = current;
+        }
     }
 
-    public void HandleMusicInitialized(IState<ApplicationState> state, Action<bool> setBusy, Func<Task> initializeTracks)
+    public void HandleMusicInitialized(IState<ApplicationState> state, Action<bool> setBusy, Func<Task> initializeTracks, Action setSelectedTrack)
     {
         if (initComplete)
         {
@@ -103,13 +118,19 @@ public sealed class TrackStateManager(IMapper mapper)
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
 
-                if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
+                // For Melodies: only need PublicationCode (already checked above)
+                // For Vocals: need LanguageCode and PublicationCode (already checked above)
+                // So if we got here, we have all required properties
+                if (current != null && !string.IsNullOrEmpty(current.PublicationCode))
                 {
                     await initializeTracks();
                 }
 
-                // CollectionView needs a moment to render before hiding the busy indicator
+                // CollectionView needs a moment to render before setting selected track and hiding busy
                 await Task.Delay(100);
+                
+                // Set selected track after tracks are populated
+                await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
 
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             }
@@ -204,6 +225,8 @@ public sealed class TrackStateManager(IMapper mapper)
                 // Pass null/empty for languageCode if it's a melody (LanguageCode can be null for melodies)
                 await initializeTracks(newLanguageCode ?? string.Empty, newPublicationCode);
                 await Task.Delay(100); // Give CollectionView time to render
+                // Set selected track after tracks are populated
+                await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             });
         }

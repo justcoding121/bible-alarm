@@ -4,6 +4,7 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
@@ -257,6 +258,62 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
         {
             await PopulateLanguages();
+        }
+
+        // Ensure search handler is set up (in case it wasn't set up during initialization)
+        // This is important when RefreshFromState is called before OnMusicInitialized
+        propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
+
+        // For Vocals, if no language is selected but languages are available, select based on current schedule
+        string? languageCodeToUse = null;
+        if (stateValue.CurrentSchedule?.MusicType == MusicType.Vocals &&
+            propertyManager.CurrentLanguage == null &&
+            propertyManager.Languages != null &&
+            propertyManager.Languages.Count > 0)
+        {
+            // Try to select the language from current schedule state
+            var scheduleLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
+            LanguageListViewItemModel? languageToSelect = null;
+
+            if (!string.IsNullOrEmpty(scheduleLanguageCode))
+            {
+                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == scheduleLanguageCode);
+            }
+
+            // If no language from schedule, default to English
+            if (languageToSelect == null)
+            {
+                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == "E");
+                Serilog.Log.Debug("SongBookSelectionViewModel: No language in schedule, defaulting to English for Vocals");
+            }
+
+            if (languageToSelect != null)
+            {
+                propertyManager.CurrentLanguage = languageToSelect;
+                languageToSelect.IsSelected = true;
+                languageCodeToUse = languageToSelect.Code;
+                Serilog.Log.Debug("SongBookSelectionViewModel: Selected language '{Language}' for Vocals", languageToSelect.Name);
+            }
+        }
+        else if (propertyManager.CurrentLanguage != null)
+        {
+            languageCodeToUse = propertyManager.CurrentLanguage.Code;
+        }
+        else if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
+        {
+            languageCodeToUse = current.LanguageCode;
+        }
+
+        // Populate song books if we have a language code and song books aren't already populated
+        if (!string.IsNullOrEmpty(languageCodeToUse) && 
+            (propertyManager.SongBooks == null || propertyManager.SongBooks.Count == 0))
+        {
+            await PopulateSongBooks(languageCodeToUse);
+        }
+        else if (!string.IsNullOrEmpty(languageCodeToUse))
+        {
+            // Song books already populated, just set selected
+            SetSelectedSongBook();
         }
 
         await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);

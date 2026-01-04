@@ -63,7 +63,7 @@
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
-                IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                IsVisible="True"
                 ItemsSource="{Binding SongBooks}"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
@@ -164,7 +164,8 @@
             </Border>
             
             <!-- Busy Overlay -->
-            <sharedViews:BusyOverlay Grid.Row="0"
+            <sharedViews:BusyOverlay x:Name="BusyOverlay"
+                                     Grid.Row="0"
                                      Grid.RowSpan="3"
                                      IsVisible="{Binding IsBusy}" />
         </Grid>

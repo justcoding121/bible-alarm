@@ -127,8 +127,15 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             stateManager.SetInitComplete(true);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
             await Initialize(newLanguageCode, newPublicationCode, newBookNumber.Value);
+            // Set selected chapter after chapters are populated
+            SetSelectedChapter();
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        }
+        else
+        {
+            // Update selected chapter when state changes (e.g., after navigating back)
+            SetSelectedChapter();
         }
     }
 

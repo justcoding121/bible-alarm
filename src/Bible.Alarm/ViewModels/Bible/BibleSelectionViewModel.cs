@@ -58,12 +58,26 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         propertyManager = new BibleSelectionPropertyManager(state, dataProvider, stateHandler);
 
         // Initialize current from state if available (map DTO to entity)
+        // Use CurrentSchedule as the source of truth, with CurrentBibleReadingSchedule as fallback
         var currentState = state.Value;
         BibleReadingSchedule? initialCurrent = null;
         string? initialLanguageCode = null;
         if (currentState.CurrentBibleReadingSchedule != null)
         {
             initialCurrent = mapper.Map<BibleReadingSchedule>(currentState.CurrentBibleReadingSchedule);
+            initialLanguageCode = initialCurrent.LanguageCode;
+        }
+        else if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BibleReadingLanguageCode))
+        {
+            // Create a minimal BibleReadingSchedule from CurrentSchedule
+            var currentSchedule = currentState.CurrentSchedule;
+            initialCurrent = new BibleReadingSchedule
+            {
+                LanguageCode = currentSchedule.BibleReadingLanguageCode,
+                PublicationCode = currentSchedule.BibleReadingPublicationCode ?? string.Empty,
+                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
+                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+            };
             initialLanguageCode = initialCurrent.LanguageCode;
         }
         stateHandler.InitializeCurrent(initialCurrent, initialLanguageCode);
@@ -96,7 +110,9 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     {
         await stateHandler.HandleBibleReadingInitializedAsync(
             busy => propertyManager.IsBusy = busy,
-            state.Value.CurrentSchedule?.BibleReadingLanguageCode);
+            propertyManager.Languages,
+            state.Value.CurrentSchedule?.BibleReadingLanguageCode,
+            () => propertyManager.UpdateCurrentLanguageFromLanguages());
 
         // Set up property changed handler for language search
         propertyManager.SetupPropertyChangedHandler(searchTerm =>
@@ -105,20 +121,32 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
-    /// This ensures translations are populated and current is initialized from CurrentSchedule.
+    /// This ensures languages and translations are populated and current is initialized from CurrentSchedule.
     /// </summary>
     public async Task RefreshFromState()
     {
-        await stateHandler.RefreshFromStateAsync(
+        // Always ensure languages are populated and IsBusy is set to false
+        await stateHandler.HandleBibleReadingInitializedAsync(
             busy => propertyManager.IsBusy = busy,
-            propertyManager.Translations);
+            propertyManager.Languages,
+            state.Value.CurrentSchedule?.BibleReadingLanguageCode,
+            () => propertyManager.UpdateCurrentLanguageFromLanguages());
+
+        // Only populate translations if we have a current language (for full Bible selection, not language modal)
+        if (!string.IsNullOrEmpty(state.Value.CurrentSchedule?.BibleReadingLanguageCode))
+        {
+            await stateHandler.RefreshFromStateAsync(
+                busy => propertyManager.IsBusy = busy,
+                propertyManager.Translations);
+        }
     }
 
     private async void OnBibleReadingChanged(object? sender, EventArgs e)
     {
         await stateHandler.HandleBibleReadingChangedAsync(
             busy => propertyManager.IsBusy = busy,
-            () => propertyManager.SetSelectedTranslation());
+            () => propertyManager.SetSelectedTranslation(),
+            propertyManager.Translations);
     }
 
     // Properties delegated to property manager

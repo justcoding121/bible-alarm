@@ -23,21 +23,40 @@ public partial class ChapterSelectionModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
+    // Force busy overlay to hide when needed
+    private void ForceHideBusyOverlay()
+    {
+        if (BusyOverlay != null)
+        {
+            BusyOverlay.IsVisible = false;
+            BusyOverlay.InputTransparent = true;
+        }
+    }
+
     private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
+        try
         {
-            // Refresh from state when modal appears to ensure chapters are populated
-            await ViewModel.RefreshFromState();
-
-            await Task.Delay(200, cancellationTokenSource.Token);
-
-            if (ViewModel.SelectedChapter != null && chapterCollectionView != null)
+            if (ViewModel != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter, animated: false, cancellationToken: cancellationTokenSource.Token);
+                // Refresh from state when modal appears to ensure chapters are populated
+                await ViewModel.RefreshFromState();
+
+                // Force hide busy overlay since binding might not work
+                ForceHideBusyOverlay();
+
+                if (ViewModel.SelectedChapter != null && chapterCollectionView != null)
+                {
+                    await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter, animated: false, cancellationToken: cancellationTokenSource.Token);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Error in ChapterSelectionModal.OnAppearing");
+            ForceHideBusyOverlay();
         }
     }
 

@@ -26,31 +26,46 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
-    private async void OnAppearing(object? sender, EventArgs e)
+    // Force busy overlay to hide when needed
+    private void ForceHideBusyOverlay()
     {
-        Appearing -= OnAppearing;
-
-        // Wait for the page to be fully loaded and data to be ready before attempting to scroll
-        if (ViewModel != null)
+        if (BusyOverlay != null)
         {
-            // If ViewModel is BibleSelectionViewModel, refresh from state to ensure languages are populated
-            if (ViewModel is BibleSelectionViewModel bibleSelectionViewModel)
-            {
-                await bibleSelectionViewModel.RefreshFromState();
-            }
-
-            // Wait for IsBusy to become false (data loaded) using Polly retry policy
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-
-            // Small additional delay to ensure CollectionView is rendered
-            await Task.Delay(200, cancellationTokenSource.Token);
-
-            if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
-            {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, cancellationToken: cancellationTokenSource.Token);
-            }
+            BusyOverlay.IsVisible = false;
         }
     }
+
+        private async void OnAppearing(object? sender, EventArgs e)
+        {
+            Appearing -= OnAppearing;
+
+            try
+            {
+                if (ViewModel != null)
+                {
+                    var bibleViewModel = ViewModel as BibleSelectionViewModel;
+                    if (bibleViewModel != null)
+                    {
+                        // Ensure initialization is complete and busy is turned off
+                        await bibleViewModel.RefreshFromState();
+
+                        // Force hide busy overlay since binding might not work
+                        ForceHideBusyOverlay();
+
+                        if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
+                        {
+                            await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, cancellationToken: cancellationTokenSource.Token);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Error in BibleLanguageModal.OnAppearing");
+                // Force hide busy overlay on error
+                ForceHideBusyOverlay();
+            }
+        }
 
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {

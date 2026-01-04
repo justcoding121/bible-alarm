@@ -23,8 +23,13 @@ public sealed class BibleSelectionActionDispatcher
 
     public void DispatchBibleReadingSelectionActions(BibleReadingStateItem bibleReadingItem)
     {
+        Log.Debug("BibleSelectionActionDispatcher: Dispatching ChapterSelectedAction - LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+            bibleReadingItem.LanguageCode, bibleReadingItem.PublicationCode, bibleReadingItem.BookNumber, bibleReadingItem.ChapterNumber);
         dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+        
+        Log.Debug("BibleSelectionActionDispatcher: Dispatching BibleSelectionAction");
         dispatcher.Dispatch(new BibleSelectionAction(bibleReadingItem));
+        Log.Debug("BibleSelectionActionDispatcher: Both actions dispatched successfully");
     }
 
     public void DispatchLanguageSelectionActions(BibleReadingStateItem bibleReadingItem, LanguageListViewItemModel language)

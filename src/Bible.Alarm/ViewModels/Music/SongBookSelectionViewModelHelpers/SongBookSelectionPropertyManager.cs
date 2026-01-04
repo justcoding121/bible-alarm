@@ -57,8 +57,26 @@ public sealed class SongBookSelectionPropertyManager : ObservableObject
 
     public object? SelectedItem => CurrentLanguage;
 
+    public void UpdateCurrentLanguageFromLanguages()
+    {
+        if (Languages != null)
+        {
+            var selectedLanguage = Languages.FirstOrDefault(l => l.IsSelected);
+            if (selectedLanguage != null)
+            {
+                CurrentLanguage = selectedLanguage;
+            }
+        }
+    }
+
     public void SetupLanguageSearchHandler(Func<string?, Task> populateLanguages)
     {
+        // Remove old handler if it exists to prevent duplicate handlers
+        if (propertyChangedHandler != null)
+        {
+            PropertyChanged -= propertyChangedHandler;
+        }
+
         propertyChangedHandler = (sender, e) =>
         {
             if (e.PropertyName == nameof(LanguageSearchTerm))
