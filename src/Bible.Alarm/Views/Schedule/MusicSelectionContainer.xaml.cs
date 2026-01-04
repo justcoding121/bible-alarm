@@ -149,6 +149,8 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}, IsNewViewModel: {IsNew}", 
                 viewModel.GetType().Name, propertyChangeHandler != null, isNewViewModel);
 #endif
+            // Unsubscribe first to prevent duplicate subscriptions
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
             if (viewModel != null && propertyChangeHandler != null)
             {

@@ -49,6 +49,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private AlarmMusic? music;
     private AlarmMusic? lastMusic;
     private bool hasSignaledReady;
+    private bool isReadyActionQueued;
 
     private bool isUpdatingFromState;
     private bool? pendingMusicEnabled; // Optimistic update value
@@ -162,12 +163,18 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     {
         // Check if already signaled or already marked ready in state
         if (hasSignaledReady || state.Value.ContainerReadiness.MusicSelection) return;
+        
+        // Check if action is already queued to prevent duplicate queued actions
+        if (isReadyActionQueued) return;
+        isReadyActionQueued = true;
         hasSignaledReady = true;
         
         // Dispatch to state that this container is ready
         // Check state again inside the queued action to prevent race conditions
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            isReadyActionQueued = false; // Reset flag when action executes
+            
             // Double-check state before dispatching to prevent duplicates from queued actions
             // If state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.MusicSelection)

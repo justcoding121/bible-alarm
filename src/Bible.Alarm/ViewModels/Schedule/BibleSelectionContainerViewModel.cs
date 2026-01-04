@@ -45,6 +45,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private bool bibleReadingUpdated;
     private BibleReadingSchedule? bibleReadingSchedule;
     private bool hasSignaledReady;
+    private bool isReadyActionQueued;
 
     // Track if we've already reset progress for the current cascade change to prevent loops
     private bool progressResetForCurrentCascade;
@@ -122,12 +123,18 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     {
         // Check if already signaled or already marked ready in state
         if (hasSignaledReady || state.Value.ContainerReadiness.BibleSelection) return;
+        
+        // Check if action is already queued to prevent duplicate queued actions
+        if (isReadyActionQueued) return;
+        isReadyActionQueued = true;
         hasSignaledReady = true;
         
         // Dispatch to state that this container is ready
         // Check state again inside the queued action to prevent race conditions
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            isReadyActionQueued = false; // Reset flag when action executes
+            
             // Double-check state before dispatching to prevent duplicates from queued actions
             // If state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.BibleSelection)
