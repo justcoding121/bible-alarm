@@ -85,7 +85,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Initialize helper classes
         stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher, logger);
-        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger);
+        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger, () => propertyManager.MusicSelectionContainerViewModel);
         propertyManager = new SchedulePropertyManager(state, logger);
         containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(dispatcher);
@@ -96,6 +96,16 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (e.PropertyName == nameof(SchedulePropertyManager.IsSchedulePageOverlayVisible))
             {
                 OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
+            }
+            // Forward IsExistingSchedule property changes (for Delete button visibility)
+            else if (e.PropertyName == nameof(SchedulePropertyManager.IsExistingSchedule))
+            {
+                OnPropertyChanged(nameof(IsExistingSchedule));
+            }
+            // Forward IsNewSchedule property changes
+            else if (e.PropertyName == nameof(SchedulePropertyManager.IsNewSchedule))
+            {
+                OnPropertyChanged(nameof(IsNewSchedule));
             }
             // Forward container ViewModel property changes
             else if (e.PropertyName == nameof(SchedulePropertyManager.BibleSelectionContainerViewModel))
@@ -118,6 +128,12 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Subscribe to state changes
         state.StateChanged += OnStateChanged;
+
+        // Initialize IsNewSchedule immediately from current state
+        // This ensures the Delete button visibility is correct from the start
+        var initialSchedule = state.Value.CurrentSchedule;
+        var initialIsNew = initialSchedule == null || initialSchedule.Id <= 0;
+        propertyManager.IsNewSchedule = initialIsNew;
 
         // Initialize state handling and commands
         stateManager.InitializeStateHandling(
@@ -166,12 +182,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             
             // Update IsNewSchedule based on CurrentSchedule ID
             // This determines if the delete button should be visible
+            // Always set it (not just when changed) to ensure it's initialized correctly
             var currentSchedule = stateValue.CurrentSchedule;
             var isNew = currentSchedule == null || currentSchedule.Id <= 0;
-            if (propertyManager.IsNewSchedule != isNew)
-            {
-                propertyManager.IsNewSchedule = isNew;
-            }
+            propertyManager.IsNewSchedule = isNew;
             
             // Notify UI of property changes when CurrentSchedule changes
             // Note: NotifySchedulePropertiesChanged also marshals to UI thread, but since we're already

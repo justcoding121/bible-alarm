@@ -42,27 +42,16 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private readonly MusicDisplayTextProvider displayTextProvider;
     private readonly MusicPropertyNotifier propertyNotifier;
     private readonly MusicEnabledHandler musicEnabledHandler;
+    private readonly MusicStateTracker stateTracker;
+    private readonly MusicStateInitializer stateInitializer;
+    private readonly MusicStateChangeHandler stateChangeHandler;
 
     private int scheduleId;
     private bool isNewSchedule;
-    private bool musicUpdated;
-    private AlarmMusic? music;
-    private AlarmMusic? lastMusic;
-    private bool hasSignaledReady;
-    private bool isReadyActionQueued;
-
-    private bool isUpdatingFromState;
-    private bool isMusicEnabledNotificationQueued;
-    private bool? pendingMusicEnabled; // Optimistic update value
     private bool? initialMusicEnabledOnPageLoad; // Track MusicEnabled state when schedule page was first opened
 
-    // Track last values from CurrentSchedule to detect changes
-    private MusicType? lastScheduleMusicType;
-    private int? lastScheduleMusicTrackNumber;
-    private string? lastScheduleMusicPublicationCode;
-    private string? lastScheduleMusicLanguageCode;
-    private bool lastScheduleMusicRepeat;
-    private bool? lastMusicEnabled; // Track previous MusicEnabled state
+    // State holder for mutable state (allows use in lambdas without ref parameters)
+    private readonly MusicStateHolder stateHolder = new();
 
     // Signal to View that it should scroll to bottom
     private bool shouldScrollToBottom;
@@ -95,6 +84,9 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         displayTextProvider = new MusicDisplayTextProvider(state);
         propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
         musicEnabledHandler = new MusicEnabledHandler(logger, mapper, dispatcher, serviceProvider, state);
+        stateTracker = new MusicStateTracker();
+        stateInitializer = new MusicStateInitializer(state, dispatcher, displayTextProvider, propertyNotifier);
+        stateChangeHandler = new MusicStateChangeHandler(state, dispatcher, mapper, stateTracker, propertyNotifier, displayTextProvider);
 
         state.StateChanged += OnStateChanged;
         
@@ -113,113 +105,44 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     private void InitializeFromState()
     {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule != null)
+        var (newScheduleId, newIsNewSchedule, initialMusicEnabled) = stateInitializer.InitializeFromState();
+        scheduleId = newScheduleId;
+        isNewSchedule = newIsNewSchedule;
+
+        // Track initial MusicEnabled state when schedule page is first opened
+        // This is used to determine if we should reset to default music on first enable
+        if (!initialMusicEnabledOnPageLoad.HasValue && initialMusicEnabled.HasValue)
         {
-            scheduleId = currentSchedule.Id;
-            isNewSchedule = currentSchedule.Id <= 0;
-
-            // Track initial MusicEnabled state when schedule page is first opened
-            // This is used to determine if we should reset to default music on first enable
-            if (!initialMusicEnabledOnPageLoad.HasValue)
-            {
-                initialMusicEnabledOnPageLoad = currentSchedule.MusicEnabled;
-            }
-
-            // Initialize last values from CurrentSchedule
-            lastScheduleMusicType = currentSchedule.MusicType;
-            lastScheduleMusicTrackNumber = currentSchedule.MusicTrackNumber;
-            lastScheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
-            lastScheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
-            lastScheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
-            lastMusicEnabled = currentSchedule.MusicEnabled;
-
-            // Batch property notifications to reduce UI thread work
-            propertyNotifier.NotifyAllMusicPropertiesChanged();
-
-            // Initialize track name cache from state if available (populated during bootstrap)
-            // NOTE: Do NOT query database here - track names should be in state from bootstrap
-            if (currentSchedule.MusicType.HasValue &&
-                currentSchedule.MusicTrackNumber.HasValue &&
-                currentSchedule.MusicTrackNumber.Value > 0)
-            {
-                // If MusicTrackName is already in state (from bootstrap), use it immediately
-                if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
-                {
-                    displayTextProvider.UpdateTrackCache(
-                        currentSchedule.MusicTrackName,
-                        currentSchedule.MusicTrackNumber,
-                        currentSchedule.MusicPublicationCode,
-                        currentSchedule.MusicLanguageCode,
-                        currentSchedule.MusicType);
-                }
-            }
-            
-            // Signal that this container is ready (initialized from CurrentSchedule)
-            SignalContainerReady();
+            initialMusicEnabledOnPageLoad = initialMusicEnabled.Value;
         }
-    }
 
-    private void SignalContainerReady()
-    {
-        // Check if already signaled or already marked ready in state
-        // This check must happen first to prevent any duplicate work
-        if (hasSignaledReady || state.Value.ContainerReadiness.MusicSelection) return;
-        
-        // Check if action is already queued to prevent duplicate queued actions
-        // This prevents multiple rapid calls from queuing multiple actions
-        if (isReadyActionQueued) return;
-        
-        // Atomically set both flags to prevent race conditions
-        // If another thread/call checks between these lines, it will see isReadyActionQueued=true
-        isReadyActionQueued = true;
-        hasSignaledReady = true;
-        
-        // Double-check state immediately after setting flags (before queuing)
-        // This catches the case where state changed between the initial check and flag setting
-        if (state.Value.ContainerReadiness.MusicSelection)
-        {
-            // State already shows ready, reset flags and return
-            isReadyActionQueued = false;
-            hasSignaledReady = true;
-            return;
-        }
-        
-        // Dispatch to state that this container is ready
-        // Check state again inside the queued action to prevent duplicates from queued actions
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            isReadyActionQueued = false; // Reset flag when action executes
-            
-            // Final check before dispatching - if state already shows we're ready, another action already handled it
-            if (state.Value.ContainerReadiness.MusicSelection)
-            {
-                // Ensure flag is set to prevent future attempts
-                hasSignaledReady = true;
-                return;
-            }
-            dispatcher.Dispatch(new ContainerReadyAction("MusicSelection"));
-        });
+        // Initialize state tracker
+        stateTracker.InitializeFromSchedule(state.Value.CurrentSchedule);
     }
 
     private void InitializeCommands()
     {
         SelectMusicCommand = commandInitializer.CreateSelectMusicCommand(
-            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+            () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         SelectMusicTypeCommand = commandInitializer.CreateSelectMusicTypeCommand(
-            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+            () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         SelectSongBookCommand = commandInitializer.CreateSelectSongBookCommand(
-            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+            () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         SelectTrackCommand = commandInitializer.CreateSelectTrackCommand(
-            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+            () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         SelectMusicLanguageCommand = commandInitializer.CreateSelectMusicLanguageCommand(
-            () => music, m => music = m, scheduleId, isNewSchedule, musicUpdated);
+            () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         ToggleRepeatCommand = commandInitializer.CreateToggleRepeatCommand();
     }
 
     public void SetMusicUpdated(bool musicUpdated)
     {
-        this.musicUpdated = musicUpdated;
+        stateHolder.MusicUpdated = musicUpdated;
+    }
+
+    public bool GetMusicUpdated()
+    {
+        return stateHolder.MusicUpdated;
     }
 
     private void OnStateChanged(object? sender, EventArgs e)
@@ -229,10 +152,9 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
         // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-        if (hasSignaledReady && !stateValue.ContainerReadiness.MusicSelection && currentSchedule != null)
+        if (stateInitializer.ShouldReinitialize())
         {
-            hasSignaledReady = false;
-            isReadyActionQueued = false; // Reset queued flag as well
+            stateInitializer.ResetReadyFlags();
             // Re-initialize and signal ready again
             InitializeFromState();
             return;
@@ -240,7 +162,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
         // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
         // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
-        if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+        if (scheduleId == 0 && currentSchedule != null && !stateInitializer.HasSignaledReady)
         {
             // Reset initial MusicEnabled tracking when a new schedule is opened
             initialMusicEnabledOnPageLoad = null;
@@ -255,203 +177,19 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         {
             // Reset initial MusicEnabled tracking when a new schedule is opened
             initialMusicEnabledOnPageLoad = null;
-            hasSignaledReady = false; // Reset for new schedule
-            isReadyActionQueued = false; // Reset queued flag as well
+            stateInitializer.ResetReadyFlags();
             InitializeFromState();
             // Recreate commands with updated scheduleId and isNewSchedule
             InitializeCommands();
         }
 
-        // Check if MusicEnabled changed in state
-        if (currentSchedule != null)
-        {
-            var stateMusicEnabled = currentSchedule.MusicEnabled;
-            var previousMusicEnabled = lastMusicEnabled ?? false;
-
-            // Clear pending value since state has been updated
-            if (pendingMusicEnabled.HasValue && pendingMusicEnabled.Value == stateMusicEnabled)
-            {
-                pendingMusicEnabled = null; // State now matches, clear pending
-            }
-
-            // Check if MusicEnabled changed by comparing with tracked previous value
-            if (lastMusicEnabled != stateMusicEnabled)
-            {
-                // Check if notification is already queued to prevent duplicate queued notifications
-                if (isMusicEnabledNotificationQueued)
-                {
-                    // Update tracked value but don't queue another notification
-                    lastMusicEnabled = stateMusicEnabled;
-                    pendingMusicEnabled = null;
-                    return;
-                }
-                
-                // State has a different value, update tracked value and notify
-                isUpdatingFromState = true;
-                try
-                {
-                    lastMusicEnabled = stateMusicEnabled;
-                    pendingMusicEnabled = null; // Clear pending when updating from state
-                    isMusicEnabledNotificationQueued = true; // Mark as queued
-                    // Marshal to UI thread to ensure PropertyChanged events are raised on the correct thread
-                    // This is important because OnStateChanged can be called from background threads
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        isMusicEnabledNotificationQueued = false; // Reset flag when notification executes
-                        OnPropertyChanged(nameof(MusicEnabled));
-                    });
-
-                    // If music was just enabled, update cache from state
-                    // NOTE: Loading default music from DB is handled in MusicEnabled setter
-                    if (stateMusicEnabled && !previousMusicEnabled)
-                    {
-                        // Update lastScheduleMusicType to ensure change detection works
-                        if (currentSchedule.MusicType.HasValue)
-                        {
-                            lastScheduleMusicType = currentSchedule.MusicType;
-                        }
-
-                        // Notify MusicTypeDisplayText on main thread with delay to ensure content is visible first
-                        // This is critical for iOS - bindings are evaluated when content becomes visible
-                        MainThread.BeginInvokeOnMainThread(async () =>
-                        {
-                            // Wait a bit to ensure CollapsibleContent is visible before notifying
-                            OnPropertyChanged(nameof(MusicTypeDisplayText));
-                            OnPropertyChanged(nameof(IsMusicLanguageVisible));
-                            OnPropertyChanged(nameof(IsSongBookVisible));
-                        });
-
-                        // Check if MusicTrackName is already in state (from bootstrap or from DB load in setter)
-                        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
-                        {
-                            // Update cache and notify
-                            displayTextProvider.UpdateTrackCache(
-                                currentSchedule.MusicTrackName,
-                                currentSchedule.MusicTrackNumber,
-                                currentSchedule.MusicPublicationCode,
-                                currentSchedule.MusicLanguageCode,
-                                currentSchedule.MusicType);
-                            MainThread.BeginInvokeOnMainThread(() =>
-                            {
-                                OnPropertyChanged(nameof(TrackDisplayText));
-                            });
-                        }
-                        else
-                        {
-                            // Track name not in state yet - wait for MusicEnabled setter to load it from DB
-                            // Just notify property change to trigger UI update
-                            MainThread.BeginInvokeOnMainThread(() =>
-                            {
-                                OnPropertyChanged(nameof(TrackDisplayText));
-                            });
-                        }
-                    }
-                }
-                finally
-                {
-                    isUpdatingFromState = false;
-                }
-            }
-        }
-
-        // Check if CurrentSchedule.MusicType or MusicRepeat changed
-        if (currentSchedule != null)
-        {
-            var scheduleMusicType = currentSchedule.MusicType;
-            var scheduleMusicTrackNumber = currentSchedule.MusicTrackNumber;
-            var scheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
-            var scheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
-            var scheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
-
-            // Check if music type changed in CurrentSchedule (this happens when effect syncs CurrentMusic to CurrentSchedule)
-            var musicTypeChanged = lastScheduleMusicType != scheduleMusicType;
-            var languageCodeChanged = lastScheduleMusicLanguageCode != scheduleMusicLanguageCode;
-            var publicationCodeChanged = lastScheduleMusicPublicationCode != scheduleMusicPublicationCode;
-            var trackNumberChanged = lastScheduleMusicTrackNumber != scheduleMusicTrackNumber;
-            var repeatChanged = lastScheduleMusicRepeat != scheduleMusicRepeat;
-
-            // Determine which properties need to be notified (cascading logic)
-            var notifyMusicType = musicTypeChanged;
-            var notifyLanguage = musicTypeChanged || languageCodeChanged;
-            var notifySongBook = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
-            var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged;
-
-            if (notifyMusicType || notifyLanguage || notifySongBook || notifyTrack || repeatChanged)
-            {
-                // Update last values
-                lastScheduleMusicType = scheduleMusicType;
-                lastScheduleMusicTrackNumber = scheduleMusicTrackNumber;
-                lastScheduleMusicPublicationCode = scheduleMusicPublicationCode;
-                lastScheduleMusicLanguageCode = scheduleMusicLanguageCode;
-                lastScheduleMusicRepeat = scheduleMusicRepeat;
-
-                // Trigger property change notifications with cascading logic
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    var currentSchedule = state.Value.CurrentSchedule;
-                    propertyNotifier.NotifyPropertiesChanged(
-                        notifyMusicType,
-                        notifyLanguage,
-                        notifySongBook,
-                        notifyTrack,
-                        repeatChanged,
-                        scheduleMusicType,
-                        shouldScroll => { if (currentSchedule?.MusicEnabled == true) ShouldScrollToBottom = shouldScroll; });
-                });
-            }
-        }
-
-        if (stateValue.CurrentMusic == null)
-        {
-            return;
-        }
-
-        // Check if the music actually changed by comparing properties
-        var newMusicItem = stateValue.CurrentMusic;
-        var hasChanged = lastMusic == null ||
-                        music == null ||
-                        lastMusic.LanguageCode != newMusicItem.LanguageCode ||
-                        lastMusic.PublicationCode != newMusicItem.PublicationCode ||
-                        lastMusic.MusicType != newMusicItem.MusicType ||
-                        lastMusic.TrackNumber != newMusicItem.TrackNumber ||
-                        (music != null &&
-                         (music.TrackNumber != newMusicItem.TrackNumber ||
-                          music.MusicType != newMusicItem.MusicType ||
-                          music.LanguageCode != newMusicItem.LanguageCode ||
-                          music.PublicationCode != newMusicItem.PublicationCode));
-
-        if (!hasChanged)
-        {
-            return;
-        }
-
-        // Map DTO to entity
-        var newMusic = mapper.Map<AlarmMusic>(newMusicItem);
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            music = newMusic;
-            lastMusic = newMusic;
-            musicUpdated = true;
-
-            // Determine what changed to trigger cascading notifications
-            var musicTypeChanged = music?.MusicType != newMusic.MusicType;
-            var languageCodeChanged = music?.LanguageCode != newMusic.LanguageCode;
-            var publicationCodeChanged = music?.PublicationCode != newMusic.PublicationCode;
-            var trackNumberChanged = music?.TrackNumber != newMusic.TrackNumber;
-
-            // Trigger cascading property change notifications
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                propertyNotifier.NotifyPropertiesChanged(
-                    musicTypeChanged,
-                    languageCodeChanged,
-                    publicationCodeChanged,
-                    trackNumberChanged,
-                    false,
-                    newMusic.MusicType);
-            });
-        });
+        // Handle state changes using helper
+        stateChangeHandler.HandleStateChanged(
+            scheduleId,
+            stateHolder,
+            initialMusicEnabledOnPageLoad,
+            (val) => ShouldScrollToBottom = val,
+            (propertyName) => OnPropertyChanged(propertyName));
     }
 
     public ICommand SelectMusicCommand { get; private set; } = null!;
@@ -466,9 +204,9 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         get
         {
             // Return pending value if set (optimistic update), otherwise read from state
-            if (pendingMusicEnabled.HasValue)
+            if (stateHolder.PendingMusicEnabled.HasValue)
             {
-                return pendingMusicEnabled.Value;
+                return stateHolder.PendingMusicEnabled.Value;
             }
             var currentSchedule = state.Value.CurrentSchedule;
             return currentSchedule?.MusicEnabled ?? false;
@@ -479,9 +217,9 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             musicEnabledHandler.HandleSetMusicEnabled(
                 value,
                 currentValue,
-                isUpdatingFromState,
+                stateHolder.IsUpdatingFromState,
                 initialMusicEnabledOnPageLoad,
-                (val) => pendingMusicEnabled = val,
+                (val) => stateHolder.PendingMusicEnabled = val,
                 (val) => ShouldScrollToBottom = val,
                 () => OnPropertyChanged(nameof(MusicEnabled)));
         }

@@ -96,8 +96,17 @@ public static class ScheduleEntityUpdater
         if (existing.Music == null)
         {
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Creating new Music entity");
-            existing.Music = dbSchedule.Music;
-            existing.Music.AlarmScheduleId = existing.Id;
+            // Create a new tracked entity instead of using the AutoMapper-created one
+            existing.Music = new AlarmMusic
+            {
+                Id = dbSchedule.Music.Id,
+                MusicType = dbSchedule.Music.MusicType,
+                PublicationCode = dbSchedule.Music.PublicationCode,
+                LanguageCode = dbSchedule.Music.LanguageCode,
+                TrackNumber = dbSchedule.Music.TrackNumber,
+                Repeat = dbSchedule.Music.Repeat,
+                AlarmScheduleId = existing.Id
+            };
         }
         else
         {
@@ -106,11 +115,18 @@ public static class ScheduleEntityUpdater
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old MusicType={OldMusicType}, Old TrackNumber={OldTrackNumber}",
                 oldMusicType, oldTrackNumber);
 
-            existing.Music.Repeat = dbSchedule.Music.Repeat;
-            existing.Music.LanguageCode = dbSchedule.Music.LanguageCode;
+            // Always update all properties to ensure MusicType changes are saved
             existing.Music.MusicType = dbSchedule.Music.MusicType;
             existing.Music.PublicationCode = dbSchedule.Music.PublicationCode;
+            existing.Music.LanguageCode = dbSchedule.Music.LanguageCode;
             existing.Music.TrackNumber = dbSchedule.Music.TrackNumber;
+            existing.Music.Repeat = dbSchedule.Music.Repeat;
+            
+            // Update Id if it changed (e.g., when music type changes, MusicId might be reset)
+            if (dbSchedule.Music.Id > 0)
+            {
+                existing.Music.Id = dbSchedule.Music.Id;
+            }
 
             Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New MusicType={NewMusicType}, New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
                 existing.Music.MusicType, existing.Music.TrackNumber, existing.Music.PublicationCode, existing.Music.LanguageCode);

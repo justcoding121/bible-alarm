@@ -17,9 +17,9 @@ public sealed class ArtworkManager(ILogger logger)
     /// <summary>
     /// Updates the artwork from a URL.
     /// </summary>
-    public void UpdateArtwork(string? artworkUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
+    public void UpdateArtwork(string? artworkUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading, bool forceReload = false)
     {
-        if (lastArtworkUrl == artworkUrl)
+        if (!forceReload && lastArtworkUrl == artworkUrl)
         {
             return;
         }
@@ -36,9 +36,21 @@ public sealed class ArtworkManager(ILogger logger)
             return;
         }
 
-        if (artworkSource != null && !string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl)
+        // Clear existing artwork if URL changed or if forcing reload (for same file path with new content)
+        if (artworkSource != null && (!string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl || forceReload))
         {
-            ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            // When forcing reload, preserve the URL tracking
+            if (forceReload && previousUrl == artworkUrl)
+            {
+                artworkSource = null;
+                setArtworkSource(null);
+                artworkBytes = null;
+                setIsArtworkLoading(false);
+            }
+            else
+            {
+                ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            }
         }
 
         setIsArtworkLoading(true);

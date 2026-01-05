@@ -10,6 +10,7 @@ using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.Schedule;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Microsoft.Maui.ApplicationModel;
@@ -30,6 +31,7 @@ public sealed class ScheduleCommandExecutor
     private readonly IState<PlaybackState> playbackState;
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
+    private readonly Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel;
 
     public ScheduleCommandExecutor(
         IScheduleCommandService scheduleCommandService,
@@ -38,7 +40,8 @@ public sealed class ScheduleCommandExecutor
         IState<PlaybackState> playbackState,
         IDispatcher dispatcher,
         IMapper mapper,
-        ILogger logger)
+        ILogger logger,
+        Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel)
     {
         this.logger = logger;
         this.scheduleCommandService = scheduleCommandService;
@@ -47,6 +50,7 @@ public sealed class ScheduleCommandExecutor
         this.playbackState = playbackState;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
+        this.getMusicSelectionContainerViewModel = getMusicSelectionContainerViewModel;
     }
 
     public void InitializeCommands(
@@ -170,8 +174,32 @@ public sealed class ScheduleCommandExecutor
 
     private bool DetectMusicChanges()
     {
-        // This would need to track changes - simplified for now
-        return false;
+        // Check if music was updated via MusicSelectionContainerViewModel
+        var musicContainer = getMusicSelectionContainerViewModel();
+        if (musicContainer != null)
+        {
+            var musicUpdated = musicContainer.GetMusicUpdated();
+            logger.Debug("DetectMusicChanges: musicContainer found, MusicUpdated={MusicUpdated}", musicUpdated);
+            return musicUpdated;
+        }
+
+        // Fallback: check if CurrentSchedule has music properties that differ from what's saved
+        // This handles cases where the container isn't available yet
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        // If music is enabled and has properties, assume it might have changed
+        // This is a conservative check - we'll let the save logic handle the actual comparison
+        var hasMusicProperties = currentSchedule.MusicEnabled &&
+                                 currentSchedule.MusicType.HasValue &&
+                                 currentSchedule.MusicTrackNumber.HasValue &&
+                                 currentSchedule.MusicTrackNumber.Value > 0;
+
+        logger.Debug("DetectMusicChanges: musicContainer not found, hasMusicProperties={HasMusicProperties}", hasMusicProperties);
+        return hasMusicProperties;
     }
 
     private bool DetectBibleReadingChanges()

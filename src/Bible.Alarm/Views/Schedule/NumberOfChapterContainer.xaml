@@ -4,12 +4,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
              xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
-             x:DataType="vm:NumberOfChapterContainerViewModel">
+             x:DataType="vm:NumberOfChapterContainerViewModel"
+             IsVisible="True">
     <Border Margin="0"
             Padding="0"
             StrokeThickness="0"
             BackgroundColor="{DynamicResource CardBackgroundColor}"
-            HorizontalOptions="Fill">
+            HorizontalOptions="Fill"
+            MinimumHeightRequest="56"
+            IsVisible="True">
         <Border.StrokeShape>
             <RoundRectangle CornerRadius="16" />
         </Border.StrokeShape>
@@ -20,7 +23,9 @@
                     Opacity="0.2" />
         </Border.Shadow>
         <Grid RowSpacing="0"
-              Padding="0">
+              Padding="0"
+              MinimumHeightRequest="56"
+              IsVisible="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -33,9 +38,11 @@
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                  HeightRequest="56"
                   MinimumHeightRequest="56"
                   HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
+                  VerticalOptions="Fill"
+                  IsVisible="True">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -52,22 +59,26 @@
                        Text="Number of chapters to play"
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
-                       VerticalTextAlignment="Center" />
+                       VerticalTextAlignment="Center"
+                       IsVisible="True" />
                 <Label Grid.Column="1"
                        FontSize="16"
                        FontAttributes="None"
                        HorizontalOptions="End"
-                       Text="{Binding CurrentNumberOfChaptersText}"
+                       Text="{Binding CurrentNumberOfChaptersText, TargetNullValue=''}"
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
-                       VerticalTextAlignment="Center" />
+                       VerticalTextAlignment="Center"
+                       IsVisible="True" />
             </Grid>
             <!-- Divider -->
-            <BoxView HeightRequest="1"
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
             <Grid x:Name="AlwaysPlayFromStartButton"
+                  Grid.Row="2"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -90,7 +101,7 @@
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center">
-                    Resume unfinished chapters from the beginning
+                    Restart incomplete chapters from the beginning?
                 </Label>
                 <Grid Grid.Column="1"
                       HorizontalOptions="End"
@@ -108,7 +119,7 @@
                 </Grid>
             </Grid>
             <!-- Divider -->
-            <BoxView Grid.Row="1"
+            <BoxView Grid.Row="3"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
@@ -120,7 +131,7 @@
                 </BoxView.IsVisible>
             </BoxView>
             <Grid x:Name="ShowNotificationButton"
-                  Grid.Row="2"
+                  Grid.Row="4"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"

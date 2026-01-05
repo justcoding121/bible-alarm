@@ -86,7 +86,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
             (p) => PlayVisible = p,
             (p) => PauseVisible = p,
             (d) => currentDuration = d,
-            (url) => UpdateArtwork(url),
+            (url, force) => UpdateArtwork(url, force),
             () => OnPropertyChanged(nameof(AreControlsEnabled)),
             () => OnPropertyChanged(nameof(ProgressText)),
             () => OnPropertyChanged(nameof(PreparationProgress)),
@@ -448,12 +448,13 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         });
     }
 
-    private void UpdateArtwork(string? artworkUrl)
+    private void UpdateArtwork(string? artworkUrl, bool forceReload = false)
     {
         artworkManager.UpdateArtwork(
             artworkUrl,
             (source) => ArtworkSource = source,
-            (loading) => IsArtworkLoading = loading);
+            (loading) => IsArtworkLoading = loading,
+            forceReload);
     }
 
 

@@ -25,7 +25,7 @@ public class AlarmViewModalStateUpdater
     private readonly Action<bool> setPlayVisible;
     private readonly Action<bool> setPauseVisible;
     private readonly Action<TimeSpan> setCurrentDuration;
-    private readonly Action<string?> updateArtwork;
+    private readonly Action<string?, bool> updateArtwork;
     private readonly Action notifyControlsEnabledChanged;
     private readonly Action notifyProgressTextChanged;
     private readonly Action notifyPreparationProgressChanged;
@@ -49,7 +49,7 @@ public class AlarmViewModalStateUpdater
         Action<bool> setPlayVisible,
         Action<bool> setPauseVisible,
         Action<TimeSpan> setCurrentDuration,
-        Action<string?> updateArtwork,
+        Action<string?, bool> updateArtwork,
         Action notifyControlsEnabledChanged,
         Action notifyProgressTextChanged,
         Action notifyPreparationProgressChanged,
@@ -139,7 +139,7 @@ public class AlarmViewModalStateUpdater
         if (shouldForceUpdate)
         {
             previousArtworkUrl = artworkUrl;
-            updateArtwork(artworkUrl);
+            updateArtwork(artworkUrl, trackChanged);
         }
     }
 

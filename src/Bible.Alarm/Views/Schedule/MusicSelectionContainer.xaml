@@ -53,7 +53,7 @@
                     Play a music track before Bible audio
                 </Label>
                 <Grid Grid.Column="1"
-                      ColumnSpacing="12"
+                      ColumnSpacing="0"
                       HorizontalOptions="End"
                       VerticalOptions="Center">
                     <Grid.ColumnDefinitions>
@@ -61,8 +61,8 @@
                     </Grid.ColumnDefinitions>
                     <shared:PlatformSwitch
                         Grid.Column="0"
-                        Margin="0"
-                        HorizontalOptions="Start"
+                        Margin="0,0,12,0"
+                        HorizontalOptions="End"
                         IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
                 </Grid>
