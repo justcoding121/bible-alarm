@@ -255,29 +255,62 @@ public sealed class BibleSelectionStateHandler
 
     public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? translations)
     {
-        var stateValue = state.Value;
+        // Wait for state to be updated (in case language was just changed)
+        // This handles the race condition where the modal opens before state is fully updated
+        // Use CurrentSchedule as primary source, but fall back to CurrentBibleReadingSchedule if CurrentSchedule isn't updated yet
+        const int maxWaitAttempts = 10;
+        const int delayMs = 100;
+        string? newLanguageCode = null;
 
-        // Use CurrentSchedule as the source of truth
-        if (stateValue.CurrentSchedule == null)
+        for (int i = 0; i < maxWaitAttempts; i++)
         {
-            return;
+            var stateValue = state.Value;
+
+            // Use CurrentSchedule as the source of truth
+            if (stateValue.CurrentSchedule != null)
+            {
+                newLanguageCode = stateValue.CurrentSchedule.BibleReadingLanguageCode;
+                if (!string.IsNullOrEmpty(newLanguageCode))
+                {
+                    break;
+                }
+            }
+
+            // Fall back to CurrentBibleReadingSchedule if CurrentSchedule isn't updated yet
+            // This handles the case where BibleSelectionAction updates CurrentBibleReadingSchedule
+            // but the effect that syncs to CurrentSchedule hasn't run yet
+            if (string.IsNullOrEmpty(newLanguageCode) && stateValue.CurrentBibleReadingSchedule != null)
+            {
+                newLanguageCode = stateValue.CurrentBibleReadingSchedule.LanguageCode;
+                if (!string.IsNullOrEmpty(newLanguageCode))
+                {
+                    break;
+                }
+            }
+
+            // Wait a bit and retry if language code is not set yet
+            await Task.Delay(delayMs);
         }
 
-        var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-
+        // If language code is still null after waiting, return early
         if (string.IsNullOrEmpty(newLanguageCode))
         {
             return;
         }
 
+        var finalStateValue = state.Value;
+        var currentSchedule = finalStateValue.CurrentSchedule!;
+
+        // Check if language code changed (need to repopulate translations)
+        var languageChanged = lastLanguageCode != newLanguageCode;
+
         // Update tracking variable
         lastLanguageCode = newLanguageCode;
 
         // Update current from CurrentSchedule
-        if (stateValue.CurrentBibleReadingSchedule != null)
+        if (finalStateValue.CurrentBibleReadingSchedule != null)
         {
-            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            current = mapper.Map<BibleReadingSchedule>(finalStateValue.CurrentBibleReadingSchedule);
         }
         else if (!string.IsNullOrEmpty(newLanguageCode))
         {
@@ -290,14 +323,22 @@ public sealed class BibleSelectionStateHandler
             };
         }
 
-        // Ensure translations are populated if not already initialized
-        if (!initComplete || translations == null || translations.Count == 0)
+        // Always repopulate translations if:
+        // 1. Not initialized yet
+        // 2. Translations collection is null or empty
+        // 3. Language code changed (cascade effect)
+        if (!initComplete || translations == null || translations.Count == 0 || languageChanged)
         {
             initComplete = true;
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
             if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
             {
-                await dataProvider.PopulateTranslationsAsync(current.LanguageCode, translations, false);
+                // Clear the mapping dictionary before repopulating if language changed
+                if (languageChanged)
+                {
+                    dataProvider.ClearTranslationVMsMapping();
+                }
+                await dataProvider.PopulateTranslationsAsync(current.LanguageCode, translations, languageChanged);
             }
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));

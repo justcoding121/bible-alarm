@@ -240,9 +240,65 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     /// </summary>
     public async Task RefreshFromState()
     {
-        var stateValue = state.Value;
+        // Wait for state to be updated (in case language was just changed)
+        // This handles the race condition where the modal opens before state is fully updated
+        // Use CurrentSchedule as primary source, but fall back to CurrentMusic if CurrentSchedule isn't updated yet
+        const int maxWaitAttempts = 10;
+        const int delayMs = 100;
+        string? newLanguageCode = null;
+        MusicType? musicType = null;
 
-        if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
+        for (int i = 0; i < maxWaitAttempts; i++)
+        {
+            var stateValue = state.Value;
+
+            // Use CurrentSchedule as the source of truth
+            if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+            {
+                musicType = stateValue.CurrentSchedule.MusicType.Value;
+                newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
+                // For Vocals, we need language code; for Melodies, it can be null
+                if (musicType == MusicType.Vocals && !string.IsNullOrEmpty(newLanguageCode))
+                {
+                    break;
+                }
+                else if (musicType == MusicType.Melodies)
+                {
+                    // For Melodies, language code can be null, so we can proceed
+                    break;
+                }
+            }
+
+            // Fall back to CurrentMusic if CurrentSchedule isn't updated yet
+            // This handles the case where music selection action updates CurrentMusic
+            // but the effect that syncs to CurrentSchedule hasn't run yet
+            if (string.IsNullOrEmpty(newLanguageCode) && stateValue.CurrentMusic != null)
+            {
+                musicType = stateValue.CurrentMusic.MusicType;
+                newLanguageCode = stateValue.CurrentMusic.LanguageCode;
+                if (musicType == MusicType.Vocals && !string.IsNullOrEmpty(newLanguageCode))
+                {
+                    break;
+                }
+                else if (musicType == MusicType.Melodies)
+                {
+                    break;
+                }
+            }
+
+            // Wait a bit and retry if language code is not set yet (for Vocals)
+            await Task.Delay(delayMs);
+        }
+
+        var finalStateValue = state.Value;
+        if (finalStateValue.CurrentSchedule == null || !musicType.HasValue)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+            return;
+        }
+
+        // For Vocals, language code is required
+        if (musicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
         {
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
@@ -253,6 +309,9 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         {
             stateManager.EnsureCurrentIsSet(state, mapper);
         }
+
+        // Check if language code changed (need to repopulate song books)
+        var languageChanged = stateManager.LastLanguageCode != newLanguageCode;
 
         // Ensure languages are populated
         if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
@@ -266,13 +325,13 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
 
         // For Vocals, if no language is selected but languages are available, select based on current schedule
         string? languageCodeToUse = null;
-        if (stateValue.CurrentSchedule?.MusicType == MusicType.Vocals &&
+        if (finalStateValue.CurrentSchedule?.MusicType == MusicType.Vocals &&
             propertyManager.CurrentLanguage == null &&
             propertyManager.Languages != null &&
             propertyManager.Languages.Count > 0)
         {
             // Try to select the language from current schedule state
-            var scheduleLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
+            var scheduleLanguageCode = finalStateValue.CurrentSchedule.MusicLanguageCode ?? newLanguageCode;
             LanguageListViewItemModel? languageToSelect = null;
 
             if (!string.IsNullOrEmpty(scheduleLanguageCode))
@@ -301,10 +360,17 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         {
             languageCodeToUse = current.LanguageCode;
         }
+        else if (!string.IsNullOrEmpty(newLanguageCode))
+        {
+            languageCodeToUse = newLanguageCode;
+        }
 
-        // Populate song books if we have a language code and song books aren't already populated
+        // Always repopulate song books if:
+        // 1. We have a language code (for Vocals)
+        // 2. Song books aren't already populated
+        // 3. Language code changed (cascade effect)
         if (!string.IsNullOrEmpty(languageCodeToUse) && 
-            (propertyManager.SongBooks == null || propertyManager.SongBooks.Count == 0))
+            (propertyManager.SongBooks == null || propertyManager.SongBooks.Count == 0 || languageChanged))
         {
             await PopulateSongBooks(languageCodeToUse);
         }

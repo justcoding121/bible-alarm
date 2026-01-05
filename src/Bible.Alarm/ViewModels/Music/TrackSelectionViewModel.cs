@@ -114,19 +114,71 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     /// </summary>
     public async Task RefreshFromState()
     {
-        var stateValue = state.Value;
-        if (stateValue.CurrentSchedule == null)
+        // Wait for state to be updated (in case language/publication was just changed)
+        // This handles the race condition where the modal opens before state is fully updated
+        // Use CurrentSchedule as primary source, but fall back to CurrentMusic if CurrentSchedule isn't updated yet
+        const int maxWaitAttempts = 10;
+        const int delayMs = 100;
+        string? languageCode = null;
+        string? publicationCode = null;
+        MusicType? musicType = null;
+
+        for (int i = 0; i < maxWaitAttempts; i++)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
-            return;
+            var stateValue = state.Value;
+
+            // Use CurrentSchedule as the source of truth
+            if (stateValue.CurrentSchedule != null)
+            {
+                musicType = stateValue.CurrentSchedule.MusicType;
+                languageCode = stateValue.CurrentSchedule.MusicLanguageCode;
+                publicationCode = stateValue.CurrentSchedule.MusicPublicationCode;
+
+                if (musicType.HasValue && !string.IsNullOrEmpty(publicationCode))
+                {
+                    // For vocals, language code is required
+                    if (musicType.Value == MusicType.Vocals && !string.IsNullOrEmpty(languageCode))
+                    {
+                        break;
+                    }
+                    // For melodies, language code can be null
+                    else if (musicType.Value == MusicType.Melodies)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // Fall back to CurrentMusic if CurrentSchedule isn't updated yet
+            // This handles the case where music selection action updates CurrentMusic
+            // but the effect that syncs to CurrentSchedule hasn't run yet
+            if (string.IsNullOrEmpty(publicationCode) && stateValue.CurrentMusic != null)
+            {
+                musicType = stateValue.CurrentMusic.MusicType;
+                languageCode = stateValue.CurrentMusic.LanguageCode;
+                publicationCode = stateValue.CurrentMusic.PublicationCode;
+
+                if (!string.IsNullOrEmpty(publicationCode))
+                {
+                    // For vocals, language code is required
+                    if (musicType == MusicType.Vocals && !string.IsNullOrEmpty(languageCode))
+                    {
+                        break;
+                    }
+                    // For melodies, language code can be null
+                    else if (musicType == MusicType.Melodies)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // Wait a bit and retry if required values are not set yet
+            await Task.Delay(delayMs);
         }
 
-        var currentSchedule = stateValue.CurrentSchedule;
-        var musicType = currentSchedule.MusicType;
-        var languageCode = currentSchedule.MusicLanguageCode;
-        var publicationCode = currentSchedule.MusicPublicationCode;
-
-        if (!musicType.HasValue || string.IsNullOrEmpty(publicationCode))
+        var finalStateValue = state.Value;
+        if (finalStateValue.CurrentSchedule == null || !musicType.HasValue || string.IsNullOrEmpty(publicationCode))
         {
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;

@@ -135,43 +135,57 @@ public sealed class BibleSelectionDataProvider
         }
 
         // If language changed and no translation matches current publication code, select the last one (reverse order)
+        // Only dispatch action if the state doesn't already match what we're about to set
         if (languageChanged && defaultTranslation != null)
         {
             defaultTranslation.IsSelected = true;
 
-            // Dispatch action to update state with the default translation
-            // Get the first book and chapter for the default translation
-            _ = Task.Run(async () =>
+            // Check if state already matches what we're about to dispatch to avoid duplicate dispatches
+            var currentState = state.Value;
+            var currentSchedule = currentState?.CurrentSchedule;
+            var alreadyMatches = currentSchedule != null &&
+                                currentSchedule.BibleReadingLanguageCode == languageCode &&
+                                currentSchedule.BibleReadingPublicationCode == defaultTranslation.Code &&
+                                currentSchedule.BibleReadingBookNumber == 1 &&
+                                currentSchedule.BibleReadingChapterNumber == 1;
+
+            // Only dispatch if state doesn't already match (prevents duplicate dispatches from RefreshFromState)
+            if (!alreadyMatches)
             {
-                try
+                // Dispatch action to update state with the default translation
+                // Get the first book and chapter for the default translation
+                _ = Task.Run(async () =>
                 {
-                    var books = await mediaService.GetBibleBooks(languageCode, defaultTranslation.Code);
-                    if (books != null && books.Count > 0)
+                    try
                     {
-                        var firstBook = books.Values.First();
-                        var chapters = await mediaService.GetBibleChapters(languageCode, defaultTranslation.Code, firstBook.Number);
-                        if (chapters != null && chapters.Count > 0)
+                        var books = await mediaService.GetBibleBooks(languageCode, defaultTranslation.Code);
+                        if (books != null && books.Count > 0)
                         {
-                            var firstChapter = chapters.Values.First();
-                            var bibleReadingItem = new BibleReadingStateItem
+                            var firstBook = books.Values.First();
+                            var chapters = await mediaService.GetBibleChapters(languageCode, defaultTranslation.Code, firstBook.Number);
+                            if (chapters != null && chapters.Count > 0)
                             {
-                                LanguageCode = languageCode,
-                                PublicationCode = defaultTranslation.Code,
-                                BookNumber = firstBook.Number,
-                                ChapterNumber = firstChapter.Number,
-                                LanguageName = stateValue.CurrentSchedule?.BibleReadingLanguageName,
-                                PublicationName = defaultTranslation.Name,
-                                BookName = firstBook.Name
-                            };
-                            dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+                                var firstChapter = chapters.Values.First();
+                                var bibleReadingItem = new BibleReadingStateItem
+                                {
+                                    LanguageCode = languageCode,
+                                    PublicationCode = defaultTranslation.Code,
+                                    BookNumber = firstBook.Number,
+                                    ChapterNumber = firstChapter.Number,
+                                    LanguageName = stateValue.CurrentSchedule?.BibleReadingLanguageName,
+                                    PublicationName = defaultTranslation.Name,
+                                    BookName = firstBook.Name
+                                };
+                                dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+                            }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default translation selection");
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default translation selection");
+                    }
+                });
+            }
         }
 
         // Assign collection on main thread to ensure UI updates before IsBusy is set to false
