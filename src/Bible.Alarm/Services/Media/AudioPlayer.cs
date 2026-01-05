@@ -128,8 +128,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         // MediaElement will be initialized lazily when first accessed
         // Event handlers will be attached in PrepareAsync
 
-        // MediaElement is now a singleton for all platforms - do not register for DestroyMediaElementMessage
-        // MediaElement will live for the entire app process lifetime
+        // MediaElement is now created on-demand - no early initialization needed
     }
 
     public async Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false)
@@ -200,6 +199,6 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         // _androidPlayerNotificationService) are singletons, so don't dispose them
     }
 
-    // MediaElement is now a singleton for all platforms - it is never destroyed during app lifetime
+    // MediaElement is now created on-demand and disposed when playback stops
     // No DestroyMediaElementMessage handling needed
 }

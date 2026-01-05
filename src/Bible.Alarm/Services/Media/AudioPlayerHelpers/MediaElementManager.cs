@@ -152,16 +152,18 @@ public class MediaElementManager
                 await androidPlayerNotificationService.ReleaseMediaSessionAsync(mediaElement);
             }
             logger.Information("ReleaseMediaSession called - notification should be removed");
-
-            // Android: MediaElement is now a singleton for app lifetime - do not clear the reference
-            // The MediaElement instance remains alive, just the notification is removed
-            // No need to wait for DestroyMediaElementMessage (it's not sent anymore)
-            logger.Debug("MediaElement instance remains alive for app lifetime");
 #endif
 
+            // Dispose MediaElement to free up resources (ExoPlayer, MediaSession, etc.)
+            if (mediaElement != null)
+            {
+                logger.Information("Disposing MediaElement instance to free up resources");
+                await mediaElementService.DisposeMediaElementAsync();
+                logger.Information("MediaElement disposed - resources freed");
+            }
+
             // Verify final state
-            actualState = await MainThread.InvokeOnMainThreadAsync(() => mediaElement?.CurrentState ?? MediaElementState.None);
-            logger.Debug("Reset completed. MediaElement state: {State}, Status: {Status}", actualState, stateManager.Status);
+            logger.Debug("Reset completed. Status: {Status}", stateManager.Status);
         }
         finally
         {

@@ -88,11 +88,10 @@ public sealed class MediaSessionManager(ILogger logger)
     {
         try
         {
-            logger.Information("Removing Android notification resources - MediaElement instance remains alive");
+            logger.Information("Removing Android notification resources");
 
-            // MediaElement is now a singleton for app lifetime - do not send DestroyMediaElementMessage
-            // The MediaElement instance, ExoPlayer, and MediaSession remain alive for the entire app process
-            logger.Information("MediaSession released - MediaElement instance remains alive for app lifetime");
+            // MediaElement is now created on-demand and disposed when playback stops
+            logger.Information("MediaSession released - MediaElement will be disposed when playback stops");
         }
         catch (Exception ex)
         {

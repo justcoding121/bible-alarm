@@ -2,6 +2,7 @@
 using System.Reflection;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Core.Handlers;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
@@ -15,7 +16,7 @@ namespace Bible.Alarm.Services.Media;
 /// <summary>
 /// Service for managing and accessing the MediaElement instance.
 /// Thread-safe: ensures MediaElement creation happens on the main thread to prevent deadlocks and crashes.
-/// MediaElement is a singleton for the app process lifetime - it is initialized during bootstrap and never destroyed.
+/// MediaElement is created on-demand when playback starts and disposed when playback stops.
 /// MediaElement operates headlessly and does not require UI attachment.
 /// </summary>
 public sealed class MediaElementService : IMediaElementService, IDisposable
@@ -26,9 +27,6 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
     // Store MediaElement instance
     // MediaElement operates headlessly and does not require UI attachment
     private MediaElement? mediaElementInstance;
-    // Track initialization task to allow waiting for initialization to complete
-    private TaskCompletionSource<bool>? initializationTaskSource;
-    private volatile bool isInitializing;
 #if ANDROID
     // Track if handler has been created to prevent duplicate ExoPlayer creation
     // Used in debug logging and conditional checks
@@ -46,41 +44,11 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
     {
         this.logger = logger;
 
-        // MediaElement is now a singleton for all platforms - do not register for DestroyMediaElementMessage
-        // MediaElement will live for the entire app process lifetime
+        // MediaElement is now created on-demand - no early initialization needed
     }
 
     public async Task<MediaElement> GetMediaElementAsync()
     {
-        // Wait for initialization if it's in progress
-        // BUT: If we're on the main thread, we might be the one doing the initialization,
-        // so don't wait (to avoid deadlock). Only wait if called from a background thread.
-        TaskCompletionSource<bool>? initTask = null;
-        lock (lockObject)
-        {
-            if (isInitializing && initializationTaskSource != null)
-            {
-                initTask = initializationTaskSource;
-            }
-        }
-
-        if (initTask != null)
-        {
-            // Only wait if we're NOT on the main thread
-            // If we're on main thread, we're likely the one doing initialization, so proceed
-            if (!MainThread.IsMainThread)
-            {
-                logger.Debug("MediaElement initialization in progress, waiting for completion (from background thread)");
-                await initTask.Task.ConfigureAwait(false);
-            }
-            else
-            {
-                logger.Debug("MediaElement initialization in progress, but we're on main thread - likely we're the initializer, proceeding directly");
-                // Don't wait - we're on main thread and likely part of the initialization process
-                // This prevents deadlock when InitializeMediaElementAsync calls GetMediaElementAsync
-            }
-        }
-
         MediaElement? existingInstance;
 
         // Use local lock to synchronize access to MediaElement
@@ -144,68 +112,98 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
 
     /// <summary>
     /// Initializes MediaElement during bootstrap.
-    /// Creates a single MediaElement instance that lives for the app process lifetime.
-    /// This ensures ExoPlayer and MediaSession are created early and persist throughout the app lifecycle.
-    /// This method is called on a background task during bootstrap and does not block.
+    /// OBSOLETE: MediaElement is now created on-demand when playback starts.
+    /// This method does nothing and is kept for backward compatibility.
     /// </summary>
+    [Obsolete("MediaElement is now created on-demand. This method does nothing.")]
     public async Task InitializeMediaElementAsync()
     {
-        TaskCompletionSource<bool>? taskSource = null;
+        logger.Debug("InitializeMediaElementAsync called but MediaElement is now created on-demand - no action needed");
+        await Task.CompletedTask;
+    }
 
-        // Use local lock to synchronize
+    /// <summary>
+    /// Disposes the MediaElement instance and releases resources.
+    /// Called when playback stops to free up ExoPlayer and MediaSession resources.
+    /// </summary>
+    public async Task DisposeMediaElementAsync()
+    {
+        MediaElement? toDispose = null;
+
         lock (lockObject)
         {
-            // Check if already initialized
-            if (mediaElementInstance != null)
-            {
-                logger.Debug("MediaElement already initialized during bootstrap");
-                return;
-            }
-
-            // Check if initialization is already in progress
-            if (isInitializing)
-            {
-                logger.Debug("MediaElement initialization already in progress, waiting for completion");
-                taskSource = initializationTaskSource;
-            }
-            else
-            {
-                // Start initialization
-                isInitializing = true;
-                initializationTaskSource = new TaskCompletionSource<bool>();
-            }
+            toDispose = mediaElementInstance;
+            mediaElementInstance = null;
+            
+#if ANDROID
+            // Reset flags to allow new MediaElement creation
+            handlerCreated = false;
+            globalHandlerCreated = false;
+#endif
         }
 
-        // If initialization is already in progress, wait for it
-        if (taskSource != null)
+        if (toDispose == null)
         {
-            await taskSource.Task.ConfigureAwait(false);
+            logger.Debug("No MediaElement instance to dispose");
             return;
         }
 
-        // Perform initialization
         try
         {
-            logger.Information("[BOOTSTRAP] Initializing MediaElement instance for app lifetime");
-            await GetMediaElementAsync();
-            logger.Information("[BOOTSTRAP] MediaElement instance initialized successfully");
+            logger.Information("Disposing MediaElement instance and releasing resources");
 
-            // Signal completion
-            lock (lockObject)
+            // Dispose on main thread
+            if (MainThread.IsMainThread)
             {
-                initializationTaskSource?.TrySetResult(true);
-                isInitializing = false;
+                DisposeMediaElementOnMainThread(toDispose);
             }
+            else
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => DisposeMediaElementOnMainThread(toDispose));
+            }
+
+            logger.Information("MediaElement disposed successfully");
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[BOOTSTRAP] Error initializing MediaElement");
-            lock (lockObject)
+            logger.Error(ex, "Error disposing MediaElement");
+        }
+    }
+
+    private void DisposeMediaElementOnMainThread(MediaElement mediaElement)
+    {
+        if (!MainThread.IsMainThread)
+        {
+            logger.Warning("DisposeMediaElementOnMainThread called from non-main thread");
+        }
+
+        try
+        {
+            // Stop playback if still playing
+            if (mediaElement.CurrentState is MediaElementState.Playing or 
+                MediaElementState.Paused or 
+                MediaElementState.Buffering)
             {
-                initializationTaskSource?.TrySetException(ex);
-                isInitializing = false;
+                mediaElement.Stop();
             }
-            throw;
+
+            // Clear source
+            mediaElement.Source = null;
+
+            // Dispose the handler (which disposes ExoPlayer and MediaSession on Android)
+            if (mediaElement.Handler is IDisposable disposableHandler)
+            {
+                disposableHandler.Dispose();
+            }
+
+            // Clear handler reference
+            var handlerField = typeof(Element).GetField("_handler",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            handlerField?.SetValue(mediaElement, null);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error during MediaElement disposal - continuing");
         }
     }
 
@@ -413,7 +411,7 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
     }
 #endif
 
-    // MediaElement is now a singleton for all platforms - it is never destroyed during app lifetime
+    // MediaElement is now created on-demand and disposed when playback stops
     // No DestroyMediaElementMessage handling needed
 
     private bool isDisposed;

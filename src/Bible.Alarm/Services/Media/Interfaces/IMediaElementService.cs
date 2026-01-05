@@ -11,16 +11,22 @@ public interface IMediaElementService : IDisposable
 {
     /// <summary>
     /// Gets the MediaElement instance.
-    /// If the MediaElement doesn't exist (was disposed), creates a new one.
+    /// If the MediaElement doesn't exist (was disposed), creates a new one on-demand.
     /// MediaElement operates headlessly without requiring UI attachment.
     /// </summary>
     Task<MediaElement> GetMediaElementAsync();
 
     /// <summary>
     /// Initializes MediaElement during bootstrap.
-    /// Creates a single MediaElement instance that lives for the app process lifetime.
-    /// This is called on a background task during bootstrap and does not block.
+    /// OBSOLETE: MediaElement is now created on-demand. This method does nothing.
     /// </summary>
+    [Obsolete("MediaElement is now created on-demand. This method does nothing.")]
     Task InitializeMediaElementAsync();
+
+    /// <summary>
+    /// Disposes the MediaElement instance and releases resources.
+    /// Called when playback stops to free up ExoPlayer and MediaSession resources.
+    /// </summary>
+    Task DisposeMediaElementAsync();
 }
 
