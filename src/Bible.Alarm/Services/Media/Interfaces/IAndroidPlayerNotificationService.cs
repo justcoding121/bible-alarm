@@ -19,6 +19,6 @@ public interface IAndroidPlayerNotificationService : IDisposable
     /// Releases the MediaSession to hide the media notification.
     /// Should be called when playback stops.
     /// </summary>
-    void ReleaseMediaSession(MediaElement mediaElement);
+    Task ReleaseMediaSessionAsync(MediaElement mediaElement);
 }
 

@@ -92,16 +92,45 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
         try
         {
+            // CRITICAL: Detach the result before starting async work
+            // Android requires that OnLoadChildren either calls SendResult() synchronously
+            // or calls Detach() before returning if the result will be sent asynchronously
             result.Detach();
             logger.Debug("Result detached successfully for parent: {ParentId}", parentId);
 
-            // Use MediaBrowser helper to load children
-            var children = mediaBrowser.LoadChildren(parentId);
-            result.SendResult(children != null ? new JavaList<MediaBrowserCompat.MediaItem>(children) : new ArrayList());
+            // Run work to load schedules and create MediaItems on background thread
+            _ = Task.Run(async () => await LoadChildrenAsync(parentId, result));
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Critical error in OnLoadChildren for parent: {ParentId}", parentId);
+            // If Detach() itself fails, try to send empty result synchronously
+            logger.Error(ex, "Critical error in OnLoadChildren before detaching result for parent: {ParentId}", parentId);
+            SendEmptyResultSafely(result, parentId);
+        }
+    }
+
+    private async Task LoadChildrenAsync(string parentId, Result result)
+    {
+        try
+        {
+            logger.Debug("Starting schedule loading for parent: {ParentId}", parentId);
+
+            var children = await mediaBrowser.LoadChildrenAsync(parentId, this);
+            if (children != null && children.Count > 0)
+            {
+                var javaList = new JavaList<MediaBrowserCompat.MediaItem>(children);
+                logger.Information("Created {Count} MediaItems for Android Auto", javaList.Size());
+                result.SendResult(javaList);
+            }
+            else
+            {
+                logger.Debug("No MediaItems to send for parent: {ParentId}", parentId);
+                result.SendResult(new ArrayList());
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error loading children in LegacyMediaBrowserService for parent: {ParentId}. Bootstrap may not have completed or services may not be available.", parentId);
             SendEmptyResultSafely(result, parentId);
         }
     }

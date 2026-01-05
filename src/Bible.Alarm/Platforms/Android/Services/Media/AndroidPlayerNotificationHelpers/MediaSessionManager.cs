@@ -61,20 +61,19 @@ public sealed class MediaSessionManager(ILogger logger)
         {
             logger.Information("ReleaseMediaSession called - attempting to remove notification");
 
-            // Ensure we're on the main thread
-            if (!MainThread.IsMainThread)
-            {
-                MainThread.BeginInvokeOnMainThread(() => ReleaseMediaSessionAsync(mediaElement).Wait());
-                return;
-            }
-
             // Add a small delay to ensure MediaElement has finished its internal stopping process
             // This helps ensure the notification is in a stable state before we try to remove it
-            await Task.Run(async () =>
+            await Task.Delay(100);
+
+            // Ensure we're on the main thread for the actual release
+            if (MainThread.IsMainThread)
             {
-                await Task.Delay(100);
+                await ReleaseMediaSessionInternalAsync();
+            }
+            else
+            {
                 await MainThread.InvokeOnMainThreadAsync(async () => await ReleaseMediaSessionInternalAsync());
-            });
+            }
         }
         catch (Exception ex)
         {

@@ -85,9 +85,9 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     /// Releases the MediaSession and cancels the media notification.
     /// The key fix: calls SetPlayer(null) on PlayerNotificationManager, which is the only way to actually dismiss the notification.
     /// </summary>
-    public void ReleaseMediaSession(MediaElement mediaElement)
+    public async Task ReleaseMediaSessionAsync(MediaElement mediaElement)
     {
-        mediaSessionManager.ReleaseMediaSessionAsync(mediaElement).Wait();
+        await mediaSessionManager.ReleaseMediaSessionAsync(mediaElement);
     }
 
     private bool isDisposed;
