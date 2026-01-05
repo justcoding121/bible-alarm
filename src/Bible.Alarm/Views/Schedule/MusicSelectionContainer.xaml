@@ -71,7 +71,8 @@
             <Grid x:Name="CollapsibleContent"
                   Grid.Row="1"
                   RowSpacing="0"
-                  Padding="0">
+                  Padding="0"
+                  IsVisible="{Binding MusicEnabled}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
