@@ -76,6 +76,9 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         mediaSessionInitializer.InitializeMediaSession();
         mediaSessionInitializer.InitializeBootstrapInBackground();
 
+        // Set the MediaBrowserService instance so StateSubscriptionManager can call NotifyChildrenChanged
+        stateSubscriptionManager.SetMediaBrowserService(this);
+
         // Initialize state subscription in background
         _ = stateSubscriptionManager.InitializeStateSubscriptionAsync();
     }

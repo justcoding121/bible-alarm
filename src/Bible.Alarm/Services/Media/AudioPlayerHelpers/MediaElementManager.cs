@@ -147,13 +147,10 @@ public class MediaElementManager
             logger.Information("Resetting playback - calling ReleaseMediaSession to remove notification");
             // Small delay to let MediaElement finish stopping
             await Task.Delay(100);
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            if (mediaElement != null && androidPlayerNotificationService != null)
             {
-                if (mediaElement != null)
-                {
-                    androidPlayerNotificationService?.ReleaseMediaSession(mediaElement);
-                }
-            });
+                await androidPlayerNotificationService.ReleaseMediaSessionAsync(mediaElement);
+            }
             logger.Information("ReleaseMediaSession called - notification should be removed");
 
             // Android: MediaElement is now a singleton for app lifetime - do not clear the reference
