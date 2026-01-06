@@ -30,7 +30,7 @@ public sealed class AlarmService(
     /// Updates an alarm schedule and reschedules OS toast notification if enabled.
     /// Only schedules if notifications are available (e.g., not in debug mode on Windows).
     /// </summary>
-    public async void Update(AlarmSchedule schedule)
+    public async Task Update(AlarmSchedule schedule)
     {
         // Remove existing notification first
         if (await notificationService.CanScheduleAsync())
@@ -49,7 +49,7 @@ public sealed class AlarmService(
     /// Deletes an alarm schedule and removes OS toast notification.
     /// Only removes if notifications are available (e.g., not in debug mode on Windows).
     /// </summary>
-    public async void Delete(int scheduleId)
+    public async Task Delete(int scheduleId)
     {
         // Remove notification if available
         if (await notificationService.CanScheduleAsync())

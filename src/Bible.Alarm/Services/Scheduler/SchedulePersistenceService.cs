@@ -84,7 +84,7 @@ public sealed class SchedulePersistenceService(
             existing => UpdateScheduleProperties(existing, schedule, musicUpdated, bibleReadingUpdated),
             cancellationTokenSource.Token);
 
-        await Task.Run(() => alarmService.Update(savedSchedule));
+        await alarmService.Update(savedSchedule);
         dispatcher.Dispatch(new UpdateScheduleAction(savedSchedule));
 
         return savedSchedule;
@@ -177,11 +177,8 @@ public sealed class SchedulePersistenceService(
             await mediaCacheService.DeleteScheduleCacheAsync(scheduleId);
 
             // Delete from database
-            await Task.Run(async () =>
-            {
-                alarmService.Delete(scheduleId);
-                await alarmScheduleService.DeleteScheduleAsync(scheduleId, cancellationTokenSource.Token);
-            });
+            await alarmService.Delete(scheduleId);
+            await alarmScheduleService.DeleteScheduleAsync(scheduleId, cancellationTokenSource.Token);
 
             // Dispatch action to remove from state (this will trigger HomeViewModel to update)
             dispatcher.Dispatch(new RemoveScheduleAction(scheduleToRemove));

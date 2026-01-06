@@ -90,7 +90,7 @@ public sealed class ScheduleUpdateProcessor
     {
         if (alarmService != null)
         {
-            await Task.Run(() => alarmService.Update(savedSchedule));
+            await alarmService.Update(savedSchedule);
         }
     }
 

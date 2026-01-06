@@ -2,12 +2,19 @@
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
+#if WINDOWS
+using Bible.Alarm.Platforms.Windows.Helpers;
+#endif
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService
+public sealed class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService, IDisposable
 {
     private readonly IServiceProvider serviceProvider = serviceProvider;
+
+#if WINDOWS
+    private WindowsPeriodicBackgroundTasks? periodicBackgroundTasks;
+#endif
 
     public void OnStart()
     {
@@ -24,10 +31,10 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
                 await Task.Delay(1000);
 
 #if WINDOWS
-                // Reschedule any enabled alarms that may have fired while app was closed
-                // This is a fallback for WinUI 3 which doesn't have background tasks
-                var schedulerService = serviceProvider.GetRequiredService<ISchedulerService>();
-                await schedulerService.HandleAsync();
+                // Start periodic background tasks (similar to Android JobScheduler)
+                // This will run scheduler and media index update immediately on start, then continue periodically
+                periodicBackgroundTasks ??= new WindowsPeriodicBackgroundTasks(logger, serviceProvider);
+                periodicBackgroundTasks.Start();
 #endif
             }
             catch (Exception e)
@@ -50,10 +57,10 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
                 await Task.Delay(1000);
 
 #if WINDOWS
-                // Reschedule any enabled alarms that may have fired while app was in background
-                // This is a fallback for WinUI 3 which doesn't have background tasks
-                var schedulerService = serviceProvider.GetRequiredService<ISchedulerService>();
-                await schedulerService.HandleAsync();
+                // Ensure periodic background tasks are running
+                // This will run scheduler and media index update immediately on resume, then continue periodically
+                periodicBackgroundTasks ??= new WindowsPeriodicBackgroundTasks(logger, serviceProvider);
+                periodicBackgroundTasks.Start();
 #endif
             }
             catch (Exception e)
@@ -63,5 +70,12 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
         });
     }
 
+    public void Dispose()
+    {
+#if WINDOWS
+        periodicBackgroundTasks?.Dispose();
+        periodicBackgroundTasks = null;
+#endif
+    }
 }
 

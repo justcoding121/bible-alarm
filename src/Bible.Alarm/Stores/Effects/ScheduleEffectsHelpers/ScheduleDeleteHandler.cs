@@ -128,7 +128,7 @@ public class ScheduleDeleteHandler
             // Delete alarm notification (on background thread)
             if (alarmService != null)
             {
-                await Task.Run(() => alarmService.Delete(action.ScheduleId));
+                await alarmService.Delete(action.ScheduleId);
             }
 
             // Delete from database (on background thread)

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
@@ -30,16 +31,6 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         try
         {
             var scheduleId = schedule.Id;
-            var time = schedule.NextFireDate();
-
-            if (time <= DateTimeOffset.Now)
-            {
-                logger.Warning("Cannot schedule notification for schedule {ScheduleId}: time {Time} is in the past", scheduleId, time);
-                return Task.CompletedTask;
-            }
-
-            logger.Information("Scheduling notification for schedule {ScheduleId} at {Time}", scheduleId, time);
-
             var notifier = GetToastNotifier();
             if (notifier == null)
             {
@@ -47,21 +38,65 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 return Task.CompletedTask;
             }
 
-            var toast = CreateScheduledToast(scheduleId, title, body, time);
-            notifier.AddToSchedule(toast);
+            // Remove all existing notifications for this schedule before rescheduling
+            RemoveAllNotificationsForSchedule(notifier, scheduleId);
 
-            if (IsNotificationScheduled(notifier, scheduleId))
+            // Schedule notifications for the next 90 days
+            const int daysToSchedule = 90;
+            var maxDate = DateTimeOffset.Now.AddDays(daysToSchedule);
+            var currentDate = DateTimeOffset.Now;
+            var scheduledCount = 0;
+            const int maxOccurrences = 1000; // Safety limit to prevent infinite loops
+
+            logger.Information("Scheduling notifications for schedule {ScheduleId} for the next {Days} days", scheduleId, daysToSchedule);
+
+            for (int i = 0; i < maxOccurrences; i++)
             {
-                logger.Information("Successfully scheduled notification for schedule {ScheduleId} at {Time}", scheduleId, time);
+                var fireDate = schedule.NextFireDate(currentDate);
+
+                // Stop if beyond our 90-day window
+                if (fireDate > maxDate)
+                {
+                    break;
+                }
+
+                // Skip if in the past (shouldn't happen, but safety check)
+                if (fireDate <= DateTimeOffset.Now)
+                {
+                    currentDate = fireDate;
+                    continue;
+                }
+
+                // Create unique ID for this occurrence: "{scheduleId}_{ticks}"
+                var uniqueId = $"{scheduleId}_{fireDate.Ticks}";
+                var toast = CreateScheduledToast(uniqueId, scheduleId, title, body, fireDate);
+                
+                try
+                {
+                    notifier.AddToSchedule(toast);
+                    scheduledCount++;
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Failed to schedule notification for schedule {ScheduleId} at {FireDate}", scheduleId, fireDate);
+                    // Continue with next occurrence
+                }
+
+                currentDate = fireDate;
+            }
+
+            if (scheduledCount > 0)
+            {
+                logger.Information("Successfully scheduled {Count} notifications for schedule {ScheduleId} (next {Days} days)", scheduledCount, scheduleId, daysToSchedule);
             }
             else
             {
-                logger.Warning("Notification may not have been scheduled for schedule {ScheduleId}. Check Windows notification settings.", scheduleId);
+                logger.Warning("No notifications were scheduled for schedule {ScheduleId}. Check alarm schedule configuration.", scheduleId);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error scheduling notification for schedule {ScheduleId}", schedule.Id);
+            logger.Error(ex, "Error scheduling notifications for schedule {ScheduleId}", schedule.Id);
         }
 
         return Task.CompletedTask;
@@ -77,15 +112,16 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 return Task.CompletedTask;
             }
 
-            var toRemove = FindScheduledToast(notifier, scheduleId);
-            if (toRemove is not null)
+            // Remove all notifications for this schedule (supports multiple occurrences)
+            var removedCount = RemoveAllNotificationsForSchedule(notifier, scheduleId);
+            if (removedCount > 0)
             {
-                notifier.RemoveFromSchedule(toRemove);
+                logger.Information("Removed {Count} scheduled notifications for schedule {ScheduleId}", removedCount, scheduleId);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error removing notification for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, "Error removing notifications for schedule {ScheduleId}", scheduleId);
         }
 
         return Task.CompletedTask;
@@ -112,12 +148,12 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
     public Task<bool> CanScheduleAsync() => Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
 
-    private static ScheduledToastNotification CreateScheduledToast(int scheduleId, string title, string body, DateTimeOffset time)
+    private static ScheduledToastNotification CreateScheduledToast(string uniqueId, int scheduleId, string title, string body, DateTimeOffset time)
     {
         var toastXml = CreateToastXml(title, body, scheduleId);
         return new ScheduledToastNotification(toastXml, time)
         {
-            Id = scheduleId.ToString()
+            Id = uniqueId
         };
     }
 
@@ -153,11 +189,14 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
     private static bool IsNotificationScheduled(ToastNotifier notifier, int scheduleId)
     {
+        // Check if any notification exists for this schedule
+        // Notification IDs are in format: "{scheduleId}_{ticks}"
         var scheduledToasts = notifier.GetScheduledToastNotifications();
-        var scheduleIdString = scheduleId.ToString();
+        var scheduleIdPrefix = $"{scheduleId}_";
         foreach (var toast in scheduledToasts)
         {
-            if (toast.Id == scheduleIdString)
+            // Check if notification ID starts with scheduleId (supports both old format and new format)
+            if (toast.Id == scheduleId.ToString() || toast.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -165,18 +204,42 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         return false;
     }
 
-    private static ScheduledToastNotification? FindScheduledToast(ToastNotifier notifier, int scheduleId)
+    /// <summary>
+    /// Removes all scheduled notifications for a given schedule ID.
+    /// Supports both old format (just scheduleId) and new format ({scheduleId}_{ticks}).
+    /// </summary>
+    private static int RemoveAllNotificationsForSchedule(ToastNotifier notifier, int scheduleId)
     {
         var scheduledToasts = notifier.GetScheduledToastNotifications();
         var scheduleIdString = scheduleId.ToString();
+        var scheduleIdPrefix = $"{scheduleId}_";
+        var toRemove = new List<ScheduledToastNotification>();
+
+        // Find all notifications for this schedule
         foreach (var toast in scheduledToasts)
         {
-            if (toast.Id == scheduleIdString)
+            // Support both old format (just scheduleId) and new format ({scheduleId}_{ticks})
+            if (toast.Id == scheduleIdString || toast.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal))
             {
-                return toast;
+                toRemove.Add(toast);
             }
         }
-        return null;
+
+        // Remove all found notifications
+        foreach (var toast in toRemove)
+        {
+            try
+            {
+                notifier.RemoveFromSchedule(toast);
+            }
+            catch (Exception ex)
+            {
+                // Log but continue removing others
+                Log.Warning(ex, "Failed to remove scheduled notification {NotificationId} for schedule {ScheduleId}", toast.Id, scheduleId);
+            }
+        }
+
+        return toRemove.Count;
     }
 
     private static ToastNotifier? GetToastNotifier()

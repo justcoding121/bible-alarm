@@ -86,7 +86,7 @@ public sealed class ScheduleStateService(
             schedule => schedule.IsEnabled = isEnabled,
             cancellationTokenSource.Token);
 
-        await Task.Run(() => alarmService.Update(updatedSchedule));
+        await alarmService.Update(updatedSchedule);
         return updatedSchedule;
     }
 
