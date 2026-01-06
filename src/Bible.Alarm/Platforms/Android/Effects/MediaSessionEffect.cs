@@ -412,14 +412,6 @@ public class MediaSessionEffect(
                 return;
             }
 
-            var currentState = playbackState.Value;
-            logger.Debug(
-                "[AndroidAuto] PlaybackPositionChangedMessage: Updating position - Position={Position}ms, Status={Status}, IsAutoAdvancing={IsAutoAdvancing}, CanPlayNext={CanPlayNext}",
-                (long)message.CurrentPosition.Value.TotalMilliseconds,
-                currentState.Status,
-                currentState.IsAutoAdvancing,
-                currentState.CanPlayNext);
-
             UpdatePlaybackPosition(session, message.CurrentPosition.Value);
         }
         catch (Exception ex)
@@ -433,15 +425,6 @@ public class MediaSessionEffect(
         var currentState = playbackState.Value;
         var duration = currentState.Duration;
         var canPlayNext = currentState.CanPlayNext;
-        var isAutoAdvancing = currentState.IsAutoAdvancing;
-
-        logger.Debug(
-            "[AndroidAuto] UpdatePlaybackPosition: Position={Position}ms, Duration={Duration}ms, Status={Status}, IsAutoAdvancing={IsAutoAdvancing}, CanPlayNext={CanPlayNext}",
-            (long)currentPosition.TotalMilliseconds,
-            (long)duration.TotalMilliseconds,
-            currentState.Status,
-            isAutoAdvancing,
-            canPlayNext);
 
         // Always enable previous button for Android Auto (even on first track - will restart current track)
         mediaSessionManager.UpdatePlaybackPosition(currentPosition, duration, canPlayNext, canPlayPrevious: true);

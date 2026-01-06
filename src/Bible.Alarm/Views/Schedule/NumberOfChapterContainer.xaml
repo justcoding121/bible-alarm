@@ -159,7 +159,7 @@
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center">
-                    Play only when I tap on alarm notification
+                    Tap to play
                 </Label>
                 <Grid Grid.Column="1"
                       HorizontalOptions="End"

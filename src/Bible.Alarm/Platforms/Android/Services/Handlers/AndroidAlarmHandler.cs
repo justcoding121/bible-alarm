@@ -29,13 +29,21 @@ public sealed class AndroidAlarmHandler(
         // stop the foreground service and its sticky notification, then show regular notification
         if (isAlarm && schedule.NotificationEnabled)
         {
+            logger.Information("Alarm triggered with NotificationEnabled=true for schedule {ScheduleId} - stopping foreground service and showing tap notification", scheduleId);
+            
             // Stop foreground service and its sticky notification (we don't need it if user must tap)
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
             
+            logger.Debug("Removing any existing local notification for schedule {ScheduleId}", schedule.Id);
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
+            
+            var notificationTitle = string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name;
+            logger.Information("Showing local notification for schedule {ScheduleId} - Title={Title}", schedule.Id, notificationTitle);
             AndroidNotificationService.ShowLocalNotification(schedule.Id,
-                string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name,
+                notificationTitle,
                 "Press to start listening now.");
+            
+            logger.Information("Local notification shown for schedule {ScheduleId} - waiting for user tap", schedule.Id);
             Dispose();
             return;
         }

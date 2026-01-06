@@ -17,9 +17,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Essentials;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+#endif
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
@@ -247,6 +251,49 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
         {
             if (SetProperty(ref notificationEnabled, value))
             {
+                // If enabling notifications, check/request permission first (Android 13+)
+                if (value)
+                {
+#if ANDROID
+                    logger.Information("NotificationEnabled toggled ON - checking/requesting permission");
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
+                            logger.Information("Notification permission check result: Granted={Granted}", granted);
+                            if (!granted)
+                            {
+                                // Permission denied - revert the toggle
+                                logger.Warning("Notification permission denied - reverting toggle");
+                                MainThread.BeginInvokeOnMainThread(() =>
+                                {
+                                    notificationEnabled = false;
+                                    OnPropertyChanged(nameof(NotificationEnabled));
+                                });
+                                
+                                // Show message to user
+                                var toastService = serviceProvider.GetService<IToastService>();
+                                if (toastService != null)
+                                {
+                                    await toastService.ShowMessage(
+                                        "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
+                                        7);
+                                }
+                            }
+                            else
+                            {
+                                logger.Information("Notification permission granted - toggle remains enabled");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, "Error requesting notification permission");
+                        }
+                    });
+#endif
+                }
+                
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
             }
         }

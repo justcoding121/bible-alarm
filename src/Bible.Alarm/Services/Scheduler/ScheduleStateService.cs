@@ -6,8 +6,12 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+#endif
 
 namespace Bible.Alarm.Services.Scheduler;
 
@@ -26,7 +30,7 @@ public sealed class ScheduleStateService(
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {
         // Check notification permissions if enabling
-        if (isEnabled && !await CheckNotificationPermissionsAsync())
+        if (isEnabled && !await CheckNotificationPermissionsAsync(scheduleId))
         {
             return false;
         }
@@ -52,21 +56,43 @@ public sealed class ScheduleStateService(
         return true;
     }
 
-    private async Task<bool> CheckNotificationPermissionsAsync()
+#pragma warning disable CS9113 // Parameter 'notificationService' is used in iOS/WinUI paths (#else block)
+    private async Task<bool> CheckNotificationPermissionsAsync(int scheduleId)
     {
-        if (DeviceInfo.Platform != DevicePlatform.iOS && DeviceInfo.Platform != DevicePlatform.WinUI)
+#if ANDROID
+        // Check Android notification permission if NotificationEnabled is true
+        // Get the schedule to check if NotificationEnabled is true
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
+        if (schedule != null && schedule.NotificationEnabled)
         {
-            return true;
+            var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
+            if (!granted)
+            {
+                logger.Warning("Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied", scheduleId);
+                await toastService.ShowMessage(
+                    "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
+                    7);
+                return false;
+            }
+        }
+        return true; // Android permission check passed or not needed
+#else
+        // Check iOS/WinUI notification permissions
+        if (DeviceInfo.Platform == DevicePlatform.iOS || DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            if (await notificationService.CanScheduleAsync())
+            {
+                return true;
+            }
+
+            await ShowNotificationPermissionMessageAsync();
+            return false;
         }
 
-        if (await notificationService.CanScheduleAsync())
-        {
-            return true;
-        }
-
-        await ShowNotificationPermissionMessageAsync();
-        return false;
+        return true;
+#endif
     }
+#pragma warning restore CS9113
 
     private async Task ShowNotificationPermissionMessageAsync()
     {

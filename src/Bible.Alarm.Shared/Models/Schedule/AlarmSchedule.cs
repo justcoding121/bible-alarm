@@ -157,7 +157,7 @@ public sealed class AlarmSchedule : IComparable
         {
             IsEnabled = false,
             MusicEnabled = false,
-            NotificationEnabled = true,
+            NotificationEnabled = false, // Disabled by default - user must explicitly enable tap-to-play
             DaysOfWeek = DaysOfWeek.All,
             Name = $"{(isNew ? "New schedule" : "Initial schedule")}",
             Hour = 6,

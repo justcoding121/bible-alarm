@@ -62,10 +62,11 @@ internal static class ForegroundServiceValidator
             return true;
         }
         
-        // If Android Auto already owns foreground service, we don't need to start another
-        if (state.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.AndroidAuto)
+        // If Android Auto or Alarm already owns foreground service, we don't need to start another
+        if (state.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.AndroidAuto ||
+            state.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.Alarm)
         {
-            logger.Debug("Skipping foreground service start - Android Auto already owns foreground service");
+            logger.Debug("Skipping foreground service start - {Owner} already owns foreground service", state.CurrentOwner);
             return true;
         }
         

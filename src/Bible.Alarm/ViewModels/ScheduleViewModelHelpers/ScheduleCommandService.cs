@@ -12,8 +12,12 @@ using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+#endif
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
@@ -184,6 +188,22 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         {
             logger.Warning("SaveAsync: Validation failed");
             return false;
+        }
+
+        // Check notification permission if NotificationEnabled is true (Android 13+)
+        if (currentSchedule.NotificationEnabled)
+        {
+#if ANDROID
+            var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
+            if (!granted)
+            {
+                logger.Warning("Cannot save schedule with NotificationEnabled=true - notification permission denied");
+                await toastService.ShowMessage(
+                    "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
+                    7);
+                return false;
+            }
+#endif
         }
 
         // For new schedules, ensure IsEnabled is true in state

@@ -130,17 +130,6 @@ public sealed class MediaSessionManager
         var positionMs = (long)position.TotalMilliseconds;
         var durationMs = (long)duration.TotalMilliseconds;
         var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
-        var actionsDescription = StateHelper.GetActionsDescription(actions);
-
-        logger.Information(
-            "[AndroidAuto] UpdatePlaybackPosition: Updating position - CurrentState={StateName}, Position={Position}ms, Duration={Duration}ms, Actions={Actions}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, ButtonState={ButtonState}",
-            currentStateName,
-            positionMs,
-            durationMs,
-            actionsDescription,
-            canPlayNext,
-            canPlayPrevious,
-            StateHelper.GetButtonStateFromActions(actions));
 
         UpdatePlaybackStateWithPosition(playbackState, positionMs, actions);
         metadataManager.UpdateMetadataDuration(mediaSession, durationMs);
@@ -148,16 +137,6 @@ public sealed class MediaSessionManager
 
     private void UpdatePlaybackStateWithPosition(PlaybackStateCompat playbackState, long positionMs, long actions)
     {
-        var stateName = StateHelper.GetStateName(playbackState.State);
-        var actionsDescription = StateHelper.GetActionsDescription(actions);
-
-        logger.Information(
-            "[AndroidAuto] UpdatePlaybackStateWithPosition: Updating state with position - CurrentState={StateName}, NewPosition={Position}ms, Actions={Actions}, ButtonState={ButtonState}",
-            stateName,
-            positionMs,
-            actionsDescription,
-            StateHelper.GetButtonStateFromActions(actions));
-
         var playbackStateCompat = playbackStateManager.CreatePlaybackStateFromExisting(
             playbackState,
             positionMs,
@@ -166,11 +145,6 @@ public sealed class MediaSessionManager
         if (playbackStateCompat != null)
         {
             mediaSession?.SetPlaybackState(playbackStateCompat);
-            logger.Information(
-                "[AndroidAuto] UpdatePlaybackStateWithPosition: MediaSessionCompat.SetPlaybackState called successfully - State={StateName}, Position={Position}ms, ButtonState={ButtonState}",
-                stateName,
-                positionMs,
-                StateHelper.GetButtonStateFromActions(actions));
         }
         else
         {

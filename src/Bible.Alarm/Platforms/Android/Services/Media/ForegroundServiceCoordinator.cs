@@ -31,7 +31,8 @@ public sealed class ForegroundServiceCoordinator
     {
         None,
         MediaElement,      // MediaControlsService from MediaElement library (uses notification ID 1)
-        AndroidAuto        // Android Auto connection service (uses notification ID 2)
+        AndroidAuto,       // Android Auto connection service (uses notification ID 2)
+        Alarm              // Alarm foreground service (uses notification ID 2)
     }
 
     /// <summary>
@@ -148,9 +149,10 @@ public sealed class ForegroundServiceCoordinator
             logger.Information("Playback started - MediaElement requesting foreground service ownership (current owner: {CurrentOwner})", 
                 state.CurrentOwner);
 
-            if (state.CurrentOwner == ForegroundServiceOwner.AndroidAuto)
+            if (state.CurrentOwner == ForegroundServiceOwner.AndroidAuto || state.CurrentOwner == ForegroundServiceOwner.Alarm)
             {
-                logger.Information("Stopping Android Auto/alarm foreground service before MediaElement starts");
+                var ownerType = state.CurrentOwner == ForegroundServiceOwner.AndroidAuto ? "Android Auto" : "Alarm";
+                logger.Information("Stopping {OwnerType} foreground service before MediaElement starts", ownerType);
                 var serviceToStop = state.AndroidAutoService ?? state.AlarmService;
                 ForegroundServiceOperations.StopForeground(serviceToStop);
                 
@@ -425,7 +427,7 @@ public sealed class ForegroundServiceCoordinator
                 
                 state.SetAlarmService(serviceInstance);
                 ForegroundServiceOperations.StartForeground(serviceInstance, mediaSession, isAlarmNotification: true);
-                state.SetOwner(ForegroundServiceOwner.AndroidAuto); // Reuse AndroidAuto owner type for alarm
+                state.SetOwner(ForegroundServiceOwner.Alarm);
                 logger.Information("Alarm foreground service started with preparing notification - will switch to MediaElement when playback starts");
             }
         }
@@ -441,17 +443,22 @@ public sealed class ForegroundServiceCoordinator
 
     /// <summary>
     /// Stops the alarm foreground service if it's currently active.
-    /// Called when "play only when I tap on notification" is enabled,
-    /// since we don't need the foreground service in that case.
+    /// Called when "play only when I tap on notification" is enabled.
+    /// 
+    /// It's safe to stop the foreground service here because:
+    /// - A tappable notification is shown to the user
+    /// - When the user taps the notification, the app is brought to foreground
+    /// - MediaElement will automatically request foreground service ownership when playback starts
+    /// - This allows the app to go to background after showing the notification, saving resources
     /// </summary>
     public static void StopAlarmForegroundServiceIfActive()
     {
         Service? alarmServiceToStop = null;
         lock (@lock)
         {
-            if (state.AlarmService != null && state.CurrentOwner == ForegroundServiceOwner.AndroidAuto)
+            if (state.AlarmService != null && state.CurrentOwner == ForegroundServiceOwner.Alarm)
             {
-                logger.Information("Stopping alarm foreground service - NotificationEnabled is true, waiting for user tap");
+                logger.Information("Stopping alarm foreground service - NotificationEnabled is true, waiting for user tap. MediaElement will handle foreground service when playback starts.");
                 alarmServiceToStop = state.AlarmService;
                 ForegroundServiceOperations.StopForeground(state.AlarmService);
                 state.SetOwner(ForegroundServiceOwner.None);
