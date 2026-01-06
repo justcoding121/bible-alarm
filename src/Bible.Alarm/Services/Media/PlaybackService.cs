@@ -23,6 +23,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly IPlaylistService playlistService;
     private readonly IDispatcher dispatcher;
     private readonly IDisplayMetadataService displayMetadataService;
+    private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
+    private readonly INotificationService notificationService;
 
     // Helper classes for modular functionality
     private readonly PlaybackStateManager stateManager;
@@ -56,6 +58,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.playlistService = playlistService;
         this.dispatcher = dispatcher;
         this.displayMetadataService = displayMetadataService;
+        this.fallbackAlarmSoundService = fallbackAlarmSoundService;
+        this.notificationService = notificationService;
 
         // Initialize helper classes
         stateManager = new PlaybackStateManager(logger);
@@ -120,15 +124,55 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
             if (stateManager.Playlist is null)
             {
-                logger.Information("Track preparation cancelled for schedule {ScheduleId}", scheduleId);
-                await ResetAsync();
+                logger.Information("Track preparation cancelled or failed for schedule {ScheduleId}", scheduleId);
+                
+                // Keep modal open and show error with retry option for both alarm and non-alarm
+                // For alarms, show message about playing default alarm sound
+                var errorMessage = isAlarm
+                    ? "Download failed. Playing default alarm sound."
+                    : "Media download failed. Check your internet connection.";
+                
+                dispatcher.Dispatch(new PlaybackErrorAction
+                {
+                    ErrorMessage = errorMessage
+                });
+                // Keep modal open by not resetting - the state will keep isPreparingOrPlaying true
+                // Set status to Failed to indicate error state
+                dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
+                
+                // For alarms, also try to play fallback alarm sound (keep error message visible)
+                if (isAlarm)
+                {
+                    await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
+                }
+                
                 return;
             }
 
             if (stateManager.Playlist.Count == 0)
             {
                 logger.Warning("No tracks prepared for schedule {ScheduleId}", scheduleId);
-                await ResetAsync();
+                
+                // Keep modal open and show error with retry option for both alarm and non-alarm
+                // For alarms, show message about playing default alarm sound
+                var errorMessage = isAlarm
+                    ? "Download failed. Playing default alarm sound."
+                    : "Media download failed. Check your internet connection.";
+                
+                dispatcher.Dispatch(new PlaybackErrorAction
+                {
+                    ErrorMessage = errorMessage
+                });
+                // Keep modal open by not resetting - the state will keep isPreparingOrPlaying true
+                // Set status to Failed to indicate error state
+                dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
+                
+                // For alarms, also try to play fallback alarm sound (keep error message visible)
+                if (isAlarm)
+                {
+                    await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
+                }
+                
                 return;
             }
 
@@ -270,6 +314,27 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.CurrentScheduleId);
     }
 
+    /// <summary>
+    /// Resets playback state without closing the modal, then immediately prepares and plays again.
+    /// Used for retry functionality - modal stays open and updates automatically.
+    /// Always uses isAlarm=false for retry (regular playback, not alarm behavior).
+    /// </summary>
+    public async Task ResetAndRetryAsync(int scheduleId)
+    {
+        logger.Information("ResetAndRetryAsync - resetting and retrying schedule {ScheduleId}", scheduleId);
+        
+        // Clear error message first
+        dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
+        
+        // Reset internal state without dispatching PlaybackStoppedAction (keeps modal open)
+        progressTracker.Stop();
+        await audioPlayer.ResetAsync();
+        stateManager.Reset();
+        
+        // Immediately prepare and play again with isAlarm=false (regular playback) - modal will update automatically as state changes
+        await PrepareAndPlayAsync(scheduleId, isAlarm: false);
+    }
+
     private async Task PlayCurrentTrackAsync(bool startFromBeginning = false)
     {
         if (stateManager.Playlist == null || stateManager.CurrentTrackIndex < 0 || stateManager.CurrentTrackIndex >= stateManager.Playlist.Count)
@@ -357,6 +422,50 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             playlist => stateManager.Playlist = playlist,
             idx => stateManager.CurrentTrackIndex = idx,
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+    }
+
+    private async Task TryPlayFallbackAlarmSoundAsync(int scheduleId, bool keepErrorMessage = false)
+    {
+        try
+        {
+            // Show alarm notification
+            await notificationService.ShowNotificationAsync(scheduleId);
+
+            // Try to get and play fallback alarm sound
+            var fallbackTrack = await fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
+            if (fallbackTrack is null)
+            {
+                logger.Warning("Failed to get fallback alarm track");
+                // Update error message if fallback also fails
+                dispatcher.Dispatch(new PlaybackErrorAction
+                {
+                    ErrorMessage = "Download failed. Check your internet connection."
+                });
+                return;
+            }
+
+            // Only clear error message if we're not keeping it (for alarm downloads, keep it visible)
+            if (!keepErrorMessage)
+            {
+                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
+            }
+
+            // Set up fallback track and play it
+            stateManager.Playlist = [fallbackTrack];
+            stateManager.CurrentTrackIndex = 0;
+            stateManager.ManuallyVisitedTrackIndices.Clear();
+            navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
+            await PlayCurrentTrackAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error playing fallback alarm sound");
+            // Update error message if fallback fails
+            dispatcher.Dispatch(new PlaybackErrorAction
+            {
+                ErrorMessage = "Download failed. Check your internet connection."
+            });
+        }
     }
 
     public void Dispose()

@@ -76,7 +76,7 @@
                     
                     <!-- Progress indicator when preparing tracks -->
                     <Border Grid.Row="0"
-                        IsVisible="{Binding IsPreparing}"
+                        IsVisible="{Binding ShowPreparingProgress}"
                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                         StrokeThickness="0"
                         Padding="24,20">
@@ -106,14 +106,14 @@
                                 ProgressColor="{StaticResource PrimaryColor}" />
                             <!-- Busy Indicator below progress bar -->
                             <Grid Grid.Row="2"
-                                IsVisible="{Binding IsPreparing}"
+                                IsVisible="{Binding ShowPreparingProgress}"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center"
                                 HeightRequest="40"
                                 WidthRequest="40"
                                 Margin="0,8,0,0">
                                 <core:SfBusyIndicator
-                                    IsRunning="{Binding IsPreparing}"
+                                    IsRunning="{Binding ShowPreparingProgress}"
                                     AnimationType="DoubleCircle"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
@@ -130,24 +130,75 @@
                         BackgroundColor="{DynamicResource ControlBackgroundColor}"
                         StrokeThickness="1"
                         Stroke="#4A2A2A"
-                        Padding="24,20">
+                        Padding="24,20,24,48">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
                         </Border.StrokeShape>
-                        <Label
-                            FontSize="16"
-                            FontAttributes="Bold"
+                        <Grid
+                            RowSpacing="16"
                             HorizontalOptions="Center"
-                            HorizontalTextAlignment="Center"
-                            TextColor="#FF6B6B"
-                            Text="{Binding ErrorMessage}"
-                            LineBreakMode="WordWrap" />
+                            VerticalOptions="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Grid.Row="0"
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                TextColor="#FF6B6B"
+                                Text="{Binding ErrorMessage}"
+                                LineBreakMode="WordWrap" />
+                            <!-- Retry Button -->
+                            <Border Grid.Row="1"
+                                BackgroundColor="{StaticResource PrimaryColor}"
+                                HeightRequest="64"
+                                WidthRequest="64"
+                                StrokeThickness="0"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                Margin="0,8,0,0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="32" />
+                                </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <Shadow Brush="#6A5ACD"
+                                            Offset="0,4"
+                                            Opacity="0.4"
+                                            Radius="12" />
+                                </Border.Shadow>
+                                <Button
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
+                                    Command="{Binding RetryCommand}"
+                                    IsEnabled="{Binding HasError}"
+                                    InputTransparent="False"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="28"
+                                    HorizontalOptions="Fill"
+                                    Text="{x:Static fn:GlyphNames.Retry}"
+                                    TextColor="White"
+                                    VerticalOptions="Fill">
+                                    <Button.Triggers>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                        </Trigger>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource WhiteColor}" />
+                                        </Trigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </Border>
+                        </Grid>
                     </Border>
                     
                     <!-- Main Music Player Content -->
                     <Grid Grid.Row="2"
                         AutomationId="AlarmModal"
-                        IsVisible="{Binding IsPreparing, Converter={StaticResource negateBooleanConverter}}"
+                        IsVisible="{Binding ShowMainPlayerContent}"
                         RowSpacing="32"
                         HorizontalOptions="Center"
                         VerticalOptions="Center">

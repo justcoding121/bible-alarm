@@ -107,5 +107,37 @@ public class AlarmViewModelCommandInitializer
             await playbackService.SeekToAsync(position);
         });
     }
+
+    public ICommand CreateRetryCommand(Func<int?> getCurrentScheduleId, Func<bool> hasError)
+    {
+        return new AsyncRelayCommand(async () =>
+        {
+            var scheduleId = getCurrentScheduleId();
+            if (scheduleId.HasValue)
+            {
+                logger.Information("RetryCommand executed - retrying playback for schedule {ScheduleId}", scheduleId.Value);
+                try
+                {
+                    // Save schedule ID before reset
+                    var scheduleIdToRetry = scheduleId.Value;
+                    // Note: ResetAndRetryAsync will preserve the original isAlarm value from state
+                    // The modal will stay open and update automatically as state changes
+                    
+                    // Reset internally without closing modal - just reset player and state
+                    // Then immediately prepare and play again - modal will update automatically
+                    await playbackService.ResetAndRetryAsync(scheduleIdToRetry);
+                    logger.Information("RetryCommand completed successfully");
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error in RetryCommand");
+                }
+            }
+            else
+            {
+                logger.Warning("RetryCommand executed but no current schedule ID available");
+            }
+        }, () => hasError() && getCurrentScheduleId().HasValue);
+    }
 }
 

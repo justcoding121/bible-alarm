@@ -55,6 +55,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     public ICommand ForwardCommand { get; set; }
     public ICommand BackwardCommand { get; set; }
     public ICommand SeekCommand { get; set; }
+    public ICommand RetryCommand { get; set; }
 
     public AlarmViewModel(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, IGeneralSettingsService generalSettingsService)
     {
@@ -124,6 +125,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         ForwardCommand = commandInitializer.CreateForwardCommand();
         BackwardCommand = commandInitializer.CreateBackwardCommand();
         SeekCommand = commandInitializer.CreateSeekCommand();
+        RetryCommand = commandInitializer.CreateRetryCommand(() => playbackState.Value.CurrentScheduleId, () => HasError);
         sliderHandler.SetSeekCommand(SeekCommand);
 
         // Initialize from current state
@@ -354,9 +356,21 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
             if (SetProperty(ref isPreparing, value))
             {
                 OnPropertyChanged(nameof(AreControlsEnabled));
+                OnPropertyChanged(nameof(ShowPreparingProgress));
+                OnPropertyChanged(nameof(ShowMainPlayerContent));
             }
         }
     }
+
+    /// <summary>
+    /// Show preparing progress only when preparing and there's no error
+    /// </summary>
+    public bool ShowPreparingProgress => IsPreparing && !HasError;
+
+    /// <summary>
+    /// Show main music player content only when not preparing and there's no error
+    /// </summary>
+    public bool ShowMainPlayerContent => !IsPreparing && !HasError;
 
     /// <summary>
     /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
@@ -388,6 +402,13 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
             {
                 OnPropertyChanged(nameof(HasError));
                 OnPropertyChanged(nameof(AreControlsEnabled));
+                OnPropertyChanged(nameof(ShowPreparingProgress));
+                OnPropertyChanged(nameof(ShowMainPlayerContent));
+                // Notify retry command that CanExecute may have changed
+                if (RetryCommand is CommunityToolkit.Mvvm.Input.AsyncRelayCommand asyncCommand)
+                {
+                    asyncCommand.NotifyCanExecuteChanged();
+                }
             }
         }
     }

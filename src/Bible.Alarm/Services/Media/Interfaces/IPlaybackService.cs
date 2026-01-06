@@ -12,5 +12,6 @@ public interface IPlaybackService : IDisposable
 
     Task PrepareAndPlayAsync(int scheduleId, bool isAlarm);
     Task StopAsync();
+    Task ResetAndRetryAsync(int scheduleId);
 }
 
