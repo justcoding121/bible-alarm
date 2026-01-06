@@ -99,8 +99,8 @@ internal static class ForegroundNotificationHelper
             // Android Auto notification: Use metadata from MediaSession or fallbacks
             // Android Auto requires user to start playback, so we show available metadata
             var metadata = mediaSession?.Controller?.Metadata;
-            title = metadata?.GetString(MediaMetadataCompat.MetadataKeyTitle);
-            artist = metadata?.GetString(MediaMetadataCompat.MetadataKeyArtist);
+            title = metadata?.GetString(MediaMetadataCompat.MetadataKeyTitle) ?? string.Empty;
+            artist = metadata?.GetString(MediaMetadataCompat.MetadataKeyArtist) ?? string.Empty;
             artwork = metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
             
             // Fallback values for early bootstrap scenarios (before metadata is set)
@@ -146,10 +146,11 @@ internal static class ForegroundNotificationHelper
         }
 
         // Attach MediaSession for Android Auto integration
-        if (mediaSession?.SessionToken != null)
+        var sessionToken = mediaSession?.SessionToken;
+        if (sessionToken != null)
         {
             var mediaStyle = new MediaStyle()
-                .SetMediaSession(mediaSession!.SessionToken)
+                .SetMediaSession(sessionToken!)
                 .SetShowActionsInCompactView(0); // Show first action (play) in compact view
             
             builder.SetStyle(mediaStyle);

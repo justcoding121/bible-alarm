@@ -182,7 +182,8 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error checking if notification {ScheduleId} is active", scheduleId);
+                var staticLogger = Log.ForContext<AndroidNotificationService>();
+                staticLogger.Warning(ex, "Error checking if notification {ScheduleId} is active", scheduleId);
             }
         }
         

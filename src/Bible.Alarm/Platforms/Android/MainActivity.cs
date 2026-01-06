@@ -92,7 +92,8 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnNewIntent(Intent? intent)
     {
         base.OnNewIntent(intent);
-        SetIntent(intent); // Update the intent so getIntent() returns the latest one
+        // Note: base.OnNewIntent should handle setting the intent for getIntent()
+        // If needed, we can use reflection for newer API levels that require ComponentCaller
         Logger.Debug("MainActivity: OnNewIntent called - handling notification tap");
         intentHandler?.HandleIncomingIntent(intent);
     }

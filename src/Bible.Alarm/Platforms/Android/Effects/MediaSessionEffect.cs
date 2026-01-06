@@ -31,14 +31,14 @@ public class MediaSessionEffect(
     public void RegisterMessageHandlers() => WeakReferenceMessenger.Default.Register(this);
 
     [EffectMethod]
-    public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)
+    public async Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)
     {
         try
         {
             var session = GetValidatedSession("cannot update playback state");
             if (session == null)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             var currentState = playbackState.Value;
@@ -128,8 +128,6 @@ public class MediaSessionEffect(
         {
             logger.Error(ex, "Error updating MediaSessionCompat playback state");
         }
-
-        return Task.CompletedTask;
     }
 
     private void SaveCurrentMetadataToPreferencesIfAvailable()

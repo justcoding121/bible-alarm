@@ -83,8 +83,10 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
                 // Wait for bootstrap to complete before using database services
                 await MauiProgram.WaitForBootstrapAsync();
 
-                var scheduleId = intent.GetStringExtra("ScheduleId");
-                var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
+                // scheduleId and isAlarm are already defined above (lines 63-64)
+                // Re-read them here to ensure we have the latest values after bootstrap
+                scheduleId = intent.GetStringExtra("ScheduleId");
+                isAlarm = intent.GetBooleanExtra("IsAlarm", true);
 
                 alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
                 // Subscribe to Disposed event if the handler implements it
