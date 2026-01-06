@@ -232,21 +232,22 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         return true;
     }
 
-    public async Task ExecuteDeleteAsync(
+    public async Task<bool> ExecuteDeleteAsync(
         bool isNewSchedule,
         int scheduleId,
         int scheduleCount)
     {
         if (isNewSchedule)
         {
-            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+            // Keep overlay visible until page is destroyed by navigation
+            // The overlay will be hidden when the page is destroyed
             await navigationService.NavigateToHomeAsync();
-            return;
+            return true;
         }
 
         if (scheduleId <= 0)
         {
-            return;
+            return false;
         }
 
         // Check if this is the last schedule - prevent deletion if it is
@@ -254,7 +255,9 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         {
             logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", scheduleId);
             await toastService.ShowMessage("Cannot delete last schedule");
-            return;
+            // Hide overlay on validation failure
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+            return false;
         }
 
         logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", scheduleId);
@@ -263,8 +266,11 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         // Clear CurrentSchedule after delete operation
         dispatcher.Dispatch(new ResetScheduleStateAction());
 
-        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+        // Keep overlay visible until page is destroyed by navigation
+        // The overlay will be hidden when the page is destroyed
+        await Task.Delay(100);
         await navigationService.NavigateToHomeAsync();
+        return true;
     }
 
     public async Task ValidateNotificationPermissionsAsync(ScheduleStateItem? currentSchedule)
@@ -308,9 +314,8 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             // Clear CurrentSchedule after successful save
             dispatcher.Dispatch(new ResetScheduleStateAction());
 
-            // Hide overlay when navigating away after successful save
-            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-
+            // Keep overlay visible until page is destroyed by navigation
+            // The overlay will be hidden when the page is destroyed
             await Task.Delay(100);
             await navigationService.NavigateToHomeAsync();
         }

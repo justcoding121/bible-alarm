@@ -19,7 +19,7 @@ public interface IScheduleCommandService
         bool bibleReadingUpdated,
         bool modelInitialized);
 
-    Task ExecuteDeleteAsync(
+    Task<bool> ExecuteDeleteAsync(
         bool isNewSchedule,
         int scheduleId,
         int scheduleCount);

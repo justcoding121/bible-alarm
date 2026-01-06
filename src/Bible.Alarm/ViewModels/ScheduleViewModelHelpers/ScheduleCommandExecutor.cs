@@ -32,6 +32,7 @@ public sealed class ScheduleCommandExecutor
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private readonly Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel;
+    private readonly Action<bool>? setIsSaving;
 
     public ScheduleCommandExecutor(
         IScheduleCommandService scheduleCommandService,
@@ -41,7 +42,8 @@ public sealed class ScheduleCommandExecutor
         IDispatcher dispatcher,
         IMapper mapper,
         ILogger logger,
-        Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel)
+        Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel,
+        Action<bool>? setIsSaving = null)
     {
         this.logger = logger;
         this.scheduleCommandService = scheduleCommandService;
@@ -51,6 +53,7 @@ public sealed class ScheduleCommandExecutor
         this.dispatcher = dispatcher;
         this.mapper = mapper;
         this.getMusicSelectionContainerViewModel = getMusicSelectionContainerViewModel;
+        this.setIsSaving = setIsSaving;
     }
 
     public void InitializeCommands(
@@ -75,6 +78,9 @@ public sealed class ScheduleCommandExecutor
         logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
             IsNewSchedule(), GetScheduleId(), GetName());
 
+        // Set saving flag to prevent OnContentLoaded from hiding overlay
+        setIsSaving?.Invoke(true);
+
         // Show busy overlay immediately when save is clicked
         // Dispatch state update first - this updates the state synchronously
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
@@ -92,8 +98,8 @@ public sealed class ScheduleCommandExecutor
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             // Wait for state update to propagate and UI to render
-            // 300ms should be enough for the state update -> ViewModel -> Page -> UI rendering chain
-            await Task.Delay(300);
+            // Increased delay to 500ms to ensure overlay is visible before save actions trigger state changes
+            await Task.Delay(500);
             logger.Debug("SaveCommand: Overlay should now be visible, starting save operation");
         });
 
@@ -129,12 +135,20 @@ public sealed class ScheduleCommandExecutor
 
                 var model = GetModel();
                 await scheduleCommandService.HandleSaveResultAsync(saved, scheduleId, GetIsEnabled(), model);
+                
+                // On successful save, keep isSaving=true so overlay stays visible until page is destroyed by navigation
+                // On failed save, HandleSaveResultAsync will handle hiding overlay, so clear the flag
+                if (!saved)
+                {
+                    setIsSaving?.Invoke(false);
+                }
             }
             else
             {
                 // Hide overlay if currentSchedule is null
                 logger.Warning("SaveCommand: CurrentSchedule is null, hiding overlay");
                 dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                setIsSaving?.Invoke(false);
             }
         }
         catch (Exception ex)
@@ -142,23 +156,62 @@ public sealed class ScheduleCommandExecutor
             logger.Error(ex, "Error executing save command");
             // Hide overlay on error
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+            setIsSaving?.Invoke(false);
         }
     }
 
     private async Task ExecuteDeleteCommand()
     {
-        var isNewSchedule = IsNewSchedule();
-        var scheduleId = GetScheduleId();
+        logger.Information("DeleteCommand: Delete button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}",
+            IsNewSchedule(), GetScheduleId());
 
-        await scheduleCommandService.StopPlaybackIfNeededAsync(
-            isNewSchedule,
-            playbackState.Value.IsPreparingOrPlaying,
-            scheduleId,
-            playbackState.Value.CurrentScheduleId ?? -1);
+        // Set saving flag to prevent OnContentLoaded from hiding overlay
+        setIsSaving?.Invoke(true);
 
-        // Only count saved schedules (Id > 0), not unsaved/new schedules
-        var savedScheduleCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
-        await scheduleCommandService.ExecuteDeleteAsync(isNewSchedule, scheduleId, savedScheduleCount);
+        // Show busy overlay immediately when delete is clicked
+        // Dispatch state update first - this updates the state synchronously
+        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+        logger.Debug("DeleteCommand: Showing busy overlay immediately");
+
+        // Ensure we're on the UI thread and wait for the state update to propagate to the UI
+        // This gives the UI time to render the overlay before starting the delete operation
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            // Wait for state update to propagate and UI to render
+            // 500ms should be enough for the state update -> ViewModel -> Page -> UI rendering chain
+            await Task.Delay(500);
+            logger.Debug("DeleteCommand: Overlay should now be visible, starting delete operation");
+        });
+
+        try
+        {
+            var isNewSchedule = IsNewSchedule();
+            var scheduleId = GetScheduleId();
+
+            await scheduleCommandService.StopPlaybackIfNeededAsync(
+                isNewSchedule,
+                playbackState.Value.IsPreparingOrPlaying,
+                scheduleId,
+                playbackState.Value.CurrentScheduleId ?? -1);
+
+            // Only count saved schedules (Id > 0), not unsaved/new schedules
+            var savedScheduleCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
+            var deleted = await scheduleCommandService.ExecuteDeleteAsync(isNewSchedule, scheduleId, savedScheduleCount);
+            
+            // On successful delete, keep isSaving=true so overlay stays visible until page is destroyed by navigation
+            // On failed delete (validation failure), clear the flag
+            if (!deleted)
+            {
+                setIsSaving?.Invoke(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error executing delete command");
+            // Hide overlay on error
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+            setIsSaving?.Invoke(false);
+        }
     }
 
     // Helper methods for accessing state

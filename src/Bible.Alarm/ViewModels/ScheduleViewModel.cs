@@ -48,6 +48,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     
     // Track if content has been loaded
     private bool isContentLoaded;
+    
+    // Track if we're in the middle of a save operation to prevent OnContentLoaded from hiding overlay
+    private bool isSaving;
 
 
     public ScheduleViewModel(
@@ -85,7 +88,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Initialize helper classes
         stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher, logger);
-        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger, () => propertyManager?.MusicSelectionContainerViewModel);
+        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger, () => propertyManager?.MusicSelectionContainerViewModel, SetIsSaving);
         propertyManager = new SchedulePropertyManager(state, logger);
         containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(dispatcher);
@@ -196,12 +199,20 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Check if we should hide overlay: both containers ready AND content loaded
         // Also call OnContentLoaded when containers become ready (handles case where containers become ready after content loads)
+        // Don't hide overlay if we're in the middle of a save operation
         if (stateValue.ContainerReadiness.AllReady && isContentLoaded)
         {
             if (stateValue.IsSchedulePageOverlayVisible)
             {
-                logger.Debug("ScheduleViewModel: All containers ready and content loaded, hiding overlay");
-                dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+                if (isSaving)
+                {
+                    logger.Debug("ScheduleViewModel: All containers ready and content loaded, but save in progress - keeping overlay visible");
+                }
+                else
+                {
+                    logger.Debug("ScheduleViewModel: All containers ready and content loaded, hiding overlay");
+                    dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+                }
             }
             else
             {
@@ -354,8 +365,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         var allReady = stateValue.ContainerReadiness.AllReady;
         var overlayVisible = stateValue.IsSchedulePageOverlayVisible;
         
-        logger.Debug("ScheduleViewModel: OnContentLoaded called - AllReady={AllReady}, OverlayVisible={OverlayVisible}, isContentLoaded={IsContentLoaded}", 
-            allReady, overlayVisible, isContentLoaded);
+        logger.Debug("ScheduleViewModel: OnContentLoaded called - AllReady={AllReady}, OverlayVisible={OverlayVisible}, isContentLoaded={IsContentLoaded}, isSaving={IsSaving}", 
+            allReady, overlayVisible, isContentLoaded, isSaving);
+        
+        // Don't hide overlay if we're in the middle of a save operation
+        if (isSaving)
+        {
+            logger.Debug("ScheduleViewModel: OnContentLoaded - Save in progress, keeping overlay visible");
+            return;
+        }
         
         // Check if we should hide overlay: both containers ready AND content loaded
         if (allReady && overlayVisible)
@@ -368,6 +386,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             logger.Debug("ScheduleViewModel: OnContentLoaded - Condition not met. AllReady={AllReady}, OverlayVisible={OverlayVisible}", 
                 allReady, overlayVisible);
         }
+    }
+    
+    /// <summary>
+    /// Sets the saving flag to prevent OnContentLoaded from hiding the overlay during save operations.
+    /// </summary>
+    public void SetIsSaving(bool saving)
+    {
+        isSaving = saving;
+        logger.Debug("ScheduleViewModel: SetIsSaving={IsSaving}", saving);
     }
 
 
