@@ -49,6 +49,20 @@ public class PreviousButtonPressedMessage
 }
 
 /// <summary>
+/// Message sent when the Play button is pressed in system media controls.
+/// </summary>
+public class PlayButtonPressedMessage
+{
+}
+
+/// <summary>
+/// Message sent when the Pause button is pressed in system media controls.
+/// </summary>
+public class PauseButtonPressedMessage
+{
+}
+
+/// <summary>
 /// Message sent to MediaElementService to destroy the MediaElement after MediaSession release.
 /// MediaElement will be recreated automatically by GetMediaElementAsync() when needed for the next playlist.
 /// This ensures a fresh ExoPlayer instance is created for each new playback session.

@@ -56,5 +56,41 @@ public sealed class SystemControlsHandler
             });
         });
     }
+
+    /// <summary>
+    /// Handles Play button press message from system media controls (notification/lockscreen).
+    /// Calls the provided action on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void HandlePlayButton(Func<Task> playAsync)
+    {
+        logger.Debug("Play button pressed from system controls - calling PlayAsync");
+        Task.Run(async () =>
+        {
+            // Delay to let system controls finish
+            await Task.Delay(150);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await playAsync();
+            });
+        });
+    }
+
+    /// <summary>
+    /// Handles Pause button press message from system media controls (notification/lockscreen).
+    /// Calls the provided action on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void HandlePauseButton(Func<Task> pauseAsync)
+    {
+        logger.Debug("Pause button pressed from system controls - calling PauseAsync");
+        Task.Run(async () =>
+        {
+            // Delay to let system controls finish
+            await Task.Delay(150);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await pauseAsync();
+            });
+        });
+    }
 }
 

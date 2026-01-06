@@ -223,6 +223,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton<IWindowsAlarmHandler, WindowsAlarmHandler>();
+        // Register Windows media toast effect for rich playback notifications
+        services.AddSingleton<Platforms.Windows.Effects.WindowsMediaToastEffect>();
 #endif
 
         // Register database contexts

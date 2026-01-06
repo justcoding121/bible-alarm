@@ -15,7 +15,7 @@ using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IDisposable
+public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IRecipient<PlayButtonPressedMessage>, IRecipient<PauseButtonPressedMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IAudioPlayer audioPlayer;
@@ -80,9 +80,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
 
-        // Register for Next/Previous button press messages from Android system controls
+        // Register for Next/Previous/Play/Pause button press messages from system controls
         WeakReferenceMessenger.Default.Register<NextButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PreviousButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Register<PlayButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Register<PauseButtonPressedMessage>(this);
 
         this.audioPlayer.MediaEnded += OnMediaEnded;
         this.audioPlayer.MediaFailed += OnMediaFailed;
@@ -251,6 +253,24 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     public void Receive(PreviousButtonPressedMessage message)
     {
         systemControlsHandler.HandlePreviousButton(() => PlayPreviousAsync());
+    }
+
+    /// <summary>
+    /// Handles Play button press message from system media controls (notification/lockscreen).
+    /// Calls PlayAsync() on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void Receive(PlayButtonPressedMessage message)
+    {
+        systemControlsHandler.HandlePlayButton(() => PlayAsync());
+    }
+
+    /// <summary>
+    /// Handles Pause button press message from system media controls (notification/lockscreen).
+    /// Calls PauseAsync() on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void Receive(PauseButtonPressedMessage message)
+    {
+        systemControlsHandler.HandlePauseButton(() => PauseAsync());
     }
 
     public async Task SeekForwardAsync()
@@ -479,6 +499,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<NextButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PlayButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PauseButtonPressedMessage>(this);
 
         // All injected services (_audioPlayer, _preparePlaybackService, _playlistService, 
         // _fallbackAlarmSoundService, _dispatcher, _notificationService) are singletons, 

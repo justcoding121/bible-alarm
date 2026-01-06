@@ -2,8 +2,10 @@
 
 using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Maui.Controls.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
@@ -112,12 +114,19 @@ public partial class App : MauiWinUIApplication
     }
 
     /// <summary>
-    /// Handles activation arguments (e.g., schedule ID from toast notification)
+    /// Handles activation arguments (e.g., schedule ID from toast notification, media controls)
     /// </summary>
     private static void HandleActivation(string arguments)
     {
         try
         {
+            // Check for media control actions first
+            if (arguments.StartsWith("action=", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleMediaControlAction(arguments);
+                return;
+            }
+
             // Parse schedule ID from arguments
             // Format could be: "scheduleId=123" or just "123"
             if (int.TryParse(arguments.Trim(), out var scheduleId) ||
@@ -149,6 +158,53 @@ public partial class App : MauiWinUIApplication
         catch (Exception e)
         {
             logger.Error(e, "Error parsing activation arguments");
+        }
+    }
+
+    /// <summary>
+    /// Handles media control actions from toast notifications (next/previous)
+    /// </summary>
+    private static void HandleMediaControlAction(string arguments)
+    {
+        try
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Ensure MauiApp is created
+                    MauiAppHolder.CreateAndStore();
+
+                    if (arguments.Contains("action=next", StringComparison.OrdinalIgnoreCase))
+                    {
+                        logger.Information("Toast notification: Next button pressed");
+                        WeakReferenceMessenger.Default.Send(new NextButtonPressedMessage());
+                    }
+                    else if (arguments.Contains("action=previous", StringComparison.OrdinalIgnoreCase))
+                    {
+                        logger.Information("Toast notification: Previous button pressed");
+                        WeakReferenceMessenger.Default.Send(new PreviousButtonPressedMessage());
+                    }
+                    else if (arguments.Contains("action=play", StringComparison.OrdinalIgnoreCase))
+                    {
+                        logger.Information("Toast notification: Play button pressed");
+                        WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+                    }
+                    else if (arguments.Contains("action=pause", StringComparison.OrdinalIgnoreCase))
+                    {
+                        logger.Information("Toast notification: Pause button pressed");
+                        WeakReferenceMessenger.Default.Send(new PauseButtonPressedMessage());
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "Error handling media control action");
+                }
+            });
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error parsing media control action");
         }
     }
 

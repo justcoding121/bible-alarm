@@ -148,6 +148,185 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
     public Task<bool> CanScheduleAsync() => Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
 
+    /// <summary>
+    /// Shows a rich toast notification with media metadata (artwork, title, subtitle, album).
+    /// Uses ToastGeneric template which supports images, multiple text elements, and action buttons.
+    /// </summary>
+    public void ShowMediaToast(string? title, string? subtitle, string? body, string? artworkUrl, bool canPlayNext = false, bool canPlayPrevious = false, bool isPlaying = false)
+    {
+        try
+        {
+            var notifier = GetToastNotifier();
+            if (notifier == null)
+            {
+                logger.Debug("Cannot show media toast - toast notifier unavailable");
+                return;
+            }
+
+            var toastXml = CreateMediaToastXml(title, subtitle, body, artworkUrl, canPlayNext, canPlayPrevious, isPlaying);
+            var toast = new ToastNotification(toastXml);
+            
+            // Use a unique tag so we can replace previous toasts
+            toast.Tag = "MediaPlayback";
+            toast.Group = "MediaPlayback";
+            
+            // Suppress sound for media playback toasts (optional - remove if you want sound)
+            toast.SuppressPopup = false;
+            
+            notifier.Show(toast);
+            logger.Debug("Media toast shown: Title={Title}, Subtitle={Subtitle}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, IsPlaying={IsPlaying}", 
+                title, subtitle, canPlayNext, canPlayPrevious, isPlaying);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error showing media toast notification");
+        }
+    }
+
+    private static XmlDocument CreateMediaToastXml(string? title, string? subtitle, string? body, string? artworkUrl, bool canPlayNext, bool canPlayPrevious, bool isPlaying)
+    {
+        // Use ToastGeneric template which supports images and rich content
+        var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastGeneric);
+        
+        var visual = toastXml.SelectSingleNode("/toast/visual");
+        if (visual == null)
+        {
+            return toastXml;
+        }
+
+        // Add binding element
+        var binding = toastXml.CreateElement("binding");
+        binding.SetAttribute("template", "ToastGeneric");
+        visual.AppendChild(binding);
+
+        // Add title text
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            var titleElement = toastXml.CreateElement("text");
+            titleElement.SetAttribute("hint-style", "title");
+            titleElement.AppendChild(toastXml.CreateTextNode(title));
+            binding.AppendChild(titleElement);
+        }
+
+        // Add subtitle text
+        if (!string.IsNullOrWhiteSpace(subtitle))
+        {
+            var subtitleElement = toastXml.CreateElement("text");
+            subtitleElement.SetAttribute("hint-style", "subtitle");
+            subtitleElement.AppendChild(toastXml.CreateTextNode(subtitle));
+            binding.AppendChild(subtitleElement);
+        }
+
+        // Add body text (album)
+        if (!string.IsNullOrWhiteSpace(body))
+        {
+            var bodyElement = toastXml.CreateElement("text");
+            bodyElement.AppendChild(toastXml.CreateTextNode(body));
+            binding.AppendChild(bodyElement);
+        }
+
+        // Add hero image (artwork) if available
+        if (!string.IsNullOrWhiteSpace(artworkUrl))
+        {
+            try
+            {
+                // Convert local file path to proper URI for Windows toast
+                var imageUri = artworkUrl;
+                
+                // If it's already a URI (http/https), use it as-is
+                if (Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) && 
+                    (uri.Scheme == "http" || uri.Scheme == "https"))
+                {
+                    imageUri = artworkUrl;
+                }
+                else
+                {
+                    // For local files, convert to file:// URI
+                    if (System.IO.File.Exists(artworkUrl))
+                    {
+                        // Use absolute path with file:// scheme
+                        var absolutePath = System.IO.Path.GetFullPath(artworkUrl);
+                        // Windows toast requires file:/// (three slashes) for local files
+                        imageUri = new Uri(absolutePath).ToString();
+                    }
+                    else
+                    {
+                        // If file doesn't exist, try to construct URI anyway
+                        var absolutePath = System.IO.Path.GetFullPath(artworkUrl);
+                        imageUri = new Uri(absolutePath).ToString();
+                    }
+                }
+
+                var imageElement = toastXml.CreateElement("image");
+                imageElement.SetAttribute("placement", "hero");
+                imageElement.SetAttribute("src", imageUri);
+                binding.AppendChild(imageElement);
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Failed to add artwork image to toast: {ArtworkUrl}", artworkUrl);
+            }
+        }
+
+        // Get toast node for adding actions and duration
+        var toastNode = toastXml.SelectSingleNode("/toast");
+        
+        // Add action buttons for media controls
+        if (toastNode != null)
+        {
+            var actions = toastXml.CreateElement("actions");
+            toastNode.AppendChild(actions);
+
+            // Previous button
+            if (canPlayPrevious)
+            {
+                var previousAction = toastXml.CreateElement("action");
+                previousAction.SetAttribute("content", "Previous");
+                previousAction.SetAttribute("arguments", "action=previous");
+                previousAction.SetAttribute("activationType", "foreground");
+                actions.AppendChild(previousAction);
+            }
+
+            // Play/Pause button (show appropriate button based on current state)
+            if (isPlaying)
+            {
+                var pauseAction = toastXml.CreateElement("action");
+                pauseAction.SetAttribute("content", "Pause");
+                pauseAction.SetAttribute("arguments", "action=pause");
+                pauseAction.SetAttribute("activationType", "foreground");
+                actions.AppendChild(pauseAction);
+            }
+            else
+            {
+                var playAction = toastXml.CreateElement("action");
+                playAction.SetAttribute("content", "Play");
+                playAction.SetAttribute("arguments", "action=play");
+                playAction.SetAttribute("activationType", "foreground");
+                actions.AppendChild(playAction);
+            }
+
+            // Next button
+            if (canPlayNext)
+            {
+                var nextAction = toastXml.CreateElement("action");
+                nextAction.SetAttribute("content", "Next");
+                nextAction.SetAttribute("arguments", "action=next");
+                nextAction.SetAttribute("activationType", "foreground");
+                actions.AppendChild(nextAction);
+            }
+        }
+
+        // Set toast duration to long (optional - can be removed if you want short duration)
+        if (toastNode?.Attributes != null)
+        {
+            var durationAttribute = toastXml.CreateAttribute("duration");
+            durationAttribute.Value = "long";
+            toastNode.Attributes.SetNamedItem(durationAttribute);
+        }
+
+        return toastXml;
+    }
+
     private static ScheduledToastNotification CreateScheduledToast(string uniqueId, int scheduleId, string title, string body, DateTimeOffset time)
     {
         var toastXml = CreateToastXml(title, body, scheduleId);
