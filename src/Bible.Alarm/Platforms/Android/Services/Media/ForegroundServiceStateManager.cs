@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Android.App;
 using Serilog;
 
@@ -7,15 +8,19 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 
 /// <summary>
 /// Manages the state of foreground service ownership.
+/// Thread-safe: All state access must be protected by the coordinator's lock.
 /// </summary>
 internal sealed class ForegroundServiceStateManager
 {
     private static readonly ILogger logger = Log.ForContext<ForegroundServiceStateManager>();
     
+    // All properties are accessed only within locks from ForegroundServiceCoordinator
+    // No additional synchronization needed as long as coordinator methods use locks
     public ForegroundServiceCoordinator.ForegroundServiceOwner CurrentOwner { get; private set; } = ForegroundServiceCoordinator.ForegroundServiceOwner.None;
     public bool IsMediaElementPlaying { get; private set; }
     public bool IsAndroidAutoConnected { get; private set; }
     public Service? AndroidAutoService { get; private set; }
+    public Service? AlarmService { get; private set; }
 
     public void SetOwner(ForegroundServiceCoordinator.ForegroundServiceOwner owner)
     {
@@ -49,5 +54,15 @@ internal sealed class ForegroundServiceStateManager
     public void ClearAndroidAutoService()
     {
         AndroidAutoService = null;
+    }
+
+    public void SetAlarmService(Service? service)
+    {
+        AlarmService = service;
+    }
+
+    public void ClearAlarmService()
+    {
+        AlarmService = null;
     }
 }

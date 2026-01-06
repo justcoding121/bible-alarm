@@ -20,7 +20,15 @@ public partial class App : Application
     private readonly IMessageHandlingService messageHandlingService;
     private readonly IFontService fontService;
 
-    public static bool IsInForeground { get; set; }
+    // Thread-safe: bool reads/writes are atomic, but we use volatile to ensure visibility across threads
+    // This is set from main UI thread (lifecycle events) and read from background threads (foreground service coordinator)
+    private static volatile bool isInForeground;
+    
+    public static bool IsInForeground
+    {
+        get => isInForeground;
+        set => isInForeground = value;
+    }
 
     public App(
         IExceptionHandlingService exceptionHandlingService,

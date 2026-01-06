@@ -115,7 +115,7 @@ public class MediaSessionEffect(
             if (action.Status == PlayStatus.Playing)
             {
                 // MediaElement started playing - request foreground service ownership
-                ForegroundServiceCoordinator.OnPlaybackStarted();
+                await ForegroundServiceCoordinator.OnPlaybackStarted();
                 SaveCurrentMetadataToPreferencesIfAvailable();
             }
             else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)

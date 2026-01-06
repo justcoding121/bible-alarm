@@ -1,7 +1,7 @@
 #nullable enable
 
 using System;
-using System.Threading;
+using System.Threading.Tasks;
 using Android.App;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
@@ -13,11 +13,14 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// Coordinates foreground service ownership between MediaElement playback and Android Auto.
 /// Android only allows one foreground service at a time, so this ensures proper handoff.
 /// Only starts Android Auto foreground service when Android Auto is actually connected.
+/// 
+/// THREAD SAFETY: All public methods use locks to ensure thread-safe access to shared state.
+/// The lock is reentrant, so nested calls from within the same lock are safe.
 /// </summary>
 public sealed class ForegroundServiceCoordinator
 {
     private static readonly ILogger logger = Log.ForContext<ForegroundServiceCoordinator>();
-    private static readonly Lock @lock = new();
+    private static readonly Lock @lock = new(); // Reentrant lock - safe for nested calls
     private static readonly ForegroundServiceStateManager state = new();
     
     /// <summary>
@@ -48,11 +51,12 @@ public sealed class ForegroundServiceCoordinator
             }
 
             state.SetAndroidAutoConnected(true, service);
-            logger.Information("Android Auto connected - will start foreground service if metadata is available and MediaElement is not active");
+            logger.Information("Android Auto connected - will start foreground service if metadata is available and app is not in foreground");
 
-            if (ForegroundServiceValidator.IsMediaElementActive(state))
+            // Skip foreground service if app is already in foreground or has active foreground service
+            if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
             {
-                logger.Information("Android Auto connected but MediaElement is active - will start foreground service when MediaElement stops");
+                logger.Information("Android Auto connected but app is in foreground or has active foreground service - skipping foreground service start");
                 return;
             }
 
@@ -63,24 +67,29 @@ public sealed class ForegroundServiceCoordinator
     private static void TryStartForegroundWithMetadata(Service service)
     {
         var session = MediaSessionHelper.Create();
-        if (session?.Controller?.Metadata == null)
+        if (session == null)
         {
-            logger.Debug("Android Auto connected but MediaSession not ready - will start foreground when metadata is set");
+            logger.Warning("Android Auto connected but MediaSession could not be created - cannot start foreground service");
             return;
         }
 
-        var hasMetadata = !string.IsNullOrEmpty(
-            session.Controller.Metadata.GetString(MediaMetadataCompat.MetadataKeyTitle));
+        // MediaSession is created before bootstrap, so it may not have metadata yet.
+        // ForegroundNotificationHelper.CreateNotification handles missing metadata with fallbacks
+        // ("Bible Alarm" / "Ready to play"), so we can start the foreground service immediately.
+        // The notification will be updated when metadata is set later.
+        var hasMetadata = session.Controller?.Metadata != null &&
+            !string.IsNullOrEmpty(session.Controller.Metadata.GetString(MediaMetadataCompat.MetadataKeyTitle));
         
         if (hasMetadata)
         {
             logger.Information("Metadata available - starting Android Auto foreground service immediately");
-            RequestForAndroidAuto(service, session);
         }
         else
         {
-            logger.Debug("Android Auto connected but no metadata yet - will start foreground when metadata is set");
+            logger.Information("Android Auto connected but no metadata yet (early bootstrap) - starting foreground service with fallback notification");
         }
+        
+        RequestForAndroidAuto(service, session);
     }
 
     /// <summary>
@@ -121,8 +130,10 @@ public sealed class ForegroundServiceCoordinator
     /// Called when MediaElement starts playing (detected via playback state changes).
     /// If Android Auto is currently foreground, it will be stopped first to ensure smooth transition.
     /// </summary>
-    public static void OnPlaybackStarted()
+    public static async Task OnPlaybackStarted()
     {
+        bool needsDelay = false;
+        
         lock (@lock)
         {
             state.SetMediaElementPlaying(true);
@@ -138,16 +149,30 @@ public sealed class ForegroundServiceCoordinator
 
             if (state.CurrentOwner == ForegroundServiceOwner.AndroidAuto)
             {
-                logger.Information("Stopping Android Auto foreground service before MediaElement starts");
-                ForegroundServiceOperations.StopForeground(state.AndroidAutoService);
-                // Small delay to ensure Android Auto foreground service is fully stopped
-                Thread.Sleep(100);
-                logger.Information("Android Auto foreground stopped - MediaElement can now start");
+                logger.Information("Stopping Android Auto/alarm foreground service before MediaElement starts");
+                var serviceToStop = state.AndroidAutoService ?? state.AlarmService;
+                ForegroundServiceOperations.StopForeground(serviceToStop);
+                
+                // Clean up alarm service if it was used
+                if (state.AlarmService != null)
+                {
+                    logger.Debug("Cleaning up alarm service after stopping foreground");
+                    state.ClearAlarmService();
+                }
+                
+                needsDelay = true;
             }
 
             // MediaElement's MediaControlsService will start itself via MediaManager.StartService()
             state.SetOwner(ForegroundServiceOwner.MediaElement);
             logger.Information("Foreground service ownership transferred to MediaElement");
+        }
+
+        // Delay outside the lock to ensure Android Auto foreground service is fully stopped
+        if (needsDelay)
+        {
+            await Task.Delay(50);
+            logger.Information("Android Auto foreground stopped - MediaElement can now start");
         }
     }
 
@@ -171,6 +196,13 @@ public sealed class ForegroundServiceCoordinator
 
             logger.Information("Playback stopped - MediaElement releasing foreground service ownership (will wait for disposal before starting Android Auto foreground)");
             state.SetOwner(ForegroundServiceOwner.None);
+            
+            // Clean up alarm service if it exists (alarm foreground service should have been stopped when playback started)
+            if (state.AlarmService != null)
+            {
+                logger.Debug("Cleaning up alarm service reference");
+                state.ClearAlarmService();
+            }
         }
     }
 
@@ -232,6 +264,13 @@ public sealed class ForegroundServiceCoordinator
                 return false;
             }
 
+            // Skip if app is already in foreground or has active foreground service
+            if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
+            {
+                logger.Information("Skipping Android Auto foreground service start - app is in foreground or has active foreground service");
+                return false;
+            }
+
             if (ForegroundServiceValidator.ShouldUpdateAndroidAutoForeground(state))
             {
                 logger.Debug("Android Auto already owns foreground service - updating notification");
@@ -249,13 +288,187 @@ public sealed class ForegroundServiceCoordinator
     }
 
     /// <summary>
-    /// Gets the current foreground service owner.
+    /// Gets the current foreground service owner in a thread-safe manner.
     /// </summary>
-    public static ForegroundServiceOwner CurrentOwner => state.CurrentOwner;
+    public static ForegroundServiceOwner CurrentOwner
+    {
+        get
+        {
+            lock (@lock)
+            {
+                return state.CurrentOwner;
+            }
+        }
+    }
 
     /// <summary>
-    /// Gets whether Android Auto is currently connected.
+    /// Gets whether Android Auto is currently connected in a thread-safe manner.
     /// </summary>
-    public static bool IsAndroidAutoConnected => state.IsAndroidAutoConnected;
+    public static bool IsAndroidAutoConnected
+    {
+        get
+        {
+            lock (@lock)
+            {
+                return state.IsAndroidAutoConnected;
+            }
+        }
+    }
 
+    /// <summary>
+    /// Called when alarm is triggered. Starts foreground service immediately to prevent OS from killing the app
+    /// during bootstrap, download, and playback preparation. Will switch to MediaElement when playback starts.
+    /// Skips if app is already in foreground or has active foreground service.
+    /// </summary>
+    /// <param name="context">The Android context (from BroadcastReceiver or Activity)</param>
+    /// <param name="scheduleId">The schedule ID for the alarm</param>
+    public static async Task OnAlarmTriggered(Context context, int scheduleId)
+    {
+        Intent? intent = null;
+        
+        lock (@lock)
+        {
+            // Skip if app is already in foreground or has active foreground service
+            if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
+            {
+                logger.Information("Alarm triggered (schedule {ScheduleId}) but app is in foreground or has active foreground service - skipping foreground service start", scheduleId);
+                return;
+            }
+            
+            logger.Information("Alarm triggered (schedule {ScheduleId}) - starting foreground service to prevent OS kill", scheduleId);
+        }
+        
+        // Start the AlarmForegroundService (outside lock to avoid blocking)
+        intent = new Intent(context, typeof(AlarmForegroundService));
+        
+        try
+        {
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
+            {
+                context.StartForegroundService(intent);
+            }
+            else
+            {
+                context.StartService(intent);
+            }
+            
+            // Wait for service to be created and registered (thread-safe access via property)
+            var maxWait = 10;
+            var waitCount = 0;
+            while (AlarmForegroundService.Instance == null && waitCount < maxWait)
+            {
+                await Task.Delay(50);
+                waitCount++;
+            }
+            
+            var service = AlarmForegroundService.Instance;
+            if (service == null)
+            {
+                logger.Warning("AlarmForegroundService instance not available after starting");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to start AlarmForegroundService");
+            return;
+        }
+        
+        // Get MediaSession and request foreground ownership (re-acquire lock)
+        Service? serviceInstance = null;
+        lock (@lock)
+        {
+            // Double-check foreground state after delay (app might have come to foreground)
+            if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
+            {
+                logger.Information("Alarm foreground service started but app came to foreground - stopping service");
+                if (intent != null)
+                {
+                    context.StopService(intent);
+                }
+                return;
+            }
+            
+            // Get service instance once while holding lock to ensure consistency
+            serviceInstance = AlarmForegroundService.Instance;
+            if (serviceInstance == null)
+            {
+                logger.Warning("AlarmForegroundService instance became null after lock acquisition");
+                if (intent != null)
+                {
+                    context.StopService(intent);
+                }
+                return;
+            }
+        }
+        
+        // Get MediaSession and start foreground (service instance captured, safe to use outside lock for this operation)
+        // MediaSession is created before bootstrap (in AlarmRingerReceiver), so it may not have metadata yet.
+        // ForegroundNotificationHelper.CreateNotification handles alarm notifications with "Preparing playback..." message.
+        // The notification will be updated when metadata is set later via UpdateForeground.
+        var mediaSession = MediaSessionHelper.Create();
+        if (mediaSession != null && serviceInstance != null)
+        {
+            lock (@lock)
+            {
+                // Final check before committing state change
+                if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
+                {
+                    logger.Information("Alarm foreground service ready but app came to foreground - stopping service");
+                    if (intent != null)
+                    {
+                        context.StopService(intent);
+                    }
+                    return;
+                }
+                
+                state.SetAlarmService(serviceInstance);
+                ForegroundServiceOperations.StartForeground(serviceInstance, mediaSession, isAlarmNotification: true);
+                state.SetOwner(ForegroundServiceOwner.AndroidAuto); // Reuse AndroidAuto owner type for alarm
+                logger.Information("Alarm foreground service started with preparing notification - will switch to MediaElement when playback starts");
+            }
+        }
+        else
+        {
+            logger.Warning("Failed to get MediaSession or service instance for alarm foreground service");
+            if (intent != null)
+            {
+                context.StopService(intent);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stops the alarm foreground service if it's currently active.
+    /// Called when "play only when I tap on notification" is enabled,
+    /// since we don't need the foreground service in that case.
+    /// </summary>
+    public static void StopAlarmForegroundServiceIfActive()
+    {
+        Service? alarmServiceToStop = null;
+        lock (@lock)
+        {
+            if (state.AlarmService != null && state.CurrentOwner == ForegroundServiceOwner.AndroidAuto)
+            {
+                logger.Information("Stopping alarm foreground service - NotificationEnabled is true, waiting for user tap");
+                alarmServiceToStop = state.AlarmService;
+                ForegroundServiceOperations.StopForeground(state.AlarmService);
+                state.SetOwner(ForegroundServiceOwner.None);
+                state.ClearAlarmService();
+            }
+        }
+        
+        // Stop the service itself (outside lock to avoid blocking)
+        if (alarmServiceToStop != null)
+        {
+            try
+            {
+                alarmServiceToStop.StopSelf();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error stopping AlarmForegroundService");
+            }
+        }
+    }
 }

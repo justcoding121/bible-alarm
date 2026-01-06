@@ -17,33 +17,34 @@ internal static class ForegroundServiceOperations
 {
     private static readonly ILogger logger = Log.ForContext(typeof(ForegroundServiceOperations));
 
-    public static void StartForeground(Service service, MediaSessionCompat mediaSession)
+    public static void StartForeground(Service service, MediaSessionCompat mediaSession, bool isAlarmNotification = false)
     {
         try
         {
             // Ensure notification channel exists
-            AndroidAutoNotificationHelper.CreateNotificationChannel(service);
+            ForegroundNotificationHelper.CreateNotificationChannel(service);
             
             // Create notification with MediaSession attached
-            var notification = AndroidAutoNotificationHelper.CreateNotification(service, mediaSession);
+            var notification = ForegroundNotificationHelper.CreateNotification(service, mediaSession, isAlarmNotification);
             
             // Start foreground service with sticky notification
             // Use ForegroundService.TypeMediaPlayback to match MediaElement's type
             if (OperatingSystem.IsAndroidVersionAtLeast(29))
             {
-                service.StartForeground(AndroidAutoNotificationHelper.NotificationId, notification, ForegroundService.TypeMediaPlayback);
+                service.StartForeground(ForegroundNotificationHelper.NotificationId, notification, ForegroundService.TypeMediaPlayback);
             }
             else
             {
-                service.StartForeground(AndroidAutoNotificationHelper.NotificationId, notification);
+                service.StartForeground(ForegroundNotificationHelper.NotificationId, notification);
             }
             
-            logger.Information("Android Auto foreground service started with notification ID {NotificationId}", 
-                AndroidAutoNotificationHelper.NotificationId);
+            var serviceType = isAlarmNotification ? "Alarm" : "Android Auto";
+            logger.Information("{ServiceType} foreground service started with notification ID {NotificationId}", 
+                serviceType, ForegroundNotificationHelper.NotificationId);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error starting Android Auto foreground service");
+            logger.Error(ex, "Error starting foreground service");
         }
     }
 
@@ -51,15 +52,20 @@ internal static class ForegroundServiceOperations
     {
         try
         {
-            var notification = AndroidAutoNotificationHelper.CreateNotification(service, mediaSession);
+            // Check if this is an alarm service to preserve alarm notification style
+            bool isAlarm = service is AlarmForegroundService;
+            
+            var notification = ForegroundNotificationHelper.CreateNotification(service, mediaSession, isAlarm);
             var notificationManager = NotificationManagerCompat.From(service);
-            notificationManager?.Notify(AndroidAutoNotificationHelper.NotificationId, notification);
-            logger.Debug("Android Auto foreground notification updated (ID: {NotificationId})", 
-                AndroidAutoNotificationHelper.NotificationId);
+            notificationManager?.Notify(ForegroundNotificationHelper.NotificationId, notification);
+            
+            var serviceType = isAlarm ? "Alarm" : "Android Auto";
+            logger.Debug("{ServiceType} foreground notification updated (ID: {NotificationId})", 
+                serviceType, ForegroundNotificationHelper.NotificationId);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating Android Auto foreground notification");
+            logger.Error(ex, "Error updating foreground notification");
         }
     }
 
@@ -84,10 +90,10 @@ internal static class ForegroundServiceOperations
             
             // Explicitly cancel the notification to ensure it disappears
             var notificationManager = NotificationManagerCompat.From(service);
-            notificationManager?.Cancel(AndroidAutoNotificationHelper.NotificationId);
+            notificationManager?.Cancel(ForegroundNotificationHelper.NotificationId);
             
-            logger.Information("Android Auto foreground service stopped and notification cancelled (ID: {NotificationId})", 
-                AndroidAutoNotificationHelper.NotificationId);
+            logger.Information("Foreground service stopped and notification cancelled (ID: {NotificationId})", 
+                ForegroundNotificationHelper.NotificationId);
         }
         catch (Exception ex)
         {

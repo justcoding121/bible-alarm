@@ -4,10 +4,13 @@ using System;
 using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
+using Android.Graphics;
+using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using AndroidX.Core.App;
+using AndroidX.Core.Content;
 using AndroidX.Core.Graphics.Drawable;
 using AndroidX.Media;
 using AndroidX.Media.App;
@@ -19,16 +22,17 @@ using MediaStyle = AndroidX.Media.App.NotificationCompat.MediaStyle;
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
 /// <summary>
-/// Handles Android Auto notification creation and channel management.
+/// Handles foreground service notification creation and channel management.
+/// Used by both Android Auto and Alarm foreground services.
 /// </summary>
-internal static class AndroidAutoNotificationHelper
+internal static class ForegroundNotificationHelper
 {
-    private static readonly ILogger logger = Log.ForContext(typeof(AndroidAutoNotificationHelper));
-    private const int AndroidAutoNotificationId = 2; // MediaElement uses 1, so we use 2
-    private const string AndroidAutoChannelId = "android_auto_channel";
-    private const string AndroidAutoChannelName = "Android Auto Connection";
+    private static readonly ILogger logger = Log.ForContext(typeof(ForegroundNotificationHelper));
+    private const int ForegroundNotificationId = 2; // MediaElement uses 1, so we use 2
+    private const string ForegroundChannelId = "foreground_service_channel";
+    private const string ForegroundChannelName = "Foreground Service";
 
-    public static int NotificationId => AndroidAutoNotificationId;
+    public static int NotificationId => ForegroundNotificationId;
 
     public static void CreateNotificationChannel(Service service)
     {
@@ -40,17 +44,17 @@ internal static class AndroidAutoNotificationHelper
                 if (notificationManager != null)
                 {
                     var channel = new NotificationChannel(
-                        AndroidAutoChannelId,
-                        AndroidAutoChannelName,
+                        ForegroundChannelId,
+                        ForegroundChannelName,
                         NotificationImportance.Low); // Low priority when idle
                     
-                    channel.Description = "Keeps Android Auto connection alive";
+                    channel.Description = "Foreground service notifications for media playback";
                     channel.SetShowBadge(false);
                     channel.EnableLights(false);
                     channel.EnableVibration(false);
                     
                     notificationManager.CreateNotificationChannel(channel);
-                    logger.Debug("Created notification channel: {ChannelId}", AndroidAutoChannelId);
+                    logger.Debug("Created notification channel: {ChannelId}", ForegroundChannelId);
                 }
             }
         }
@@ -60,7 +64,7 @@ internal static class AndroidAutoNotificationHelper
         }
     }
 
-    public static Notification CreateNotification(Service service, MediaSessionCompat mediaSession)
+    public static Notification CreateNotification(Service service, MediaSessionCompat mediaSession, bool isAlarmNotification = false)
     {
         var context = service.ApplicationContext ?? Application.Context ?? throw new InvalidOperationException("Context cannot be null");
         
@@ -78,15 +82,41 @@ internal static class AndroidAutoNotificationHelper
             PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable)
             ?? throw new InvalidOperationException("PendingIntent cannot be null");
 
-        // Get metadata from MediaSession for notification content
-        var metadata = mediaSession?.Controller?.Metadata;
-        var title = metadata?.GetString(MediaMetadataCompat.MetadataKeyTitle) ?? "Bible Alarm";
-        var artist = metadata?.GetString(MediaMetadataCompat.MetadataKeyArtist) ?? "Ready to play";
-        var artwork = metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+        string title;
+        string artist;
+        Bitmap? artwork = null;
+
+        if (isAlarmNotification)
+        {
+            // Alarm notification: Show app icon and "preparing" message
+            // Alarm automatically starts playback, so we show a preparing state
+            title = "Bible Alarm";
+            artist = "Preparing playback...";
+            artwork = null; // Don't use artwork, use app icon instead
+        }
+        else
+        {
+            // Android Auto notification: Use metadata from MediaSession or fallbacks
+            // Android Auto requires user to start playback, so we show available metadata
+            var metadata = mediaSession?.Controller?.Metadata;
+            title = metadata?.GetString(MediaMetadataCompat.MetadataKeyTitle);
+            artist = metadata?.GetString(MediaMetadataCompat.MetadataKeyArtist);
+            artwork = metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+            
+            // Fallback values for early bootstrap scenarios (before metadata is set)
+            if (string.IsNullOrEmpty(title))
+            {
+                title = "Bible Alarm";
+            }
+            if (string.IsNullOrEmpty(artist))
+            {
+                artist = "Ready to play";
+            }
+        }
 
         // Create notification builder - context is guaranteed non-null at this point
         // Split the fluent API chain to avoid compiler warnings
-        var builder = new NotificationCompat.Builder(context!, AndroidAutoChannelId);
+        var builder = new NotificationCompat.Builder(context!, ForegroundChannelId);
         builder.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
         builder.SetContentTitle(title);
         builder.SetContentText(artist);
@@ -125,12 +155,69 @@ internal static class AndroidAutoNotificationHelper
             builder.SetStyle(mediaStyle);
         }
 
-        // Add artwork if available
-        if (artwork != null)
+        // Add artwork or app icon
+        if (isAlarmNotification)
         {
+            // For alarm, use app icon as large icon
+            var appIcon = GetAppIcon(context);
+            if (appIcon != null)
+            {
+                builder.SetLargeIcon(appIcon);
+            }
+        }
+        else if (artwork != null)
+        {
+            // For Android Auto, use artwork if available
             builder.SetLargeIcon(artwork);
         }
 
         return builder.Build() ?? throw new InvalidOperationException("Failed to build notification");
+    }
+
+    /// <summary>
+    /// Gets the app icon as a Bitmap for use in notifications.
+    /// </summary>
+    private static Bitmap? GetAppIcon(Context context)
+    {
+        try
+        {
+            var drawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_launcher_round);
+            if (drawable != null)
+            {
+                return DrawableToBitmap(drawable);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to get app icon for alarm notification");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Converts a Drawable to a Bitmap for use in notifications.
+    /// </summary>
+    private static Bitmap DrawableToBitmap(Drawable drawable)
+    {
+        if (drawable is BitmapDrawable bitmapDrawable && bitmapDrawable.Bitmap != null)
+        {
+            return bitmapDrawable.Bitmap;
+        }
+
+        Bitmap bitmap;
+        if (drawable.IntrinsicWidth <= 0 || drawable.IntrinsicHeight <= 0)
+        {
+            // Single color bitmap will be created of 1x1 pixel
+            bitmap = Bitmap.CreateBitmap(1, 1, Bitmap.Config.Argb8888!);
+        }
+        else
+        {
+            bitmap = Bitmap.CreateBitmap(drawable.IntrinsicWidth, drawable.IntrinsicHeight, Bitmap.Config.Argb8888!);
+        }
+
+        var canvas = new Canvas(bitmap);
+        drawable.SetBounds(0, 0, canvas.Width, canvas.Height);
+        drawable.Draw(canvas);
+        return bitmap;
     }
 }
