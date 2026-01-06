@@ -83,34 +83,6 @@ internal static class CollectionViewScrollExecutor
                     }
                     else
                     {
-                        // Check if item is in the last 10 positions - use native scrolling for those on Windows
-                        var itemsSource = collectionView.ItemsSource;
-                        bool isInLast10 = false;
-                        if (itemsSource != null)
-                        {
-                            var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
-                            if (itemsList != null && itemsList.Count > 0)
-                            {
-                                // Find the item index
-                                int itemIndex = -1;
-                                for (int i = 0; i < itemsList.Count; i++)
-                                {
-                                    if (ReferenceEquals(itemsList[i], item) ||
-                                        (item is LanguageListViewItemModel targetLang && itemsList[i] is LanguageListViewItemModel listLang && targetLang.Code == listLang.Code))
-                                    {
-                                        itemIndex = i;
-                                        break;
-                                    }
-                                }
-                                
-                                // Check if item is in the last 10 positions
-                                if (itemIndex >= 0 && itemIndex >= itemsList.Count - 10)
-                                {
-                                    isInLast10 = true;
-                                }
-                            }
-                        }
-
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
                             try
@@ -121,17 +93,48 @@ internal static class CollectionViewScrollExecutor
                                 }
 
 #if WINDOWS
-                                // For items in last 10 positions on Windows, try native ScrollViewer scrolling first
-                                if (isInLast10 && DeviceInfo.Platform == DevicePlatform.WinUI)
+                                // Check if item is in the last 10 positions - use native scrolling for those on Windows
+                                if (DeviceInfo.Platform == DevicePlatform.WinUI)
                                 {
-                                    // First scroll to bottom using native ScrollViewer
-                                    var nativeScrollSuccess = await WindowsNativeScrollHelper.ScrollToBottomUsingNativeScrollViewer(collectionView, cancellationToken);
-                                    if (nativeScrollSuccess)
+                                    bool isInLast10 = false;
+                                    var itemsSource = collectionView.ItemsSource;
+                                    if (itemsSource != null)
                                     {
-                                        // Then scroll to the specific item to ensure it's visible and selected
-                                        await Task.Delay(200, cancellationToken);
-                                        collectionView.ScrollTo(item, position: ScrollToPosition.MakeVisible, animate: false);
-                                        return;
+                                        var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
+                                        if (itemsList != null && itemsList.Count > 0)
+                                        {
+                                            // Find the item index
+                                            int itemIndex = -1;
+                                            for (int i = 0; i < itemsList.Count; i++)
+                                            {
+                                                if (ReferenceEquals(itemsList[i], item) ||
+                                                    (item is LanguageListViewItemModel targetLang && itemsList[i] is LanguageListViewItemModel listLang && targetLang.Code == listLang.Code))
+                                                {
+                                                    itemIndex = i;
+                                                    break;
+                                                }
+                                            }
+                                            
+                                            // Check if item is in the last 10 positions
+                                            if (itemIndex >= 0 && itemIndex >= itemsList.Count - 10)
+                                            {
+                                                isInLast10 = true;
+                                            }
+                                        }
+                                    }
+
+                                    // For items in last 10 positions on Windows, try native ScrollViewer scrolling first
+                                    if (isInLast10)
+                                    {
+                                        // First scroll to bottom using native ScrollViewer
+                                        var nativeScrollSuccess = await WindowsNativeScrollHelper.ScrollToBottomUsingNativeScrollViewer(collectionView, cancellationToken);
+                                        if (nativeScrollSuccess)
+                                        {
+                                            // Then scroll to the specific item to ensure it's visible and selected
+                                            await Task.Delay(200, cancellationToken);
+                                            collectionView.ScrollTo(item, position: ScrollToPosition.MakeVisible, animate: false);
+                                            return;
+                                        }
                                     }
                                 }
 #endif

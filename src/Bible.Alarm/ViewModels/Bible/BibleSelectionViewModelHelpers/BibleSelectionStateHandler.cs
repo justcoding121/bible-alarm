@@ -168,7 +168,7 @@ public sealed class BibleSelectionStateHandler
                 await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
             // Don't set initComplete on error so it can retry
@@ -240,7 +240,7 @@ public sealed class BibleSelectionStateHandler
                     await Task.Delay(100);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }

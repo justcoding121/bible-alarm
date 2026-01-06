@@ -12,7 +12,6 @@ public partial class BibleSelectionContainer : ContentView
 {
     private BibleSelectionContainerViewModel? viewModel;
     private ScrollManager? scrollManager;
-    private bool shouldScrollOnBookChange;
 
     public BibleSelectionContainer()
     {

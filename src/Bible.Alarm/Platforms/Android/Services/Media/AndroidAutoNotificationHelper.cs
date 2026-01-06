@@ -62,7 +62,7 @@ internal static class AndroidAutoNotificationHelper
 
     public static Notification CreateNotification(Service service, MediaSessionCompat mediaSession)
     {
-        var context = service.ApplicationContext ?? Application.Context;
+        var context = service.ApplicationContext ?? Application.Context ?? throw new InvalidOperationException("Context cannot be null");
         
         // Create pending intent for notification tap
         var packageName = context.PackageName ?? throw new InvalidOperationException("PackageName cannot be null");
@@ -79,43 +79,51 @@ internal static class AndroidAutoNotificationHelper
             ?? throw new InvalidOperationException("PendingIntent cannot be null");
 
         // Get metadata from MediaSession for notification content
-        var metadata = mediaSession.Controller?.Metadata;
+        var metadata = mediaSession?.Controller?.Metadata;
         var title = metadata?.GetString(MediaMetadataCompat.MetadataKeyTitle) ?? "Bible Alarm";
         var artist = metadata?.GetString(MediaMetadataCompat.MetadataKeyArtist) ?? "Ready to play";
         var artwork = metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
 
-        var builder = new NotificationCompat.Builder(context, AndroidAutoChannelId)
-            .SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play)
-            .SetContentTitle(title)
-            .SetContentText(artist)
-            .SetContentIntent(pendingIntent)
-            .SetAutoCancel(false) // Sticky notification
-            .SetOngoing(true) // Makes it sticky/ongoing
-            .SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate)
-            .SetVisibility(NotificationCompat.VisibilityPublic)
-            .SetPriority(NotificationCompat.PriorityLow) // Low priority when idle
-            .SetShowWhen(false)
-            .SetOnlyAlertOnce(true);
+        // Create notification builder - context is guaranteed non-null at this point
+        // Split the fluent API chain to avoid compiler warnings
+        var builder = new NotificationCompat.Builder(context!, AndroidAutoChannelId);
+        builder.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
+        builder.SetContentTitle(title);
+        builder.SetContentText(artist);
+        builder.SetContentIntent(pendingIntent);
+        builder.SetAutoCancel(false); // Sticky notification
+        builder.SetOngoing(true); // Makes it sticky/ongoing
+        builder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
+        builder.SetVisibility(NotificationCompat.VisibilityPublic);
+        builder.SetPriority(NotificationCompat.PriorityLow); // Low priority when idle
+        builder.SetShowWhen(false);
+        builder.SetOnlyAlertOnce(true);
 
         // Create play action button that triggers MediaSession.OnPlay()
         var playIntent = AndroidX.Media.Session.MediaButtonReceiver.BuildMediaButtonPendingIntent(
-            context,
+            context!,
             PlaybackStateCompat.ActionPlay);
         
-        var playIcon = IconCompat.CreateWithResource(context, ResourceConstant.Drawable.exo_icon_circular_play);
-        var playAction = new NotificationCompat.Action(
-            playIcon,
-            "Play",
-            playIntent);
+        if (playIntent != null)
+        {
+            var playIcon = IconCompat.CreateWithResource(context!, ResourceConstant.Drawable.exo_icon_circular_play);
+            var playAction = new NotificationCompat.Action(
+                playIcon,
+                "Play",
+                playIntent);
 
-        builder.AddAction(playAction);
+            builder.AddAction(playAction);
+        }
 
         // Attach MediaSession for Android Auto integration
-        var mediaStyle = new MediaStyle()
-            .SetMediaSession(mediaSession.SessionToken)
-            .SetShowActionsInCompactView(0); // Show first action (play) in compact view
-        
-        builder.SetStyle(mediaStyle);
+        if (mediaSession?.SessionToken != null)
+        {
+            var mediaStyle = new MediaStyle()
+                .SetMediaSession(mediaSession!.SessionToken)
+                .SetShowActionsInCompactView(0); // Show first action (play) in compact view
+            
+            builder.SetStyle(mediaStyle);
+        }
 
         // Add artwork if available
         if (artwork != null)
@@ -123,6 +131,6 @@ internal static class AndroidAutoNotificationHelper
             builder.SetLargeIcon(artwork);
         }
 
-        return builder.Build();
+        return builder.Build() ?? throw new InvalidOperationException("Failed to build notification");
     }
 }

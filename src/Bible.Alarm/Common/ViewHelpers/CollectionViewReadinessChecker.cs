@@ -26,7 +26,7 @@ internal static class CollectionViewReadinessChecker
         // Ensure the item exists in the source before proceeding
         // If ObservableCollection was just updated, the native platform might not have realized the last item exists yet
         var items = collectionView.ItemsSource?.Cast<object>().ToList();
-        if (items == null || !ItemExistsInSource(collectionView.ItemsSource, item))
+        if (items == null || !ItemExistsInSource(collectionView.ItemsSource!, item))
         {
             // Give the renderer one frame to catch up with the data change
             await Task.Yield();
@@ -99,7 +99,7 @@ internal static class CollectionViewReadinessChecker
 
     private static async Task<bool> CheckOtherPlatformsReady(MauiCollectionView collectionView, CancellationToken cancellationToken)
     {
-        if (collectionView.Handler.PlatformView != null)
+        if (collectionView.Handler?.PlatformView != null)
         {
             await Task.Delay(200, cancellationToken);
             return true;

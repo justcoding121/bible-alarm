@@ -150,7 +150,7 @@ public static class MainActivityFragmentStateHelper
         // This prevents the black screen by ensuring proper activity transition
         try
         {
-            var handler = new Handler(Looper.MainLooper);
+            var handler = new Handler(Looper.MainLooper ?? throw new InvalidOperationException("MainLooper cannot be null"));
             handler.Post(() =>
             {
                 try

@@ -85,7 +85,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Initialize helper classes
         stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher, logger);
-        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger, () => propertyManager.MusicSelectionContainerViewModel);
+        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger, () => propertyManager?.MusicSelectionContainerViewModel);
         propertyManager = new SchedulePropertyManager(state, logger);
         containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(dispatcher);

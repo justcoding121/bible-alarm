@@ -16,7 +16,6 @@ namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
 /// Handles track selection logic for TrackSelectionViewModel.
 /// </summary>
 public sealed class TrackSelectionHandler(
-    ILogger logger,
     IDispatcher dispatcher,
     IState<ApplicationState> state,
     IMapper mapper,

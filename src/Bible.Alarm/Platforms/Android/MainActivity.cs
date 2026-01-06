@@ -93,13 +93,13 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnResume()
     {
         base.OnResume();
-        backgroundTaskHelper.UpdateResumeTime();
+        backgroundTaskHelper?.UpdateResumeTime();
     }
 
     protected override void OnPause()
     {
         base.OnPause();
-        backgroundTaskHelper.ClearResumeTime();
+        backgroundTaskHelper?.ClearResumeTime();
     }
 
     protected override void OnSaveInstanceState(Bundle outState)

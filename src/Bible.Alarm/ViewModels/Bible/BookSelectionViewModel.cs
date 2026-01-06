@@ -177,7 +177,8 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Always read the latest state when initializing
-        RefreshFromState();
+        // Fire-and-forget: initialization happens asynchronously, errors are handled within RefreshFromState
+        _ = RefreshFromState();
     }
 
     /// <summary>

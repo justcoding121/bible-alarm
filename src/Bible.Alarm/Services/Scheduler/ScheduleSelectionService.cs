@@ -3,11 +3,10 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Serilog;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-public sealed class ScheduleSelectionService(ILogger logger)
+public sealed class ScheduleSelectionService
     : IScheduleSelectionService, IDisposable
 {
     private bool isDisposed;

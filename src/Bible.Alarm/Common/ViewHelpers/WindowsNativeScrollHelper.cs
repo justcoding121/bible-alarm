@@ -133,7 +133,7 @@ internal static class WindowsNativeScrollHelper
     /// </summary>
     public static async Task<bool> CheckWindowsReady(MauiCollectionView collectionView, CancellationToken cancellationToken)
     {
-        if (collectionView.Handler.PlatformView is FrameworkElement frameworkElement && frameworkElement.IsLoaded)
+        if (collectionView.Handler?.PlatformView is FrameworkElement frameworkElement && frameworkElement.IsLoaded)
         {
             await Task.Delay(300, cancellationToken);
             return true;
