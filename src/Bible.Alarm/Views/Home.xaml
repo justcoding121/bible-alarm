@@ -44,7 +44,7 @@
                     BackgroundColor="{StaticResource PrimaryColor}"
                     CornerRadius="12"
                     Command="{Binding AddScheduleCommand}"
-                    IsEnabled="{Binding Loaded}"
+                    IsEnabled="{Binding IsBootstrapReady}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="20"
                     HorizontalOptions="Fill"
@@ -60,6 +60,16 @@
                                 Radius="4" 
                                 Opacity="0.3" />
                     </Button.Shadow>
+                    <Button.Triggers>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                            <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+                        </Trigger>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                            <Setter Property="Opacity" Value="1.0" />
+                            <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+                        </Trigger>
+                    </Button.Triggers>
                 </Button>
             </Grid>
             <!-- Progress bar for schedule loading -->

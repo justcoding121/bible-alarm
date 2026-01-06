@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -50,6 +51,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly PropertyManager propertyManager;
     private readonly CommandHandler commandHandler;
     private readonly HomeStateChangeHandler stateChangeHandler;
+    private readonly BootstrapReadyManager bootstrapReadyManager;
 
     public HomeViewModel(
         ILogger logger,
@@ -85,6 +87,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);
         propertyManager = new PropertyManager();
+        bootstrapReadyManager = new BootstrapReadyManager(logger);
 
         // Setup progress bar manager events
         progressBarManager.ProgressBarOpacityChanged += (opacity) =>
@@ -108,6 +111,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         {
             OnPropertyChanged(nameof(Schedules));
             progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
+            // Check if schedules are loaded (indicates bootstrap is complete)
+            bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
         };
         propertyManager.IsBusyChanged += (isBusy) =>
         {
@@ -117,6 +122,14 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         propertyManager.LoadedChanged += (loaded) =>
         {
             OnPropertyChanged(nameof(Loaded));
+            // Check bootstrap when loaded changes
+            bootstrapReadyManager.UpdateBootstrapReadyState();
+        };
+
+        // Setup bootstrap ready manager events
+        bootstrapReadyManager.BootstrapReadyChanged += (isReady) =>
+        {
+            OnPropertyChanged(nameof(IsBootstrapReady));
         };
 
         // Initialize command handler
@@ -150,6 +163,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         // Ensure progress bar visibility is updated on initial load
         progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
+
+        // Start tracking bootstrap ready state
+        bootstrapReadyManager.StartTracking();
     }
 
 
@@ -195,6 +211,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     public bool IsBootstrapComplete => Common.Helpers.BootstrapHelper.IsBootstrapCompleted();
 
     /// <summary>
+    /// Indicates if bootstrap is complete and the add button should be enabled.
+    /// This property updates automatically when bootstrap completes.
+    /// </summary>
+    public bool IsBootstrapReady => bootstrapReadyManager.IsBootstrapReady;
+
+    /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
     /// </summary>
     public void HideSchedulePageOverlay() => dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
@@ -219,10 +241,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         });
     }
 
-
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
+        bootstrapReadyManager.Dispose();
         progressBarManager.Dispose();
         scheduleViewModelManager.DisposeAll();
     }

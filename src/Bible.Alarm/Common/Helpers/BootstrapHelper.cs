@@ -169,6 +169,34 @@ public static class BootstrapHelper
         return false;
     }
 
+    /// <summary>
+    /// Marks bootstrap as completed. This should be called when bootstrap completes,
+    /// regardless of which bootstrap path was taken (BootstrapOrchestrator or InitializePlatformBootstrap).
+    /// </summary>
+    internal static void MarkBootstrapCompleted()
+    {
+        if (!bootstrapCompleted)
+        {
+            bootstrapCompleted = true;
+            Log.Logger.Information("Bootstrap marked as completed via MarkBootstrapCompleted");
+            
+            // Signal waiting tasks that bootstrap is complete
+            lock (bootstrapWaitLock)
+            {
+                if (bootstrapCompletionSource == null)
+                {
+                    // Create a completed source for future callers
+                    bootstrapCompletionSource = new TaskCompletionSource<bool>();
+                    bootstrapCompletionSource.TrySetResult(true);
+                }
+                else if (!bootstrapCompletionSource.Task.IsCompleted)
+                {
+                    bootstrapCompletionSource.TrySetResult(true);
+                }
+            }
+        }
+    }
+
     private static bool TryAcquireBootstrapLock(bool isForeground, IServiceProvider services)
     {
         // Try to acquire lock without blocking (using Monitor.TryEnter)

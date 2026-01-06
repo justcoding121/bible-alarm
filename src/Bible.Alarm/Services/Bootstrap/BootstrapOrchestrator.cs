@@ -111,6 +111,11 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     await scheduleBootstrapService.InitializeAsync();
                 });
                 servicesVerified = true;
+                
+                // Set bootstrap completion flag so IsBootstrapCompleted() works correctly
+                // This ensures the flag is set regardless of which bootstrap path is taken
+                BootstrapHelper.MarkBootstrapCompleted();
+                
 #if DEBUG
                 var dbOpsElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbOpsStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                 Log.Logger.Information("[BOOTSTRAP] Database and IO operations completed in {ElapsedMs:F2}ms", dbOpsElapsed);
