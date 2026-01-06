@@ -40,6 +40,17 @@ public sealed class AndroidAlarmHandler(
             return;
         }
 
+        // When tap is disabled (NotificationEnabled=false) and alarm triggers:
+        // - Do NOT show regular notification
+        // - Keep the foreground service notification (already shown by OnAlarmTriggered, without sound)
+        // - Continue to playback
+        if (isAlarm && !schedule.NotificationEnabled)
+        {
+            // Tap disabled: foreground service notification is already shown (without sound)
+            // No need to show regular notification - just continue to playback
+            logger.Information("Alarm triggered for schedule {ScheduleId} with tap disabled - using foreground service notification (no sound)", scheduleId);
+        }
+
         // When user taps notification (isAlarm=false) or manual playback request:
         // - Always start playback immediately (user-initiated playback)
         // - NotificationEnabled flag only applies to alarm triggers, not user-initiated playback
@@ -51,11 +62,6 @@ public sealed class AndroidAlarmHandler(
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
             logger.Information("User-initiated playback for schedule {ScheduleId} (NotificationEnabled=true but user requested playback)", scheduleId);
             // Continue to playback (don't return here)
-        }
-        else if (schedule.NotificationEnabled)
-        {
-            // Remove notification if it exists (for non-user-initiated cases)
-            AndroidNotificationService.RemoveLocalNotification(schedule.Id);
         }
 
         // MediaManager removed - using MediaElement instead

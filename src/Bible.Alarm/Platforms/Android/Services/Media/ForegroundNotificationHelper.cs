@@ -30,7 +30,7 @@ internal static class ForegroundNotificationHelper
     private static readonly ILogger logger = Log.ForContext(typeof(ForegroundNotificationHelper));
     private const int ForegroundNotificationId = 2; // MediaElement uses 1, so we use 2
     private const string ForegroundChannelId = "foreground_service_channel";
-    private const string ForegroundChannelName = "Foreground Service";
+    private const string ForegroundChannelName = "Media Playback";
 
     public static int NotificationId => ForegroundNotificationId;
 
@@ -48,10 +48,14 @@ internal static class ForegroundNotificationHelper
                         ForegroundChannelName,
                         NotificationImportance.Low); // Low priority when idle
                     
-                    channel.Description = "Foreground service notifications for media playback";
+                    channel.Description = "Notifications shown during Bible reading and music playback";
                     channel.SetShowBadge(false);
                     channel.EnableLights(false);
                     channel.EnableVibration(false);
+                    
+                    // Explicitly set no sound for foreground service notifications (silent)
+                    // This ensures alarm foreground notifications don't play sound when tap is disabled
+                    channel.SetSound(null, null);
                     
                     notificationManager.CreateNotificationChannel(channel);
                     logger.Debug("Created notification channel: {ChannelId}", ForegroundChannelId);
@@ -128,6 +132,14 @@ internal static class ForegroundNotificationHelper
         builder.SetPriority(NotificationCompat.PriorityLow); // Low priority when idle
         builder.SetShowWhen(false);
         builder.SetOnlyAlertOnce(true);
+        
+        // Explicitly disable sound for foreground service notifications (silent)
+        // For Android O+, channel sound settings apply, but for pre-O we need to set it here
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
+        {
+            builder.SetSound(null);
+            builder.SetDefaults(0); // No default sounds, lights, or vibrations
+        }
 
         // Create play action button that triggers MediaSession.OnPlay()
         var playIntent = AndroidX.Media.Session.MediaButtonReceiver.BuildMediaButtonPendingIntent(

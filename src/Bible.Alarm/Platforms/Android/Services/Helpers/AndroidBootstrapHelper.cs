@@ -101,8 +101,8 @@ public class AndroidBootstrapHelper
             return;
         }
 
-        var channelId = AndroidNotificationService.ChannelIdAndName;
-        var channelName = AndroidNotificationService.ChannelIdAndName;
+        var channelId = AndroidNotificationService.ChannelId;
+        var channelName = AndroidNotificationService.ChannelName;
         var channelDescription = AndroidNotificationService.ChannelDescription;
 
         var channel = new NotificationChannel(channelId, channelName, NotificationImportance.High)
@@ -115,7 +115,8 @@ public class AndroidBootstrapHelper
             ?.SetContentType(AudioContentType.Sonification)
             ?.Build();
 
-        // Use default notification sound for tap-to-play notifications
+        // Use default notification sound (short message tone/alert) for tap-to-play notifications
+        // This ensures a short alert sound instead of a long ringtone when tap is enabled
         var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
 
         channel.Description = AndroidNotificationService.ChannelDescription;

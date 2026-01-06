@@ -163,7 +163,8 @@ sealed class MediaControlsService : Service
 
     static void CreateNotificationChannel(in NotificationManager notificationMnaManager)
     {
-        var channel = new NotificationChannel("1", "1", NotificationImportance.Low);
+        var channel = new NotificationChannel("1", "Now Playing", NotificationImportance.Low);
+        channel.Description = "Shows currently playing Bible reading or music";
         notificationMnaManager.CreateNotificationChannel(channel);
     }
 

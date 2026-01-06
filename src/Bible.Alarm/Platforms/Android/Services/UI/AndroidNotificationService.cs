@@ -23,8 +23,9 @@ namespace Bible.Alarm.Platforms.Android.Services.UI;
 
 public sealed class AndroidNotificationService(ILogger logger) : INotificationService
 {
-    public static readonly string ChannelIdAndName = "alarm_notification";
-    public static readonly string ChannelDescription = "alarm_notification are send to this channel";
+    public static readonly string ChannelId = "alarm_notification";
+    public static readonly string ChannelName = "Alarm Notifications";
+    public static readonly string ChannelDescription = "Notifications for alarms that require you to tap to start playback";
     public static readonly string ScheduleId = "schedule_id";
 
 
@@ -105,7 +106,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         var bitmap = DrawableToBitmap(drawable);
 
         // Build the notification:
-        var builder = new NotificationCompat.Builder(AndroidApplication.Context, ChannelIdAndName)
+        var builder = new NotificationCompat.Builder(AndroidApplication.Context, ChannelId)
             .SetAutoCancel(true)
             .SetContentIntent(resultPendingIntent)
             .SetContentTitle(title)
@@ -113,13 +114,17 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
             .SetLargeIcon(bitmap)
             .SetContentText(body);
 
+        // Use default notification sound (short message tone/alert) for tap-enabled alarms
+        // This ensures a short alert sound instead of a long ringtone
+        var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
         if (Build.VERSION.SdkInt < BuildVersionCodes.O)
         {
-            // Use default notification sound
-            var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
+            // For pre-O Android, explicitly set the notification sound
             builder.SetSound(soundUri);
             builder.SetDefaults(0);
         }
+        // For Android O+, the channel sound is used automatically, which is already configured
+        // with RingtoneType.Notification in AndroidBootstrapHelper.CreateNotificationChannel()
 
         notificationManagerCompat.Notify(scheduleId, builder.Build());
     }
